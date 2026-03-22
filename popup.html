@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    :root {
+      --bg-0: #0d0f14;
+      --bg-1: #13161d;
+      --bg-2: #1a1e28;
+      --bg-3: #222738;
+      --border: rgba(255,255,255,0.07);
+      --border-bright: rgba(255,255,255,0.14);
+      --accent: #f5a623;
+      --accent-dim: rgba(245,166,35,0.12);
+      --accent-green: #22c77a;
+      --accent-green-dim: rgba(34,199,122,0.1);
+      --accent-blue: #4a9eff;
+      --accent-blue-dim: rgba(74,158,255,0.1);
+      --accent-purple: #9b6dff;
+      --accent-red: #ff5b5b;
+      --text-1: #f0f2f6;
+      --text-2: #8b93a7;
+      --text-3: #535a6e;
+      --radius: 6px;
+      --radius-lg: 10px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 100%;
+      min-width: 0;
+      max-width: 100%;
+      background: var(--bg-0);
+      color: var(--text-1);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 12px;
+      overflow-x: hidden;
+    }
+    /* ── Header ── */
+    .header {
+      background: var(--bg-1);
+      border-bottom: 1px solid var(--border);
+      padding: 6px 8px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .header-left { display: flex; align-items: center; gap: 7px; }
+    .logo {
+      width: 24px; height: 24px; background: var(--accent);
+      border-radius: 5px; display: flex; align-items: center;
+      justify-content: center; font-size: 10px; font-weight: 800; color: #000;
+    }
+    .header-title { font-weight: 700; font-size: 13px; color: var(--text-1); }
+    .header-sub   { font-size: 9px; color: var(--text-3); margin-top: 1px; }
+    .header-right { display: flex; align-items: center; gap: 6px; }
+    .status-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--text-3); transition: background 0.3s;
+    }
+    .status-dot.active { background: var(--accent-green); box-shadow: 0 0 6px var(--accent-green); }
+    .store-badge {
+      font-size: 9px; font-weight: 600; padding: 2px 7px; border-radius: 20px;
+      background: var(--bg-3); border: 1px solid var(--border); color: var(--text-3);
+      max-width: 140px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      transition: all 0.2s; flex-shrink: 1;
+    }
+    .store-badge.detected { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+    /* ── API Key warning ── */
+    .key-warning {
+      background: rgba(255,91,91,0.12); border: 1px solid rgba(255,91,91,0.3);
+      border-radius: var(--radius); padding: 7px 10px; margin: 10px 11px 0;
+      font-size: 10px; color: var(--accent-red); line-height: 1.5;
+      display: none;
+    }
+    .key-warning.visible { display: block; }
+    .key-warning strong { font-weight: 700; }
+    /* ── Body ── */
+    .body { padding: 7px 8px; display: flex; flex-direction: column; gap: 6px; }
+    .section-label {
+      font-size: 9px; font-weight: 600; letter-spacing: 0.08em;
+      color: var(--text-3); text-transform: uppercase; margin-bottom: 3px;
+    }
+    .grab-row { display: flex; gap: 5px; }
+    .btn-grab {
+      background: var(--accent-dim); border: 1px solid var(--accent);
+      color: var(--accent); border-radius: var(--radius);
+      padding: 6px 10px; font-size: 11px; font-weight: 700;
+      cursor: pointer; letter-spacing: 0.06em; white-space: nowrap; transition: background 0.15s;
+    }
+    .btn-grab:hover { background: rgba(245,166,35,0.22); }
+    .btn-grab:active { opacity: 0.8; }
+    .crm-status {
+      flex: 1; background: var(--bg-2); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 6px 9px; font-size: 10px; color: var(--text-3);
+      display: flex; align-items: center;
+    }
+    .crm-status.found   { color: var(--accent-green); border-color: rgba(34,199,122,0.25); background: var(--accent-green-dim); }
+    .crm-status.error   { color: var(--accent-red);   border-color: rgba(255,91,91,0.2); }
+    .crm-status.scanning { color: var(--accent); }
+    /* ── Fields ── */
+    .fields-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+    .field-group { display: flex; flex-direction: column; gap: 3px; }
+    .field-group.full { grid-column: 1 / -1; }
+    .field-label { font-size: 9px; color: var(--text-3); }
+    .field-input {
+      background: var(--bg-2); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 5px 8px; color: var(--text-1);
+      font-size: 11px; width: 100%; transition: border-color 0.15s;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .field-input:focus { outline: none; border-color: var(--border-bright); }
+    .field-input::placeholder { color: var(--text-3); }
+    .field-input.populated { border-color: rgba(34,199,122,0.3); }
+    /* ── Divider ── */
+    .divider { height: 1px; background: var(--border); margin: 0 -11px; }
+    /* ── Flags ── */
+    .flags-row { display: flex; flex-wrap: wrap; gap: 4px; }
+    .flag-toggle {
+      background: var(--bg-2); border: 1px solid var(--border);
+      color: var(--text-2); border-radius: var(--radius);
+      padding: 3px 7px; font-size: 10px; cursor: pointer; transition: all 0.15s;
+    }
+    .flag-toggle:hover { border-color: var(--border-bright); color: var(--text-1); }
+    .flag-toggle.on { border-color: var(--accent-blue); background: var(--accent-blue-dim); color: var(--accent-blue); }
+    /* ── Generate button ── */
+    .btn-generate {
+      width: 100%; border: none; cursor: pointer; border-radius: var(--radius);
+      padding: 10px; font-size: 12px; font-weight: 700; letter-spacing: 0.04em;
+      background: linear-gradient(135deg, var(--accent-green) 0%, #1aab68 100%);
+      color: #000; transition: opacity 0.15s, transform 0.1s;
+      display: flex; align-items: center; justify-content: center; gap: 7px;
+    }
+    .btn-generate:hover { opacity: 0.88; }
+    .btn-generate:active { transform: scale(0.98); }
+    .btn-generate:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+    .btn-generate .spinner {
+      display: none; width: 13px; height: 13px;
+      border: 2px solid rgba(0,0,0,0.3); border-top-color: #000;
+      border-radius: 50%; animation: spin 0.7s linear infinite;
+    }
+    .btn-generate.loading .spinner { display: block; }
+    .btn-generate.loading .btn-label { opacity: 0.7; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    /* ── Output tabs ── */
+    .output-section { display: flex; flex-direction: column; gap: 0; }
+    .tab-bar {
+      display: flex; background: var(--bg-1);
+      border: 1px solid var(--border); border-bottom: none;
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0; overflow: hidden;
+    }
+    .tab-btn {
+      flex: 1; padding: 6px 2px; background: none; border: none;
+      color: var(--text-3); font-size: 10px; font-weight: 600;
+      cursor: pointer; letter-spacing: 0.04em; transition: all 0.15s;
+      border-right: 1px solid var(--border); position: relative;
+    }
+    .tab-btn:last-child { border-right: none; }
+    .tab-btn:hover { color: var(--text-1); background: var(--bg-2); }
+    .tab-btn.active { color: var(--text-1); background: var(--bg-2); }
+    .tab-btn.active::after {
+      content: ''; position: absolute; bottom: 0; left: 10%; right: 10%;
+      height: 2px; border-radius: 2px 2px 0 0;
+    }
+    .tab-btn.sms.active::after   { background: var(--accent-green); }
+    .tab-btn.email.active::after { background: var(--accent-blue); }
+    .tab-btn.vm.active::after    { background: var(--accent-purple); }
+    .tab-btn .tab-ready {
+      display: inline-block; width: 5px; height: 5px; border-radius: 50%;
+      margin-left: 4px; background: var(--text-3); vertical-align: middle;
+      transition: background 0.2s;
+    }
+    .tab-btn.ready-sms   .tab-ready { background: var(--accent-green); }
+    .tab-btn.ready-email .tab-ready { background: var(--accent-blue); }
+    .tab-btn.ready-vm    .tab-ready { background: var(--accent-purple); }
+    .tab-pane {
+      display: none; background: var(--bg-1);
+      border: 1px solid var(--border); border-top: none;
+      border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+    }
+    .tab-pane.active { display: flex; flex-direction: column; }
+    .pane-header {
+      padding: 5px 10px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .pane-label { font-size: 9px; font-weight: 700; letter-spacing: 0.08em; color: var(--text-3); }
+    .btn-copy {
+      background: var(--bg-3); border: 1px solid var(--border);
+      color: var(--text-2); border-radius: var(--radius);
+      padding: 2px 8px; font-size: 10px; cursor: pointer; transition: all 0.15s;
+    }
+    .btn-copy:hover { color: var(--text-1); border-color: var(--border-bright); }
+    .btn-copy.copied { background: var(--accent-green-dim); color: var(--accent-green); border-color: rgba(34,199,122,0.3); }
+    .output-field {
+      width: 100%; min-height: 220px; max-height: 420px;
+      background: transparent; border: none; padding: 9px 11px;
+      color: var(--text-1); font-size: 11px; line-height: 1.6;
+      resize: vertical; font-family: inherit; word-wrap: break-word; white-space: pre-wrap;
+    }
+    .output-field:focus { outline: none; }
+    .output-field::placeholder { color: var(--text-3); }
+    .output-field.generating { opacity: 0.5; }
+    /* ── Footer ── */
+    .footer {
+      background: var(--bg-1); border-top: 1px solid var(--border);
+      padding: 5px 11px; display: flex; justify-content: space-between; align-items: center;
+    }
+    .footer-word-count { font-size: 10px; color: var(--text-3); }
+    .btn-clear {
+      background: none; border: 1px solid var(--border); color: var(--text-3);
+      border-radius: var(--radius); padding: 3px 8px; font-size: 10px;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .btn-clear:hover { color: var(--text-1); border-color: var(--border-bright); }
+    .btn-translate {
+      background: none; border: 1px solid var(--border); color: var(--text-3);
+      border-radius: var(--radius); padding: 3px 8px; font-size: 10px;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .btn-translate:hover { color: var(--text-1); border-color: var(--border-bright); }
+    .btn-translate.translating { opacity: 0.5; cursor: wait; }
+    /* ── Floating popup mode (narrow window) ── */
+    body.popup-mode {
+      width: 380px;
+      min-width: 380px;
+    }
+    body.popup-mode .output-field {
+      min-height: 160px;
+      max-height: 260px;
+    }
+    /* ── Side panel mode (full width) ── */
+    body.sidepanel-mode {
+      width: 100%;
+      min-width: 0;
+    }
+    body.sidepanel-mode .output-field {
+      min-height: 220px;
+      max-height: 420px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-left">
+      <div class="logo">LP</div>
+      <div>
+        <div class="header-title">Lead Pro</div>
+        <div class="header-sub">BDC Response Engine</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <button id="btnSidePanel" title="Pin this panel to keep it open while switching windows" style="background:#1a6b3a;border:1px solid #22c55e;color:#22c55e;border-radius:var(--radius);padding:3px 9px;font-size:10px;cursor:pointer;font-weight:500;letter-spacing:0.02em;">⇥ Pin</button>
+      <div class="store-badge" id="storeBadge">Detecting store…</div>
+      <div class="status-dot" id="statusDot"></div>
+    </div>
+  </div>
+  <!-- API key missing warning -->
+  <div class="key-warning" id="keyWarning">
+    <strong>⚠ API key not configured.</strong> Copy <code>config.example.js</code> to <code>config.js</code> and add your key, then reload the extension.
+  </div>
+  <div class="body">
+    <!-- CRM Data -->
+    <div>
+      <div class="section-label">CRM Data</div>
+      <div class="grab-row">
+        <button class="btn-grab" id="btnGrab">⚡ GRAB LEAD</button>
+        <div class="crm-status" id="crmStatus">Open a VinSolutions lead to auto-fill.</div>
+      </div>
+    </div>
+    <!-- Fields -->
+    <div class="fields-grid">
+      <div class="field-group">
+        <div class="field-label">Customer Name</div>
+        <input class="field-input" type="text" id="custName" placeholder="First Last">
+      </div>
+      <div class="field-group">
+        <div class="field-label">BD Agent</div>
+        <input class="field-input" type="text" id="agentName" placeholder="Agent Name">
+      </div>
+      <div class="field-group full">
+        <div class="field-label">Vehicle of Interest</div>
+        <input class="field-input" type="text" id="vehicle" placeholder="Year Make Model Trim">
+      </div>
+      <div class="field-group full">
+        <div class="field-label">Lead Source</div>
+        <input class="field-input" type="text" id="leadSource" placeholder="Auto-detected or type here">
+      </div>
+    </div>
+    <!-- Flags -->
+    <div>
+      <div class="section-label">Context Flags</div>
+      <div class="flags-row">
+        <button class="flag-toggle" data-flag="trade">🔄 Trade-In</button>
+        <button class="flag-toggle" data-flag="price_gate">💲 Price Gate</button>
+        <button class="flag-toggle" data-flag="distance">📍 Distance Buyer</button>
+        <button class="flag-toggle" data-flag="credit">💳 Credit Sensitivity</button>
+        <button class="flag-toggle" data-flag="loyalty">⭐ Loyalty / Lease-End</button>
+        <button class="flag-toggle" data-flag="stalled">🔇 Stalled Lead</button>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <!-- Single Generate button -->
+    <div>
+      <div class="section-label">Generate All Responses</div>
+      <button class="btn-generate" id="btnGenerate" disabled>
+        <div class="spinner"></div>
+        <span class="btn-label">✦ Generate SMS · Email · Voicemail</span>
+      </button>
+    </div>
+    <!-- Tabbed output -->
+    <div class="output-section">
+      <div class="tab-bar">
+        <button class="tab-btn sms active" data-tab="sms">
+          💬 SMS <span class="tab-ready"></span>
+        </button>
+        <button class="tab-btn email" data-tab="email">
+          📧 Email <span class="tab-ready"></span>
+        </button>
+        <button class="tab-btn vm" data-tab="vm">
+          📞 Voicemail <span class="tab-ready"></span>
+        </button>
+      </div>
+      <div class="tab-pane active" id="pane-sms">
+        <div class="pane-header">
+          <span class="pane-label" style="color:var(--accent-green)">SMS</span>
+          <button class="btn-copy" data-pane="sms">Copy</button>
+        </div>
+        <textarea class="output-field" id="output-sms" placeholder="SMS will appear here after generating…" readonly></textarea>
+      </div>
+      <div class="tab-pane" id="pane-email">
+        <div class="pane-header">
+          <span class="pane-label" style="color:var(--accent-blue)">EMAIL</span>
+          <button class="btn-copy" data-pane="email">Copy</button>
+        </div>
+        <textarea class="output-field" id="output-email" placeholder="Email will appear here after generating…" readonly></textarea>
+      </div>
+      <div class="tab-pane" id="pane-vm">
+        <div class="pane-header">
+          <span class="pane-label" style="color:var(--accent-purple)">VOICEMAIL</span>
+          <button class="btn-copy" data-pane="vm">Copy</button>
+        </div>
+        <textarea class="output-field" id="output-vm" placeholder="Voicemail script will appear here after generating…" readonly></textarea>
+      </div>
+    </div>
+  </div>
+  <div class="footer">
+    <div class="footer-word-count" id="wordCount">—</div>
+    <button class="btn-translate" id="btnTranslate" title="Translate SMS & Email to Spanish">🇲🇽 Español</button>
+    <button class="btn-clear" id="btnClear">Clear All</button>
+  </div>
+  <!-- config.js MUST load before popup.js — contains LEADPRO_API_KEY -->
+  <script src="config.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
