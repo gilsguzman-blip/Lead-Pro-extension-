@@ -6,6 +6,7 @@
 // Deploy to Cloudflare Workers (free tier).
 // Set the GEMINI_API_KEY environment variable as a Secret (not plain text).
 // ─────────────────────────────────────────────────────────────────
+
 const GEMINI_MODEL = 'gemini-3-flash-preview';
 const GEMINI_URL   = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
@@ -21,6 +22,7 @@ const ALLOWED_ORIGINS = [
 
 export default {
   async fetch(request, env) {
+
     // ── CORS preflight ─────────────────────────────────────────────
     if (request.method === 'OPTIONS') {
       return corsResponse(null, 204, env);

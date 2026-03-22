@@ -3,24 +3,33 @@
 // Calls either a proxy server (recommended for team use) OR
 // the Gemini API directly. Both configured in config.js.
 // ─────────────────────────────────────────────────────────────────
+
 // ── Config validation ─────────────────────────────────────────────
+// config.js must define ONE of:
+//   const LEADPRO_PROXY_URL = 'https://your-worker.workers.dev';  ← team/production
+//   const LEADPRO_API_KEY   = 'your-gemini-key';                  ← direct/fallback
 function getEndpoint() {
+  // Proxy mode (preferred — key never leaves the server)
   if (typeof LEADPRO_PROXY_URL !== 'undefined' && LEADPRO_PROXY_URL && !LEADPRO_PROXY_URL.includes('YOUR_PROXY')) {
     return { type: 'proxy', url: LEADPRO_PROXY_URL };
   }
+  // Direct mode (key in config.js — acceptable for single user)
   if (typeof LEADPRO_API_KEY !== 'undefined' && LEADPRO_API_KEY && LEADPRO_API_KEY !== 'YOUR_API_KEY_HERE') {
     return { type: 'direct', url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=' + LEADPRO_API_KEY };
   }
   return null;
 }
+
 // ── State ─────────────────────────────────────────────────────────
 let selectedStore     = '';
 let activeFlags       = new Set();
 let leadContext       = '';
 let leadSalesRep      = '';
-let leadConvState     = 'first-touch';
-let lastScrapedData   = null;
+let leadConvState     = 'first-touch'; // tracks conversation state for classifyScenario
+let lastScrapedData   = null;          // stores latest scraped lead data for prompt building
+
 // ── DealerID map ──────────────────────────────────────────────────
+// Sourced directly from eccs/index.html?dealerId= URL parameter
 const DEALER_ID_MAP = {
   '6189':  'Community Toyota Baytown',
   '6190':  'Community Kia Baytown',
@@ -28,6 +37,7 @@ const DEALER_ID_MAP = {
   '24399': 'Community Honda Lafayette',
   '21135': 'Audi Lafayette'
 };
+
 // ── Store resolver ────────────────────────────────────────────────
 function resolveStore(text) {
   const t = (text || '').toLowerCase();
@@ -36,11 +46,13 @@ function resolveStore(text) {
   if (t.includes('honda')  && (t.includes('baytown') || t.includes('#619') || t.includes('#618')))  return 'Community Honda Baytown';
   if (t.includes('kia')    && (t.includes('baytown') || t.includes('#619') || t.includes('#618')))  return 'Community Kia Baytown';
   if (t.includes('toyota') && (t.includes('baytown') || t.includes('#619') || t.includes('#618')))  return 'Community Toyota Baytown';
+  // Generic brand fallbacks — only used when no location context
   if (t.includes('honda'))  return 'Community Honda Baytown';
   if (t.includes('kia'))    return 'Community Kia Baytown';
   if (t.includes('toyota')) return 'Community Toyota Baytown';
   return '';
 }
+
 function setStore(name) {
   if (!name) return;
   selectedStore = name;
@@ -48,6 +60,7 @@ function setStore(name) {
   badge.textContent = name;
   badge.classList.add('detected');
 }
+
 // ── Tab switching ─────────────────────────────────────────────────
 function switchTab(tabKey) {
   document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
@@ -58,19 +71,22 @@ function switchTab(tabKey) {
   if (pane) pane.classList.add('active');
   updateWordCount(tabKey);
 }
+
 document.querySelectorAll('.tab-btn').forEach(function(btn) {
   btn.addEventListener('click', function() { switchTab(btn.dataset.tab); });
 });
+
 // ── Word count for active tab ─────────────────────────────────────
 function updateWordCount(tabKey) {
   const activeTab = tabKey || (document.querySelector('.tab-btn.active') || {}).dataset || {tab:'sms'};
   const key = typeof tabKey === 'string' ? tabKey : (document.querySelector('.tab-btn.active') || {dataset:{tab:'sms'}}).dataset.tab;
   const field = document.getElementById('output-' + key);
   const wc    = document.getElementById('wordCount');
-  if (!field || !field.value.trim()) { wc.textContent = '\u2014'; return; }
+  if (!field || !field.value.trim()) { wc.textContent = '—'; return; }
   const words = field.value.trim().split(/\s+/).filter(Boolean).length;
-  wc.textContent = words + ' words \u00b7 ' + field.value.length + ' chars';
+  wc.textContent = words + ' words · ' + field.value.length + ' chars';
 }
+
 // ── Copy buttons ──────────────────────────────────────────────────
 document.querySelectorAll('.btn-copy').forEach(function(btn) {
   btn.addEventListener('click', function() {
@@ -87,7 +103,8 @@ document.querySelectorAll('.btn-copy').forEach(function(btn) {
     });
   });
 });
-// ── Populate form from scraped data ──────────────────────────
+
+// ── Populate form from scraped data ──────────────────────────────
 function populateFromData(d) {
   let filled = 0;
   console.log('[Lead Pro] populateFromData — notes:', d.totalNoteCount, '| brief:', d.conversationBrief ? d.conversationBrief.substring(0,100) : 'NONE', '| convState:', d.convState);
@@ -97,134 +114,170 @@ function populateFromData(d) {
     if (!el) return;
     el.value = value; el.classList.add('populated'); filled++;
   }
+
   fill('custName',   d.name);
   fill('agentName',  d.agent || d.salesRep);
   fill('vehicle',    d.vehicle);
   fill('leadSource', d.leadSource);
+
   leadSalesRep  = d.salesRep  || '';
   leadConvState = d.convState || 'first-touch';
+
+  // Flag missing customer phone — changes message strategy
   const noCustomerPhone = !d.phone || d.phone.length < 7;
+
+  // Follow-up context — conversationBrief now contains the full transcript
   const isFollowUp = !!(d.hasOutbound || d.isContacted || (d.totalNoteCount && d.totalNoteCount > 3));
+
+  // Stage overrides — in priority order
   const extras = [];
+
+  // Sold/Delivered — highest priority
   if (d.isSoldDelivered) {
-    extras.push('\ud83c\udf89 SOLD/DELIVERED \u2014 this customer has purchased and taken delivery. Do NOT send a re-engagement or sales message.');
+    extras.push('🎉 SOLD/DELIVERED — this customer has purchased and taken delivery. Do NOT send a re-engagement or sales message.');
     extras.push('MESSAGE GOAL: Warm congratulations only. Welcome them to the family. Set expectation for follow-up service/ownership experience.');
     extras.push('Tone: celebratory, warm, genuine. 2-3 sentences for SMS. No appointment offer. No vehicle pitch.');
+
+  // Missed appointment — re-engagement to reschedule
   } else if (d.hasMissedAppt) {
     var missedApptTiming = d.missedApptTiming || 'recently';
-    extras.push('\ud83d\udcf5 MISSED APPOINTMENT \u2014 customer did not make it to their scheduled appointment. This is a re-engagement to reschedule.');
-    extras.push('TIMING RULE: Do NOT specify when the appointment was (today/yesterday) \u2014 appointment timing in the CRM can be unreliable. Instead use neutral language: "we missed connecting", "we did not get a chance to meet", "we were expecting you" \u2014 no date reference.');
+    extras.push('📵 MISSED APPOINTMENT — customer did not make it to their scheduled appointment. This is a re-engagement to reschedule.');
+    extras.push('TIMING RULE: Do NOT specify when the appointment was (today/yesterday) — appointment timing in the CRM can be unreliable. Instead use neutral language: "we missed connecting", "we did not get a chance to meet", "we were expecting you" — no date reference.');
     extras.push('MESSAGE GOAL: Acknowledge gently that you missed them. No guilt. Offer to find a new time that works better.');
     extras.push('Tone: warm, understanding, no pressure. Offer two new appointment times.');
+
   } else if (d.hasApptSet) {
-    extras.push('\ud83d\udcc5 APPOINTMENT ALREADY SET \u2014 confirmation/reminder only. No re-pitch. No new times.');
+    extras.push('📅 APPOINTMENT ALREADY SET — confirmation/reminder only. No re-pitch. No new times.');
     if (d.apptDetails) extras.push('Appointment details: ' + d.apptDetails);
+
+  // Showroom visit
   } else if (d.isShowroomFollowUp) {
-    extras.push('\ud83c\udfea SHOWROOM STAGE: Customer has already visited the dealership. Post-visit follow-up only.');
-    extras.push('IMPORTANT: The BD Agent did NOT meet the customer in person \u2014 the Sales Rep did. Do not write "it was great meeting you." Instead reference the visit indirectly: "I heard you stopped by" or "I wanted to follow up on your visit with [Sales Rep name if known]."');
+    extras.push('🏪 SHOWROOM STAGE: Customer has already visited the dealership. Post-visit follow-up only.');
+    extras.push('IMPORTANT: The BD Agent did NOT meet the customer in person — the Sales Rep did. Do not write "it was great meeting you." Instead reference the visit indirectly: "I heard you stopped by" or "I wanted to follow up on your visit with [Sales Rep name if known]."');
     extras.push('No first-touch language. Frame return visit as finalizing, not starting.');
     if (d.showroomDetails) extras.push('Visit notes: ' + d.showroomDetails);
   }
+
+  // The conversation brief IS the follow-up context — it contains the full transcript
+  // and the AI directive. Stage overrides (appointment/showroom) prepend to it.
   const stageOverride = extras.join('\n');
   if (d.conversationBrief) {
     leadContext = (stageOverride ? stageOverride + '\n\n' : '') + d.conversationBrief;
   } else {
     leadContext = stageOverride;
   }
+
+  // Append vehicle/inventory context after the transcript
+  // When appointment/showroom stage is active, suppress inventory signals EXCEPT sold-with-appointment
   const stageActive = !!(d.hasApptSet || d.isShowroomFollowUp || d.isSoldDelivered);
   const vehicleExtras = [];
   if (d.condition)        vehicleExtras.push('Condition: ' + d.condition);
   if (d.color && !d.noSpecificVehicle) vehicleExtras.push('Color: ' + d.color);
-  if (d.color &&  d.noSpecificVehicle) vehicleExtras.push('Customer expressed interest in ' + d.color + ' \u2014 but no specific unit confirmed. Do NOT say we have this color available.');
+  if (d.color &&  d.noSpecificVehicle) vehicleExtras.push('Customer expressed interest in ' + d.color + ' — but no specific unit confirmed. Do NOT say we have this color available.');
   if (d.stockNum)         vehicleExtras.push('Stock #: ' + d.stockNum);
   if (d.vin)              vehicleExtras.push('VIN: ' + d.vin);
-  if (d.noSpecificVehicle && !stageActive) vehicleExtras.push('\u26a0 NO SPECIFIC UNIT: Customer has not selected a specific vehicle \u2014 no stock number or VIN. Qualifying questions required.');
+  if (d.noSpecificVehicle && !stageActive) vehicleExtras.push('⚠ NO SPECIFIC UNIT: Customer has not selected a specific vehicle — no stock number or VIN. Qualifying questions required.');
   if (d.ownedVehicle) vehicleExtras.push('Customer\'s current vehicle (confirmed from service/sales history): ' + d.ownedVehicle
     + (d.ownedMileage ? ' | Mileage: ' + parseInt(d.ownedMileage).toLocaleString() : '')
     + (d.lastServiceDate ? ' | Last serviced: ' + d.lastServiceDate : '')
-    + ' \u2014 USE THIS as the hook for the upgrade conversation when no vehicle of interest is on the lead.'
-    + (d.lastServiceDate && /\/(1[0-9]|20)\b/.test(d.lastServiceDate) ? ' NOTE: Last service was several years ago \u2014 customer may have already changed vehicles. Use the Optima reference cautiously.' : ''));
-  if (d.ampEmailSubject) vehicleExtras.push('AMP marketing email subject sent to customer: "' + d.ampEmailSubject + '" \u2014 use this to understand the campaign angle and tie it to their current vehicle. Do NOT quote the subject directly.');
+    + ' — USE THIS as the hook for the upgrade conversation when no vehicle of interest is on the lead. Example: "Still thinking about upgrading your ' + d.ownedVehicle.replace(/^\d{4}\s+/,'') + '?"'
+    + (d.lastServiceDate && /\/(1[0-9]|20)\b/.test(d.lastServiceDate) ? ' NOTE: Last service was several years ago — customer may have already changed vehicles. Use the Optima reference cautiously.' : ''));
+  if (d.ampEmailSubject) vehicleExtras.push('AMP marketing email subject sent to customer: "' + d.ampEmailSubject + '" — use this to understand the campaign angle (e.g. high-mileage upgrade, new model launch) and tie it to their current vehicle. Do NOT quote the subject directly.');
+  // Sold vehicle: always inject, but when appointment is set, use do-not-disclose framing
   if (d.vehiclePendingSale) {
-    vehicleExtras.push('\u26a0 VEHICLE STATUS: A note indicates this vehicle may be in the process of being sold. Do NOT confirm it is available. Do NOT say it is sold either. Instead use cautious language: "I want to make sure we get you in before it moves" or "I\'m monitoring the status closely for you." Create urgency to come in TODAY.');
+    vehicleExtras.push('⚠ VEHICLE STATUS: A note indicates this vehicle may be in the process of being sold. Do NOT confirm it is available. Do NOT say it is sold either. Instead use cautious language: "I want to make sure we get you in before it moves" or "I\'m monitoring the status closely for you." Create urgency to come in TODAY.');
   } else if (d.inventoryWarning) {
     if (d.hasApptSet) {
-      vehicleExtras.push('\u26a0 VEHICLE STATUS: Vehicle is no longer in active inventory \u2014 DO NOT disclose this to the customer. Keep appointment confirmation neutral. Handle the vehicle conversation in person.');
+      vehicleExtras.push('⚠ VEHICLE STATUS: Vehicle is no longer in active inventory — DO NOT disclose this to the customer. Keep appointment confirmation neutral. Handle the vehicle conversation in person.');
     } else if (!stageActive) {
-      vehicleExtras.push('\ud83d\udd34 VEHICLE STATUS: SOLD \u2014 pivot to comparable options');
+      vehicleExtras.push('🔴 VEHICLE STATUS: SOLD — pivot to comparable options');
     }
   }
-  if (d.isInTransit && !stageActive)      vehicleExtras.push('\ud83d\ude9b VEHICLE STATUS: IN TRANSIT \u2014 lead with the good news');
+  if (d.isInTransit && !stageActive)      vehicleExtras.push('🚛 VEHICLE STATUS: IN TRANSIT — lead with the good news');
   if (d.manager && d.manager !== 'None') vehicleExtras.push('Manager: ' + d.manager);
   if (d.hasTrade) {
     var tradeHook = d.tradeDescription
-      ? '\ud83d\udd04 TRADE-IN: ' + d.tradeDescription
-      : '\ud83d\udd04 TRADE-IN: Customer has a vehicle to trade in (details not specified).';
+      ? '🔄 TRADE-IN: ' + d.tradeDescription
+      : '🔄 TRADE-IN: Customer has a vehicle to trade in (details not specified).';
     vehicleExtras.push(tradeHook);
     vehicleExtras.push('TRADE-IN RULES:');
-    vehicleExtras.push('- The trade is often the DECIDING FACTOR \u2014 customers need to know what their car is worth before they commit to buying.');
+    vehicleExtras.push('- The trade is often the DECIDING FACTOR — customers need to know what their car is worth before they commit to buying.');
     vehicleExtras.push('- Lead with the trade angle in SMS and email: "I want to make sure we get your [trade vehicle] appraised so we can build the right deal for you."');
-    vehicleExtras.push('- If trade details are listed (year/make/model/mileage), reference the specific vehicle \u2014 not a generic "your trade-in."');
-    vehicleExtras.push('- Position the visit as the step where trade value gets confirmed: "We can do a quick appraisal when you come in \u2014 usually takes about 10 minutes."');
+    vehicleExtras.push('- If trade details are listed (year/make/model/mileage), reference the specific vehicle — not a generic "your trade-in."');
+    vehicleExtras.push('- Position the visit as the step where trade value gets confirmed: "We can do a quick appraisal when you come in — usually takes about 10 minutes."');
     vehicleExtras.push('- Never make up a trade value or imply you already know what it is worth.');
   }
-  if (d.buyingSignals) vehicleExtras.push('BUYING SIGNAL DATA: ' + d.buyingSignals + ' \u2014 use these interests to make the message feel personally relevant WITHOUT revealing you have this data.');
-  if (noCustomerPhone) vehicleExtras.push('\ud83d\udcf5 NO CUSTOMER PHONE NUMBER \u2014 SMS and voicemail are not viable. Email is the only channel. Ask for a phone number to connect directly.');
-  if (d.customerSaidNotToday) vehicleExtras.push('\ud83d\udeab NOT TODAY: Customer explicitly said they cannot come in today. Do NOT offer same-day appointment times. Instead ask what day works better for them.');
+  if (d.buyingSignals) vehicleExtras.push('BUYING SIGNAL DATA: ' + d.buyingSignals + ' — use these interests to make the message feel personally relevant WITHOUT revealing you have this data. Match the vehicle/category to their interests naturally.');
+  if (noCustomerPhone) vehicleExtras.push('📵 NO CUSTOMER PHONE NUMBER — SMS and voicemail are not viable. Email is the only channel. Ask for a phone number to connect directly.');
+  if (d.customerSaidNotToday) vehicleExtras.push('🚫 NOT TODAY: Customer explicitly said they cannot come in today. Do NOT offer same-day appointment times. Instead ask what day works better for them.');
   if (d.customerScheduleConstraint) {
     var isShiftWorkerLead = d.customerScheduleConstraint.indexOf('SHIFT_WORKER:') === 0;
     if (isShiftWorkerLead) {
-      vehicleExtras.push('\ud83c\udfe5 SHIFT WORKER / REFINERY SCHEDULE: Customer works shift or hitch schedule (refinery, plant, offshore, rotation). Context: "' + d.customerScheduleConstraint.replace('SHIFT_WORKER: ','') + '"');
+      vehicleExtras.push('🏭 SHIFT WORKER / REFINERY SCHEDULE: Customer works shift or hitch schedule (refinery, plant, offshore, rotation). Context: "' + d.customerScheduleConstraint.replace('SHIFT_WORKER: ','') + '"');
       vehicleExtras.push('SHIFT WORKER RULES:');
-      vehicleExtras.push('- Do NOT offer specific appointment times \u2014 shift workers often cannot commit until they know their rotation.');
+      vehicleExtras.push('- Do NOT offer specific appointment times — shift workers often cannot commit until they know their rotation.');
       vehicleExtras.push('- Instead ASK about their schedule: "What does your schedule look like this week?" or "When are you off next?"');
-      vehicleExtras.push('- Acknowledge the schedule respectfully \u2014 shift workers appreciate that you understand their lifestyle, not a generic 9-5 pitch.');
-      vehicleExtras.push('- Tone: flexible, low-pressure, accommodating. Never make them feel rushed.');
+      vehicleExtras.push('- If they mentioned coming off a hitch or having days off, reference that: "When you come off your hitch, I can have everything ready so your visit is quick."');
+      vehicleExtras.push('- Acknowledge the schedule respectfully — shift workers appreciate that you understand their lifestyle, not a generic 9-5 pitch.');
+      vehicleExtras.push('- If they give a specific day/time window ("I\'m off Thursday"), LOCK onto that and confirm it.');
+      vehicleExtras.push('- Tone: flexible, low-pressure, accommodating. Never make them feel rushed or like they need to fit YOUR schedule.');
     } else {
       if(d.customerScheduleConstraint.indexOf('OUT_OF_TOWN:') === 0) {
         var constraint = d.customerScheduleConstraint.replace('OUT_OF_TOWN: ','');
-        vehicleExtras.push('\u2708\ufe0f CUSTOMER IS OUT OF TOWN: ' + constraint);
+        vehicleExtras.push('✈️ CUSTOMER IS OUT OF TOWN: ' + constraint);
         vehicleExtras.push('- Do NOT offer today or tomorrow as appointment options.');
         vehicleExtras.push('- Schedule AFTER their return date. Reference the trip positively: "Safe travels" or "Hope the trip goes well."');
         vehicleExtras.push('- Close by locking in a time for when they are back: "When you are back, would [day] work to come in?"');
       } else {
-        vehicleExtras.push('\ud83d\udeab SCHEDULE CONSTRAINT: Customer mentioned a recurring availability block: "' + d.customerScheduleConstraint + '". Do NOT offer appointment times that conflict with this.');
+        vehicleExtras.push('🚫 SCHEDULE CONSTRAINT: Customer mentioned a recurring availability block: "' + d.customerScheduleConstraint + '". Do NOT offer appointment times that conflict with this. If they work mornings, offer afternoon/evening only. If uncertain, ASK — do not guess.');
       }
     }
   }
-  if (d.isLiveConversation) vehicleExtras.push('\ud83d\udd25 LIVE CONVERSATION: Customer replied within the last few hours and is actively engaged. This is a HOT lead. Write a response that directly continues the live conversation thread. Same-day close is the priority.');
-  if (d.isRecentOutbound && !d.isLiveConversation) vehicleExtras.push('\ud83d\udce4 RECENT OUTBOUND: Agent sent a message within the last hour. Any times or offers already made in that message must be honored. Prior message: "' + (d.recentOutboundContent||'').substring(0,200) + '"');
+  if (d.isLiveConversation) vehicleExtras.push('🔥 LIVE CONVERSATION: Customer replied within the last few hours and is actively engaged. This is a HOT lead. Write a response that directly continues the live conversation thread. Same-day close is the priority — reference exactly what the customer said and move toward a today appointment.');
+  if (d.isRecentOutbound && !d.isLiveConversation) vehicleExtras.push('📤 RECENT OUTBOUND: Agent sent a message within the last hour. Any times or offers already made in that message must be honored — do NOT contradict them with different times. If the prior message offered same-day times, continue that thread. Prior message: "' + (d.recentOutboundContent||'').substring(0,200) + '"');
   if (vehicleExtras.length) leadContext += '\n\nVEHICLE/LEAD DETAILS:\n' + vehicleExtras.join('\n');
+
+  // Stalled flag — cold follow-ups with outbound history but no confirmed contact
+  // A live conversation (customer replied today) is never stalled — active engagement beats all stall signals
   const isStalled = isFollowUp && !d.isContacted && !d.hasApptSet && !d.isShowroomFollowUp && !d.isLiveConversation;
-  console.log('[Lead Pro] Stalled check \u2014 isFollowUp:', isFollowUp, '| isContacted:', d.isContacted, '| hasApptSet:', d.hasApptSet, '| isShowroomFollowUp:', d.isShowroomFollowUp, '| STALLED:', isStalled);
+  console.log('[Lead Pro] Stalled check — isFollowUp:', isFollowUp, '| isContacted:', d.isContacted, '| contactedAgeDays:', d.contactedAgeDays, '| hasApptSet:', d.hasApptSet, '| isShowroomFollowUp:', d.isShowroomFollowUp, '| hasOutbound:', d.hasOutbound, '| totalNoteCount:', d.totalNoteCount, '| convState:', d.convState, '| STALLED:', isStalled);
   if (isStalled) {
     toggleFlag('stalled', true);
+    // Inject stalled context so AI adjusts tone accordingly
     const ageDays = d.leadAgeDays || 0;
     const ageLabel = ageDays >= 14 ? 'several weeks'
                    : ageDays >= 7  ? 'about a week'
                    : ageDays >= 3  ? 'a few days'
                    : 'a couple of days';
-    const ownedVehicleHook = d.ownedVehicle ? ' Customer currently drives a ' + d.ownedVehicle + ' \u2014 use this as the specific hook.' : '';
+    const ownedVehicleHook = d.ownedVehicle ? ' Customer currently drives a ' + d.ownedVehicle + ' — use this as the specific hook.' : '';
     const ownedModel = d.ownedVehicle ? d.ownedVehicle.replace(/^\d{4}\s+/,'') : 'their current vehicle';
+    // pastVisitNotes scraped in content script (inlineScraper) and passed via d.pastVisitNotes
     var pastVisitContext = '';
     if(d.pastVisitNotes && d.pastVisitNotes.length){
       pastVisitContext = '\nKNOWN HISTORY:\n' + d.pastVisitNotes.join('\n');
     }
-    const stalledNote = '\u26a0 STALLED LEAD: This lead has been open for ' + (ageDays > 0 ? ageDays + ' days' : ageLabel) + ' with no confirmed contact.' + ownedVehicleHook
+
+    const stalledNote = '⚠ STALLED LEAD: This lead has been open for ' + (ageDays > 0 ? ageDays + ' days' : ageLabel) + ' with no confirmed contact.' + ownedVehicleHook
       + pastVisitContext + '\n'
       + 'CRITICAL STALLED LEAD RULES:\n'
-      + '- Do NOT reference any appointment confirmation (e.g. "C" reply) \u2014 that appointment has passed.\n'
+      + '- Do NOT reference any appointment confirmation (e.g. "C" reply) — that appointment has passed.\n'
       + '- Do NOT say "thanks for confirming" or imply recent engagement.\n'
-      + '- Do NOT treat this as a re-engagement \u2014 the customer has gone quiet after their dealership visit.\n'
-      + (d.hasConfirmedVisit ? '- KNOWN HISTORY confirms a past visit. Reference it specifically \u2014 what vehicle, what hesitation. Be honest and open a new door.\n' : '- NO CONFIRMED VISIT on record. Do NOT invent or imply a showroom visit. Do NOT say "when you came in" \u2014 this customer has NOT visited. Approach as a stalled internet lead with no in-person contact.\n')
+      + '- Do NOT treat this as a re-engagement — the customer has gone quiet after their dealership visit.\n'
+      + (d.hasConfirmedVisit ? '- KNOWN HISTORY confirms a past visit. Reference it specifically — what vehicle, what hesitation. Be honest and open a new door.\n' : '- NO CONFIRMED VISIT on record. Do NOT invent or imply a showroom visit. Do NOT say "when you came in" or "when you stopped by" — this customer has NOT visited. Approach as a stalled internet lead with no in-person contact.\n')
       + '- Be honest and specific. Never fabricate visit details not present in KNOWN HISTORY.\n'
-      + 'SMS = 2-3 sentences MAX: one specific reference to their visit, one new hook, one close.';
+      + 'SMS = 2-3 sentences MAX: one specific reference to their visit, one new hook, one close.\n'
+      + 'RIGHT SMS: "Hi [Name], [Agent] here — I know the [vehicle] wasn\'t quite the right fit when you stopped in. We have some new options that might change that. Would [time1] or [time2] work for a quick look?"\n'
+      + 'WRONG: Generic "check in", "re-engagement", "Click & Go" references, or "thanks for confirming" openings.';
     leadContext = stalledNote + '\n\n' + leadContext;
   }
+
+  // Store
   let detectedStore = (d.dealerId && DEALER_ID_MAP[d.dealerId]) ? DEALER_ID_MAP[d.dealerId] : '';
   if (!detectedStore) detectedStore = resolveStore(d.store);
   if (!detectedStore) detectedStore = resolveStore(d.pageSnippet || '');
   if (detectedStore) setStore(detectedStore);
+
+  // Auto-flags
   const ls = ((d.leadSource || '') + ' ' + (d.tradeDescription || '')).toLowerCase();
   if (d.hasTrade)                                              toggleFlag('trade', true);
   if (ls.includes('tradepending'))                             toggleFlag('trade', true);
@@ -233,19 +286,25 @@ function populateFromData(d) {
       ls.includes('maturity') || ls.includes('lease end') || ls.includes('luv');
   if (isLoyaltyLead) {
     toggleFlag('loyalty', true);
+    // Inject critical loyalty vehicle context — must override inventory status logic
     if (d.vehicle) {
-      leadContext = '\ud83d\udd11 LOYALTY VEHICLE: "' + d.vehicle + '" is the customer\'s CURRENT OWNED VEHICLE \u2014 NOT dealership inventory. Never say it sold, is available, or check its inventory status.\n' + leadContext;
+      leadContext = '🔑 LOYALTY VEHICLE: "' + d.vehicle + '" is the customer\'s CURRENT OWNED VEHICLE — NOT dealership inventory. Never say it sold, is available, or check its inventory status.\n' + leadContext;
     }
   }
   if (ls.includes('capital one') || ls.includes('cap one'))    toggleFlag('credit', true);
+  // Auto-detect credit sensitivity from customer's own words in inbound messages
   if (!activeFlags.has('credit') && d.lastInboundMsg) {
     var creditMention = /don.t have (good |great |perfect |the best )?credit|bad credit|no credit|poor credit|credit (is|isn.t|aint|ain.t)|low credit|credit score|credit challenge|working on (my |our )?credit|been denied|got denied|bankruptcy|repo|repossession|collections|it is what it is.*credit|credit.*it is what it is/i.test(d.lastInboundMsg);
     if(creditMention) toggleFlag('credit', true);
   }
+
+  // Enable generate button once we have something
   const canGenerate = !!(d.name || d.vehicle || detectedStore);
   document.getElementById('btnGenerate').disabled = !canGenerate;
+
   return filled;
 }
+
 // ── Flags ─────────────────────────────────────────────────────────
 function toggleFlag(key, forceOn) {
   const btn = document.querySelector('.flag-toggle[data-flag="' + key + '"]');
@@ -259,10 +318,12 @@ function toggleFlag(key, forceOn) {
 document.querySelectorAll('.flag-toggle').forEach(function(b) {
   b.addEventListener('click', function() {
     toggleFlag(b.dataset.flag);
+    // Re-enable generate if we have data
     const hasData = !!(document.getElementById('custName').value || document.getElementById('vehicle').value || selectedStore);
     document.getElementById('btnGenerate').disabled = !hasData;
   });
 });
+
 // ── Clear ─────────────────────────────────────────────────────────
 function clearFields() {
   ['custName','agentName','vehicle','leadSource'].forEach(function(id) {
@@ -275,13 +336,13 @@ function clearFields() {
     const tabBtn = document.querySelector('.tab-btn.' + k);
     if (tabBtn) tabBtn.classList.remove('ready-' + k);
   });
-  document.getElementById('wordCount').textContent = '\u2014';
+  document.getElementById('wordCount').textContent = '—';
   const st = document.getElementById('crmStatus');
   if (st) { st.className = 'crm-status'; st.textContent = 'Open a VinSolutions lead to auto-fill.'; }
   const dot = document.getElementById('statusDot');
   if (dot) dot.classList.remove('active');
   const sb = document.getElementById('storeBadge');
-  if (sb) { sb.textContent = 'Detecting store\u2026'; sb.classList.remove('detected'); }
+  if (sb) { sb.textContent = 'Detecting store…'; sb.classList.remove('detected'); }
   selectedStore = ''; leadContext = ''; leadSalesRep = ''; leadConvState = 'first-touch';
   activeFlags.clear();
   document.querySelectorAll('.flag-toggle').forEach(function(b) { b.classList.remove('on'); });
@@ -290,29 +351,35 @@ function clearFields() {
   switchTab('sms');
 }
 document.getElementById('btnClear').addEventListener('click', clearFields);
+
 // ── Translate to Spanish ──────────────────────────────────────────
 document.getElementById('btnTranslate').addEventListener('click', async function() {
   const btn = this;
   const smsEl   = document.getElementById('output-sms');
   const emailEl = document.getElementById('output-email');
   const vmEl    = document.getElementById('output-vm');
+
   const smsText   = (smsEl   && smsEl.value)   ? smsEl.value.trim()   : '';
   const emailText = (emailEl && emailEl.value)  ? emailEl.value.trim() : '';
   const vmText    = (vmEl    && vmEl.value)     ? vmEl.value.trim()    : '';
+
   if (!smsText && !emailText && !vmText) {
     alert('Generate messages first, then translate.');
     return;
   }
+
   const endpoint = getEndpoint();
   if (!endpoint) { alert('No API key configured.'); return; }
+
   btn.classList.add('translating');
   btn.textContent = 'Traduciendo...';
+
   async function translateOne(text, label) {
     if (!text || text.length < 5) return text;
     const prompt = [
       'Translate this dealership BDC ' + label + ' message to conversational Mexican Spanish.',
       'Keep tone warm and natural. Keep names, phone numbers, store names, and times exactly as-is.',
-      'Return ONLY the translated text \u2014 no JSON, no labels, no extra commentary.',
+      'Return ONLY the translated text — no JSON, no labels, no extra commentary.',
       '',
       text
     ].join('\n');
@@ -326,49 +393,60 @@ document.getElementById('btnTranslate').addEventListener('click', async function
       })
     });
     const data = await resp.json();
-    if (!data.candidates || !data.candidates[0]) return text;
+    if (!data.candidates || !data.candidates[0]) return text; // fallback to original if API fails
     return data.candidates[0].content.parts[0].text.trim();
   }
+
   try {
     const [transSMS, transEmail, transVM] = await Promise.all([
       translateOne(smsText, 'SMS'),
       translateOne(emailText, 'email'),
       translateOne(vmText, 'voicemail')
     ]);
+
     if (transSMS   && smsEl)   { smsEl.value   = transSMS;   updateWordCount('sms'); }
     if (transEmail && emailEl) { emailEl.value  = transEmail; updateWordCount('email'); }
     if (transVM    && vmEl)    { vmEl.value     = transVM;    updateWordCount('vm'); }
+
     btn.textContent = 'Translated!';
     setTimeout(function() { btn.textContent = 'Mx Espanol'; btn.classList.remove('translating'); }, 2000);
+
   } catch(err) {
     console.error('[Lead Pro] Translation error:', err);
-    btn.textContent = 'Error \u2014 try again';
+    btn.textContent = 'Error — try again';
     btn.classList.remove('translating');
     setTimeout(function() { btn.textContent = 'Mx Espanol'; }, 3000);
   }
 });
+
 // ── GRAB LEAD ─────────────────────────────────────────────────────
 async function grabLead() {
   const statusEl = document.getElementById('crmStatus');
   const dot      = document.getElementById('statusDot');
+
   clearFields();
   statusEl.className   = 'crm-status scanning';
-  statusEl.textContent = 'Scanning lead\u2026';
+  statusEl.textContent = 'Scanning lead…';
+
   let tab;
   try { [tab] = await chrome.tabs.query({ active: true, currentWindow: true }); }
   catch(e) { statusEl.className = 'crm-status error'; statusEl.textContent = 'Cannot access tab.'; return; }
+
   const isVin = tab && tab.url && (tab.url.includes('vinsolutions.com') || tab.url.includes('coxautoinc.com'));
   if (!isVin) {
     statusEl.className = 'crm-status error';
     statusEl.textContent = 'Open a VinSolutions lead first.';
     return;
   }
+
   chrome.storage.local.remove(['leadpro_data']);
   tryExecuteScript(tab, statusEl, dot);
 }
+
 // ── Execute script scraper ────────────────────────────────────────
 function tryExecuteScript(tab, statusEl, dot) {
-  statusEl.textContent = 'Reading frames\u2026';
+  statusEl.textContent = 'Reading frames…';
+
   function inlineScraper() {
     function gid(id) {
       try { const e=document.getElementById(id); return e?(e.innerText||e.textContent||e.value||'').trim():''; } catch(x){return '';}
@@ -397,9 +475,11 @@ function tryExecuteScript(tab, statusEl, dot) {
     }
     const TEXT=(document.body?document.body.innerText||document.body.textContent||'':'').substring(0,12000);
     function tm(pats){for(const r of pats){try{const m=TEXT.match(r);if(m&&m[1])return m[1].trim();}catch(x){}}return '';}
+
     const dbg=document.getElementById('vindebug-section-wrap');
     const dbgI=dbg?dbg.querySelector('.vindebug-section'):null;
     const autoLeadId=dbgI?(dbgI.getAttribute('data-autoleadid')||''):'';
+    // dealerId from vindebug OR from eccs/index.html URL parameter
     const dealerIdFromUrl=(function(){
       try{
         var u=window.location.href;
@@ -410,10 +490,15 @@ function tryExecuteScript(tab, statusEl, dot) {
     const dealerId=dbgI?(dbgI.getAttribute('data-dealerid')||dealerIdFromUrl):dealerIdFromUrl;
     const customerId=dbgI?(dbgI.getAttribute('data-globalcustomerid')||''):'';
     const isLeadFrame=!!autoLeadId;
+
+    // Also try to read store from eccs frame URL which contains dealerId
+    // and from the URL parameters directly
     const storeFromUrl=(function(){
       try{
+        // eccs frame URL contains the store context
         var u=window.location.href;
         if(/eccs\/index\.html/i.test(u)){
+          // The eccs frame has the active tab in its parent - try parent access
           try{
             var parentTabEl=window.parent&&window.parent.document&&window.parent.document.getElementById('tabs-tab-customer-dashboard-selected');
             if(parentTabEl&&parentTabEl.innerText) return parentTabEl.innerText.trim();
@@ -422,6 +507,7 @@ function tryExecuteScript(tab, statusEl, dot) {
       }catch(e){}
       return '';
     })();
+
     const store=firstOf([
       storeFromUrl,
       gid('tabs-tab-customer-dashboard-selected'),
@@ -436,6 +522,7 @@ function tryExecuteScript(tab, statusEl, dot) {
       qs('[class*="dealerName"]'),
       qs('[id*="dealerName"]'),
       qs('[id*="DealerName"]'),
+      // Scan first 300 chars (page header) - Honda before Toyota
       (function(){
         var top = TEXT.substring(0, 300);
         if(/community\s+honda\s+baytown/i.test(top))   return 'Community Honda Baytown';
@@ -448,6 +535,7 @@ function tryExecuteScript(tab, statusEl, dot) {
         if(/community\s+toyota/i.test(top))  return 'Community Toyota Baytown';
         return '';
       })(),
+      // Broader scan 0-1500 chars
       (function(){
         var snippet = TEXT.substring(0, 1500);
         if(/community\s+honda\s+baytown/i.test(snippet))   return 'Community Honda Baytown';
@@ -468,11 +556,15 @@ function tryExecuteScript(tab, statusEl, dot) {
       qs('.CustomerInfo_CustomerName'),
       qs('span[id$="__CustomerName"]'),
       qs('span[id*="CustomerName"]'),
+      // Buyer section fallback - "Buyer and Co-buyer Information: Buyer [Name]"
       qs('[class*="buyer-name"]'),
       qs('.buyerName'),
+      // The vindebug div gives us customerId - try to find name near it
       (function(){
+        // Text mine: "Customer Dashboard\nAbigail Paredones" pattern
         var m = TEXT.match(/Customer\s+Dashboard[\s\S]{0,50}?\n([A-Z][a-z\-]+ [A-Z][a-z\-]+(?:\s+[A-Z][a-z\-]+)?)\s*\n/);
         if(m) return m[1].trim();
+        // "Buyer\n[Name]\n" pattern from Buyer section
         m = TEXT.match(/\bBuyer\s*\n([A-Z][a-z\-]+ [A-Z][a-z\-]+(?:\s+[A-Z][a-z\-]+)?)\s*\n/);
         if(m) return m[1].trim();
         return '';
@@ -491,6 +583,7 @@ function tryExecuteScript(tab, statusEl, dot) {
         qs('span[id*="AssignedBDAgent"]'),
         labelValue('BD Agent')
       ]);
+      // Reject values that look like label text rather than actual names
       if(/^status[:\s]|^manager[:\s]|^source[:\s]|^none$/i.test((a||'').trim())) return '';
       return a;
     })();
@@ -505,19 +598,25 @@ function tryExecuteScript(tab, statusEl, dot) {
       gid('ActiveLeadPanel1_m_CurrentAssignedManagerLabel'),
       labelValue('Manager')
     ]);
+    // Lead age from "Created: M/D/YY H:MMp (Nd)" pattern
     var leadAgeDays = 0;
     try {
       var createdText = labelValue('Created') || TEXT.match(/Created[:\s]+([^\n]{5,40})/i)?.[1] || '';
       var daysMatch = createdText.match(/\((\d+)d\)/i);
       if(daysMatch) leadAgeDays = parseInt(daysMatch[1]);
     } catch(e) {}
+    // Scrape customer's current vehicle from service history (priority) or sales history
+    // Also scrape AMP marketing email subject from Contact History for context
     var ownedVehicle = '';
     var ampEmailSubject = '';
     var ownedMileage = '';
     var lastServiceDate = '';
     try {
+      // Priority 1: Y/M/M field in service repair order detail (most specific)
       var ymmMatch = TEXT.match(/Y\/M\/M[:\s]+(\d{4}\s+[A-Za-z][^\n]{3,40})/i);
       if(ymmMatch) ownedVehicle = ymmMatch[1].trim().substring(0,60);
+
+      // Priority 2: Service history table - find table with RO# header
       if(!ownedVehicle){
         var allTbls = document.querySelectorAll('table');
         for(var tbi=0; tbi<allTbls.length && !ownedVehicle; tbi++){
@@ -536,13 +635,19 @@ function tryExecuteScript(tab, statusEl, dot) {
           }
         }
       }
+
+      // Priority 3: Sales history sold rows
       if(!ownedVehicle){
         var soldPat = /Sold\b[^\n]{0,120}?(\d{4}\s+(?:Toyota|Honda|Kia|Hyundai|Ford|Chevy|Chevrolet|GMC|Dodge|Nissan|Jeep|Mazda|Subaru)[^\n]{3,40})/i;
         var soldM = TEXT.match(soldPat);
         if(soldM) ownedVehicle = soldM[1].trim().replace(/\s+/g,' ').substring(0,60);
       }
+
+      // Scrape AMP marketing email subject from Contact History section
+      // Shows as "Marketing Campaign Email (subject: Refresh Your Higher-Mileage Vehicle, Wolf)"
       var ampMatch = TEXT.match(/Marketing Campaign Email[^\n]*subject[:\s]+([^\n\)]{5,100})/i);
       if(ampMatch) ampEmailSubject = ampMatch[1].replace(/[)\]]/g,'').trim().substring(0,100);
+
     } catch(e) {}
     if(ownedVehicle) console.log('[Lead Pro] ownedVehicle:', ownedVehicle);
     if(ampEmailSubject) console.log('[Lead Pro] ampEmailSubject:', ampEmailSubject);
@@ -557,10 +662,14 @@ function tryExecuteScript(tab, statusEl, dot) {
     const condition=/\(New\)/i.test(vehicleRaw)?'New':/Used|Pre-Owned|CPO|Certified/i.test(vehicleRaw)?'Pre-Owned':'';
     const color=tm([/Color[:\s]+([A-Za-z ]{3,25})(?:\n|Mfr|Stock|VIN|Warning|\s{3})/i]);
     const stockNumRaw = tm([/Stock\s*#?[:\s]*([A-Z]?\d{3,6}[A-Z0-9]*)\b/i]);
+    // Exclude 17-char VINs that may appear under "Stock #" in the Vehicle(s) of Interest panel
     const stockNum = (stockNumRaw && stockNumRaw.length < 12) ? stockNumRaw : '';
     const vin=tm([/\bVIN[:\s]+([A-HJ-NPR-Z0-9]{17})\b/i]);
+    // Inventory sold detection - TEXT-based only here; note scanning happens after noteEls is defined below
     const inventoryWarning = /no longer in your active inventory/i.test(TEXT);
+    // No stock number AND no VIN = customer interested in model/trim but no specific unit selected
     const noSpecificVehicle = !!(vehicle && !stockNum && !vin && !inventoryWarning);
+    // In-transit detection: VIN present but NO stock number, vehicle condition is New, Toyota store or Toyota vehicle
     const isToyotaStore = /toyota/i.test(store);
     const isToyotaVehicle = /toyota/i.test(vehicle || vehicleRaw || '');
     const isInTransit = !!(vin && !stockNum && condition === 'New' && (isToyotaStore || isToyotaVehicle) && !inventoryWarning);
@@ -570,9 +679,12 @@ function tryExecuteScript(tab, statusEl, dot) {
       qs('span[id*="LeadSourceName"]'),
       labelValue('Source')
     ]);
+        // Scrape Equity data from VinSolutions Key Information panel
+    // Renders as: "Equity: ($25,374) 2023 Toyota Corolla Calculated: 03/09/2026"
     var equityData = '';
     var equityAmount = '';
     var equityVehicle = '';
+    var equityDate = '';
     try {
       var eqEl = document.querySelector('[class*="equity"], [id*="equity"], [class*="Equity"]');
       if(eqEl) equityData = (eqEl.innerText||'').trim().substring(0,150);
@@ -589,8 +701,12 @@ function tryExecuteScript(tab, statusEl, dot) {
         if(eqLine) equityData = eqLine[0].trim().substring(0,120);
       }
     } catch(e) {}
+
+    // Scrape AI Buying Signals from VinSolutions Key Information panel
+    // DOM structure: #keyInfo-BuyingSignals-blurb = signal text, #keyInfo-BuyingSignals-date = date
     var buyingSignals = '';
     try {
+      // Primary: exact IDs from the Key Information panel
       var bsBlurb = document.querySelector('#keyInfo-BuyingSignals-blurb, [id*="BuyingSignals-blurb"]');
       var bsDate  = document.querySelector('#keyInfo-BuyingSignals-date, [id*="BuyingSignals-date"]');
       if(bsBlurb) {
@@ -598,10 +714,12 @@ function tryExecuteScript(tab, statusEl, dot) {
         var bsDateText = bsDate ? (bsDate.innerText||'').trim() : '';
         if(bsText) buyingSignals = bsText + (bsDateText ? ' (as of ' + bsDateText + ')' : '');
       }
+      // Fallback 1: any buying-signals summary class
       if(!buyingSignals) {
         var bsEl = document.querySelector('[class*="buying-signals-summary"], [class*="buying-signal"], [id*="BuyingSignal"]');
         if(bsEl) buyingSignals = (bsEl.innerText||'').trim().substring(0,200);
       }
+      // Fallback 2: scan Key Information section text
       if(!buyingSignals) {
         var bsMatch = TEXT.match(/Buying\s+Signals?[:\s]+([^\n]{10,200})/i);
         if(bsMatch) buyingSignals = bsMatch[1].trim();
@@ -619,6 +737,8 @@ function tryExecuteScript(tab, statusEl, dot) {
     const tradeDescription=hasTrade?tradeClean.substring(0,200):'';
     const noteEls = Array.from(document.querySelectorAll('.notes-and-history-item')||[]);
     const totalNoteCount = noteEls.length;
+
+    // Also check agent notes for sold/pending-sold entries
     var inventoryWarningFromNotes = false;
     var vehiclePendingSale = false;
     noteEls.slice(0,10).forEach(function(n){
@@ -629,15 +749,22 @@ function tryExecuteScript(tab, statusEl, dot) {
         if(/process of being sold|in the process.*sold|being sold|pending.*sale|sold pending|may be sold|might be sold/i.test(c)) vehiclePendingSale = true;
       }
     });
+    // Combine both detection methods
     var inventoryWarningFinal = inventoryWarning || inventoryWarningFromNotes;
+
+    // -- Sanitizer --------------------------------------------------
     function sanitize(str) {
       return (str||'')
         .replace(/"/g, '\u201c').replace(/'/g, '\u2019')
         .replace(/\\/g, '/').replace(/[\r\n\t]+/g, ' ')
         .replace(/[^\x20-\x7E\u2018-\u201D]/g, '').trim();
     }
+
+    // -- Full conversation transcript -------------------------------
+    // JS extracts and labels. AI reads and understands.
+    // Up to 25 entries. Skip pure noise. Full message content.
     const transcript = [];
-    var transcriptCutoffMs = Date.now() - (180 * 24 * 60 * 60 * 1000);
+    var transcriptCutoffMs = Date.now() - (180 * 24 * 60 * 60 * 1000); // 180 days ago
     noteEls.slice(0,25).forEach(function(item){
       var date    = ((item.querySelector('.notes-and-hsitory-item-date')||{}).innerText||'').trim();
       var title   = ((item.querySelector('.legacy-notes-and-history-title')||{}).innerText||'').trim();
@@ -649,46 +776,65 @@ function tryExecuteScript(tab, statusEl, dot) {
       transcript.push('[' + date + '] [' + who + '] ' + title + '\n  ' + sanitize(content||'(no content)'));
     });
     const history = transcript.join('\n');
+    // For AI Buying Signal leads: filter transcript to recent 180 days only
+    // Old marketing blasts and ancient conversations should not influence current messaging
     var isAIBuyingSignalSource = /ai buying signal/i.test(leadSource||'');
     var recentHistory = history;
     if(isAIBuyingSignalSource) {
+      // For AI buying signal leads: exclude outbound marketing blasts entirely (they poison the AI context)
+      // Also exclude notes older than 180 days
+      // Only keep: genuine inbound customer replies, agent personal outreach, and recent notes
       recentHistory = transcript.filter(function(line){
+        // Date filter — exclude old notes
         var dateMatch = line.match(/^\[(\d{1,2}\/\d{1,2}\/\d{2,4})/);
         if(dateMatch) {
           var lineMs = new Date(dateMatch[1]).getTime();
           if(lineMs > 0 && lineMs < transcriptCutoffMs) return false;
         }
+        // Content filter — exclude mass marketing blasts
         var isMarketingBlast = /reply stop to cancel|reply stop to unsubscribe|0% apr|0\s*%\s*apr|new beginnings|savings event|anniversary sale|red tag|summer sale|spring event|click here to|shop now|view inventory|utm_source|utm_medium|utm_campaign/i.test(line);
         if(isMarketingBlast) return false;
         return true;
-      }).join('\n') || '(No recent personal conversation \u2014 this is a re-engagement based on buying signal data only.)';
+      }).join('\n') || '(No recent personal conversation — this is a re-engagement based on buying signal data only. Do not reference any marketing emails or blasts.)';
     }
+
+    // -- Binary follow-up signals - JS detects, AI interprets ------
     const hasOutbound = noteEls.some(function(item){
       var dir = (item.getAttribute('data-direction')||'').toLowerCase();
       var title = ((item.querySelector('.legacy-notes-and-history-title')||{}).innerText||'').toLowerCase();
+      // Only count real agent communication - not lead logs, system notes, or bad lead markers
       var isRealMessage = /outbound text|outbound phone|email reply|outbound email/i.test(title);
       return dir === 'outbound' && isRealMessage;
     });
     const contactedEl = document.querySelector('[id*="CustomerContacted"]');
     const contactedRaw = contactedEl ? (contactedEl.innerText || '') : '';
+    // VinSolutions renders contacted age inline: "Yes (4.88wk)" or "Yes (12d)"
+    // A "Contacted: Yes" that is 14+ days old is STALE — the lead has gone cold.
+    // Parse the age and expire isContacted after 14 days so stalled detection can fire.
     var contactedAgeDays = 0;
     try {
       var wkMatch  = contactedRaw.match(/\(([\d.]+)wk\)/i);
       var dayMatch = contactedRaw.match(/\((\d+)d\)/i);
-      var hrMatch  = contactedRaw.match(/\((\d+):(\d+)\)/);
+      var hrMatch  = contactedRaw.match(/\((\d+):(\d+)\)/);  // e.g. "(3:03)" = 3h 3m ago
       if (wkMatch)       contactedAgeDays = parseFloat(wkMatch[1]) * 7;
       else if (dayMatch) contactedAgeDays = parseInt(dayMatch[1]);
-      else if (hrMatch)  contactedAgeDays = 0.1;
+      else if (hrMatch)  contactedAgeDays = 0.1; // hours old = same day = very fresh, well under 14d
     } catch(e) {}
-    var CONTACTED_STALE_DAYS = 14;
+    var CONTACTED_STALE_DAYS = 14; // contacts older than 2 weeks don't block stalled flag
+    // contactedAgeDays === 0 means format unrecognized — treat as fresh (safe default)
     const isContacted = /yes/i.test(contactedRaw) && (contactedAgeDays === 0 || contactedAgeDays < CONTACTED_STALE_DAYS);
+
+    // Exit/pause - scan recent transcript + page text
     const recentTranscript = transcript.slice(0,5).join(' ').toLowerCase();
+    // Exit/pause - scan INBOUND customer messages only (not agent outbound which has compliance footers like "Reply STOP to cancel")
     const recentInbound = transcript.filter(function(t){ return t.indexOf('[CUSTOMER]') !== -1; }).slice(0,5).join(' ').toLowerCase();
     const fullScanText = (recentInbound + ' ' + recentTranscript).toLowerCase();
     const hasExitSignal  = /already bought|bought.*something|bought.*elsewhere|purchased.*already|going.*elsewhere|not interested|remove.*from.*list|stop.*contacting|decided to (buy|go with|purchase)|we (bought|purchased|went with|decided on)|went with (another|a different|ford|chevy|toyota|kia|nissan|hyundai|chevrolet|gmc|ram|jeep|dodge|subaru|mazda|volvo|bmw|mercedes|lexus|acura|infiniti|cadillac|lincoln|buick)|bought (it|one|a car|a vehicle|from|at)|found (one|a car|what we)|no longer (interested|looking|in the market)|took (a|the) (deal|offer) (at|from|with)/i.test(fullScanText);
     const hasPauseSignal = !hasExitSignal && /taking a break|no luck|need time|not ready|still looking|need to think|not able to upgrade|not looking to upgrade|too early|just got|only have \d+k|low miles/i.test(fullScanText);
+
+    // Detect live/hot conversation - inbound reply within last few hours = customer is actively engaged
     var isLiveConversation = false;
-    var isRecentOutbound = false;
+    var isRecentOutbound = false;  // agent sent something very recently (within 60 min)
     var recentOutboundContent = '';
     var todayMsLive = Date.now();
     for(var li=0; li<Math.min(3, noteEls.length); li++){
@@ -696,12 +842,14 @@ function tryExecuteScript(tab, statusEl, dot) {
       if(lDir === 'inbound'){
         var lDate = ((noteEls[li].querySelector('.notes-and-hsitory-item-date')||{}).innerText||'').trim();
         var lMs = lDate ? new Date(lDate).getTime() : 0;
-        if(lMs > 0 && (todayMsLive - lMs) < 8 * 60 * 60 * 1000) {
+        if(lMs > 0 && (todayMsLive - lMs) < 8 * 60 * 60 * 1000) { // within 8 hours (same business day)
           isLiveConversation = true;
         }
         break;
       }
     }
+    // Detect very recent outbound — agent sent a message within the last 60 minutes
+    // This means any new generation should be consistent with what was already sent
     for(var roi=0; roi<Math.min(5, noteEls.length); roi++){
       var roDir = (noteEls[roi].getAttribute('data-direction')||'').toLowerCase();
       var roTitle = ((noteEls[roi].querySelector('.legacy-notes-and-history-title')||{}).innerText||'').toLowerCase();
@@ -709,28 +857,34 @@ function tryExecuteScript(tab, statusEl, dot) {
       if(roDir === 'outbound' && isRealOutbound){
         var roDate = ((noteEls[roi].querySelector('.notes-and-hsitory-item-date')||{}).innerText||'').trim();
         var roMs = roDate ? new Date(roDate).getTime() : 0;
-        if(roMs > 0 && (todayMsLive - roMs) < 60 * 60 * 1000){
+        if(roMs > 0 && (todayMsLive - roMs) < 60 * 60 * 1000){ // within 60 minutes
           isRecentOutbound = true;
           recentOutboundContent = ((noteEls[roi].querySelector('.notes-and-history-item-content')||{}).innerText||'').trim().substring(0,300);
         }
         break;
       }
     }
+    var isSpanishSpeaker = false; // Spanish detection removed — use translate button
+
     var customerSaidNotToday = false;
-    var customerScheduleConstraint = '';
+    var customerScheduleConstraint = ''; // captures recurring schedule blocks
+    // Scan last 3 inbound messages for timing constraints
     for(var nti=0; nti<Math.min(5, noteEls.length); nti++){
       var ntDir = (noteEls[nti].getAttribute('data-direction')||'').toLowerCase();
       if(ntDir === 'inbound'){
         var ntText = ((noteEls[nti].querySelector('.notes-and-history-item-content')||{}).innerText||'').toLowerCase();
+        // Explicit same-day block
         if(/not today|can.t today|busy today|can.t make it today|no today|not available today|working today|at work today/i.test(ntText)){
           customerSaidNotToday = true;
         }
+        // Out of town / travel / away — customer is unavailable until a future date
         var outOfTownMatch = ntText.match(/out of town until ([^.\n,]{3,25})|back (in town|home|around) (on |by )?([^.\n,]{3,20})|away until ([^.\n,]{3,20})|traveling until ([^.\n,]{3,20})|won.t be (back|available|around) until ([^.\n,]{3,20})/i);
         if(outOfTownMatch){
           var returnDay = (outOfTownMatch[1] || outOfTownMatch[4] || outOfTownMatch[5] || outOfTownMatch[6] || outOfTownMatch[9] || 'later this week').trim();
-          customerSaidNotToday = true;
+          customerSaidNotToday = true; // blocks same-day
           customerScheduleConstraint = 'OUT_OF_TOWN: Customer is out of town and returns ' + returnDay + '. Do NOT offer any times before their return. Schedule around: ' + returnDay;
         }
+        // Recurring schedule constraints — work mornings, nights, weekdays, shift work, etc.
         var isShiftWorker = /refinery|plant|shift|hitch|offshore|on.*hitch|off.*hitch|7.*on|7.*off|14.*on|14.*off|rotation|turnaround|12.*hour|night shift|day shift|swing shift|work nights|work days|on call|on the boat|back.*offshore|back.*hitch|come off|days off|off days|my days off|when i.m off/i.test(ntText);
         var hasScheduleBlock = /i work (in the |the )?(morning|afternoon|evening|night|weekend|weekday)|work morning|morning.*work|work.*morning|work (monday|tuesday|wednesday|thursday|friday|saturday|sunday)|busy (morning|afternoon|evening)|tied up.*morning|morning.*tied up/i.test(ntText);
         if(isShiftWorker || hasScheduleBlock){
@@ -741,6 +895,8 @@ function tryExecuteScript(tab, statusEl, dot) {
         break;
       }
     }
+
+    // Conversation state label
     var convState = 'first-touch';
     if(totalNoteCount > 0){
       var hasNegTag = noteEls.slice(0,10).some(function(item){ return /negative|pricing/i.test(item.innerHTML||''); });
@@ -750,6 +906,8 @@ function tryExecuteScript(tab, statusEl, dot) {
       else if(totalNoteCount > 2) convState = 'active-follow-up';
       else                     convState = 'first-follow-up';
     }
+
+    // Conversation header passed to AI
     var conversationBrief = '';
     if(convState !== 'first-touch'){
       var stateLabel = {
@@ -759,6 +917,8 @@ function tryExecuteScript(tab, statusEl, dot) {
         'active-follow-up': 'FOLLOW-UP: read the full transcript and write a response that directly continues THIS conversation.',
         'first-follow-up':  'FOLLOW-UP: first outreach was made. Read the transcript and write a relevant continuation.'
       }[convState] || 'FOLLOW-UP';
+
+      // Extract the single most important customer signal from inbound messages
       var keySignal = '';
       var inboundMsgs = [];
       for(var ki=0; ki<Math.min(10, noteEls.length); ki++){
@@ -769,8 +929,11 @@ function tryExecuteScript(tab, statusEl, dot) {
         }
       }
       if(inboundMsgs.length > 0){
+        // Suppress keySignal for stale single-char replies (e.g. "C" confirming a weeks-old appointment)
+        // These are not live conversation signals — injecting them as CRITICAL context misleads the AI
         var mostRecentInbound = inboundMsgs[0].trim();
-        var isStaleReply = mostRecentInbound.length <= 2;
+        var isStaleReply = mostRecentInbound.length <= 2; // "C", "Y", "ok" etc — likely a past appt confirm
+        // Also suppress if the reply is older than 7 days (stale even if longer text)
         var keySignalSuppressed = false;
         for(var ksi=0; ksi<Math.min(10, noteEls.length); ksi++){
           var ksDir = (noteEls[ksi].getAttribute('data-direction')||'').toLowerCase();
@@ -788,60 +951,77 @@ function tryExecuteScript(tab, statusEl, dot) {
             + 'Open with a reaction to their words, not a generic greeting.';
         }
       }
+
+      // ── Customer concern extractor ───────────────────────────────
+      // Scans RECENT transcript only (last 180 days) for friction signals.
+      // Old notes (mass marketing texts, ancient history) should not drive current messaging.
       var customerConcerns = [];
-      var cutoffMs = Date.now() - (180 * 24 * 60 * 60 * 1000);
+      var cutoffMs = Date.now() - (180 * 24 * 60 * 60 * 1000); // 180 days
       var recentTranscriptLines = transcript.filter(function(line){
         var dateMatch = line.match(/^\[(\d{1,2}\/\d{1,2}\/\d{2,4}[^\]]*)\]/);
-        if(!dateMatch) return true;
+        if(!dateMatch) return true; // keep if no date parseable
         var lineMs = new Date(dateMatch[1]).getTime();
         return lineMs > 0 ? lineMs >= cutoffMs : true;
       });
       var allTranscriptText = recentTranscriptLines.join(' ');
+
       if(/too (much|high|expensive)|can.t afford|out of (my |our )?budget|payment.*too|over.*budget|price.*concern|what.s the (price|payment|cost)|how much (is|would)|monthly payment|out the door/i.test(allTranscriptText)){
-        customerConcerns.push('PRICE/PAYMENT CONCERN: Customer raised price or payment as an issue. Open by addressing this directly \u2014 not by pitching features.');
+        customerConcerns.push('PRICE/PAYMENT CONCERN: Customer raised price or payment as an issue. Open by addressing this directly — not by pitching features.');
       }
-      if(/(wife|husband|spouse|partner)|run it by|talk (to|with) (my|the)|need to discuss|bring (him|her|them)/i.test(allTranscriptText)){
+      if(/(wife|husband|spouse|partner)|run it by|talk (to|with) (my|the)|need to discuss|bring (him|her|them)/i.test(allTranscriptText)){
         customerConcerns.push('SPOUSE/PARTNER INVOLVED: Customer mentioned needing to involve their spouse or partner. Invite both in or offer to answer questions they might have for their partner.');
       }
       if(/not ready|not right now|give me (a few|some) (days|weeks|time)|check back|hold off|wait (a|until|till)|saving up|few months|next month|after (the|my)/i.test(allTranscriptText)){
-        customerConcerns.push('TIMING HESITATION: Customer indicated they are not ready yet. Acknowledge the timing, keep the door open, and give ONE specific reason to act now \u2014 not a pressure tactic.');
+        customerConcerns.push('TIMING HESITATION: Customer indicated they are not ready yet. Acknowledge the timing, keep the door open, and give ONE specific reason to act now — not a pressure tactic.');
       }
-      var colorMatch = allTranscriptText.match(/(white|black|silver|gray|grey|blue|red|green|brown|beige|pearl|sonic gray|platinum|lunar silver)/i);
-      var trimMatch = allTranscriptText.match(/(ex-?l|sport|touring|lx|ex|elite|awd|fwd|4wd|hybrid|plug-?in)/i);
+      var colorMatch = allTranscriptText.match(/(white|black|silver|gray|grey|blue|red|green|brown|beige|pearl|sonic gray|platinum|lunar silver)/i);
+      var trimMatch = allTranscriptText.match(/(ex-?l|sport|touring|lx|ex|elite|awd|fwd|4wd|hybrid|plug-?in)/i);
       if(colorMatch) customerConcerns.push('COLOR PREFERENCE: Customer mentioned ' + colorMatch[0] + '. Match this in your message or acknowledge availability honestly.');
-      if(trimMatch) customerConcerns.push('TRIM/CONFIG PREFERENCE: Customer referenced ' + trimMatch[0] + '. Reference this specifically \u2014 do not pitch a different trim without reason.');
+      if(trimMatch) customerConcerns.push('TRIM/CONFIG PREFERENCE: Customer referenced ' + trimMatch[0] + '. Reference this specifically — do not pitch a different trim without reason.');
       if(/trade.?(in|value|worth|get|offer)|what.*get for|how much.*trade|payoff|owe on/i.test(allTranscriptText)){
-        customerConcerns.push('TRADE-IN CONCERN: Customer mentioned their trade. Use it as the hook \u2014 lead with the trade value conversation, not the vehicle pitch.');
+        customerConcerns.push('TRADE-IN CONCERN: Customer mentioned their trade. Use it as the hook — lead with the trade value conversation, not the vehicle pitch.');
       }
-      if(/credit|financing|pre.?approv|interest rate|down payment|how much down/i.test(allTranscriptText)){
-        customerConcerns.push('FINANCING CONCERN: Customer raised credit or financing. Acknowledge that the visit is the easiest way to get real numbers \u2014 keep it low pressure.');
+      if(/credit|financing|pre.?approv|interest rate|down payment|how much down/i.test(allTranscriptText)){
+        customerConcerns.push('FINANCING CONCERN: Customer raised credit or financing. Acknowledge that the visit is the easiest way to get real numbers — keep it low pressure.');
       }
       if(/don.t have (good|great|perfect|the best)? credit|bad credit|no credit|poor credit|credit (is|isn.t|aint)|low credit score|been denied|got denied|bankruptcy|repo|repossession|it is what it is.*credit/i.test(allTranscriptText)){
-        customerConcerns.push('CREDIT CHALLENGE DISCLOSED: Customer explicitly stated they have credit difficulties. Handle with empathy \u2014 NEVER say "no problem" or "we work with all credit" (sounds dismissive). Say: "We work through situations like this every day \u2014 let us look at the options together."');
+        customerConcerns.push('CREDIT CHALLENGE DISCLOSED: Customer explicitly stated they have credit difficulties. Handle with empathy — NEVER say "no problem" or "we work with all credit" (sounds dismissive). Say: "We work through situations like this every day — let us look at the options together." Position the visit as where real answers happen, not a pre-approval guarantee.');
       }
       if(/co.?sign|cosign|co.?buyer|adding.*someone|need.*someone.*on.*loan|second.*person.*sign/i.test(allTranscriptText)){
-        customerConcerns.push('CO-SIGNER NEEDED: Customer mentioned needing a co-signer or co-buyer. Both people must be present at signing. Invite both in together.');
+        customerConcerns.push('CO-SIGNER NEEDED: Customer mentioned needing a co-signer or co-buyer. Both people must be present at signing. Invite both in together — do not push solo visit. Say: \'We will need both of you here to finalize everything.\'');
       }
+
+      // ── Customer commitment detector ────────────────────────────
+      // Scans recent inbound messages for explicit commitments or open questions
       var customerCommitments = [];
       var recentInboundText = inboundMsgs.slice(0,3).join(' ').toLowerCase();
+
+      // Explicit day/time commitment
       var dayCommit = recentInboundText.match(/i.ll (come|be there|stop|come in|swing by|head over).{0,30}(monday|tuesday|wednesday|thursday|friday|saturday|sunday|tomorrow|today|this week|after work|in the morning|in the afternoon)/i)
         || recentInboundText.match(/(monday|tuesday|wednesday|thursday|friday|saturday|sunday|tomorrow).{0,20}work(s)? for me/i)
         || recentInboundText.match(/i can (make it|come in|be there).{0,30}/i);
-      if(dayCommit) customerCommitments.push('CUSTOMER COMMITTED: Customer said they would come in \u2014 "' + dayCommit[0].trim().substring(0,80) + '". Hold them to it. Reference this commitment directly.');
+      if(dayCommit) customerCommitments.push('CUSTOMER COMMITTED: Customer said they would come in — "' + dayCommit[0].trim().substring(0,80) + '". Hold them to it. Reference this commitment directly: "You mentioned [day] works — I wanted to confirm we have everything ready for you."');
+
+      // Waiting on information from dealer
       var waitingOn = recentInboundText.match(/send (me |over )?(the )?(price|numbers|info|details|photos|link|payment|payoff|trade)/i)
         || recentInboundText.match(/let me know (the |what |if ).{0,40}/i)
         || recentInboundText.match(/what (is|are|would) (the |my )?(price|payment|trade|payoff|interest rate|down)/i)
         || recentInboundText.match(/do you have (it in|one in|any in).{0,30}/i);
-      if(waitingOn) customerCommitments.push('OPEN QUESTION FROM CUSTOMER: Customer asked \u2014 "' + waitingOn[0].trim().substring(0,80) + '". ANSWER THIS FIRST before asking for an appointment.');
+      if(waitingOn) customerCommitments.push('OPEN QUESTION FROM CUSTOMER: Customer asked — "' + waitingOn[0].trim().substring(0,80) + '". ANSWER THIS FIRST before asking for an appointment. Do not ignore an unanswered question.');
+
+      // Decision pending on something specific
       var pendingDecision = recentInboundText.match(/i.ll (think about it|check|talk to|ask|decide|let you know|get back to you).{0,40}/i)
         || recentInboundText.match(/need to (check|talk|ask|think|discuss).{0,40}/i);
-      if(pendingDecision) customerCommitments.push('PENDING DECISION: Customer said \u2014 "' + pendingDecision[0].trim().substring(0,80) + '". Acknowledge where they left off.');
+      if(pendingDecision) customerCommitments.push('PENDING DECISION: Customer said — "' + pendingDecision[0].trim().substring(0,80) + '". Acknowledge where they left off. Do not skip past this — ask if they had a chance to [check/talk/decide].');
+
       var commitmentBlock = customerCommitments.length > 0
-        ? '\n\u26a1 CUSTOMER COMMITMENTS / OPEN ITEMS \u2014 address these FIRST:\n' + customerCommitments.join('\n')
+        ? '\n⚡ CUSTOMER COMMITMENTS / OPEN ITEMS — address these FIRST:\n' + customerCommitments.join('\n')
         : '';
+
       var concernBlock = customerConcerns.length > 0
-        ? '\nIDENTIFIED CUSTOMER CONCERNS \u2014 lead with these, do not bury them:\n' + customerConcerns.join('\n')
+        ? '\nIDENTIFIED CUSTOMER CONCERNS — lead with these, do not bury them:\n' + customerConcerns.join('\n')
         : '';
+
       conversationBrief = stateLabel + '\n'
         + 'Total CRM entries: ' + totalNoteCount + '\n'
         + keySignal + '\n'
@@ -852,6 +1032,8 @@ function tryExecuteScript(tab, statusEl, dot) {
         + 'Read every entry. Your message must reflect this specific conversation - not a generic follow-up. '
         + 'What did the customer say? What was promised? What is still open? Lead with that.';
     }
+
+    // Last inbound/outbound for fallback context
     let lastOutboundMsg = '';
     for(var ni=0;ni<noteEls.length;ni++){
       if((noteEls[ni].getAttribute('data-direction')||'').toLowerCase()==='outbound'){
@@ -860,6 +1042,7 @@ function tryExecuteScript(tab, statusEl, dot) {
       }
     }
     if(!lastOutboundMsg){ var om=TEXT.match(/(?:Sent by:[^\n]*\n)([^\n]{20,300})/); if(om) lastOutboundMsg=om[1].trim(); }
+
     let lastInboundMsg = '';
     for(var ii=0;ii<noteEls.length;ii++){
       if((noteEls[ii].getAttribute('data-direction')||'').toLowerCase()==='inbound'){
@@ -868,6 +1051,9 @@ function tryExecuteScript(tab, statusEl, dot) {
       }
     }
     if(!lastInboundMsg){ var im=TEXT.match(/(?:Text Message Reply Received|Inbound Text|Customer replied)[:\s]*([^\n]{10,200})/i); if(im) lastInboundMsg=im[1].trim(); }
+
+    // -- Showroom visit detection -----------------------------------
+    // Only count RECENT showroom visits (within ~7 days) - old visits shouldn't override current appointment
     var recentShowroomVisit = false;
     var showroomDetails = '';
     var showroomVisitToday = false;
@@ -890,16 +1076,26 @@ function tryExecuteScript(tab, statusEl, dot) {
     }
     const processEl2 = document.querySelector('select[id*="Process"], [id*="ProcessLabel"]');
     const processText = processEl2 ? (processEl2.innerText || processEl2.value || '') : '';
+    // Walk-in / drive-by lead sources are always showroom follow-ups by definition
     var isWalkInSource = /walk.?in|drive.?by|walkin|showroom inquiry/i.test((leadSource||'').toLowerCase());
     const isShowroomFollowUp = recentShowroomVisit || isWalkInSource || (/showroom\s*visit\s*follow\s*up/i.test(processText) && recentShowroomVisit);
+
+    // -- Appointment status - live status field + outbound text content -
+    // Check status dropdown, status label, AND scan recent outbound messages for appointment times
     const apptStatusEl = document.querySelector('select[id*="Status"]');
     const statusDropdownVal = apptStatusEl ? (apptStatusEl.value || apptStatusEl.innerText || '') : '';
     const statusLabelEl2 = document.querySelector('[id*="LeadStatusLabel"]');
     const statusLabelVal = statusLabelEl2 ? (statusLabelEl2.innerText || '') : '';
     const currentStatus = (statusDropdownVal + ' ' + statusLabelVal).toLowerCase();
+
+    // Appointment detection: check status field AND scan recent outbound messages
     var hasApptSet = /appointment made|appt made|appointment set/i.test(currentStatus);
     var apptDetails = '';
     var hasMissedAppt = false;
+
+    // Also check for VinSolutions auto-generated appointment boarding pass email
+    // IMPORTANT: Only treat as active appointment if boarding pass is recent (within 48h)
+    // A boarding pass from 2 weeks ago means the appointment already passed — lead may be stalled
     if(!hasApptSet) {
       var todayMsBP = Date.now();
       var hasApptBoardingPass = noteEls.slice(0,10).some(function(n){
@@ -908,11 +1104,17 @@ function tryExecuteScript(tab, statusEl, dot) {
         var dateStr = ((n.querySelector('.notes-and-hsitory-item-date')||{}).innerText||'').trim();
         var noteMs = dateStr ? new Date(dateStr).getTime() : 0;
         var noteAge = noteMs > 0 ? (todayMsBP - noteMs) : Infinity;
-        var isRecent = noteAge < 2 * 24 * 60 * 60 * 1000;
+        var isRecent = noteAge < 2 * 24 * 60 * 60 * 1000; // within 48 hours
         return isRecent && /email auto response/i.test(title) && /boarding pass|appointment boarding/i.test(content);
       });
       if(hasApptBoardingPass) hasApptSet = true;
     }
+
+    // Check for explicit appointment reminder language in OUTBOUND AGENT notes only
+    // (not lead received, system notes, or Gubagoo data dumps which may contain appointment URLs)
+    // IMPORTANT: Only treat as active appointment if the reminder note is recent (within 48h).
+    // An old reminder message (e.g. "quick reminder of our appointment on Saturday") should NOT
+    // keep hasApptSet=true days later — that appointment has already passed.
     if(!hasApptSet) {
       var todayMsRem = Date.now();
       noteEls.slice(0,8).forEach(function(n){
@@ -923,7 +1125,8 @@ function tryExecuteScript(tab, statusEl, dot) {
         var dateStrRem = ((n.querySelector('.notes-and-hsitory-item-date')||{}).innerText||'').trim();
         var noteMsRem = dateStrRem ? new Date(dateStrRem).getTime() : 0;
         var noteAgeRem = noteMsRem > 0 ? (todayMsRem - noteMsRem) : Infinity;
-        var isRecentRem = noteAgeRem < 2 * 24 * 60 * 60 * 1000;
+        var isRecentRem = noteAgeRem < 2 * 24 * 60 * 60 * 1000; // within 48 hours
+        // Must be an actual outbound agent message, not a system note or lead received
         var isAgentOutbound = dir === 'outbound' && !/lead received|system|auto response/i.test(title);
         if(isAgentOutbound && isRecentRem && /reminder of our appointment|remind you of the appointment|appointment you had set|your appointment.*(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)|quick reminder.*appointment/i.test(content)){
           hasApptSet = true;
@@ -931,7 +1134,12 @@ function tryExecuteScript(tab, statusEl, dot) {
         }
       });
     }
+
+    // Check if the most recent OUTBOUND agent notes indicate a missed appointment
+    // ONLY agent outbound messages count - "sorry you couldn't make it" etc.
+    // Must be within last 48 hours - not old history
     var todayMs2 = Date.now();
+    var missedApptNoteDate = null;
     var recentOutbound3 = Array.from(noteEls).slice(0,5).filter(function(n){
       var dir = (n.getAttribute('data-direction')||'').toLowerCase();
       var dateStr = ((n.querySelector('.notes-and-hsitory-item-date')||{}).innerText||'').trim();
@@ -945,6 +1153,8 @@ function tryExecuteScript(tab, statusEl, dot) {
     if(/couldn.t make it|missed.*appointment|no.show|wasn.t able to make|sorry you couldn|sorry.*miss/i.test(recentOutbound3Text)){
       hasMissedAppt = true;
     }
+    // Also scan ALL notes for appointment reminder language to find the original appointment date
+    // This catches cases where the reminder was sent yesterday (>48h ago from now)
     var missedApptTiming2 = 'recently';
     try {
       var centralNow2 = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' }));
@@ -954,6 +1164,7 @@ function tryExecuteScript(tab, statusEl, dot) {
         var msContent = ((noteEls[msi].querySelector('.notes-and-history-item-content')||{}).innerText||'');
         var msDateStr = ((noteEls[msi].querySelector('.notes-and-hsitory-item-date')||{}).innerText||'').trim();
         var msNoteMs = msDateStr ? new Date(msDateStr).getTime() : 0;
+        // Look for appointment reminder notes (outbound, contains time + date)
         if(msDir === 'outbound' && /reminder.*appointment|appointment.*at\s+\d|your appt/i.test(msContent)){
           if(msNoteMs > 0){
             var noteDateOnly = new Date(new Date(msNoteMs).toLocaleDateString('en-US', {timeZone:'America/Chicago'})).getTime();
@@ -967,13 +1178,23 @@ function tryExecuteScript(tab, statusEl, dot) {
         }
       }
     } catch(e) {}
+    // Also check if hasApptSet was already confirmed - if so, it's not a missed appt yet
+    // hasMissedAppt should never be true when hasApptSet is true (appointment is future)
+    // This gets resolved after hasApptSet is set below
+
+    // Only set hasApptSet from outbound note scan if there's a genuine confirmation
+    // A close question ("Would 4:00 work?") is NOT a confirmed appointment
+    // Require: explicit confirmation language ("confirmed for", "we have you scheduled", "see you at", "your appointment is")
+    // OR: a customer inbound reply with a time after an agent offered times (customer accepted)
     if(!hasMissedAppt) {
       var todayMs = Date.now();
+      // First check for agent confirmation language in outbound (agent confirmed the appt)
       for(var ai=0; ai<Math.min(5, noteEls.length); ai++){
         var aDir = (noteEls[ai].getAttribute('data-direction')||'').toLowerCase();
         var aText = ((noteEls[ai].querySelector('.notes-and-history-item-content')||{}).innerText||'');
         var aDate = ((noteEls[ai].querySelector('.notes-and-hsitory-item-date')||{}).innerText||'').trim();
         var hasTime = /\d{1,2}:\d{2}\s*(?:AM|PM)/i.test(aText);
+        // Only fire on CONFIRMED appointment language - not on close questions or invitations
         var hasConfirmedLang = /confirmed for|we have you scheduled|see you at|your appointment is|appointment.*confirmed|we.ll see you|you.re all set|we.re set for|scheduled.*at|set.*for\s+\d/i.test(aText);
         var hasConfirmRequestLang = /text C to confirm|reply C|reply YES|please confirm/i.test(aText);
         if(aDir === 'outbound' && hasTime && (hasConfirmedLang || hasConfirmRequestLang)){
@@ -986,6 +1207,7 @@ function tryExecuteScript(tab, statusEl, dot) {
           break;
         }
       }
+      // Also check if customer replied with acceptance (inbound with a time or "yes"/"ok" after agent offered times)
       if(!hasApptSet) {
         for(var ci=0; ci<Math.min(5, noteEls.length); ci++){
           var cDir = (noteEls[ci].getAttribute('data-direction')||'').toLowerCase();
@@ -994,6 +1216,7 @@ function tryExecuteScript(tab, statusEl, dot) {
           var cMs = cDate ? new Date(cDate).getTime() : 0;
           var cAge = cMs > 0 ? (todayMs - cMs) : Infinity;
           if(cDir === 'inbound' && cAge < 2 * 24 * 60 * 60 * 1000){
+            // Require more specific confirmation - not just "yes" or "ok" which appear in many contexts
             if(/\b(sounds good|i.ll be there|see you then|see you at|confirmed|works for me|i.ll come in|we.ll be there|that works)\b/i.test(cText)){
               hasApptSet = true;
               break;
@@ -1002,16 +1225,29 @@ function tryExecuteScript(tab, statusEl, dot) {
         }
       }
     }
+    // If a future appointment is confirmed, it can't also be a missed appointment
     if(hasApptSet) hasMissedAppt = false;
+
+    // Detect sold/delivered - only flag RECENT sales (within 30 days) as congratulations territory
+    // Old sold leads (past customers being re-engaged) are follow-up conversations, not congrats
     var isSoldDelivered = false;
     var thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
+    // Primary: Sale Info section shows a sold date — most reliable signal regardless of status dropdown
     var soldDateMatch = TEXT.match(/Sold[:\s]+(\d{1,2}\/\d{1,2}\/\d{2,4})/i);
     if(soldDateMatch) {
       var soldMs = new Date(soldDateMatch[1]).getTime();
       var soldAge = soldMs > 0 ? (Date.now() - soldMs) : Infinity;
-      if(soldAge < thirtyDaysMs) isSoldDelivered = true;
+      // If there's a sold date in the Sale Info section, trust it — status dropdown may say "Appointment Made"
+      // because VinSolutions doesn't always update the dropdown when a deal closes
+      if(soldAge < thirtyDaysMs) {
+        isSoldDelivered = true;
+      }
     }
-    if(!isSoldDelivered && /\bsold\b|\bdelivered\b/i.test(currentStatus)) isSoldDelivered = true;
+    // Secondary: status dropdown explicitly says sold/delivered
+    if(!isSoldDelivered && /\bsold\b|\bdelivered\b/i.test(currentStatus)) {
+      isSoldDelivered = true;
+    }
+    // Tertiary: Sale Info section shows Delivered badge even without explicit date
     if(!isSoldDelivered && /Sale Info[\s\S]{0,300}Delivered/i.test(TEXT.substring(0,3000))) {
       var createdMatch = TEXT.match(/Created[:\s]+(\d{1,2}\/\d{1,2}\/\d{2,4})/i);
       if(createdMatch) {
@@ -1020,6 +1256,11 @@ function tryExecuteScript(tab, statusEl, dot) {
         if(createdAge2 < thirtyDaysMs) isSoldDelivered = true;
       }
     }
+
+    // Scrape past showroom visits and general notes for stalled lead context
+    // IMPORTANT: Only include General Notes that describe an actual in-person interaction
+    // (test drive, walked lot, met with rep). Generic notes like "sent email" or vehicle
+    // mentions without visit language must NOT be included — they cause hallucinated visit references.
     var pastVisitNotes = [];
     var hasConfirmedVisit = false;
     for(var pni=0; pni<Math.min(25, noteEls.length); pni++){
@@ -1027,9 +1268,12 @@ function tryExecuteScript(tab, statusEl, dot) {
       var pnContent = ((noteEls[pni].querySelector('.notes-and-history-item-content')||{}).innerText||'').trim();
       var pnDate = ((noteEls[pni].querySelector('.notes-and-hsitory-item-date')||{}).innerText||'').trim();
       if(/showroom\s*visit/i.test(pnTitle) && pnContent){
+        // Showroom Visit entries are always real visits
         pastVisitNotes.push('PAST SHOWROOM VISIT (' + pnDate + '): ' + pnContent.substring(0,300));
         hasConfirmedVisit = true;
       } else if(/general\s*note/i.test(pnTitle) && pnContent){
+        // Only include General Notes that explicitly describe an in-person visit
+        // Must contain visit language — not just a vehicle mention or system note
         var hasVisitLanguage = /test.?drove?|came in|stopped in|walked|visited|showroom|in.person|met with|showed (him|her|them)|demo|we showed|customer (came|was here|visited)/i.test(pnContent);
         if(hasVisitLanguage){
           pastVisitNotes.push('DEALER NOTE (' + pnDate + '): ' + pnContent.substring(0,300));
@@ -1037,6 +1281,7 @@ function tryExecuteScript(tab, statusEl, dot) {
         }
       }
     }
+
     return {
       isLeadFrame,autoLeadId,dealerId,customerId,
       store,name,email,phone,agent,salesRep,manager,
@@ -1052,9 +1297,11 @@ function tryExecuteScript(tab, statusEl, dot) {
       scrapedAt:Date.now()
     };
   } // end inlineScraper
-  // Inject into all frames
+
+  // Inject into all frames — each returns a Promise that resolves when notes are ready
   chrome.scripting.executeScript(
     { target: { tabId: tab.id, allFrames: true }, func: function() {
+      // Inline polling scraper — waits for notes DOM then returns data
       var maxWait = 3000, interval = 250, elapsed = 0;
       function wait(resolve) {
         var noteCount = document.querySelectorAll('.notes-and-history-item').length;
@@ -1067,6 +1314,7 @@ function tryExecuteScript(tab, statusEl, dot) {
       return new Promise(function(resolve) { wait(resolve); });
     }},
     function() {
+      // Notes are ready (or timed out) — now run the actual scraper
       chrome.scripting.executeScript(
         { target: { tabId: tab.id, allFrames: true }, func: inlineScraper },
         function(results) {
@@ -1077,12 +1325,15 @@ function tryExecuteScript(tab, statusEl, dot) {
           }
           if (!results || !results.length) {
             statusEl.className = 'crm-status error';
-            statusEl.textContent = 'No frame data \u2014 reload the lead and try again.';
+            statusEl.textContent = 'No frame data — reload the lead and try again.';
             return;
           }
+
           console.log('[Lead Pro] Frame results:', results.map(function(r){
             return { frame: r.frameId, notes: r.result && r.result.totalNoteCount, isLead: r.result && r.result.isLeadFrame, store: r.result && r.result.store, dealerId: r.result && r.result.dealerId, brief: r.result && r.result.conversationBrief ? 'YES' : 'no' };
           }));
+
+          // Sort: most notes first, lead frame as tiebreaker
           const sorted = results.slice().sort(function(a,b){
             const aNotes = (a.result && a.result.totalNoteCount) || 0;
             const bNotes = (b.result && b.result.totalNoteCount) || 0;
@@ -1091,17 +1342,20 @@ function tryExecuteScript(tab, statusEl, dot) {
             if (bNotes !== aNotes) return bNotes - aNotes;
             return bLead - aLead;
           });
+
           const m = {};
           const historyFields = new Set(['totalNoteCount','history','conversationBrief','convState','hasExitSignal','hasPauseSignal','lastInboundMsg','lastOutboundMsg','isContacted','hasOutbound']);
+          // Track best store — prefer non-empty over empty, specific over generic
           let bestStore = '';
           for (const frame of sorted) {
             const d = frame.result; if (!d) continue;
+            // Track best store across all frames — prefer more specific names
             if (d.store && (!bestStore || d.store.length > bestStore.length)) bestStore = d.store;
             for (const k of Object.keys(d)) {
               if (['hasTrade','inventoryWarning','isLeadFrame','hasExitSignal','hasPauseSignal','hasOutbound','isContacted','isInTransit','hasApptSet','isShowroomFollowUp'].includes(k)) {
                 if(d[k]) m[k]=true;
               } else if (k === 'store') {
-                // handled via bestStore
+                // Handled separately via bestStore
               } else if (historyFields.has(k)) {
                 if (!m[k] && d[k]) m[k] = d[k];
               } else if (k==='pageSnippet') {
@@ -1111,7 +1365,9 @@ function tryExecuteScript(tab, statusEl, dot) {
               }
             }
           }
+          // Set best store after all frames processed
           m.store = bestStore;
+
           lastScrapedData = m;
           const filled = populateFromData(m);
           console.log('[Lead Pro] Merged store:', m.store, '| dealerId:', m.dealerId);
@@ -1121,40 +1377,64 @@ function tryExecuteScript(tab, statusEl, dot) {
             if (filled > 0)    parts.push(filled + ' field' + (filled>1?'s':'') + ' filled');
             if (selectedStore) parts.push('store detected');
             if ((m.totalNoteCount||0) > 0) parts.push(m.totalNoteCount + ' notes');
-            statusEl.textContent = '\u2713 ' + parts.join(' \u00b7 ');
+            statusEl.textContent = '✓ ' + parts.join(' · ');
             dot.classList.add('active');
           } else {
             statusEl.className = 'crm-status error';
-            statusEl.textContent = 'Nothing found \u2014 fill fields manually.';
+            statusEl.textContent = 'Nothing found — fill fields manually.';
           }
         }
       );
-    }
-  );
+    } // end wait callback
+  ); // end wait executeScript
 } // end tryExecuteScript
-// ── classifyScenario ─────────────────────────────────────────────
+
+// ── System Prompt ─────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
+// SCENARIO CLASSIFIER
+// JS figures out the scenario. AI gets a focused, minimal prompt.
+// ─────────────────────────────────────────────────────────────────
 function classifyScenario(data) {
   const ls  = (data.leadSource || '').toLowerCase();
   const ctx = (data.context    || '').toLowerCase();
   const s   = {};
+
+  // ── Conversation stage (highest priority) ──────────────────────
   s.isApptConfirmation = ctx.includes('appointment already set');
   s.isShowroomFollowUp = ctx.includes('showroom stage');
   s.isSoldDelivered    = ctx.includes('sold/delivered');
   s.isMissedAppt       = ctx.includes('missed appointment');
   s.isExitSignal       = ctx.includes('exit signal');
   s.isPauseSignal      = ctx.includes('pause signal');
+  // Match actual strings in conversationBrief: "⚡ FOLLOW-UP", "CONVERSATION TRANSCRIPT", "active-follow-up"
   s.isFollowUp         = ctx.includes('follow-up') || ctx.includes('conversation transcript') || ctx.includes('conversation brief') || !!data.convState && data.convState !== 'first-touch';
   s.hasUnresolvedIssue = ctx.includes('unresolved issue');
   s.unresolvedText     = (ctx.match(/unresolved issue:\s*([^\n.]+)/i)||[])[1] || '';
   s.actionNeeded       = (ctx.match(/required message action:\s*([^\n.]+)/i)||[])[1] || '';
   s.customerLastSaid   = (ctx.match(/customer last said:\s*\[([^\]]+)\]/i)||[])[1] || '';
+
+  // ── Lead source type ──────────────────────────────────────────
+  // Lead source scenarios take priority even when isFollowUp is true from system notes only
+  // A Gubagoo/TrueCar/CapitalOne lead is always that type — system note history shouldn't block it
+  // Only defer to isFollowUp if there are actual human outbound messages (real agent contact)
   const hasRealOutbound = !!(data.hasOutbound);
-  console.log('[Lead Pro] classifyScenario \u2014 ls:', (data.leadSource||''), '| isFollowUp:', s.isFollowUp, '| hasRealOutbound:', hasRealOutbound, '| convState:', data.convState);
+  console.log('[Lead Pro] classifyScenario — ls:', (data.leadSource||''), '| isFollowUp:', s.isFollowUp, '| hasRealOutbound:', hasRealOutbound, '| convState:', data.convState);
+  // Click & Go = virtual retailing / digital deal / finance app / DRS — NOT chat leads
+  // Gubagoo Chat, HDS Chat are standard chat leads, not Click & Go
   const isGubagooChat = /chat/i.test(ls);
   const isClickAndGoSource = !isGubagooChat && /gubagoo|click.*go|click\s*&\s*go|\bdrs\b|dynamic.*credit|digital retail|virtual retail|hds dr|finance app/i.test(ls);
+  // Click & Go wins when it's the lead source AND the lead is fresh (not stalled).
+  // A Gubagoo-DRS source on a 47-day-old lead with a past visit and no purchase is the
+  // SAME stale lead — the DRS source is just the original intake channel, not a new submission.
+  // If contactedAgeDays >= 14 (stale) and there's real outbound history, treat as stalled not Click & Go.
+  // Stale if: old contact AND not a live conversation (customer replied today)
   var isLive = !!(data.isLiveConversation);
+  // Fresh contact = contacted within hours today (contactedAgeDays < 1 but > 0, set from hours parser)
   var isFreshContact = data.contactedAgeDays > 0 && data.contactedAgeDays < 1;
+  // Stale if: real outbound history AND (old contact age OR live same-day reply OR freshly contacted today)
+  // All three mean this is an active lead being worked — not a fresh Click & Go submission
   var isStaleClickAndGo = isClickAndGoSource && hasRealOutbound && ((data.contactedAgeDays >= 14) || isLive || isFreshContact);
+  // Exit signal always wins — never treat a customer who said they bought elsewhere as a Click & Go lead
   s.isClickAndGo   = isClickAndGoSource && !isStaleClickAndGo && !s.isExitSignal;
   s.isTradePending = (!s.isFollowUp || !hasRealOutbound) && /tradepending/i.test(ls);
   s.isLoyalty      = /afs|kmf|luv|off loan|maturity|loyalty/i.test(ls);
@@ -1163,6 +1443,7 @@ function classifyScenario(data) {
   s.isCapitalOne   = (!s.isFollowUp || !hasRealOutbound) && /capital one|cap one/i.test(ls);
   s.isTrueCar      = (!s.isFollowUp || !hasRealOutbound) && /truecar/i.test(ls);
   s.isAMP          = (!s.isFollowUp || !hasRealOutbound) && /\bamp\b/i.test(ls);
+  // AI Buying Signals — detect both variants precisely
   const isAISignalLead = !s.isFollowUp && /ai buying signal/i.test(ls);
   s.isAIBuyingSignalReturner = isAISignalLead && /previously sold customer/i.test(ls) && !/not previously sold/i.test(ls);
   s.isAIBuyingSignalNew      = isAISignalLead && !s.isAIBuyingSignalReturner;
@@ -1177,11 +1458,15 @@ function classifyScenario(data) {
   s.isDealerWebsite = (!s.isFollowUp || !hasRealOutbound) && /dealer\.com|dealersocket|dealerfire|dealer website|website lead|internet lead|hds dr lead|dealertrack.*lead/i.test(ls) && !s.isClickAndGo;
   s.isChatLead     = (!s.isFollowUp || !hasRealOutbound) && /chat/i.test(ls) && !s.isClickAndGo;
   s.isCarFax       = (!s.isFollowUp || !hasRealOutbound) && /carfax|iseecars|autobytel|car.*genie|modalyst/i.test(ls);
+  // High-volume sources from store data
+  // Walk-ins are handled by isShowroomFollowUp — no separate flag needed (they always have prior history)
   s.isRepeatCustomer = (!s.isFollowUp || !hasRealOutbound) && /repeat|returning|prior customer|dms sales|previous (customer|buyer|owner)|sold customer/i.test(ls);
   s.isThirdPartyOEM = (!s.isFollowUp || !hasRealOutbound) && /third party|3rd party|kia digital|honda digital|toyota digital|hyundai digital|oem partner|audi partner|manufacturer partner/i.test(ls) && !s.isOEMLead;
   s.isGoogleAd     = (!s.isFollowUp || !hasRealOutbound) && /google.*ad|google.*digital|paid search|sem lead|ppc/i.test(ls);
   s.isReferral     = (!s.isFollowUp || !hasRealOutbound) && /referral|referred by|word of mouth/i.test(ls);
   s.isStandard     = !s.isClickAndGo && !s.isTradePending && !s.isCarGurusDD && !s.isCarGurus && !s.isKBB && !s.isCapitalOne && !s.isTrueCar && !s.isAMP && !s.isAutoTrader && !s.isCarscom && !s.isEdmunds && !s.isOEMLead && !s.isPhoneUp && !s.isAIBuyingSignalNew && !s.isAIBuyingSignalReturner && !s.isFacebook && !s.isDealerWebsite && !s.isChatLead && !s.isCarFax && !s.isRepeatCustomer && !s.isThirdPartyOEM && !s.isGoogleAd && !s.isReferral;
+
+  // ── Inventory status ───────────────────────────────────────────
   s.vehicleSold        = ctx.includes('vehicle status: sold');
   s.vehicleInTransit   = ctx.includes('vehicle status: in transit');
   s.isLoyaltyVehicle   = ctx.includes('loyalty vehicle');
@@ -1189,21 +1474,29 @@ function classifyScenario(data) {
   s.noCustomerPhone    = ctx.includes('no customer phone number');
   s.notToday           = ctx.includes('not today');
   s.isStalled          = ctx.includes('stalled lead');
+
+  // Stale model year — flag if vehicle year is prior to current calendar year
   const currentYear = new Date().getFullYear();
   const vyMatch = (data.vehicle || '').match(/^(\d{4})/);
   s.vehicleYear    = vyMatch ? parseInt(vyMatch[1]) : 0;
   s.staleModelYear = s.vehicleYear > 0 && s.vehicleYear < currentYear;
+
+  // ── Store / persona ────────────────────────────────────────────
   s.isAudi     = /audi/i.test(data.store);
   s.isKia      = /kia/i.test(data.store);
   s.isHonda    = /honda/i.test(data.store);
   s.isToyota   = /toyota/i.test(data.store);
   s.storeGroup = s.isAudi ? 'Audi Lafayette' : (data.store || 'Community Auto Group');
   s.persona    = s.isAudi ? 'Audi Concierge' : 'Internet Sales Coordinator';
-  s.duration   = s.isAudi ? '45 minutes' : '30\u201345 minutes';
+  s.duration   = s.isAudi ? '45 minutes' : '30–45 minutes';
   s.salesRep   = data.salesRep || '';
+
   return s;
 }
-// ── Phone directory ───────────────────────────────────────────────
+
+// ─────────────────────────────────────────────────────────────────
+// PHONE LOOKUP — runs in JS, result passed directly to AI
+// ─────────────────────────────────────────────────────────────────
 const PHONE_DIR = {
   'noelia diaz':      { audi:'337-247-9118', honda_laf:'337-321-5656', baytown:'281-837-3683' },
   'anahi lepe':       { audi:'337-247-7866', honda_laf:'337-205-8409', baytown:'281-837-3629' },
@@ -1221,6 +1514,7 @@ const PHONE_DIR = {
   'melanie martinez': { audi:'337-889-2034', honda_laf:'337-568-0435', baytown:'281-837-3373' },
   'samantha lopez':   { audi:'337-706-0507', honda_laf:'337-541-0253', baytown:'281-837-3375' }
 };
+
 function lookupPhone(agentName, store) {
   const key = (agentName || '').toLowerCase().trim();
   const row = PHONE_DIR[key];
@@ -1230,7 +1524,10 @@ function lookupPhone(agentName, store) {
   if (s.includes('lafayette') || s.includes('lafa')) return row.honda_laf;
   return row.baytown;
 }
-// ── System Prompt ─────────────────────────────────────────────────
+
+// ─────────────────────────────────────────────────────────────────
+// FOCUSED SYSTEM PROMPT — universal rules only, short
+// ─────────────────────────────────────────────────────────────────
 function buildSystemPrompt() {
   return [
     'You are Lead Pro, a BDC response engine for Community Auto Group dealerships.',
@@ -1240,29 +1537,39 @@ function buildSystemPrompt() {
     'UNIVERSAL RULES:',
     '- SMS: message body + newline + agent first name + newline + phone number. Nothing else in signature.',
     '- Email: Subject line first ("Subject: ..."), then full message, then complete signature stacked on separate lines (Name on line 1, Title on line 2, Store on line 3, Phone on line 4). Never use slashes between signature parts.',
-    '- Voicemail: EXACT 3-PART STRUCTURE \u2014 no deviations:',
-    '  PART 1 \u2014 INTRO: "Hi [First Name], this is [Agent First Name] from [Store Name]." One sentence. Nothing else.',
-    '  PART 2 \u2014 HOOK: ONE sentence only. The single most compelling reason to call back, specific to THIS lead.',
-    '  PART 3 \u2014 CALLBACK: "Give me a call back at [number]." Repeat the number once: "That is [number] again." Nothing after the second number. End there.',
-    '  TOTAL LENGTH: 60-80 words.',
-    '  DO NOT include appointment times in voicemail.',
-    '  DO NOT say: "following up" "touching base" "just wanted to" "at your earliest convenience" "please let me know" "I look forward to"',
-    '- Never say: "Checking in" "Following up" "Touching base" "Just wanted to reach out" "Let me know" "Stop by anytime" "I look forward to hearing from you" "Hi there" "Carfax" "Gubagoo" "Virtual retailing" "I\'m reaching out" "I wanted to follow up" "Please let me know" "Hope your day is going well" "Hope you\'re having a good" "Hope you\'re having a great" "Just confirming" "That\'s a fantastic choice" "Great choice" "Excited to see your request" "I understand that" "As per our conversation" "We noticed you" "As a valued customer" "As a previous customer" "Let me know which time" "Which time works best" "I thought of you" "I saw you were looking at" "I noticed you were looking at" "I saw you browsing"',
+    '- Voicemail: EXACT 3-PART STRUCTURE — no deviations:',
+    '  PART 1 — INTRO: "Hi [First Name], this is [Agent First Name] from [Store Name]." One sentence. Nothing else.',
+    '  PART 2 — HOOK: ONE sentence only. The single most compelling reason to call back, specific to THIS lead. Make it feel like news or a personal update — not a script. Choose the hook based on what is true:',
+    '    • Vehicle available: "The [vehicle] you were looking at is still available and I wanted to make sure you had a chance to see it before it moves."',
+    '    • Trade-in: "I pulled up some numbers on your trade and I think you are going to like what I found."',
+    '    • Credit/Click & Go: "Your application came through and I have some information I think will make this work for you."',
+    '    • Stalled/re-engagement: "I was thinking about you and wanted to reach out — I have something specific to share about the [vehicle/category]."',
+    '    • Appointment reminder: "Just a reminder that we have you set for [time] and I will have everything ready when you arrive."',
+    '    • General follow-up: "I have some information on the [vehicle] that I wanted to share with you personally."',
+    '  PART 3 — CALLBACK: "Give me a call back at [number]." Repeat the number once: "That is [number] again." Nothing after the second number. End there.',
+    '  TOTAL LENGTH: 60-80 words. Long enough to sound human, short enough to not lose them.',
+    '  DO NOT include appointment times in voicemail — that is for SMS/email. Voicemail goal is ONE thing: get a callback.',
+    '  DO NOT say: "following up" "touching base" "just wanted to" "at your earliest convenience" "please let me know" "I look forward to" — these kill callbacks.',
+    '  RIGHT EXAMPLE: "Hi Maria, this is Kristen from Community Kia Baytown. I just pulled up some information on the Telluride and I have numbers I think are going to work really well for you — give me a call at 281-837-3383. That is 281-837-3383."',
+    '  WRONG EXAMPLE: "Hi Maria, this is Kristen from Community Kia Baytown. I am following up on your inquiry about the Telluride and would love to schedule a time to discuss your needs and answer any questions you might have. Please call me back at your earliest convenience at 281-837-3383. Thank you and have a great day."',
+    '- Never say: "Checking in" "Following up" "Touching base" "Just wanted to reach out" "Let me know" "Stop by anytime" "I look forward to hearing from you" "Hi there" "Carfax" "Gubagoo" "Virtual retailing" "I\'m reaching out" "I wanted to follow up" "Please let me know" "Hope your day is going well" "Hope you\'re having a good" "Hope you\'re having a great" "Just confirming" "That\'s a fantastic choice" "Great choice" "Excited to see your request" "I understand that" "As per our conversation" "We noticed you" "As a valued customer" "As a previous customer" "Let me know which time" "Which time works best" "I thought of you" "I saw you were looking at" "I noticed you were looking at" "I saw you browsing" "I was looking at your" "I saw you looking at the" — tracking phrases are always forbidden. ALSO FORBIDDEN on AI Buying Signal leads: "newer model" "newer models" "latest model" "newest" "brand new" "new [model]" — these imply inventory type. Use neutral language: "[model] options available" "a few [models] on the lot"',
     '- Never fabricate inventory status. Never guarantee approval or rates.',
-    '- VEHICLE RULE: ONLY reference the vehicle in the LEAD section. If the LEAD section says "(none specified)", do NOT name any vehicle at all.',
+    '- VEHICLE RULE: ONLY reference the vehicle in the LEAD section. If the LEAD section says "(none specified)", do NOT name any vehicle at all — not from history, not from your training. Vehicles mentioned in conversation history belong to other leads or conversations and must be ignored.',
     '- Write all three formats completely. Do not truncate.',
     '- TRADE-IN: When a trade-in is present, mention it in ALL three formats including SMS.',
-    '- ANSWER FIRST RULE: If the customer asked a direct question in their last message, you MUST address or acknowledge it BEFORE asking for an appointment.',
+    '- ANSWER FIRST RULE: If the customer asked a direct question in their last message (price, availability, color, payment, trade value, financing), you MUST address or acknowledge it BEFORE asking for an appointment. Ignoring a customer question and jumping to a close kills trust. If you cannot answer it directly, say so and invite them in to get the answer: "Great question — the best way to get the exact number is to come in so we can run it together."',
     '- APPOINTMENT TIMES: Offer the two times ONCE and close. Never repeat them.',
-    '- APPOINTMENT LANGUAGE: Always frame as in-store \u2014 "come in," "stop by," "visit us." Never "discuss" or "talk."',
-    '- EMAIL TONE: Warm, conversational, never corporate. Never open with "I hope this email finds you well."',
-    '- SMS TONE: Real person texting. Direct, warm, natural.',
-    '- VOICEMAIL TONE: Confident, friendly, genuine.',
+    '- APPOINTMENT LANGUAGE: Always frame as in-store — "come in," "stop by," "visit us." Never "discuss" or "talk."',
+    '- EMAIL TONE: Warm, conversational, never corporate. Never open with "I hope this email finds you well." Start with energy and forward motion.',
+    '- SMS TONE: Real person texting. Direct, warm, natural. Get to the point fast.',
+    '- VOICEMAIL TONE: Confident, friendly, genuine. Sound like you actually want to talk to this person.',
+    '- DISTANCE BUYER: If the Distance Buyer context flag is present, the message must acknowledge and justify the trip. A customer driving 30-60+ minutes needs a stronger reason than "come see it." Tactics: (1) Confirm the vehicle will be held/ready when they arrive. (2) Mention that everything can be mostly handled in advance so their time in-store is efficient. (3) Position the visit as worth the drive — "We can have everything ready so you\'re in and out in 45 minutes." Never casually say "stop by" to a distance buyer — the ask must feel worth the commitment.',
+    '- TIME SENSITIVITY: Match urgency to the time of day. Same-day appointments = urgency. Late afternoon = mention closing time. Morning = position the full day as available.',
     '- LANGUAGE: Always write in English unless explicitly instructed otherwise by the agent.',
-    'CONVERSATION RULE: When a transcript is provided, the opening MUST be a direct reaction to what the customer said last.',
-    'AI BUYING SIGNAL ABSOLUTE RULES \u2014 when the scenario section contains "AI BUYING SIGNAL", these rules are NON-NEGOTIABLE:',
-    '  RULE 1: The email subject line MUST NOT contain the word "upgrade".',
-    '  RULE 2: The words "newer model", "newer models", "newer [model]", "latest model", "step up", "brand new" are BANNED.',
+    'CONVERSATION RULE: When a transcript is provided, the opening MUST be a direct reaction to what the customer said last — not a summary, not a restatement. React first, then advance. A response that could apply to any customer is a failure. EXCEPTION: For AI Buying Signal leads, outbound marketing blasts (mass texts, automated emails) are NOT customer messages — ignore them entirely. Only react to genuine inbound customer replies.',
+    'AI BUYING SIGNAL ABSOLUTE RULES — when the scenario section contains "AI BUYING SIGNAL", these rules are NON-NEGOTIABLE and cannot be overridden by any other instruction:',
+    '  RULE 1: The email subject line MUST NOT contain the word "upgrade". Use "Your [Model]" or "[Model] options for you".',
+    '  RULE 2: The words "newer model", "newer models", "newer [model]", "latest model", "step up", "brand new" are BANNED. Do not write them.',
     '  RULE 3: Do not write "upgrading your [vehicle]". Write "your next [model]" or "your [model] search" instead.',
     '  RULE 4: Do not mention a trade-in unless the LEAD section explicitly lists one.',
     '  RULE 5: Do not reference any sale event, 0% APR, or promotional offer.',
@@ -1270,32 +1577,832 @@ function buildSystemPrompt() {
     'CRITICAL: Return only the JSON object.'
   ].join('\n');
 }
-// ── computeAppointmentTimes ───────────────────────────────────────
+
+// ─────────────────────────────────────────────────────────────────
+// FOCUSED USER PROMPT — scenario-specific, built by JS
+// ─────────────────────────────────────────────────────────────────
+function buildUserPrompt(data) {
+  const sc   = classifyScenario(data);
+  const appt = computeAppointmentTimes(data.store);
+  const phone = lookupPhone(data.agent, data.store) || '(see directory)';
+  const agentFirst = (data.agent || '').split(' ')[0] || data.agent || 'our team';
+
+  const now   = new Date();
+  const currentYear = now.getFullYear();
+  const date  = now.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', timeZone:'America/Chicago' });
+
+  // ── Build the scenario instruction — one clear directive ────────
+  let scenarioDirective = '';
+  let scenarioRules = '';
+
+  if (sc.isSoldDelivered) {
+    // Detect if there is a recent post-sale interaction — service issue, return visit, paperwork, question
+    var recentContext = (data.context || '').toLowerCase();
+    var lastInbound = (data.lastInboundMsg || '').toLowerCase();
+    var hasPostSaleService = /service|oil|alert|software|update|issue|problem|noise|concern|recall|repair|bring.*back|came back|just left|taken care of|get it looked|looked at|check.*on/i.test(recentContext + ' ' + lastInbound);
+    var customerJustLeft = /just left|just got|just finished|all set|taken care of|yes ma.am|yes sir/i.test(lastInbound);
+
+    if(customerJustLeft && hasPostSaleService) {
+      scenarioDirective = 'TASK: Sold customer just left after a service or follow-up visit. Write a brief satisfaction check — not a sales pitch, not a congratulations.';
+      scenarioRules = [
+        '- Do NOT pitch any vehicle. Do NOT mention availability or Click & Go.',
+        '- This is a relationship touchpoint — they just left the store after handling something.',
+        '- SMS: Short and warm. Acknowledge they were just in and make sure everything was handled to their satisfaction.',
+        '- EXAMPLE SMS: "Glad we got that taken care of for you! If anything else comes up with the [vehicle], do not hesitate to reach out."',
+        '- Email: Brief check-in. Thank them for coming back in. Ask if everything was resolved to their satisfaction.',
+        '- If a specific issue was mentioned (oil alert, paperwork, software update), reference it — do not be generic.',
+        '- Close with an open door: "We are always here if you need anything."',
+        '- Tone: genuine, warm, after-care focused.',
+      ].join('\n');
+    } else if(hasPostSaleService) {
+      scenarioDirective = 'TASK: Sold customer has a post-sale service concern or follow-up item. Address it — do not send a generic congratulations.';
+      scenarioRules = [
+        '- Do NOT pitch any vehicle. Do NOT mention availability.',
+        '- Acknowledge the specific issue or concern mentioned in the transcript.',
+        '- Position the response as taking ownership: "I want to make sure we get this resolved for you."',
+        '- If the issue is being handled by service/tech, reassure them and give a timeline if possible.',
+        '- Offer a direct line of communication: "Feel free to reach out to me directly if anything else comes up."',
+        '- Tone: accountable, reassuring, relationship-focused.',
+      ].join('\n');
+    } else {
+      scenarioDirective = 'TASK: This customer has PURCHASED and taken DELIVERY. Write a warm congratulations/welcome message.';
+      scenarioRules = [
+        '- Do NOT pitch any vehicle. Do NOT offer appointment times. Do NOT mention availability.',
+        '- SMS: 2-3 sentences. Congratulate them. Welcome them to the dealership family.',
+        '- Email: Warm, personal congratulations. Mention the vehicle they purchased if known from context.',
+        '- Reference the delivery/purchase naturally: "Congratulations on your new [vehicle]!"',
+        '- Close with an offer to help with any questions about their new vehicle or upcoming service.',
+        '- Tone: celebratory, genuine, relationship-building.',
+      ].join('\n');
+    }
+
+  } else if (sc.isMissedAppt) {
+    scenarioDirective = 'TASK: Customer missed their appointment but has explained why. Read their exact words in the transcript and write a response that acknowledges what THEY said specifically.';
+    scenarioRules = [
+      '- Read the customer\'s most recent inbound message carefully. Reference their specific reason or situation.',
+      '- If the customer said they\'d reach out when ready, acknowledge that and keep the door open — do not pressure.',
+      '- If the customer mentioned a spouse, family member, or specific condition (e.g., "wife wants to come"), acknowledge it.',
+      '- If the customer expressed strong interest, reflect that positively.',
+      '- Offer two new times only if the customer seems open to rescheduling soon. If they said "I\'ll contact you when ready," just leave the door open warmly.',
+      '- Tone: understanding, personal, genuine — not a template.',
+    ].join('\n');
+
+  } else if (sc.isClickAndGo) {
+    scenarioDirective = 'TASK: Customer took an online action through Click & Go (started a deal, submitted a credit application, or completed a finance/trade app). The Click & Go acknowledgment is REQUIRED in the opening of every format. Even if there is prior conversation history with this customer, the new Click & Go submission is the lead — address it first.';
+    scenarioRules = [
+      '- REQUIRED OPENING for all formats: Acknowledge the Click & Go action FIRST before anything else.',
+      '- If a credit application is mentioned in the notes: "I saw your credit application come through via Click & Go."',
+      '- If a trade-in value is mentioned: "I saw you started your deal online through Click & Go — including your trade-in."',
+      '- Default: "I saw you started your deal online through Click & Go."',
+      '- After the opening: "You\'ve already done the hard part." Then reference the vehicle, trade, or financing details.',
+      '- If there is prior conversation history (the customer has engaged before), briefly acknowledge the relationship: "Great to hear from you again" — but still lead with the Click & Go action.',
+      '- Frame the visit as finalizing what they started — not starting over.',
+      '- Never say Gubagoo, virtual retailing, or digital retailing platform.',
+      '- Duration and two-time close.',
+    ].join('\n');
+
+  } else if (sc.isTrueCar) {
+    scenarioDirective = 'TASK: TrueCar affinity/partner lead. Customer submitted a pricing request through TrueCar. They expect a real price response — not a redirect.';
+    scenarioRules = [
+      '- Acknowledge the TrueCar request directly: "I saw your TrueCar request on the [vehicle]."',
+      '- Do NOT dodge the pricing ask. Position in-store as the way to lock in the best number.',
+      sc.noSpecificVehicle
+        ? '- NO STOCK NUMBER OR VIN: Do NOT confirm this specific vehicle is available. Say "we have [model] options available" — not "it\'s showing available." Include one qualifying question about trim, color, or configuration.'
+        : '- Confirm the vehicle is available if stock/VIN is present using soft language: "showing available."',
+      sc.staleModelYear
+        ? '- MODEL YEAR NOTE: The vehicle listed may be a prior model year. Do NOT confirm we have a ' + sc.vehicleYear + ' in stock — say "we have the latest RAV4 options available" or reference the current model year generically.'
+        : '',
+      '- If a trade-in is present, mention it in ALL formats including SMS.',
+      '- If there is prior conversation history, reference it naturally.',
+      '- Tone: straightforward and helpful — TrueCar customers are price-aware shoppers.',
+      '- Duration and two-time close.',
+    ].filter(Boolean).join('\n');
+
+  } else if (sc.isAMP && !sc.isStalled) {
+    scenarioDirective = 'TASK: AMP marketing lead — this customer received a dealership marketing email and engaged with it. The specific email content is NOT available. Reach out as a warm personal follow-up without referencing what the email said.';
+    scenarioRules = [
+      '- NEVER reference the email content, what the email offered, or what vehicle it mentioned — you do not have that information.',
+      '- NEVER say "I saw you clicked" or "I noticed you opened" — do not reveal tracking.',
+      '- Frame as a natural check-in: "I wanted to personally reach out" or "We sent you some information recently and I wanted to follow up."',
+      '- This is a previous customer — use the relationship as the reason to reach out.',
+      '- If their current vehicle is known from service history or notes, reference it as context: "A lot of our [vehicle] owners are finding this a great time to explore what\'s new."',
+      '- If no vehicle info is available, keep it general: "We have some exciting options right now and I wanted to make sure you had a chance to see them."',
+      '- Position the visit as easy and low-pressure — come take a look, no obligation.',
+      '- Tone: warm, familiar, like a check-in from someone who knows them. Not a cold pitch.',
+      '- Duration and two-time close.',
+    ].join('\n');
+
+  } else if (sc.isCapitalOne) {
+    scenarioDirective = 'TASK: Capital One pre-qualification lead.';
+    scenarioRules = [
+      '- Use "pre-qualification" language only. Never "approved" or "guaranteed rate."',
+      '- Position: match the pre-qualification to the right vehicle and confirm final structure in person.',
+    ].join('\n');
+
+  } else if (sc.isApptConfirmation) {
+    // Check if there's also an inventory warning — vehicle may have sold since appointment was made
+    const apptWithSoldVehicle = data.context && /vehicle status: sold/i.test(data.context);
+    scenarioDirective = 'TASK: Write an appointment confirmation/reminder. The appointment is already set.';
+    scenarioRules = [
+      '- Do not offer new times. Do not re-pitch the vehicle.',
+      '- SMS: warm, brief, reference the appointment, ask for YES reply.',
+      '- Reference appointment details from context if available.',
+      apptWithSoldVehicle
+        ? '- IMPORTANT: The original vehicle may no longer be available, but DO NOT disclose this in the message. Do NOT say the vehicle is available or unavailable. Focus only on confirming the appointment and preparing for the visit. The team will handle the vehicle conversation in person. Say things like "we\'ll have everything ready for you" — never confirm or deny vehicle availability.'
+        : '- Do not confirm specific vehicle availability — use soft language: "we will be ready for you."',
+    ].filter(Boolean).join('\n');
+
+  } else if (sc.isExitSignal) {
+    scenarioDirective = 'TASK: Customer has purchased elsewhere or is not interested. Write a gracious closing message.';
+    scenarioRules = [
+      '- 2-3 sentences max. No vehicle pitch. No appointment offer.',
+      '- Wish them well. Leave door open for future service.',
+      '- Tone: warm, zero pressure.',
+    ].join('\n');
+
+  } else if (sc.isPauseSignal) {
+    scenarioDirective = 'TASK: Customer needs more time. Write a soft empathetic check-in.';
+    scenarioRules = [
+      '- One natural question or warm acknowledgment. No appointment pressure.',
+      '- Leave the door open naturally.',
+    ].join('\n');
+
+  } else if (sc.isShowroomFollowUp) {
+    const visitTiming = data.showroomVisitToday ? 'earlier today' : 'recently';
+    const visitRef = data.showroomVisitToday ? '"I heard you stopped in earlier today"' : '"I heard you stopped in recently" or "I wanted to follow up on your visit."';
+    scenarioDirective = 'TASK: Customer visited the dealership and met with the Sales Rep. The BD Agent is writing this follow-up but was NOT present for the visit.';
+    scenarioRules = [
+      '- NEVER say "it was great meeting you" or "it was a pleasure meeting you" — the BD Agent did not meet the customer.',
+      '- Reference the visit with accurate timing: ' + visitRef,
+      '- If the Sales Rep name is known from context, reference them by name: "I heard you spent some time with [Sales Rep]" or "I saw you stopped in to see [Sales Rep]" — do NOT say it was a "great" visit. The BD Agent was not there and cannot judge how it went.',
+      '- Do not use first-touch language.',
+      '- Frame return visit as finalizing, not starting.',
+      '- Offer the two appointment times for a return visit.',
+    ].join('\n');
+
+  } else if (sc.isFollowUp) {
+    scenarioDirective = sc.isStalled
+      ? 'TASK: Re-engagement outreach on a stalled lead. No confirmed contact has been made. This customer has seen your name before but has not responded. Write a warm, brief re-engagement — not a first-touch pitch, not an apology tour.'
+      : 'TASK: Follow-up on an existing conversation. Read the FULL transcript carefully and write a message that accurately reflects where things stand RIGHT NOW.';
+    const briefs = [];
+    if (sc.customerLastSaid) briefs.push('Customer last said: [' + sc.customerLastSaid + ']');
+    if (sc.hasUnresolvedIssue && sc.unresolvedText) briefs.push('Unresolved issue: ' + sc.unresolvedText);
+    if (sc.actionNeeded) briefs.push('Your specific task: ' + sc.actionNeeded);
+    const trimPref = (data.context||'').match(/Customer expressed interest in:\s*([^\n.\]]+)/i);
+    const callNote = (data.context||'').match(/Most recent call note:\s*\[([^\]]+)\]/i);
+    if (trimPref) briefs.push('Customer vehicle preference from prior conversation: ' + trimPref[1].trim());
+    if (callNote) briefs.push('What was discussed on last call: ' + callNote[1].trim());
+
+    const stalledRules = sc.isStalled ? [
+      '- STALLED LEAD RULES:',
+      '- Open with ONE hook or ONE brief acknowledgment — then immediately the reason. Not both, not three setups.',
+      '- BEST openers: "Still thinking about the [vehicle]?" or "Wanted to make sure I didn\'t miss you —" then ONE reason.',
+      '- SMS MUST be 2-3 sentences MAX. Hook + reason + close. No setup language.',
+      '- SMS EXAMPLE (RIGHT): "Hi Samantha, Kristen from Community Kia. Still thinking about upgrading your Optima? Would today at 3:00 or tomorrow at 10:30 work for a quick look?"',
+      '- SMS EXAMPLE (WRONG): "We sent you some info recently, and with your Optima, I thought you might be interested in what\'s new. Could you stop by for 30-45 minutes today at 4 PM or tomorrow at 11 AM?" — this is setup, not a hook. The customer already knows who you are.',
+      '- DO NOT open with "Great to hear from you again" — there has been no recent re-engagement. The customer has gone quiet.',
+      '- DO NOT open with Click & Go framing ("I saw you started your deal online") — the DRS/Gubagoo source is the original lead channel, NOT a new submission. Leading with it is factually misleading.',
+      '- If KNOWN HISTORY shows a showroom visit: lead with that specific visit — "I know the [vehicle] wasn\'t quite the right fit when you came in" — then open a new door.',
+      sc.isAMP ? '- AMP source: the marketing email already went out days ago. Do NOT reference it or say "we sent you some information." Treat this purely as a warm re-engagement based on their vehicle ownership.' : '',
+      !data.vehicle && data.ownedVehicle ? '- No vehicle of interest on this lead. Reference the customer\'s current vehicle (' + data.ownedVehicle + ') as the context for the upgrade conversation. Do NOT name any other vehicle.' : '',
+      !data.vehicle && !data.ownedVehicle ? '- No vehicle attached to this lead. Do NOT reference or name any vehicle. Keep the message general — invite them in to see what\'s new.' : '',
+      '- Email: 3 short paragraphs MAX — one hook sentence, one specific reason tied to their vehicle, one ask. Skip "Hope you\'re having a good Thursday" and all similar pleasantries.',
+      '- Voicemail: one acknowledgment, one compelling hook, callback number. Done.',
+      '- Short and specific wins. The goal is ONE reply, not a sale.',
+    ].filter(Boolean) : [];
+
+    scenarioRules = [
+      ...stalledRules,
+      sc.isStalled ? '' : '- Do NOT use a first-touch opening. This is a continuation of an existing conversation.',
+      sc.isStalled ? '' : '- CONCERN-FIRST RULE: If IDENTIFIED CUSTOMER CONCERNS are listed above, your opening MUST directly address the top concern. Do not acknowledge it mid-message or at the end — lead with it. A response that ignores the customer\'s stated concern and opens with a generic vehicle pitch is a failure.',
+      sc.isStalled ? '' : '- CONCERN EXAMPLES (RIGHT): "Hi Maria, I wanted to make sure we could work with your budget before you come in —" or "Hi James, wanted to follow up on the numbers you were looking at —"',
+      sc.isStalled ? '' : '- CONCERN EXAMPLES (WRONG): "Hi Maria, just wanted to check in on the CR-V — we have it ready for you!" (ignores the budget concern entirely)',
+      '- TONE CALIBRATION — CRITICAL: Match the register of the actual conversation across ALL THREE formats. If the conversation is casual texts, write ALL formats (SMS, email, voicemail) with that same warmth. The email should NOT flip into corporate formal mode just because it is an email — it should feel like the same person who sent the SMS.',
+      '- EMAIL TONE RULE: When the conversation has been casual and text-based, the email should open with energy, not pleasantries. Skip "I hope this email finds you well." Skip "Thank you for letting me know." Start with the forward motion — same as the SMS.',
+      '- EXAMPLE of the RIGHT email tone for a casual text follow-up:',
+      '  WRONG email opening: "Hi Michael, Thanks for letting me know you need to discuss the Highlander with your wife. That\'s perfectly understandable! The 2011 Toyota Highlander Limited is still showing available..."',
+      '  RIGHT email opening: "Hi Michael, Bring your wife by — the Highlander is still here and we\'re open till 8. Would 4:00 or 4:45 PM work for you both?"',
+      '- BREVITY RULE: If the conversation is same-day active texts, SMS should be 2-3 sentences MAX. Do not pad.',
+      '- Never re-state information the customer already knows from the conversation.',
+      '- Never start with "I understand..." — lead with energy and forward motion instead.',
+      '- CRITICAL: If a note says "she said for me to call her at [TIME]" — the call has NOT happened yet.',
+      '- CRITICAL: Check WHO made each note. If the Sales Rep made a call note, acknowledge their conversation.',
+      '- If customer expressed a trim or model preference, reference THAT specifically.',
+      '- Write only what is true based on what has actually happened in the transcript.',
+      sc.noSpecificVehicle ? '- NO SPECIFIC VEHICLE SELECTED: Ask one question to advance toward a specific unit.' : '',
+      briefs.length ? '\nKey context:\n' + briefs.join('\n') : '- Reference prior contact and advance the conversation directly.',
+    ].filter(Boolean).join('\n');
+
+  } else if (sc.isTradePending) {
+    scenarioDirective = 'TASK: Customer submitted a trade-in inquiry through TradePending. Acknowledge the trade first.';
+    scenarioRules = [
+      '- Open by acknowledging their trade submission, not the vehicle.',
+      '- Curiosity hook: "Sometimes the in-person appraisal can improve on the online estimate."',
+      '- Reference replacement vehicle only after the trade acknowledgment.',
+      '- Never guarantee a higher trade value.',
+    ].join('\n');
+
+  } else if (sc.isLoyalty) {
+    var equityHook = '';
+    if (data.equityAmount) {
+      var isPositiveEquity = !data.equityAmount.includes('-') && !data.equityAmount.includes('(');
+      equityHook = isPositiveEquity
+        ? 'EQUITY DATA: Customer has positive equity of ' + data.equityAmount + ' on their ' + (data.equityVehicle || data.vehicle || 'current vehicle') + '. Use this as the hook — they are in a strong position to upgrade.'
+        : 'EQUITY DATA: Customer equity is ' + data.equityAmount + ' on their ' + (data.equityVehicle || data.vehicle || 'current vehicle') + '. Be sensitive — do not lead with the negative number. Focus on the upgrade opportunity and new payment structure instead.';
+    }
+    var isFirstTouch = !data.hasOutbound;
+    var isPositiveEquity = data.equityAmount && !data.equityAmount.includes('-') && !data.equityAmount.includes('(');
+    scenarioDirective = 'TASK: Loyalty/equity review — customer is in a manufacturer finance program. Vehicle shown is their CURRENT car, not inventory. Goal: get them in for a no-pressure options review.';
+    scenarioRules = [
+      '- NEVER say the vehicle "has sold," "is available," or reference its inventory status — it is their current car.',
+      isFirstTouch
+        ? '- FIRST TOUCH: Keep it warm and curiosity-driven. Do NOT mention equity numbers, tier pricing, or financing terms — those are in-person conversations. This message should feel like a friendly heads-up, not a finance pitch.'
+        : '- FOLLOW-UP: Customer is already engaged — you may reference equity and options more directly.',
+      isFirstTouch && isPositiveEquity
+        ? '- You may tease the equity position without quoting the number: "I pulled up your account and you may be in a better position than you think to make a move." Do NOT say the dollar amount in a first touch.'
+        : (!isFirstTouch && equityHook ? equityHook : '- Reference their current ownership and position the upgrade as a natural next step.'),
+      '- FORBIDDEN in first-touch: "tier pricing", "estimated equity", "financing piece", "balance", specific dollar amounts.',
+      '- Frame the visit as a no-pressure review: "It only takes about 30-45 minutes to go over your options and see what makes sense for you."',
+      '- Do NOT pitch a specific new vehicle unless one is listed in the lead.',
+      sc.isAudi  ? '- AFS (Audi Financial Services): Premium loyalty review. Concierge tone.' :
+      sc.isKia   ? '- KMF (Kia Motors Finance): Kia loyalty upgrade review.' :
+      sc.isHonda ? '- HFS (Honda Financial Services): Honda loyalty/equity review.' :
+      sc.isToyota? '- TFS (Toyota Financial Services): Toyota loyalty/equity review.' :
+                   '- Loyalty finance review.',
+      '- Duration and two-time close.',
+    ].filter(Boolean).join('\n');
+
+  } else if (sc.isCarGurusDD) {
+    scenarioDirective = 'TASK: Customer used the CarGurus deal builder. Acknowledge the CarGurus deal structure.';
+    scenarioRules = [
+      '- Open: "I saw you put together a deal structure on CarGurus."',
+      '- NOT Click & Go. Never say Gubagoo.',
+      '- Next step: confirm the details in person.',
+    ].join('\n');
+
+  } else if (sc.isKBB) {
+    scenarioDirective = 'TASK: KBB Instant Cash Offer lead. Include KBB disclosure.';
+    scenarioRules = [
+      '- After stating duration, include: "The value you received online is based on information submitted through Kelley Blue Book and serves as a starting point. The next step is a quick in-person appraisal to confirm everything."',
+      '- Then offer the two appointment times.',
+    ].join('\n');
+
+  } else if (sc.isAIBuyingSignalNew) {
+    scenarioDirective = 'TASK: AI Buying Signal — new prospect actively shopping for a vehicle. This customer has NO prior relationship with this dealership. The vehicle shown in the lead is the category they are interested in — use it to identify the segment (truck, SUV, sedan, etc.) but do NOT assume we carry that exact make/model.';
+    scenarioRules = [
+      '- CRITICAL: This is a BRAND NEW prospect — no ownership hook. Do NOT say "still driving the [vehicle]" — you have no idea what they drive.',
+      '- NEVER name the specific vehicle from the lead in the message — it may be a competitor brand we do not carry (e.g. Ford F-150 at a Honda dealer).',
+      '- NEVER reveal online activity was tracked. No "I saw you were looking at", "I noticed you", "I saw you browsing".',
+      '- NEVER ask "are you looking new or pre-owned" — new/used data is unreliable. Skip this question entirely.',
+      '- Identify the CATEGORY from the vehicle name: F-150/Tacoma/Tundra/Ram/Silverado → TRUCK; RAV4/CR-V/Equinox/Rogue/Explorer → SUV; Camry/Accord/Altima/Malibu → SEDAN; etc.',
+      '- REQUIRED OPENING for new prospects (no ownership): "[First name], I wanted to reach out — we have some great [truck/SUV/sedan] options available right now that I think would be a perfect fit."',
+      '- Include ONE genuine qualifying question about what matters to them: "What features are most important to you?" or "Are you set on a specific trim or are you open to options?"',
+      '- Do NOT ask for their phone number in the email if they already have one on file. Only ask in SMS if no phone number exists.',
+      '- Duration and two-time close.',
+      '- Tone: warm, helpful, consultative — not a cold pitch.',
+    ].join('\n');
+
+  } else if (sc.isAIBuyingSignalReturner) {
+    scenarioDirective = 'TASK: AI Buying Signal — previously sold customer showing active shopping behavior. The system detected buying signals from their recent online activity. Use the BUYING SIGNAL DATA field to understand what they are interested in NOW — do NOT rely on old conversation history which may be years old.';
+    scenarioRules = [
+      '- CRITICAL: The BUYING SIGNAL DATA tells you what the customer is actively shopping for. Use it to understand their category interest only.',
+      '  - Vehicle model name (e.g. "Camry", "Tacoma") = their interest. Reference this model in your message.',
+      '  - "Actively Shopping" = high intent. The customer is in the market now.',
+      '  - New/Used designation and price range = IGNORE BOTH. These signals are unreliable. Do not constrain your message by them. Let the agent handle inventory positioning in person.',
+      '- AVOID words that imply inventory type when unknown: "newer model", "newer models", "latest model", "brand new", "new [model]", "upgrade to a new". ',
+      '- For the email subject line: Do NOT use "upgrade" — it implies new inventory. Use neutral subjects like: "Your [model]" or "[Model] options for you" or "Checking in on your [model] search".',
+      '- In the message body: replace "upgrading your [vehicle]" with "your next [vehicle]" or "your [vehicle] search" — neutral framing that works for any inventory type.',
+      '- CRITICAL: Do NOT reference any marketing event, promotional offer, or APR deal from the transcript — these are mass blast campaigns unrelated to the customer\'s personal buying intent.',
+      '- The customer\'s prior purchase is CONTEXT only — do not make it the subject of the message.',
+      '- Do NOT reference any conversation notes older than 6 months.',
+      '- NEVER use these FORBIDDEN phrases: "I was looking at your [vehicle]", "I was looking at your Corolla", "I was looking at your trade", "I was looking at your [anything]", "I saw you were looking at", "I noticed you viewed", "you were browsing", "I saw your activity". The phrase "I was looking at your [vehicle]" is THE most common wrong opener — it sounds like the agent physically inspected their car. It is ALWAYS wrong. Rewrite using the OPENING FORMULA above instead.',
+      '- REQUIRED OPENING FORMULA — pick one of these natural framings:',
+      '  OPTION A (ownership hook): "[First name], still driving the [owned vehicle]? We have some great [category] options available right now that I think you\'d love."',
+      '  OPTION B (direct offer): "[First name], we just got a few [used/new] [category] options in that I think would be a perfect upgrade from your [owned vehicle]."',
+      '  OPTION C (no owned vehicle): "[First name], I wanted to reach out — we have some great [used/new] [category] options available right now that might be exactly what you\'re looking for."',
+      '- Do NOT say "I was looking at your [vehicle]" — this sounds like the agent was staring at their car. The agent does not physically look at a customer\'s vehicle.',
+      '- Tone: warm, low-pressure, relationship-first. This is a VIP customer — treat them like one.',
+      '- Duration and two-time close, softer: "come take a look" not "come in to buy."',
+      '- EXAMPLE (RIGHT — SMS): "Roberto, still driving the Corolla? We have a few Tacomas available right now that I think would be a great fit. Could you stop by at 4:45 or 5:30 today?"',
+      '- EXAMPLE (RIGHT — EMAIL opening): "Roberto, still driving the Corolla? We have a few Tacomas available that I think would be a great next step. I can have one ready for you to see — would 4:45 PM or 5:30 PM work today?"',
+      '- EXAMPLE (WRONG): "Roberto, I was looking at your 2022 Corolla and I saw you were browsing our Tacoma inventory..." — Wrong because: exposes tracking, uses creepy "I was looking at your car" phrasing, ignores what the customer is actually interested in.',
+    ].join('\n');
+
+  } else if (sc.isAutoTrader) {
+    scenarioDirective = 'TASK: AutoTrader lead — customer found this vehicle on AutoTrader and submitted an inquiry. They are an active buyer, not a browser.';
+    scenarioRules = [
+      '- Open: "I saw your inquiry come through on AutoTrader for the [vehicle]."',
+      '- AutoTrader shoppers are comparison shopping across multiple dealers — your first response needs to stand out.',
+      '- Do NOT just confirm availability and offer times. Give them ONE specific reason to choose you: price transparency, fastest delivery, best trade offer, etc.',
+      sc.vehicleSold ? '- Vehicle is sold — pivot immediately to comparable options. Do NOT dwell on the unavailability.' : '- Confirm availability with confidence if stock/VIN is present.',
+      '- Tone: direct, no fluff. They know what they want.',
+      '- Duration and two-time close.',
+    ].filter(Boolean).join('\n');
+
+  } else if (sc.isCarscom) {
+    scenarioDirective = 'TASK: Cars.com lead — customer submitted an inquiry through Cars.com. Comparison shopper actively looking.';
+    scenarioRules = [
+      '- Open: "I saw your request come through on Cars.com for the [vehicle]."',
+      '- Cars.com shoppers are actively comparing dealers — give them a concrete reason to come to you first.',
+      '- If trade is present, lead with the trade angle — Cars.com buyers are often motivated by getting top value.',
+      sc.vehicleSold ? '- Vehicle is sold — pivot to comparable options without making them feel like a bait-and-switch.' : '- Confirm availability if stock/VIN present.',
+      '- Tone: helpful and specific. Generic responses get ignored.',
+      '- Duration and two-time close.',
+    ].filter(Boolean).join('\n');
+
+  } else if (sc.isEdmunds) {
+    scenarioDirective = 'TASK: Edmunds lead — this is a research-first, price-aware buyer who did their homework before reaching out.';
+    scenarioRules = [
+      '- Open: "I saw your inquiry come through on Edmunds for the [vehicle]."',
+      '- Edmunds shoppers are the most informed buyers — treat them as equals, not prospects.',
+      '- Do NOT dodge pricing or give a vague "come in and we will talk numbers" response.',
+      '- Position the visit as where the real numbers get locked in: "The best I can do on price and trade is in person — I want to make sure you leave with the right deal, not just a quote."',
+      '- Tone: knowledgeable, direct, zero condescension.',
+      '- Duration and two-time close.',
+    ].join('\n');
+
+  } else if (sc.isOEMLead) {
+    var oemBrand = /toyota/i.test(data.leadSource||'') ? 'Toyota' : /honda/i.test(data.leadSource||'') ? 'Honda' : /kia/i.test(data.leadSource||'') ? 'Kia' : /hyundai/i.test(data.leadSource||'') ? 'Hyundai' : 'the manufacturer';
+    scenarioDirective = 'TASK: OEM/manufacturer website lead — customer came directly from ' + oemBrand + '\'s website. High intent, brand-committed buyer.';
+    scenarioRules = [
+      '- Open: "I saw your inquiry come through on ' + oemBrand + '.com for the [vehicle]."',
+      '- This customer chose the brand FIRST then found a dealer — honor that by leading with brand enthusiasm, not just inventory.',
+      '- If they built a specific configuration online (trim, color, packages), reference it specifically — this shows you read their submission.',
+      '- If the exact config is not on the lot, offer the closest match and be specific about what is similar.',
+      '- Tone: brand-proud, consultative. They are a ' + oemBrand + ' buyer — meet them there.',
+      '- Duration and two-time close.',
+    ].join('\n');
+
+  } else if (sc.isPhoneUp) {
+    scenarioDirective = 'TASK: Phone-up lead — this customer called in first. This follow-up continues a real conversation that already happened.';
+    scenarioRules = [
+      '- NEVER treat this as a cold intro. The customer called in — a real conversation already happened.',
+      '- The BD Agent writing this may NOT have been on the call — NEVER say "it was great speaking with you" or "I enjoyed our call." Say: "Wanted to follow up on your call with us" or "Following up on your inquiry."',
+      '- If call notes exist in the transcript, reference the single most important thing discussed: vehicle, price question, trade value, or timing. Lead with that — do not bury it.',
+      '- If no call notes exist: "I wanted to make sure I followed up on your call — we have the [vehicle] and I want to make sure we get you the right information."',
+      '- Frame the visit as the natural next step after the call — not a restart.',
+      '- If the customer asked a specific question on the call (price, availability, trade value), acknowledge it: do not ignore unanswered questions.',
+      '- Tone: warm continuation. They already know the dealership — skip the intro.',
+      '- Duration and two-time close.',
+    ].join('\n');
+
+  } else if (sc.isCarGurus) {
+    scenarioDirective = 'TASK: CarGurus standard lead — customer submitted a price inquiry or interest form through CarGurus.';
+    scenarioRules = [
+      '- Open: "I saw your inquiry come through on CarGurus for the [vehicle]."',
+      '- CarGurus buyers are highly price-aware — the platform shows them your price vs market average. Do NOT ignore this.',
+      '- If your price is competitive, acknowledge it: "You will see our price is well positioned in the market."',
+      '- If price sensitivity is apparent, do NOT dodge — position the visit as where you finalize the best possible deal.',
+      '- Tone: transparent and confident. CarGurus buyers respect directness.',
+      '- Duration and two-time close.',
+    ].join('\n');
+
+  } else if (sc.isFacebook) {
+    scenarioDirective = 'TASK: Facebook/Facebook Marketplace lead — customer found this vehicle on Facebook and reached out.';
+    scenarioRules = [
+      '- Open casually: "I saw your message on Facebook about the [vehicle]."',
+      '- Facebook Marketplace buyers skew casual and deal-focused — match that energy. Do NOT be overly formal.',
+      '- They often expect a quick, direct answer on price and availability — give it to them.',
+      '- Do NOT send a corporate BDC pitch. Write like a real person responding to a Facebook message.',
+      '- If no vehicle is specified, ask one simple question: "What are you looking for?"',
+      '- Tone: conversational, friendly, zero corporate speak.',
+      '- Duration and two-time close.',
+    ].join('\n');
+
+  } else if (sc.isDealerWebsite) {
+    scenarioDirective = 'TASK: Dealer website lead — customer submitted an inquiry directly through the dealership website. High intent.';
+    scenarioRules = [
+      '- Open: "I saw your inquiry come through on our website for the [vehicle]."',
+      '- Dealer website leads are high intent — they went to YOUR website specifically, not a third-party marketplace.',
+      '- Acknowledge that directly: position the visit as the natural next step from where they already are in the process.',
+      '- If stock/VIN is present, confirm availability confidently.',
+      '- Tone: welcoming and direct. They chose you — make them feel that was the right call.',
+      '- Duration and two-time close.',
+    ].join('\n');
+
+  } else if (sc.isChatLead) {
+    // Detect what the customer actually asked or was told in the chat
+    var chatContext = (data.context || '').toLowerCase();
+    var chatAskedPrice    = /how much|what.s the price|price on|what does it cost|monthly payment|what would (my|the) payment/i.test(chatContext);
+    var chatAskedTrade    = /trade.?in|what.s my|how much (is|for) my|trade value/i.test(chatContext);
+    var chatAskedAvail    = /is it (still )?available|do you (still )?have|is (that|the) (car|truck|suv|vehicle) (still )?there|in stock/i.test(chatContext);
+    var chatAskedFinance  = /financing|get financed|credit|down payment|interest rate/i.test(chatContext);
+    var chatGaveNumber    = /here.s my (number|phone)|call me|text me|my (cell|phone|number) is/i.test(chatContext);
+
+    var chatAnswerHint = chatAskedPrice   ? 'CHAT QUESTION: Customer asked about price or payment. Acknowledge this first — give a range or invite them in to get exact numbers. Do not ignore it.'
+      : chatAskedTrade   ? 'CHAT QUESTION: Customer asked about their trade-in value. Lead with the trade — position the visit as where they get the real number.'
+      : chatAskedAvail   ? 'CHAT QUESTION: Customer asked about availability. Confirm it directly if you can, or use urgency language if supply is limited.'
+      : chatAskedFinance ? 'CHAT QUESTION: Customer asked about financing. Acknowledge it warmly — Capital One pre-qual or in-store options. Do not over-promise.'
+      : '';
+
+    scenarioDirective = 'TASK: Chat lead — customer had a live chat conversation on the dealer website or Gubagoo platform and submitted their contact info. This is a WARM lead, not cold.';
+    scenarioRules = [
+      '- This customer chose to engage — they typed their questions and gave you their number. Treat them accordingly.',
+      '- NEVER re-introduce the dealership or the vehicle as if they have no context. They know. They just chatted about it.',
+      '- NEVER say "Gubagoo", "chat platform", "virtual assistant", or "our online chat" — reference it naturally: "following up on your chat" or "you reached out earlier about the [vehicle]."',
+      '- OPEN with the most important thing from the chat — their question, their vehicle, their trade. Not a generic "I wanted to reach out."',
+      chatAnswerHint || '- Read the chat transcript and identify the single strongest hook. Lead with that.',
+      '- If the chat bot made any claims (price range, availability, appointment offer), be consistent — do not contradict what they were already told.',
+      '- Tone: match the energy of someone continuing a conversation, not starting one. Casual, direct, helpful.',
+      '- SMS: Short and sharp — they already know who you are. Get straight to the point.',
+      '- Email: Pick up right where the chat left off. One paragraph of context, one ask.',
+      '- Duration and two-time close.',
+    ].filter(Boolean).join('\n');
+
+  } else if (sc.isCarFax) {
+    scenarioDirective = 'TASK: CarFax/third-party listing lead — customer found this vehicle through a vehicle history or listing platform.';
+    scenarioRules = [
+      '- Open: "I saw your inquiry come through about the [vehicle]."',
+      '- CarFax buyers are research-oriented — they care about vehicle history and condition.',
+      '- If condition/mileage/history info is available, reference it positively.',
+      '- Tone: transparent and reassuring. These buyers want confidence in the vehicle, not just a price.',
+      '- Duration and two-time close.',
+    ].join('\n');
+
+  } else if (sc.isRepeatCustomer) {
+    scenarioDirective = 'TASK: Repeat/returning customer — this person has done business with the dealership before.';
+    scenarioRules = [
+      '- NEVER treat this as a cold intro. They are family — they came back.',
+      '- Acknowledge the relationship immediately: "It\'s great to hear from you again" or "Welcome back!"',
+      '- If prior vehicle purchase is known, reference it: "I know you\'ve been happy with your [prior vehicle]."',
+      '- Position the new vehicle as an upgrade to something they already love.',
+      '- Do NOT go through a standard first-touch pitch — skip the basics, get to what\'s new for them.',
+      '- Tone: warm, familiar, genuinely happy to hear from them.',
+      '- Duration and two-time close.',
+    ].join('\n');
+
+  } else if (sc.isThirdPartyOEM) {
+    var oemRef = /kia/i.test(data.leadSource||'') ? 'Kia' : /honda/i.test(data.leadSource||'') ? 'Honda' : /toyota/i.test(data.leadSource||'') ? 'Toyota' : /hyundai/i.test(data.leadSource||'') ? 'Hyundai' : /audi/i.test(data.leadSource||'') ? 'Audi' : 'the manufacturer';
+    scenarioDirective = 'TASK: Third-party OEM / manufacturer partner lead — customer came through an official ' + oemRef + ' marketing or partner program.';
+    scenarioRules = [
+      '- This customer is brand-committed — they engaged with ' + oemRef + ' directly before landing here.',
+      '- Open by acknowledging the brand connection: "I saw your inquiry come through our ' + oemRef + ' partner program."',
+      '- Lead with brand enthusiasm and model highlights — they want to be confirmed in their choice.',
+      '- If a specific vehicle or trim is on the lead, reference it. These customers often have strong preferences.',
+      '- Tone: brand-proud, warm, and confident. They chose ' + oemRef + ' — validate that.',
+      '- Duration and two-time close.',
+    ].join('\n');
+
+  } else if (sc.isGoogleAd) {
+    scenarioDirective = 'TASK: Google Digital Advertising lead — customer clicked a paid ad and submitted their info.';
+    scenarioRules = [
+      '- This customer was actively searching and clicked YOUR ad — high intent, act fast.',
+      '- Open directly: "I saw your inquiry come through — you were looking at the [vehicle]."',
+      '- Do NOT mention Google or the ad — just treat it as a direct inquiry.',
+      '- Google ad shoppers are often comparison shopping multiple results at once — speed and specificity win.',
+      '- Tone: direct, fast, confident. First responder wins here.',
+      '- Duration and two-time close.',
+    ].join('\n');
+
+  } else if (sc.isReferral) {
+    scenarioDirective = 'TASK: Referral lead — someone who knows this customer recommended the dealership.';
+    scenarioRules = [
+      '- Acknowledge the referral immediately — it is the reason they reached out.',
+      '- Open: "I heard [referral source if known] sent you our way — that means a lot to us." If referral name unknown: "I understand someone referred you to us."',
+      '- Referral customers have built-in trust — do NOT squander it with a generic pitch.',
+      '- The tone should feel like you\'re welcoming a friend of a friend, not a cold prospect.',
+      '- Do NOT push hard on appointment times immediately — build the connection first, then offer.',
+      '- Tone: genuinely warm, grateful, personal.',
+      '- Duration and two-time close.',
+    ].join('\n');
+
+  } else {
+    scenarioDirective = 'TASK: Standard first-touch response to a new inquiry.';
+    if (sc.noSpecificVehicle) {
+      scenarioRules = [
+        '- Customer has expressed interest in the model/trim but NO specific unit has been confirmed (no stock number, no VIN).',
+        '- Do NOT confirm availability of any specific unit, color, or configuration — none has been verified.',
+        '- Do NOT say "we have the [color] available" — you do not know what is on the lot.',
+        '- Use soft language: "we have Tellurides available" not "we have the Ebony Black Telluride available."',
+        '- Include ONE qualifying question to narrow down what they want: color preference, trim, new vs pre-owned, budget.',
+        '- Duration and two-time close still required.',
+      ].join('\n');
+    } else {
+      scenarioRules = '- Standard structured response with one qualifying statement, duration, and two-time close.';
+    }
+  }
+
+  // ── Inventory status overrides scenario directive for first-touch ─
+  // Only applies when this is a first-touch lead (not follow-up/exit/etc.)
+  if (!sc.isFollowUp && !sc.isExitSignal && !sc.isPauseSignal && !sc.isApptConfirmation && !sc.isShowroomFollowUp && !sc.isSoldDelivered) {
+    if (sc.vehicleInTransit) {
+      scenarioDirective = 'TASK: This vehicle is IN TRANSIT — the VIN is confirmed, meaning it exists and is assigned, but it has not yet arrived on the lot. This is a STRONG selling opportunity — the customer can secure it before it arrives.';
+      scenarioRules = [
+        '- LEAD WITH THE GOOD NEWS: Open with the fact that the vehicle is confirmed and available to secure.',
+        '- REQUIRED opening: "Great news — the [vehicle] you are looking at is confirmed and on its way to our lot. You can secure it now before it arrives."',
+        '- Create urgency around SECURING it: "Vehicles like this one often get spoken for before they even hit the lot."',
+        '- Position the visit as locking it in: "If you can come in, we can get the paperwork started so it is reserved for you the moment it arrives."',
+        '- Do NOT say the vehicle is available to see or test drive — it is not on the lot yet.',
+        '- Do NOT offer to hold it without a visit — the visit IS the hold.',
+        '- If trade is present: "We can also start on your trade-in appraisal now so everything is ready when the vehicle arrives."',
+        '- Tone: excited, confident, exclusive — make the customer feel like they are getting first access.',
+        '- Duration: adjust framing — "It usually takes about 30 minutes to get everything set up so the vehicle is reserved for you."',
+        '- Two-time close still required.',
+      ].join('\n');
+    } else if (sc.vehicleSold) {
+      scenarioDirective = 'TASK: The specific vehicle of interest has been sold. Your job is to pivot to alternatives WITHOUT making the customer feel misled or like a bait-and-switch.';
+      scenarioRules = [
+        '- NEVER say "no longer available", "sold out", or "unfortunately that one is gone" — these feel like bad news leads.',
+        '- NEVER open with the bad news. Lead with what you DO have, then mention the original is spoken for.',
+        '- PIVOT FORMULA: "We actually just had a [comparable vehicle] come in that I think you are going to love — it is very similar to the [original] you were looking at. I would love to show it to you."',
+        '- If you must mention the sold status: "That specific one has been spoken for, but..." — then immediately to the alternative.',
+        '- Reference the CATEGORY/MODEL — not a generic "we have other options." Be specific about what is comparable.',
+        '- If trim, color, or features were mentioned: acknowledge them in the comparable option. "I found one in [similar color/trim] that I think checks the same boxes."',
+        '- Tone: positive and excited about the alternative — not apologetic about the sold unit.',
+        '- Duration and two-time close still required.',
+      ].join('\n');
+    }
+  }
+
+  // ── Inventory notes (for loyalty vehicle only — others handled above) ─
+  let inventoryNote = '';
+  if (sc.isLoyaltyVehicle) {
+    inventoryNote = 'VEHICLE NOTE: This is the customer\'s current owned vehicle — not dealership inventory. Never reference its availability.';
+  } else if (sc.staleModelYear) {
+    inventoryNote = 'VEHICLE NOTE: The vehicle listed is a ' + sc.vehicleYear + ' model year, which is prior to the current year (' + currentYear + '). Do NOT confirm we have this specific model year in stock. Reference "the latest [model] options available" or the current model year instead. Never say a prior-year model "is showing available."';
+  } else if (!sc.vehicleInTransit && !sc.vehicleSold && data.vehicle) {
+    inventoryNote = 'Vehicle is currently showing available. Use soft confirmation language only: "showing available."';
+  }
+
+  // ── Audi Brand Specialist ──────────────────────────────────────
+  let audiNote = '';
+  if (sc.isAudi) {
+    audiNote = [
+      'AUDI CONCIERGE PERSONA — CRITICAL:',
+      '- The agent is an Audi Concierge, not a generic sales coordinator. This distinction must come through in the writing.',
+      '- SMS opening: "Hi [Name], this is [Agent], your Audi Concierge at Audi Lafayette."',
+      '- Email opening: "Hi [Name], this is [Agent], your Audi Concierge at Audi Lafayette." — NOT "I hope this email finds you well."',
+      '- Voicemail opening: "Hi [Name], this is [Agent], your Audi Concierge at Audi Lafayette."',
+      '- The word "Concierge" must appear in the opening introduction of every format.',
+      '- Tone: elevated, white-glove, personalized. Audi is a luxury brand — the communication should feel premium.',
+      '- Never use generic BDC language like "I\'m reaching out regarding your inquiry." Instead: "I wanted to personally reach out..." or "I\'m personally following up..."',
+      sc.salesRep
+        ? '- Brand Specialist for this visit: ' + sc.salesRep + ' — reference as "your Audi Brand Specialist, ' + sc.salesRep + '"'
+        : '- No Brand Specialist assigned — reference as "one of our Audi Brand Specialists."',
+    ].join('\n');
+  }
+
+  // ── Conversation pre-analysis — extracted before LEAD section ────
+  // Forces AI to process what actually happened BEFORE seeing vehicle/times
+  let conversationAnalysis = '';
+  if (data.conversationBrief && data.convState !== 'first-touch') {
+    // Extract the most recent customer message
+    const lastInbound = data.lastInboundMsg || '';
+    // Extract the most recent agent message
+    const lastOutbound = data.lastOutboundMsg || '';
+    // Extract any agent promises from outbound (questions asked, promises made)
+    const agentAsked = lastOutbound.match(/\?[^?]*$/)?.[0]?.trim() || '';
+
+    conversationAnalysis = [
+      '━━━ CONVERSATION ANALYSIS ━━━',
+      'Before writing anything, process this:',
+      lastInbound ? '1. CUSTOMER SAID LAST: "' + lastInbound.substring(0, 300) + '"' : '1. No customer reply yet.',
+      lastOutbound ? '2. AGENT LAST SAID: "' + lastOutbound.substring(0, 200) + '"' : '2. No agent message yet.',
+      agentAsked   ? '3. OPEN QUESTION FROM AGENT: "' + agentAsked + '" — if unanswered, do not re-ask the same question.' : '',
+      '4. REQUIRED: Your opening line must react to what the customer said (if they replied) or acknowledge what the agent asked. Do NOT open with a generic greeting that ignores the conversation.',
+      '5. HUMAN TEST: Would a real person who just read this conversation write this message? If it could be sent to any customer, rewrite it.',
+    ].filter(Boolean).join('\n');
+  }
+
+  // ── Build the prompt ───────────────────────────────────────────
+  // For AI Buying Signal leads: inject a hard constraint block at the very top of the prompt
+  // This appears BEFORE the scenario directive so the AI sees it first and cannot ignore it
+  var buyingSignalHardBlock = '';
+  if (sc.isAIBuyingSignalNew || sc.isAIBuyingSignalReturner) {
+    var bsData = sc.buyingSignalData || (data.context||'').match(/BUYING SIGNAL DATA[:\s]+([^\n]+)/i)?.[1] || '';
+    var bsModel = bsData.match(/\b(Camry|Tacoma|RAV4|Highlander|Corolla|Tundra|Sienna|4Runner|Venza|Prius|CR-V|Accord|Civic|Pilot|Odyssey|Telluride|Sorento|Sportage|Carnival|Tucson|Santa Fe|Palisade|Mustang|F-150|Explorer|Edge|Escape|Silverado|Equinox|Traverse|Malibu|Tahoe|Suburban|Colorado|Wrangler|Cherokee|Grand Cherokee|Ram|Charger|Challenger|Durango|Altima|Rogue|Murano|Pathfinder|Frontier|Titan|Legacy|Outback|Forester|Crosstrek|WRX|Impreza|CX-5|CX-9|Mazda3|Mazda6|RX350|ES350|GX|LX|IS|GS|UX|NX|Optima|Stinger|Forte|Soul|Niro)/i)?.[0] || '';
+    buyingSignalHardBlock = [
+      '⚠ AI BUYING SIGNAL LEAD — HARD CONSTRAINTS (these override everything else):',
+      '1. SUBJECT LINE: Never use the word "upgrade". Use: "Your ' + (bsModel || 'vehicle') + '" or "' + (bsModel || 'Vehicle') + ' options for you".',
+      '2. BODY: Never say "newer model", "newer models", "latest model", "newest", "step up", "brand new", "new ' + (bsModel||'vehicle') + '". These imply inventory type which is unknown.',
+      '3. BODY: Never say "upgrading your [vehicle]" — say "your next ' + (bsModel||'vehicle') + '" or "your ' + (bsModel||'vehicle') + ' search".',
+      '4. BODY: Never reference a trade-in unless one is explicitly listed in the LEAD section below.',
+      '5. BODY: Never reference any marketing event, sale, APR offer, or promotional campaign.',
+      '6. OPENING FORMULA — choose based on lead type:',
+      sc.isAIBuyingSignalReturner ?
+        '   RETURNER (has prior purchase): "[First name], still driving the [owned vehicle]? We have some great ' + (bsModel||'vehicle') + ' options available right now."' :
+        '   NEW PROSPECT (no prior purchase): "[First name], I wanted to reach out — we have some great [category] options available right now that I think would be a perfect fit." Do NOT use ownership hook for new prospects.',
+      '7. BUYING SIGNAL: ' + (bsData || '(see context)'),
+      '',
+    ].join('\n');
+  }
+
+  const lines = [
+    'DATE: ' + date,
+    '',
+    buyingSignalHardBlock,
+    '━━━ SCENARIO ━━━',
+    scenarioDirective,
+    scenarioRules,
+    '',
+  ];
+
+  if (inventoryNote) lines.push('INVENTORY: ' + inventoryNote, '');
+  if (audiNote)      lines.push(audiNote, '');
+  if (conversationAnalysis) lines.push(conversationAnalysis, '');
+
+  // ── Context flag rules — injected when flags are active ─────────
+  var flags = data.activeFlags || [];
+  if (flags.includes('credit')) {
+    lines.push('🔴 CREDIT SENSITIVITY FLAG: This customer has shown credit sensitivity. Handle financing language with care.',
+      '- NEVER say "get approved", "easy financing", "no matter your credit", or imply approval is guaranteed.',
+      '- NEVER lead with payment amounts or APR — these can backfire if they are higher than expected.',
+      '- Frame the visit as exploratory: "Let us look at the options together" — not "let us get you financed."',
+      '- If Capital One or a credit app is involved, acknowledge it positively but neutrally: "Having that started puts us in a great position."',
+      '- Tone: reassuring and low-pressure. The goal is getting them in, not pre-selling financing.',
+      '');
+  }
+  if (flags.includes('price')) {
+    lines.push('🔴 PRICE GATE FLAG: This customer is stuck on price — they have seen numbers they did not like or expressed budget concerns.',
+      '- NEVER pitch features, packages, or upgrades — they are not buying more, they are buying value.',
+      '- Do NOT mention MSRP, sticker price, or any specific dollar amount.',
+      '- Frame the visit as finding the RIGHT number: "I want to make sure we find something that works for your budget."',
+      '- Acknowledge the concern directly if it came up in conversation — ignoring it loses the customer.',
+      '- Tone: empathetic and solution-focused. They need to believe you are on their side.',
+      '');
+  }
+  // Spanish handled via translate button
+  if (flags.includes('distance')) {
+    var distanceContext = '';
+    if (flags.includes('credit') || (data.activeFlags||[]).includes('credit')) {
+      distanceContext = 'Customer has credit sensitivity AND is a distance buyer — the trip must feel financially worthwhile. Lead with financing confidence before asking them to drive.';
+    } else if (data.vehicle) {
+      distanceContext = 'Customer is interested in the ' + data.vehicle + '. Hold/confirm the vehicle so they know it will be there when they arrive.';
+    }
+    lines.push('🔴 DISTANCE BUYER: Customer is driving 30-60+ minutes. The visit ask must be worth the commitment.',
+      '- NEVER say "stop by", "swing by", or "come see us" — these feel like casual asks for a significant trip.',
+      '- REQUIRED in EVERY format: One specific reason the drive is worth it.',
+      '  • Vehicle confirmation: "I will have the [vehicle] pulled and ready when you arrive — you will not be waiting."',
+      '  • Efficiency: "We can pre-fill most of the paperwork so you are in and out in under an hour."',
+      '  • Trade value: "I want to have your trade-in numbers ready before you arrive so we can get straight to business."',
+      '  • First-touch: "I want to make sure your trip is productive — I will have [2-3 options] staged and ready specifically for you."',
+      '- SMS: 1 sentence justifying the trip is MANDATORY. Example: "I will have it pulled up and ready when you arrive."',
+      '- Email: Open with the vehicle/option confirmation, THEN the appointment ask.',
+      '- Never make the distance buyer feel like they might drive far for nothing.',
+      distanceContext ? '- CONTEXT: ' + distanceContext : '',
+      '');
+  }
+
+  lines.push(
+    '━━━ LEAD ━━━',
+    'Customer:   ' + (data.name || '(unknown — do not say Hi there)'),
+    'BD Agent:   ' + (data.agent || 'our team') + '  ← writes the message',
+    'Sales Rep:  ' + (data.salesRep || '(not assigned)') + '  ← may appear in call notes as the person who spoke with customer',
+    'Phone:      ' + phone + '  ← use this exact number in signature',
+    'Store:      ' + sc.storeGroup,
+    'Persona:    ' + sc.persona,
+    (sc.isAIBuyingSignalNew || sc.isAIBuyingSignalReturner)
+      ? 'Customer browsing interest: ' + (data.vehicle || '(not specified)') + '  ← THIS IS WHAT THEY SEARCHED ONLINE — NOT our inventory. Use only for category (truck/SUV/EV/sedan). NEVER name this vehicle in the message.'
+      : data.vehicle
+        ? 'Vehicle:    ' + data.vehicle + '  ← THIS IS THE VEHICLE FOR THIS LEAD. Do not substitute or reference other vehicles from the conversation history.'
+        : 'Vehicle:    (none specified) ← NO VEHICLE IS ATTACHED TO THIS LEAD. Do NOT reference or name any vehicle from the conversation history — those belong to prior leads or conversations. Do not mention Telluride, Crown, Optima, or any other vehicle unless it is listed here.',
+  );
+
+  if (sc.isAudi && sc.salesRep) lines.push('Brand Specialist: ' + sc.salesRep);
+
+  if (!sc.isApptConfirmation && !sc.isExitSignal && !sc.isPauseSignal && !sc.isSoldDelivered) {
+    if (sc.notToday || (data.customerScheduleConstraint && (data.customerScheduleConstraint.indexOf('SHIFT_WORKER:') === 0 || data.customerScheduleConstraint.indexOf('OUT_OF_TOWN:') === 0))) {
+      if (data.customerScheduleConstraint && data.customerScheduleConstraint.indexOf('SHIFT_WORKER:') === 0) {
+        lines.push('', 'SHIFT WORKER TIMING: Do NOT offer the standard two appointment times. This customer works shift/hitch/rotation.',
+          'INSTEAD: Ask an open-ended scheduling question.',
+          'EXAMPLE SMS close: "What does your schedule look like this week — when are you off?"',
+          'EXAMPLE email close: "I want to make sure we find a time that works around your schedule — when do you have some time off coming up?"',
+          'If they already told you when they are off, reference that specifically and confirm it.');
+      } else if (data.customerScheduleConstraint && data.customerScheduleConstraint.indexOf('OUT_OF_TOWN:') === 0) {
+        var returnRef = data.customerScheduleConstraint.replace('OUT_OF_TOWN: Customer is out of town and returns ','').replace(/\. Do NOT.*$/,'').trim();
+        lines.push('', 'OUT OF TOWN TIMING: Customer is traveling and returns ' + returnRef + '. Do NOT offer any specific times before their return.',
+          'CLOSE by asking about their return: "When you are back ' + returnRef + ', would [Thursday/Friday] work to come in?" — name a day AFTER their return.',
+          'Acknowledge the trip warmly: "Safe travels" or "Hope the trip is great" — then lock in the post-return appointment.');
+      } else {
+        lines.push('', 'TIMING NOTE: Customer said they cannot come in TODAY. Do NOT offer same-day times.',
+          'Instead, ask what day works better for them. Example close: "What day this week works best for you?"');
+      }
+    } else {
+      const now2 = new Date();
+      const hour = now2.getHours();
+      // isSameDay is true only when appointment calculator returned 'today' times
+      // Check for 'today' explicitly — next-day times use day names (Saturday, Monday) not 'today'
+      const isSameDay = appt.time1 && appt.time1.toLowerCase().includes('today');
+      const isAfternoon = hour >= 12;
+      const isEvening = hour >= 17;
+
+      lines.push('', 'APPOINTMENT TIMES (use exactly — do not change):',
+        'Time 1: ' + appt.time1,
+        'Time 2: ' + appt.time2);
+
+      const isMorning = hour >= 8 && hour < 12;
+      const isLateAfternoon = hour >= 15 && hour < 17;
+      const closeTimeStr = appt.closeTime || 'closing time';
+      const hoursLeft = appt.minsUntilClose ? Math.round(appt.minsUntilClose / 60 * 10) / 10 : null;
+      const hoursLeftStr = hoursLeft ? (hoursLeft < 1.5 ? 'about an hour' : Math.floor(hoursLeft) + ' hours') : 'a few hours';
+
+      if (isEvening && isSameDay) {
+        lines.push('URGENCY — CLOSING SOON: Store closes at ' + closeTimeStr + ' — only ' + hoursLeftStr + ' left today.',
+          '- This is the last window. Create genuine urgency without being pushy.',
+          '- SMS MUST reference closing time: "We are open until ' + closeTimeStr + ' tonight — if you can make it, I will have everything ready for you."',
+          '- Email: Lead with the closing time in the first sentence. "We have until ' + closeTimeStr + ' tonight and I can have [options/vehicle] pulled up and ready."',
+          '- Do NOT say "stop by anytime" or "whenever works" — the window is closing.',
+          '- Close: "Can you make it in tonight?" — direct, not passive.');
+      } else if (isLateAfternoon && isSameDay) {
+        lines.push('URGENCY — LATE AFTERNOON: ' + hoursLeftStr + ' remaining today before close at ' + closeTimeStr + '.',
+          '- Good window still available. Convey that today is better than waiting.',
+          '- SMS: "Still a good window this afternoon — I can have everything ready if you can stop by."',
+          '- Email: "There is still time this afternoon and I can have [options] pulled up for you."',
+          '- Tone: confident and forward-moving. Not desperate — just timely.');
+      } else if (isAfternoon && isSameDay) {
+        lines.push('TIMING — AFTERNOON: Comfortable window remaining today. Close at ' + closeTimeStr + '.',
+          '- SMS: Action-oriented. "I can have [options] ready for you this afternoon."',
+          '- Email: Position as a convenient, efficient same-day visit.',
+          '- Tone: helpful and confident. No urgency pressure needed — just make it easy.');
+      } else if (isMorning && isSameDay) {
+        lines.push('TIMING — MORNING: Full day ahead. Store open until ' + closeTimeStr + '.',
+          '- SMS: "We have great availability today — morning or afternoon works."',
+          '- Email: Position the day as wide open. "Whenever works best for you today — I can have everything ready."',
+          '- Tone: relaxed and helpful. Full flexibility — lean into that.');
+      } else if (!isSameDay) {
+        lines.push('TIMING — NEXT-DAY: Appointments are for tomorrow. Be proactive, not urgent.',
+          '- SMS: "I wanted to get ahead of your schedule — would ' + appt.time1 + ' or ' + appt.time2 + ' work?"',
+          '- Email: Frame as planning ahead to make their visit smooth.',
+          '- Tone: organized and thoughtful. No urgency — just proactive service.');
+      }
+    }
+  }
+
+  if (data.context) {
+    lines.push('', '━━━ CONTEXT & HISTORY ━━━', data.context);
+  }
+
+  lines.push(
+    '',
+    '━━━ FORMAT RULES ━━━',
+    sc.noCustomerPhone
+      ? 'NO PHONE NUMBER ON FILE: SMS and voicemail are not usable channels. Write email only. For SMS field, write a short note asking for their phone number so you can reach them directly. For voicemail field, write "(No phone number — cannot leave voicemail)".'
+      : 'SMS signature: agent first name only + phone number (two lines). No title. No store name.',
+    'Email signature: Use line breaks between each part — NOT slashes. Format exactly as:\nFirst Last\nTitle\nStore Name\nPhone Number',
+    'Voicemail: end with callback number. Nothing after it.',
+    'Duration to state before times: ' + sc.duration + '.',
+    'APPOINTMENT TIME FORMAT: Write times as "[Time 1] or [Time 2]" — the day/date appears ONCE after Time 2 only. CORRECT: "9:15 AM or 10:30 AM Saturday, March 21". WRONG: "9:15 AM Saturday, March 21 or 10:30 AM Saturday, March 21".',
+    '',
+    'Return ONLY the JSON object {"sms":"...","email":"...","voicemail":"..."}.',
+    'CRITICAL JSON RULES: Never use unescaped double quotes inside field values. Never end a field value with a period followed by a closing quote. Phone numbers must not have a trailing period. Escape any special characters properly.'
+  );
+
+  return lines.filter(function(l){ return l !== undefined; }).join('\n');
+}
+
+
+
+
+// ── Appointment Time Calculator ───────────────────────────────────
+// Computes valid appointment time pairs entirely in JS.
+// The AI receives pre-validated times — it never does this math.
 function computeAppointmentTimes(store) {
+  // All times in Central Time
   const now    = new Date();
   const central = new Date(now.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
-  const dayOfWeek = central.getDay();
+  const dayOfWeek = central.getDay(); // 0=Sun, 1=Mon ... 6=Sat
   const hour   = central.getHours();
   const minute = central.getMinutes();
-  const nowMins = hour * 60 + minute;
+  const nowMins = hour * 60 + minute; // minutes since midnight
+
+  // Store hours and cutoffs (minutes since midnight)
   const storeKey = (store || '').toLowerCase();
   let openMins, closeMins, sameDayCutoffMins;
+
   if (storeKey.includes('audi')) {
-    if (dayOfWeek === 0) { openMins = null; }
-    else if (dayOfWeek === 6) { openMins = 9*60; closeMins = 18*60; sameDayCutoffMins = 16*60+30; }
-    else { openMins = 9*60; closeMins = 19*60; sameDayCutoffMins = 18*60; }
+    // Mon–Fri 9AM–7PM, Sat 9AM–6PM, closed Sun
+    if (dayOfWeek === 0) { // Sunday
+      openMins = null;
+    } else if (dayOfWeek === 6) { // Saturday
+      openMins = 9 * 60; closeMins = 18 * 60; sameDayCutoffMins = 16 * 60 + 30; // 4:30 PM
+    } else {
+      openMins = 9 * 60; closeMins = 19 * 60; sameDayCutoffMins = 18 * 60; // 6:00 PM
+    }
   } else if (storeKey.includes('lafayette') || storeKey.includes('lafa')) {
-    if (dayOfWeek === 0) { openMins = null; }
-    else { openMins = 9*60; closeMins = 19*60; sameDayCutoffMins = 18*60; }
+    // Honda Lafayette: Mon–Sat 9AM–7PM, closed Sun
+    // Cutoff at 6:00 PM — with 2hr buffer, agents at 4:00 PM can still offer same-day 6:00/6:30 slots
+    if (dayOfWeek === 0) {
+      openMins = null;
+    } else {
+      openMins = 9 * 60; closeMins = 19 * 60; sameDayCutoffMins = 18 * 60; // 6:00 PM
+    }
   } else {
-    if (dayOfWeek === 0) { openMins = null; }
-    else { openMins = 9*60; closeMins = 20*60; sameDayCutoffMins = 18*60+30; }
+    // Baytown stores: Mon–Sat 9AM–8PM, closed Sun
+    if (dayOfWeek === 0) {
+      openMins = null;
+    } else {
+      openMins = 9 * 60; closeMins = 20 * 60; sameDayCutoffMins = 18 * 60 + 30; // 6:30 PM
+    }
   }
+
+  // Round current time UP to next 15-minute slot, then add 2-hour buffer
   function nextSlot(fromMins) {
-    const buffered = fromMins + 120;
+    const buffered = fromMins + 120; // 2-hour buffer
     const rem = buffered % 15;
     return rem === 0 ? buffered : buffered + (15 - rem);
   }
+
+  // Format minutes-since-midnight to "H:MM AM/PM"
   function fmtTime(mins) {
     const h = Math.floor(mins / 60);
     const m = mins % 60;
@@ -1303,9 +2410,13 @@ function computeAppointmentTimes(store) {
     const h12  = h > 12 ? h - 12 : (h === 0 ? 12 : h);
     return h12 + ':' + (m < 10 ? '0' : '') + m + ' ' + ampm;
   }
+
+  // Format a date as "Day, Month D"
   function fmtDate(d) {
     return d.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', timeZone:'America/Chicago' });
   }
+
+  // Find two valid same-day slots (at least 45 min apart, before cutoff, before close)
   function findSameDayPair(earliestSlot) {
     const slots = [];
     let s = earliestSlot;
@@ -1313,15 +2424,18 @@ function computeAppointmentTimes(store) {
       slots.push(s);
       s += 15;
     }
+    // Need two slots at least 45 mins apart
     for (let i = 0; i < slots.length; i++) {
       for (let j = i + 1; j < slots.length; j++) {
         if (slots[j] - slots[i] >= 45) {
+          // Prefer ~90+ min separation if possible
           if (slots[j] - slots[i] >= 90 || j === i + 3) {
             return [slots[i], slots[j]];
           }
         }
       }
     }
+    // Fall back to first valid pair
     for (let i = 0; i < slots.length; i++) {
       for (let j = i + 1; j < slots.length; j++) {
         if (slots[j] - slots[i] >= 45) return [slots[i], slots[j]];
@@ -1329,16 +2443,24 @@ function computeAppointmentTimes(store) {
     }
     return null;
   }
+
+  // Next open business day (skips Sunday)
   function nextBusinessDay(fromDate) {
     const d = new Date(fromDate);
     d.setDate(d.getDate() + 1);
+    // Convert to Central
     const cd = new Date(d.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
-    if (cd.getDay() === 0) d.setDate(d.getDate() + 1);
+    if (cd.getDay() === 0) d.setDate(d.getDate() + 1); // skip Sunday
     return d;
   }
-  const isClosed = openMins === null;
+
+  // --- Determine whether same-day is valid ---
+  const isClosed = openMins === null; // Sunday
   const earliestSlot = nextSlot(nowMins);
-  const sameDayValid = !isClosed && earliestSlot <= sameDayCutoffMins && earliestSlot + 45 <= closeMins;
+  const sameDayValid = !isClosed
+    && earliestSlot <= sameDayCutoffMins
+    && earliestSlot + 45 <= closeMins;
+
   if (sameDayValid) {
     const pair = findSameDayPair(earliestSlot);
     if (pair) {
@@ -1353,20 +2475,27 @@ function computeAppointmentTimes(store) {
       };
     }
   }
+
+  // --- Next business day ---
   const tomorrow = nextBusinessDay(central);
   const tomorrowCentral = new Date(tomorrow.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
   const tomorrowDay = tomorrowCentral.getDay();
+
+  // Next-day open hours (use same store rules)
   let nextOpen, nextClose;
   if (storeKey.includes('audi')) {
-    nextOpen  = 9*60;
+    nextOpen  = tomorrowDay === 6 ? 9*60 : 9*60;
     nextClose = tomorrowDay === 6 ? 18*60 : 19*60;
   } else if (storeKey.includes('lafayette') || storeKey.includes('lafa')) {
     nextOpen = 9*60; nextClose = 19*60;
   } else {
     nextOpen = 9*60; nextClose = 20*60;
   }
-  const slot1 = nextOpen + 15;
-  const slot2 = nextOpen + 60 + 30;
+
+  // Pick two slots well-spaced in the next day morning
+  const slot1 = nextOpen + 15;       // e.g. 9:15
+  const slot2 = nextOpen + 60 + 30;  // e.g. 10:45 (~90 min later)
+
   const nextDayLabel = fmtDate(tomorrowCentral);
   return {
     time1: fmtTime(slot1),
@@ -1374,777 +2503,225 @@ function computeAppointmentTimes(store) {
     dayLabel: nextDayLabel,
     closeTime: null,
     minsUntilClose: null,
-    note: 'No same-day slots available \u2014 next business day used.'
+    note: 'No same-day slots available — next business day used.'
   };
 }
-// ── buildUserPrompt ───────────────────────────────────────────────
-function buildUserPrompt(data) {
-  const s = classifyScenario(data);
-  const apptTimes = computeAppointmentTimes(data.store);
-  const agentName = (data.agent || '').trim();
-  const agentFirst = agentName.split(/\s+/)[0] || agentName;
-  const agentPhone = lookupPhone(agentName, data.store) || data.agentPhone || '[agent phone]';
-  const customerFirst = (data.customerName || '').trim().split(/\s+/)[0] || (data.customerName || '').trim();
-  const vehicle    = (data.vehicle || '').trim();
-  const store      = (data.store  || '').trim();
-  const leadSource = (data.leadSource || '').trim();
-  const ctx        = (data.context || '').trim();
 
-  // ── Scenario block ──────────────────────────────────────────────
-  let scenarioBlock = '';
-  if (s.isApptConfirmation) {
-    scenarioBlock = 'SCENARIO: Appointment already confirmed. Send a warm pre-visit reminder. Do NOT re-ask for appointment times. Confirm the scheduled visit.';
-  } else if (s.isSoldDelivered) {
-    scenarioBlock = 'SCENARIO: SOLD/DELIVERED. Write a 3-day follow-up. Thank them, confirm satisfaction, give direct contact for any questions. Do not pitch anything.';
-  } else if (s.isMissedAppt) {
-    const timing = s.missedApptTiming || 'recently';
-    scenarioBlock = 'SCENARIO: MISSED APPOINTMENT (' + timing + '). Open by acknowledging the missed visit warmly. Offer to reschedule. Do not guilt-trip. Do not ask why they missed it.';
-  } else if (s.isExitSignal) {
-    scenarioBlock = 'SCENARIO: EXIT SIGNAL. Customer bought elsewhere or is no longer interested. Write a gracious, zero-pressure close. Wish them well. Leave the door open without any pitch.';
-  } else if (s.isPauseSignal) {
-    scenarioBlock = 'SCENARIO: PAUSE SIGNAL. Customer needs more time. Empathetic check-in only. No appointment pressure. No pitch. Just staying in touch.';
-  } else if (s.isShowroomFollowUp) {
-    if (s.showroomVisitToday) {
-      scenarioBlock = 'SCENARIO: SHOWROOM FOLLOW-UP \u2014 SAME DAY. Customer visited the showroom today. Write a same-day thank-you. Reference the visit warmly. Offer a clear next step.';
-    } else {
-      scenarioBlock = 'SCENARIO: SHOWROOM FOLLOW-UP. Customer visited the showroom recently. Reference their visit. Move toward a decision or next step.';
-    }
-    if (s.showroomDetails) scenarioBlock += '\nShowroom visit details: ' + s.showroomDetails;
-    if (s.pastVisitNotes && s.pastVisitNotes.length) scenarioBlock += '\n' + s.pastVisitNotes.join('\n');
-  } else if (s.isFollowUp && data.conversationBrief) {
-    scenarioBlock = 'SCENARIO: ACTIVE FOLLOW-UP.\n' + data.conversationBrief;
-  } else if (s.isLiveConversation) {
-    scenarioBlock = 'SCENARIO: LIVE CONVERSATION \u2014 customer messaged recently (within last 8 hours). Respond directly to their most recent message. Keep it conversational and fast.';
-  } else if (s.isClickAndGo) {
-    scenarioBlock = 'SCENARIO: CLICK & GO / DIGITAL DEAL. Customer completed a digital deal application. They pre-configured a deal online. Reference this effort specifically \u2014 they put time into this. Acknowledge their work and invite them in to finalize.';
-  } else if (s.isTradePending) {
-    scenarioBlock = 'SCENARIO: TRADE PENDING / KBB ICO. Customer submitted a trade value request. Lead with the trade-in as the hook. Invite them in for the full appraisal.';
-  } else if (s.isCarGurusDD) {
-    scenarioBlock = 'SCENARIO: CARGURUS DIGITAL DEAL. Customer submitted a deal through CarGurus. They engaged at a high intent level. Reference their deal submission.';
-  } else if (s.isKBB) {
-    scenarioBlock = 'SCENARIO: KBB / KELLEY BLUE BOOK. Customer requested a trade value from KBB. Lead with the trade-in appraisal offer. Be specific about getting them the full, in-person value.';
-  } else if (s.isCapitalOne) {
-    scenarioBlock = 'SCENARIO: CAPITAL ONE PRE-APPROVAL. Customer was pre-approved through Capital One and landed on our lot. Reference their approval. Make it easy to use it.';
-  } else if (s.isTrueCar) {
-    scenarioBlock = 'SCENARIO: TRUECAR CERTIFIED PRICE. Customer received a TrueCar price certificate. Reference the certified price and invite them to come claim it.';
-  } else if (s.isAMP) {
-    const ampSubject = data.ampEmailSubject || '';
-    scenarioBlock = 'SCENARIO: AMP / MARKETING EMAIL RE-ENGAGEMENT. Customer clicked a marketing email and re-engaged.'
-      + (ampSubject ? ' The email they responded to had the subject: "' + ampSubject + '".' : '')
-      + ' Do NOT reference a specific promotional offer unless one is listed in the LEAD section. Do NOT say 0% APR or any rate unless explicitly listed. Reference their interest and invite them in.';
-  } else if (s.isAIBuyingSignalReturner) {
-    scenarioBlock = 'SCENARIO: AI BUYING SIGNAL \u2014 PREVIOUSLY SOLD CUSTOMER. Our AI flagged this customer as showing buying signal behavior based on their ownership profile and market activity. They are a past customer. Open with their current vehicle ("still driving the [owned vehicle]?") and invite them to explore their options. DO NOT use the word "upgrade." DO NOT say "newer model." DO NOT reference any promotional offers unless listed.';
-    if (s.buyingSignalData) scenarioBlock += '\nBuying signal data: ' + s.buyingSignalData;
-  } else if (s.isAIBuyingSignalNew) {
-    scenarioBlock = 'SCENARIO: AI BUYING SIGNAL \u2014 NEW PROSPECT. Our AI flagged this customer as showing in-market buying behavior. Reach out as a first touch based on their ownership data. DO NOT use the word "upgrade." DO NOT say "newer model." Be curious and helpful, not salesy.';
-    if (s.buyingSignalData) scenarioBlock += '\nBuying signal data: ' + s.buyingSignalData;
-  } else if (s.isLoyalty) {
-    scenarioBlock = 'SCENARIO: LOYALTY / LEASE END. Customer\'s lease or loan is maturing. Lead with the transition, not a pitch. Be helpful. Make the process feel easy.';
-  } else if (s.isAutoTrader) {
-    scenarioBlock = 'SCENARIO: AUTOTRADER LEAD. Customer found the vehicle on AutoTrader. Reference the listing and confirm availability.';
-  } else if (s.isCarscom) {
-    scenarioBlock = 'SCENARIO: CARS.COM LEAD. Customer inquired via Cars.com. Reference the vehicle and invite them in for a personalized experience.';
-  } else if (s.isEdmunds) {
-    scenarioBlock = 'SCENARIO: EDMUNDS LEAD. Customer submitted through Edmunds. Reference their inquiry and confirm the vehicle details.';
-  } else if (s.isOEMLead) {
-    scenarioBlock = 'SCENARIO: OEM / MANUFACTURER LEAD. Customer came directly from the manufacturer website. They may have used the build-and-price tool. Reference the vehicle they configured.';
-  } else if (s.isPhoneUp) {
-    scenarioBlock = 'SCENARIO: PHONE-UP. Customer called in. Write a follow-up message after the phone call.';
-  } else if (s.isFacebook) {
-    scenarioBlock = 'SCENARIO: FACEBOOK / META LEAD. Customer submitted through Facebook or Instagram. Keep the tone casual and conversational.';
-  } else if (s.isDealerWebsite) {
-    scenarioBlock = 'SCENARIO: DEALER WEBSITE LEAD. Customer submitted an inquiry directly from the dealership website. They expressed interest in the vehicle listed.';
-  } else if (s.isChatLead) {
-    scenarioBlock = 'SCENARIO: CHAT LEAD. Customer initiated a chat on the website. Reference their chat inquiry.';
-  } else if (s.isCarFax) {
-    scenarioBlock = 'SCENARIO: CARFAX / THIRD-PARTY RESEARCH LEAD. Customer was researching the vehicle on a third-party site. They are actively shopping.';
-  } else if (s.isRepeatCustomer) {
-    scenarioBlock = 'SCENARIO: REPEAT / RETURNING CUSTOMER. Customer has purchased from us before. Acknowledge the relationship. Make them feel valued and recognized.';
-  } else if (s.isGoogleAd) {
-    scenarioBlock = 'SCENARIO: GOOGLE AD / PAID SEARCH LEAD. Customer clicked a paid ad and submitted a lead. They are in-market and actively searching.';
-  } else if (s.isReferral) {
-    scenarioBlock = 'SCENARIO: REFERRAL. Customer was referred to us. Acknowledge the referral in your opening.';
-  } else {
-    scenarioBlock = 'SCENARIO: STANDARD INTERNET LEAD. First-touch outreach. Warm, direct, specific to the vehicle.';
+
+// ── Generate (single call, all three outputs) ─────────────────────
+async function generateAll() {
+  const endpoint = getEndpoint();
+  if (!endpoint) {
+    document.getElementById('keyWarning').classList.add('visible');
+    return;
   }
 
-  // ── Overlays (vehicle status, special flags) ────────────────────
-  let overlays = [];
-  if (s.vehicleSold)       overlays.push('VEHICLE STATUS: SOLD. Do NOT promise availability. Offer to find a similar vehicle or add them to a waitlist.');
-  if (s.vehicleInTransit)  overlays.push('VEHICLE STATUS: IN TRANSIT. The vehicle is on order and not yet on the lot. Confirm it is coming and give an honest ETA if known.');
-  if (s.isLoyaltyVehicle)  overlays.push('LOYALTY VEHICLE: This vehicle was owned by the customer previously. Acknowledge their familiarity with the model.');
-  if (s.noSpecificVehicle) overlays.push('NO SPECIFIC UNIT: Customer has not specified a vehicle. Do NOT name a vehicle. Ask what they are looking for.');
-  if (s.noCustomerPhone)   overlays.push('NO CUSTOMER PHONE: Only email is available. Do not write an SMS or voicemail. Write the email only, and ask for their number.');
-  if (s.notToday)          overlays.push('NOT TODAY: Customer said they cannot come in today. Do NOT offer today as an appointment option.');
-  if (s.customerScheduleConstraint) overlays.push('SCHEDULE CONSTRAINT: ' + s.customerScheduleConstraint);
-  if (s.isStalled)         overlays.push('STALLED LEAD: No response in 30+ days. Re-engage with a low-pressure, humble tone. Reference the original interest briefly.');
-  if (s.staleModelYear && vehicle) overlays.push('STALE MODEL YEAR: The vehicle of interest (' + vehicle + ') is a prior model year. Acknowledge availability honestly. Offer to check current-year options as well if appropriate.');
-  if (s.vehiclePendingSale) overlays.push('VEHICLE PENDING SALE: There is a note that this vehicle may be in the process of being sold. Do NOT promise it is available. Let the customer know you will confirm status.');
-  if (s.hasApptSet && !s.isMissedAppt) overlays.push('APPOINTMENT CONTEXT: An appointment has been set or confirmed. If writing a reminder, confirm the time. Do NOT re-offer appointment slots that were already accepted.');
-  if (s.isRecentOutbound && data.recentOutboundContent) overlays.push('RECENT OUTBOUND (within 1 hour): A message was already sent recently: "' + data.recentOutboundContent.substring(0, 200) + '". Write a DIFFERENT follow-up that does not repeat this message.');
-  if (overlays.length) scenarioBlock += '\n\n' + overlays.join('\n');
+  const name       = document.getElementById('custName').value.trim();
+  const agent      = document.getElementById('agentName').value.trim();
+  const vehicle    = document.getElementById('vehicle').value.trim();
+  const leadSource = document.getElementById('leadSource').value.trim();
+  const store      = selectedStore;
+  const btn        = document.getElementById('btnGenerate');
 
-  // ── Appointment times block ─────────────────────────────────────
-  let apptBlock = '';
-  if (!s.noCustomerPhone && !s.isExitSignal && !s.isPauseSignal && !s.isSoldDelivered) {
-    apptBlock = '\nAPPOINTMENT SLOTS (use these exact times):\n'
-      + '  Option 1: ' + apptTimes.time1 + '\n'
-      + '  Option 2: ' + apptTimes.time2 + '\n'
-      + (apptTimes.note ? '  Note: ' + apptTimes.note + '\n' : '');
+  if (!name && !vehicle && !store) {
+    alert('Please fill in fields or use ⚡ GRAB LEAD first.'); return;
   }
 
-  // ── Agent block ─────────────────────────────────────────────────
-  const agentBlock = [
-    'AGENT:',
-    '  Name: ' + (agentName || '[agent name]'),
-    '  First name: ' + (agentFirst || '[agent first name]'),
-    '  Phone: ' + agentPhone,
-    '  Title: ' + s.persona,
-    '  Store: ' + (store || '[store]'),
-  ].join('\n');
-
-  // ── Lead block ──────────────────────────────────────────────────
-  const vehicleDisplay = vehicle || '(none specified)';
-  const stockDisplay   = data.stockNum ? 'Stock #' + data.stockNum : (data.vin ? 'VIN ' + data.vin : '');
-  const colorDisplay   = data.color    ? 'Color: ' + data.color    : '';
-  const condDisplay    = data.condition? 'Condition: ' + data.condition : '';
-  let leadBlock = [
-    'LEAD:',
-    '  Customer: ' + (data.customerName || '[customer name]'),
-    '  First name: ' + (customerFirst  || '[customer first name]'),
-    '  Vehicle of interest: ' + vehicleDisplay,
-    stockDisplay  ? ('  ' + stockDisplay)  : '',
-    colorDisplay  ? ('  ' + colorDisplay)  : '',
-    condDisplay   ? ('  ' + condDisplay)   : '',
-    data.hasTrade  ? ('  Trade-in: ' + (data.tradeDescription || 'Yes \u2014 details not available')) : '',
-    data.equityData? ('  Equity data: ' + data.equityData) : '',
-    data.ownedVehicle ? ('  Currently owns: ' + data.ownedVehicle) : '',
-    data.buyingSignals? ('  Buying signals: ' + data.buyingSignals) : '',
-    '  Lead source: ' + (leadSource || '[unknown]'),
-    data.leadStatus ? ('  Status: ' + data.leadStatus) : '',
-  ].filter(Boolean).join('\n');
-
-  // ── Context block (custom instructions) ─────────────────────────
-  const ctxBlock = ctx ? ('\nADDITIONAL CONTEXT / INSTRUCTIONS:\n' + ctx) : '';
-
-  const prompt = [
-    scenarioBlock,
-    '',
-    agentBlock,
-    '',
-    leadBlock,
-    apptBlock,
-    ctxBlock,
-    '',
-    'Write all three: SMS, email, and voicemail. Return only the JSON object.'
-  ].filter(s => s !== undefined).join('\n');
-
-  return prompt;
-}
-// ── generateMessages ─────────────────────────────────────────────
-async function generateMessages() {
-  const btn        = document.getElementById('generateBtn');
-  const spinner    = document.getElementById('spinner');
-  const output     = document.getElementById('output');
-  const smsOut     = document.getElementById('smsOutput');
-  const emailOut   = document.getElementById('emailOutput');
-  const vmOut      = document.getElementById('voicemailOutput');
-  const smsCount   = document.getElementById('smsCharCount');
-  const emailCount = document.getElementById('emailCharCount');
-  const vmCount    = document.getElementById('vmCharCount');
-  const copyBtns   = document.querySelectorAll('.copy-btn');
+  // Show loading state
   btn.disabled = true;
-  spinner.style.display = 'inline-block';
-  output.style.display  = 'none';
-  copyBtns.forEach(function(b){ b.textContent = 'Copy'; b.classList.remove('copied'); });
+  btn.classList.add('loading');
+  btn.querySelector('.btn-label').textContent = 'Generating…';
+
+  // Clear previous outputs
+  ['sms','email','vm'].forEach(function(k) {
+    const f = document.getElementById('output-' + k);
+    if (f) { f.value = ''; f.classList.add('generating'); }
+    const tabBtn = document.querySelector('.tab-btn.' + k);
+    if (tabBtn) tabBtn.classList.remove('ready-' + k);
+  });
 
   try {
-    const apiKey = await getApiKey();
-    if (!apiKey) {
-      showError('No API key saved. Go to Settings and enter your Claude API key.');
+    console.log('[Lead Pro] Generating — context length:', leadContext.length, '| first 300:', leadContext.substring(0,300));
+    const userPrompt = buildUserPrompt({
+      name, agent, salesRep: leadSalesRep,
+      store, vehicle, leadSource,
+      context: leadContext,
+      convState: leadConvState,
+      contactedAgeDays: lastScrapedData ? (lastScrapedData.contactedAgeDays || 0) : 0,
+      hasOutbound: lastScrapedData ? !!lastScrapedData.hasOutbound : false,
+      isLiveConversation: lastScrapedData ? !!lastScrapedData.isLiveConversation : false,
+
+      activeFlags: Array.from(activeFlags)
+    });
+    console.log('[Lead Pro] User prompt length:', userPrompt.length, '| scenario section:', userPrompt.substring(0, userPrompt.indexOf('━━━ LEAD ━━━')));
+    const payload = {
+      system_instruction: { parts: [{ text: buildSystemPrompt() }] },
+      contents: [{ role:'user', parts:[{ text: userPrompt }] }],
+      generationConfig: {
+        temperature:      0.35,
+        maxOutputTokens:  5000,
+        topP:             0.9,
+        responseMimeType: 'application/json',
+        thinkingConfig:   { thinkingLevel: 'low' }
+      }
+    };
+
+    const resp = await fetch(endpoint.url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await resp.json();
+    console.log('[Lead Pro] API response:', data);
+
+    if (data.error) {
+      showError('API Error: ' + data.error.message);
       return;
     }
 
-    // Build payload from form fields
-    const customerName = (document.getElementById('customerName')||{}).value || '';
-    const vehicle      = (document.getElementById('vehicle')||{}).value || '';
-    const stockNum     = (document.getElementById('stockNum')||{}).value || '';
-    const vin          = (document.getElementById('vin')||{}).value || '';
-    const color        = (document.getElementById('color')||{}).value || '';
-    const condition    = (document.getElementById('condition')||{}).value || '';
-    const agentSel     = document.getElementById('agentSelect');
-    const agentName    = agentSel ? agentSel.value : '';
-    const agentPhone   = lookupPhone(agentName, selectedStore) || '';
-    const leadSource   = (document.getElementById('leadSource')||{}).value || '';
-    const context      = (document.getElementById('contextNotes')||{}).value || '';
-    const hasTrade     = document.getElementById('hasTrade') && document.getElementById('hasTrade').checked;
-    const tradeDesc    = (document.getElementById('tradeDescription')||{}).value || '';
-    const equityData   = lastScrapedData ? (lastScrapedData.equityData || '') : '';
-    const buyingSignals= lastScrapedData ? (lastScrapedData.buyingSignals || '') : '';
-    const ownedVehicle = lastScrapedData ? (lastScrapedData.ownedVehicle || '') : '';
-    const ampEmailSubject = lastScrapedData ? (lastScrapedData.ampEmailSubject || '') : '';
-    const conversationBrief = lastScrapedData ? (lastScrapedData.conversationBrief || '') : '';
-    const convState    = lastScrapedData ? (lastScrapedData.convState || 'first-touch') : 'first-touch';
-    const hasOutbound  = lastScrapedData ? !!(lastScrapedData.hasOutbound) : false;
-    const isLiveConversation = lastScrapedData ? !!(lastScrapedData.isLiveConversation) : false;
-    const isRecentOutbound   = lastScrapedData ? !!(lastScrapedData.isRecentOutbound) : false;
-    const recentOutboundContent = lastScrapedData ? (lastScrapedData.recentOutboundContent || '') : '';
-    const hasApptSet   = lastScrapedData ? !!(lastScrapedData.hasApptSet) : false;
-    const apptDetails  = lastScrapedData ? (lastScrapedData.apptDetails || '') : '';
-    const isSoldDelivered = lastScrapedData ? !!(lastScrapedData.isSoldDelivered) : false;
-    const hasMissedAppt = lastScrapedData ? !!(lastScrapedData.hasMissedAppt) : false;
-    const missedApptTiming = lastScrapedData ? (lastScrapedData.missedApptTiming || 'recently') : 'recently';
-    const isShowroomFollowUp = lastScrapedData ? !!(lastScrapedData.isShowroomFollowUp) : false;
-    const showroomDetails    = lastScrapedData ? (lastScrapedData.showroomDetails || '') : '';
-    const showroomVisitToday = lastScrapedData ? !!(lastScrapedData.showroomVisitToday) : false;
-    const pastVisitNotes     = lastScrapedData ? (lastScrapedData.pastVisitNotes || []) : [];
-    const vehiclePendingSale = lastScrapedData ? !!(lastScrapedData.vehiclePendingSale) : false;
-    const noSpecificVehicle  = lastScrapedData ? !!(lastScrapedData.noSpecificVehicle) : false;
-    const isInTransit        = lastScrapedData ? !!(lastScrapedData.isInTransit) : false;
-    const customerSaidNotToday = lastScrapedData ? !!(lastScrapedData.customerSaidNotToday) : false;
-    const customerScheduleConstraint = lastScrapedData ? (lastScrapedData.customerScheduleConstraint || '') : '';
-    const leadAgeDays = lastScrapedData ? (lastScrapedData.leadAgeDays || 0) : 0;
-
-    // Compute context flags from CRM data
-    let augmentedContext = context;
-    const contextParts = [context];
-    if (hasApptSet && !hasMissedAppt) contextParts.push('appointment already set' + (apptDetails ? ': ' + apptDetails.substring(0,150) : ''));
-    if (isShowroomFollowUp) contextParts.push('showroom stage');
-    if (isSoldDelivered)    contextParts.push('sold/delivered');
-    if (hasMissedAppt)      contextParts.push('missed appointment (' + missedApptTiming + ')');
-    if (vehiclePendingSale) contextParts.push('vehicle pending sale');
-    if (noSpecificVehicle)  contextParts.push('no specific unit');
-    if (isInTransit)        contextParts.push('vehicle status: in transit');
-    if (customerSaidNotToday) contextParts.push('not today');
-    if (customerScheduleConstraint) contextParts.push('schedule constraint: ' + customerScheduleConstraint);
-    if (leadAgeDays > 30)   contextParts.push('stalled lead (' + leadAgeDays + ' days old)');
-    augmentedContext = contextParts.filter(Boolean).join('\n');
-
-    const data = {
-      customerName, vehicle, stockNum, vin, color, condition,
-      store: selectedStore || '',
-      agent: agentName, agentPhone,
-      leadSource, context: augmentedContext,
-      hasTrade, tradeDescription: tradeDesc,
-      equityData, buyingSignals, ownedVehicle, ampEmailSubject,
-      conversationBrief, convState, hasOutbound,
-      isLiveConversation, isRecentOutbound, recentOutboundContent,
-      hasApptSet, apptDetails, isSoldDelivered, hasMissedAppt, missedApptTiming,
-      isShowroomFollowUp, showroomDetails, showroomVisitToday, pastVisitNotes,
-      vehiclePendingSale, noSpecificVehicle, isInTransit,
-    };
-
-    const systemPrompt = buildSystemPrompt();
-    const userPrompt   = buildUserPrompt(data);
-
-    console.log('[Lead Pro] User prompt:\n', userPrompt);
-
-    const settings = await chrome.storage.sync.get(['claudeModel']);
-    const model    = settings.claudeModel || 'claude-sonnet-4-5';
-
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model: model,
-        max_tokens: 2048,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: userPrompt }]
-      })
-    });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      let errMsg = 'API error ' + response.status;
-      try { const e = JSON.parse(errText); errMsg = e.error?.message || errMsg; } catch(x){}
-      throw new Error(errMsg);
+    if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
+      showError('No content returned. Check console.');
+      return;
     }
 
-    const result = await response.json();
-    const raw    = result.content?.[0]?.text || '';
-    console.log('[Lead Pro] Raw API response:', raw);
+    // Check if response was truncated by token limit
+    const finishReason = data.candidates[0].finishReason || '';
+    if (finishReason === 'MAX_TOKENS') {
+      console.warn('[Lead Pro] Response truncated by MAX_TOKENS — increasing limit may help');
+    }
 
+    const rawText = data.candidates[0].content.parts[0].text.trim();
+    console.log('[Lead Pro] Raw response length:', rawText.length, '| finish:', finishReason, '| First 200:', rawText.substring(0,200));
     let parsed;
     try {
-      const jsonMatch = raw.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error('No JSON found in response');
-      parsed = JSON.parse(jsonMatch[0]);
+      let clean = rawText.replace(/^```json\s*/i,'').replace(/^```\s*/,'').replace(/\s*```$/,'').trim();
+      clean = clean.replace(/^\uFEFF/,'').replace(/^[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]+/,'');
+      // Fix common AI JSON breakage: trailing period before closing quote (e.g. "281-837-3380."}  )
+      clean = clean.replace(/\.(")/g, '$1');
+      parsed = JSON.parse(clean);
+      console.log('[Lead Pro] JSON parsed successfully');
     } catch(e) {
-      throw new Error('Could not parse response JSON: ' + e.message);
+      const failPos = parseInt((e.message||'').match(/position (\d+)/)?.[1] || '-1');
+      console.error('[Lead Pro] JSON parse failed at position', failPos,
+        '| char:', failPos >= 0 ? rawText.charCodeAt(failPos) + ' (' + rawText.substring(Math.max(0,failPos-20), failPos+20) + ')' : 'unknown',
+        '| Raw start:', rawText.substring(0,300));
+
+      // Recovery 1: clean JSON boundaries
+      try {
+        const start = rawText.indexOf('{');
+        const end   = rawText.lastIndexOf('}');
+        if (start !== -1 && end !== -1 && end > start) {
+          parsed = JSON.parse(rawText.substring(start, end + 1));
+          console.log('[Lead Pro] Recovery 1 succeeded');
+        }
+      } catch(e2) { console.log('[Lead Pro] Recovery 1 failed:', e2.message); }
+
+      // Recovery 2: regex field extraction (works even on truncated responses)
+      if (!parsed) {
+        try {
+          const extractField = function(key) {
+            // This regex handles truncated strings — stops at unescaped quote OR end of string
+            const rx = new RegExp('"' + key + '"\\s*:\\s*"((?:[^"\\\\]|\\\\[\\s\\S])*)', 'i');
+            const m = rawText.match(rx);
+            if (!m) return '';
+            // Clean up the extracted value — may be truncated
+            let val = m[1].replace(/\\n/g,'\n').replace(/\\"/g,'"').replace(/\\\\/g,'\\');
+            // If truncated, add ellipsis so agents know it's incomplete
+            if (finishReason === 'MAX_TOKENS') val = val + '\n[Response was cut short — regenerate for complete message]';
+            return val;
+          };
+          const sms   = extractField('sms');
+          const email = extractField('email');
+          const vm    = extractField('voicemail');
+          if (sms || email || vm) {
+            parsed = { sms, email, voicemail: vm };
+            console.log('[Lead Pro] Recovery 2 (regex) succeeded — fields:', !!sms, !!email, !!vm);
+          }
+        } catch(e3) { console.log('[Lead Pro] Recovery 2 failed:', e3.message); }
+      }
+
+      // Recovery 3: raw text fallback
+      if (!parsed) {
+        console.error('[Lead Pro] All recovery failed — showing raw text');
+        parsed = {
+          sms:       rawText.substring(0, 800),
+          email:     rawText,
+          voicemail: rawText.substring(0, 300)
+        };
+      }
     }
 
-    const sms      = (parsed.sms      || '').trim();
-    const email    = (parsed.email    || '').trim();
-    const voicemail= (parsed.voicemail|| '').trim();
+    // Populate tabs
+    const smsText   = (parsed.sms       || '').trim();
+    const emailText = (parsed.email     || '').trim();
+    const vmText    = (parsed.voicemail || '').trim();
 
-    if (!sms && !email && !voicemail) throw new Error('Empty response from API');
+    function setOutput(key, text) {
+      const f = document.getElementById('output-' + key);
+      if (f) { f.value = text; f.classList.remove('generating'); }
+      if (text) {
+        const tabBtn = document.querySelector('.tab-btn.' + key);
+        if (tabBtn) tabBtn.classList.add('ready-' + key);
+      }
+    }
 
-    smsOut.textContent   = sms;
-    emailOut.textContent = email;
-    vmOut.textContent    = voicemail;
+    setOutput('sms',   smsText);
+    setOutput('email', emailText);
+    setOutput('vm',    vmText);
 
-    if (smsCount)   smsCount.textContent   = sms.length   + ' chars';
-    if (emailCount) emailCount.textContent = email.length + ' chars';
-    if (vmCount)    vmCount.textContent    = voicemail.length + ' chars';
+    // Switch to SMS tab and update word count
+    switchTab('sms');
 
-    output.style.display = 'block';
-    output.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-  } catch(err) {
-    console.error('[Lead Pro] generateMessages error:', err);
-    showError(err.message || 'Unknown error generating messages.');
+  } catch(e) {
+    showError('Network error: ' + e.message);
   } finally {
     btn.disabled = false;
-    spinner.style.display = 'none';
+    btn.classList.remove('loading');
+    btn.querySelector('.btn-label').textContent = '✦ Generate SMS · Email · Voicemail';
   }
 }
 
 function showError(msg) {
-  const errEl = document.getElementById('errorMsg');
-  if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; }
-  else { alert(msg); }
-  document.getElementById('spinner').style.display = 'none';
-  document.getElementById('generateBtn').disabled = false;
-}
-// ── Copy helpers ──────────────────────────────────────────────────
-function setupCopyButtons() {
-  document.querySelectorAll('.copy-btn').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      const targetId = btn.getAttribute('data-target');
-      const el = document.getElementById(targetId);
-      if (!el) return;
-      const text = el.textContent || el.innerText || '';
-      navigator.clipboard.writeText(text).then(function() {
-        btn.textContent = 'Copied!';
-        btn.classList.add('copied');
-        setTimeout(function() {
-          btn.textContent = 'Copy';
-          btn.classList.remove('copied');
-        }, 2000);
-      }).catch(function(err) {
-        console.error('[Lead Pro] Copy failed:', err);
-      });
-    });
+  ['sms','email','vm'].forEach(function(k) {
+    const f = document.getElementById('output-' + k);
+    if (f) { f.value = k === 'sms' ? msg : ''; f.classList.remove('generating'); }
   });
+  switchTab('sms');
+  document.getElementById('wordCount').textContent = '—';
 }
 
-// ── Settings panel ────────────────────────────────────────────────
-async function openSettings() {
-  const panel = document.getElementById('settingsPanel');
-  if (!panel) return;
-  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
-  if (panel.style.display === 'block') {
-    const keyInput = document.getElementById('apiKeyInput');
-    if (keyInput) {
-      const stored = await chrome.storage.sync.get(['claudeApiKey']);
-      keyInput.value = stored.claudeApiKey ? '\u2022'.repeat(20) : '';
-    }
-    const modelSel = document.getElementById('modelSelect');
-    if (modelSel) {
-      const ms = await chrome.storage.sync.get(['claudeModel']);
-      modelSel.value = ms.claudeModel || 'claude-sonnet-4-5';
-    }
-  }
-}
-
-async function saveSettings() {
-  const keyInput = document.getElementById('apiKeyInput');
-  const modelSel = document.getElementById('modelSelect');
-  const statusEl = document.getElementById('settingsSaveStatus');
-  const newKey   = keyInput ? keyInput.value.trim() : '';
-  const newModel = modelSel ? modelSel.value : 'claude-sonnet-4-5';
-  const saveObj  = { claudeModel: newModel };
-  if (newKey && !newKey.startsWith('\u2022')) {
-    saveObj.claudeApiKey = newKey;
-  }
-  await chrome.storage.sync.set(saveObj);
-  if (statusEl) {
-    statusEl.textContent = '\u2713 Saved';
-    statusEl.style.color = '#22c55e';
-    setTimeout(function(){ statusEl.textContent = ''; }, 2000);
-  }
-}
-
-async function getApiKey() {
-  const s = await chrome.storage.sync.get(['claudeApiKey']);
-  return s.claudeApiKey || '';
-}
-
-// ── Regenerate single tab ─────────────────────────────────────────
-async function regenerateSingle(type) {
-  const smsOut  = document.getElementById('smsOutput');
-  const emailOut= document.getElementById('emailOutput');
-  const vmOut   = document.getElementById('voicemailOutput');
-  const map = { sms: smsOut, email: emailOut, voicemail: vmOut };
-  const el  = map[type];
-  if (!el) return;
-  const regenBtn = document.querySelector('[data-regen="' + type + '"]');
-  const origText = el.textContent;
-  if (regenBtn) { regenBtn.disabled = true; regenBtn.textContent = '\u21bb\u2026'; }
-  el.style.opacity = '0.4';
-  try {
-    const apiKey = await getApiKey();
-    if (!apiKey) throw new Error('No API key');
-    const customerName = (document.getElementById('customerName')||{}).value || '';
-    const vehicle      = (document.getElementById('vehicle')||{}).value || '';
-    const agentSel     = document.getElementById('agentSelect');
-    const agentName    = agentSel ? agentSel.value : '';
-    const leadSource   = (document.getElementById('leadSource')||{}).value || '';
-    const context      = (document.getElementById('contextNotes')||{}).value || '';
-    const hasTrade     = document.getElementById('hasTrade') && document.getElementById('hasTrade').checked;
-    const tradeDesc    = (document.getElementById('tradeDescription')||{}).value || '';
-    const conversationBrief = lastScrapedData ? (lastScrapedData.conversationBrief || '') : '';
-    const convState    = lastScrapedData ? (lastScrapedData.convState || 'first-touch') : 'first-touch';
-    const ownedVehicle = lastScrapedData ? (lastScrapedData.ownedVehicle || '') : '';
-    const ampEmailSubject = lastScrapedData ? (lastScrapedData.ampEmailSubject || '') : '';
-    const data = {
-      customerName, vehicle, store: selectedStore || '',
-      agent: agentName, agentPhone: lookupPhone(agentName, selectedStore) || '',
-      leadSource, context,
-      hasTrade, tradeDescription: tradeDesc,
-      equityData: lastScrapedData ? (lastScrapedData.equityData||'') : '',
-      buyingSignals: lastScrapedData ? (lastScrapedData.buyingSignals||'') : '',
-      ownedVehicle, ampEmailSubject,
-      conversationBrief, convState,
-      hasOutbound: lastScrapedData ? !!(lastScrapedData.hasOutbound) : false,
-      isLiveConversation: lastScrapedData ? !!(lastScrapedData.isLiveConversation) : false,
-      hasApptSet: lastScrapedData ? !!(lastScrapedData.hasApptSet) : false,
-      isSoldDelivered: lastScrapedData ? !!(lastScrapedData.isSoldDelivered) : false,
-      hasMissedAppt: lastScrapedData ? !!(lastScrapedData.hasMissedAppt) : false,
-      missedApptTiming: lastScrapedData ? (lastScrapedData.missedApptTiming||'recently') : 'recently',
-      isShowroomFollowUp: lastScrapedData ? !!(lastScrapedData.isShowroomFollowUp) : false,
-      showroomDetails: lastScrapedData ? (lastScrapedData.showroomDetails||'') : '',
-      showroomVisitToday: lastScrapedData ? !!(lastScrapedData.showroomVisitToday) : false,
-      pastVisitNotes: lastScrapedData ? (lastScrapedData.pastVisitNotes||[]) : [],
-      vehiclePendingSale: lastScrapedData ? !!(lastScrapedData.vehiclePendingSale) : false,
-      noSpecificVehicle: lastScrapedData ? !!(lastScrapedData.noSpecificVehicle) : false,
-      isInTransit: lastScrapedData ? !!(lastScrapedData.isInTransit) : false,
-      customerSaidNotToday: lastScrapedData ? !!(lastScrapedData.customerSaidNotToday) : false,
-      customerScheduleConstraint: lastScrapedData ? (lastScrapedData.customerScheduleConstraint||'') : '',
-      leadAgeDays: lastScrapedData ? (lastScrapedData.leadAgeDays||0) : 0,
-    };
-    const systemPrompt = buildSystemPrompt();
-    const userPrompt   = buildUserPrompt(data);
-    const regenInstructions = {
-      sms: 'Write a DIFFERENT SMS. Same info, fresh wording. Return only: {"sms":"..."}',
-      email: 'Write a DIFFERENT email. Same scenario, fresh wording. Return only: {"email":"..."}',
-      voicemail: 'Write a DIFFERENT voicemail. Same scenario, fresh wording. Return only: {"voicemail":"..."}'
-    };
-    const ms = await chrome.storage.sync.get(['claudeModel']);
-    const model = ms.claudeModel || 'claude-sonnet-4-5';
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model: model,
-        max_tokens: 1024,
-        system: systemPrompt,
-        messages: [
-          { role: 'user', content: userPrompt },
-          { role: 'assistant', content: '{"sms":"' + (smsOut.textContent||'').replace(/"/g,'\\"').substring(0,300) + '..."}' },
-          { role: 'user', content: regenInstructions[type] }
-        ]
-      })
-    });
-    if (!response.ok) throw new Error('API error ' + response.status);
-    const result = await response.json();
-    const raw    = result.content?.[0]?.text || '';
-    const jsonMatch = raw.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error('No JSON');
-    const parsed = JSON.parse(jsonMatch[0]);
-    if (parsed[type]) {
-      el.textContent = parsed[type].trim();
-      const countMap = { sms: 'smsCharCount', email: 'emailCharCount', voicemail: 'vmCharCount' };
-      const countEl  = document.getElementById(countMap[type]);
-      if (countEl) countEl.textContent = el.textContent.length + ' chars';
-    }
-  } catch(err) {
-    console.error('[Lead Pro] Regen error:', err);
-    el.textContent = origText;
-  } finally {
-    el.style.opacity = '1';
-    if (regenBtn) { regenBtn.disabled = false; regenBtn.textContent = '\u21bb'; }
-  }
-}
-// ── Tab switching ─────────────────────────────────────────────────
-function setupTabs() {
-  const tabs = document.querySelectorAll('.tab-btn');
-  const panes= document.querySelectorAll('.tab-pane');
-  tabs.forEach(function(tab) {
-    tab.addEventListener('click', function() {
-      tabs.forEach(function(t){ t.classList.remove('active'); });
-      panes.forEach(function(p){ p.classList.remove('active'); });
-      tab.classList.add('active');
-      const target = tab.getAttribute('data-tab');
-      const pane   = document.getElementById('tab-' + target);
-      if (pane) pane.classList.add('active');
-    });
-  });
-}
-
-// ── Trade-in toggle ───────────────────────────────────────────────
-function setupTradeToggle() {
-  const cb      = document.getElementById('hasTrade');
-  const details = document.getElementById('tradeDetailsRow');
-  if (!cb || !details) return;
-  function update() {
-    details.style.display = cb.checked ? 'block' : 'none';
-  }
-  cb.addEventListener('change', update);
-  update();
-}
-
-// ── Agent select → auto-fill phone preview ────────────────────────
-function setupAgentSelect() {
-  const sel = document.getElementById('agentSelect');
-  if (!sel) return;
-  sel.addEventListener('change', function() {
-    const phone = lookupPhone(sel.value, selectedStore);
-    const preview = document.getElementById('agentPhonePreview');
-    if (preview) preview.textContent = phone ? '\u260e ' + phone : '';
-  });
-}
-
-// ── Store selector ────────────────────────────────────────────────
-function setupStoreSelector() {
-  const sel = document.getElementById('storeSelect');
-  if (!sel) return;
-  sel.addEventListener('change', function() {
-    selectedStore = sel.value;
-    chrome.storage.local.set({ leadpro_store: selectedStore });
-    updateStoreUI();
-  });
-}
-
-function updateStoreUI() {
-  const storeBadge = document.getElementById('storeBadge');
-  if (storeBadge && selectedStore) {
-    storeBadge.textContent = selectedStore;
-    storeBadge.style.display = 'inline-block';
-  } else if (storeBadge) {
-    storeBadge.style.display = 'none';
-  }
-  const storeSelect = document.getElementById('storeSelect');
-  if (storeSelect && selectedStore) storeSelect.value = selectedStore;
-  const agentSel = document.getElementById('agentSelect');
-  if (!agentSel) return;
-  const s = (selectedStore||'').toLowerCase();
-  const isAudi    = s.includes('audi');
-  const isLaf     = s.includes('lafayette');
-  const isBaytown = !isAudi && !isLaf;
-  const options   = agentSel.querySelectorAll('option');
-  options.forEach(function(opt) {
-    const val  = opt.value.toLowerCase();
-    const isAll= val === '' || val === 'all' || !val;
-    if (!isAll) opt.style.display = '';
-  });
-}
-
-// ── populateFromData ──────────────────────────────────────────────
-function populateFromData(data) {
-  let filled = 0;
-
-  function setField(id, value) {
-    if (!value) return;
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.value = value;
-    filled++;
-  }
-
-  setField('customerName', data.name || data.customerName);
-  setField('vehicle',      data.vehicle);
-  setField('stockNum',     data.stockNum);
-  setField('vin',          data.vin);
-  setField('color',        data.color);
-  setField('condition',    data.condition);
-  setField('leadSource',   data.leadSource);
-
-  // Agent
-  const agentSelect = document.getElementById('agentSelect');
-  if (agentSelect && data.agent) {
-    const agentKey = data.agent.toLowerCase().trim();
-    const opts = agentSelect.querySelectorAll('option');
-    let matched = false;
-    opts.forEach(function(opt) {
-      if (opt.value.toLowerCase().trim() === agentKey) {
-        agentSelect.value = opt.value;
-        matched = true;
-        filled++;
-      }
-    });
-    if (!matched) {
-      opts.forEach(function(opt) {
-        const fn = opt.value.split(' ')[0].toLowerCase();
-        if (!matched && fn && agentKey.startsWith(fn)) {
-          agentSelect.value = opt.value;
-          matched = true;
-          filled++;
-        }
-      });
-    }
-    const phonePreview = document.getElementById('agentPhonePreview');
-    if (phonePreview && agentSelect.value) {
-      const phone = lookupPhone(agentSelect.value, data.store || selectedStore);
-      phonePreview.textContent = phone ? '\u260e ' + phone : '';
-    }
-  }
-
-  // Store
-  if (data.store) {
-    const inferredStore = inferStore(data.store);
-    if (inferredStore && !selectedStore) {
-      selectedStore = inferredStore;
-      const storeSelect = document.getElementById('storeSelect');
-      if (storeSelect) storeSelect.value = inferredStore;
-      chrome.storage.local.set({ leadpro_store: inferredStore });
-      updateStoreUI();
-      filled++;
-    }
-  }
-
-  // Trade-in
-  if (data.hasTrade) {
-    const cb = document.getElementById('hasTrade');
-    if (cb) { cb.checked = true; filled++; }
-    setField('tradeDescription', data.tradeDescription);
-    const details = document.getElementById('tradeDetailsRow');
-    if (details) details.style.display = 'block';
-  }
-
-  return filled;
-}
-
-function inferStore(raw) {
-  const s = (raw || '').toLowerCase();
-  if (s.includes('audi'))                     return 'Audi Lafayette';
-  if (s.includes('honda') && s.includes('lafayette')) return 'Community Honda Lafayette';
-  if (s.includes('honda'))                    return 'Community Honda Baytown';
-  if (s.includes('kia'))                      return 'Community Kia Baytown';
-  if (s.includes('toyota'))                   return 'Community Toyota Baytown';
-  if (s.includes('hyundai'))                  return 'Community Hyundai Baytown';
-  return '';
-}
-
-// ── clearFields ───────────────────────────────────────────────────
-function clearFields() {
-  ['customerName','vehicle','stockNum','vin','color','condition','leadSource','contextNotes','tradeDescription'].forEach(function(id) {
-    const el = document.getElementById(id);
-    if (el) el.value = '';
-  });
-  const cb = document.getElementById('hasTrade');
-  if (cb) cb.checked = false;
-  const tradeRow = document.getElementById('tradeDetailsRow');
-  if (tradeRow) tradeRow.style.display = 'none';
-  const agentSel = document.getElementById('agentSelect');
-  if (agentSel) agentSel.selectedIndex = 0;
-  const phonePreview = document.getElementById('agentPhonePreview');
-  if (phonePreview) phonePreview.textContent = '';
-  const output = document.getElementById('output');
-  if (output) output.style.display = 'none';
-  const errEl = document.getElementById('errorMsg');
-  if (errEl) { errEl.textContent = ''; errEl.style.display = 'none'; }
-  lastScrapedData = null;
-}
-// ── DOMContentLoaded ─────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', async function() {
-  // Restore saved store
-  const saved = await chrome.storage.local.get(['leadpro_store']);
-  if (saved.leadpro_store) {
-    selectedStore = saved.leadpro_store;
-    updateStoreUI();
-  }
-
-  // Wire generate button
-  const generateBtn = document.getElementById('generateBtn');
-  if (generateBtn) generateBtn.addEventListener('click', generateMessages);
-
-  // Wire grab lead button
-  const grabBtn = document.getElementById('grabLeadBtn');
-  if (grabBtn) grabBtn.addEventListener('click', grabLead);
-
-  // Wire clear button
-  const clearBtn = document.getElementById('clearBtn');
-  if (clearBtn) clearBtn.addEventListener('click', clearFields);
-
-  // Wire settings button
-  const settingsBtn = document.getElementById('settingsBtn');
-  if (settingsBtn) settingsBtn.addEventListener('click', openSettings);
-
-  // Wire settings save
-  const saveBtn = document.getElementById('saveSettingsBtn');
-  if (saveBtn) saveBtn.addEventListener('click', saveSettings);
-
-  // Wire regen buttons
-  document.querySelectorAll('[data-regen]').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      regenerateSingle(btn.getAttribute('data-regen'));
-    });
-  });
-
-  // Wire close settings
-  const closeSettingsBtn = document.getElementById('closeSettingsBtn');
-  if (closeSettingsBtn) {
-    closeSettingsBtn.addEventListener('click', function() {
-      const panel = document.getElementById('settingsPanel');
-      if (panel) panel.style.display = 'none';
-    });
-  }
-
-  setupCopyButtons();
-  setupTabs();
-  setupTradeToggle();
-  setupAgentSelect();
-  setupStoreSelector();
-
-  // Auto-grab on open if on VinSolutions
-  try {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (tab && tab.url && (tab.url.includes('vinsolutions.com') || tab.url.includes('coxautoinc.com'))) {
-      const cached = await chrome.storage.local.get(['leadpro_data']);
-      if (cached.leadpro_data && (Date.now() - cached.leadpro_data.scrapedAt) < 30000) {
-        const m = cached.leadpro_data;
-        lastScrapedData = m;
-        const filled = populateFromData(m);
-        const statusEl = document.getElementById('crmStatus');
-        const dot      = document.getElementById('statusDot');
-        if (statusEl) {
-          if (filled > 0 || selectedStore) {
-            statusEl.className = 'crm-status found';
-            statusEl.textContent = '\u2713 ' + filled + ' field' + (filled > 1 ? 's' : '') + ' restored from cache';
-            if (dot) dot.classList.add('active');
-          }
-        }
-      }
-    }
-  } catch(e) {
-    console.log('[Lead Pro] Auto-grab skipped:', e.message);
-  }
-
-  // Listen for storage changes (in case content script pushes data)
-  chrome.storage.onChanged.addListener(function(changes, area) {
-    if (area === 'local' && changes.leadpro_data && changes.leadpro_data.newValue) {
-      const m = changes.leadpro_data.newValue;
-      lastScrapedData = m;
-      const filled = populateFromData(m);
-      const statusEl = document.getElementById('crmStatus');
-      const dot      = document.getElementById('statusDot');
-      if (statusEl && (filled > 0 || selectedStore)) {
-        statusEl.className   = 'crm-status found';
-        statusEl.textContent = '\u2713 ' + filled + ' field' + (filled > 1 ? 's' : '') + ' updated';
-        if (dot) dot.classList.add('active');
-      }
+// ── Side panel ────────────────────────────────────────────────────
+const spBtn = document.getElementById('btnSidePanel');
+if (spBtn) {
+  spBtn.addEventListener('click', async function() {
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      await chrome.sidePanel.open({ tabId: tab.id });
+      window.close();
+    } catch(e) {
+      spBtn.textContent = 'N/A';
     }
   });
+}
+
+// ── Init ──────────────────────────────────────────────────────────
+document.getElementById('btnGrab').addEventListener('click', grabLead);
+document.getElementById('btnGenerate').addEventListener('click', generateAll);
+
+window.addEventListener('load', function() {
+  console.log('[Lead Pro] v7.38 loaded');
+
+  // Detect popup vs side panel mode and apply appropriate layout class
+  // Side panel windows are wider (Chrome enforces ~360px min); floating popups are narrower
+  var isSidePanel = window.outerWidth > 500 || (window.matchMedia && window.matchMedia('(min-width: 500px)').matches);
+  document.body.classList.add(isSidePanel ? 'sidepanel-mode' : 'popup-mode');
+  console.log('[Lead Pro] Mode:', isSidePanel ? 'sidepanel' : 'popup', '| outerWidth:', window.outerWidth);
+
+  // Check endpoint config
+  if (!getEndpoint()) {
+    document.getElementById('keyWarning').classList.add('visible');
+    console.warn('[Lead Pro] No proxy URL or API key configured. Set up config.js.');
+  }
+  console.log('[Lead Pro] v6.43 loaded — manifest 6.43');
 });
-// ── END OF FILE ───────────────────────────────────────────────────

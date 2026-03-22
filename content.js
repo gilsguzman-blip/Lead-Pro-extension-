@@ -16,12 +16,14 @@
       return el ? (el.innerText || el.textContent || el.value || '').trim() : '';
     } catch(e) { return ''; }
   }
+
   function qs(sel) {
     try {
       const el = document.querySelector(sel);
       return el ? (el.innerText || el.textContent || el.value || '').trim() : '';
     } catch(e) { return ''; }
   }
+
   function firstId(ids) {
     for (const id of ids) {
       const v = gid(id);
@@ -29,6 +31,7 @@
     }
     return '';
   }
+
   function firstSel(sels) {
     for (const s of sels) {
       const v = qs(s);
@@ -38,6 +41,8 @@
   }
 
   // Read the value cell next to a label in a table
+  // Works on the confirmed Lead Info HTML structure:
+  // <tr><td class="datalabel">BD Agent:</td><td class="datavalue"><span>Carly Osuna</span></td></tr>
   function labelValue(labelText) {
     try {
       const rows = document.querySelectorAll('tr');
@@ -46,6 +51,7 @@
         if (cells.length < 2) continue;
         const label = (cells[0].innerText || cells[0].textContent || '').trim();
         if (label.toLowerCase().replace(/[:\s]/g,'').includes(labelText.toLowerCase().replace(/[:\s]/g,''))) {
+          // Get value from second cell — strip nested span whitespace
           const valEl = cells[1].querySelector('span') || cells[1];
           const v = (valEl.innerText || valEl.textContent || '').trim();
           if (v && v !== 'None' && v !== 'none' && v.length > 0) return v;
@@ -58,7 +64,9 @@
   const URL  = window.location.href;
   const TEXT = (document.body.innerText || document.body.textContent || '').substring(0, 12000);
 
+  // Targeted text mining — only used where no reliable element exists
   function textAfterLabel(label) {
+    // Matches "Label:\nValue" or "Label: Value" patterns
     const rx = new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '[:\\s]+([^\\n\\r]{2,60})', 'i');
     const m  = TEXT.match(rx);
     return m ? m[1].trim() : '';
@@ -71,20 +79,27 @@
   const dealerId   = debugInner ? (debugInner.getAttribute('data-dealerid')   || '') : '';
   const customerId = debugInner ? (debugInner.getAttribute('data-globalcustomerid') || '') : '';
   const isLeadFrame = !!autoLeadId;
+
+  // Identify which pane this frame is
   const isCustomerDashboard = URL.includes('CustomerDashboard') || URL.includes('DeskLog') || isLeadFrame;
 
+  // Declared early so eccs block and later blocks can both populate them
   var ownedVehicle = '';
   var ampEmailSubject = '';
   var ownedMileage = '';
   var lastServiceDate = '';
 
-  // Log full URL when in eccs frame
+  // Log full URL when in eccs frame so we can capture dealerId
   if (URL.includes('eccs/index.html')) {
     console.log('[Lead Pro] ECCS full URL:', URL);
+
+    // Scrape service vehicle and AMP email from eccs frame
+    // Use both innerHTML scan (catches rendered content) and innerText scan
     try {
       var eccsHTML = (document.body ? document.body.innerHTML || '' : '');
       var eccsText = (document.body ? document.body.innerText || '' : '');
 
+      // Method 1: Y/M/M datalabel in innerHTML
       if(!ownedVehicle) {
         var ymmHtmlMatch = eccsHTML.match(/Y\/M\/M[:\s]*<\/td>\s*<td[^>]*>([^<]{5,60})<\/td>/i);
         if(ymmHtmlMatch) {
@@ -92,37 +107,49 @@
           if(/\d{4}\s+[A-Za-z]/.test(ymmCand)) ownedVehicle = ymmCand.substring(0,60);
         }
       }
+
+      // Method 2: rgHeader Vehicle column in innerHTML
       if(!ownedVehicle) {
         var gridMatch = eccsHTML.match(/rgRow[^>]*>[\s\S]{0,200}?<td[^>]*>[\s\S]{0,100}?<\/td><td[^>]*>(20\d\d\s+[A-Za-z][^<]{3,40})<\/td>/i);
         if(gridMatch) ownedVehicle = gridMatch[1].trim().substring(0,60);
       }
+
+      // Method 3: innerText scan for Year Make Model pattern
       if(!ownedVehicle) {
         var tvMatch = eccsText.match(/(\d{4}\s+(?:Toyota|Honda|Kia|Hyundai|Ford|Chevy|Chevrolet|GMC|Dodge|Nissan|Jeep|Mazda|Subaru|Acura|Lexus)[^\n]{2,30})/i);
         if(tvMatch) ownedVehicle = tvMatch[1].trim().replace(/\s+/g,' ').substring(0,60);
       }
+
+      // AMP: lastcontacttitlelink in innerHTML
       if(!ampEmailSubject) {
         var ampHtmlMatch = eccsHTML.match(/lastcontacttitlelink[^>]*>[^<]*Marketing Campaign Email[^<]*\(subject[:\s]*([^\)<]{5,100})\)/i);
         if(ampHtmlMatch) ampEmailSubject = ampHtmlMatch[1].trim().substring(0,100);
       }
+      // AMP: TEXT fallback
       if(!ampEmailSubject) {
         var ampTxtMatch = eccsText.match(/Marketing Campaign Email[^\n]*\(subject[:\s]*([^\)\n]{5,100})\)/i);
         if(ampTxtMatch) ampEmailSubject = ampTxtMatch[1].trim().substring(0,100);
       }
+
+      // Mileage from Y/M/M panel
       var mileageMatch = eccsHTML.match(/Mileage[:\s]*<\/td>\s*<td[^>]*>([0-9,]{3,10})<\/td>/i);
       if(mileageMatch) ownedMileage = mileageMatch[1].replace(/,/g,'').trim();
+
+      // Last service date from service grid (most recent = first row)
       var lastSvcMatch = eccsHTML.match(/rgRow[^>]*>[\s\S]{0,400}?<td[^>]*>\s*(\d{1,2}\/\d{1,2}\/\d{2,4}[^<]*)<\/td>/i);
       if(lastSvcMatch) lastServiceDate = lastSvcMatch[1].trim().substring(0,20);
+
       console.log('[Lead Pro] ECCS scrape result:', { ownedVehicle: ownedVehicle, ampEmailSubject: ampEmailSubject, ownedMileage: ownedMileage, lastServiceDate: lastServiceDate });
     } catch(e) { console.log('[Lead Pro] ECCS scrape error:', e.message); }
   }
-
   console.log('[Lead Pro] content.js in frame:', URL.substring(0,80), '| isLeadFrame:', isLeadFrame, '| vindebug:', autoLeadId);
 
-  // ── Store ────────────────────────────────────────────────────────
+  // ── Store — highest confidence: dealerName from eccs URL parameter ─
   const dealerIdFromUrl = (URL.match(/[?&]dealerId=(\d+)/i)||[])[1] || '';
   const dealerNameFromUrl = (URL.match(/[?&]dealerName=([^&]+)/i)||[])[1];
   const dealerNameDecoded = dealerNameFromUrl ? decodeURIComponent(dealerNameFromUrl) : '';
 
+  // Map decoded dealer names to canonical store names
   const ECCS_STORE_MAP = {
     'Community Toyota':       'Community Toyota Baytown',
     'Community Kia':          'Community Kia Baytown',
@@ -156,7 +183,8 @@
   const store = storeFromEccsUrl || storeFromTab || storeFromText;
   const storeConfident = !!(storeFromEccsUrl || storeFromTab);
 
-  // ── Customer name ────────────────────────────────────────────────
+  // ── Customer name ───────────────────────────────────────────────
+  // Lives in the Customer Info panel (left pane / DeskLog frame)
   const name = firstId([
     'ContentPlaceHolder1_m_CustomerAndTaskInfo_m_CustomerInfo__CustomerName',
     'ContentPlaceHolder1_m_CustomerName'
@@ -182,6 +210,7 @@
   }
 
   // ── BD Agent ────────────────────────────────────────────────────
+  // Try exact IDs first, then the confirmed Lead Info table structure
   const agent = firstId([
     'ActiveLeadPanelWONotesAndHistory1_m_CurrentAssignedBDAgentLabel',
     'ActiveLeadPanel1_m_CurrentAssignedBDAgentLabel'
@@ -230,6 +259,10 @@
   const inventoryWarning = /no longer in your active inventory/i.test(TEXT);
 
   // ── Lead source ──────────────────────────────────────────────────
+  // Exact IDs first, then label table lookup
+  // NOTE: labelValue('Source') must NOT match "Buying Signal" section —
+  // the Lead Info table has "Source:" as a row label; "Buying Signal" is
+  // a separate section further down the page.
   const leadSource = firstId([
     'ActiveLeadPanelWONotesAndHistory1__LeadSourceName',
     'ActiveLeadPanel1__LeadSourceName'
@@ -269,10 +302,14 @@
   const totalNoteCount = noteEls.length;
 
   // ── Owned vehicle from service/sales history ─────────────────────
+  // Scraped from CustomerDashboard frame which has service tab visible
   try {
+    // Priority 1: Y/M/M field in repair order detail
     var bodyText = (document.body ? document.body.innerText || '' : '');
     var ymmM = bodyText.match(/Y\/M\/M[:\s]+(\d{4}\s+[A-Za-z][^\n]{3,40})/i);
     if(ymmM) ownedVehicle = ymmM[1].trim().substring(0,60);
+
+    // Priority 2: Service history table (RO# | Vehicle | Date)
     if(!ownedVehicle) {
       var tables = document.querySelectorAll('table');
       for(var ti=0; ti<tables.length && !ownedVehicle; ti++) {
@@ -291,19 +328,27 @@
         }
       }
     }
+
+    // Priority 3: Sales history sold row
     if(!ownedVehicle) {
       var soldM = bodyText.match(/Sold\b[^\n]{0,100}(\d{4}\s+(?:Toyota|Honda|Kia|Hyundai|Ford|Chevy|Chevrolet|GMC|Dodge|Nissan|Jeep|Mazda|Subaru)[^\n]{3,40})/i);
       if(soldM) ownedVehicle = soldM[1].trim().replace(/\s+/g,' ').substring(0,60);
     }
+
+    // AMP email subject from Contact History
     var ampM = bodyText.match(/Marketing Campaign Email[^\n]*subject[:\s]+([^\n\)]{5,100})/i);
     if(ampM) ampEmailSubject = ampM[1].replace(/[)\]]/g,'').trim().substring(0,100);
+
   } catch(e) {}
 
+  // Extra scan for rims2 service frame which has different DOM structure
   if(!ownedVehicle && /rims2/i.test(URL)) {
     try {
       var rimsText = (document.body ? document.body.innerText || '' : '');
+      // rims2 shows vehicle as "Year Make Model" in service records
       var rimsVehicleMatch = rimsText.match(/(\d{4}\s+(?:Toyota|Honda|Kia|Hyundai|Ford|Chevy|Chevrolet|GMC|Dodge|Nissan|Jeep|Mazda|Subaru|Acura|Lexus|Infiniti|BMW|Mercedes|Audi|Volkswagen)[^\n]{2,30})/i);
       if(rimsVehicleMatch) ownedVehicle = rimsVehicleMatch[1].trim().replace(/\s+/g,' ').substring(0,60);
+      // Also look for AMP contact history in rims2
       if(!ampEmailSubject) {
         var rimsAmpMatch = rimsText.match(/Marketing Campaign Email[^\n]*subject[:\s]+([^\n\)]{5,100})/i);
         if(rimsAmpMatch) ampEmailSubject = rimsAmpMatch[1].replace(/[)\]]/g,'').trim().substring(0,100);
@@ -342,10 +387,13 @@
   // ── Merge with storage — lead frames win on conflicts ───────────
   chrome.storage.local.get(['leadpro_data'], function(existing) {
     const prev = (existing && existing.leadpro_data) || {};
+
+    // Different lead entirely → replace
     if (autoLeadId && prev.autoLeadId && prev.autoLeadId !== autoLeadId) {
       chrome.storage.local.set({ leadpro_data: result });
       return;
     }
+
     const merged = Object.assign({}, prev);
     for (const k of Object.keys(result)) {
       if (k === 'hasTrade' || k === 'inventoryWarning' || k === 'isLeadFrame') {
@@ -353,6 +401,7 @@
       } else if (k === 'scrapedAt') {
         merged[k] = result[k];
       } else if (k === 'store') {
+        // Confident store (from tab element) always wins over text-mined store
         if (result.storeConfident && result.store) {
           merged.store = result.store;
           merged.storeConfident = true;
@@ -389,4 +438,5 @@
     }
     return true;
   });
+
 })();
