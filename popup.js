@@ -766,7 +766,7 @@ function tryExecuteScript(tab, statusEl, dot) {
     const transcript = [];
     var transcriptCutoffMs = Date.now() - (180 * 24 * 60 * 60 * 1000); // 180 days ago
     noteEls.slice(0,25).forEach(function(item){
-      var date    = ((item.querySelector('.notes-and-hsitory-item-date')||{}).innerText||'').trim();
+      var date    = ((item.querySelector('.notes-and-hsitory-item-date')||{}).innerText||'').trim(); // NOTE: 'hsitory' typo is intentional — matches VinSolutions DOM typo
       var title   = ((item.querySelector('.legacy-notes-and-history-title')||{}).innerText||'').trim();
       var content = ((item.querySelector('.notes-and-history-item-content')||{}).innerText||'').trim();
       var dir     = (item.getAttribute('data-direction')||'').toLowerCase();
@@ -1407,7 +1407,7 @@ function classifyScenario(data) {
   s.isExitSignal       = ctx.includes('exit signal');
   s.isPauseSignal      = ctx.includes('pause signal');
   // Match actual strings in conversationBrief: "⚡ FOLLOW-UP", "CONVERSATION TRANSCRIPT", "active-follow-up"
-  s.isFollowUp         = ctx.includes('follow-up') || ctx.includes('conversation transcript') || ctx.includes('conversation brief') || !!data.convState && data.convState !== 'first-touch';
+  s.isFollowUp         = (!!data.convState && data.convState !== 'first-touch') || ctx.includes('conversation transcript') || ctx.includes('conversation brief'); // Removed ctx.includes('follow-up') — customer messages like 'Thanks for the follow-up' caused false positives
   s.hasUnresolvedIssue = ctx.includes('unresolved issue');
   s.unresolvedText     = (ctx.match(/unresolved issue:\s*([^\n.]+)/i)||[])[1] || '';
   s.actionNeeded       = (ctx.match(/required message action:\s*([^\n.]+)/i)||[])[1] || '';
@@ -1597,7 +1597,10 @@ function buildUserPrompt(data) {
 
   if (sc.isSoldDelivered) {
     // Detect if there is a recent post-sale interaction — service issue, return visit, paperwork, question
-    var recentContext = (data.context || '').toLowerCase();
+    // Limit post-sale service scan to RECENT context only — not full history blob
+    // Full context can contain years-old service notes that falsely trigger service branch
+    var fullContext = (data.context || '').toLowerCase();
+    var recentContext = fullContext.substring(0, 800); // first 800 chars = most recent notes
     var lastInbound = (data.lastInboundMsg || '').toLowerCase();
     var hasPostSaleService = /service|oil|alert|software|update|issue|problem|noise|concern|recall|repair|bring.*back|came back|just left|taken care of|get it looked|looked at|check.*on/i.test(recentContext + ' ' + lastInbound);
     var customerJustLeft = /just left|just got|just finished|all set|taken care of|yes ma.am|yes sir/i.test(lastInbound);
@@ -2550,7 +2553,19 @@ async function generateAll() {
       contactedAgeDays: lastScrapedData ? (lastScrapedData.contactedAgeDays || 0) : 0,
       hasOutbound: lastScrapedData ? !!lastScrapedData.hasOutbound : false,
       isLiveConversation: lastScrapedData ? !!lastScrapedData.isLiveConversation : false,
-
+      // Previously missing — now passed through (fixes dead code identified in stability assessment)
+      lastInboundMsg:            lastScrapedData ? (lastScrapedData.lastInboundMsg || '') : '',
+      lastOutboundMsg:           lastScrapedData ? (lastScrapedData.lastOutboundMsg || '') : '',
+      conversationBrief:         lastScrapedData ? (lastScrapedData.conversationBrief || '') : '',
+      equityAmount:              lastScrapedData ? (lastScrapedData.equityAmount || '') : '',
+      equityVehicle:             lastScrapedData ? (lastScrapedData.equityVehicle || '') : '',
+      ownedVehicle:              lastScrapedData ? (lastScrapedData.ownedVehicle || '') : '',
+      showroomVisitToday:        lastScrapedData ? !!lastScrapedData.showroomVisitToday : false,
+      customerScheduleConstraint: lastScrapedData ? (lastScrapedData.customerScheduleConstraint || '') : '',
+      hasTrade:                  lastScrapedData ? !!lastScrapedData.hasTrade : false,
+      tradeDescription:          lastScrapedData ? (lastScrapedData.tradeDescription || '') : '',
+      isRecentOutbound:          lastScrapedData ? !!lastScrapedData.isRecentOutbound : false,
+      recentOutboundContent:     lastScrapedData ? (lastScrapedData.recentOutboundContent || '') : '',
       activeFlags: Array.from(activeFlags)
     });
     console.log('[Lead Pro] User prompt length:', userPrompt.length, '| scenario section:', userPrompt.substring(0, userPrompt.indexOf('━━━ LEAD ━━━')));
