@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────
-// Lead Pro — popup.js  v7.75
+// Lead Pro — popup.js  v7.94
 // Calls either a proxy server (recommended for team use) OR
 // the Gemini API directly. Both configured in config.js.
 // ─────────────────────────────────────────────────────────────────
@@ -2936,7 +2936,7 @@ document.getElementById('btnGrab').addEventListener('click', grabLead);
 document.getElementById('btnGenerate').addEventListener('click', generateAll);
 
 window.addEventListener('load', function() {
-  console.log('[Lead Pro] v7.75 loaded');
+  console.log('[Lead Pro] v7.94 loaded');
 
   // Detect popup vs side panel mode and apply appropriate layout class
   // Side panel windows are wider (Chrome enforces ~360px min); floating popups are narrower

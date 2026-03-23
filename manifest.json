@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Lead Pro",
-  "version": "7.75",
+  "version": "7.94",
   "description": "AI-powered BDC Lead Response Generator for VinSolutions CRM",
   "permissions": [
     "activeTab",
@@ -22,7 +22,9 @@
         "https://*.vinsolutions.com/*",
         "https://*.coxautoinc.com/*"
       ],
-      "js": ["content.js"],
+      "js": [
+        "content.js"
+      ],
       "run_at": "document_idle",
       "all_frames": true
     }
