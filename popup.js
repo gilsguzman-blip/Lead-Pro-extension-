@@ -177,6 +177,13 @@ function populateFromData(d) {
   if (d.stockNum)         vehicleExtras.push('Stock #: ' + d.stockNum);
   if (d.vin)              vehicleExtras.push('VIN: ' + d.vin);
   if (d.noSpecificVehicle && !stageActive) vehicleExtras.push('⚠ NO SPECIFIC UNIT: Customer has not selected a specific vehicle — no stock number or VIN. Qualifying questions required.');
+  // Universal stock confirmation — applies to ALL lead sources
+  if (!d.noSpecificVehicle && (d.stockNum || d.vin) && !d.inventoryWarning) {
+    vehicleExtras.push('✅ VEHICLE CONFIRMED IN STOCK: Stock #' + (d.stockNum || '') + (d.vin ? ' / VIN: ' + d.vin : '') + '.');
+    vehicleExtras.push('- Reference the SPECIFIC vehicle — NOT "similar options", "other models", or "available inventory".');
+    vehicleExtras.push('- Say: "we have it here", "it is here and ready to see", or "I have it pulled up and ready for you."');
+    vehicleExtras.push('- The customer asked about THIS vehicle. Do not pivot to alternatives unless explicitly requested.');
+  }
 
 
   if (d.ownedVehicle) vehicleExtras.push('Customer\'s current vehicle (confirmed from service/sales history): ' + d.ownedVehicle
@@ -302,6 +309,11 @@ function populateFromData(d) {
       var creditMention = /don.t have (good |great |perfect |the best )?credit|bad credit|no credit|poor credit|credit (is|isn.t|aint|ain.t)|low credit|credit score|credit challenge|working on (my |our )?credit|been denied|got denied|bankruptcy|repo|repossession|collections|it is what it is.*credit|credit.*it is what it is/i.test(d.lastInboundMsg);
       if(creditMention) toggleFlag('credit', true);
     }
+  }
+  // Scan Gubagoo/chat lead data for credit signals
+  if (!activeFlags.has("credit") && (ls.includes("chat") || ls.includes("gubagoo")) && d.context) {
+    var chatCtx = d.context.toLowerCase().substring(0, 2000);
+    if (/\brepo\b|\brepos\b|repossession|bankruptcy|bad credit|no credit|credit.*challenge|been denied|credit score|collections|low credit/i.test(chatCtx)) toggleFlag("credit", true);
   }
 
   // Enable generate button once we have something
@@ -1291,7 +1303,7 @@ function tryExecuteScript(tab, statusEl, dot) {
     // Primary: Sale Info section shows a sold date AND a Deal # — both required to avoid
     // false positives from TradePending/KBB valuation text which also contains "Sold" dates
     var soldDateMatch = TEXT.match(/Sold[:\s]+(\d{1,2}\/\d{1,2}\/\d{2,4})/i);
-    var hasDealNumber = /Deal\s*#?[:\s]*\d{4,}/i.test(TEXT.substring(0, 4000));
+    var hasDealNumber = /Deal\s*#?[:\s]*[A-Z]{0,3}\d{4,}/i.test(TEXT.substring(0, 4000)); // Allow letter-prefixed deal numbers like P50261
     if(soldDateMatch && hasDealNumber) {
       var soldMs = new Date(soldDateMatch[1]).getTime();
       var soldAge = soldMs > 0 ? (Date.now() - soldMs) : Infinity;
@@ -1302,6 +1314,14 @@ function tryExecuteScript(tab, statusEl, dot) {
     // Secondary: status dropdown explicitly says sold/delivered
     if(!isSoldDelivered && /\bsold\b|\bdelivered\b/i.test(currentStatus)) {
       isSoldDelivered = true;
+    }
+    // Secondary-B: Lead Info Status label says "Sold" — must be in Lead Info context
+    // Use tight match to avoid false positives from chat transcripts containing "sold"
+    if(!isSoldDelivered && /Status:\s*Sold\b/i.test(TEXT.substring(0, 1500))) {
+      // Extra guard: make sure this isn't contradicted by "Active" status nearby
+      var soldStatusArea = TEXT.substring(0, 1500);
+      var hasActiveLead = /Status:\s*Active/i.test(soldStatusArea);
+      if(!hasActiveLead) isSoldDelivered = true;
     }
     // Tertiary: Sale Info section shows Delivered badge + Deal number
     if(!isSoldDelivered && hasDealNumber && /Sale Info[\s\S]{0,300}Delivered/i.test(TEXT.substring(0,3000))) {
@@ -1458,7 +1478,7 @@ function classifyScenario(data) {
   // ── Conversation stage (highest priority) ──────────────────────
   s.isApptConfirmation = ctx.includes('appointment already set');
   s.isShowroomFollowUp = ctx.includes('showroom stage');
-  s.isSoldDelivered    = ctx.includes('sold/delivered');
+  s.isSoldDelivered    = /sold\/delivered/i.test(ctx) || !!data.isSoldDelivered;
   s.isMissedAppt       = ctx.includes('missed appointment');
   s.isExitSignal       = ctx.includes('exit signal');
   s.isPauseSignal      = ctx.includes('pause signal');
@@ -1638,6 +1658,8 @@ function buildSystemPrompt() {
     '- Write all three formats completely. Do not truncate.',
     '- TRADE-IN: When a trade-in is present, mention it in ALL three formats including SMS.',
     '- SYSTEM DATA RULE: The conversation transcript may contain system-generated notes tagged as [NOTE] including lead received data, TradePending/KBB valuation reports, and automated responses. These contain market prices, dollar ranges, credit scores, and vehicle statistics. NEVER treat this system data as customer communication or use it to infer customer concerns. Only infer concerns from messages explicitly sent by the customer.',
+    '- SCHEDULE ASSUMPTION RULE: NEVER assume a customer works shifts, has schedule constraints, or works unusual hours unless they explicitly said so in a customer message. Do NOT say "I know your schedule can vary with shift work" or similar unless the SHIFT WORKER flag is active in the context. Inferring schedule from job title, location, or industry is forbidden.',
+    '- URL / LINK RULE: NEVER construct, guess, or fabricate inventory URLs or website links. Do NOT build links like "communityhondabaytown.com/inventory/P4776" — you do not know the correct URL format and guessing will produce wrong links. If a customer asks for a link, respond: "I will send you the direct link right now" and leave the URL out of the generated message — the agent will paste the real VDP link manually.',
     '- ANSWER FIRST RULE: If the customer asked a direct question in their last message (price, availability, color, payment, trade value, financing), you MUST address or acknowledge it BEFORE asking for an appointment. Ignoring a customer question and jumping to a close kills trust. If you cannot answer it directly, say so and invite them in to get the answer: "Great question — the best way to get the exact number is to come in so we can run it together."',
     '- APPOINTMENT TIMES: Offer the two times ONCE and close. Never repeat them.',
     '- APPOINTMENT LANGUAGE: Always frame as in-store — "come in," "stop by," "visit us." Never "discuss" or "talk."',
@@ -1683,10 +1705,20 @@ function buildUserPrompt(data) {
     var fullContext = (data.context || '').toLowerCase();
     var recentContext = fullContext.substring(0, 800); // first 800 chars = most recent notes
     var lastInbound = (data.lastInboundMsg || '').toLowerCase();
+    var hasRecentInbound = lastInbound.length > 0;
     var hasPostSaleService = /service|oil|alert|software|update|issue|problem|noise|concern|recall|repair|bring.*back|came back|just left|taken care of|get it looked|looked at|check.*on/i.test(recentContext + ' ' + lastInbound);
     var customerJustLeft = /just left|just got|just finished|all set|taken care of|yes ma.am|yes sir/i.test(lastInbound);
 
-    if(customerJustLeft && hasPostSaleService) {
+    if(hasRecentInbound && lastInbound.length < 20) {
+      // Short inbound like "Hey", "Hi", "Hello" from a sold customer — they're reaching out, respond warmly
+      scenarioDirective = 'TASK: Sold customer sent you a message. Respond warmly and naturally — ask how things are going with the vehicle or if there is anything you can help with.';
+      scenarioRules = [
+        '- They reached out to YOU. Acknowledge it warmly.',
+        '- Do NOT pitch anything. Do NOT offer appointment times.',
+        '- Keep it brief and genuine: "Hey [name]! Great to hear from you — how are you liking the [vehicle]? Is there anything I can help with?"',
+        '- Tone: friend checking in, not a salesperson.',
+      ].join('\n');
+    } else if(customerJustLeft && hasPostSaleService) {
       scenarioDirective = 'TASK: Sold customer just left after a service or follow-up visit. Write a brief satisfaction check — not a sales pitch, not a congratulations.';
       scenarioRules = [
         '- Do NOT pitch any vehicle. Do NOT mention availability or Click & Go.',
@@ -2687,6 +2719,7 @@ async function generateAll() {
       stockNum:                  lastScrapedData ? (lastScrapedData.stockNum || '') : '',
       vin:                       lastScrapedData ? (lastScrapedData.vin || '') : '',
       inventoryWarning:          lastScrapedData ? !!lastScrapedData.inventoryWarning : false,
+      isSoldDelivered:           lastScrapedData ? !!lastScrapedData.isSoldDelivered : false,
       activeFlags: Array.from(activeFlags)
     });
     console.log('[Lead Pro] User prompt length:', userPrompt.length, '| scenario section:', userPrompt.substring(0, userPrompt.indexOf('━━━ LEAD ━━━')));
@@ -2733,8 +2766,10 @@ async function generateAll() {
     try {
       let clean = rawText.replace(/^```json\s*/i,'').replace(/^```\s*/,'').replace(/\s*```$/,'').trim();
       clean = clean.replace(/^\uFEFF/,'').replace(/^[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]+/,'');
-      // Fix common AI JSON breakage: trailing period before closing quote (e.g. "281-837-3380."}  )
-      clean = clean.replace(/\.(")/g, '$1');
+      // Fix common AI JSON breakage: trailing period before closing quote
+      // Handles: "337-247-9081."} and "337-247-9081."  )} and similar
+      clean = clean.replace(/\.(\")/g, '$1');  // escaped quotes
+      clean = clean.replace(/\.("(?:[}\]\s,]|$))/g, '$1'); // unescaped quotes before } ] , or end
       parsed = JSON.parse(clean);
       console.log('[Lead Pro] JSON parsed successfully');
     } catch(e) {
