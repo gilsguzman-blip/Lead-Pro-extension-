@@ -310,6 +310,12 @@ function populateFromData(d) {
       if(creditMention) toggleFlag('credit', true);
     }
   }
+  // Auto-detect price gate from customer inbound price objection
+  if (!activeFlags.has("price") && d.lastInboundMsg && d.lastInboundMsg.length > 10) {
+    var priceObjection = /out.the.door|otd price|couldn.t reach.*agreement|price.*too high|too expensive|over.*budget|numbers.*not.*work|not.*work.*numbers|best.*price|lower.*price|better.*price|can.*do.*better|come down|negotiate|counter offer/i.test(d.lastInboundMsg);
+    if(priceObjection) toggleFlag("price", true);
+  }
+
   // Scan Gubagoo/chat lead data for credit signals
   if (!activeFlags.has("credit") && (ls.includes("chat") || ls.includes("gubagoo")) && d.context) {
     var chatCtx = d.context.toLowerCase().substring(0, 2000);
@@ -763,7 +769,7 @@ function tryExecuteScript(tab, statusEl, dot) {
       var t = ((n.querySelector('.legacy-notes-and-history-title')||{}).innerText||'').toLowerCase();
       var c = ((n.querySelector('.notes-and-history-item-content')||{}).innerText||'').toLowerCase();
       if(/general note|vehicle/i.test(t)){
-        if(/vehicle.*has been sold|has been sold|vehicle sold|unit.*sold/i.test(c)) inventoryWarningFromNotes = true;
+        if(/vehicle.*has been sold|has been sold|vehicle sold|unit.*sold|\bwas sold\b|\bwas SOLD\b|p\d+.*sold|sold!|stock.*sold/i.test(c)) inventoryWarningFromNotes = true;
         if(/process of being sold|in the process.*sold|being sold|pending.*sale|sold pending|may be sold|might be sold/i.test(c)) vehiclePendingSale = true;
       }
     });
@@ -782,7 +788,22 @@ function tryExecuteScript(tab, statusEl, dot) {
     // JS extracts and labels. AI reads and understands.
     // Up to 25 entries. Skip pure noise. Full message content.
     const transcript = [];
-    var transcriptCutoffMs = Date.now() - (180 * 24 * 60 * 60 * 1000); // 180 days ago
+    // Use lead created date as transcript cutoff — ignore history predating this lead
+    // This prevents old lead history from bleeding into fresh lead responses
+    var transcriptCutoffMs = Date.now() - (180 * 24 * 60 * 60 * 1000); // default 180 days
+    try {
+      var createdRaw = labelValue('Created') || TEXT.match(/Created[:\s]+([^\n]{5,40})/i)?.[1] || '';
+      var createdDateMatch = createdRaw.match(/(\d{1,2}\/\d{1,2}\/\d{2,4})/);
+      if(createdDateMatch) {
+        var createdMs = new Date(createdDateMatch[1]).getTime();
+        if(createdMs > 0) {
+          // Set cutoff to lead created date minus 1 day buffer
+          var leadCutoff = createdMs - (24 * 60 * 60 * 1000);
+          // Only use lead date if it's more restrictive than 180 days
+          if(leadCutoff > transcriptCutoffMs) transcriptCutoffMs = leadCutoff;
+        }
+      }
+    } catch(e) {}
     noteEls.slice(0,25).forEach(function(item){
       var date    = ((item.querySelector('.notes-and-hsitory-item-date')||{}).innerText||'').trim(); // NOTE: 'hsitory' typo is intentional — matches VinSolutions DOM typo
       var title   = ((item.querySelector('.legacy-notes-and-history-title')||{}).innerText||'').trim();
@@ -1300,31 +1321,48 @@ function tryExecuteScript(tab, statusEl, dot) {
     // Old sold leads (past customers being re-engaged) are follow-up conversations, not congrats
     var isSoldDelivered = false;
     var thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
+    // Determine if current lead is active BEFORE running any sold detection
+    // Must be defined here so all detection paths can use it
+    // Determine if the CURRENT lead is active — check multiple sources
+    var currentLeadIsActive = /active|waiting|appointment/i.test(currentStatus)
+      || /Status[:\s]+Active/i.test(TEXT.substring(0, 5000))
+      || /Active New Lead/i.test(TEXT.substring(0, 5000))
+      || /Status Not Set/i.test(currentStatus)  // blank dropdown = not confirmed sold
+      || /truecar|sams club|gubagoo|tradepending|cars\.com|autotrader|facebook|kbb|kelley blue/i.test(leadSource||''); // fresh lead sources are never sold
+    // TrueCar post-sale benefit language is marketing — never a real sale
+    if(/post sale benefit|eligible for post sale|sams club.*gift|truecar.*gift|gift card.*truecar/i.test(TEXT)) currentLeadIsActive = true;
     // Primary: Sale Info section shows a sold date AND a Deal # — both required to avoid
     // false positives from TradePending/KBB valuation text which also contains "Sold" dates
-    var soldDateMatch = TEXT.match(/Sold[:\s]+(\d{1,2}\/\d{1,2}\/\d{2,4})/i);
-    var hasDealNumber = /Deal\s*#?[:\s]*[A-Z]{0,3}\d{4,}/i.test(TEXT.substring(0, 4000)); // Allow letter-prefixed deal numbers like P50261
+    // Require sold date to appear in Sale Info section — not in lead received notes or TrueCar data
+    // TrueCar uses "Sold" to mean "matched through platform" — not an actual customer purchase
+    var saleInfoSection = TEXT.match(/Sale Info[\s\S]{0,500}/i);
+    var saleInfoText = saleInfoSection ? saleInfoSection[0] : '';
+    var soldDateMatch = saleInfoText.match(/Sold[:\s]+(\d{1,2}\/\d{1,2}\/\d{2,4})/i);
+    var hasDealNumber = /Deal\s*#?[:\s]*[A-Z]{0,3}\d{4,}/i.test(saleInfoText); // Only look in Sale Info section
     if(soldDateMatch && hasDealNumber) {
       var soldMs = new Date(soldDateMatch[1]).getTime();
       var soldAge = soldMs > 0 ? (Date.now() - soldMs) : Infinity;
-      if(soldAge < thirtyDaysMs) {
+      // Also verify current lead is not active
+      if(soldAge < thirtyDaysMs && !currentLeadIsActive) {
         isSoldDelivered = true;
       }
     }
     // Secondary: status dropdown explicitly says sold/delivered
-    if(!isSoldDelivered && /\bsold\b|\bdelivered\b/i.test(currentStatus)) {
+    // Guard with currentLeadIsActive — the selector may pick up Sales History table rows
+    if(!isSoldDelivered && !currentLeadIsActive && /\bsold\b|\bdelivered\b/i.test(currentStatus)) {
       isSoldDelivered = true;
     }
     // Secondary-B: Lead Info Status label says "Sold" — must be in Lead Info context
-    // Use tight match to avoid false positives from chat transcripts containing "sold"
-    if(!isSoldDelivered && /Status:\s*Sold\b/i.test(TEXT.substring(0, 1500))) {
-      // Extra guard: make sure this isn't contradicted by "Active" status nearby
+    // IMPORTANT: Also check currentStatus from the dropdown — if dropdown shows Active/Waiting,
+    // the current lead is not sold even if old Sales History rows show "Sold"
+    // currentLeadIsActive defined above before sold detection block
+    if(!isSoldDelivered && !currentLeadIsActive && /Status:\s*Sold\b/i.test(TEXT.substring(0, 1500))) {
       var soldStatusArea = TEXT.substring(0, 1500);
       var hasActiveLead = /Status:\s*Active/i.test(soldStatusArea);
       if(!hasActiveLead) isSoldDelivered = true;
     }
-    // Tertiary: Sale Info section shows Delivered badge + Deal number
-    if(!isSoldDelivered && hasDealNumber && /Sale Info[\s\S]{0,300}Delivered/i.test(TEXT.substring(0,3000))) {
+    // Tertiary: Sale Info section shows Delivered badge + Deal number — skip if current lead is active
+    if(!isSoldDelivered && !currentLeadIsActive && hasDealNumber && /Sale Info[\s\S]{0,300}Delivered/i.test(TEXT.substring(0,3000))) {
       var createdMatch = TEXT.match(/Created[:\s]+(\d{1,2}\/\d{1,2}\/\d{2,4})/i);
       if(createdMatch) {
         var createdMs2 = new Date(createdMatch[1]).getTime();
@@ -1659,6 +1697,7 @@ function buildSystemPrompt() {
     '- TRADE-IN: When a trade-in is present, mention it in ALL three formats including SMS.',
     '- SYSTEM DATA RULE: The conversation transcript may contain system-generated notes tagged as [NOTE] including lead received data, TradePending/KBB valuation reports, and automated responses. These contain market prices, dollar ranges, credit scores, and vehicle statistics. NEVER treat this system data as customer communication or use it to infer customer concerns. Only infer concerns from messages explicitly sent by the customer.',
     '- SCHEDULE ASSUMPTION RULE: NEVER assume a customer works shifts, has schedule constraints, or works unusual hours unless they explicitly said so in a customer message. Do NOT say "I know your schedule can vary with shift work" or similar unless the SHIFT WORKER flag is active in the context. Inferring schedule from job title, location, or industry is forbidden.',
+    '- SCHEDULE LANGUAGE RULE: If a customer mentioned schedule constraints, ask directly and specifically: "When works best for you this week?" or "What days or times work for you?" — NOT vague phrases like "since your schedule can vary" or "whenever works for you". Be direct.',
     '- URL / LINK RULE: NEVER construct, guess, or fabricate inventory URLs or website links. Do NOT build links like "communityhondabaytown.com/inventory/P4776" — you do not know the correct URL format and guessing will produce wrong links. If a customer asks for a link, respond: "I will send you the direct link right now" and leave the URL out of the generated message — the agent will paste the real VDP link manually.',
     '- ANSWER FIRST RULE: If the customer asked a direct question in their last message (price, availability, color, payment, trade value, financing), you MUST address or acknowledge it BEFORE asking for an appointment. Ignoring a customer question and jumping to a close kills trust. If you cannot answer it directly, say so and invite them in to get the answer: "Great question — the best way to get the exact number is to come in so we can run it together."',
     '- APPOINTMENT TIMES: Offer the two times ONCE and close. Never repeat them.',
