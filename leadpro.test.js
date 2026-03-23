@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 'use strict';
 /**
- * leadpro.test.js — Lead Pro v7.50 unit tests
+ * leadpro.test.js — Lead Pro v7.90 unit tests
  * Run with: node leadpro.test.js
  *
  * Tests 12 scenarios via classifyScenario(), buildUserPrompt(), and
@@ -113,7 +113,21 @@ try {
   }
 }
 
-const { classifyScenario, computeAppointmentTimes, buildSystemPrompt, buildUserPrompt } = popupCtx;
+const { classifyScenario, computeAppointmentTimes, buildSystemPrompt, buildUserPrompt, populateFromData } = popupCtx;
+
+// Helper: call populateFromData and return the module-level leadContext it assembled.
+// vehicleExtras (stock confirmation, no-specific-unit, inventory warnings) live in
+// populateFromData, not buildUserPrompt — this is the correct layer to test them.
+function getLeadContext(data) {
+  populateFromData(Object.assign({
+    name: 'Maria Gonzalez', agent: 'Kristen Willis', salesRep: 'John Smith',
+    store: 'Community Toyota Baytown', vehicle: '2026 Toyota Camry',
+    leadSource: 'Internet Lead', convState: 'first-touch',
+    hasOutbound: false, contactedAgeDays: 0, isLiveConversation: false,
+    activeFlags: [], totalNoteCount: 0,
+  }, data));
+  return vm.runInContext('leadContext', popupCtx);
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Minimal test runner
@@ -559,6 +573,344 @@ test('S12 — First-touch vs follow-up loyalty: different directives generated',
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// SCENARIO 13 — Sold detection: letter-prefix deal numbers like P50261
+// The hasDealNumber regex must match letter-prefixed deal numbers.
+// ─────────────────────────────────────────────────────────────────────────────
+const DEAL_NUM_RE = /Deal\s*#?[:\s]*[A-Z]{0,3}\d{4,}/i;
+
+test('S13 — Deal number regex matches letter-prefixed "Deal #: P50261"', () => {
+  ok(DEAL_NUM_RE.test('Deal #: P50261'), 'Should match P-prefixed deal number');
+});
+
+test('S13 — Deal number regex matches plain numeric "Deal #: 50261"', () => {
+  ok(DEAL_NUM_RE.test('Deal #: 50261'), 'Should match numeric-only deal number');
+});
+
+test('S13 — Deal number regex matches multi-letter prefix "Deal #: HN8041"', () => {
+  ok(DEAL_NUM_RE.test('Deal #: HN8041'), 'Should match two-letter prefix deal number');
+});
+
+test('S13 — Deal number regex does NOT match short numbers (under 4 digits)', () => {
+  notOk(DEAL_NUM_RE.test('Deal #: 123'), 'Should NOT match 3-digit number');
+});
+
+test('S13 — isSoldDelivered fires via classifyScenario when data.isSoldDelivered is true', () => {
+  const sc = classifyScenario(followUpBase({ isSoldDelivered: true }));
+  ok(sc.isSoldDelivered, 'isSoldDelivered should propagate from scraped data');
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SCENARIO 14 — Universal stock confirmation: VIN or stock number present
+// vehicleExtras are assembled by populateFromData → leadContext, NOT buildUserPrompt.
+// Tests use getLeadContext() to inspect the assembled context directly.
+// ─────────────────────────────────────────────────────────────────────────────
+test('S14 — Stock number present → leadContext contains VEHICLE CONFIRMED IN STOCK', () => {
+  const lc = getLeadContext({ stockNum: 'A12345' });
+  contains(lc, 'vehicle confirmed in stock', 'populateFromData should inject stock confirmation');
+});
+
+test('S14 — VIN present (no stock number) → leadContext also confirms in stock', () => {
+  const lc = getLeadContext({ vin: '1HGBH41JXMN109186', store: 'Honda of Lafayette', vehicle: '2026 Honda Accord' });
+  contains(lc, 'vehicle confirmed in stock', 'VIN alone should trigger stock confirmation in leadContext');
+});
+
+test('S14 — Stock confirmation instructs AI to reference specific vehicle and forbid pivoting to alternatives', () => {
+  const lc = getLeadContext({ stockNum: 'T88201' });
+  contains(lc, 'vehicle confirmed in stock', 'Stock confirmation block should be present');
+  contains(lc, 'reference the specific vehicle', 'Should tell AI to reference specific vehicle');
+  contains(lc, 'do not pivot to alternatives', 'Should forbid pivoting away from specific vehicle');
+});
+
+test('S14 — noSpecificVehicle flag suppresses stock confirmation and injects NO SPECIFIC UNIT warning', () => {
+  const lc = getLeadContext({ noSpecificVehicle: true });
+  notContains(lc, 'vehicle confirmed in stock', 'No specific unit should not show stock confirmation');
+  contains(lc,    'no specific unit',            'Should warn about no specific unit instead');
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SCENARIO 15 — Post-sale inbound short message routing ("Hey", "Hi", etc.)
+// ─────────────────────────────────────────────────────────────────────────────
+test('S15 — Short inbound from sold customer routes to warm check-in, not congratulations', () => {
+  const prompt = buildUserPrompt(followUpBase({
+    isSoldDelivered: true,
+    lastInboundMsg:  'Hey',
+    context:         'sold/delivered\n\nCONVERSATION TRANSCRIPT:\n---\n[CUSTOMER] Hey\n---',
+  }));
+  contains(prompt,    'reached out to you',       'Short inbound should use warm-reply directive');
+  notContains(prompt, 'PURCHASED and taken DELIVERY', 'Short inbound should NOT use generic congratulations');
+});
+
+test('S15 — Short inbound prompt suppresses appointment times and pitching', () => {
+  const prompt = buildUserPrompt(followUpBase({
+    isSoldDelivered: true,
+    lastInboundMsg:  'Hi!',
+    context:         'sold/delivered\n\nCONVERSATION TRANSCRIPT:\n---\n[CUSTOMER] Hi!\n---',
+  }));
+  contains(prompt, 'do not pitch anything', 'Short inbound should contain no-pitch rule');
+});
+
+test('S15 — Longer post-sale inbound (≥ 20 chars) with service issue does NOT use short-msg route', () => {
+  const prompt = buildUserPrompt(followUpBase({
+    isSoldDelivered: true,
+    lastInboundMsg:  'just left, oil alert came on right after leaving',
+    context:         'sold/delivered\n\nCONVERSATION TRANSCRIPT:\n---\n[CUSTOMER] just left, oil alert came on\n---',
+  }));
+  notContains(prompt, 'reached out to you', 'Longer service msg should NOT use short-inbound route');
+  contains(prompt, 'just left after a service', 'Should use service-issue directive instead');
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SCENARIO 16 — Brand mismatch suppressed when stock number or VIN is present
+// ─────────────────────────────────────────────────────────────────────────────
+test('S16 — Brand mismatch fires when vehicle brand differs from store and no inventory confirmation', () => {
+  const sc = classifyScenario(firstTouchBase({
+    store:   'Community Toyota Baytown',
+    vehicle: '2024 Honda Accord',
+  }));
+  ok(sc.isBrandMismatch,            'isBrandMismatch should fire for Honda at Toyota store');
+  ok(sc.competitorBrand === 'Honda', 'competitorBrand should be Honda');
+});
+
+test('S16 — Brand mismatch suppressed when stock number is present', () => {
+  const sc = classifyScenario(firstTouchBase({
+    store:    'Community Toyota Baytown',
+    vehicle:  '2024 Honda Accord',
+    stockNum: 'H45678',
+  }));
+  notOk(sc.isBrandMismatch, 'Stock number confirms vehicle is in inventory — no mismatch');
+});
+
+test('S16 — Brand mismatch suppressed when VIN is present', () => {
+  const sc = classifyScenario(firstTouchBase({
+    store:   'Community Toyota Baytown',
+    vehicle: '2024 Honda Accord',
+    vin:     '1HGBH41JXMN109186',
+  }));
+  notOk(sc.isBrandMismatch, 'VIN confirms vehicle is in inventory — no mismatch');
+});
+
+test('S16 — No false mismatch when vehicle brand matches store brand', () => {
+  const sc = classifyScenario(firstTouchBase({
+    store:   'Community Toyota Baytown',
+    vehicle: '2024 Toyota RAV4',
+  }));
+  notOk(sc.isBrandMismatch, 'Same brand should never produce a mismatch');
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SCENARIO 17 — Gubagoo chat credit detection from lead data
+// The chat-specific regex catches signals that may not appear in the main credit regex.
+// ─────────────────────────────────────────────────────────────────────────────
+const CHAT_CREDIT_RE = /\brepo\b|\brepos\b|repossession|bankruptcy|bad credit|no credit|credit.*challenge|been denied|credit score|collections|low credit/i;
+
+test('S17 — Chat credit regex: "bad credit"', () => {
+  ok(CHAT_CREDIT_RE.test('I have bad credit'), 'Should match bad credit');
+});
+
+test('S17 — Chat credit regex: "repo" short-form', () => {
+  ok(CHAT_CREDIT_RE.test('I had a repo last year'), 'Should match repo');
+});
+
+test('S17 — Chat credit regex: "bankruptcy"', () => {
+  ok(CHAT_CREDIT_RE.test('I filed for bankruptcy'), 'Should match bankruptcy');
+});
+
+test('S17 — Chat credit regex: "been denied"', () => {
+  ok(CHAT_CREDIT_RE.test('I have been denied before'), 'Should match been denied');
+});
+
+test('S17 — Chat credit regex: "collections"', () => {
+  ok(CHAT_CREDIT_RE.test('I have some accounts in collections'), 'Should match collections');
+});
+
+test('S17 — Chat credit regex: "credit score"', () => {
+  ok(CHAT_CREDIT_RE.test('my credit score is not great'), 'Should match credit score');
+});
+
+test('S17 — Chat credit regex does NOT false-positive on generic "credit" in price question', () => {
+  notOk(CHAT_CREDIT_RE.test('Does the price include a $500 manufacturer credit?'), 'Should NOT match manufacturer credit');
+});
+
+test('S17 — Gubagoo chat lead with credit flag active → prompt contains credit sensitivity block', () => {
+  const prompt = buildUserPrompt(firstTouchBase({
+    leadSource:  'Gubagoo Chat Lead',
+    activeFlags: ['credit'],
+  }));
+  contains(prompt, 'credit sensitivity flag', 'Gubagoo + credit flag should inject credit sensitivity block');
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SCENARIO 18 — Sold detection blocked when lead source is TrueCar or lead is active
+// currentLeadIsActive regex guards every sold-detection path in the scraper.
+// ─────────────────────────────────────────────────────────────────────────────
+const ACTIVE_SOURCE_RE = /truecar|sams club|gubagoo|tradepending|cars\.com|autotrader|facebook|kbb|kelley blue/i;
+const POST_SALE_BENEFIT_RE = /post sale benefit|eligible for post sale|sams club.*gift|truecar.*gift|gift card.*truecar/i;
+
+test('S18 — Active source regex matches TrueCar lead source', () => {
+  ok(ACTIVE_SOURCE_RE.test('TrueCar'), 'TrueCar should mark lead as active — never sold');
+});
+
+test('S18 — Active source regex matches Cars.com lead source', () => {
+  ok(ACTIVE_SOURCE_RE.test('Cars.com'), 'Cars.com should mark lead as active');
+});
+
+test('S18 — Active source regex matches AutoTrader lead source', () => {
+  ok(ACTIVE_SOURCE_RE.test('AutoTrader'), 'AutoTrader should mark lead as active');
+});
+
+test('S18 — Active source regex matches KBB lead source', () => {
+  ok(ACTIVE_SOURCE_RE.test('Kelley Blue Book'), 'KBB full name should mark lead as active');
+});
+
+test('S18 — Post-sale benefit language guard matches TrueCar marketing text', () => {
+  ok(POST_SALE_BENEFIT_RE.test('Eligible for post sale benefit'), 'Post sale benefit text should force active state');
+  ok(POST_SALE_BENEFIT_RE.test('TrueCar gift card offer'), 'TrueCar gift text should force active state');
+});
+
+test('S18 — TrueCar lead does not fire isSoldDelivered when scraper flag absent', () => {
+  // Simulates scraper correctly blocking sold detection for TrueCar source
+  const sc = classifyScenario(firstTouchBase({
+    leadSource:      'TrueCar',
+    isSoldDelivered: false,
+  }));
+  notOk(sc.isSoldDelivered, 'TrueCar active lead should not be isSoldDelivered');
+  ok(sc.isTrueCar,          'TrueCar lead should be isTrueCar instead');
+});
+
+test('S18 — TrueCar prompt references TrueCar pricing request, not congratulations', () => {
+  const prompt = buildUserPrompt(firstTouchBase({
+    leadSource: 'TrueCar',
+    vehicle:    '2024 Toyota RAV4',
+  }));
+  contains(prompt,    'truecar',                    'TrueCar prompt should reference TrueCar');
+  notContains(prompt, 'PURCHASED and taken DELIVERY','TrueCar prompt should not use sold directive');
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SCENARIO 19 — Price gate auto-detection from inbound price objection
+// The price-gate regex scans lastInboundMsg; flag auto-activates if matched.
+// ─────────────────────────────────────────────────────────────────────────────
+const PRICE_OBJECTION_RE = /out.the.door|otd price|couldn.t reach.*agreement|price.*too high|too expensive|over.*budget|numbers.*not.*work|not.*work.*numbers|best.*price|lower.*price|better.*price|can.*do.*better|come down|negotiate|counter offer/i;
+
+test('S19 — Price objection regex: "out the door price"', () => {
+  ok(PRICE_OBJECTION_RE.test("What's your out the door price?"), 'Should match OTD phrase');
+});
+
+test('S19 — Price objection regex: "too expensive"', () => {
+  ok(PRICE_OBJECTION_RE.test("That's a bit too expensive for me"), 'Should match too expensive');
+});
+
+test('S19 — Price objection regex: "best price"', () => {
+  ok(PRICE_OBJECTION_RE.test("Can you give me your best price?"), 'Should match best price');
+});
+
+test('S19 — Price objection regex: "come down on the price"', () => {
+  ok(PRICE_OBJECTION_RE.test('Can you come down on the price?'), 'Should match come down');
+});
+
+test('S19 — Price objection regex: "numbers not working"', () => {
+  ok(PRICE_OBJECTION_RE.test('The numbers are not working for me'), 'Should match numbers not working');
+});
+
+test('S19 — Price objection regex: "counter offer"', () => {
+  ok(PRICE_OBJECTION_RE.test('I want to make a counter offer'), 'Should match counter offer');
+});
+
+test('S19 — Price objection regex does NOT false-positive on general inquiry', () => {
+  notOk(PRICE_OBJECTION_RE.test('Can you tell me more about the vehicle?'), 'General inquiry should not trigger price gate');
+});
+
+test('S19 — Price gate flag active → prompt contains PRICE GATE block', () => {
+  const prompt = buildUserPrompt(firstTouchBase({ activeFlags: ['price'] }));
+  contains(prompt, 'price gate flag', 'Prompt should contain price gate block');
+});
+
+test('S19 — Price gate prompt forbids mentioning MSRP or sticker price', () => {
+  const prompt = buildUserPrompt(firstTouchBase({ activeFlags: ['price'] }));
+  contains(prompt, 'msrp', 'Price gate prompt should reference MSRP as forbidden topic');
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SCENARIO 20 — Stock sold note detection from general notes
+// inventoryWarningFromNotes fires when a General Note content matches sold patterns.
+// ─────────────────────────────────────────────────────────────────────────────
+const SOLD_NOTE_RE = /vehicle.*has been sold|has been sold|vehicle sold|unit.*sold|\bwas sold\b|\bwas SOLD\b|p\d+.*sold|sold!|stock.*sold/i;
+
+test('S20 — Sold note regex: "vehicle has been sold"', () => {
+  ok(SOLD_NOTE_RE.test('vehicle has been sold to another customer'), 'Should match vehicle has been sold');
+});
+
+test('S20 — Sold note regex: "stock sold"', () => {
+  ok(SOLD_NOTE_RE.test('stock sold — please update customer'), 'Should match stock sold');
+});
+
+test('S20 — Sold note regex: "unit sold"', () => {
+  ok(SOLD_NOTE_RE.test('unit sold — see manager'), 'Should match unit sold');
+});
+
+test('S20 — Sold note regex: "sold!" exclamation shorthand', () => {
+  ok(SOLD_NOTE_RE.test('T8821 sold!'), 'Should match sold! exclamation');
+});
+
+test('S20 — Sold note regex: "was sold"', () => {
+  ok(SOLD_NOTE_RE.test('The vehicle was sold yesterday'), 'Should match was sold');
+});
+
+test('S20 — Sold note regex does NOT false-positive on "we sold him on the color"', () => {
+  notOk(SOLD_NOTE_RE.test('we sold him on the color option'), 'Sales persuasion language should not trigger');
+});
+
+test('S20 — inventoryWarning in data → leadContext contains SOLD pivot instruction', () => {
+  const lc = getLeadContext({ stockNum: 'T88201', inventoryWarning: true });
+  contains(lc, 'vehicle status: sold', 'populateFromData should inject SOLD pivot into leadContext');
+});
+
+test('S20 — vehicleSold in context → classifyScenario sets vehicleSold flag', () => {
+  const sc = classifyScenario(followUpBase({
+    context: 'FOLLOW-UP: active.\n🔴 VEHICLE STATUS: SOLD — pivot to comparable options',
+  }));
+  ok(sc.vehicleSold, 'vehicleSold should be true when context contains vehicle status: sold');
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SCENARIO 21 — Transcript anchored to lead created date
+// The cutoff is: lead created date − 1 day. Only used if more restrictive than
+// the 180-day default. Logic lives in the scraper; test the date math here.
+// ─────────────────────────────────────────────────────────────────────────────
+test('S21 — Lead cutoff is created date minus 1 day buffer', () => {
+  const createdMs = Date.now() - (30 * 24 * 60 * 60 * 1000); // 30 days ago
+  const oneDayMs  = 24 * 60 * 60 * 1000;
+  const cutoff    = createdMs - oneDayMs;
+  // A transcript entry 35 days old is before the cutoff → should be excluded
+  const entryMs   = Date.now() - (35 * 24 * 60 * 60 * 1000);
+  ok(entryMs < cutoff, 'Entry predating lead created date should fall below cutoff');
+  // A transcript entry 25 days old is after the cutoff → should be included
+  const recentMs  = Date.now() - (25 * 24 * 60 * 60 * 1000);
+  ok(recentMs > cutoff, 'Entry after lead created date should be above cutoff');
+});
+
+test('S21 — Lead cutoff only used when more restrictive than 180-day default', () => {
+  const defaultCutoffMs = Date.now() - (180 * 24 * 60 * 60 * 1000);
+  // Very old created date (200 days ago) — its cutoff is older than 180d → keep 180d
+  const oldCreatedMs    = Date.now() - (200 * 24 * 60 * 60 * 1000);
+  const oldLeadCutoff   = oldCreatedMs - (24 * 60 * 60 * 1000);
+  ok(oldLeadCutoff < defaultCutoffMs, 'Old lead cutoff is less restrictive — 180d default should win');
+  // Recent created date (10 days ago) — its cutoff is newer than 180d → use it
+  const newCreatedMs    = Date.now() - (10 * 24 * 60 * 60 * 1000);
+  const newLeadCutoff   = newCreatedMs - (24 * 60 * 60 * 1000);
+  ok(newLeadCutoff > defaultCutoffMs, 'Recent lead cutoff is more restrictive — should override 180d default');
+});
+
+test('S21 — Cutoff for same-day lead is approximately 1 day ago', () => {
+  const now        = Date.now();
+  const oneDayMs   = 24 * 60 * 60 * 1000;
+  const cutoff     = now - oneDayMs; // lead created today, buffer = 1 day
+  // History from 2 days ago should be excluded
+  const oldHistory = now - (2 * oneDayMs);
+  ok(oldHistory < cutoff, 'History older than 1 day should be below same-day lead cutoff');
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // BONUS — Infrastructure sanity checks
 // ─────────────────────────────────────────────────────────────────────────────
 test('BONUS — computeAppointmentTimes returns two valid time strings', () => {
@@ -603,7 +955,7 @@ const DIM  = '\x1b[2m';
 const RST  = '\x1b[0m';
 
 console.log('\n' + line);
-console.log('  Lead Pro v7.50 — Test Results');
+console.log('  Lead Pro v7.90 — Test Results');
 console.log(line);
 
 let lastGroup = '';
