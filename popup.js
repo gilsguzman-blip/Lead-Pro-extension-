@@ -220,9 +220,9 @@ function populateFromData(d) {
   if (noCustomerPhone) vehicleExtras.push('📵 NO CUSTOMER PHONE NUMBER — SMS and voicemail are not viable. Email is the only channel. Ask for a phone number to connect directly.');
   if (d.customerSaidNotToday) vehicleExtras.push('🚫 NOT TODAY: Customer explicitly said they cannot come in today. Do NOT offer same-day appointment times. Instead ask what day works better for them.');
   if (d.customerScheduleConstraint) {
-    var isShiftWorkerLead = d.customerScheduleConstraint.indexOf('SHIFT_WORKER:') === 0;
+    var isShiftWorkerLead = false; // Shift worker auto-detection removed — too many false positives in Baytown/Houston area
     if (isShiftWorkerLead) {
-      vehicleExtras.push('🏭 SHIFT WORKER / REFINERY SCHEDULE: Customer works shift or hitch schedule (refinery, plant, offshore, rotation). Context: "' + d.customerScheduleConstraint.replace('SHIFT_WORKER: ','') + '"');
+      vehicleExtras.push('🏭 SHIFT WORKER / REFINERY SCHEDULE: Customer works shift or hitch schedule. Context: "' + d.customerScheduleConstraint + '"');
       vehicleExtras.push('SHIFT WORKER RULES:');
       vehicleExtras.push('- Do NOT offer specific appointment times — shift workers often cannot commit until they know their rotation.');
       vehicleExtras.push('- Instead ASK about their schedule: "What does your schedule look like this week?" or "When are you off next?"');
@@ -831,16 +831,20 @@ function tryExecuteScript(tab, statusEl, dot) {
       transcript.push('[' + date + '] [' + who + '] ' + title + '\n  ' + sanitize(content||'(no content)'));
     });
     const history = transcript.join('\n');
-    // For AI Buying Signal leads: filter transcript to recent 180 days only
-    // Old marketing blasts and ancient conversations should not influence current messaging
+    // Apply transcript cutoff to ALL leads — filter out notes predating the current lead
+    // This prevents old "not interested" messages from bleeding into fresh inquiries
     var isAIBuyingSignalSource = /ai buying signal/i.test(leadSource||'');
-    var recentHistory = history;
+    var recentHistory = transcript.filter(function(line){
+      var dateMatch = line.match(/^\[(\d{1,2}\/\d{1,2}\/\d{2,4})/);
+      if(dateMatch) {
+        var lineMs = new Date(dateMatch[1]).getTime();
+        if(lineMs > 0 && lineMs < transcriptCutoffMs) return false;
+      }
+      return true;
+    }).join('\n');
     if(isAIBuyingSignalSource) {
-      // For AI buying signal leads: exclude outbound marketing blasts entirely (they poison the AI context)
-      // Also exclude notes older than 180 days
-      // Only keep: genuine inbound customer replies, agent personal outreach, and recent notes
+      // For AI buying signal leads: also exclude outbound marketing blasts
       recentHistory = transcript.filter(function(line){
-        // Date filter — exclude old notes
         var dateMatch = line.match(/^\[(\d{1,2}\/\d{1,2}\/\d{2,4})/);
         if(dateMatch) {
           var lineMs = new Date(dateMatch[1]).getTime();
@@ -883,9 +887,19 @@ function tryExecuteScript(tab, statusEl, dot) {
     const isContacted = /yes/i.test(contactedRaw) && (contactedAgeDays === 0 || contactedAgeDays < CONTACTED_STALE_DAYS);
 
     // Exit/pause - scan recent transcript + page text
-    const recentTranscript = transcript.slice(0,5).join(' ').toLowerCase();
     // Exit/pause - scan INBOUND customer messages only (not agent outbound which has compliance footers like "Reply STOP to cancel")
-    const recentInbound = transcript.filter(function(t){ return t.indexOf('[CUSTOMER]') !== -1; }).slice(0,5).join(' ').toLowerCase();
+    // Use cutoff-filtered transcript for exit/pause signal scanning
+    // This prevents old "not interested" messages from 2024 poisoning fresh 2026 leads
+    var filteredTranscript = transcript.filter(function(line){
+      var dateMatch = line.match(/^\[(\d{1,2}\/\d{1,2}\/\d{2,4})/);
+      if(dateMatch) {
+        var lineMs = new Date(dateMatch[1]).getTime();
+        if(lineMs > 0 && lineMs < transcriptCutoffMs) return false;
+      }
+      return true;
+    });
+    const recentInbound = filteredTranscript.filter(function(t){ return t.indexOf('[CUSTOMER]') !== -1; }).slice(0,5).join(' ').toLowerCase();
+    const recentTranscript = filteredTranscript.slice(0,5).join(' ').toLowerCase();
     const fullScanText = (recentInbound + ' ' + recentTranscript).toLowerCase();
     const hasExitSignal  = /already bought|bought.*something|bought.*elsewhere|purchased.*already|going.*elsewhere|not interested|remove.*from.*list|stop.*contacting|decided to (buy|go with|purchase)|we (bought|purchased|went with|decided on)|went with (another|a different|ford|chevy|toyota|kia|nissan|hyundai|chevrolet|gmc|ram|jeep|dodge|subaru|mazda|volvo|bmw|mercedes|lexus|acura|infiniti|cadillac|lincoln|buick)|bought (it|one|a car|a vehicle|from|at)|found (one|a car|what we)|no longer (interested|looking|in the market)|took (a|the) (deal|offer) (at|from|with)/i.test(fullScanText);
     const hasPauseSignal = !hasExitSignal && /taking a break|no luck|need time|not ready|still looking|need to think|not able to upgrade|not looking to upgrade|too early|just got|only have \d+k|low miles/i.test(fullScanText);
@@ -950,12 +964,10 @@ function tryExecuteScript(tab, statusEl, dot) {
           customerScheduleConstraint = 'OUT_OF_TOWN: Customer is out of town and returns ' + returnDay + '. Do NOT offer any times before their return. Schedule around: ' + returnDay;
         }
         // Recurring schedule constraints — work mornings, nights, weekdays, shift work, etc.
-        var isShiftWorker = /refinery|plant|shift|hitch|offshore|on.*hitch|off.*hitch|7.*on|7.*off|14.*on|14.*off|rotation|turnaround|12.*hour|night shift|day shift|swing shift|work nights|work days|on call|on the boat|back.*offshore|back.*hitch|come off|days off|off days|my days off|when i.m off/i.test(ntText);
         var hasScheduleBlock = /i work (in the |the )?(morning|afternoon|evening|night|weekend|weekday)|work morning|morning.*work|work.*morning|work (monday|tuesday|wednesday|thursday|friday|saturday|sunday)|busy (morning|afternoon|evening)|tied up.*morning|morning.*tied up/i.test(ntText);
-        if(isShiftWorker || hasScheduleBlock){
-          var constraintMatch = ntText.match(/.{0,50}(refinery|plant|shift|hitch|offshore|rotation|work|busy|tied up|days off|off days|come off).{0,60}/i);
+        if(hasScheduleBlock){
+          var constraintMatch = ntText.match(/.{0,50}(work|busy|tied up).{0,60}/i);
           customerScheduleConstraint = constraintMatch ? constraintMatch[0].trim() : ntText.substring(0,100);
-          if(isShiftWorker) customerScheduleConstraint = 'SHIFT_WORKER: ' + customerScheduleConstraint;
         }
         break;
       }
@@ -1697,7 +1709,9 @@ function buildSystemPrompt() {
     '- TRADE-IN: When a trade-in is present, mention it in ALL three formats including SMS.',
     '- SYSTEM DATA RULE: The conversation transcript may contain system-generated notes tagged as [NOTE] including lead received data, TradePending/KBB valuation reports, and automated responses. These contain market prices, dollar ranges, credit scores, and vehicle statistics. NEVER treat this system data as customer communication or use it to infer customer concerns. Only infer concerns from messages explicitly sent by the customer.',
     '- SCHEDULE ASSUMPTION RULE: NEVER assume a customer works shifts, has schedule constraints, or works unusual hours unless they explicitly said so in a customer message. Do NOT say "I know your schedule can vary with shift work" or similar unless the SHIFT WORKER flag is active in the context. Inferring schedule from job title, location, or industry is forbidden.',
+
     '- SCHEDULE LANGUAGE RULE: If a customer mentioned schedule constraints, ask directly and specifically: "When works best for you this week?" or "What days or times work for you?" — NOT vague phrases like "since your schedule can vary" or "whenever works for you". Be direct.',
+    '- CUSTOMER ECHO RULE: NEVER parrot back the customer\'s own words as a compliment or validation. Do NOT say "Comparing prices is the smartest way to shop" if the customer said "just comparing prices." Do NOT say "That\'s a great question" or mirror their phrasing back at them. Respond naturally without echoing.',
     '- URL / LINK RULE: NEVER construct, guess, or fabricate inventory URLs or website links. Do NOT build links like "communityhondabaytown.com/inventory/P4776" — you do not know the correct URL format and guessing will produce wrong links. If a customer asks for a link, respond: "I will send you the direct link right now" and leave the URL out of the generated message — the agent will paste the real VDP link manually.',
     '- ANSWER FIRST RULE: If the customer asked a direct question in their last message (price, availability, color, payment, trade value, financing), you MUST address or acknowledge it BEFORE asking for an appointment. Ignoring a customer question and jumping to a close kills trust. If you cannot answer it directly, say so and invite them in to get the answer: "Great question — the best way to get the exact number is to come in so we can run it together."',
     '- APPOINTMENT TIMES: Offer the two times ONCE and close. Never repeat them.',
