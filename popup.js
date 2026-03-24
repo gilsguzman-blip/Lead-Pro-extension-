@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────
-// Lead Pro — popup.js  v7.94
+// Lead Pro — popup.js  v8.00
 // Calls either a proxy server (recommended for team use) OR
 // the Gemini API directly. Both configured in config.js.
 // ─────────────────────────────────────────────────────────────────
@@ -177,6 +177,9 @@ function populateFromData(d) {
   if (d.stockNum)         vehicleExtras.push('Stock #: ' + d.stockNum);
   if (d.vin)              vehicleExtras.push('VIN: ' + d.vin);
   if (d.noSpecificVehicle && !stageActive) vehicleExtras.push('⚠ NO SPECIFIC UNIT: Customer has not selected a specific vehicle — no stock number or VIN. Qualifying questions required.');
+  if (d.noVehicleAtAll && !stageActive) {
+    vehicleExtras.push('⚠ NO VEHICLE ON LEAD: Customer has not indicated any specific vehicle interest — no model, no stock number, no VIN. Do NOT reference or imply a vehicle is ready. REQUIRED: Ask a qualifying question to find out what they are looking for. Example: "What type of vehicle were you thinking about — SUV, sedan, or something else?" or "Were you looking at anything specific on our site?"');
+  }
   // Universal stock confirmation — applies to ALL lead sources
   if (!d.noSpecificVehicle && (d.stockNum || d.vin) && !d.inventoryWarning) {
     vehicleExtras.push('✅ VEHICLE CONFIRMED IN STOCK: Stock #' + (d.stockNum || '') + (d.vin ? ' / VIN: ' + d.vin : '') + '.');
@@ -237,6 +240,16 @@ function populateFromData(d) {
         vehicleExtras.push('- Do NOT offer today or tomorrow as appointment options.');
         vehicleExtras.push('- Schedule AFTER their return date. Reference the trip positively: "Safe travels" or "Hope the trip goes well."');
         vehicleExtras.push('- Close by locking in a time for when they are back: "When you are back, would [day] work to come in?"');
+      } else if(d.customerScheduleConstraint.indexOf('CUSTOMER ARRIVAL TIME:') === 0) {
+        var arrHourMatch = d.customerScheduleConstraint.match(/around\s+(\d{1,2})/i);
+        var arrHour = arrHourMatch ? parseInt(arrHourMatch[1]) : null;
+        if(arrHour && arrHour < 8) arrHour += 12; // assume PM for small numbers
+        var arrivalPlusDrive = arrHour ? (arrHour + ':30 PM') : 'after 6:30 PM';
+        vehicleExtras.push('⏰ CUSTOMER ARRIVAL TIME CONSTRAINT: ' + d.customerScheduleConstraint);
+        vehicleExtras.push('- The computed appointment times above are WRONG for this customer. IGNORE them.');
+        vehicleExtras.push('- Customer gets off at ' + (arrHour || 6) + ' PM and needs ~30 min to drive. They will arrive around ' + arrivalPlusDrive + '.');
+        vehicleExtras.push('- REQUIRED: Offer two times AFTER ' + arrivalPlusDrive + ' that are within store hours (store closes 8 PM). Example: 6:45 PM and 7:15 PM.');
+        vehicleExtras.push('- Do NOT offer morning or early afternoon times. Evening only.');
       } else {
         vehicleExtras.push('🚫 SCHEDULE CONSTRAINT: Customer mentioned a recurring availability block: "' + d.customerScheduleConstraint + '". Do NOT offer appointment times that conflict with this. If they work mornings, offer afternoon/evening only. If uncertain, ASK — do not guess.');
       }
@@ -312,7 +325,7 @@ function populateFromData(d) {
   }
   // Auto-detect price gate from customer inbound price objection
   if (!activeFlags.has("price") && d.lastInboundMsg && d.lastInboundMsg.length > 10) {
-    var priceObjection = /out.the.door|otd price|couldn.t reach.*agreement|price.*too high|too expensive|over.*budget|numbers.*not.*work|not.*work.*numbers|best.*price|lower.*price|better.*price|can.*do.*better|come down|negotiate|counter offer/i.test(d.lastInboundMsg);
+    var priceObjection = /out.the.door|otd price|couldn.t reach.*agreement|price.*too high|too expensive|over.*budget|numbers.*not.*work|not.*work.*numbers|best.*price|lower.*price|better.*price|can.*do.*better|come down|negotiate|counter offer|upside down|negative equity|owe more than.*worth|underwater.*loan/i.test(d.lastInboundMsg);
     if(priceObjection) toggleFlag("price", true);
   }
 
@@ -693,6 +706,7 @@ function tryExecuteScript(tab, statusEl, dot) {
     const inventoryWarning = /no longer in your active inventory/i.test(TEXT);
     // No stock number AND no VIN = customer interested in model/trim but no specific unit selected
     const noSpecificVehicle = !!(vehicle && !stockNum && !vin && !inventoryWarning);
+    const noVehicleAtAll = !vehicle && !stockNum && !vin; // No vehicle info at all — credit app only or browse lead
     // In-transit detection: VIN present but NO stock number, vehicle condition is New, Toyota store or Toyota vehicle
     const isToyotaStore = /toyota/i.test(store);
     const isToyotaVehicle = /toyota/i.test(vehicle || vehicleRaw || '');
@@ -901,7 +915,15 @@ function tryExecuteScript(tab, statusEl, dot) {
     const recentInbound = filteredTranscript.filter(function(t){ return t.indexOf('[CUSTOMER]') !== -1; }).slice(0,5).join(' ').toLowerCase();
     const recentTranscript = filteredTranscript.slice(0,5).join(' ').toLowerCase();
     const fullScanText = (recentInbound + ' ' + recentTranscript).toLowerCase();
-    const hasExitSignal  = /already bought|bought.*something|bought.*elsewhere|purchased.*already|going.*elsewhere|not interested|remove.*from.*list|stop.*contacting|decided to (buy|go with|purchase)|we (bought|purchased|went with|decided on)|went with (another|a different|ford|chevy|toyota|kia|nissan|hyundai|chevrolet|gmc|ram|jeep|dodge|subaru|mazda|volvo|bmw|mercedes|lexus|acura|infiniti|cadillac|lincoln|buick)|bought (it|one|a car|a vehicle|from|at)|found (one|a car|what we)|no longer (interested|looking|in the market)|took (a|the) (deal|offer) (at|from|with)/i.test(fullScanText);
+    // Exit signal detection — customer bought elsewhere or is no longer interested
+    // GUARDS: exclude trade-in ownership language ("we bought it brand new", "bought it new")
+    // and conditional trade language ("I'll keep it if the offer is too low")
+    var exitRaw = /already bought|bought.*something|bought.*elsewhere|purchased.*already|going.*elsewhere|not interested|not ever interested|never going back|will not be back|will never go back|won.t be back|never coming back|remove.*from.*list|stop.*contacting|decided to (buy|go with|purchase)|went with (another|a different|ford|chevy|toyota|kia|nissan|hyundai|chevrolet|gmc|ram|jeep|dodge|subaru|mazda|volvo|bmw|mercedes|lexus|acura|infiniti|cadillac|lincoln|buick)|found (one|a car|what we)|no longer (interested|looking|in the market)|took (a|the) (deal|offer) (at|from|with)|not satisfied.*process|bad experience|sharing.*bad.*experience|terrible.*experience|horrible.*experience/i.test(fullScanText);
+    // "we bought" / "bought it" — only exit if followed by purchase context, not ownership history
+    var boughtElsewhere = /we (bought|purchased|went with|decided on).{0,30}(another|elsewhere|different|other dealer|from them|from there)/i.test(fullScanText)
+      || /bought (one|a car|a vehicle) (from|at|with)/i.test(fullScanText);
+    var keepingTrade = /keep it if|keep my (car|truck|suv|altima|camry|vehicle)|hold onto it|just keep (it|my)/i.test(fullScanText);
+    const hasExitSignal = (exitRaw || boughtElsewhere) && !keepingTrade;
     const hasPauseSignal = !hasExitSignal && /taking a break|no luck|need time|not ready|still looking|need to think|not able to upgrade|not looking to upgrade|too early|just got|only have \d+k|low miles/i.test(fullScanText);
 
     // Detect live/hot conversation - inbound reply within last few hours = customer is actively engaged
@@ -953,8 +975,13 @@ function tryExecuteScript(tab, statusEl, dot) {
         if(ntIsSystem) continue; // skip this note, check next one
         var ntText = ntRawText.toLowerCase();
         // Explicit same-day block
-        if(/not today|can.t today|busy today|can.t make it today|no today|not available today|working today|at work today/i.test(ntText)){
+        if(/not today|can.t today|busy today|can.t make it today|no today|not available today|working today|at work today|won.t be able.*today|not.*able.*come.*today|not.*able.*out.*today|can.t come.*today|don.t think.*today|unable.*today|not going to make it today|won.t make it today|can.t.*today|not.*coming.*today|won.t be.*today|don.t think i.ll be able/i.test(ntText)){
           customerSaidNotToday = true;
+        }
+        // Customer states arrival time — e.g. "I get off at 6", "done at 5:30", "arrive around 7"
+        var arrivalMatch = ntText.match(/(?:get off|off work|done|finish|out|arrive|be there|come by|stop by|swing by)(?:\s+(?:at|by|around|after))?\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)/i);
+        if(arrivalMatch && !customerScheduleConstraint) {
+          customerScheduleConstraint = 'CUSTOMER ARRIVAL TIME: Customer said they arrive/get off around ' + arrivalMatch[1] + '. Offer appointment times AFTER this time — not before. Example: if they arrive at 6:30 PM, offer 6:45 PM and 7:15 PM or similar evening slots within store hours.';
         }
         // Out of town / travel / away — customer is unavailable until a future date
         var outOfTownMatch = ntText.match(/out of town until ([^.\n,]{3,25})|back (in town|home|around) (on |by )?([^.\n,]{3,20})|away until ([^.\n,]{3,20})|traveling until ([^.\n,]{3,20})|won.t be (back|available|around) until ([^.\n,]{3,20})/i);
@@ -1128,6 +1155,9 @@ function tryExecuteScript(tab, statusEl, dot) {
     // Last inbound/outbound for fallback context
     let lastOutboundMsg = '';
     for(var ni=0;ni<noteEls.length;ni++){
+      var niDateText = ((noteEls[ni].querySelector('.notes-and-hsitory-item-date')||{}).innerText||'').trim();
+      var niDateMs = niDateText ? new Date(niDateText).getTime() : 0;
+      if(niDateMs > 0 && niDateMs < transcriptCutoffMs) continue;
       if((noteEls[ni].getAttribute('data-direction')||'').toLowerCase()==='outbound'){
         lastOutboundMsg=((noteEls[ni].querySelector('.notes-and-history-item-content')||{}).innerText||'').trim().substring(0,300);
         break;
@@ -1141,6 +1171,10 @@ function tryExecuteScript(tab, statusEl, dot) {
       var iiTitle = ((noteEls[ii].querySelector('.legacy-notes-and-history-title')||{}).innerText||'').toLowerCase();
       // Skip system-generated inbound notes — lead received, auto-responses, TradePending data dumps
       var isSystemInbound = /lead received|email auto response|auto response|system/i.test(iiTitle);
+      // Skip notes older than transcript cutoff — prevents ancient customer messages from bleeding in
+      var iiDateText = ((noteEls[ii].querySelector('.notes-and-hsitory-item-date')||{}).innerText||'').trim();
+      var iiDateMs = iiDateText ? new Date(iiDateText).getTime() : 0;
+      if(iiDateMs > 0 && iiDateMs < transcriptCutoffMs) continue;
       if(iiDir === 'inbound' && !isSystemInbound){
         var iiContent = ((noteEls[ii].querySelector('.notes-and-history-item-content')||{}).innerText||'').trim();
         // Skip TradePending/KBB data dumps even if tagged as inbound
@@ -1152,6 +1186,22 @@ function tryExecuteScript(tab, statusEl, dot) {
       }
     }
     if(!lastInboundMsg){ var im=TEXT.match(/(?:Text Message Reply Received|Inbound Text|Customer replied)[:\s]*([^\n]{10,200})/i); if(im) lastInboundMsg=im[1].trim(); }
+
+    // -- Gubagoo VR deal status scraping ----------------------------------
+    // Parse lead received note to find what customer actually completed vs skipped
+    var vrCreditApp = false, vrPaymentSelected = false, vrTradeIn = false;
+    var vrCompleted = false, vrDroppedOff = false;
+    noteEls.forEach(function(n) {
+      var t = ((n.querySelector('.legacy-notes-and-history-title')||{}).innerText||'').toLowerCase();
+      var c = ((n.querySelector('.notes-and-history-item-content')||{}).innerText||'');
+      if (/lead received/i.test(t) && /gubagoo|virtual retail/i.test(c)) {
+        vrCreditApp = /Credit App[sS]{0,5}(Started|Submitted|Complete)/i.test(c) && !/Credit App[sS]{0,5}Not Started/i.test(c);
+        vrPaymentSelected = /Payment[:s]*$[d,]+/i.test(c) && !/No Payment selected/i.test(c);
+        vrTradeIn = /Trade-In Vehicle[:s]*[A-Z0-9]/i.test(c);
+        vrCompleted = /Customer completed VR deal/i.test(c);
+        vrDroppedOff = /Dropped off on page/i.test(c);
+      }
+    });
 
     // -- Showroom visit detection -----------------------------------
     // Only count RECENT showroom visits (within ~7 days) - old visits shouldn't override current appointment
@@ -1415,7 +1465,7 @@ function tryExecuteScript(tab, statusEl, dot) {
       leadSource,leadStatus: currentStatus || leadStatus,hasTrade,tradeDescription,buyingSignals,
       history, totalNoteCount, hasOutbound, isContacted, contactedAgeDays, lastOutboundMsg, lastInboundMsg,
       hasPauseSignal, hasExitSignal, convState, conversationBrief, customerSaidNotToday, customerScheduleConstraint, isLiveConversation, isRecentOutbound, recentOutboundContent,
-      isInTransit, hasApptSet, apptDetails, isSoldDelivered, hasMissedAppt, missedApptTiming: missedApptTiming2,
+      isInTransit, hasApptSet, apptDetails, isSoldDelivered, hasMissedAppt, missedApptTiming: missedApptTiming2, vrCreditApp, vrPaymentSelected, vrTradeIn, vrCompleted, vrDroppedOff, noVehicleAtAll,
       isShowroomFollowUp, showroomDetails, showroomVisitToday,
       pastVisitNotes,
       hasConfirmedVisit,
@@ -1711,9 +1761,12 @@ function buildSystemPrompt() {
     '- SCHEDULE ASSUMPTION RULE: NEVER assume a customer works shifts, has schedule constraints, or works unusual hours unless they explicitly said so in a customer message. Do NOT say "I know your schedule can vary with shift work" or similar unless the SHIFT WORKER flag is active in the context. Inferring schedule from job title, location, or industry is forbidden.',
 
     '- SCHEDULE LANGUAGE RULE: If a customer mentioned schedule constraints, ask directly and specifically: "When works best for you this week?" or "What days or times work for you?" — NOT vague phrases like "since your schedule can vary" or "whenever works for you". Be direct.',
+    '- TRADE-IN CONDITIONAL LANGUAGE: Phrases like "I\'ll just keep it if the offer is too low", "I\'ll keep my car if the price isn\'t right", or "I might just hold onto it" are NOT exit signals. They are negotiating leverage — the customer is still engaged and wants a good trade offer. NEVER generate a closing/goodbye message for trade-in conditional language. Respond by acknowledging the trade concern and moving toward locking in a real number.',
     '- CUSTOMER ECHO RULE: NEVER parrot back the customer\'s own words as a compliment or validation. Do NOT say "Comparing prices is the smartest way to shop" if the customer said "just comparing prices." Do NOT say "That\'s a great question" or mirror their phrasing back at them. Respond naturally without echoing.',
     '- URL / LINK RULE: NEVER construct, guess, or fabricate inventory URLs or website links. Do NOT build links like "communityhondabaytown.com/inventory/P4776" — you do not know the correct URL format and guessing will produce wrong links. If a customer asks for a link, respond: "I will send you the direct link right now" and leave the URL out of the generated message — the agent will paste the real VDP link manually.',
-    '- ANSWER FIRST RULE: If the customer asked a direct question in their last message (price, availability, color, payment, trade value, financing), you MUST address or acknowledge it BEFORE asking for an appointment. Ignoring a customer question and jumping to a close kills trust. If you cannot answer it directly, say so and invite them in to get the answer: "Great question — the best way to get the exact number is to come in so we can run it together."',
+    '- ANSWER FIRST RULE: If the customer asked a direct question in their last message (price, availability, color, payment, trade value, financing, features, specs, towing, MPG, packages), you MUST address it BEFORE asking for an appointment. Ignoring a customer question kills trust.',
+    '- ANSWERING QUESTIONS — THREE PATHS: (1) If you know the answer confidently, give it directly and briefly. (2) If it is a pricing/payment question, give a range or starting point and position the visit as where they get the exact number. (3) If it is a spec/feature question you are not certain about (towing capacity, exact MPG, specific option), say: "I want to make sure I give you the right answer on that — let me confirm and get back to you" OR invite them in: "The best way to go over all the details is in person so nothing gets lost in translation." NEVER guess or fabricate specs.',
+    '- SPEC ACCURACY RULE: Do NOT invent or guess specific numbers for towing capacity, payload, MPG, horsepower, or technical specs. If unsure, say you will confirm rather than risk giving wrong information.',
     '- APPOINTMENT TIMES: Offer the two times ONCE and close. Never repeat them.',
     '- APPOINTMENT LANGUAGE: Always frame as in-store — "come in," "stop by," "visit us." Never "discuss" or "talk."',
     '- EMAIL TONE: Warm, conversational, never corporate. Never open with "I hope this email finds you well." Start with energy and forward motion.',
@@ -1817,20 +1870,35 @@ function buildUserPrompt(data) {
     ].join('\n');
 
   } else if (sc.isClickAndGo) {
-    scenarioDirective = 'TASK: Customer took an online action through Click & Go (started a deal, submitted a credit application, or completed a finance/trade app). The Click & Go acknowledgment is REQUIRED in the opening of every format. Even if there is prior conversation history with this customer, the new Click & Go submission is the lead — address it first.';
+    // Build opening based on what customer actually completed in the VR tool
+    // ACCURACY: Only reference what the notes confirm — never claim a credit app was submitted if notes say "Not Started"
+    var vrOpening;
+    if (data.vrCompleted) vrOpening = 'I saw you completed your deal online through Click & Go — you have done all the heavy lifting!';
+    else if (data.vrCreditApp) vrOpening = 'I saw your credit application come through via Click & Go.';
+    else if (data.vrPaymentSelected && data.vrTradeIn) vrOpening = 'I saw you started your deal online through Click & Go — including your payment preferences and trade-in.';
+    else if (data.vrPaymentSelected) vrOpening = 'I saw you started your deal online and selected your payment preferences through Click & Go.';
+    else if (data.vrTradeIn) vrOpening = 'I saw you started your deal online through Click & Go — including your trade-in details.';
+    else vrOpening = 'I saw you started your deal online through Click & Go.';
+
+    var vrProgress;
+    if (data.vrCompleted) vrProgress = 'You have done all the heavy lifting — we just need to finalize the details in person.';
+    else if (data.vrCreditApp) vrProgress = 'Having that credit application started puts us in a great position to move quickly.';
+    else if (data.vrTradeIn) vrProgress = 'Having your trade-in details in already saves time — I can have a solid number ready when you arrive.';
+    else if (data.noVehicleAtAll) vrProgress = 'You have already taken the first step — let me help you find the right vehicle to go along with it.';
+    else vrProgress = 'You have already done the hard part — the vehicle is here and ready for you to see.';
+
+    scenarioDirective = 'TASK: Customer took an online action through Click & Go. Acknowledge EXACTLY what they completed — never claim they did something the notes say they did not do.';
     scenarioRules = [
-      '- REQUIRED OPENING for all formats: Acknowledge the Click & Go action FIRST before anything else.',
-      '- If a credit application is mentioned in the notes: "I saw your credit application come through via Click & Go."',
-      '- If a trade-in value is mentioned: "I saw you started your deal online through Click & Go — including your trade-in."',
-      '- Default: "I saw you started your deal online through Click & Go."',
-      '- After the opening: "You\'ve already done the hard part." Then reference the vehicle, trade, or financing details.',
-      '- If there is prior conversation history (the customer has engaged before), briefly acknowledge the relationship: "Great to hear from you again" — but still lead with the Click & Go action.',
+      '- REQUIRED OPENING: ' + vrOpening,
+      '- PROGRESS ACKNOWLEDGMENT: ' + vrProgress,
+      '- ACCURACY RULE: ONLY reference what the customer actually completed in the VR tool. Credit App: Not Started = do NOT mention a credit app. No Payment selected = do NOT reference payment selection. Never fabricate completion.',
+      '- If there is prior conversation history, briefly acknowledge: "Great to hear from you again" — but still lead with the Click & Go action.',
       '- Frame the visit as finalizing what they started — not starting over.',
       '- Never say Gubagoo, virtual retailing, or digital retailing platform.',
       '- Duration and two-time close.',
     ].join('\n');
 
-  } else if (sc.isTrueCar) {
+    } else if (sc.isTrueCar) {
     scenarioDirective = 'TASK: TrueCar affinity/partner lead. Customer submitted a pricing request through TrueCar. They expect a real price response — not a redirect.';
     scenarioRules = [
       '- Acknowledge the TrueCar request directly: "I saw your TrueCar request on the [vehicle]."',
@@ -1871,19 +1939,33 @@ function buildUserPrompt(data) {
   } else if (sc.isApptConfirmation) {
     // Check if there's also an inventory warning — vehicle may have sold since appointment was made
     const apptWithSoldVehicle = data.context && /vehicle status: sold/i.test(data.context);
-    scenarioDirective = 'TASK: Write an appointment confirmation/reminder. The appointment is already set.';
+    scenarioDirective = 'TASK: Appointment is already confirmed. Write a warm confirmation message — NOT a new close or re-pitch.';
+    var apptDetailsStr = data.apptDetails || '';
     scenarioRules = [
-      '- Do not offer new times. Do not re-pitch the vehicle.',
-      '- SMS: warm, brief, reference the appointment, ask for YES reply.',
-      '- Reference appointment details from context if available.',
+      '- NEVER offer new appointment times. NEVER say "would X or Y time work" — the time is set.',
+      '- NEVER re-pitch the vehicle from scratch.',
+      apptDetailsStr ? '- Appointment details: ' + apptDetailsStr + '. Reference these specifically.' : '- Reference the appointment day/time from the conversation.',
+      '- SMS: brief and warm. Confirm the time, ask them to reply C or YES.',
+      '- Email: confirmation tone — recap what will be ready for them (vehicle pulled up, numbers prepared). Make them feel taken care of before they arrive.',
+      '- If customer asked a question in their last message, answer it FIRST then confirm the appointment.',
       apptWithSoldVehicle
-        ? '- IMPORTANT: The original vehicle may no longer be available, but DO NOT disclose this in the message. Do NOT say the vehicle is available or unavailable. Focus only on confirming the appointment and preparing for the visit. The team will handle the vehicle conversation in person. Say things like "we\'ll have everything ready for you" — never confirm or deny vehicle availability.'
-        : '- Do not confirm specific vehicle availability — use soft language: "we will be ready for you."',
+        ? '- VEHICLE AVAILABILITY: Do not confirm or deny. Focus on the visit. Team handles this in person.'
+        : '- Reassure them everything will be ready: "We will have the vehicle pulled up and ready for you."',
+      '- Tone: excited to see them, organized, low pressure.',
     ].filter(Boolean).join('\n');
 
   } else if (sc.isExitSignal) {
-    scenarioDirective = 'TASK: Customer has purchased elsewhere or is not interested. Write a gracious closing message.';
-    scenarioRules = [
+    var isComplaint = /not satisfied|bad experience|sharing.*experience|terrible|horrible|never.*back|not.*back|won.t be back/i.test((data.lastInboundMsg || '') + ' ' + (data.context || '').substring(0, 500));
+    scenarioDirective = isComplaint
+      ? 'TASK: Customer had a bad experience and is expressing dissatisfaction. This requires a genuine, empathetic acknowledgment — NOT a closing pitch or a generic goodbye.'
+      : 'TASK: Customer has purchased elsewhere or is not interested. Write a gracious closing message.';
+    scenarioRules = isComplaint ? [
+      '- LEAD with a sincere apology and acknowledgment: "I am sorry to hear that your experience did not meet your expectations — that is not the standard we hold ourselves to."',
+      '- Do NOT make excuses. Do NOT say "we would love another chance" as a sales pitch.',
+      '- 2-3 sentences. Acknowledge the frustration genuinely. Leave the door open only if it feels natural — not as a close.',
+      '- No appointment offer. No vehicle pitch. No promotional language.',
+      '- Tone: humble, sincere, human. This is damage control not a sales message.',
+    ].join('\n') : [
       '- 2-3 sentences max. No vehicle pitch. No appointment offer.',
       '- Wish them well. Leave door open for future service.',
       '- Tone: warm, zero pressure.',
@@ -2211,16 +2293,18 @@ function buildUserPrompt(data) {
     ].join('\n');
 
   } else if (sc.isRepeatCustomer) {
-    scenarioDirective = 'TASK: Repeat/returning customer — this person has done business with the dealership before.';
+    var priorVehicle = data.ownedVehicle || '';
+    var priorMiles = data.ownedMileage || '';
+    scenarioDirective = 'TASK: Repeat/returning customer — this person has done business with the dealership before. They came back because they trust you.';
     scenarioRules = [
       '- NEVER treat this as a cold intro. They are family — they came back.',
       '- Acknowledge the relationship immediately: "It\'s great to hear from you again" or "Welcome back!"',
-      '- If prior vehicle purchase is known, reference it: "I know you\'ve been happy with your [prior vehicle]."',
-      '- Position the new vehicle as an upgrade to something they already love.',
-      '- Do NOT go through a standard first-touch pitch — skip the basics, get to what\'s new for them.',
-      '- Tone: warm, familiar, genuinely happy to hear from them.',
+      priorVehicle ? '- Reference their current vehicle naturally: "I see you\'re still in your ' + priorVehicle + (priorMiles ? ' with ' + priorMiles + ' miles' : '') + ' — let\'s see what we can do for you."' : '- If prior vehicle is known from notes, reference it to show you know their history.',
+      '- Position the new vehicle as a natural next step, not a sales pitch.',
+      '- Skip the standard first-touch pitch — they know how this works. Get to what matters for them.',
+      '- Tone: warm, familiar, genuinely happy they came back. Like picking up where you left off.',
       '- Duration and two-time close.',
-    ].join('\n');
+    ].filter(Boolean).join('\n');
 
   } else if (sc.isThirdPartyOEM) {
     var oemRef = /kia/i.test(data.leadSource||'') ? 'Kia' : /honda/i.test(data.leadSource||'') ? 'Honda' : /toyota/i.test(data.leadSource||'') ? 'Toyota' : /hyundai/i.test(data.leadSource||'') ? 'Hyundai' : /audi/i.test(data.leadSource||'') ? 'Audi' : 'the manufacturer';
@@ -2492,9 +2576,42 @@ function buildUserPrompt(data) {
       const isAfternoon = hour >= 12;
       const isEvening = hour >= 17;
 
-      lines.push('', 'APPOINTMENT TIMES (use exactly — do not change):',
-        'Time 1: ' + appt.time1,
-        'Time 2: ' + appt.time2);
+      // Override computed times if customer stated an arrival time
+      // Also check lastInboundMsg directly as fallback in case scraper cached stale data
+      var arrivalFromInbound = '';
+      // Scan both lastInboundMsg AND full context for arrival time
+      // lastInboundMsg may be stale if agent hasn't re-grabbed since customer's last message
+      var arrivalScanText = (data.lastInboundMsg || '') + ' ' + (data.context || '').substring(0, 1000);
+      var inboundArrMatch = arrivalScanText.match(/(?:get off|off work|done|finish|out at|arrive|be there|come by)(?:\s+(?:at|by|around|after))?\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)/i);
+      if(inboundArrMatch) arrivalFromInbound = inboundArrMatch[1].trim();
+      var arrivalTimeOverride = (data.customerScheduleConstraint && data.customerScheduleConstraint.indexOf('CUSTOMER ARRIVAL TIME:') === 0) || arrivalFromInbound.length > 0;
+      if(arrivalTimeOverride) {
+        // Extract the hour from constraint and compute times after arrival
+        var arrivalHourMatch = data.customerScheduleConstraint ? data.customerScheduleConstraint.match(/around\s+(\d{1,2})/i) : null;
+        var arrivalHour = arrivalHourMatch ? parseInt(arrivalHourMatch[1]) : (arrivalFromInbound ? parseInt(arrivalFromInbound) : null);
+        if(arrivalHour && arrivalHour < 12) arrivalHour += 12; // assume PM if no AM/PM
+        var closeHour = appt.closeMins ? Math.floor(appt.closeMins / 60) : 20;
+        if(arrivalHour && (arrivalHour + 1) < closeHour) {
+          // Add 30-45 min for travel, offer two slots after arrival
+          var slot1Hour = arrivalHour;
+          var slot1Min = 30;
+          var slot2Hour = arrivalHour + 1;
+          var slot2Min = 0;
+          var fmt = function(h,m){ var ampm = h >= 12 ? 'PM' : 'AM'; var h12 = h > 12 ? h-12 : h; return h12 + ':' + (m < 10 ? '0'+m : m) + ' ' + ampm; };
+          var dayLabel = appt.time1 && appt.time1.match(/(today|monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i) ? appt.time1.match(/(today|monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i)[1] : 'tomorrow';
+          lines.push('', 'APPOINTMENT TIMES — ADJUSTED FOR CUSTOMER ARRIVAL TIME (use exactly):',
+            'Time 1: ' + fmt(slot1Hour, slot1Min) + ' ' + dayLabel,
+            'Time 2: ' + fmt(slot2Hour, slot2Min) + ' ' + dayLabel);
+        } else {
+          lines.push('', 'APPOINTMENT TIMES (use exactly — do not change):',
+            'Time 1: ' + appt.time1,
+            'Time 2: ' + appt.time2);
+        }
+      } else {
+        lines.push('', 'APPOINTMENT TIMES (use exactly — do not change):',
+          'Time 1: ' + appt.time1,
+          'Time 2: ' + appt.time2);
+      }
 
       const isMorning = hour >= 8 && hour < 12;
       const isLateAfternoon = hour >= 15 && hour < 17;
@@ -2772,6 +2889,12 @@ async function generateAll() {
       stockNum:                  lastScrapedData ? (lastScrapedData.stockNum || '') : '',
       vin:                       lastScrapedData ? (lastScrapedData.vin || '') : '',
       inventoryWarning:          lastScrapedData ? !!lastScrapedData.inventoryWarning : false,
+      vrCreditApp:               lastScrapedData ? !!lastScrapedData.vrCreditApp : false,
+      vrPaymentSelected:         lastScrapedData ? !!lastScrapedData.vrPaymentSelected : false,
+      vrTradeIn:                 lastScrapedData ? !!lastScrapedData.vrTradeIn : false,
+      vrCompleted:               lastScrapedData ? !!lastScrapedData.vrCompleted : false,
+      vrDroppedOff:              lastScrapedData ? !!lastScrapedData.vrDroppedOff : false,
+      noVehicleAtAll:            lastScrapedData ? !!lastScrapedData.noVehicleAtAll : false,
       isSoldDelivered:           lastScrapedData ? !!lastScrapedData.isSoldDelivered : false,
       activeFlags: Array.from(activeFlags)
     });
@@ -2780,7 +2903,7 @@ async function generateAll() {
       system_instruction: { parts: [{ text: buildSystemPrompt() }] },
       contents: [{ role:'user', parts:[{ text: userPrompt }] }],
       generationConfig: {
-        temperature:      0.2,
+        temperature:      0.3,
         maxOutputTokens:  5000,
         topP:             0.9,
         responseMimeType: 'application/json',
@@ -2820,9 +2943,15 @@ async function generateAll() {
       let clean = rawText.replace(/^```json\s*/i,'').replace(/^```\s*/,'').replace(/\s*```$/,'').trim();
       clean = clean.replace(/^\uFEFF/,'').replace(/^[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]+/,'');
       // Fix common AI JSON breakage: trailing period before closing quote
-      // Handles: "337-247-9081."} and "337-247-9081."  )} and similar
       clean = clean.replace(/\.(\")/g, '$1');  // escaped quotes
       clean = clean.replace(/\.("(?:[}\]\s,]|$))/g, '$1'); // unescaped quotes before } ] , or end
+      // Fix raw newlines/tabs inside JSON string values — AI sometimes emits literal \n instead of \\n
+      // Strategy: find string values and escape any raw control chars inside them
+      clean = clean.replace(/"((?:[^"\\]|\\.)*)"/g, function(match, inner) {
+        // Replace raw newlines, carriage returns, tabs inside string values
+        var fixed = inner.replace(/\n/g, '\\n').replace(/\r/g, '\\r').replace(/\t/g, '\\t');
+        return '"' + fixed + '"';
+      });
       parsed = JSON.parse(clean);
       console.log('[Lead Pro] JSON parsed successfully');
     } catch(e) {
@@ -2936,7 +3065,7 @@ document.getElementById('btnGrab').addEventListener('click', grabLead);
 document.getElementById('btnGenerate').addEventListener('click', generateAll);
 
 window.addEventListener('load', function() {
-  console.log('[Lead Pro] v7.94 loaded');
+  console.log('[Lead Pro] v8.00 loaded');
 
   // Detect popup vs side panel mode and apply appropriate layout class
   // Side panel windows are wider (Chrome enforces ~360px min); floating popups are narrower

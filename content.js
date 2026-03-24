@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────
-// Lead Pro — content.js  v4.8
+// Lead Pro — content.js  v4.9
 // Runs in EVERY frame. Each frame contributes what it can find.
 // Customer name lives in left pane. Lead Info (agent, source,
 // vehicle) lives in right pane. Both frames write to storage
@@ -8,6 +8,13 @@
 (function() {
   'use strict';
   if (!document.body) return;
+
+  // ── Singleton guard — prevent duplicate injection in same frame ─
+  if (window.__LEADPRO_CONTENT_LOADED__) {
+    console.log('[Lead Pro] content.js already running in this frame — skipping duplicate injection');
+    return;
+  }
+  window.__LEADPRO_CONTENT_LOADED__ = true;
 
   // ── Helpers ────────────────────────────────────────────────────
   function gid(id) {
@@ -430,6 +437,39 @@
     chrome.storage.local.set({ leadpro_data: merged });
     console.log('[Lead Pro] Storage updated:', { name: merged.name, agent: merged.agent, store: merged.store, storeConfident: merged.storeConfident, dealerId: merged.dealerId, ownedVehicle: merged.ownedVehicle, ampEmailSubject: merged.ampEmailSubject, ownedMileage: merged.ownedMileage, lastServiceDate: merged.lastServiceDate });
   });
+
+  // ── Debounced MutationObserver — re-scrape when VinSolutions re-renders ──
+  // Only active in frames that have useful lead data (isLeadFrame or rims2/CustomerDashboard)
+  // VinSolutions mutates the DOM constantly — debounce prevents spam scrapes
+  var usefulFrame = isLeadFrame
+    || URL.includes('rims2.aspx')
+    || URL.includes('CustomerDashboard')
+    || URL.includes('eccs/index.html');
+
+  if (usefulFrame && typeof MutationObserver !== 'undefined') {
+    var _lpMutationTimer = null;
+    var _lpMutationObserver = new MutationObserver(function(mutations) {
+      // Only care about mutations that add meaningful nodes — ignore attribute tweaks
+      var hasRelevantMutation = mutations.some(function(m) {
+        return m.addedNodes.length > 0 && m.target !== document.body;
+      });
+      if (!hasRelevantMutation) return;
+      clearTimeout(_lpMutationTimer);
+      _lpMutationTimer = setTimeout(function() {
+        // Only re-scrape if notes or key lead fields changed — don't re-run on trivial renders
+        var noteCount = document.querySelectorAll('.legacy-notes-and-history-item').length;
+        if (noteCount !== _lpLastNoteCount) {
+          _lpLastNoteCount = noteCount;
+          console.log('[Lead Pro] DOM mutation detected — note count changed to', noteCount, '— re-scraping');
+          // Re-trigger by sending a message to popup (popup pulls from storage on demand)
+          try { chrome.runtime.sendMessage({ type: 'LEADPRO_DOM_UPDATED', noteCount: noteCount }); } catch(e) {}
+        }
+      }, 500);
+    });
+    var _lpLastNoteCount = document.querySelectorAll('.legacy-notes-and-history-item').length;
+    _lpMutationObserver.observe(document.body, { childList: true, subtree: true });
+    console.log('[Lead Pro] MutationObserver active in frame:', URL.substring(0, 60));
+  }
 
   // ── Respond to live requests from popup ─────────────────────────
   chrome.runtime.onMessage.addListener(function(msg, sender, sendResponse) {

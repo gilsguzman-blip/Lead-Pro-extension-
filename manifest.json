@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Lead Pro",
-  "version": "7.94",
+  "version": "8.0",
   "description": "AI-powered BDC Lead Response Generator for VinSolutions CRM",
   "permissions": [
     "activeTab",
