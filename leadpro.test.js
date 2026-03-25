@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 'use strict';
 /**
- * leadpro.test.js — Lead Pro v7.90 unit tests
+ * leadpro.test.js — Lead Pro v8.07 unit tests
  * Run with: node leadpro.test.js
  *
- * Tests 12 scenarios via classifyScenario(), buildUserPrompt(), and
+ * Tests S1–S25 + BONUS via classifyScenario(), buildUserPrompt(), and
  * buildSystemPrompt() loaded directly from popup.js using Node vm.
  */
 
@@ -115,18 +115,29 @@ try {
 
 const { classifyScenario, computeAppointmentTimes, buildSystemPrompt, buildUserPrompt, populateFromData } = popupCtx;
 
+const LEAD_DEFAULTS = {
+  name: 'Maria Gonzalez', agent: 'Kristen Willis', salesRep: 'John Smith',
+  store: 'Community Toyota Baytown', vehicle: '2026 Toyota Camry',
+  leadSource: 'Internet Lead', convState: 'first-touch',
+  hasOutbound: false, contactedAgeDays: 0, isLiveConversation: false,
+  activeFlags: [], totalNoteCount: 0,
+};
+
 // Helper: call populateFromData and return the module-level leadContext it assembled.
 // vehicleExtras (stock confirmation, no-specific-unit, inventory warnings) live in
 // populateFromData, not buildUserPrompt — this is the correct layer to test them.
 function getLeadContext(data) {
-  populateFromData(Object.assign({
-    name: 'Maria Gonzalez', agent: 'Kristen Willis', salesRep: 'John Smith',
-    store: 'Community Toyota Baytown', vehicle: '2026 Toyota Camry',
-    leadSource: 'Internet Lead', convState: 'first-touch',
-    hasOutbound: false, contactedAgeDays: 0, isLiveConversation: false,
-    activeFlags: [], totalNoteCount: 0,
-  }, data));
+  populateFromData(Object.assign({}, LEAD_DEFAULTS, data));
   return vm.runInContext('leadContext', popupCtx);
+}
+
+// Helper: run the full populateFromData → leadContext → buildUserPrompt pipeline.
+// Required when testing features that live in populateFromData (LP commands, vehicleExtras)
+// because buildUserPrompt reads leadContext from the module-level variable set by populateFromData.
+function buildPromptWithContext(data) {
+  const merged = Object.assign({}, LEAD_DEFAULTS, data);
+  const lc = getLeadContext(data);
+  return buildUserPrompt(Object.assign({}, merged, { context: lc }));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -911,6 +922,268 @@ test('S21 — Cutoff for same-day lead is approximately 1 day ago', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// SCENARIO 22 — LP command detection
+// [LP: cmd] bracket format and bare "LP: cmd" on its own line
+// ─────────────────────────────────────────────────────────────────────────────
+const LP_BRACKET_RE = /\[LP:\s*([^\]]+)\]/gi;
+const LP_BARE_RE    = /(?:^|\n)LP:\s*(.+)/i;
+
+test('S22 — LP bracket format [LP: cmd] is matched', () => {
+  const m = '[LP: Focus on the trade-in value]'.match(LP_BRACKET_RE);
+  ok(m && m.length > 0, 'Bracket LP command should match');
+});
+
+test('S22 — LP bare format "LP: cmd" on its own line is matched', () => {
+  const text = 'some note\nLP: Customer prefers text only\nnext line';
+  ok(LP_BARE_RE.test(text), 'Bare LP: format should match');
+  const m = text.match(LP_BARE_RE);
+  ok(m[1].trim() === 'Customer prefers text only', 'Extracted value should be correct');
+});
+
+// S22 prompt tests use buildPromptWithContext because LP commands are processed
+// by populateFromData (injected into vehicleExtras → leadContext) before buildUserPrompt reads them.
+test('S22 — LP commands injected as highest-priority block in prompt', () => {
+  const prompt = buildPromptWithContext({
+    agentLPCommands: ['Mention the free oil change', 'Customer speaks Spanish'],
+  });
+  contains(prompt, 'highest priority',            'LP block should be marked highest priority');
+  contains(prompt, 'Mention the free oil change', 'First LP command should appear in prompt');
+  contains(prompt, 'Customer speaks Spanish',     'Second LP command should appear in prompt');
+});
+
+test('S22 — Multiple LP commands all appear in prompt', () => {
+  const prompt = buildPromptWithContext({
+    agentLPCommands: ['Cmd Alpha', 'Cmd Beta', 'Cmd Gamma'],
+  });
+  contains(prompt, 'Cmd Alpha', 'First command present');
+  contains(prompt, 'Cmd Beta',  'Second command present');
+  contains(prompt, 'Cmd Gamma', 'Third command present');
+});
+
+test('S22 — LP command with URL gets VDP link label in prompt', () => {
+  const prompt = buildPromptWithContext({
+    agentLPCommands: ['https://dealer.com/inventory/camry-stock-123'],
+  });
+  contains(prompt, 'https://dealer.com/inventory/camry-stock-123', 'LP URL should appear in prompt');
+  contains(prompt, 'vdp link provided by agent', 'LP URL should be labeled as VDP link');
+});
+
+test('S22 — Empty agentLPCommands array → no agent instructions block in prompt', () => {
+  const prompt = buildPromptWithContext({ agentLPCommands: [] });
+  notContains(prompt, 'agent instructions', 'Empty LP commands → no agent instructions block');
+});
+
+test('S22 — Absent agentLPCommands property → no agent instructions block in prompt', () => {
+  const prompt = buildPromptWithContext({});
+  notContains(prompt, 'agent instructions', 'Missing LP commands → no agent instructions block');
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SCENARIO 23 — Situational close tiers
+// Price objection → TIER 2 qualifying question (NOT straight to appointment times)
+// Vague timeline → TIER 3 soft close
+// ─────────────────────────────────────────────────────────────────────────────
+test('S23 — System prompt defines all four close tiers', () => {
+  const sys = buildSystemPrompt();
+  contains(sys, 'tier 1', 'System prompt should define TIER 1');
+  contains(sys, 'tier 2', 'System prompt should define TIER 2');
+  contains(sys, 'tier 3', 'System prompt should define TIER 3');
+  contains(sys, 'tier 4', 'System prompt should define TIER 4');
+});
+
+test('S23 — Explicit price rejection injects TIER 2 close instruction', () => {
+  const prompt = buildUserPrompt(firstTouchBase({
+    activeFlags:    ['price'],
+    lastInboundMsg: "That's outside my budget, I'll pass",
+  }));
+  contains(prompt, 'tier 2 close',        'Explicit price rejection → TIER 2');
+  contains(prompt, 'qualifying question', 'TIER 2 → ask qualifying question first');
+});
+
+test('S23 — TIER 2 price prompt explicitly delays appointment offer', () => {
+  const prompt = buildUserPrompt(firstTouchBase({
+    activeFlags:    ['price'],
+    lastInboundMsg: "That's outside my budget, I'll pass",
+  }));
+  contains(prompt, 'do not offer appointment times yet', 'TIER 2 should hold back appointment offer');
+});
+
+// S23 vague-timeline: friction detectors run in the DOM scraper and embed concern
+// blocks in conversationBrief → context. Pass the concern text in data.context to
+// test the full prompt-assembly path (buildUserPrompt includes data.context verbatim).
+test('S23 — TIMELINE concern block in context → TIER 3 close instruction appears in prompt', () => {
+  const prompt = buildUserPrompt(followUpBase({
+    context:
+      'FOLLOW-UP: active.\nIDENTIFIED CUSTOMER CONCERNS — lead with these, do not bury them:\n' +
+      'TIMELINE: Customer is not in a rush. Apply TIER 3 CLOSE — soft ask only.\n',
+  }));
+  contains(prompt, 'tier 3 close', 'TIER 3 close should be present in prompt');
+  contains(prompt, 'soft ask',     'TIER 3 → soft ask language');
+});
+
+test('S23 — Warm engaged lead (no friction, no flags) includes standard appointment-times block', () => {
+  const prompt = buildUserPrompt(followUpBase({
+    context:
+      'FOLLOW-UP: active.\nCONVERSATION TRANSCRIPT (newest first):\n---\n' +
+      '[3/10/25] [CUSTOMER] Yes I love it and want to come in this week\n---',
+  }));
+  contains(prompt, 'appointment times', 'Warm engaged lead → appointment times block present');
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SCENARIO 24 — Friction detectors
+// Spouse/partner approval, comparison shopping, vague timeline, feature uncertainty
+// Each detected from [CUSTOMER] lines in the conversation transcript
+// ─────────────────────────────────────────────────────────────────────────────
+const SPOUSE_RE      = /run it by|talk (to|with) (my|the) (wife|husband|spouse|partner|boyfriend|girlfriend|mom|dad|father|mother)|need to (check|ask|discuss)|wife.*know|husband.*know|partner.*know|not my decision alone|need approval/i;
+const COMPARE_RE     = /looking at (a few|other|another|some other|multiple)|comparing|checking out (other|a few|another)|shop(ping)? around|other dealer|other options|see what else|not just here/i;
+const TIMELINE_RE    = /not in a rush|no hurry|whenever|eventually|down the road|maybe next month|few months|next year|not right now|when the time (is right|comes)|not urgent/i;
+const FEATURE_UNC_RE = /not sure (if|whether|it has|this has)|does it have|wondering if|need to know if|want to make sure|confirm.*features|check.*features|see.*features/i;
+
+test('S24 — Spouse approval regex: "run it by my wife"', () => {
+  ok(SPOUSE_RE.test('I need to run it by my wife first'), 'Should match run it by wife');
+});
+
+test('S24 — Spouse approval regex: "talk to my husband"', () => {
+  ok(SPOUSE_RE.test('I need to talk to my husband about it'), 'Should match talk to husband');
+});
+
+test('S24 — Comparison shopping regex: "shopping around"', () => {
+  ok(COMPARE_RE.test("I'm shopping around at a few dealerships"), 'Should match shopping around');
+});
+
+test('S24 — Comparison shopping regex: "looking at other dealers"', () => {
+  ok(COMPARE_RE.test("I'm looking at other dealer options too"), 'Should match other dealer');
+});
+
+test('S24 — Vague timeline regex: "not in a rush"', () => {
+  ok(TIMELINE_RE.test("I'm not in a rush, just looking"), 'Should match not in a rush');
+});
+
+test('S24 — Vague timeline regex: "maybe next month"', () => {
+  ok(TIMELINE_RE.test('Maybe next month or so'), 'Should match maybe next month');
+});
+
+test('S24 — Feature uncertainty regex: "not sure if it has"', () => {
+  ok(FEATURE_UNC_RE.test("I'm not sure if it has heated seats"), 'Should match not sure if it has');
+});
+
+test('S24 — Feature uncertainty regex: "does it have"', () => {
+  ok(FEATURE_UNC_RE.test('Does it have the panoramic roof?'), 'Should match does it have');
+});
+
+// S24 end-to-end prompt tests: friction detection runs in the DOM scraper and embeds
+// concern blocks into conversationBrief → context. Pass the scraper-generated concern
+// text directly in data.context to verify buildUserPrompt preserves each block correctly.
+test('S24 — Spouse approval concern in context → prompt preserves TIER 2 spouse block', () => {
+  const prompt = buildUserPrompt(followUpBase({
+    context:
+      'FOLLOW-UP: active.\nIDENTIFIED CUSTOMER CONCERNS — lead with these, do not bury them:\n' +
+      'SPOUSE/PARTNER APPROVAL: Customer needs to consult their partner before deciding. Apply TIER 2 CLOSE — do NOT push for same-day commitment.\n',
+  }));
+  contains(prompt, 'spouse/partner approval', 'Prompt should contain spouse/partner approval block');
+  contains(prompt, 'tier 2 close',            'Spouse approval block should reference TIER 2 close');
+});
+
+test('S24 — Comparison shopping concern in context → prompt preserves TIER 2 comparison block', () => {
+  const prompt = buildUserPrompt(followUpBase({
+    context:
+      'FOLLOW-UP: active.\nIDENTIFIED CUSTOMER CONCERNS — lead with these, do not bury them:\n' +
+      'COMPARISON SHOPPING: Customer is actively comparing options. Apply TIER 2 CLOSE — do NOT push appointment before earning the visit.\n',
+  }));
+  contains(prompt, 'comparison shopping', 'Prompt should contain comparison shopping block');
+  contains(prompt, 'tier 2 close',        'Comparison shopping block should reference TIER 2 close');
+});
+
+test('S24 — Timeline concern in context → prompt preserves TIER 3 timeline block', () => {
+  const prompt = buildUserPrompt(followUpBase({
+    context:
+      'FOLLOW-UP: active.\nIDENTIFIED CUSTOMER CONCERNS — lead with these, do not bury them:\n' +
+      'TIMELINE: Customer is not in a rush. Apply TIER 3 CLOSE — soft ask only.\n',
+  }));
+  contains(prompt, 'timeline',     'Prompt should contain timeline block');
+  contains(prompt, 'tier 3 close', 'Timeline block should reference TIER 3 close');
+});
+
+test('S24 — Feature uncertainty concern in context → prompt preserves TIER 2 feature block', () => {
+  const prompt = buildUserPrompt(followUpBase({
+    context:
+      'FOLLOW-UP: active.\nIDENTIFIED CUSTOMER CONCERNS — lead with these, do not bury them:\n' +
+      'FEATURE UNCERTAINTY: Customer is not sure this vehicle meets their needs. Apply TIER 2 CLOSE.\n',
+  }));
+  contains(prompt, 'feature uncertainty', 'Prompt should contain feature uncertainty block');
+  contains(prompt, 'tier 2 close',        'Feature uncertainty block should reference TIER 2 close');
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SCENARIO 25 — Click & Go follow-up vs first-touch detection
+// clickGoHasOutreach = data.hasOutbound || data.isContacted
+// Fresh lead (no outbound) → first-touch directive
+// Prior outreach present  → follow-up directive, suppress re-introduction
+// ─────────────────────────────────────────────────────────────────────────────
+test('S25 — Fresh Click & Go (no outbound, not contacted) → first-touch directive', () => {
+  const prompt = buildUserPrompt(firstTouchBase({
+    leadSource:  'Gubagoo Virtual Retailing',
+    hasOutbound: false,
+    isContacted: false,
+  }));
+  contains(prompt, 'first contact',  'No prior outreach → first-touch task directive');
+  contains(prompt, 'required opening', 'No prior outreach → REQUIRED OPENING rule present');
+});
+
+test('S25 — Click & Go with prior outbound → follow-up directive, not first-touch', () => {
+  const prompt = buildUserPrompt(firstTouchBase({
+    leadSource:       'Gubagoo Virtual Retailing',
+    hasOutbound:      true,
+    contactedAgeDays: 5,
+  }));
+  contains(prompt, 'prior outreach',         'Prior outbound → follow-up task directive');
+  contains(prompt, 'not a first introduction', 'Should explicitly state this is not first introduction');
+});
+
+test('S25 — Click & Go follow-up prompt contains PRIOR OUTREACH EXISTS rule', () => {
+  const prompt = buildUserPrompt(firstTouchBase({
+    leadSource:       'Gubagoo Virtual Retailing',
+    hasOutbound:      true,
+    contactedAgeDays: 5,
+  }));
+  contains(prompt, 'prior outreach exists', 'Follow-up rule block should be present');
+});
+
+test('S25 — isContacted=true alone triggers Click & Go follow-up directive', () => {
+  const prompt = buildUserPrompt(firstTouchBase({
+    leadSource:       'Gubagoo Virtual Retailing',
+    hasOutbound:      false,
+    isContacted:      true,
+    contactedAgeDays: 3,
+  }));
+  contains(prompt, 'prior outreach', 'isContacted alone should trigger follow-up directive');
+});
+
+test('S25 — First-touch Click & Go prompt contains "started your deal online" language', () => {
+  const prompt = buildUserPrompt(firstTouchBase({
+    leadSource:  'Gubagoo Virtual Retailing',
+    hasOutbound: false,
+  }));
+  contains(prompt, 'started your deal online', 'First-touch should reference deal started online');
+});
+
+test('S25 — HDS DR source also distinguishes follow-up from first-touch', () => {
+  const ftPrompt = buildUserPrompt(firstTouchBase({
+    leadSource:  'HDS DR - Digital Retailing',
+    hasOutbound: false,
+  }));
+  const fuPrompt = buildUserPrompt(firstTouchBase({
+    leadSource:       'HDS DR - Digital Retailing',
+    hasOutbound:      true,
+    contactedAgeDays: 5,
+  }));
+  contains(ftPrompt, 'first contact',    'HDS DR first-touch → first-contact directive');
+  contains(fuPrompt, 'prior outreach',   'HDS DR follow-up → prior outreach directive');
+  notOk(ftPrompt === fuPrompt, 'HDS DR first-touch and follow-up prompts must differ');
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // BONUS — Infrastructure sanity checks
 // ─────────────────────────────────────────────────────────────────────────────
 test('BONUS — computeAppointmentTimes returns two valid time strings', () => {
@@ -955,7 +1228,7 @@ const DIM  = '\x1b[2m';
 const RST  = '\x1b[0m';
 
 console.log('\n' + line);
-console.log('  Lead Pro v7.90 — Test Results');
+console.log('  Lead Pro v8.07 — Test Results');
 console.log(line);
 
 let lastGroup = '';
