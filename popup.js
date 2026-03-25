@@ -93,9 +93,45 @@ document.querySelectorAll('.btn-copy').forEach(function(btn) {
     const pane = btn.dataset.pane;
     const field = document.getElementById('output-' + pane);
     if (!field || !field.value) return;
+
+    if (pane === 'email') {
+      var rawText = field.value;
+      // Remove blank line between greeting and first paragraph
+      var cleanedText = rawText.replace(/^([A-Za-z][^\n]{0,30},)\n\n/m, '$1\n');
+      // Convert to HTML — single spaced TNR 16px
+      var escaped = cleanedText
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        .replace(/\n/g,'<br>');
+      var htmlContent = '<div style="font-family:\'Times New Roman\',Times,serif;font-size:16px;line-height:1.4;color:#000000;margin:0;padding:0;">' + escaped + '</div>';
+
+      if (window.ClipboardItem && navigator.clipboard.write) {
+        var blob = new Blob([htmlContent], { type: 'text/html' });
+        var plainBlob = new Blob([rawText], { type: 'text/plain' });
+        navigator.clipboard.write([new ClipboardItem({ 'text/html': blob, 'text/plain': plainBlob })]).then(function() {
+          btn.textContent = 'Copied!'; btn.classList.add('copied');
+          setTimeout(function() { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1800);
+        }).catch(function() {
+          navigator.clipboard.writeText(rawText).then(function() {
+            btn.textContent = 'Copied!'; btn.classList.add('copied');
+            setTimeout(function() { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1800);
+          });
+        });
+      } else {
+        var el = document.createElement('div');
+        el.innerHTML = htmlContent;
+        el.style.position = 'fixed'; el.style.opacity = '0'; el.style.pointerEvents = 'none';
+        document.body.appendChild(el);
+        var sel = window.getSelection(); var range = document.createRange();
+        range.selectNodeContents(el); sel.removeAllRanges(); sel.addRange(range);
+        document.execCommand('copy'); sel.removeAllRanges(); document.body.removeChild(el);
+        btn.textContent = 'Copied!'; btn.classList.add('copied');
+        setTimeout(function() { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1800);
+      }
+      return;
+    }
+
     navigator.clipboard.writeText(field.value).then(function() {
-      btn.textContent = 'Copied!';
-      btn.classList.add('copied');
+      btn.textContent = 'Copied!'; btn.classList.add('copied');
       setTimeout(function() { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1800);
     }).catch(function() {
       btn.textContent = 'Try again';
@@ -180,6 +216,21 @@ function populateFromData(d) {
   if (d.noVehicleAtAll && !stageActive) {
     vehicleExtras.push('⚠ NO VEHICLE ON LEAD: Customer has not indicated any specific vehicle interest — no model, no stock number, no VIN. Do NOT reference or imply a vehicle is ready. REQUIRED: Ask a qualifying question to find out what they are looking for. Example: "What type of vehicle were you thinking about — SUV, sedan, or something else?" or "Were you looking at anything specific on our site?"');
   }
+  // Agent LP commands — highest priority
+  if (d.agentLPCommands && Array.isArray(d.agentLPCommands) && d.agentLPCommands.length > 0) {
+    vehicleExtras.push('');
+    vehicleExtras.push('━━ AGENT INSTRUCTIONS (highest priority — follow exactly) ━━');
+    d.agentLPCommands.forEach(function(cmd) { vehicleExtras.push('► ' + cmd); });
+    vehicleExtras.push('These instructions were added by the agent and override default behavior.');
+    // Check if any LP command contains a URL — inject as VDP link instruction
+    var lpUrls = d.agentLPCommands.filter(function(cmd){ return cmd.indexOf('http') === 0; });
+    if(lpUrls.length > 0) {
+      vehicleExtras.push('VDP LINK PROVIDED BY AGENT: ' + lpUrls[0]);
+      vehicleExtras.push('- Include this exact URL in the SMS response. Do NOT modify or shorten it.');
+      vehicleExtras.push('- SMS format: include the link on its own line after the message.');
+    }
+  }
+
   // Universal stock confirmation — applies to ALL lead sources
   if (!d.noSpecificVehicle && (d.stockNum || d.vin) && !d.inventoryWarning) {
     vehicleExtras.push('✅ VEHICLE CONFIRMED IN STOCK: Stock #' + (d.stockNum || '') + (d.vin ? ' / VIN: ' + d.vin : '') + '.');
@@ -776,6 +827,34 @@ function tryExecuteScript(tab, statusEl, dot) {
     const noteEls = Array.from(document.querySelectorAll('.notes-and-history-item')||[]);
     const totalNoteCount = noteEls.length;
 
+    // ── Agent LP commands — scan all notes for LP: instructions ──
+    var agentLPCommands = [];
+    noteEls.forEach(function(n) {
+      // Try multiple selectors — VinSolutions DOM varies
+      var c = ((n.querySelector('.notes-and-history-item-content')||{}).innerText||'').trim();
+      if(!c) c = ((n.querySelector('.note-content')||{}).innerText||'').trim();
+      if(!c) c = ((n.querySelector('[class*="content"]')||{}).innerText||'').trim();
+      if(!c) c = (n.innerText||'').trim();
+      // Debug: log ALL note content so we can see what the scraper reads
+      if(c && c.length < 300) console.log('[Lead Pro] note content:', JSON.stringify(c.substring(0,120)));
+      if(!c) return;
+      // [LP: ...] bracket format
+      var lpMatches = c.match(/\[LP:\s*([^\]]+)\]/gi);
+      if(lpMatches) {
+        lpMatches.forEach(function(m) {
+          var cmd = m.replace(/^\[LP:\s*/i,'').replace(/\]$/,'').trim();
+          if(cmd && agentLPCommands.indexOf(cmd) === -1) agentLPCommands.push(cmd);
+        });
+      }
+      // bare LP: format — anywhere in note, on its own line
+      var lpLineMatch = c.match(/(?:^|\n)LP:\s*(.+)/i);
+      if(lpLineMatch) {
+        var bareCmd = lpLineMatch[1].trim();
+        if(bareCmd && agentLPCommands.indexOf(bareCmd) === -1) agentLPCommands.push(bareCmd);
+      }
+    });
+    console.log('[Lead Pro] LP commands found:', agentLPCommands.length, agentLPCommands);
+
     // Also check agent notes for sold/pending-sold entries
     var inventoryWarningFromNotes = false;
     var vehiclePendingSale = false;
@@ -1083,6 +1162,9 @@ function tryExecuteScript(tab, statusEl, dot) {
         return !isSystemNote;
       });
       var allTranscriptText = concernScanLines.join(' ');
+      var customerOnlyText = concernScanLines.filter(function(line){
+        return line.indexOf('[CUSTOMER]') !== -1;
+      }).join(' ');
 
       if(/too (much|high|expensive)|can.t afford|out of (my |our )?budget|payment.*too|over.*budget|price.*concern|what.s the (price|payment|cost)|how much (is|would)|monthly payment|out the door/i.test(allTranscriptText)){
         customerConcerns.push('PRICE/PAYMENT CONCERN: Customer raised price or payment as an issue. Open by addressing this directly — not by pitching features.');
@@ -1103,11 +1185,31 @@ function tryExecuteScript(tab, statusEl, dot) {
       if(/credit|financing|pre.?approv|interest rate|down payment|how much down/i.test(allTranscriptText)){
         customerConcerns.push('FINANCING CONCERN: Customer raised credit or financing. Acknowledge that the visit is the easiest way to get real numbers — keep it low pressure.');
       }
-      if(/don.t have (good|great|perfect|the best)? credit|bad credit|no credit|poor credit|credit (is|isn.t|aint)|low credit score|been denied|got denied|bankruptcy|repo|repossession|it is what it is.*credit/i.test(allTranscriptText)){
+      if(/don.t have (good|great|perfect|the best)? credit|bad credit|no credit|poor credit|credit (is|isn.t|aint)|low credit score|been denied|got denied|bankruptcy|repo|repossession|it is what it is.*credit/i.test(customerOnlyText)){
         customerConcerns.push('CREDIT CHALLENGE DISCLOSED: Customer explicitly stated they have credit difficulties. Handle with empathy — NEVER say "no problem" or "we work with all credit" (sounds dismissive). Say: "We work through situations like this every day — let us look at the options together." Position the visit as where real answers happen, not a pre-approval guarantee.');
       }
-      if(/co.?sign|cosign|co.?buyer|adding.*someone|need.*someone.*on.*loan|second.*person.*sign/i.test(allTranscriptText)){
+      if(/co.?sign|cosign|co.?buyer|adding.*someone|need.*someone.*on.*loan|second.*person.*sign/i.test(customerOnlyText)){
         customerConcerns.push('CO-SIGNER NEEDED: Customer mentioned needing a co-signer or co-buyer. Both people must be present at signing. Invite both in together — do not push solo visit. Say: \'We will need both of you here to finalize everything.\'');
+      }
+
+      // ── Friction type: Spouse/partner approval needed ────────────
+      if(/run it by|talk (to|with) (my|the) (wife|husband|spouse|partner|boyfriend|girlfriend|mom|dad|father|mother)|need to (check|ask|discuss)|wife.*know|husband.*know|partner.*know|not my decision alone|need approval/i.test(customerOnlyText)){
+        customerConcerns.push('SPOUSE/PARTNER APPROVAL: Customer needs to consult their partner before deciding. Apply TIER 2 CLOSE — do NOT push for same-day commitment. Instead invite both: "Bring them along — the more the merrier, and it only takes 30-45 minutes." Or ask: "When could you both come in together?"');
+      }
+
+      // ── Friction type: Comparison shopping ──────────────────────
+      if(/looking at (a few|other|another|some other|multiple)|comparing|checking out (other|a few|another)|shop(ping)? around|other dealer|other options|see what else|not just here/i.test(customerOnlyText)){
+        customerConcerns.push('COMPARISON SHOPPING: Customer is actively comparing options. Apply TIER 2 CLOSE — do NOT push appointment before earning the visit. Give them ONE concrete reason this vehicle/dealership wins: price confidence, availability, CPO warranty, or response speed. Then ask what matters most to them.');
+      }
+
+      // ── Friction type: Timeline vague / not urgent ───────────────
+      if(/not in a rush|no hurry|whenever|eventually|down the road|maybe next month|few months|next year|not right now|when the time (is right|comes)|not urgent/i.test(customerOnlyText)){
+        customerConcerns.push('TIMELINE: Customer is not in a rush. Apply TIER 3 CLOSE — soft ask only. Do NOT push urgency that feels fake. Instead acknowledge their pace: "No pressure at all — when you are ready, I will have everything waiting for you." Then ask: "What is your rough timeframe so I can keep an eye on inventory for you?"');
+      }
+
+      // ── Friction type: Feature/fit uncertainty ───────────────────
+      if(/not sure (if|whether|it has|this has)|does it have|wondering if|need to know if|want to make sure|confirm.*features|check.*features|see.*features/i.test(customerOnlyText)){
+        customerConcerns.push('FEATURE UNCERTAINTY: Customer is not sure this vehicle meets their needs. Apply TIER 2 CLOSE — answer their question or invite them to see it in person: "The best way to know for sure is to see it — I can walk you through every feature." Do NOT push appointment before addressing their uncertainty.');
       }
 
       // ── Customer commitment detector ────────────────────────────
@@ -1465,7 +1567,7 @@ function tryExecuteScript(tab, statusEl, dot) {
       leadSource,leadStatus: currentStatus || leadStatus,hasTrade,tradeDescription,buyingSignals,
       history, totalNoteCount, hasOutbound, isContacted, contactedAgeDays, lastOutboundMsg, lastInboundMsg,
       hasPauseSignal, hasExitSignal, convState, conversationBrief, customerSaidNotToday, customerScheduleConstraint, isLiveConversation, isRecentOutbound, recentOutboundContent,
-      isInTransit, hasApptSet, apptDetails, isSoldDelivered, hasMissedAppt, missedApptTiming: missedApptTiming2, vrCreditApp, vrPaymentSelected, vrTradeIn, vrCompleted, vrDroppedOff, noVehicleAtAll,
+      isInTransit, hasApptSet, apptDetails, isSoldDelivered, hasMissedAppt, missedApptTiming: missedApptTiming2, vrCreditApp, vrPaymentSelected, vrTradeIn, vrCompleted, vrDroppedOff, noVehicleAtAll, agentLPCommands,
       isShowroomFollowUp, showroomDetails, showroomVisitToday,
       pastVisitNotes,
       hasConfirmedVisit,
@@ -1767,7 +1869,13 @@ function buildSystemPrompt() {
     '- ANSWER FIRST RULE: If the customer asked a direct question in their last message (price, availability, color, payment, trade value, financing, features, specs, towing, MPG, packages), you MUST address it BEFORE asking for an appointment. Ignoring a customer question kills trust.',
     '- ANSWERING QUESTIONS — THREE PATHS: (1) If you know the answer confidently, give it directly and briefly. (2) If it is a pricing/payment question, give a range or starting point and position the visit as where they get the exact number. (3) If it is a spec/feature question you are not certain about (towing capacity, exact MPG, specific option), say: "I want to make sure I give you the right answer on that — let me confirm and get back to you" OR invite them in: "The best way to go over all the details is in person so nothing gets lost in translation." NEVER guess or fabricate specs.',
     '- SPEC ACCURACY RULE: Do NOT invent or guess specific numbers for towing capacity, payload, MPG, horsepower, or technical specs. If unsure, say you will confirm rather than risk giving wrong information.',
-    '- APPOINTMENT TIMES: Offer the two times ONCE and close. Never repeat them.',
+    '- FABRICATION RULE: NEVER reference a co-signer, co-buyer, credit issue, trade-in, or any customer circumstance unless it appears explicitly in the customer messages or the lead data fields. Do NOT infer these from form field labels, system notes, or lead received data. If the customer did not say it, do not mention it.',
+    '- CLOSE STRATEGY — READ THE ROOM: The two-time appointment close is not automatic. Choose the right tier:',
+    '  TIER 1 — TWO-TIME CLOSE: Customer is warm, engaged, asking about the vehicle. Offer two specific times.',
+    '  TIER 2 — QUALIFYING CLOSE: Customer has an objection or unresolved question. Ask ONE qualifying question before offering times. Example: "What monthly payment or out-the-door number would make this work for you?"',
+    '  TIER 3 — SOFT CLOSE: Customer said not today or is lukewarm. Do not offer specific times. Ask what day works: "What day this week is looking best for you?"',
+    '  TIER 4 — NO CLOSE: Customer expressed frustration, bought elsewhere, or is not interested. No appointment ask.',
+    '- APPOINTMENT TIMES: When offering times, offer them ONCE. Never repeat.',
     '- APPOINTMENT LANGUAGE: Always frame as in-store — "come in," "stop by," "visit us." Never "discuss" or "talk."',
     '- EMAIL TONE: Warm, conversational, never corporate. Never open with "I hope this email finds you well." Start with energy and forward motion.',
     '- SMS TONE: Real person texting. Direct, warm, natural. Get to the point fast.',
@@ -1887,16 +1995,22 @@ function buildUserPrompt(data) {
     else if (data.noVehicleAtAll) vrProgress = 'You have already taken the first step — let me help you find the right vehicle to go along with it.';
     else vrProgress = 'You have already done the hard part — the vehicle is here and ready for you to see.';
 
-    scenarioDirective = 'TASK: Customer took an online action through Click & Go. Acknowledge EXACTLY what they completed — never claim they did something the notes say they did not do.';
+    var clickGoHasOutreach = data.hasOutbound || data.isContacted;
+    scenarioDirective = clickGoHasOutreach
+      ? 'TASK: Click & Go lead with PRIOR OUTREACH already made. This is a follow-up — NOT a first introduction. Do NOT re-introduce yourself as if this is first contact. React to where the conversation actually stands.'
+      : 'TASK: Click & Go lead — first contact. Customer took an online action. Acknowledge EXACTLY what they completed.';
     scenarioRules = [
-      '- REQUIRED OPENING: ' + vrOpening,
+      clickGoHasOutreach
+        ? '- PRIOR OUTREACH EXISTS: Agent already sent a message or made contact. Open by directly continuing the conversation — reference what was sent or what happened, not by re-introducing yourself.'
+        : '- REQUIRED OPENING: ' + vrOpening,
       '- PROGRESS ACKNOWLEDGMENT: ' + vrProgress,
-      '- ACCURACY RULE: ONLY reference what the customer actually completed in the VR tool. Credit App: Not Started = do NOT mention a credit app. No Payment selected = do NOT reference payment selection. Never fabricate completion.',
-      '- If there is prior conversation history, briefly acknowledge: "Great to hear from you again" — but still lead with the Click & Go action.',
-      '- Frame the visit as finalizing what they started — not starting over.',
+      '- ACCURACY RULE: ONLY reference what the customer actually completed in the VR tool. Never fabricate completion.',
+      clickGoHasOutreach
+        ? '- Do NOT use first-touch language: "I wanted to reach out", "I saw you started your deal" — the agent already said this. Pick up where things left off.'
+        : '- Frame the visit as finalizing what they started — not starting over.',
       '- Never say Gubagoo, virtual retailing, or digital retailing platform.',
-      '- Duration and two-time close.',
-    ].join('\n');
+      '- CLOSE: Apply the appropriate tier from CLOSE STRATEGY. Warm engaged leads get two specific times. Leads with objections or open questions get a qualifying question first.',
+    ].filter(Boolean).join('\n');
 
     } else if (sc.isTrueCar) {
     scenarioDirective = 'TASK: TrueCar affinity/partner lead. Customer submitted a pricing request through TrueCar. They expect a real price response — not a redirect.';
@@ -1912,7 +2026,7 @@ function buildUserPrompt(data) {
       '- If a trade-in is present, mention it in ALL formats including SMS.',
       '- If there is prior conversation history, reference it naturally.',
       '- Tone: straightforward and helpful — TrueCar customers are price-aware shoppers.',
-      '- Duration and two-time close.',
+      '- CLOSE: Apply the appropriate tier from CLOSE STRATEGY. Warm engaged leads get two specific times. Leads with objections or open questions get a qualifying question first.',
     ].filter(Boolean).join('\n');
 
   } else if (sc.isAMP && !sc.isStalled) {
@@ -1926,7 +2040,7 @@ function buildUserPrompt(data) {
       '- If no vehicle info is available, keep it general: "We have some exciting options right now and I wanted to make sure you had a chance to see them."',
       '- Position the visit as easy and low-pressure — come take a look, no obligation.',
       '- Tone: warm, familiar, like a check-in from someone who knows them. Not a cold pitch.',
-      '- Duration and two-time close.',
+      '- CLOSE: Apply the appropriate tier from CLOSE STRATEGY. Warm engaged leads get two specific times. Leads with objections or open questions get a qualifying question first.',
     ].join('\n');
 
   } else if (sc.isCapitalOne) {
@@ -2018,7 +2132,7 @@ function buildUserPrompt(data) {
       sc.isHonda ? '- HFS (Honda Financial Services): Honda loyalty/equity review.' :
       sc.isToyota? '- TFS (Toyota Financial Services): Toyota loyalty/equity review.' :
                    '- Loyalty finance review.',
-      '- Duration and two-time close.',
+      '- CLOSE: Apply the appropriate tier from CLOSE STRATEGY. Warm engaged leads get two specific times. Leads with objections or open questions get a qualifying question first.',
     ].filter(Boolean).join('\n');
 
   } else if (sc.isFollowUp) {
@@ -2102,7 +2216,7 @@ function buildUserPrompt(data) {
       '- Reference the offer existance positively but neutrally: "I saw your KBB offer come through" or "the online estimate is a great starting point."',
       '- Hook: position the in-person appraisal as where they get the real number — often better than the online estimate.',
       '- Include KBB disclosure naturally: "The KBB value is based on what you submitted online — an in-person look lets us confirm everything and often improve on that number."',
-      '- Duration and two-time close.',
+      '- CLOSE: Apply the appropriate tier from CLOSE STRATEGY. Warm engaged leads get two specific times. Leads with objections or open questions get a qualifying question first.',
     ].join('\n');
 
   } else if (sc.isAIBuyingSignalNew) {
@@ -2116,7 +2230,7 @@ function buildUserPrompt(data) {
       '- REQUIRED OPENING for new prospects (no ownership): "[First name], I wanted to reach out — we have some great [truck/SUV/sedan] options available right now that I think would be a perfect fit."',
       '- Include ONE genuine qualifying question about what matters to them: "What features are most important to you?" or "Are you set on a specific trim or are you open to options?"',
       '- Do NOT ask for their phone number in the email if they already have one on file. Only ask in SMS if no phone number exists.',
-      '- Duration and two-time close.',
+      '- CLOSE: Apply the appropriate tier from CLOSE STRATEGY. Warm engaged leads get two specific times. Leads with objections or open questions get a qualifying question first.',
       '- Tone: warm, helpful, consultative — not a cold pitch.',
     ].join('\n');
 
@@ -2140,7 +2254,7 @@ function buildUserPrompt(data) {
       '  OPTION C (no owned vehicle): "[First name], I wanted to reach out — we have some great [used/new] [category] options available right now that might be exactly what you\'re looking for."',
       '- Do NOT say "I was looking at your [vehicle]" — this sounds like the agent was staring at their car. The agent does not physically look at a customer\'s vehicle.',
       '- Tone: warm, low-pressure, relationship-first. This is a VIP customer — treat them like one.',
-      '- Duration and two-time close, softer: "come take a look" not "come in to buy."',
+      '- CLOSE: Soft two-time close — frame as looking not buying. Only offer times if customer is warm. If hesitant, ask what day works instead of offering specific times.',
       '- EXAMPLE (RIGHT — SMS): "Roberto, still driving the Corolla? We have a few Tacomas available right now that I think would be a great fit. Could you stop by at 4:45 or 5:30 today?"',
       '- EXAMPLE (RIGHT — EMAIL opening): "Roberto, still driving the Corolla? We have a few Tacomas available that I think would be a great next step. I can have one ready for you to see — would 4:45 PM or 5:30 PM work today?"',
       '- EXAMPLE (WRONG): "Roberto, I was looking at your 2022 Corolla and I saw you were browsing our Tacoma inventory..." — Wrong because: exposes tracking, uses creepy "I was looking at your car" phrasing, ignores what the customer is actually interested in.',
@@ -2157,7 +2271,7 @@ function buildUserPrompt(data) {
       '- Give them ONE specific reason to come to you: price confidence, vehicle condition, fastest availability.',
       sc.vehicleSold ? '- Vehicle is sold — pivot immediately to comparable options.' : '- Confirm availability with confidence if stock/VIN is present.',
       '- Tone: direct, no fluff. They know what they want.',
-      '- Duration and two-time close.',
+      '- CLOSE: Apply the appropriate tier from CLOSE STRATEGY. Warm engaged leads get two specific times. Leads with objections or open questions get a qualifying question first.',
     ].filter(Boolean).join('\n');
 
   } else if (sc.isCarscom) {
@@ -2180,7 +2294,7 @@ function buildUserPrompt(data) {
       '  ✗ ANY phrase that implies the agent already started working before this message',
       sc.vehicleSold ? '- Vehicle is sold — pivot to comparable options without bait-and-switch language.' : '',
       '- Cars.com shoppers compare dealers — give ONE concrete reason to come to you.',
-      '- Duration and two-time close.',
+      '- CLOSE: Apply the appropriate tier from CLOSE STRATEGY. Warm engaged leads get two specific times. Leads with objections or open questions get a qualifying question first.',
     ].filter(Boolean).join('\n');
 
   } else if (sc.isEdmunds) {
@@ -2191,7 +2305,7 @@ function buildUserPrompt(data) {
       '- Do NOT dodge pricing or give a vague "come in and we will talk numbers" response.',
       '- Position the visit as where the real numbers get locked in: "The best I can do on price and trade is in person — I want to make sure you leave with the right deal, not just a quote."',
       '- Tone: knowledgeable, direct, zero condescension.',
-      '- Duration and two-time close.',
+      '- CLOSE: Apply the appropriate tier from CLOSE STRATEGY. Warm engaged leads get two specific times. Leads with objections or open questions get a qualifying question first.',
     ].join('\n');
 
   } else if (sc.isOEMLead) {
@@ -2203,7 +2317,7 @@ function buildUserPrompt(data) {
       '- If they built a specific configuration online (trim, color, packages), reference it specifically — this shows you read their submission.',
       '- If the exact config is not on the lot, offer the closest match and be specific about what is similar.',
       '- Tone: brand-proud, consultative. They are a ' + oemBrand + ' buyer — meet them there.',
-      '- Duration and two-time close.',
+      '- CLOSE: Apply the appropriate tier from CLOSE STRATEGY. Warm engaged leads get two specific times. Leads with objections or open questions get a qualifying question first.',
     ].join('\n');
 
   } else if (sc.isPhoneUp) {
@@ -2216,7 +2330,7 @@ function buildUserPrompt(data) {
       '- Frame the visit as the natural next step after the call — not a restart.',
       '- If the customer asked a specific question on the call (price, availability, trade value), acknowledge it: do not ignore unanswered questions.',
       '- Tone: warm continuation. They already know the dealership — skip the intro.',
-      '- Duration and two-time close.',
+      '- CLOSE: Apply the appropriate tier from CLOSE STRATEGY. Warm engaged leads get two specific times. Leads with objections or open questions get a qualifying question first.',
     ].join('\n');
 
   } else if (sc.isCarGurus) {
@@ -2227,7 +2341,7 @@ function buildUserPrompt(data) {
       '- If your price is competitive, acknowledge it: "You will see our price is well positioned in the market."',
       '- If price sensitivity is apparent, do NOT dodge — position the visit as where you finalize the best possible deal.',
       '- Tone: transparent and confident. CarGurus buyers respect directness.',
-      '- Duration and two-time close.',
+      '- CLOSE: Apply the appropriate tier from CLOSE STRATEGY. Warm engaged leads get two specific times. Leads with objections or open questions get a qualifying question first.',
     ].join('\n');
 
   } else if (sc.isFacebook) {
@@ -2239,7 +2353,7 @@ function buildUserPrompt(data) {
       '- Do NOT send a corporate BDC pitch. Write like a real person responding to a Facebook message.',
       '- If no vehicle is specified, ask one simple question: "What are you looking for?"',
       '- Tone: conversational, friendly, zero corporate speak.',
-      '- Duration and two-time close.',
+      '- CLOSE: Apply the appropriate tier from CLOSE STRATEGY. Warm engaged leads get two specific times. Leads with objections or open questions get a qualifying question first.',
     ].join('\n');
 
   } else if (sc.isDealerWebsite) {
@@ -2250,7 +2364,7 @@ function buildUserPrompt(data) {
       '- Acknowledge that directly: position the visit as the natural next step from where they already are in the process.',
       '- If stock/VIN is present, confirm availability confidently.',
       '- Tone: welcoming and direct. They chose you — make them feel that was the right call.',
-      '- Duration and two-time close.',
+      '- CLOSE: Apply the appropriate tier from CLOSE STRATEGY. Warm engaged leads get two specific times. Leads with objections or open questions get a qualifying question first.',
     ].join('\n');
 
   } else if (sc.isChatLead) {
@@ -2279,7 +2393,7 @@ function buildUserPrompt(data) {
       '- Tone: match the energy of someone continuing a conversation, not starting one. Casual, direct, helpful.',
       '- SMS: Short and sharp — they already know who you are. Get straight to the point.',
       '- Email: Pick up right where the chat left off. One paragraph of context, one ask.',
-      '- Duration and two-time close.',
+      '- CLOSE: Apply the appropriate tier from CLOSE STRATEGY. Warm engaged leads get two specific times. Leads with objections or open questions get a qualifying question first.',
     ].filter(Boolean).join('\n');
 
   } else if (sc.isCarFax) {
@@ -2289,7 +2403,7 @@ function buildUserPrompt(data) {
       '- CarFax buyers are research-oriented — they care about vehicle history and condition.',
       '- If condition/mileage/history info is available, reference it positively.',
       '- Tone: transparent and reassuring. These buyers want confidence in the vehicle, not just a price.',
-      '- Duration and two-time close.',
+      '- CLOSE: Apply the appropriate tier from CLOSE STRATEGY. Warm engaged leads get two specific times. Leads with objections or open questions get a qualifying question first.',
     ].join('\n');
 
   } else if (sc.isRepeatCustomer) {
@@ -2303,7 +2417,7 @@ function buildUserPrompt(data) {
       '- Position the new vehicle as a natural next step, not a sales pitch.',
       '- Skip the standard first-touch pitch — they know how this works. Get to what matters for them.',
       '- Tone: warm, familiar, genuinely happy they came back. Like picking up where you left off.',
-      '- Duration and two-time close.',
+      '- CLOSE: Apply the appropriate tier from CLOSE STRATEGY. Warm engaged leads get two specific times. Leads with objections or open questions get a qualifying question first.',
     ].filter(Boolean).join('\n');
 
   } else if (sc.isThirdPartyOEM) {
@@ -2315,7 +2429,7 @@ function buildUserPrompt(data) {
       '- Lead with brand enthusiasm and model highlights — they want to be confirmed in their choice.',
       '- If a specific vehicle or trim is on the lead, reference it. These customers often have strong preferences.',
       '- Tone: brand-proud, warm, and confident. They chose ' + oemRef + ' — validate that.',
-      '- Duration and two-time close.',
+      '- CLOSE: Apply the appropriate tier from CLOSE STRATEGY. Warm engaged leads get two specific times. Leads with objections or open questions get a qualifying question first.',
     ].join('\n');
 
   } else if (sc.isGoogleAd) {
@@ -2326,7 +2440,7 @@ function buildUserPrompt(data) {
       '- Do NOT mention Google or the ad — just treat it as a direct inquiry.',
       '- Google ad shoppers are often comparison shopping multiple results at once — speed and specificity win.',
       '- Tone: direct, fast, confident. First responder wins here.',
-      '- Duration and two-time close.',
+      '- CLOSE: Apply the appropriate tier from CLOSE STRATEGY. Warm engaged leads get two specific times. Leads with objections or open questions get a qualifying question first.',
     ].join('\n');
 
   } else if (sc.isReferral) {
@@ -2338,7 +2452,7 @@ function buildUserPrompt(data) {
       '- The tone should feel like you\'re welcoming a friend of a friend, not a cold prospect.',
       '- Do NOT push hard on appointment times immediately — build the connection first, then offer.',
       '- Tone: genuinely warm, grateful, personal.',
-      '- Duration and two-time close.',
+      '- CLOSE: Apply the appropriate tier from CLOSE STRATEGY. Warm engaged leads get two specific times. Leads with objections or open questions get a qualifying question first.',
     ].join('\n');
 
   } else {
@@ -2350,7 +2464,7 @@ function buildUserPrompt(data) {
         '- Do NOT say "we have the [color] available" — you do not know what is on the lot.',
         '- Use soft language: "we have Tellurides available" not "we have the Ebony Black Telluride available."',
         '- Include ONE qualifying question to narrow down what they want: color preference, trim, new vs pre-owned, budget.',
-        '- Duration and two-time close still required.',
+        '- CLOSE: Two-time close is appropriate here — customer is engaged. Offer two specific times.',
       ].join('\n');
     } else {
       scenarioRules = '- Standard structured response with one qualifying statement, duration, and two-time close.';
@@ -2384,7 +2498,7 @@ function buildUserPrompt(data) {
         '- Reference the CATEGORY/MODEL — not a generic "we have other options." Be specific about what is comparable.',
         '- If trim, color, or features were mentioned: acknowledge them in the comparable option. "I found one in [similar color/trim] that I think checks the same boxes."',
         '- Tone: positive and excited about the alternative — not apologetic about the sold unit.',
-        '- Duration and two-time close still required.',
+        '- CLOSE: Two-time close is appropriate here — customer is engaged. Offer two specific times.',
       ].join('\n');
     }
   }
@@ -2503,12 +2617,15 @@ function buildUserPrompt(data) {
       '');
   }
   if (flags.includes('price')) {
-    lines.push('🔴 PRICE GATE FLAG: This customer is stuck on price — they have seen numbers they did not like or expressed budget concerns.',
-      '- NEVER pitch features, packages, or upgrades — they are not buying more, they are buying value.',
-      '- Do NOT mention MSRP, sticker price, or any specific dollar amount.',
-      '- Frame the visit as finding the RIGHT number: "I want to make sure we find something that works for your budget."',
-      '- Acknowledge the concern directly if it came up in conversation — ignoring it loses the customer.',
-      '- Tone: empathetic and solution-focused. They need to believe you are on their side.',
+    var customerSaidTooExpensive = /outside.*budget|too expensive|out of.*budget|i.ll pass|will pass|not interested|thank you but|thanks but/i.test((data.lastInboundMsg||'') + ' ' + (data.context||'').substring(0,400));
+    lines.push('🔴 PRICE GATE FLAG: This customer has expressed budget concerns or price resistance.',
+      customerSaidTooExpensive
+        ? '- CRITICAL: Customer already said the price is outside their budget. Apply TIER 2 CLOSE — ask ONE qualifying question first: "What monthly payment or out-the-door number are you trying to stay under?" Do NOT offer appointment times yet. Getting their number gives you something to work with.'
+        : '- Frame the visit as finding the RIGHT number: "I want to make sure we find something that works for your budget."',
+      '- NEVER pitch features or upgrades — they are buying value, not more car.',
+      '- Do NOT mention MSRP or sticker price.',
+      '- Acknowledge the concern directly — ignoring it loses the customer.',
+      '- Tone: empathetic, solution-focused, on their side.',
       '');
   }
   // Spanish handled via translate button
@@ -2655,12 +2772,31 @@ function buildUserPrompt(data) {
     lines.push('', '━━━ CONTEXT & HISTORY ━━━', data.context);
   }
 
+  // LP commands injected last — highest attention position right before format rules
+  if (data.agentLPCommands && data.agentLPCommands.length > 0) {
+    lines.push('', '━━━ AGENT OVERRIDE INSTRUCTIONS — FOLLOW EXACTLY ━━━');
+    data.agentLPCommands.forEach(function(cmd) {
+      if(cmd.indexOf('http') === 0) {
+        lines.push('► INCLUDE THIS EXACT URL IN THE SMS (on its own line): ' + cmd);
+      } else {
+        lines.push('► ' + cmd);
+      }
+    });
+    lines.push('These instructions override all other defaults.');
+  }
+
   lines.push(
     '',
     '━━━ FORMAT RULES ━━━',
     sc.noCustomerPhone
       ? 'NO PHONE NUMBER ON FILE: SMS and voicemail are not usable channels. Write email only. For SMS field, write a short note asking for their phone number so you can reach them directly. For voicemail field, write "(No phone number — cannot leave voicemail)".'
       : 'SMS signature: agent first name only + phone number (two lines). No title. No store name.',
+    'EMAIL FORMAT RULES:',
+    '- Greeting line: "[First name]," on its own line. Then a blank line. Then start the body.',
+    '- CORRECT: "Jose,\n\nThis is Noelia..."',
+    '- WRONG: "Hi Jose, This is Noelia..." — never run the greeting and body together on the same line.',
+    '- Paragraphs: separate each paragraph with a blank line.',
+    '- Signature: each part on its own line — First Last / Title / Store / Phone.',
     'Email signature: Use line breaks between each part — NOT slashes. Format exactly as:\nFirst Last\nTitle\nStore Name\nPhone Number',
     'Voicemail: end with callback number. Nothing after it.',
     'Duration to state before times: ' + sc.duration + '.',
@@ -2895,6 +3031,7 @@ async function generateAll() {
       vrCompleted:               lastScrapedData ? !!lastScrapedData.vrCompleted : false,
       vrDroppedOff:              lastScrapedData ? !!lastScrapedData.vrDroppedOff : false,
       noVehicleAtAll:            lastScrapedData ? !!lastScrapedData.noVehicleAtAll : false,
+      agentLPCommands:           lastScrapedData ? (lastScrapedData.agentLPCommands || []) : [],
       isSoldDelivered:           lastScrapedData ? !!lastScrapedData.isSoldDelivered : false,
       activeFlags: Array.from(activeFlags)
     });
@@ -2903,7 +3040,7 @@ async function generateAll() {
       system_instruction: { parts: [{ text: buildSystemPrompt() }] },
       contents: [{ role:'user', parts:[{ text: userPrompt }] }],
       generationConfig: {
-        temperature:      0.3,
+        temperature:      0.5,
         maxOutputTokens:  5000,
         topP:             0.9,
         responseMimeType: 'application/json',
