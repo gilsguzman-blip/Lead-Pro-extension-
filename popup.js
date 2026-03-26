@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────
-// Lead Pro — popup.js  v8.07
+// Lead Pro — popup.js  v8.26
 // Calls either a proxy server (recommended for team use) OR
 // the Gemini API directly. Both configured in config.js.
 // ─────────────────────────────────────────────────────────────────
@@ -306,6 +306,15 @@ function populateFromData(d) {
       }
     }
   }
+  // Hard block: missed appt re-engagement — no appointment confirmation allowed
+  if (d.hasMissedAppt && !d.hasApptSet) {
+    var lastOutIsReengagement = /life is busy|sorry you couldn.t make it|reschedule.*convenient|missed.*appointment/i.test(d.lastOutboundMsg||'');
+    if(lastOutIsReengagement) {
+      vehicleExtras.push('');
+      vehicleExtras.push('🚫 NO APPOINTMENT EXISTS: Customer replied to re-engagement but has NOT agreed to a new time. DO NOT confirm any time. DO NOT say "I have you set for" or "See you at". Offer two new times to reschedule only.');
+    }
+  }
+
   if (d.isLiveConversation) vehicleExtras.push('🔥 LIVE CONVERSATION: Customer replied within the last few hours and is actively engaged. This is a HOT lead. Write a response that directly continues the live conversation thread. Same-day close is the priority — reference exactly what the customer said and move toward a today appointment.');
   if (d.isRecentOutbound && !d.isLiveConversation) vehicleExtras.push('📤 RECENT OUTBOUND: Agent sent a message within the last hour. Any times or offers already made in that message must be honored — do NOT contradict them with different times. If the prior message offered same-day times, continue that thread. Prior message: "' + (d.recentOutboundContent||'').substring(0,200) + '"');
   if (vehicleExtras.length) leadContext += '\n\nVEHICLE/LEAD DETAILS:\n' + vehicleExtras.join('\n');
@@ -1057,6 +1066,17 @@ function tryExecuteScript(tab, statusEl, dot) {
         if(/not today|can.t today|busy today|can.t make it today|no today|not available today|working today|at work today|won.t be able.*today|not.*able.*come.*today|not.*able.*out.*today|can.t come.*today|don.t think.*today|unable.*today|not going to make it today|won.t make it today|can.t.*today|not.*coming.*today|won.t be.*today|don.t think i.ll be able/i.test(ntText)){
           customerSaidNotToday = true;
         }
+        // Customer specifies a future day as their availability — lock onto that day
+        // e.g. "I won't be able to until Saturday", "can't until Friday", "not until next week"
+        var futureDayMatch = ntText.match(/(?:until|till|on|this|next)\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i)
+          || ntText.match(/(?:won.t|can.t|cannot|not able|unable).{0,20}(?:until|till)\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i)
+          || ntText.match(/(saturday|sunday|monday|tuesday|wednesday|thursday|friday)\s+(?:works?|is\s+better|only|available)/i);
+        if(futureDayMatch && !customerScheduleConstraint) {
+          var specificDay = (futureDayMatch[1] || futureDayMatch[2] || '').toLowerCase();
+          specificDay = specificDay.charAt(0).toUpperCase() + specificDay.slice(1);
+          customerSaidNotToday = true;
+          customerScheduleConstraint = 'CUSTOMER SPECIFIED DAY: Customer said ' + specificDay + ' is when they are available. LOCK IN ' + specificDay + ' — do NOT offer any other day. Offer two specific times on ' + specificDay + ' only. Do NOT try to pull them in sooner.';
+        }
         // Customer states arrival time — e.g. "I get off at 6", "done at 5:30", "arrive around 7"
         var arrivalMatch = ntText.match(/(?:get off|off work|done|finish|out|arrive|be there|come by|stop by|swing by)(?:\s+(?:at|by|around|after))?\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)/i);
         if(arrivalMatch && !customerScheduleConstraint) {
@@ -1481,6 +1501,19 @@ function tryExecuteScript(tab, statusEl, dot) {
     // If a future appointment is confirmed, it can't also be a missed appointment
     if(hasApptSet) hasMissedAppt = false;
 
+    // MISSED APPT RE-ENGAGEMENT GUARD:
+    // If the most recent outbound was a re-engagement message (missed appt language)
+    // and the customer replied but did NOT confirm a specific new time,
+    // force hasApptSet = false so the AI cannot generate an appointment confirmation
+    var lastOutboundIsMissedApptReengagement = /life is busy|sorry you couldn.t make it|couldn.t make it out|missed.*appointment|reschedule.*convenient|more convenient/i.test(lastOutboundMsg||'');
+    var customerConfirmedSpecificTime = /([0-9]{1,2}:[0-9]{2}\s*(?:am|pm)?)/i.test(lastInboundMsg||'')
+      && /(yes|ok|okay|sure|works|confirmed|see you|i.ll be|sounds good)/i.test(lastInboundMsg||'');
+    if(lastOutboundIsMissedApptReengagement && !customerConfirmedSpecificTime) {
+      hasApptSet = false;
+      apptDetails = '';
+      console.log('[Lead Pro] Missed appt re-engagement detected — hasApptSet forced false, no fabricated confirmation allowed');
+    }
+
     // Detect sold/delivered - only flag RECENT sales (within 30 days) as congratulations territory
     // Old sold leads (past customers being re-engaged) are follow-up conversations, not congrats
     var isSoldDelivered = false;
@@ -1870,6 +1903,7 @@ function buildSystemPrompt() {
     '- ANSWERING QUESTIONS — THREE PATHS: (1) If you know the answer confidently, give it directly and briefly. (2) If it is a pricing/payment question, give a range or starting point and position the visit as where they get the exact number. (3) If it is a spec/feature question you are not certain about (towing capacity, exact MPG, specific option), say: "I want to make sure I give you the right answer on that — let me confirm and get back to you" OR invite them in: "The best way to go over all the details is in person so nothing gets lost in translation." NEVER guess or fabricate specs.',
     '- SPEC ACCURACY RULE: Do NOT invent or guess specific numbers for towing capacity, payload, MPG, horsepower, or technical specs. If unsure, say you will confirm rather than risk giving wrong information.',
     '- FABRICATION RULE: NEVER reference a co-signer, co-buyer, credit issue, trade-in, or any customer circumstance unless it appears explicitly in the customer messages or the lead data fields. Do NOT infer these from form field labels, system notes, or lead received data. If the customer did not say it, do not mention it.',
+    '- APPOINTMENT FABRICATION RULE: NEVER confirm, reference, or imply a specific appointment time unless the customer explicitly agreed to that time in their messages. "Thank you" is NOT an appointment confirmation. If no time has been agreed to, offer new times — do not invent one.',
     '- CLOSE STRATEGY — READ THE ROOM: The two-time appointment close is not automatic. Choose the right tier:',
     '  TIER 1 — TWO-TIME CLOSE: Customer is warm, engaged, asking about the vehicle. Offer two specific times.',
     '  TIER 2 — QUALIFYING CLOSE: Customer has an objection or unresolved question. Ask ONE qualifying question before offering times. Example: "What monthly payment or out-the-door number would make this work for you?"',
@@ -1967,14 +2001,22 @@ function buildUserPrompt(data) {
     }
 
   } else if (sc.isMissedAppt) {
-    scenarioDirective = 'TASK: Customer missed their appointment but has explained why. Read their exact words in the transcript and write a response that acknowledges what THEY said specifically.';
+    // Detect if a new appointment was explicitly confirmed by customer (specific time agreed to)
+    // "Thank you" alone is NOT a confirmation — it is a polite response to re-engagement
+    var missedApptNewTimeConfirmed = /(9:15|10:30|11:00|[0-9]{1,2}:[0-9]{2})/i.test(data.lastInboundMsg||'')
+      && /(yes|ok|okay|sure|works|confirmed|see you|i.ll be|i will be)/i.test(data.lastInboundMsg||'');
+
+    scenarioDirective = missedApptNewTimeConfirmed
+      ? 'TASK: Customer confirmed a new appointment time. Confirm it clearly.'
+      : 'TASK: Customer missed appointment. Re-engagement sent. Customer replied but NO new time agreed to. Offer two new times — do NOT confirm any appointment.';
+
     scenarioRules = [
-      '- Read the customer\'s most recent inbound message carefully. Reference their specific reason or situation.',
-      '- If the customer said they\'d reach out when ready, acknowledge that and keep the door open — do not pressure.',
-      '- If the customer mentioned a spouse, family member, or specific condition (e.g., "wife wants to come"), acknowledge it.',
-      '- If the customer expressed strong interest, reflect that positively.',
-      '- Offer two new times only if the customer seems open to rescheduling soon. If they said "I\'ll contact you when ready," just leave the door open warmly.',
-      '- Tone: understanding, personal, genuine — not a template.',
+      missedApptNewTimeConfirmed
+        ? '- Confirm the agreed time clearly and briefly.'
+        : '- NO APPOINTMENT EXISTS. "Thank you" is not a confirmation. Offer two new times only.',
+      '- Do not repeat re-engagement language already sent.',
+      '- Tone: warm, brief.',
+      '- Never confirm a time the customer did not agree to.',
     ].join('\n');
 
   } else if (sc.isClickAndGo) {
@@ -2013,6 +2055,13 @@ function buildUserPrompt(data) {
     ].filter(Boolean).join('\n');
 
     } else if (sc.isTrueCar) {
+    // Detect employer perk / Perkspot program from lead received note
+    var employerPerkMatch = (data.context||'').match(/EMPLOYER[^*]{0,5}[*]+\s*([A-Za-z0-9 &,.-]{2,40})/i);
+    var buyerBonusMatch = (data.context||'').match(/BUYER.S BONUS[^*]{0,5}[*]+\s*([^*\n]{5,60})/i);
+    var employerName = employerPerkMatch ? employerPerkMatch[1].trim() : '';
+    var buyerBonus = buyerBonusMatch ? buyerBonusMatch[1].trim() : '';
+    var hasPerkspot = /perkspot|employer perk|employee.*perk|perks site/i.test(data.context||'');
+
     scenarioDirective = 'TASK: TrueCar affinity/partner lead. Customer submitted a pricing request through TrueCar. They expect a real price response — not a redirect.';
     scenarioRules = [
       '- Acknowledge the TrueCar request directly: "I saw your TrueCar request on the [vehicle]."',
@@ -2025,6 +2074,12 @@ function buildUserPrompt(data) {
         : '',
       '- If a trade-in is present, mention it in ALL formats including SMS.',
       '- If there is prior conversation history, reference it naturally.',
+      hasPerkspot && employerName
+        ? '- EMPLOYER PERK DETECTED: Customer is shopping through their employer (' + employerName + ') via Perkspot/Employee Perks. Reference this directly — it builds trust and shows you read their request: "I saw you are using your ' + employerName + ' employee benefit through TrueCar."'
+        : '',
+      hasPerkspot && buyerBonus
+        ? '- BUYER BONUS: Customer has ' + buyerBonus + ' available through their employer perk program. Mention this as an advantage — it is money they have already earned.'
+        : '',
       '- Tone: straightforward and helpful — TrueCar customers are price-aware shoppers.',
       '- CLOSE: Apply the appropriate tier from CLOSE STRATEGY. Warm engaged leads get two specific times. Leads with objections or open questions get a qualifying question first.',
     ].filter(Boolean).join('\n');
@@ -3041,7 +3096,7 @@ async function generateAll() {
       contents: [{ role:'user', parts:[{ text: userPrompt }] }],
       generationConfig: {
         temperature:      0.5,
-        maxOutputTokens:  5000,
+        maxOutputTokens:  8000,
         topP:             0.9,
         responseMimeType: 'application/json',
         thinkingConfig:   { thinkingLevel: 'low' }
@@ -3082,13 +3137,24 @@ async function generateAll() {
       // Fix common AI JSON breakage: trailing period before closing quote
       clean = clean.replace(/\.(\")/g, '$1');  // escaped quotes
       clean = clean.replace(/\.("(?:[}\]\s,]|$))/g, '$1'); // unescaped quotes before } ] , or end
-      // Fix raw newlines/tabs inside JSON string values — AI sometimes emits literal \n instead of \\n
-      // Strategy: find string values and escape any raw control chars inside them
-      clean = clean.replace(/"((?:[^"\\]|\\.)*)"/g, function(match, inner) {
-        // Replace raw newlines, carriage returns, tabs inside string values
-        var fixed = inner.replace(/\n/g, '\\n').replace(/\r/g, '\\r').replace(/\t/g, '\\t');
-        return '"' + fixed + '"';
-      });
+      // Fix raw control characters inside JSON string values
+      // Walk char by char between quotes to safely escape raw newlines/tabs
+      var result = '';
+      var inString = false;
+      var escaped = false;
+      for (var ci = 0; ci < clean.length; ci++) {
+        var ch = clean[ci];
+        if (escaped) { result += ch; escaped = false; continue; }
+        if (ch === '\\') { result += ch; escaped = true; continue; }
+        if (ch === '"') { inString = !inString; result += ch; continue; }
+        if (inString) {
+          if (ch === '\n') { result += '\\n'; continue; }
+          if (ch === '\r') { result += '\\r'; continue; }
+          if (ch === '\t') { result += '\\t'; continue; }
+        }
+        result += ch;
+      }
+      clean = result;
       parsed = JSON.parse(clean);
       console.log('[Lead Pro] JSON parsed successfully');
     } catch(e) {
@@ -3202,7 +3268,7 @@ document.getElementById('btnGrab').addEventListener('click', grabLead);
 document.getElementById('btnGenerate').addEventListener('click', generateAll);
 
 window.addEventListener('load', function() {
-  console.log('[Lead Pro] v8.07 loaded');
+  console.log('[Lead Pro] v8.26 loaded');
 
   // Detect popup vs side panel mode and apply appropriate layout class
   // Side panel windows are wider (Chrome enforces ~360px min); floating popups are narrower
