@@ -460,14 +460,14 @@ test('S9 — isMissedAppt fires when context contains "missed appointment"', () 
   notOk(sc.isApptConfirmation, 'isApptConfirmation should be false');
 });
 
-test('S9 — Missed appt prompt tells AI to acknowledge customer\'s specific reason', () => {
+test('S9 — Missed appt prompt instructs AI to offer new times without re-confirming', () => {
   const prompt = buildUserPrompt(followUpBase({
     context:
       'missed appointment\n\nCONVERSATION TRANSCRIPT:\n---\n' +
       '[CUSTOMER] Yeah something came up with work, can we try again next week?\n---',
   }));
-  contains(prompt, 'missed their appointment', 'Prompt should reference missed appointment');
-  contains(prompt, 'specific reason',          'Prompt should reference the customer\'s specific reason');
+  contains(prompt, 'missed appointment',  'Prompt should reference missed appointment');
+  contains(prompt, 'offer two new times', 'Prompt should instruct AI to offer two new times');
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
