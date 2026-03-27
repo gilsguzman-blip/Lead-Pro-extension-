@@ -965,7 +965,7 @@ test('S22 — LP command with URL gets VDP link label in prompt', () => {
     agentLPCommands: ['https://dealer.com/inventory/camry-stock-123'],
   });
   contains(prompt, 'https://dealer.com/inventory/camry-stock-123', 'LP URL should appear in prompt');
-  contains(prompt, 'vdp link provided by agent', 'LP URL should be labeled as VDP link');
+  contains(prompt, 'agent-provided link', 'LP URL should be labeled as agent-provided link');
 });
 
 test('S22 — Empty agentLPCommands array → no agent instructions block in prompt', () => {
