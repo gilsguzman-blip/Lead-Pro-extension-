@@ -222,12 +222,17 @@ function populateFromData(d) {
     vehicleExtras.push('━━ AGENT INSTRUCTIONS (highest priority — follow exactly) ━━');
     d.agentLPCommands.forEach(function(cmd) { vehicleExtras.push('► ' + cmd); });
     vehicleExtras.push('These instructions were added by the agent and override default behavior.');
-    // Check if any LP command contains a URL — inject as VDP link instruction
-    var lpUrls = d.agentLPCommands.filter(function(cmd){ return cmd.indexOf('http') === 0; });
-    if(lpUrls.length > 0) {
-      vehicleExtras.push('VDP LINK PROVIDED BY AGENT: ' + lpUrls[0]);
-      vehicleExtras.push('- Include this exact URL in the SMS response. Do NOT modify or shorten it.');
-      vehicleExtras.push('- SMS format: include the link on its own line after the message.');
+    // Extract URL from anywhere in LP commands
+    var lpUrlExtracted = '';
+    d.agentLPCommands.forEach(function(cmd) {
+      if(!lpUrlExtracted) {
+        var urlMatch = cmd.match(/https?:\/\/[^\s]+/);
+        if(urlMatch) lpUrlExtracted = urlMatch[0];
+      }
+    });
+    if(lpUrlExtracted) {
+      vehicleExtras.push('AGENT-PROVIDED LINK: ' + lpUrlExtracted);
+      vehicleExtras.push('- This URL must appear in BOTH the SMS (on its own line) AND the email body (on its own line, placed naturally before the appointment close). Mandatory in both — do not omit from either.');
     }
   }
 
@@ -315,13 +320,48 @@ function populateFromData(d) {
     }
   }
 
+  // Contact recovery mode
+  // Lead Response Velocity Governor — first response within ~60 seconds of lead creation
+  if (d.isVelocityResponse && !d.hasOutbound) {
+    vehicleExtras.push('');
+    vehicleExtras.push('⚡ VELOCITY RESPONSE: This is the first outbound response within seconds of lead creation. SUPPRESS the appointment engine for this message only.');
+    vehicleExtras.push('- Structure: Acknowledge inquiry + ONE light qualifying question. NO duration. NO appointment times.');
+    vehicleExtras.push('- Example: "Hi [Name], this is [Agent] with [Store]. I saw your request on the [Vehicle] — are you just starting your search or looking to move soon?"');
+    vehicleExtras.push('- Appointment engine activates on the second exchange after the customer replies.');
+  }
+
+  // SRP vehicle guard — auto-assigned vehicles are browsing references only
+  if (d.isSRPVehicle && !d.noVehicleAtAll) {
+    vehicleExtras.push('');
+    vehicleExtras.push('⚠ SRP-INJECTED VEHICLE: This vehicle was automatically assigned by the system from search results — it is a browsing reference, NOT a specific customer request. Do NOT treat it as a confirmed vehicle of interest.');
+    vehicleExtras.push('- Do NOT say the vehicle is "showing available" or "ready to see" as if the customer chose it.');
+    vehicleExtras.push('- Reference the vehicle neutrally: "the vehicle you were looking at online" or ask a qualifying question about what they are looking for.');
+    vehicleExtras.push('- Lead with the customer action (chat question, trade inquiry, source intent) — not the vehicle.');
+  }
+
+  if (d.contactRecoveryEmail) {
+    vehicleExtras.push('');
+    vehicleExtras.push(d.isMaskedEmail
+      ? '📧 MASKED EMAIL DETECTED: Customer email is a marketplace relay address that may not reliably deliver. In the SMS, naturally request their direct email before the appointment close. Example: "What is the best email to send the vehicle details to?" Do NOT mention the email is masked.'
+      : '📧 NO EMAIL ON FILE: Customer has no email address. In the SMS, request their email naturally before the close. Example: "What is a good email to send the details to?"');
+  }
+  if (d.contactRecoveryPhone) {
+    vehicleExtras.push('');
+    vehicleExtras.push('📞 NO PHONE ON FILE: Customer has no phone number. In the email, naturally request their best number before the close. Example: "What is the best number to reach you on in case anything changes before your visit?"');
+  }
+
   if (d.isLiveConversation) vehicleExtras.push('🔥 LIVE CONVERSATION: Customer replied within the last few hours and is actively engaged. This is a HOT lead. Write a response that directly continues the live conversation thread. Same-day close is the priority — reference exactly what the customer said and move toward a today appointment.');
   if (d.isRecentOutbound && !d.isLiveConversation) vehicleExtras.push('📤 RECENT OUTBOUND: Agent sent a message within the last hour. Any times or offers already made in that message must be honored — do NOT contradict them with different times. If the prior message offered same-day times, continue that thread. Prior message: "' + (d.recentOutboundContent||'').substring(0,200) + '"');
   if (vehicleExtras.length) leadContext += '\n\nVEHICLE/LEAD DETAILS:\n' + vehicleExtras.join('\n');
 
   // Stalled flag — cold follow-ups with outbound history but no confirmed contact
   // A live conversation (customer replied today) is never stalled — active engagement beats all stall signals
-  const isStalled = isFollowUp && !d.isContacted && !d.hasApptSet && !d.isShowroomFollowUp && !d.isLiveConversation && (d.leadAgeDays || 0) >= 2; // minimum 2 days old — brand new leads cannot be stalled
+  // Stalled = has outbound history, customer has NOT replied recently, lead is aging
+  // Fires even if isContacted — contacted but gone silent IS stalled
+  // isLiveConversation guard prevents false positives on active threads
+  const isStalled = isFollowUp && !d.hasApptSet && !d.isShowroomFollowUp && !d.isLiveConversation
+    && (d.leadAgeDays || 0) >= 3  // minimum 3 days old
+    && !d.convState.includes('live'); // no live conversation
   console.log('[Lead Pro] Stalled check — isFollowUp:', isFollowUp, '| isContacted:', d.isContacted, '| contactedAgeDays:', d.contactedAgeDays, '| hasApptSet:', d.hasApptSet, '| isShowroomFollowUp:', d.isShowroomFollowUp, '| hasOutbound:', d.hasOutbound, '| totalNoteCount:', d.totalNoteCount, '| convState:', d.convState, '| STALLED:', isStalled);
   if (isStalled) {
     toggleFlag('stalled', true);
@@ -375,18 +415,38 @@ function populateFromData(d) {
   }
   if (ls.includes('capital one') || ls.includes('cap one'))    toggleFlag('credit', true);
   // Auto-detect credit sensitivity from customer's own words in inbound messages
-  if (!activeFlags.has('credit') && d.lastInboundMsg && d.lastInboundMsg.length > 15) {
-    // Only scan genuine customer messages — skip automated/system text
-    var isAutomatedMsg = /automated response|we are not open|assurance that your request|working on your request|plugin\.tradepending|value-to-dealer|market report/i.test(d.lastInboundMsg);
-    if(!isAutomatedMsg){
-      var creditMention = /don.t have (good |great |perfect |the best )?credit|bad credit|no credit|poor credit|credit (is|isn.t|aint|ain.t)|low credit|credit score|credit challenge|working on (my |our )?credit|been denied|got denied|bankruptcy|repo|repossession|collections|it is what it is.*credit|credit.*it is what it is/i.test(d.lastInboundMsg);
+  if (!activeFlags.has('credit')) {
+    // Scan lastInboundMsg AND full context — credit mentions appear in emails and earlier texts too
+    var creditScanText = (d.lastInboundMsg || '') + ' ' + (d.context || '');
+    var isAutomatedCredit = /automated response|we are not open|plugin\.tradepending|value-to-dealer|market report/i.test(creditScanText.substring(0, 200));
+    if(!isAutomatedCredit){
+      var creditMention = /don.t have (good |great |perfect |the best )?credit|bad credit|no credit|poor credit|credit (is|isn.t|aint|ain.t)|low credit|credit score|credit challenge|working on (my |our )?credit|been denied|got denied|bankruptcy|repo|repossession|collections|it is what it is.*credit|credit.*it is what it is|not the best credit|hiccup.*credit|credit.*hiccup|rough credit|rebuilding.*credit|building.*credit|first.time buyer|first time buying|never financed|never bought a car/i.test(creditScanText);
       if(creditMention) toggleFlag('credit', true);
     }
   }
   // Auto-detect price gate from customer inbound price objection
-  if (!activeFlags.has("price") && d.lastInboundMsg && d.lastInboundMsg.length > 10) {
-    var priceObjection = /out.the.door|otd price|couldn.t reach.*agreement|price.*too high|too expensive|over.*budget|numbers.*not.*work|not.*work.*numbers|best.*price|lower.*price|better.*price|can.*do.*better|come down|negotiate|counter offer|upside down|negative equity|owe more than.*worth|underwater.*loan/i.test(d.lastInboundMsg);
+  // Also detect lease/OTD negotiation language — these are price gate scenarios
+  if (!activeFlags.has("price")) {
+    // Scan lastInboundMsg AND recent context for price gate signals
+    // Email replies don't always land in lastInboundMsg — scan context too
+    var priceScanText = (d.lastInboundMsg || '') + ' ' + (d.context || '');
+    var priceObjection = /out.the.door|out.of.door|otd price|itemized|line.item|breakdown|couldn.t reach.*agreement|price.*too high|too expensive|over.*budget|numbers.*not.*work|not.*work.*numbers|best.*price|lower.*price|better.*price|can.*do.*better|come down|negotiate|counter offer|upside down|negative equity|owe more than.*worth|underwater.*loan|no financing|without financing|cash purchase|cash price|paying cash|compete.*price|another dealer.*price|other dealer.*quote|quote from|what.s the (best|lowest|bottom) (price|number)|how low|what can you do|any wiggle room|room to negotiate|can you come down|drive out|drive-out|total cost|all in|all-in price|final price|before (taxes|fees)|before i (drive|come|visit)/i.test(priceScanText);
     if(priceObjection) toggleFlag("price", true);
+  }
+
+  // Auto-detect distance buyer from customer messages and buyer address
+  if (!activeFlags.has('distance')) {
+    var distanceScanText = (d.lastInboundMsg || '') + ' ' + (d.context || '').substring(0, 2000);
+    var buyerAddress = (d.pageSnippet || '') + ' ' + (d.context || '').substring(0, 500);
+    // Distance signals from customer messages
+    var distanceSignal = /far from|long drive|far away|drive from|coming from|located in|live in|hours away|miles away|worth the (drive|trip)|make the (drive|trip)|drive.*worth it|before (i|we) (drive|make the trip)|coming from (houston|dallas|austin|san antonio|baton rouge|new orleans|lake charles|shreveport|beaumont|port arthur|alexandria|monroe|hammond|slidell|metairie|kenner|gretna|mandeville|covington|bogalusa|natchitoches)/i.test(distanceScanText);
+    // Also detect from zip codes / cities not local to Lafayette or Baytown
+    var lafayetteLocal = /70501|70502|70503|70504|70505|70506|70507|70508|70509|70510|lafayette/i.test(buyerAddress);
+    var baytownLocal = /77520|77521|77522|77523|77530|77532|77536|77547|77562|77571|77572|baytown|la porte|deer park|league city|pasadena/i.test(buyerAddress);
+    var isLocalBuyer = lafayetteLocal || baytownLocal;
+    // If address is NOT local and they have an address, flag as distance
+    var hasOutOfAreaAddress = /(TX|Louisiana|LA)/i.test(buyerAddress) && !isLocalBuyer;
+    if(distanceSignal || hasOutOfAreaAddress) toggleFlag('distance', true);
   }
 
   // Scan Gubagoo/chat lead data for credit signals
@@ -762,6 +822,23 @@ function tryExecuteScript(tab, statusEl, dot) {
     // Exclude 17-char VINs that may appear under "Stock #" in the Vehicle(s) of Interest panel
     const stockNum = (stockNumRaw && stockNumRaw.length < 15) ? stockNumRaw : '';
     const vin=tm([/\bVIN[:\s]+([A-HJ-NPR-Z0-9]{17})\b/i]);
+    // ── SRP-injected vehicle detection ────────────────────────────
+    // Vehicles auto-assigned from search results pages are browsing references, not specific customer requests
+    // ── Lead Response Velocity Governor ────────────────────────────
+    // First response within 60 seconds of lead creation — suppress appointment engine
+    var createdMatch = TEXT.match(/Created[:\s]+(\d{1,2}\/\d{1,2}\/\d{2,4}\s+\d{1,2}:\d{2}[ap])/i);
+    var isVelocityResponse = false;
+    if(createdMatch) {
+      var createdMs = new Date(createdMatch[1]).getTime();
+      if(createdMs > 0 && (Date.now() - createdMs) < 90000) isVelocityResponse = true; // within 90 seconds
+    }
+
+    var srpRaw = /top match auto.selected|automatically selected from.*inventory|initiated from[:\s]+(?:new-srp|srp|search.results)|search results page|vehicle added by system/i.test(TEXT.substring(0, 3000));
+    // If customer specified a color or trim preference, it's a real selection — not SRP
+    var customerSpecifiedVehicle = /color[:\s]+(?!no preference|not specified)[a-z]/i.test(TEXT.substring(0, 2000))
+      || /matching features.*(?:pearl|black|white|silver|red|blue|gray|grey|brown|green)/i.test(TEXT.substring(0, 3000));
+    var isSRPVehicle = srpRaw && !customerSpecifiedVehicle;
+
     // Inventory sold detection - TEXT-based only here; note scanning happens after noteEls is defined below
     const inventoryWarning = /no longer in your active inventory/i.test(TEXT);
     // No stock number AND no VIN = customer interested in model/trim but no specific unit selected
@@ -833,35 +910,50 @@ function tryExecuteScript(tab, statusEl, dot) {
     const tradeClean=tradeRaw.replace(/Trade-?in\s*Info/gi,'').trim();
     const hasTrade=tradeClean.length>2&&!tradeClean.includes('(none entered)');
     const tradeDescription=hasTrade?tradeClean.substring(0,200):'';
+    // ── Contact recovery mode ─────────────────────────────────────
+    var buyerEmail = (TEXT.match(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/)||[''])[0].toLowerCase();
+    var maskedDomains = ['anon.cargurus.com','relay.cargurus.com','privaterelay.appleid.com','marketplace.facebook.com'];
+    var isMaskedEmail = maskedDomains.some(function(d){ return buyerEmail.indexOf(d) !== -1; });
+    var directDomains = ['gmail.com','yahoo.com','icloud.com','outlook.com','hotmail.com','live.com','msn.com','aol.com','me.com','att.net','comcast.net'];
+    var isDirectEmail = directDomains.some(function(d){ return buyerEmail.indexOf(d) !== -1; });
+    var phonePattern = /(d{3})[s]?d{3}[s-]d{4}|d{3}[s-]d{3}[s-]d{4}/;
+    var hasPhone = phonePattern.test(TEXT.substring(0,2000));
+    var hasEmail = buyerEmail.length > 4;
+    var contactRecoveryPhone = !hasPhone && hasEmail;
+    var contactRecoveryEmail = isMaskedEmail || (!hasEmail && hasPhone);
+
     const noteEls = Array.from(document.querySelectorAll('.notes-and-history-item')||[]);
     const totalNoteCount = noteEls.length;
 
-    // ── Agent LP commands — scan all notes for LP: instructions ──
+    // ── Agent LP commands — use MOST RECENT LP note only ──────────
+    // Notes are newest-first in VinSolutions DOM — stop at first LP note found
     var agentLPCommands = [];
-    noteEls.forEach(function(n) {
-      // Try multiple selectors — VinSolutions DOM varies
-      var c = ((n.querySelector('.notes-and-history-item-content')||{}).innerText||'').trim();
-      if(!c) c = ((n.querySelector('.note-content')||{}).innerText||'').trim();
-      if(!c) c = ((n.querySelector('[class*="content"]')||{}).innerText||'').trim();
-      if(!c) c = (n.innerText||'').trim();
-      // Debug: log ALL note content so we can see what the scraper reads
-      if(c && c.length < 300) console.log('[Lead Pro] note content:', JSON.stringify(c.substring(0,120)));
-      if(!c) return;
+    var lpNoteFound = false;
+    for(var lpIdx = 0; lpIdx < noteEls.length; lpIdx++) {
+      var lpNote = noteEls[lpIdx];
+      var c = ((lpNote.querySelector('.notes-and-history-item-content')||{}).innerText||'').trim();
+      if(!c) c = ((lpNote.querySelector('.note-content')||{}).innerText||'').trim();
+      if(!c) c = ((lpNote.querySelector('[class*="content"]')||{}).innerText||'').trim();
+      if(!c) c = (lpNote.innerText||'').trim();
+      if(!c) continue;
+      var hasLP = false;
       // [LP: ...] bracket format
       var lpMatches = c.match(/\[LP:\s*([^\]]+)\]/gi);
       if(lpMatches) {
         lpMatches.forEach(function(m) {
           var cmd = m.replace(/^\[LP:\s*/i,'').replace(/\]$/,'').trim();
-          if(cmd && agentLPCommands.indexOf(cmd) === -1) agentLPCommands.push(cmd);
+          if(cmd) { agentLPCommands.push(cmd); hasLP = true; }
         });
       }
-      // bare LP: format — anywhere in note, on its own line
+      // bare LP: format — anywhere in note on its own line
       var lpLineMatch = c.match(/(?:^|\n)LP:\s*(.+)/i);
       if(lpLineMatch) {
         var bareCmd = lpLineMatch[1].trim();
-        if(bareCmd && agentLPCommands.indexOf(bareCmd) === -1) agentLPCommands.push(bareCmd);
+        if(bareCmd) { agentLPCommands.push(bareCmd); hasLP = true; }
       }
-    });
+      // Stop after first LP note found — most recent wins
+      if(hasLP) { lpNoteFound = true; break; }
+    }
     console.log('[Lead Pro] LP commands found:', agentLPCommands.length, agentLPCommands);
 
     // Also check agent notes for sold/pending-sold entries
@@ -1011,7 +1103,12 @@ function tryExecuteScript(tab, statusEl, dot) {
     var boughtElsewhere = /we (bought|purchased|went with|decided on).{0,30}(another|elsewhere|different|other dealer|from them|from there)/i.test(fullScanText)
       || /bought (one|a car|a vehicle) (from|at|with)/i.test(fullScanText);
     var keepingTrade = /keep it if|keep my (car|truck|suv|altima|camry|vehicle)|hold onto it|just keep (it|my)/i.test(fullScanText);
-    const hasExitSignal = (exitRaw || boughtElsewhere) && !keepingTrade;
+    // Guard: "not interested in [specific thing]" is an objection, not an exit
+    // Only treat as exit if "not interested" is standalone or followed by "anymore", "at all", "period"
+    var notInterestedIsObjection = /not interested in (the |your |those |dealer |add|price|that price|the price|financing|the deal|the add)/i.test(fullScanText);
+    // Guard: active negotiation language overrides exit signal
+    var activeNegotiation = /happy to discuss|willing to|let me know|i need|i want|i would like|quote|money factor|residual|lease|OTD|out.?the.?door|drive.?and.?sign|if you|if y.?all/i.test(fullScanText.substring(fullScanText.length - 600));
+    const hasExitSignal = (exitRaw || boughtElsewhere) && !keepingTrade && !notInterestedIsObjection && !activeNegotiation;
     const hasPauseSignal = !hasExitSignal && /taking a break|no luck|need time|not ready|still looking|need to think|not able to upgrade|not looking to upgrade|too early|just got|only have \d+k|low miles/i.test(fullScanText);
 
     // Detect live/hot conversation - inbound reply within last few hours = customer is actively engaged
@@ -1186,7 +1283,7 @@ function tryExecuteScript(tab, statusEl, dot) {
         return line.indexOf('[CUSTOMER]') !== -1;
       }).join(' ');
 
-      if(/too (much|high|expensive)|can.t afford|out of (my |our )?budget|payment.*too|over.*budget|price.*concern|what.s the (price|payment|cost)|how much (is|would)|monthly payment|out the door/i.test(allTranscriptText)){
+      if(/too (much|high|expensive)|can.t afford|out of (my |our )?budget|payment.*too|over.*budget|price.*concern|what.s the (price|payment|cost)|how much (is|would)|monthly payment|out the door|out-the-door|OTD|drive.?and.?sign|money factor|residual|lease quote|remove.*add.?on|take off.*add|without the add/i.test(allTranscriptText)){
         customerConcerns.push('PRICE/PAYMENT CONCERN: Customer raised price or payment as an issue. Open by addressing this directly — not by pitching features.');
       }
       if(/(wife|husband|spouse|partner)|run it by|talk (to|with) (my|the)|need to discuss|bring (him|her|them)/i.test(allTranscriptText)){
@@ -1600,7 +1697,7 @@ function tryExecuteScript(tab, statusEl, dot) {
       leadSource,leadStatus: currentStatus || leadStatus,hasTrade,tradeDescription,buyingSignals,
       history, totalNoteCount, hasOutbound, isContacted, contactedAgeDays, lastOutboundMsg, lastInboundMsg,
       hasPauseSignal, hasExitSignal, convState, conversationBrief, customerSaidNotToday, customerScheduleConstraint, isLiveConversation, isRecentOutbound, recentOutboundContent,
-      isInTransit, hasApptSet, apptDetails, isSoldDelivered, hasMissedAppt, missedApptTiming: missedApptTiming2, vrCreditApp, vrPaymentSelected, vrTradeIn, vrCompleted, vrDroppedOff, noVehicleAtAll, agentLPCommands,
+      isInTransit, hasApptSet, apptDetails, isSoldDelivered, hasMissedAppt, missedApptTiming: missedApptTiming2, vrCreditApp, vrPaymentSelected, vrTradeIn, vrCompleted, vrDroppedOff, noVehicleAtAll, agentLPCommands, contactRecoveryPhone, contactRecoveryEmail, isMaskedEmail, isSRPVehicle, isVelocityResponse,
       isShowroomFollowUp, showroomDetails, showroomVisitToday,
       pastVisitNotes,
       hasConfirmedVisit,
@@ -1874,20 +1971,34 @@ function buildSystemPrompt() {
     '- Email: Subject line first ("Subject: ..."), then full message, then complete signature stacked on separate lines (Name on line 1, Title on line 2, Store on line 3, Phone on line 4). Never use slashes between signature parts.',
     '- Voicemail: EXACT 3-PART STRUCTURE — no deviations:',
     '  PART 1 — INTRO: "Hi [First Name], this is [Agent First Name] from [Store Name]." One sentence. Nothing else.',
-    '  PART 2 — HOOK: ONE sentence only. The single most compelling reason to call back, specific to THIS lead. Make it feel like news or a personal update — not a script. Choose the hook based on what is true:',
-    '    • Vehicle available: "The [vehicle] you were looking at is still available and I wanted to make sure you had a chance to see it before it moves."',
-    '    • Trade-in: "I pulled up some numbers on your trade and I think you are going to like what I found."',
-    '    • Credit/Click & Go: "Your application came through and I have some information I think will make this work for you."',
-    '    • Stalled/re-engagement: "I was thinking about you and wanted to reach out — I have something specific to share about the [vehicle/category]."',
-    '    • Appointment reminder: "Just a reminder that we have you set for [time] and I will have everything ready when you arrive."',
-    '    • General follow-up: "I have some information on the [vehicle] that I wanted to share with you personally."',
-    '  PART 3 — CALLBACK: "Give me a call back at [number]." Repeat the number once: "That is [number] again." Nothing after the second number. End there.',
-    '  TOTAL LENGTH: 60-80 words. Long enough to sound human, short enough to not lose them.',
-    '  DO NOT include appointment times in voicemail — that is for SMS/email. Voicemail goal is ONE thing: get a callback.',
-    '  DO NOT say: "following up" "touching base" "just wanted to" "at your earliest convenience" "please let me know" "I look forward to" — these kill callbacks.',
-    '  RIGHT EXAMPLE: "Hi Maria, this is Kristen from Community Kia Baytown. I just pulled up some information on the Telluride and I have numbers I think are going to work really well for you — give me a call at 281-837-3383. That is 281-837-3383."',
-    '  WRONG EXAMPLE: "Hi Maria, this is Kristen from Community Kia Baytown. I am following up on your inquiry about the Telluride and would love to schedule a time to discuss your needs and answer any questions you might have. Please call me back at your earliest convenience at 281-837-3383. Thank you and have a great day."',
-    '- Never say: "Checking in" "Following up" "Touching base" "Still working on" "I have been working on" "I have been looking into" "Been researching" "I am still" "Just wanted to reach out" "Let me know" "Stop by anytime" "I look forward to hearing from you" "Hi there" "Carfax" "Gubagoo" "Virtual retailing" "I\'m reaching out" "I wanted to follow up" "Please let me know" "Hope your day is going well" "Hope you\'re having a good" "Hope you\'re having a great" "Just confirming" "That\'s a fantastic choice" "Great choice" "Excited to see your request" "I understand that" "As per our conversation" "We noticed you" "As a valued customer" "As a previous customer" "Let me know which time" "Which time works best" "I thought of you" "I saw you were looking at" "I noticed you were looking at" "I saw you browsing" "I was looking at your" "I saw you looking at the" — tracking phrases are always forbidden. ALSO FORBIDDEN on AI Buying Signal leads: "newer model" "newer models" "latest model" "newest" "brand new" "new [model]" — these imply inventory type. Use neutral language: "[model] options available" "a few [models] on the lot"',
+    '  PART 2 — HOOK: ONE sentence. The single most compelling reason for THIS specific person to call back. Sound like a real person with actual news — not a script reading.',
+    '  HOOK RULES:',
+    '    • Use contractions: "I\'ve got", "I\'d love", "it\'s", "we\'ve got" — formal language sounds like a robot',
+    '    • Sound like you actually looked at their file: "I pulled up your trade" not "I have information about your trade"',
+    '    • One specific detail beats three generic ones — "that white HR-V" is better than "the vehicle you inquired about"',
+    '    • Hint at something worth calling back for — curiosity beats information',
+    '  HOOK BY SITUATION (pick the one that fits):',
+    '    • Vehicle available: "I\'ve got that [vehicle] pulled up and I think it\'s exactly what you\'re looking for — give me a call."',
+    '    • Trade-in: "I ran some numbers on your trade and I\'ve got something I think you\'ll like — give me a call."',
+    '    • Credit/Click & Go: "Your application came through and I think I\'ve found a path that works — give me a call."',
+    '    • Customer asked a question: "I\'ve got the answer on [what they asked] and I think it\'s good news — give me a call."',
+    '    • Stalled/re-engagement: "I came across something on the [vehicle] I think changes the picture — give me a call."',
+    '    • General: "I\'ve been looking at what we have and I want to talk through a couple of options with you — give me a call."',
+    '  PART 3 — CALLBACK: "Give me a call back at [number]." Say the number once. Then: "That\'s [number] again." Hard stop. Nothing after the number.',
+    '  TOTAL LENGTH: 55-75 words. Shorter is warmer. If it sounds like a script, cut it.',
+    '  DO NOT include appointment times — voicemail goal is ONE thing: get a callback.',
+    '  FORBIDDEN IN VOICEMAIL: "following up" "touching base" "just wanted to" "at your earliest convenience" "please let me know" "I look forward to" "have a great day" "looking forward to speaking" — these make agents sound like autodialers.',
+    '  WARMTH TEST: Read it out loud. Does it sound like a real person who actually looked at this file? Or does it sound like a form letter? If form letter — rewrite.',
+    '  RIGHT: "Hi David, this is Melanie from Community Honda Lafayette. I\'ve got a couple of Accord options I think are going to work really well for your budget — give me a call at 337-568-0435. That\'s 337-568-0435."',
+    '  WRONG: "Hi David, this is Melanie with Community Honda Lafayette. I am following up regarding your inquiry about the 2017 or 2018 Honda Accord. Please give me a call back at your earliest convenience at 337-568-0435. Thank you."',
+    '- PROHIBITED PHRASES — GENERIC OPENERS (kills engagement): "Checking in" "Following up" "Touching base" "Just wanted to reach out" "Just wanted to connect" "Just checking" "Circling back" "Looping back" "Reaching out to see" "I hope this finds you well" "Hope your day is going well" "Hope you are having a good" "Hi there"',
+    '- PROHIBITED PHRASES — PASSIVE CLOSINGS (kills show rate): "Let me know" "Stop by anytime" "Feel free to reach out" "Give us a call when you ready" "Anytime works" "Whatever works for you" "I look forward to hearing from you" "I look forward to your response" "Talk soon"',
+    '- PROHIBITED PHRASES — TRACKING/SURVEILLANCE LANGUAGE: "I saw you were looking at" "I noticed you were looking at" "I saw you browsing" "I was looking at your" "I saw you looking at the" "We noticed you" "I thought of you" "I saw you visited"',
+    '- PROHIBITED PHRASES — CORPORATE/SCRIPTED: "As per our conversation" "As a valued customer" "As a previous customer" "That is a fantastic choice" "Great choice" "Excited to see your request" "I understand that" "I wanted to follow up" "I am reaching out" "Just confirming" "Still working on" "I have been working on"',
+    '- PROHIBITED PHRASES — BRAND/PLATFORM: "Carfax" "CARFAX" "Gubagoo" "Virtual retailing" "Digital retailing platform"',
+    '- PROHIBITED PHRASES — APPOINTMENT PRESSURE: "Let us lock this in" "We just need your signature" "Let us get you locked in" "Strategy session" "Consultation" "Come in to buy"',
+    '- PROHIBITED PHRASES — CREDIT SHAME: "Bad credit" "Poor credit history" "Low credit score" "You need a co-signer" "The bank requires"',
+    '- PROHIBITED PHRASES — AI BUYING SIGNAL leads only: "newer model" "newer models" "latest model" "newest" "brand new" "new [model]" — use neutral: "[model] options available" "a few [models] on the lot"',
     '- Never fabricate inventory status. Never guarantee approval or rates.',
     '- VEHICLE RULE: ONLY reference the vehicle in the LEAD section. If the LEAD section says "(none specified)", do NOT name any vehicle at all — not from history, not from your training. Vehicles mentioned in conversation history belong to other leads or conversations and must be ignored.',
     '- Write all three formats completely. Do not truncate.',
@@ -1896,6 +2007,8 @@ function buildSystemPrompt() {
     '- SCHEDULE ASSUMPTION RULE: NEVER assume a customer works shifts, has schedule constraints, or works unusual hours unless they explicitly said so in a customer message. Do NOT say "I know your schedule can vary with shift work" or similar unless the SHIFT WORKER flag is active in the context. Inferring schedule from job title, location, or industry is forbidden.',
 
     '- SCHEDULE LANGUAGE RULE: If a customer mentioned schedule constraints, ask directly and specifically: "When works best for you this week?" or "What days or times work for you?" — NOT vague phrases like "since your schedule can vary" or "whenever works for you". Be direct.',
+    '- ADD-ON RESISTANCE RULE: "I am not interested in the dealer add-ons" or "remove the add-ons" is a NEGOTIATION ANCHOR — not an exit. The customer is working toward a number. NEVER write a goodbye message for add-on resistance. Acknowledge it, reference the revised OTD, and stay in the negotiation.',
+    '- LEASE NEGOTIATION RULE: When a customer provides specific lease terms (money factor, residual, OTD, drive-and-sign), they are a HIGH-INTENT buyer doing their research. Match their energy — respond with equivalent detail and stay in the conversation. Never treat detailed lease requests as friction to exit.',
     '- TRADE-IN CONDITIONAL LANGUAGE: Phrases like "I\'ll just keep it if the offer is too low", "I\'ll keep my car if the price isn\'t right", or "I might just hold onto it" are NOT exit signals. They are negotiating leverage — the customer is still engaged and wants a good trade offer. NEVER generate a closing/goodbye message for trade-in conditional language. Respond by acknowledging the trade concern and moving toward locking in a real number.',
     '- CUSTOMER ECHO RULE: NEVER parrot back the customer\'s own words as a compliment or validation. Do NOT say "Comparing prices is the smartest way to shop" if the customer said "just comparing prices." Do NOT say "That\'s a great question" or mirror their phrasing back at them. Respond naturally without echoing.',
     '- URL / LINK RULE: NEVER construct, guess, or fabricate inventory URLs or website links. Do NOT build links like "communityhondabaytown.com/inventory/P4776" — you do not know the correct URL format and guessing will produce wrong links. If a customer asks for a link, respond: "I will send you the direct link right now" and leave the URL out of the generated message — the agent will paste the real VDP link manually.',
@@ -1911,13 +2024,63 @@ function buildSystemPrompt() {
     '  TIER 4 — NO CLOSE: Customer expressed frustration, bought elsewhere, or is not interested. No appointment ask.',
     '- APPOINTMENT TIMES: When offering times, offer them ONCE. Never repeat.',
     '- APPOINTMENT LANGUAGE: Always frame as in-store — "come in," "stop by," "visit us." Never "discuss" or "talk."',
-    '- EMAIL TONE: Warm, conversational, never corporate. Never open with "I hope this email finds you well." Start with energy and forward motion.',
-    '- SMS TONE: Real person texting. Direct, warm, natural. Get to the point fast.',
+    '- EMAIL TONE — Write like a knowledgeable person who genuinely wants to help, not a corporate template:',
+    '  WARMTH RULES:',
+    '  • Contractions everywhere: "I\'ve", "I\'ll", "we\'ve", "it\'s", "that\'s", "can\'t", "won\'t", "you\'re" — formal language feels cold and distant',
+    '  • Open with the most relevant thing to THIS customer — their specific vehicle, their specific situation, what they just said',
+    '  • One moment of genuine enthusiasm or personality is allowed — not over the top, just human',
+    '  • Reference something specific from their conversation or situation early in the first paragraph',
+    '  • Write like you are continuing a relationship, not starting a form letter',
+    '  WHAT NOT TO DO:',
+    '  • Never open with: "I hope this email finds you well" / "Thank you for your interest" / "I am reaching out regarding" / "I wanted to follow up"',
+    '  • Never stack feature lists or bullet points of vehicle specs',
+    '  • Never write more than 3 short paragraphs — emails that are too long go unread',
+    '  • Never sound like a press release or a form letter',
+    '  STRUCTURE:',
+    '  • Para 1: React to their specific situation — what they said, what they need, what matters to them',
+    '  • Para 2: One relevant piece of useful information or what you have ready for them',
+    '  • Para 3: The ask — duration, times, what happens next',
+    '  WARM EMAIL OPENER EXAMPLES:',
+    '  COLD: "I am reaching out regarding your interest in the 2026 Civic Sport. It is currently showing available here at Community Honda Lafayette."',
+    '  WARM: "That Crystal Black Civic Sport is a great choice — I\'ve got it pulled up and it\'s showing available right now."',
+    '  COLD: "I wanted to follow up on your Capital One pre-approval and confirm our next steps."',
+    '  WARM: "Having that Capital One pre-approval already started puts you in a strong position — we\'re really just matching it to the right vehicle now."',
+    '- SMS TONE — THIS IS THE MOST IMPORTANT FORMATTING RULE:',
+    '  SMS must read like a real person texting, not a system generating a response.',
+    '  WARMTH RULES:',
+    '  • Use the customer first name naturally — not robotically at the start of every sentence',
+    '  • Contractions are required: "I\'ve", "I\'ll", "we\'ve", "it\'s", "that\'s", "you\'re", "can\'t", "won\'t" — stiff formal language kills warmth',
+    '  • One moment of genuine personality is allowed — a light observation, a brief expression of enthusiasm, a human reaction to what they said',
+    '  • If customer said something specific (color preference, timeline, situation), react to THAT before moving to structure',
+    '  • Match the customer energy — casual customer gets casual response, excited customer gets a slightly warmer tone',
+    '  STRUCTURE RULES:',
+    '  • Get to the point in the first sentence — do not build up to it',
+    '  • One topic per SMS — do not stack multiple questions or multiple value points',
+    '  • Close with ONE action — not multiple options, not multiple questions',
+    '  • Under 5 lines total before the signature',
+    '  WHAT WARM LOOKS LIKE vs COLD:',
+    '  COLD: "Latoya, this is Tania with Community Honda Lafayette. I am reaching out regarding your inquiry on the 2026 Civic Sport. It is currently showing available. It typically takes about 30-45 minutes. Would 9:15 AM or 10:30 AM Thursday work for you?"',
+    '  WARM: "Latoya — that Civic Sport in Crystal Black is sharp. I\'ve got it pulled up and ready for you to see. Since Saturday works better, would 10:00 or 11:30 AM work for you?"',
+    '  The warm version is shorter, more human, and reacts to what the customer actually said.',
     '- VOICEMAIL TONE: Confident, friendly, genuine. Sound like you actually want to talk to this person.',
     '- DISTANCE BUYER: If the Distance Buyer context flag is present, the message must acknowledge and justify the trip. A customer driving 30-60+ minutes needs a stronger reason than "come see it." Tactics: (1) Confirm the vehicle will be held/ready when they arrive. (2) Mention that everything can be mostly handled in advance so their time in-store is efficient. (3) Position the visit as worth the drive — "We can have everything ready so you\'re in and out in 45 minutes." Never casually say "stop by" to a distance buyer — the ask must feel worth the commitment.',
     '- TIME SENSITIVITY: Match urgency to the time of day. Same-day appointments = urgency. Late afternoon = mention closing time. Morning = position the full day as available.',
     '- LANGUAGE: Always write in English unless explicitly instructed otherwise by the agent.',
-    'CONVERSATION RULE: When a transcript is provided, the opening MUST be a direct reaction to what the customer said last — not a summary, not a restatement. React first, then advance. A response that could apply to any customer is a failure. EXCEPTION: For AI Buying Signal leads, outbound marketing blasts (mass texts, automated emails) are NOT customer messages — ignore them entirely. Only react to genuine inbound customer replies.',
+    'SMS MANDATORY REACTION RULE — THE SINGLE MOST IMPORTANT SMS RULE:',
+    '  The WHAT THIS CUSTOMER HAS COMMUNICATED section above tells you what is on this person\'s mind.',
+    '  Step 1: Read those customer messages. What is the clearest signal? What do they care about most?',
+    '  Step 2: The FIRST sentence of the SMS must react to that specific thing.',
+    '  Step 3: Only then move to structure (vehicle, timing, close).',
+    '  EXAMPLES:',
+    '  Customer said "newer with less miles" → "Jon, I\'ve got a few newer CR-Vs with lower miles I want to show you."',
+    '  Customer asked about rate/terms → "Jon, I\'m getting the financing details together for you now."',
+    '  Customer said they\'re open to used up to 20k miles → "I pulled a couple of options that fit exactly what you described."',
+    '  Customer said Saturday → "Saturday morning works great — I\'ll have everything ready for you."',
+    '  A SMS that could be sent to ANY customer is a failure. It must be written for THIS customer.',
+    'CONVERSATION RULE: When a transcript is provided, the SMS opening MUST be a direct human reaction to what the customer said last — not a summary, not a restatement, not a re-introduction. React first, then advance.',
+    '  Ask yourself: Could this exact SMS be sent to any customer? If yes — it is too generic. REWRITE.',
+    '  The customer\'s last message is the most important input. If they said "Saturday works", open with Saturday. If they said "I love the black one", open with the black one. If they said "I\'m nervous about credit", open with empathy about that.',
+    '  EXCEPTION: For AI Buying Signal leads, outbound marketing blasts are NOT customer messages — ignore them entirely. Only react to genuine inbound customer replies.',
     'AI BUYING SIGNAL ABSOLUTE RULES — when the scenario section contains "AI BUYING SIGNAL", these rules are NON-NEGOTIABLE and cannot be overridden by any other instruction:',
     '  RULE 1: The email subject line MUST NOT contain the word "upgrade". Use "Your [Model]" or "[Model] options for you".',
     '  RULE 2: The words "newer model", "newer models", "newer [model]", "latest model", "step up", "brand new" are BANNED. Do not write them.',
@@ -2055,16 +2218,35 @@ function buildUserPrompt(data) {
     ].filter(Boolean).join('\n');
 
     } else if (sc.isTrueCar) {
-    // Detect employer perk / Perkspot program from lead received note
-    var employerPerkMatch = (data.context||'').match(/EMPLOYER[^*]{0,5}[*]+\s*([A-Za-z0-9 &,.-]{2,40})/i);
-    var buyerBonusMatch = (data.context||'').match(/BUYER.S BONUS[^*]{0,5}[*]+\s*([^*\n]{5,60})/i);
+    // Detect affinity partner from lead source name and lead received notes
+    var tcContext = (data.context||'') + ' ' + (data.leadSource||'');
+    var employerPerkMatch = tcContext.match(/EMPLOYER[^*]{0,10}[*]+\s*([A-Za-z0-9 &,._-]{2,40})/i);
+    var buyerBonusMatch = tcContext.match(/BUYER.S BONUS[^*]{0,5}[*]+\s*([^*\n]{5,60})/i);
     var employerName = employerPerkMatch ? employerPerkMatch[1].trim() : '';
     var buyerBonus = buyerBonusMatch ? buyerBonusMatch[1].trim() : '';
-    var hasPerkspot = /perkspot|employer perk|employee.*perk|perks site/i.test(data.context||'');
+    var hasPerkspot = /perkspot|employer perk|employee.*perk|perks site|perks at work|perks.at.work/i.test(tcContext);
+
+    // Detect standard TrueCar affinity partners from lead source
+    var tcAffinityPartner = '';
+    var ls2 = (data.leadSource||'').toLowerCase();
+    if(/credit karma|intuit.*credit karma/i.test(ls2 + ' ' + tcContext)) tcAffinityPartner = 'Credit Karma';
+    // Extract employer name from lead source like "Truecar/Perks At Work" or from notes
+    if(!employerName) {
+      var perksEmployerMatch = tcContext.match(/\*\*\* EMPLOYER \*\*\*[\s\r\n]+([A-Za-z0-9 &,._-]{2,40})/i);
+      if(perksEmployerMatch) employerName = perksEmployerMatch[1].replace(/-/g,' ').trim();
+    }
+    else if(/usaa/i.test(ls2 + ' ' + tcContext)) tcAffinityPartner = 'USAA';
+    else if(/navy federal/i.test(ls2 + ' ' + tcContext)) tcAffinityPartner = 'Navy Federal';
+    else if(/sam.s club/i.test(ls2 + ' ' + tcContext)) tcAffinityPartner = "Sam's Club";
+    else if(/costco/i.test(ls2 + ' ' + tcContext)) tcAffinityPartner = 'Costco';
+    else if(/aaa/i.test(ls2)) tcAffinityPartner = 'AAA';
+    else if(/consumer reports/i.test(ls2 + ' ' + tcContext)) tcAffinityPartner = 'Consumer Reports';
 
     scenarioDirective = 'TASK: TrueCar affinity/partner lead. Customer submitted a pricing request through TrueCar. They expect a real price response — not a redirect.';
     scenarioRules = [
-      '- Acknowledge the TrueCar request directly: "I saw your TrueCar request on the [vehicle]."',
+      (tcAffinityPartner || employerName)
+        ? '- ⚠ REQUIRED SMS AND EMAIL OPENER: Customer is shopping through ' + (employerName ? employerName.replace(/-/g,' ') + ' (' + (tcAffinityPartner || 'Perks at Work') + ')' : tcAffinityPartner) + '. You MUST reference ' + (employerName ? 'the employer name (' + employerName.replace(/-/g,' ') + ') AND the program' : 'the partner name') + ' in BOTH SMS and email opening. REQUIRED example: "I saw your TrueCar request through your ' + (employerName ? employerName.replace(/-/g,' ') + ' Perks at Work program' : tcAffinityPartner) + '." Do NOT just say "I saw your TrueCar request" — name the employer/partner.'
+        : '- Acknowledge the TrueCar request directly: "I saw your TrueCar request on the [vehicle]."',
       '- Do NOT dodge the pricing ask. Position in-store as the way to lock in the best number.',
       sc.noSpecificVehicle
         ? '- NO STOCK NUMBER OR VIN: Do NOT confirm this specific vehicle is available. Say "we have [model] options available" — not "it\'s showing available." Include one qualifying question about trim, color, or configuration.'
@@ -2075,12 +2257,12 @@ function buildUserPrompt(data) {
       '- If a trade-in is present, mention it in ALL formats including SMS.',
       '- If there is prior conversation history, reference it naturally.',
       hasPerkspot && employerName
-        ? '- EMPLOYER PERK DETECTED: Customer is shopping through their employer (' + employerName + ') via Perkspot/Employee Perks. Reference this directly — it builds trust and shows you read their request: "I saw you are using your ' + employerName + ' employee benefit through TrueCar."'
-        : '',
+        ? '- ⚠ REQUIRED: Customer is shopping through their employer (' + employerName.replace(/-/g,' ') + ') via the Perks at Work / Employee Perks program. You MUST reference BOTH the employer name AND the program in both SMS and email. REQUIRED phrasing: "your ' + employerName.replace(/-/g,' ') + ' Perks at Work program" or "through your ' + employerName.replace(/-/g,' ') + ' employee benefit." Do NOT just say "Perks at Work" without the employer name — the employer name is what builds trust.'        : hasPerkspot
+          ? '- PERKSPOT/PERKS AT WORK DETECTED: Reference the program by name in both SMS and email.'          : '',
       hasPerkspot && buyerBonus
-        ? '- BUYER BONUS: Customer has ' + buyerBonus + ' available through their employer perk program. Mention this as an advantage — it is money they have already earned.'
-        : '',
-      '- Tone: straightforward and helpful — TrueCar customers are price-aware shoppers.',
+        ? '- BUYER BONUS: Customer has ' + buyerBonus + ' available through their ' + (employerName ? employerName.replace(/-/g,' ') + ' ' : '') + 'employee perk. Mention this — it is real money they have already earned.'        : '',
+      '- Tone: straightforward and helpful — TrueCar customers are price-aware shoppers. They did their research. Meet them as an equal, not a prospect.',
+      '- SMS WARMTH: Do NOT write "We have great availability" or "It is here and ready for you to see" — these are robotic. Instead react naturally: "That Civic is actually still here" or "I pulled it up — 136k miles but clean history." One human observation beats three corporate sentences.',
       '- CLOSE: Apply the appropriate tier from CLOSE STRATEGY. Warm engaged leads get two specific times. Leads with objections or open questions get a qualifying question first.',
     ].filter(Boolean).join('\n');
 
@@ -2124,7 +2306,11 @@ function buildUserPrompt(data) {
     ].filter(Boolean).join('\n');
 
   } else if (sc.isExitSignal) {
-    var isComplaint = /not satisfied|bad experience|sharing.*experience|terrible|horrible|never.*back|not.*back|won.t be back/i.test((data.lastInboundMsg || '') + ' ' + (data.context || '').substring(0, 500));
+    // Complaint detection — only fire on dealer experience language, NOT credit/financial frustration
+    // "my credit is terrible" is credit sensitivity, not a complaint about the dealership
+    var lastMsgForComplaint = (data.lastInboundMsg || '');
+    var isCreditFrustration = /credit.*(terrible|bad|awful|horrible|rough)|terrible.*credit|bad.*credit|awful.*credit/i.test(lastMsgForComplaint);
+    var isComplaint = !isCreditFrustration && /not satisfied|bad experience|sharing.*experience|terrible.*experience|horrible.*experience|never.*back.*dealer|not going back|won.t be back|worst.*experience|awful.*experience/i.test(lastMsgForComplaint + ' ' + (data.context || '').substring(0, 500));
     scenarioDirective = isComplaint
       ? 'TASK: Customer had a bad experience and is expressing dissatisfaction. This requires a genuine, empathetic acknowledgment — NOT a closing pitch or a generic goodbye.'
       : 'TASK: Customer has purchased elsewhere or is not interested. Write a gracious closing message.';
@@ -2412,14 +2598,14 @@ function buildUserPrompt(data) {
     ].join('\n');
 
   } else if (sc.isDealerWebsite) {
-    scenarioDirective = 'TASK: Dealer website lead — customer submitted an inquiry directly through the dealership website. High intent.';
+    scenarioDirective = 'TASK: Dealer website lead — customer came directly to YOUR dealership website. High intent. They chose you specifically.';
     scenarioRules = [
-      '- Open: "I saw your inquiry come through on our website for the [vehicle]."',
-      '- Dealer website leads are high intent — they went to YOUR website specifically, not a third-party marketplace.',
-      '- Acknowledge that directly: position the visit as the natural next step from where they already are in the process.',
-      '- If stock/VIN is present, confirm availability confidently.',
-      '- Tone: welcoming and direct. They chose you — make them feel that was the right call.',
-      '- CLOSE: Apply the appropriate tier from CLOSE STRATEGY. Warm engaged leads get two specific times. Leads with objections or open questions get a qualifying question first.',
+      '- BANNED OPENER: Never say "I saw your inquiry come through on our website" — robotic and impersonal.',
+      '- React to what they were looking at. If there is a specific vehicle, open with something natural about that vehicle: "That Expedition Platinum is a great call" or "I\'ve got that HR-V pulled up — it\'s a sharp one."',
+      '- If no specific vehicle, open with something warm and direct: "I saw you were browsing our inventory and wanted to reach out personally."',
+      '- They went to YOUR website — acknowledge that they are already in the right place. Position the visit as the easy next step.',
+      '- SMS must feel like a real person texting, not a system. One specific observation about their vehicle or situation before the ask.',
+      '- CLOSE: Apply the appropriate tier from CLOSE STRATEGY.',
     ].join('\n');
 
   } else if (sc.isChatLead) {
@@ -2431,24 +2617,75 @@ function buildUserPrompt(data) {
     var chatAskedFinance  = /financing|get financed|credit|down payment|interest rate/i.test(chatContext);
     var chatGaveNumber    = /here.s my (number|phone)|call me|text me|my (cell|phone|number) is/i.test(chatContext);
 
-    var chatAnswerHint = chatAskedPrice   ? 'CHAT QUESTION: Customer asked about price or payment. Acknowledge this first — give a range or invite them in to get exact numbers. Do not ignore it.'
+    // Detect "size of" / comparison language — customer describing a size/type, not requesting that specific model
+    var chatSizeComparison = /about the size of|similar to|like a|something like|comparable to|size of a/i.test(chatContext);
+    var chatComparisonVehicle = '';
+    var compMatch = chatContext.match(/(?:size of|similar to|like a|something like|comparable to) (?:a |an |the )?(ford |chevy |chevrolet |toyota |jeep |gmc |dodge |ram |nissan |hyundai |kia )?([a-z0-9\- ]{3,20})/i);
+    if(compMatch) chatComparisonVehicle = compMatch[0].trim();
+
+    // Map competitor vehicles to Honda/Kia equivalents for natural pivot
+    var competitorMap = {
+      'explorer': 'Honda Pilot or Passport', 'f-150': 'Honda Ridgeline', 'f150': 'Honda Ridgeline',
+      'tahoe': 'Honda Pilot', 'suburban': 'Honda Pilot', 'traverse': 'Honda Pilot',
+      'highlander': 'Honda Pilot', 'rav4': 'Honda CR-V or HR-V', 'cr-v': 'Honda CR-V',
+      'equinox': 'Honda CR-V', 'escape': 'Honda CR-V or HR-V', 'rogue': 'Honda CR-V',
+      'camry': 'Honda Accord', 'corolla': 'Honda Civic', 'altima': 'Honda Accord',
+      'sorento': 'Kia Telluride or Sorento', 'telluride': 'Kia Telluride',
+      'tucson': 'Kia Sportage', 'santa fe': 'Kia Sorento', 'palisade': 'Kia Telluride'
+    };
+    var competitorKey = Object.keys(competitorMap).find(function(k) { return chatContext.indexOf(k) !== -1; });
+    var hondaEquivalent = competitorKey ? competitorMap[competitorKey] : '';
+
+    var competitorVehicleName = competitorKey ? competitorKey.charAt(0).toUpperCase() + competitorKey.slice(1) : '';
+    var chatAnswerHint = chatSizeComparison
+        ? 'CHAT CONTEXT: Customer said they want something the size of a ' + (competitorVehicleName || 'competitor vehicle') + '. They are describing a SIZE/TYPE — not requesting that exact brand. Follow this exact approach: (1) Acknowledge naturally: "I saw you were looking for something in the ' + (competitorVehicleName || 'midsize SUV') + ' size range." (2) Ask a qualifying question: "Are you focused on a ' + (competitorVehicleName || 'specific brand') + ' or are you open to seeing how' + (hondaEquivalent ? ' the ' + hondaEquivalent : ' our options') + ' compare in size and layout?" (3) Offer two times. DO NOT confirm or stock-check the competitor vehicle. DO NOT say "we have a Ford Explorer available."'
+      : chatAskedPrice   ? 'CHAT QUESTION: Customer asked about price or payment. Acknowledge this first — give a range or invite them in to get exact numbers. Do not ignore it.'
       : chatAskedTrade   ? 'CHAT QUESTION: Customer asked about their trade-in value. Lead with the trade — position the visit as where they get the real number.'
       : chatAskedAvail   ? 'CHAT QUESTION: Customer asked about availability. Confirm it directly if you can, or use urgency language if supply is limited.'
       : chatAskedFinance ? 'CHAT QUESTION: Customer asked about financing. Acknowledge it warmly — Capital One pre-qual or in-store options. Do not over-promise.'
       : '';
 
-    scenarioDirective = 'TASK: Chat lead — customer had a live chat conversation on the dealer website or Gubagoo platform and submitted their contact info. This is a WARM lead, not cold.';
+    // Deep transcript extraction — pull the actual customer words before building directive
+    var chatTranscript = data.context || '';
+    // Extract all customer (Guest) lines from transcript
+    var guestLines = [];
+    var guestMatches = chatTranscript.split('\n').filter(function(l){ return /^Guest/i.test(l.trim()); });
+    guestMatches.forEach(function(line) {
+      var text = line.replace(/^Guest[^:]*:\s*/i, '').trim();
+      if(text && text.length > 3) guestLines.push(text);
+    });
+    var customerSaid = guestLines.join(' | ');
+
+    // Extract what was already told to the customer in chat
+    var agentChatLines = [];
+    var agentMatches = chatTranscript.split('\n').filter(function(l){ return /Brittney|Jessica|resq/i.test(l.split(':')[0]||''); });
+    agentMatches.forEach(function(line) {
+      var text = line.replace(/^[^:]+:\s*/i, '').trim();
+      if(text && text.length > 5) agentChatLines.push(text);
+    });
+    var agentToldCustomer = agentChatLines.join(' | ');
+
+    // Detect specific customer intent from their actual words
+    var chatWantsTestDrive = /test drive|test-drive|drive one|try one|drive it/i.test(customerSaid);
+    var chatOpenToUsed = /used|pre.?owned|lightly used|certified|cpo|\d{2,3}k miles/i.test(customerSaid);
+    var chatComparingModels = /or|vs|versus|between|deciding between|either/i.test(customerSaid) && guestLines.length > 1;
+    var chatUnansweredQuestion = agentChatLines.some(function(l){ return /give me|another minute|still checking|not sure yet/i.test(l); });
+
+    scenarioDirective = 'TASK: Chat lead — customer had a LIVE conversation on the dealer chat. You have the FULL transcript. Your job is to pick up EXACTLY where the chat left off — not restart it.';
     scenarioRules = [
-      '- This customer chose to engage — they typed their questions and gave you their number. Treat them accordingly.',
-      '- NEVER re-introduce the dealership or the vehicle as if they have no context. They know. They just chatted about it.',
-      '- NEVER say "Gubagoo", "chat platform", "virtual assistant", or "our online chat" — reference it naturally: "following up on your chat" or "you reached out earlier about the [vehicle]."',
-      '- OPEN with the most important thing from the chat — their question, their vehicle, their trade. Not a generic "I wanted to reach out."',
-      chatAnswerHint || '- Read the chat transcript and identify the single strongest hook. Lead with that.',
-      '- If the chat bot made any claims (price range, availability, appointment offer), be consistent — do not contradict what they were already told.',
-      '- Tone: match the energy of someone continuing a conversation, not starting one. Casual, direct, helpful.',
-      '- SMS: Short and sharp — they already know who you are. Get straight to the point.',
-      '- Email: Pick up right where the chat left off. One paragraph of context, one ask.',
-      '- CLOSE: Apply the appropriate tier from CLOSE STRATEGY. Warm engaged leads get two specific times. Leads with objections or open questions get a qualifying question first.',
+      '- ⚠ MANDATORY: Read the full chat transcript in CONTEXT & HISTORY before writing a single word. The customer already told you what they want.',
+      '- WHAT THE CUSTOMER SAID: ' + (customerSaid || 'See transcript'),
+      chatUnansweredQuestion ? '- ⚠ UNANSWERED QUESTION IN CHAT: The agent left something unresolved. Your FIRST job is to answer or address that before anything else.' : '',
+      chatWantsTestDrive ? '- CUSTOMER WANTS A TEST DRIVE: They specifically asked about test driving. Lead with scheduling the test drive — not a generic visit invite.' : '',
+      chatOpenToUsed ? '- CUSTOMER IS OPEN TO PRE-OWNED: They said they are open to lightly used or certified options. Reference this — do not only pitch new inventory.' : '',
+      chatComparingModels ? '- CUSTOMER IS COMPARING MODELS: They are deciding between options. Help them compare — do not pick one for them or ignore the other.' : '',
+      chatAnswerHint || '- Lead with the most important thing the customer said in the chat.',
+      '- NEVER re-introduce yourself, the dealership, or ask questions already answered in the chat.',
+      '- NEVER say "Gubagoo", "chat platform", "virtual assistant" — reference naturally: "your chat earlier" or "from our conversation this morning."',
+      '- Tone: you are continuing the chat conversation, not starting a new one. Same energy. Same context.',
+      '- SMS: One direct reaction to what they said + one ask. Under 4 lines.',
+      '- Email: Open by continuing from where the chat left off. Reference their specific request.',
+      '- CLOSE: Apply the appropriate tier from CLOSE STRATEGY.',
     ].filter(Boolean).join('\n');
 
   } else if (sc.isCarFax) {
@@ -2522,7 +2759,7 @@ function buildUserPrompt(data) {
         '- CLOSE: Two-time close is appropriate here — customer is engaged. Offer two specific times.',
       ].join('\n');
     } else {
-      scenarioRules = '- Standard structured response with one qualifying statement, duration, and two-time close.';
+      scenarioRules = '- React naturally to this specific lead. Use the vehicle name, the customer name, and any context available. SMS must sound like a real person — one warm specific observation before the close. Never open with "I saw your inquiry" or generic phrases.';
     }
   }
 
@@ -2823,6 +3060,37 @@ function buildUserPrompt(data) {
     }
   }
 
+  // ── Conversation intelligence block ──────────────────────────────
+  // Extract what the customer has communicated across the full thread
+  // This gives SMS the same grounding the email naturally gets from reading context
+  if (data.context && data.context.length > 50) {
+    var ctx = data.context;
+    // Pull all customer lines from transcript
+    var custLines = [];
+    ctx.split('\n').forEach(function(line) {
+      if (/\[CUSTOMER\]/i.test(line)) {
+        var text = line.replace(/.*\[CUSTOMER\][^:]*:\s*/i, '').replace(/^\[[^\]]+\]\s*\[CUSTOMER\]\s*/i, '').trim();
+        if (text && text.length > 2 && !/lead received|auto response|lead log/i.test(text)) {
+          custLines.push(text);
+        }
+      }
+    });
+
+    if (custLines.length > 0) {
+      // Most recent 3 customer messages = what's on their mind right now
+      var recentCust = custLines.slice(-3);
+      lines.push('', '━━━ WHAT THIS CUSTOMER HAS COMMUNICATED ━━━');
+      lines.push('Recent customer messages (most recent last):');
+      recentCust.forEach(function(msg) { lines.push('  • ' + msg); });
+      lines.push('SMS must open by reacting to what this person has actually said — not a generic opener.');
+      lines.push('Pick the most actionable or specific thing they said and lead with that.');
+    }
+  } else if (data.lastInboundMsg && data.lastInboundMsg.trim().length > 5) {
+    lines.push('', '━━━ CUSTOMER\'S MOST RECENT MESSAGE ━━━');
+    lines.push('  • ' + data.lastInboundMsg.trim());
+    lines.push('SMS must react to this. Not a summary — a natural human response to what they said.');
+  }
+
   if (data.context) {
     lines.push('', '━━━ CONTEXT & HISTORY ━━━', data.context);
   }
@@ -2830,13 +3098,27 @@ function buildUserPrompt(data) {
   // LP commands injected last — highest attention position right before format rules
   if (data.agentLPCommands && data.agentLPCommands.length > 0) {
     lines.push('', '━━━ AGENT OVERRIDE INSTRUCTIONS — FOLLOW EXACTLY ━━━');
+    var lpHasUrl = false;
+    var lpExtractedUrl = '';
     data.agentLPCommands.forEach(function(cmd) {
-      if(cmd.indexOf('http') === 0) {
-        lines.push('► INCLUDE THIS EXACT URL IN THE SMS (on its own line): ' + cmd);
+      // Extract URL from anywhere in the command text
+      var urlMatch = cmd.match(/https?:\/\/[^\s]+/);
+      if(urlMatch) {
+        lpHasUrl = true;
+        lpExtractedUrl = urlMatch[0];
+        lines.push('► ' + cmd);
       } else {
         lines.push('► ' + cmd);
       }
     });
+    if(lpHasUrl) {
+      lines.push('');
+      lines.push('⚠ URL MANDATE: The agent provided this link: ' + lpExtractedUrl);
+      lines.push('This URL MUST appear in BOTH the SMS and the email. This is NOT optional in either format.');
+      lines.push('SMS: write the message, then the URL on its own line, then the signature.');
+      lines.push('Email: include the URL on its own line in the body before the appointment close.');
+      lines.push('Do NOT paraphrase, shorten, or omit the URL from either SMS or email.');
+    }
     lines.push('These instructions override all other defaults.');
   }
 
@@ -2847,10 +3129,11 @@ function buildUserPrompt(data) {
       ? 'NO PHONE NUMBER ON FILE: SMS and voicemail are not usable channels. Write email only. For SMS field, write a short note asking for their phone number so you can reach them directly. For voicemail field, write "(No phone number — cannot leave voicemail)".'
       : 'SMS signature: agent first name only + phone number (two lines). No title. No store name.',
     'EMAIL FORMAT RULES:',
-    '- Greeting line: "[First name]," on its own line. Then a blank line. Then start the body.',
-    '- CORRECT: "Jose,\n\nThis is Noelia..."',
-    '- WRONG: "Hi Jose, This is Noelia..." — never run the greeting and body together on the same line.',
-    '- Paragraphs: separate each paragraph with a blank line.',
+    '- Greeting: Use "[First name]," on its own line for first-touch formal emails. For warm follow-ups where conversation is already active, "Hi [First name]," is natural and preferred.',
+    '- After greeting: blank line, then body starts.',
+    '- CORRECT (first touch): "Jose,\n\nI\'ve got the RS Q8 details pulled up for you..."',
+    '- CORRECT (follow-up): "Hi Ashley,\n\nSo glad you reached out — let\'s find a time that works better for you."',
+    '- Paragraphs: one blank line between paragraphs. Keep it to 2-3 paragraphs max.',
     '- Signature: each part on its own line — First Last / Title / Store / Phone.',
     'Email signature: Use line breaks between each part — NOT slashes. Format exactly as:\nFirst Last\nTitle\nStore Name\nPhone Number',
     'Voicemail: end with callback number. Nothing after it.',
@@ -3087,6 +3370,11 @@ async function generateAll() {
       vrDroppedOff:              lastScrapedData ? !!lastScrapedData.vrDroppedOff : false,
       noVehicleAtAll:            lastScrapedData ? !!lastScrapedData.noVehicleAtAll : false,
       agentLPCommands:           lastScrapedData ? (lastScrapedData.agentLPCommands || []) : [],
+      contactRecoveryPhone:      lastScrapedData ? !!lastScrapedData.contactRecoveryPhone : false,
+      contactRecoveryEmail:      lastScrapedData ? !!lastScrapedData.contactRecoveryEmail : false,
+      isMaskedEmail:             lastScrapedData ? !!lastScrapedData.isMaskedEmail : false,
+      isSRPVehicle:              lastScrapedData ? !!lastScrapedData.isSRPVehicle : false,
+      isVelocityResponse:        lastScrapedData ? !!lastScrapedData.isVelocityResponse : false,
       isSoldDelivered:           lastScrapedData ? !!lastScrapedData.isSoldDelivered : false,
       activeFlags: Array.from(activeFlags)
     });
@@ -3155,7 +3443,34 @@ async function generateAll() {
         result += ch;
       }
       clean = result;
-      parsed = JSON.parse(clean);
+      // Second pass: if JSON is still malformed, extract just the first valid JSON object
+      // The AI sometimes appends extra quotes/braces after the closing }
+      try {
+        parsed = JSON.parse(clean);
+      } catch(e2) {
+        // Find the last valid closing brace of the JSON object
+        var firstBrace = clean.indexOf('{');
+        if(firstBrace !== -1) {
+          var depth = 0;
+          var lastValid = -1;
+          var inStr2 = false;
+          var esc2 = false;
+          for(var i2 = firstBrace; i2 < clean.length; i2++) {
+            var ch2 = clean[i2];
+            if(esc2) { esc2 = false; continue; }
+            if(ch2 === '\\') { esc2 = true; continue; }
+            if(ch2 === '"') { inStr2 = !inStr2; continue; }
+            if(!inStr2) {
+              if(ch2 === '{') depth++;
+              else if(ch2 === '}') { depth--; if(depth === 0) { lastValid = i2; break; } }
+            }
+          }
+          if(lastValid !== -1) {
+            clean = clean.substring(firstBrace, lastValid + 1);
+            parsed = JSON.parse(clean);
+          } else { throw e2; }
+        } else { throw e2; }
+      }
       console.log('[Lead Pro] JSON parsed successfully');
     } catch(e) {
       const failPos = parseInt((e.message||'').match(/position (\d+)/)?.[1] || '-1');
