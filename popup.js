@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────
-// Lead Pro — popup.js  v8.46
+// Lead Pro — popup.js  v8.63
 // Calls either a proxy server (recommended for team use) OR
 // the Gemini API directly. Both configured in config.js.
 // ─────────────────────────────────────────────────────────────────
