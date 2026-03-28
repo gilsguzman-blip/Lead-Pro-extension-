@@ -7,59 +7,36 @@
 // Set the GEMINI_API_KEY environment variable as a Secret (not plain text).
 // ─────────────────────────────────────────────────────────────────
 
-const GEMINI_MODEL = 'gemini-3-flash-preview';
-const GEMINI_URL   = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+const PRIMARY_MODEL  = 'gemini-3-flash-preview';
+const FALLBACK_MODEL = 'gemini-2.5-flash';
 
-// ── Allowed origins ───────────────────────────────────────────────
-// Chrome extensions send requests with a chrome-extension:// origin.
-// Add your extension's ID here once you know it.
-// Find it at chrome://extensions after loading the extension.
-// Format: 'chrome-extension://abcdefghijklmnopqrstuvwxyz123456'
-// Leave the array empty during development to allow all origins.
-const ALLOWED_ORIGINS = [
-  // 'chrome-extension://YOUR_EXTENSION_ID_HERE',
-];
+function geminiUrl(model) {
+  return `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+}
+
+const ALLOWED_ORIGINS = [];
 
 export default {
   async fetch(request, env) {
 
-    // ── CORS preflight ─────────────────────────────────────────────
-    if (request.method === 'OPTIONS') {
-      return corsResponse(null, 204, env);
-    }
+    if (request.method === 'OPTIONS') return corsResponse(null, 204);
+    if (request.method !== 'POST')    return corsResponse(JSON.stringify({ error: 'Method not allowed' }), 405);
 
-    // ── Only accept POST ───────────────────────────────────────────
-    if (request.method !== 'POST') {
-      return corsResponse(JSON.stringify({ error: 'Method not allowed' }), 405, env);
-    }
-
-    // ── Origin check (optional but recommended) ────────────────────
     if (ALLOWED_ORIGINS.length > 0) {
       const origin = request.headers.get('Origin') || '';
-      if (!ALLOWED_ORIGINS.includes(origin)) {
-        return corsResponse(JSON.stringify({ error: 'Origin not allowed' }), 403, env);
-      }
+      if (!ALLOWED_ORIGINS.includes(origin))
+        return corsResponse(JSON.stringify({ error: 'Origin not allowed' }), 403);
     }
 
-    // ── Read request body from extension ──────────────────────────
     let body;
-    try {
-      body = await request.json();
-    } catch (e) {
-      return corsResponse(JSON.stringify({ error: 'Invalid JSON body' }), 400, env);
-    }
+    try { body = await request.json(); }
+    catch (e) { return corsResponse(JSON.stringify({ error: 'Invalid JSON body' }), 400); }
 
-    // ── Validate required fields ───────────────────────────────────
-    if (!body.contents || !body.system_instruction) {
-      return corsResponse(JSON.stringify({ error: 'Missing required fields: contents, system_instruction' }), 400, env);
-    }
+    if (!body.contents || !body.system_instruction)
+      return corsResponse(JSON.stringify({ error: 'Missing required fields' }), 400);
 
-    // ── Build Gemini request ───────────────────────────────────────
-    // The API key comes from the Worker secret — never from the client
     const apiKey = env.GEMINI_API_KEY;
-    if (!apiKey) {
-      return corsResponse(JSON.stringify({ error: 'API key not configured on server' }), 500, env);
-    }
+    if (!apiKey) return corsResponse(JSON.stringify({ error: 'API key not configured' }), 500);
 
     const geminiPayload = {
       system_instruction: body.system_instruction,
@@ -72,31 +49,66 @@ export default {
       }
     };
 
-    // ── Call Gemini ────────────────────────────────────────────────
-    let geminiResp;
-    try {
-      geminiResp = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify(geminiPayload)
-      });
-    } catch (e) {
-      return corsResponse(JSON.stringify({ error: 'Failed to reach Gemini API', detail: e.message }), 502, env);
+    // ── Try primary model, then fallback, with retry on rate limit ──
+    const models = [PRIMARY_MODEL, FALLBACK_MODEL];
+
+    for (let m = 0; m < models.length; m++) {
+      const model = models[m];
+      const url   = `${geminiUrl(model)}?key=${apiKey}`;
+
+      for (let attempt = 0; attempt < 2; attempt++) {
+        if (attempt > 0) await sleep(2000); // wait 2s before retry
+
+        let resp;
+        try {
+          resp = await fetch(url, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify(geminiPayload)
+          });
+        } catch (e) {
+          if (m === models.length - 1 && attempt === 1)
+            return corsResponse(JSON.stringify({ error: 'Failed to reach Gemini API', detail: e.message }), 502);
+          continue;
+        }
+
+        // Success
+        if (resp.status === 200) {
+          const data = await resp.json();
+          // Tag which model was used so popup.js can log it
+          if (m > 0 || attempt > 0) data._fallback = { model, attempt };
+          return corsResponse(JSON.stringify(data), 200);
+        }
+
+        // Rate limited — retry or try fallback
+        if (resp.status === 429 || resp.status === 503) {
+          const errText = await resp.text();
+          const isOverloaded = errText.includes('high demand') || errText.includes('overloaded') || errText.includes('RESOURCE_EXHAUSTED');
+          if (isOverloaded) continue; // retry this model once, then fall to next
+          // Non-retryable error on this model — break to fallback
+          break;
+        }
+
+        // Other error — return it
+        const data = await resp.json().catch(() => ({ error: resp.statusText }));
+        return corsResponse(JSON.stringify(data), resp.status);
+      }
     }
 
-    // ── Return Gemini response to extension ────────────────────────
-    const geminiData = await geminiResp.json();
-    return corsResponse(JSON.stringify(geminiData), geminiResp.status, env);
+    return corsResponse(JSON.stringify({ error: 'Gemini API unavailable after retries. Please try again in a moment.' }), 503);
   }
 };
 
-// ── CORS helper ───────────────────────────────────────────────────
-function corsResponse(body, status, env) {
-  const headers = {
-    'Content-Type':                'application/json',
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-  };
-  return new Response(body, { status: status || 200, headers });
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function corsResponse(body, status) {
+  return new Response(body, {
+    status: status || 200,
+    headers: {
+      'Content-Type':                 'application/json',
+      'Access-Control-Allow-Origin':  '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    }
+  });
 }

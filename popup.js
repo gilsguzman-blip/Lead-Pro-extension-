@@ -389,7 +389,7 @@ function populateFromData(d) {
         + 'GOAL: Get a reply. That is the ONLY goal. Do NOT push an appointment — they haven\'t even responded yet.\n'
         + 'CRITICAL — NO APPOINTMENT TIMES: Do NOT offer 9:15 or 10:30 or any specific times. Do NOT say "would X or Y work for you." They have not engaged. An appointment offer to someone who has never replied feels tone-deaf and will be ignored.\n'
         + 'WHAT TO DO INSTEAD: One short warm message. Acknowledge the vehicle. Ask ONE low-friction question or offer something of value. Leave the door open.\n'
-        + 'SMS GOAL: 2-3 sentences. Sound like a real person, not a system. Ask something easy to answer — a yes/no or a simple question about their search.\n'
+        + 'SMS GOAL: 3-4 sentences. Sound like a real person who actually looked at this file. Reference the specific vehicle. Ask one easy question. Warm enough that it could not be sent to any other customer.\n'
         + 'EXAMPLE SMS: "Caroline, still have that Land Cruiser here — it\'s a great spec. Still exploring or did your search take a different direction?"\n'
         + 'EXAMPLE EMAIL: One paragraph. Reference what they inquired about. Ask one easy question. No appointment times. No duration. Just re-open the conversation.\n'
         : '- Customer engaged but has gone quiet. Goal is to re-open conversation before pushing appointment.\n'
@@ -397,7 +397,7 @@ function populateFromData(d) {
         + '- Do NOT say "thanks for confirming" or imply recent engagement.\n'
         + (d.hasConfirmedVisit ? '- KNOWN HISTORY confirms a past visit. Reference it specifically — what vehicle, what hesitation. Be honest and open a new door.\n' : '- NO CONFIRMED VISIT on record. Do NOT say "when you came in" — this customer has NOT visited.\n')
         + '- Be honest and specific. Never fabricate visit details.\n'
-        + '- SMS = 2-3 sentences MAX: one specific hook, one soft ask.\n')
+        + '- SMS = 3-4 sentences: warm opener, specific hook, one soft ask.\n')
       + '- WRONG in ALL stalled cases: Generic "check in", "touching base", "just wanted to follow up", appointment times on zero-contact leads.';
     leadContext = stalledNote + '\n\n' + leadContext;
     d._isStalled = true;
@@ -409,7 +409,7 @@ function populateFromData(d) {
         + 'This customer has NEVER replied to any outreach. Multiple attempts have been made.\n'
         + 'DO NOT include appointment times in ANY format. DO NOT say "would X or Y work". DO NOT mention duration. DO NOT say "get ahead of your schedule".\n'
         + 'EMAIL: Two short paragraphs. Warm reference to what they inquired about. End with ONE easy question about their search or interest. Nothing else.\n'
-        + 'SMS: 2 sentences. One observation. One easy question. No close.\n'
+        + 'SMS: 3-4 sentences. Warm opener, one specific observation about the vehicle or their situation, one easy question. No appointment close.\n'
         + 'VOICEMAIL: Reference the vehicle. Say you wanted to connect. Leave number. End.\n'
         + '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n'
         + leadContext;
@@ -2045,7 +2045,8 @@ function buildSystemPrompt() {
     '- FABRICATION RULE: NEVER reference a co-signer, co-buyer, credit issue, trade-in, or any customer circumstance unless it appears explicitly in the customer messages or the lead data fields. Do NOT infer these from form field labels, system notes, or lead received data. If the customer did not say it, do not mention it.',
     '- APPOINTMENT FABRICATION RULE: NEVER confirm, reference, or imply a specific appointment time unless the customer explicitly agreed to that time in their messages. "Thank you" is NOT an appointment confirmation. If no time has been agreed to, offer new times — do not invent one.',
     '- CLOSE STRATEGY — READ THE ROOM: The two-time appointment close is not automatic. Choose the right tier:',
-    '  TIER 1 — TWO-TIME CLOSE: Customer is warm, engaged, asking about the vehicle. Offer two specific times.',
+    '  TIER 0 — CONFIRM THEIR TIME: Customer already gave you a specific time or window ("3-4 PM", "Saturday morning", "around noon"). DO NOT offer alternative times. Confirm what they said and build around it. Example: "3:00 or 3:30 works great — I\'ll have everything ready for you." Offering earlier times when they told you 3-4 PM is a close strategy failure.',
+    '  TIER 1 — TWO-TIME CLOSE: Customer is warm and engaged but has NOT given a specific time. Offer two specific times.',
     '  TIER 2 — QUALIFYING CLOSE: Customer has an objection or unresolved question. Ask ONE qualifying question before offering times. Example: "What monthly payment or out-the-door number would make this work for you?"',
     '  TIER 3 — SOFT CLOSE: Customer said not today or is lukewarm. Do not offer specific times. Ask what day works: "What day this week is looking best for you?"',
     '  TIER 4 — NO CLOSE: Customer expressed frustration, bought elsewhere, or is not interested. No appointment ask.',
@@ -2084,7 +2085,7 @@ function buildSystemPrompt() {
     '  • Get to the point in the first sentence — do not build up to it',
     '  • One topic per SMS — do not stack multiple questions or multiple value points',
     '  • Close with ONE action — not multiple options, not multiple questions',
-    '  • Under 5 lines total before the signature',
+    '  • LENGTH: 3-5 lines before the signature. SHORT is not a goal — WARM is the goal. A 2-sentence SMS often feels dismissive. A 4-sentence SMS that reacts to the customer, references the vehicle, and makes a clear ask feels like a real person. Err on the side of slightly longer and warmer rather than short and clipped.',
     '  WHAT WARM LOOKS LIKE vs COLD:',
     '  COLD: "Latoya, this is Tania with Community Honda Lafayette. I am reaching out regarding your inquiry on the 2026 Civic Sport. It is currently showing available. It typically takes about 30-45 minutes. Would 9:15 AM or 10:30 AM Thursday work for you?"',
     '  WARM: "Latoya — that Civic Sport in Crystal Black is sharp. I\'ve got it pulled up and ready for you to see. Since Saturday works better, would 10:00 or 11:30 AM work for you?"',
@@ -2400,7 +2401,7 @@ function buildUserPrompt(data) {
       '- STALLED LEAD RULES:',
       '- Open with ONE hook or ONE brief acknowledgment — then immediately the reason. Not both, not three setups.',
       '- BEST openers: "Still thinking about the [vehicle]?" or "Wanted to make sure I didn\'t miss you —" then ONE reason.',
-      '- SMS MUST be 2-3 sentences MAX. Hook + reason + close. No setup language.',
+      '- SMS: 3-4 sentences. Hook + warm context + close. No setup language. Enough to feel like a real person texted, not a bot.',
       '- SMS EXAMPLE (RIGHT): "Hi Samantha, Kristen from Community Kia. Still thinking about upgrading your Optima? Would today at 3:00 or tomorrow at 10:30 work for a quick look?"',
       '- SMS EXAMPLE (WRONG): "We sent you some info recently, and with your Optima, I thought you might be interested in what\'s new. Could you stop by for 30-45 minutes today at 4 PM or tomorrow at 11 AM?" — this is setup, not a hook. The customer already knows who you are.',
       '- DO NOT open with "Great to hear from you again" — there has been no recent re-engagement. The customer has gone quiet.',
@@ -2425,7 +2426,7 @@ function buildUserPrompt(data) {
       '- EXAMPLE of the RIGHT email tone for a casual text follow-up:',
       '  WRONG email opening: "Hi Michael, Thanks for letting me know you need to discuss the Highlander with your wife. That\'s perfectly understandable! The 2011 Toyota Highlander Limited is still showing available..."',
       '  RIGHT email opening: "Hi Michael, Bring your wife by — the Highlander is still here and we\'re open till 8. Would 4:00 or 4:45 PM work for you both?"',
-      '- BREVITY RULE: If the conversation is same-day active texts, SMS should be 2-3 sentences MAX. Do not pad.',
+      '- BREVITY RULE: Match the energy of the conversation. Same-day hot active thread = 2-3 sentences. Standard follow-up or first touch = 3-5 sentences is ideal. SMS should feel complete — not clipped.',
       '- Never re-state information the customer already knows from the conversation.',
       '- Never start with "I understand..." — lead with energy and forward motion instead.',
       '- CRITICAL: If a note says "she said for me to call her at [TIME]" — the call has NOT happened yet.',
@@ -2999,8 +3000,9 @@ function buildUserPrompt(data) {
   var hasOutbound_final = data.hasOutbound || hasOutboundNotes;
 
   // Also treat active-follow-up with no customer reply as zero-contact stalled
-  var isActiveFollowUpNoReply = (data.convState || '').includes('active-follow-up') && !hasCustomerReply;
-  var isZeroContactStalled_ctx = !hasCustomerReply && hasOutbound_final && (ageDays_final >= 2 || isActiveFollowUpNoReply);
+  // BUT only if lead is at least 1 day old — same-day leads are never stalled
+  var isActiveFollowUpNoReply = (data.convState || '').includes('active-follow-up') && !hasCustomerReply && ageDays_final >= 1;
+  var isZeroContactStalled_ctx = !hasCustomerReply && hasOutbound_final && ageDays_final >= 2;
 
   var zeroContactMarker = (typeof leadContext !== 'undefined' && leadContext.includes('ZERO-CONTACT LEAD'));
   var isZeroContactStalled = (!!data._isStalled && !!data._neverReplied) || zeroContactMarker || isZeroContactStalled_ctx;
@@ -3012,7 +3014,7 @@ function buildUserPrompt(data) {
     lines.push('ABSOLUTE RULE — NO APPOINTMENT TIMES — CANNOT BE OVERRIDDEN:');
     lines.push('This customer has NEVER replied to any outreach. Every attempt has been ignored.');
     lines.push('DO NOT write appointment times. DO NOT write would X or Y work. DO NOT write duration. DO NOT write get ahead of your schedule.');
-    lines.push('SMS: 2 sentences. One observation. One easy question. End there.');
+    lines.push('SMS: 3-4 sentences. Warm personal opener, one specific observation about the vehicle or situation, one easy question. Should feel like a real person who read their file.');
     lines.push('EMAIL: Two short paragraphs. End with one simple question. No close. No appointment.');
     lines.push('════════════════════════════════════════════');
   }
