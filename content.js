@@ -293,6 +293,25 @@
   const hasTrade  = tradeClean.length > 2 && !tradeClean.includes('(none entered)');
   const tradeDescription = hasTrade ? tradeClean.substring(0,200) : '';
 
+  // ── Lead age, contact status, outbound history ──────────────────
+  // These are needed for stalled detection in the storage fallback path
+  const fullText = (document.body ? document.body.innerText || document.body.textContent || '' : '').substring(0, 8000);
+  var leadAgeDays = 0;
+  try {
+    var createdText = labelValue('Created') || '';
+    if (!createdText) {
+      var createdMatch = fullText.match(/Created[:\s]+([^\n]{5,40})/i);
+      if (createdMatch) createdText = createdMatch[1];
+    }
+    var daysMatch = createdText.match(/\((\d+)d\)/i);
+    if (daysMatch) leadAgeDays = parseInt(daysMatch[1]);
+  } catch(e) {}
+
+  var isContacted = /Contacted:\s*Yes/i.test(fullText);
+  var hasOutbound = /Outbound (Text|phone|Email)/i.test(fullText);
+  var convState = '';
+  if (/Inbound (Text|phone|Email)/i.test(fullText)) convState = 'has-inbound';
+
   // ── Notes & history ──────────────────────────────────────────────
   const noteEls   = Array.from(document.querySelectorAll('.notes-and-history-item') || []);
   const histLines = [];
@@ -383,6 +402,7 @@
     hasTrade, tradeDescription,
     ownedVehicle, ampEmailSubject, ownedMileage, lastServiceDate,
     history, totalNoteCount,
+    leadAgeDays, isContacted, hasOutbound, convState,
     frameUrl: URL,
     scrapedAt: Date.now()
   };
@@ -417,6 +437,12 @@
         }
       } else if (k === 'storeConfident') {
         if (result[k]) merged[k] = true;
+      } else if (k === 'isContacted' || k === 'hasOutbound') {
+        if (result[k]) merged[k] = true; // sticky — once true, stays true
+      } else if (k === 'leadAgeDays') {
+        if (!merged[k] && result[k]) merged[k] = result[k]; // first non-zero wins
+      } else if (k === 'convState') {
+        if (!merged[k] && result[k]) merged[k] = result[k];
       } else if (k === 'history' || k === 'totalNoteCount') {
         const prevCount = merged.totalNoteCount || 0;
         const thisCount = result.totalNoteCount || 0;

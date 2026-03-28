@@ -347,7 +347,7 @@ function populateFromData(d) {
   }
   if (d.contactRecoveryPhone) {
     vehicleExtras.push('');
-    vehicleExtras.push('📞 NO PHONE ON FILE: Customer has no phone number. In the email, naturally request their best number before the close. Example: "What is the best number to reach you on in case anything changes before your visit?"');
+    vehicleExtras.push('📞 NO PHONE ON FILE: Customer has no phone number. In the email, request their best number as the CLOSE — replace the appointment ask entirely. Example: "What is the best number to reach you on?" Do NOT add appointment times after asking for the number.');
   }
 
   if (d.isLiveConversation) vehicleExtras.push('🔥 LIVE CONVERSATION: Customer replied within the last few hours and is actively engaged. This is a HOT lead. Write a response that directly continues the live conversation thread. Same-day close is the priority — reference exactly what the customer said and move toward a today appointment.');
@@ -356,7 +356,12 @@ function populateFromData(d) {
 
   // Stalled flag — cold follow-ups with outbound history but no confirmed contact
   // A live conversation (customer replied today) is never stalled — active engagement beats all stall signals
-  const isStalled = isFollowUp && !d.isContacted && !d.hasApptSet && !d.isShowroomFollowUp && !d.isLiveConversation && (d.leadAgeDays || 0) >= 2; // minimum 2 days old — brand new leads cannot be stalled
+  // Stalled = outbound sent, no customer reply, lead aging
+  // Fires even when Contacted:No — that means attempted but no response
+  const hasMultipleAttempts = (d.totalNoteCount || 0) >= 4;
+  const isStalled = !d.hasApptSet && !d.isShowroomFollowUp && !d.isLiveConversation
+    && (d.leadAgeDays || 0) >= 2
+    && (isFollowUp || hasMultipleAttempts); // has outbound OR multiple notes = has been worked
   console.log('[Lead Pro] Stalled check — isFollowUp:', isFollowUp, '| isContacted:', d.isContacted, '| contactedAgeDays:', d.contactedAgeDays, '| hasApptSet:', d.hasApptSet, '| isShowroomFollowUp:', d.isShowroomFollowUp, '| hasOutbound:', d.hasOutbound, '| totalNoteCount:', d.totalNoteCount, '| convState:', d.convState, '| STALLED:', isStalled);
   if (isStalled) {
     toggleFlag('stalled', true);
@@ -374,18 +379,41 @@ function populateFromData(d) {
       pastVisitContext = '\nKNOWN HISTORY:\n' + d.pastVisitNotes.join('\n');
     }
 
-    const stalledNote = '⚠ STALLED LEAD: This lead has been open for ' + (ageDays > 0 ? ageDays + ' days' : ageLabel) + ' with no confirmed contact.' + ownedVehicleHook
+    // Distinguish zero-contact stalled vs post-engagement stalled
+    var neverReplied = !d.isContacted && !d.convState.includes('replied') && !d.isLiveConversation;
+
+    const stalledNote = '⚠ STALLED LEAD: This lead has been open for ' + (ageDays > 0 ? ageDays + ' days' : ageLabel) + '.' + ownedVehicleHook
       + pastVisitContext + '\n'
-      + 'CRITICAL STALLED LEAD RULES:\n'
-      + '- Do NOT reference any appointment confirmation (e.g. "C" reply) — that appointment has passed.\n'
-      + '- Do NOT say "thanks for confirming" or imply recent engagement.\n'
-      + '- Do NOT treat this as a re-engagement — the customer has gone quiet after their dealership visit.\n'
-      + (d.hasConfirmedVisit ? '- KNOWN HISTORY confirms a past visit. Reference it specifically — what vehicle, what hesitation. Be honest and open a new door.\n' : '- NO CONFIRMED VISIT on record. Do NOT invent or imply a showroom visit. Do NOT say "when you came in" or "when you stopped by" — this customer has NOT visited. Approach as a stalled internet lead with no in-person contact.\n')
-      + '- Be honest and specific. Never fabricate visit details not present in KNOWN HISTORY.\n'
-      + 'SMS = 2-3 sentences MAX: one specific reference to their visit, one new hook, one close.\n'
-      + 'RIGHT SMS: "Hi [Name], [Agent] here — I know the [vehicle] wasn\'t quite the right fit when you stopped in. We have some new options that might change that. Would [time1] or [time2] work for a quick look?"\n'
-      + 'WRONG: Generic "check in", "re-engagement", "Click & Go" references, or "thanks for confirming" openings.';
+      + (neverReplied
+        ? '🚫 ZERO CUSTOMER RESPONSE: This customer has NEVER replied. Multiple outreach attempts have been made with no engagement.\n'
+        + 'GOAL: Get a reply. That is the ONLY goal. Do NOT push an appointment — they haven\'t even responded yet.\n'
+        + 'CRITICAL — NO APPOINTMENT TIMES: Do NOT offer 9:15 or 10:30 or any specific times. Do NOT say "would X or Y work for you." They have not engaged. An appointment offer to someone who has never replied feels tone-deaf and will be ignored.\n'
+        + 'WHAT TO DO INSTEAD: One short warm message. Acknowledge the vehicle. Ask ONE low-friction question or offer something of value. Leave the door open.\n'
+        + 'SMS GOAL: 2-3 sentences. Sound like a real person, not a system. Ask something easy to answer — a yes/no or a simple question about their search.\n'
+        + 'EXAMPLE SMS: "Caroline, still have that Land Cruiser here — it\'s a great spec. Still exploring or did your search take a different direction?"\n'
+        + 'EXAMPLE EMAIL: One paragraph. Reference what they inquired about. Ask one easy question. No appointment times. No duration. Just re-open the conversation.\n'
+        : '- Customer engaged but has gone quiet. Goal is to re-open conversation before pushing appointment.\n'
+        + '- Do NOT reference any appointment confirmation — that appointment has passed.\n'
+        + '- Do NOT say "thanks for confirming" or imply recent engagement.\n'
+        + (d.hasConfirmedVisit ? '- KNOWN HISTORY confirms a past visit. Reference it specifically — what vehicle, what hesitation. Be honest and open a new door.\n' : '- NO CONFIRMED VISIT on record. Do NOT say "when you came in" — this customer has NOT visited.\n')
+        + '- Be honest and specific. Never fabricate visit details.\n'
+        + '- SMS = 2-3 sentences MAX: one specific hook, one soft ask.\n')
+      + '- WRONG in ALL stalled cases: Generic "check in", "touching base", "just wanted to follow up", appointment times on zero-contact leads.';
     leadContext = stalledNote + '\n\n' + leadContext;
+    d._isStalled = true;
+    d._neverReplied = neverReplied;
+    // For zero-contact stalled: inject hard appointment block directly into leadContext
+    // This is more reliable than the buildUserPrompt guard since we know neverReplied here
+    if (neverReplied) {
+      leadContext = '🚫 ZERO-CONTACT LEAD — APPOINTMENT ENGINE DISABLED\n'
+        + 'This customer has NEVER replied to any outreach. Multiple attempts have been made.\n'
+        + 'DO NOT include appointment times in ANY format. DO NOT say "would X or Y work". DO NOT mention duration. DO NOT say "get ahead of your schedule".\n'
+        + 'EMAIL: Two short paragraphs. Warm reference to what they inquired about. End with ONE easy question about their search or interest. Nothing else.\n'
+        + 'SMS: 2 sentences. One observation. One easy question. No close.\n'
+        + 'VOICEMAIL: Reference the vehicle. Say you wanted to connect. Leave number. End.\n'
+        + '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n'
+        + leadContext;
+    }
   }
 
   // Store
@@ -572,7 +600,36 @@ async function grabLead() {
   }
 
   chrome.storage.local.remove(['leadpro_data']);
+  lastScrapedData = null; // clear so storage fallback isn't blocked by stale data
   tryExecuteScript(tab, statusEl, dot);
+
+  // Safety net: if executeScript callback doesn't fire (channel closed),
+  // content.js MutationObserver will have written data to storage — read it
+  // Storage fallback — poll storage until data arrives or timeout
+  // Popup may close/reopen so we can't rely on a single delayed timer
+  var fallbackAttempts = 0;
+  var fallbackMax = 12; // 12 x 500ms = 6 seconds total
+  function tryStorageFallback() {
+    fallbackAttempts++;
+    chrome.storage.local.get(['leadpro_data'], function(stored) {
+      const m = stored && stored.leadpro_data;
+      if (m && (m.name || m.vehicle) && m.totalNoteCount > 0) {
+        console.log('[Lead Pro] Storage fallback triggered — attempt', fallbackAttempts, '| notes:', m.totalNoteCount, '| leadAgeDays:', m.leadAgeDays, '| isContacted:', m.isContacted, '| hasOutbound:', m.hasOutbound);
+        lastScrapedData = m;
+        const filled = populateFromData(m);
+        if (filled > 0) {
+          statusEl.className = 'crm-status found';
+          statusEl.textContent = '✓ ' + m.totalNoteCount + ' notes';
+          dot.classList.add('active');
+        }
+      } else if (fallbackAttempts < fallbackMax) {
+        setTimeout(tryStorageFallback, 500);
+      } else {
+        console.log('[Lead Pro] Storage fallback exhausted after', fallbackAttempts, 'attempts');
+      }
+    });
+  }
+  setTimeout(tryStorageFallback, 1500); // first attempt after 1.5s
 }
 
 // ── Execute script scraper ────────────────────────────────────────
@@ -1847,7 +1904,7 @@ function classifyScenario(data) {
   s.noSpecificVehicle  = ctx.includes('no specific unit');
   s.noCustomerPhone    = ctx.includes('no customer phone number');
   s.notToday           = ctx.includes('not today');
-  s.isStalled          = ctx.includes('stalled lead');
+  s.isStalled          = ctx.includes('stalled lead') || !!data._isStalled;
 
   // Stale model year — flag if vehicle year is prior to current calendar year
   const currentYear = new Date().getFullYear();
@@ -1863,6 +1920,19 @@ function classifyScenario(data) {
   s.isToyota   = /toyota/i.test(data.store);
   s.storeGroup = s.isAudi ? 'Audi Lafayette' : (data.store || 'Community Auto Group');
   s.persona    = s.isAudi ? 'Audi Concierge' : 'Internet Sales Coordinator';
+  // Detect non-Audi vehicle at Audi store (used Toyota, Honda, etc.)
+  var vehicleText = (data.vehicle || '').toLowerCase();
+  s.vehicleBrand = /toyota/i.test(vehicleText) ? 'Toyota'
+    : /honda/i.test(vehicleText) ? 'Honda'
+    : /ford/i.test(vehicleText) ? 'Ford'
+    : /chevrolet|chevy/i.test(vehicleText) ? 'Chevrolet'
+    : /bmw/i.test(vehicleText) ? 'BMW'
+    : /mercedes/i.test(vehicleText) ? 'Mercedes'
+    : /lexus/i.test(vehicleText) ? 'Lexus'
+    : /jeep/i.test(vehicleText) ? 'Jeep'
+    : /ram/i.test(vehicleText) ? 'Ram'
+    : '';
+  s.nonAudiVehicle = s.isAudi && s.vehicleBrand && s.vehicleBrand !== 'Audi';
   s.duration   = s.isAudi ? '45 minutes' : '30–45 minutes';
 
   // Brand mismatch detection — vehicle of interest is a competitor brand
@@ -2545,7 +2615,7 @@ function buildUserPrompt(data) {
       '- CLOSE: Apply the appropriate tier from CLOSE STRATEGY. Warm engaged leads get two specific times. Leads with objections or open questions get a qualifying question first.',
     ].join('\n');
 
-  } else if (sc.isChatLead) {
+  } else if (sc.isChatLead && !sc.isStalled) {
     // Detect what the customer actually asked or was told in the chat
     var chatContext = (data.context || '').toLowerCase();
     var chatAskedPrice    = /how much|what.s the price|price on|what does it cost|monthly payment|what would (my|the) payment/i.test(chatContext);
@@ -2649,7 +2719,7 @@ function buildUserPrompt(data) {
       '- CLOSE: Apply the appropriate tier from CLOSE STRATEGY. Warm engaged leads get two specific times. Leads with objections or open questions get a qualifying question first.',
     ].filter(Boolean).join('\n');
 
-  } else if (sc.isThirdPartyOEM) {
+  } else if (sc.isThirdPartyOEM && !sc.isStalled) {
     var oemRef = /kia/i.test(data.leadSource||'') ? 'Kia' : /honda/i.test(data.leadSource||'') ? 'Honda' : /toyota/i.test(data.leadSource||'') ? 'Toyota' : /hyundai/i.test(data.leadSource||'') ? 'Hyundai' : /audi/i.test(data.leadSource||'') ? 'Audi' : 'the manufacturer';
     scenarioDirective = 'TASK: Third-party OEM / manufacturer partner lead — customer came through an official ' + oemRef + ' marketing or partner program.';
     scenarioRules = [
@@ -2661,7 +2731,7 @@ function buildUserPrompt(data) {
       '- CLOSE: Apply the appropriate tier from CLOSE STRATEGY. Warm engaged leads get two specific times. Leads with objections or open questions get a qualifying question first.',
     ].join('\n');
 
-  } else if (sc.isGoogleAd) {
+  } else if (sc.isGoogleAd && !sc.isStalled) {
     scenarioDirective = 'TASK: Google Digital Advertising lead — customer clicked a paid ad and submitted their info.';
     scenarioRules = [
       '- This customer was actively searching and clicked YOUR ad — high intent, act fast.',
@@ -2672,7 +2742,7 @@ function buildUserPrompt(data) {
       '- CLOSE: Apply the appropriate tier from CLOSE STRATEGY. Warm engaged leads get two specific times. Leads with objections or open questions get a qualifying question first.',
     ].join('\n');
 
-  } else if (sc.isReferral) {
+  } else if (sc.isReferral && !sc.isStalled) {
     scenarioDirective = 'TASK: Referral lead — someone who knows this customer recommended the dealership.';
     scenarioRules = [
       '- Acknowledge the referral immediately — it is the reason they reached out.',
@@ -2757,6 +2827,9 @@ function buildUserPrompt(data) {
       sc.salesRep
         ? '- Brand Specialist for this visit: ' + sc.salesRep + ' — reference as "your Audi Brand Specialist, ' + sc.salesRep + '"'
         : '- No Brand Specialist assigned — reference as "one of our Audi Brand Specialists."',
+      sc.nonAudiVehicle
+        ? '- NON-AUDI VEHICLE AT AUDI STORE: This is a pre-owned ' + (sc.vehicleBrand || 'non-Audi') + ' at Audi Lafayette. The Audi Concierge persona and Brand Specialist reference remain — that is the store experience. However do NOT describe the vehicle itself using Audi brand language. Do NOT say the vehicle has "Audi engineering" or "Audi quality." Simply present it as a premium pre-owned unit curated by the store.'
+        : '',
     ].join('\n');
   }
 
@@ -2896,7 +2969,55 @@ function buildUserPrompt(data) {
 
   if (sc.isAudi && sc.salesRep) lines.push('Brand Specialist: ' + sc.salesRep);
 
-  if (!sc.isApptConfirmation && !sc.isExitSignal && !sc.isPauseSignal && !sc.isSoldDelivered) {
+  // Zero-contact stalled leads: suppress entire appointment engine
+  // Check reliable flags AND scan leadContext for the hard block marker as fallback
+  // ── Zero-contact stalled detection from raw context ──────────────
+  // Scan data.context directly — this is always populated regardless of scraper path
+  // Look for: outbound notes exist, no [CUSTOMER] lines, lead age > 2 days
+  var ctx_raw = data.context || '';
+  var hasOutboundNotes = /\[AGENT\].*(?:Outbound|Email reply to prospect|Left message)/i.test(ctx_raw)
+    || /Email reply to prospect|Outbound Text|Outbound phone|Left message/i.test(ctx_raw);
+  var hasCustomerReply = /\[CUSTOMER\]/i.test(ctx_raw)
+    || /Inbound Text|Inbound phone|Email reply from prospect/i.test(ctx_raw);
+  // Estimate age from context — multiple strategies
+  var ctxAgeDays = 0;
+  // Strategy 1: "(Nd)" pattern in Created field
+  var ctxAgeMatch = ctx_raw.match(/Created[^(]*\((\d+)d\)/i);
+  if (ctxAgeMatch) ctxAgeDays = parseInt(ctxAgeMatch[1]);
+  // Strategy 2: calculate from oldest note date vs today
+  if (!ctxAgeDays) {
+    var dateMatches = ctx_raw.match(/\[(\d{1,2}\/\d{1,2}\/\d{4})/g) || [];
+    if (dateMatches.length > 0) {
+      var oldest = dateMatches[dateMatches.length - 1].replace('[','');
+      var oldestMs = new Date(oldest).getTime();
+      if (oldestMs > 0) ctxAgeDays = Math.floor((Date.now() - oldestMs) / 86400000);
+    }
+  }
+  // Strategy 3: check lastScrapedData directly
+  var ageDays_final = ctxAgeDays || data.leadAgeDays || (lastScrapedData && lastScrapedData.leadAgeDays) || 0;
+  var isContacted_final = data.isContacted || /Contacted:\s*Yes/i.test(ctx_raw);
+  var hasOutbound_final = data.hasOutbound || hasOutboundNotes;
+
+  // Also treat active-follow-up with no customer reply as zero-contact stalled
+  var isActiveFollowUpNoReply = (data.convState || '').includes('active-follow-up') && !hasCustomerReply;
+  var isZeroContactStalled_ctx = !hasCustomerReply && hasOutbound_final && (ageDays_final >= 2 || isActiveFollowUpNoReply);
+
+  var zeroContactMarker = (typeof leadContext !== 'undefined' && leadContext.includes('ZERO-CONTACT LEAD'));
+  var isZeroContactStalled = (!!data._isStalled && !!data._neverReplied) || zeroContactMarker || isZeroContactStalled_ctx;
+  console.log('[Lead Pro] isZeroContactStalled:', isZeroContactStalled, '| ctx_scan:', isZeroContactStalled_ctx, '| hasCustomerReply:', hasCustomerReply, '| hasOutbound:', hasOutbound_final, '| ageDays:', ageDays_final, '| _isStalled:', data._isStalled);
+
+  if (isZeroContactStalled) {
+    lines.push('');
+    lines.push('════════════════════════════════════════════');
+    lines.push('ABSOLUTE RULE — NO APPOINTMENT TIMES — CANNOT BE OVERRIDDEN:');
+    lines.push('This customer has NEVER replied to any outreach. Every attempt has been ignored.');
+    lines.push('DO NOT write appointment times. DO NOT write would X or Y work. DO NOT write duration. DO NOT write get ahead of your schedule.');
+    lines.push('SMS: 2 sentences. One observation. One easy question. End there.');
+    lines.push('EMAIL: Two short paragraphs. End with one simple question. No close. No appointment.');
+    lines.push('════════════════════════════════════════════');
+  }
+
+  if (!sc.isApptConfirmation && !sc.isExitSignal && !sc.isPauseSignal && !sc.isSoldDelivered && !isZeroContactStalled) {
     if (sc.notToday || (data.customerScheduleConstraint && (data.customerScheduleConstraint.indexOf('SHIFT_WORKER:') === 0 || data.customerScheduleConstraint.indexOf('OUT_OF_TOWN:') === 0))) {
       if (data.customerScheduleConstraint && data.customerScheduleConstraint.indexOf('SHIFT_WORKER:') === 0) {
         lines.push('', 'SHIFT WORKER TIMING: Do NOT offer the standard two appointment times. This customer works shift/hitch/rotation.',
@@ -2995,6 +3116,26 @@ function buildUserPrompt(data) {
           '- Tone: organized and thoughtful. No urgency — just proactive service.');
       }
     }
+  } else if (isZeroContactStalled) {
+    lines.push('', '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    lines.push('ZERO-CONTACT RE-ENGAGEMENT — READ THIS BEFORE WRITING ANYTHING');
+    lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    lines.push('FACT: This customer has received multiple outreach attempts and has not replied to a single one.');
+    lines.push('GOAL: Get their first reply. Nothing else.');
+    lines.push('');
+    lines.push('SMS — write exactly this structure:');
+    lines.push('  Sentence 1: Short warm opener referencing the specific vehicle or inquiry. No intro, no store name beyond first touch.');
+    lines.push('  Sentence 2: One easy yes/no or simple question. End there. No appointment times. No duration.');
+    lines.push('  GOOD: "Tammy, still have the A3 here if you\'re still looking — any specific questions before you come check it out?"');
+    lines.push('  BAD: anything with "would X or Y work", "45 minutes", "wide open today", "morning or afternoon"');
+    lines.push('');
+    lines.push('EMAIL — write exactly this structure:');
+    lines.push('  Para 1 (2-3 sentences): Warm, personal, references what they inquired about. Acknowledge they haven\'t connected yet without making it awkward.');
+    lines.push('  Para 2 (1 sentence): ONE simple question to re-open. Examples: "Is the A3 still on your radar?" or "Did your search go a different direction?" or "Any specific questions I can answer for you?"');
+    lines.push('  STOP THERE. No "would X or Y work". No "45 minutes". No "wide open today". No appointment structure of any kind.');
+    lines.push('  GOOD EMAIL CLOSE: "Is the Audi A3 still something you\'re exploring, or has your search taken a different direction?"');
+    lines.push('  BAD EMAIL CLOSE: "Would 10:45 AM or 11:30 AM today work for your visit?"');
+    lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   }
 
   if (data.context) {
@@ -3243,6 +3384,12 @@ async function generateAll() {
   });
 
   try {
+    // Zero-contact stalled: strip appointment times from context before sending
+    if (leadContext.includes('ZERO-CONTACT LEAD')) {
+      console.log('[Lead Pro] Zero-contact stalled confirmed — stripping appointment times from context');
+      // Remove any injected time lines that slipped through
+      leadContext = leadContext.replace(/Time 1:.*$/gm, '').replace(/Time 2:.*$/gm, '').replace(/APPOINTMENT TIME FORMAT.*$/gm, '').replace(/Would.*AM or.*AM.*work/gi, '').trim();
+    }
     console.log('[Lead Pro] Generating — context length:', leadContext.length, '| first 300:', leadContext.substring(0,300));
     const userPrompt = buildUserPrompt({
       name, agent, salesRep: leadSalesRep,
@@ -3252,6 +3399,7 @@ async function generateAll() {
       contactedAgeDays: lastScrapedData ? (lastScrapedData.contactedAgeDays || 0) : 0,
       hasOutbound: lastScrapedData ? !!lastScrapedData.hasOutbound : false,
       isLiveConversation: lastScrapedData ? !!lastScrapedData.isLiveConversation : false,
+      isContacted:       lastScrapedData ? !!lastScrapedData.isContacted : false,
       // Previously missing — now passed through (fixes dead code identified in stability assessment)
       lastInboundMsg:            lastScrapedData ? (lastScrapedData.lastInboundMsg || '') : '',
       lastOutboundMsg:           lastScrapedData ? (lastScrapedData.lastOutboundMsg || '') : '',
@@ -3280,6 +3428,8 @@ async function generateAll() {
       isMaskedEmail:             lastScrapedData ? !!lastScrapedData.isMaskedEmail : false,
       isSRPVehicle:              lastScrapedData ? !!lastScrapedData.isSRPVehicle : false,
       isVelocityResponse:        lastScrapedData ? !!lastScrapedData.isVelocityResponse : false,
+      _isStalled:                lastScrapedData ? !!lastScrapedData._isStalled : false,
+      _neverReplied:             lastScrapedData ? !!lastScrapedData._neverReplied : false,
       isSoldDelivered:           lastScrapedData ? !!lastScrapedData.isSoldDelivered : false,
       activeFlags: Array.from(activeFlags)
     });
@@ -3460,8 +3610,36 @@ if (spBtn) {
 document.getElementById('btnGrab').addEventListener('click', grabLead);
 document.getElementById('btnGenerate').addEventListener('click', generateAll);
 
+// Listen for content.js DOM updates — fires when notes change in the CRM
+// This catches cases where executeScript callback misses due to channel timeout
+chrome.runtime.onMessage.addListener(function(msg) {
+  if (msg && msg.type === 'LEADPRO_DOM_UPDATED') {
+    if (lastScrapedData && lastScrapedData.name) return; // already have data
+    chrome.storage.local.get(['leadpro_data'], function(stored) {
+      if (!stored || !stored.leadpro_data) return;
+      const m = stored.leadpro_data;
+      if (!m || (!m.name && !m.vehicle)) return;
+      if (lastScrapedData && lastScrapedData.name) return;
+      console.log('[Lead Pro] DOM update listener triggered — populateFromData from storage');
+      lastScrapedData = m;
+      populateFromData(m);
+    });
+  }
+});
+
 window.addEventListener('load', function() {
-  console.log('[Lead Pro] v8.46 loaded');
+  console.log('[Lead Pro] v8.57 loaded');
+
+  // On popup open — read storage immediately in case content.js already has data
+  // This handles the case where the popup was closed and reopened after grab
+  chrome.storage.local.get(['leadpro_data'], function(stored) {
+    const m = stored && stored.leadpro_data;
+    if (m && (m.name || m.vehicle) && m.totalNoteCount > 0 && !lastScrapedData) {
+      console.log('[Lead Pro] On-open storage read — found data. Notes:', m.totalNoteCount, '| leadAgeDays:', m.leadAgeDays);
+      lastScrapedData = m;
+      populateFromData(m);
+    }
+  });
 
   // Detect popup vs side panel mode and apply appropriate layout class
   // Side panel windows are wider (Chrome enforces ~360px min); floating popups are narrower
@@ -3474,5 +3652,5 @@ window.addEventListener('load', function() {
     document.getElementById('keyWarning').classList.add('visible');
     console.warn('[Lead Pro] No proxy URL or API key configured. Set up config.js.');
   }
-  console.log('[Lead Pro] v6.43 loaded — manifest 6.43');
+  console.log('[Lead Pro] v8.53 loaded — manifest 8.53');
 });
