@@ -152,7 +152,14 @@
   console.log('[Lead Pro] content.js in frame:', URL.substring(0,80), '| isLeadFrame:', isLeadFrame, '| vindebug:', autoLeadId);
 
   // ── Store — highest confidence: dealerName from eccs URL parameter ─
-  const dealerIdFromUrl = (URL.match(/[?&]dealerId=(\d+)/i)||[])[1] || '';
+  // Try multiple URL patterns for dealerId — covers split-frame layouts
+  const dealerIdFromUrl = (
+    (URL.match(/[?&]dealerId=(\d+)/i)||[])[1] ||
+    (URL.match(/[?&]de=(\d+)/i)||[])[1] ||
+    (URL.match(/\/dealer\/(\d+)\//i)||[])[1] ||
+    (URL.match(/dealerID=(\d+)/i)||[])[1] ||
+    ''
+  );
   const dealerNameFromUrl = (URL.match(/[?&]dealerName=([^&]+)/i)||[])[1];
   const dealerNameDecoded = dealerNameFromUrl ? decodeURIComponent(dealerNameFromUrl) : '';
 

@@ -97,7 +97,7 @@ document.querySelectorAll('.btn-copy').forEach(function(btn) {
     if (pane === 'email') {
       var rawText = field.value;
       // Remove blank line between greeting and first paragraph
-      var cleanedText = rawText.replace(/^([A-Za-z][^\n]{0,30},)\n\n/m, '$1\n');
+      var cleanedText = rawText.replace(/^([^\n]{1,50},)\n\n/m, '$1\n');
       // Convert to HTML — single spaced TNR 16px
       var escaped = cleanedText
         .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
@@ -539,6 +539,7 @@ document.getElementById('btnTranslate').addEventListener('click', async function
     const prompt = [
       'Translate this dealership BDC ' + label + ' message to conversational Mexican Spanish.',
       'Keep tone warm and natural. Keep names, phone numbers, store names, and times exactly as-is.',
+      'CRITICAL: Preserve ALL line breaks exactly as they appear in the original. The email signature must remain stacked on separate lines — do NOT join signature lines with commas.',
       'Return ONLY the translated text — no JSON, no labels, no extra commentary.',
       '',
       text
@@ -553,8 +554,21 @@ document.getElementById('btnTranslate').addEventListener('click', async function
       })
     });
     const data = await resp.json();
-    if (!data.candidates || !data.candidates[0]) return text; // fallback to original if API fails
-    return data.candidates[0].content.parts[0].text.trim();
+    if (!data.candidates || !data.candidates[0]) return text;
+    var raw = data.candidates[0].content.parts[0].text.trim();
+    // Strip JSON wrapping if model returned structured output despite instructions
+    try {
+      var parsed = JSON.parse(raw);
+      // Unwrap common nested structures
+      if (typeof parsed === 'object') {
+        raw = parsed.translation || parsed.text || parsed.message ||
+              parsed.sms || parsed.email || parsed.voicemail ||
+              parsed.body || parsed.content || raw;
+      }
+    } catch(e) {} // not JSON — use raw as-is
+    // Strip markdown code fences if present
+    raw = raw.replace(/^```[a-z]*\n?/i, '').replace(/\n?```$/,'').trim();
+    return raw;
   }
 
   try {
@@ -608,7 +622,7 @@ async function grabLead() {
   // Storage fallback — poll storage until data arrives or timeout
   // Popup may close/reopen so we can't rely on a single delayed timer
   var fallbackAttempts = 0;
-  var fallbackMax = 12; // 12 x 500ms = 6 seconds total
+  var fallbackMax = 24; // 24 x 500ms = 12 seconds total — longer for split-frame layouts
   function tryStorageFallback() {
     fallbackAttempts++;
     chrome.storage.local.get(['leadpro_data'], function(stored) {
@@ -854,10 +868,10 @@ function tryExecuteScript(tab, statusEl, dot) {
     // Exclude 17-char VINs that may appear under "Stock #" in the Vehicle(s) of Interest panel
     const stockNum = (stockNumRaw && stockNumRaw.length < 15) ? stockNumRaw : '';
     const vin=tm([/\bVIN[:\s]+([A-HJ-NPR-Z0-9]{17})\b/i]);
-    // ── SRP-injected vehicle detection ────────────────────────────
+    // -- SRP-injected vehicle detection ----------------------------
     // Vehicles auto-assigned from search results pages are browsing references, not specific customer requests
-    // ── Lead Response Velocity Governor ────────────────────────────
-    // First response within 60 seconds of lead creation — suppress appointment engine
+    // -- Lead Response Velocity Governor ----------------------------
+    // First response within 60 seconds of lead creation - suppress appointment engine
     var createdMatch = TEXT.match(/Created[:\s]+(\d{1,2}\/\d{1,2}\/\d{2,4}\s+\d{1,2}:\d{2}[ap])/i);
     var isVelocityResponse = false;
     if(createdMatch) {
@@ -871,7 +885,7 @@ function tryExecuteScript(tab, statusEl, dot) {
     const inventoryWarning = /no longer in your active inventory/i.test(TEXT);
     // No stock number AND no VIN = customer interested in model/trim but no specific unit selected
     const noSpecificVehicle = !!(vehicle && !stockNum && !vin && !inventoryWarning);
-    const noVehicleAtAll = !vehicle && !stockNum && !vin; // No vehicle info at all — credit app only or browse lead
+    const noVehicleAtAll = !vehicle && !stockNum && !vin; // No vehicle info at all - credit app only or browse lead
     // In-transit detection: VIN present but NO stock number, vehicle condition is New, Toyota store or Toyota vehicle
     const isToyotaStore = /toyota/i.test(store);
     const isToyotaVehicle = /toyota/i.test(vehicle || vehicleRaw || '');
@@ -938,7 +952,7 @@ function tryExecuteScript(tab, statusEl, dot) {
     const tradeClean=tradeRaw.replace(/Trade-?in\s*Info/gi,'').trim();
     const hasTrade=tradeClean.length>2&&!tradeClean.includes('(none entered)');
     const tradeDescription=hasTrade?tradeClean.substring(0,200):'';
-    // ── Contact recovery mode ─────────────────────────────────────
+    // -- Contact recovery mode -------------------------------------
     var buyerEmail = (TEXT.match(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/)||[''])[0].toLowerCase();
     var maskedDomains = ['anon.cargurus.com','relay.cargurus.com','privaterelay.appleid.com','marketplace.facebook.com'];
     var isMaskedEmail = maskedDomains.some(function(d){ return buyerEmail.indexOf(d) !== -1; });
@@ -953,8 +967,8 @@ function tryExecuteScript(tab, statusEl, dot) {
     const noteEls = Array.from(document.querySelectorAll('.notes-and-history-item')||[]);
     const totalNoteCount = noteEls.length;
 
-    // ── Agent LP commands — use MOST RECENT LP note only ──────────
-    // Notes are newest-first in VinSolutions DOM — stop at first LP note found
+    // -- Agent LP commands - use MOST RECENT LP note only ----------
+    // Notes are newest-first in VinSolutions DOM - stop at first LP note found
     var agentLPCommands = [];
     var lpNoteFound = false;
     for(var lpIdx = 0; lpIdx < noteEls.length; lpIdx++) {
@@ -973,13 +987,13 @@ function tryExecuteScript(tab, statusEl, dot) {
           if(cmd) { agentLPCommands.push(cmd); hasLP = true; }
         });
       }
-      // bare LP: format — anywhere in note on its own line
+      // bare LP: format - anywhere in note on its own line
       var lpLineMatch = c.match(/(?:^|\n)LP:\s*(.+)/i);
       if(lpLineMatch) {
         var bareCmd = lpLineMatch[1].trim();
         if(bareCmd) { agentLPCommands.push(bareCmd); hasLP = true; }
       }
-      // Stop after first LP note found — most recent wins
+      // Stop after first LP note found - most recent wins
       if(hasLP) { lpNoteFound = true; break; }
     }
     console.log('[Lead Pro] LP commands found:', agentLPCommands.length, agentLPCommands);
@@ -1010,7 +1024,7 @@ function tryExecuteScript(tab, statusEl, dot) {
     // JS extracts and labels. AI reads and understands.
     // Up to 25 entries. Skip pure noise. Full message content.
     const transcript = [];
-    // Use lead created date as transcript cutoff — ignore history predating this lead
+    // Use lead created date as transcript cutoff - ignore history predating this lead
     // This prevents old lead history from bleeding into fresh lead responses
     var transcriptCutoffMs = Date.now() - (180 * 24 * 60 * 60 * 1000); // default 180 days
     try {
@@ -1027,24 +1041,24 @@ function tryExecuteScript(tab, statusEl, dot) {
       }
     } catch(e) {}
     noteEls.slice(0,25).forEach(function(item){
-      var date    = ((item.querySelector('.notes-and-hsitory-item-date')||{}).innerText||'').trim(); // NOTE: 'hsitory' typo is intentional — matches VinSolutions DOM typo
+      var date    = ((item.querySelector('.notes-and-hsitory-item-date')||{}).innerText||'').trim(); // NOTE: 'hsitory' typo is intentional - matches VinSolutions DOM typo
       var title   = ((item.querySelector('.legacy-notes-and-history-title')||{}).innerText||'').trim();
       var content = ((item.querySelector('.notes-and-history-item-content')||{}).innerText||'').trim();
       var dir     = (item.getAttribute('data-direction')||'').toLowerCase();
       if(/lead log/i.test(title) && /changed from/i.test(content) && content.length < 100) return;
-      // Skip SMS opt-out status notes and old STOP messages — a new lead submission overrides prior opt-outs
+      // Skip SMS opt-out status notes and old STOP messages - a new lead submission overrides prior opt-outs
       if(/sms status/i.test(title) && /opt.?out/i.test(content)) return;
-      // Skip Cars.com/third-party shopper alert data — contains "still shopping", "our last update" etc
+      // Skip Cars.com/third-party shopper alert data - contains "still shopping", "our last update" etc
       // that makes the AI think there's prior history when this may be a fresh lead
       if(/lead received/i.test(title) && /cars\.com|shopper alert|still actively shopping|comparing dealerships|since our last update/i.test(content)) return;
       if(!title && !content) return;
-      // Strip system data dumps from transcript entirely — TradePending/KBB valuation reports,
+      // Strip system data dumps from transcript entirely - TradePending/KBB valuation reports,
       // lead received data, and automated responses contain market data, credit scores, and
       // dollar amounts that the AI misreads as customer concerns
       var isDataDump = /value-to-dealer|market report|plugin\.tradepending|tradepending\.com|kelley blue book|kbb\.com|market size.*within|estimated.*miles.*value|landing page.*phone|automated response|we are not open for business|assurance that your request|we are working on your request/i.test(content);
       var isLeadReceived = /lead received/i.test(title);
       var isAutoResponse = /email auto response|auto response/i.test(title) || (/email/i.test(title) && /welcome to community|thank you for your inquiry|your request was received/i.test(content));
-      // Also catch TradePending/KBB data by content pattern — in case title varies
+      // Also catch TradePending/KBB data by content pattern - in case title varies
       var isValuationContent = /value-to-dealer|market report|plugin\.tradepending|tradepending\.com|value to dealer|market size.*within|installed from.*landing page|view market report/i.test(content);
       // Catch automated system outbound texts
       var isSystemOutbound = /automated response|we are not open for business|assurance that your request|we are currently working/i.test(content);
@@ -1053,7 +1067,7 @@ function tryExecuteScript(tab, statusEl, dot) {
       transcript.push('[' + date + '] [' + who + '] ' + title + '\n  ' + sanitize(content||'(no content)'));
     });
     const history = transcript.join('\n');
-    // Apply transcript cutoff to ALL leads — filter out notes predating the current lead
+    // Apply transcript cutoff to ALL leads - filter out notes predating the current lead
     // This prevents old "not interested" messages from bleeding into fresh inquiries
     var isAIBuyingSignalSource = /ai buying signal/i.test(leadSource||'');
     var recentHistory = transcript.filter(function(line){
@@ -1072,11 +1086,11 @@ function tryExecuteScript(tab, statusEl, dot) {
           var lineMs = new Date(dateMatch[1]).getTime();
           if(lineMs > 0 && lineMs < transcriptCutoffMs) return false;
         }
-        // Content filter — exclude mass marketing blasts
+        // Content filter - exclude mass marketing blasts
         var isMarketingBlast = /reply stop to cancel|reply stop to unsubscribe|0% apr|0\s*%\s*apr|new beginnings|savings event|anniversary sale|red tag|summer sale|spring event|click here to|shop now|view inventory|utm_source|utm_medium|utm_campaign/i.test(line);
         if(isMarketingBlast) return false;
         return true;
-      }).join('\n') || '(No recent personal conversation — this is a re-engagement based on buying signal data only. Do not reference any marketing emails or blasts.)';
+      }).join('\n') || '(No recent personal conversation - this is a re-engagement based on buying signal data only. Do not reference any marketing emails or blasts.)';
     }
 
     // -- Binary follow-up signals - JS detects, AI interprets ------
@@ -1086,14 +1100,14 @@ function tryExecuteScript(tab, statusEl, dot) {
       var msgContent = ((item.querySelector('.notes-and-history-item-content')||{}).innerText||'').toLowerCase();
       // Only count real agent communication - not lead logs, system notes, or bad lead markers
       var isRealMessage = /outbound text|outbound phone|email reply|outbound email/i.test(title);
-      // Exclude automated system messages — these are NOT real agent outreach
+      // Exclude automated system messages - these are NOT real agent outreach
       var isAutomated = /automated response|we are not open for business|assurance that your request|we are currently working on your request|thank you.*inquiry.*community|this automated response/i.test(msgContent);
       return dir === 'outbound' && isRealMessage && !isAutomated;
     });
     const contactedEl = document.querySelector('[id*="CustomerContacted"]');
     const contactedRaw = contactedEl ? (contactedEl.innerText || '') : '';
     // VinSolutions renders contacted age inline: "Yes (4.88wk)" or "Yes (12d)"
-    // A "Contacted: Yes" that is 14+ days old is STALE — the lead has gone cold.
+    // A "Contacted: Yes" that is 14+ days old is STALE - the lead has gone cold.
     // Parse the age and expire isContacted after 14 days so stalled detection can fire.
     var contactedAgeDays = 0;
     try {
@@ -1105,7 +1119,7 @@ function tryExecuteScript(tab, statusEl, dot) {
       else if (hrMatch)  contactedAgeDays = 0.1; // hours old = same day = very fresh, well under 14d
     } catch(e) {}
     var CONTACTED_STALE_DAYS = 14; // contacts older than 2 weeks don't block stalled flag
-    // contactedAgeDays === 0 means format unrecognized — treat as fresh (safe default)
+    // contactedAgeDays === 0 means format unrecognized - treat as fresh (safe default)
     const isContacted = /yes/i.test(contactedRaw) && (contactedAgeDays === 0 || contactedAgeDays < CONTACTED_STALE_DAYS);
 
     // Exit/pause - scan recent transcript + page text
@@ -1123,11 +1137,11 @@ function tryExecuteScript(tab, statusEl, dot) {
     const recentInbound = filteredTranscript.filter(function(t){ return t.indexOf('[CUSTOMER]') !== -1; }).slice(0,5).join(' ').toLowerCase();
     const recentTranscript = filteredTranscript.slice(0,5).join(' ').toLowerCase();
     const fullScanText = (recentInbound + ' ' + recentTranscript).toLowerCase();
-    // Exit signal detection — customer bought elsewhere or is no longer interested
+    // Exit signal detection - customer bought elsewhere or is no longer interested
     // GUARDS: exclude trade-in ownership language ("we bought it brand new", "bought it new")
     // and conditional trade language ("I'll keep it if the offer is too low")
     var exitRaw = /already bought|bought.*something|bought.*elsewhere|purchased.*already|going.*elsewhere|not interested|not ever interested|never going back|will not be back|will never go back|won.t be back|never coming back|remove.*from.*list|stop.*contacting|decided to (buy|go with|purchase)|went with (another|a different|ford|chevy|toyota|kia|nissan|hyundai|chevrolet|gmc|ram|jeep|dodge|subaru|mazda|volvo|bmw|mercedes|lexus|acura|infiniti|cadillac|lincoln|buick)|found (one|a car|what we)|no longer (interested|looking|in the market)|took (a|the) (deal|offer) (at|from|with)|not satisfied.*process|bad experience|sharing.*bad.*experience|terrible.*experience|horrible.*experience/i.test(fullScanText);
-    // "we bought" / "bought it" — only exit if followed by purchase context, not ownership history
+    // "we bought" / "bought it" - only exit if followed by purchase context, not ownership history
     var boughtElsewhere = /we (bought|purchased|went with|decided on).{0,30}(another|elsewhere|different|other dealer|from them|from there)/i.test(fullScanText)
       || /bought (one|a car|a vehicle) (from|at|with)/i.test(fullScanText);
     var keepingTrade = /keep it if|keep my (car|truck|suv|altima|camry|vehicle)|hold onto it|just keep (it|my)/i.test(fullScanText);
@@ -1150,7 +1164,7 @@ function tryExecuteScript(tab, statusEl, dot) {
         break;
       }
     }
-    // Detect very recent outbound — agent sent a message within the last 60 minutes
+    // Detect very recent outbound - agent sent a message within the last 60 minutes
     // This means any new generation should be consistent with what was already sent
     for(var roi=0; roi<Math.min(5, noteEls.length); roi++){
       var roDir = (noteEls[roi].getAttribute('data-direction')||'').toLowerCase();
@@ -1166,18 +1180,18 @@ function tryExecuteScript(tab, statusEl, dot) {
         break;
       }
     }
-    var isSpanishSpeaker = false; // Spanish detection removed — use translate button
+    var isSpanishSpeaker = false; // Spanish detection removed - use translate button
 
     var customerSaidNotToday = false;
     var customerScheduleConstraint = ''; // captures recurring schedule blocks
-    // Scan last 5 notes for timing constraints — INBOUND CUSTOMER MESSAGES ONLY
+    // Scan last 5 notes for timing constraints - INBOUND CUSTOMER MESSAGES ONLY
     // Skip system-generated notes even if tagged as inbound (lead received, TradePending data dumps)
     for(var nti=0; nti<Math.min(5, noteEls.length); nti++){
       var ntDir = (noteEls[nti].getAttribute('data-direction')||'').toLowerCase();
       if(ntDir === 'inbound'){
         var ntTitle = ((noteEls[nti].querySelector('.legacy-notes-and-history-title')||{}).innerText||'').toLowerCase();
         var ntRawText = ((noteEls[nti].querySelector('.notes-and-history-item-content')||{}).innerText||'');
-        // Skip system/automated inbound notes — these are data dumps not customer messages
+        // Skip system/automated inbound notes - these are data dumps not customer messages
         var ntIsSystem = /lead received|email auto response|auto response|system/i.test(ntTitle)
           || /value-to-dealer|market report|tradepending|plugin\.tradepending|kelley blue|kbb\.com|estimated.*miles.*value|market size.*within|automated response|we are not open|assurance that your request/i.test(ntRawText.substring(0,300));
         if(ntIsSystem) continue; // skip this note, check next one
@@ -1186,7 +1200,7 @@ function tryExecuteScript(tab, statusEl, dot) {
         if(/not today|can.t today|busy today|can.t make it today|no today|not available today|working today|at work today|won.t be able.*today|not.*able.*come.*today|not.*able.*out.*today|can.t come.*today|don.t think.*today|unable.*today|not going to make it today|won.t make it today|can.t.*today|not.*coming.*today|won.t be.*today|don.t think i.ll be able/i.test(ntText)){
           customerSaidNotToday = true;
         }
-        // Customer specifies a future day as their availability — lock onto that day
+        // Customer specifies a future day as their availability - lock onto that day
         // e.g. "I won't be able to until Saturday", "can't until Friday", "not until next week"
         var futureDayMatch = ntText.match(/(?:until|till|on|this|next)\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i)
           || ntText.match(/(?:won.t|can.t|cannot|not able|unable).{0,20}(?:until|till)\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i)
@@ -1195,21 +1209,21 @@ function tryExecuteScript(tab, statusEl, dot) {
           var specificDay = (futureDayMatch[1] || futureDayMatch[2] || '').toLowerCase();
           specificDay = specificDay.charAt(0).toUpperCase() + specificDay.slice(1);
           customerSaidNotToday = true;
-          customerScheduleConstraint = 'CUSTOMER SPECIFIED DAY: Customer said ' + specificDay + ' is when they are available. LOCK IN ' + specificDay + ' — do NOT offer any other day. Offer two specific times on ' + specificDay + ' only. Do NOT try to pull them in sooner.';
+          customerScheduleConstraint = 'CUSTOMER SPECIFIED DAY: Customer said ' + specificDay + ' is when they are available. LOCK IN ' + specificDay + ' - do NOT offer any other day. Offer two specific times on ' + specificDay + ' only. Do NOT try to pull them in sooner.';
         }
-        // Customer states arrival time — e.g. "I get off at 6", "done at 5:30", "arrive around 7"
+        // Customer states arrival time - e.g. "I get off at 6", "done at 5:30", "arrive around 7"
         var arrivalMatch = ntText.match(/(?:get off|off work|done|finish|out|arrive|be there|come by|stop by|swing by)(?:\s+(?:at|by|around|after))?\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)/i);
         if(arrivalMatch && !customerScheduleConstraint) {
-          customerScheduleConstraint = 'CUSTOMER ARRIVAL TIME: Customer said they arrive/get off around ' + arrivalMatch[1] + '. Offer appointment times AFTER this time — not before. Example: if they arrive at 6:30 PM, offer 6:45 PM and 7:15 PM or similar evening slots within store hours.';
+          customerScheduleConstraint = 'CUSTOMER ARRIVAL TIME: Customer said they arrive/get off around ' + arrivalMatch[1] + '. Offer appointment times AFTER this time - not before. Example: if they arrive at 6:30 PM, offer 6:45 PM and 7:15 PM or similar evening slots within store hours.';
         }
-        // Out of town / travel / away — customer is unavailable until a future date
+        // Out of town / travel / away - customer is unavailable until a future date
         var outOfTownMatch = ntText.match(/out of town until ([^.\n,]{3,25})|back (in town|home|around) (on |by )?([^.\n,]{3,20})|away until ([^.\n,]{3,20})|traveling until ([^.\n,]{3,20})|won.t be (back|available|around) until ([^.\n,]{3,20})/i);
         if(outOfTownMatch){
           var returnDay = (outOfTownMatch[1] || outOfTownMatch[4] || outOfTownMatch[5] || outOfTownMatch[6] || outOfTownMatch[9] || 'later this week').trim();
           customerSaidNotToday = true; // blocks same-day
           customerScheduleConstraint = 'OUT_OF_TOWN: Customer is out of town and returns ' + returnDay + '. Do NOT offer any times before their return. Schedule around: ' + returnDay;
         }
-        // Recurring schedule constraints — work mornings, nights, weekdays, shift work, etc.
+        // Recurring schedule constraints - work mornings, nights, weekdays, shift work, etc.
         var hasScheduleBlock = /i work (in the |the )?(morning|afternoon|evening|night|weekend|weekday)|work morning|morning.*work|work.*morning|work (monday|tuesday|wednesday|thursday|friday|saturday|sunday)|busy (morning|afternoon|evening)|tied up.*morning|morning.*tied up/i.test(ntText);
         if(hasScheduleBlock){
           var constraintMatch = ntText.match(/.{0,50}(work|busy|tied up).{0,60}/i);
@@ -1260,9 +1274,9 @@ function tryExecuteScript(tab, statusEl, dot) {
       }
       if(inboundMsgs.length > 0){
         // Suppress keySignal for stale single-char replies (e.g. "C" confirming a weeks-old appointment)
-        // These are not live conversation signals — injecting them as CRITICAL context misleads the AI
+        // These are not live conversation signals - injecting them as CRITICAL context misleads the AI
         var mostRecentInbound = inboundMsgs[0].trim();
-        var isStaleReply = mostRecentInbound.length <= 2; // "C", "Y", "ok" etc — likely a past appt confirm
+        var isStaleReply = mostRecentInbound.length <= 2; // "C", "Y", "ok" etc - likely a past appt confirm
         // Also suppress if the reply is older than 7 days (stale even if longer text)
         var keySignalSuppressed = false;
         for(var ksi=0; ksi<Math.min(10, noteEls.length); ksi++){
@@ -1282,7 +1296,7 @@ function tryExecuteScript(tab, statusEl, dot) {
         }
       }
 
-      // ── Customer concern extractor ───────────────────────────────
+      // -- Customer concern extractor -------------------------------
       // Scans RECENT transcript only (last 180 days) for friction signals.
       // Old notes (mass marketing texts, ancient history) should not drive current messaging.
       var customerConcerns = [];
@@ -1294,7 +1308,7 @@ function tryExecuteScript(tab, statusEl, dot) {
         return lineMs > 0 ? lineMs >= cutoffMs : true;
       });
       // CRITICAL: Exclude system notes, lead received data dumps, auto-responses, and
-      // TradePending/KBB valuation text from concern scanning — these contain vehicle
+      // TradePending/KBB valuation text from concern scanning - these contain vehicle
       // market data with prices, "sold" comparables, and other text that falsely triggers
       // credit, trade, price, and shift worker detectors
       var concernScanLines = recentTranscriptLines.filter(function(line){
@@ -1307,52 +1321,52 @@ function tryExecuteScript(tab, statusEl, dot) {
       }).join(' ');
 
       if(/too (much|high|expensive)|can.t afford|out of (my |our )?budget|payment.*too|over.*budget|price.*concern|what.s the (price|payment|cost)|how much (is|would)|monthly payment|out the door/i.test(allTranscriptText)){
-        customerConcerns.push('PRICE/PAYMENT CONCERN: Customer raised price or payment as an issue. Open by addressing this directly — not by pitching features.');
+        customerConcerns.push('PRICE/PAYMENT CONCERN: Customer raised price or payment as an issue. Open by addressing this directly - not by pitching features.');
       }
       if(/(wife|husband|spouse|partner)|run it by|talk (to|with) (my|the)|need to discuss|bring (him|her|them)/i.test(allTranscriptText)){
         customerConcerns.push('SPOUSE/PARTNER INVOLVED: Customer mentioned needing to involve their spouse or partner. Invite both in or offer to answer questions they might have for their partner.');
       }
       if(/not ready|not right now|give me (a few|some) (days|weeks|time)|check back|hold off|wait (a|until|till)|saving up|few months|next month|after (the|my)/i.test(allTranscriptText)){
-        customerConcerns.push('TIMING HESITATION: Customer indicated they are not ready yet. Acknowledge the timing, keep the door open, and give ONE specific reason to act now — not a pressure tactic.');
+        customerConcerns.push('TIMING HESITATION: Customer indicated they are not ready yet. Acknowledge the timing, keep the door open, and give ONE specific reason to act now - not a pressure tactic.');
       }
       var colorMatch = allTranscriptText.match(/(white|black|silver|gray|grey|blue|red|green|brown|beige|pearl|sonic gray|platinum|lunar silver)/i);
       var trimMatch = allTranscriptText.match(/(ex-?l|sport|touring|lx|ex|elite|awd|fwd|4wd|hybrid|plug-?in)/i);
       if(colorMatch) customerConcerns.push('COLOR PREFERENCE: Customer mentioned ' + colorMatch[0] + '. Match this in your message or acknowledge availability honestly.');
-      if(trimMatch) customerConcerns.push('TRIM/CONFIG PREFERENCE: Customer referenced ' + trimMatch[0] + '. Reference this specifically — do not pitch a different trim without reason.');
+      if(trimMatch) customerConcerns.push('TRIM/CONFIG PREFERENCE: Customer referenced ' + trimMatch[0] + '. Reference this specifically - do not pitch a different trim without reason.');
       if(/trade.?(in|value|worth|get|offer)|what.*get for|how much.*trade|payoff|owe on/i.test(allTranscriptText)){
-        customerConcerns.push('TRADE-IN CONCERN: Customer mentioned their trade. Use it as the hook — lead with the trade value conversation, not the vehicle pitch.');
+        customerConcerns.push('TRADE-IN CONCERN: Customer mentioned their trade. Use it as the hook - lead with the trade value conversation, not the vehicle pitch.');
       }
       if(/credit|financing|pre.?approv|interest rate|down payment|how much down/i.test(allTranscriptText)){
-        customerConcerns.push('FINANCING CONCERN: Customer raised credit or financing. Acknowledge that the visit is the easiest way to get real numbers — keep it low pressure.');
+        customerConcerns.push('FINANCING CONCERN: Customer raised credit or financing. Acknowledge that the visit is the easiest way to get real numbers - keep it low pressure.');
       }
       if(/don.t have (good|great|perfect|the best)? credit|bad credit|no credit|poor credit|credit (is|isn.t|aint)|low credit score|been denied|got denied|bankruptcy|repo|repossession|it is what it is.*credit/i.test(customerOnlyText)){
-        customerConcerns.push('CREDIT CHALLENGE DISCLOSED: Customer explicitly stated they have credit difficulties. Handle with empathy — NEVER say "no problem" or "we work with all credit" (sounds dismissive). Say: "We work through situations like this every day — let us look at the options together." Position the visit as where real answers happen, not a pre-approval guarantee.');
+        customerConcerns.push('CREDIT CHALLENGE DISCLOSED: Customer explicitly stated they have credit difficulties. Handle with empathy - NEVER say "no problem" or "we work with all credit" (sounds dismissive). Say: "We work through situations like this every day - let us look at the options together." Position the visit as where real answers happen, not a pre-approval guarantee.');
       }
       if(/co.?sign|cosign|co.?buyer|adding.*someone|need.*someone.*on.*loan|second.*person.*sign/i.test(customerOnlyText)){
-        customerConcerns.push('CO-SIGNER NEEDED: Customer mentioned needing a co-signer or co-buyer. Both people must be present at signing. Invite both in together — do not push solo visit. Say: \'We will need both of you here to finalize everything.\'');
+        customerConcerns.push('CO-SIGNER NEEDED: Customer mentioned needing a co-signer or co-buyer. Both people must be present at signing. Invite both in together - do not push solo visit. Say: \'We will need both of you here to finalize everything.\'');
       }
 
-      // ── Friction type: Spouse/partner approval needed ────────────
+      // -- Friction type: Spouse/partner approval needed ------------
       if(/run it by|talk (to|with) (my|the) (wife|husband|spouse|partner|boyfriend|girlfriend|mom|dad|father|mother)|need to (check|ask|discuss)|wife.*know|husband.*know|partner.*know|not my decision alone|need approval/i.test(customerOnlyText)){
-        customerConcerns.push('SPOUSE/PARTNER APPROVAL: Customer needs to consult their partner before deciding. Apply TIER 2 CLOSE — do NOT push for same-day commitment. Instead invite both: "Bring them along — the more the merrier, and it only takes 30-45 minutes." Or ask: "When could you both come in together?"');
+        customerConcerns.push('SPOUSE/PARTNER APPROVAL: Customer needs to consult their partner before deciding. Apply TIER 2 CLOSE - do NOT push for same-day commitment. Instead invite both: "Bring them along - the more the merrier, and it only takes 30-45 minutes." Or ask: "When could you both come in together?"');
       }
 
-      // ── Friction type: Comparison shopping ──────────────────────
+      // -- Friction type: Comparison shopping ----------------------
       if(/looking at (a few|other|another|some other|multiple)|comparing|checking out (other|a few|another)|shop(ping)? around|other dealer|other options|see what else|not just here/i.test(customerOnlyText)){
-        customerConcerns.push('COMPARISON SHOPPING: Customer is actively comparing options. Apply TIER 2 CLOSE — do NOT push appointment before earning the visit. Give them ONE concrete reason this vehicle/dealership wins: price confidence, availability, CPO warranty, or response speed. Then ask what matters most to them.');
+        customerConcerns.push('COMPARISON SHOPPING: Customer is actively comparing options. Apply TIER 2 CLOSE - do NOT push appointment before earning the visit. Give them ONE concrete reason this vehicle/dealership wins: price confidence, availability, CPO warranty, or response speed. Then ask what matters most to them.');
       }
 
-      // ── Friction type: Timeline vague / not urgent ───────────────
+      // -- Friction type: Timeline vague / not urgent ---------------
       if(/not in a rush|no hurry|whenever|eventually|down the road|maybe next month|few months|next year|not right now|when the time (is right|comes)|not urgent/i.test(customerOnlyText)){
-        customerConcerns.push('TIMELINE: Customer is not in a rush. Apply TIER 3 CLOSE — soft ask only. Do NOT push urgency that feels fake. Instead acknowledge their pace: "No pressure at all — when you are ready, I will have everything waiting for you." Then ask: "What is your rough timeframe so I can keep an eye on inventory for you?"');
+        customerConcerns.push('TIMELINE: Customer is not in a rush. Apply TIER 3 CLOSE - soft ask only. Do NOT push urgency that feels fake. Instead acknowledge their pace: "No pressure at all - when you are ready, I will have everything waiting for you." Then ask: "What is your rough timeframe so I can keep an eye on inventory for you?"');
       }
 
-      // ── Friction type: Feature/fit uncertainty ───────────────────
+      // -- Friction type: Feature/fit uncertainty -------------------
       if(/not sure (if|whether|it has|this has)|does it have|wondering if|need to know if|want to make sure|confirm.*features|check.*features|see.*features/i.test(customerOnlyText)){
-        customerConcerns.push('FEATURE UNCERTAINTY: Customer is not sure this vehicle meets their needs. Apply TIER 2 CLOSE — answer their question or invite them to see it in person: "The best way to know for sure is to see it — I can walk you through every feature." Do NOT push appointment before addressing their uncertainty.');
+        customerConcerns.push('FEATURE UNCERTAINTY: Customer is not sure this vehicle meets their needs. Apply TIER 2 CLOSE - answer their question or invite them to see it in person: "The best way to know for sure is to see it - I can walk you through every feature." Do NOT push appointment before addressing their uncertainty.');
       }
 
-      // ── Customer commitment detector ────────────────────────────
+      // -- Customer commitment detector ----------------------------
       // Scans recent inbound messages for explicit commitments or open questions
       var customerCommitments = [];
       var recentInboundText = inboundMsgs.slice(0,3).join(' ').toLowerCase();
@@ -1361,26 +1375,26 @@ function tryExecuteScript(tab, statusEl, dot) {
       var dayCommit = recentInboundText.match(/i.ll (come|be there|stop|come in|swing by|head over).{0,30}(monday|tuesday|wednesday|thursday|friday|saturday|sunday|tomorrow|today|this week|after work|in the morning|in the afternoon)/i)
         || recentInboundText.match(/(monday|tuesday|wednesday|thursday|friday|saturday|sunday|tomorrow).{0,20}work(s)? for me/i)
         || recentInboundText.match(/i can (make it|come in|be there).{0,30}/i);
-      if(dayCommit) customerCommitments.push('CUSTOMER COMMITTED: Customer said they would come in — "' + dayCommit[0].trim().substring(0,80) + '". Hold them to it. Reference this commitment directly: "You mentioned [day] works — I wanted to confirm we have everything ready for you."');
+      if(dayCommit) customerCommitments.push('CUSTOMER COMMITTED: Customer said they would come in - "' + dayCommit[0].trim().substring(0,80) + '". Hold them to it. Reference this commitment directly: "You mentioned [day] works - I wanted to confirm we have everything ready for you."');
 
       // Waiting on information from dealer
       var waitingOn = recentInboundText.match(/send (me |over )?(the )?(price|numbers|info|details|photos|link|payment|payoff|trade)/i)
         || recentInboundText.match(/let me know (the |what |if ).{0,40}/i)
         || recentInboundText.match(/what (is|are|would) (the |my )?(price|payment|trade|payoff|interest rate|down)/i)
         || recentInboundText.match(/do you have (it in|one in|any in).{0,30}/i);
-      if(waitingOn) customerCommitments.push('OPEN QUESTION FROM CUSTOMER: Customer asked — "' + waitingOn[0].trim().substring(0,80) + '". ANSWER THIS FIRST before asking for an appointment. Do not ignore an unanswered question.');
+      if(waitingOn) customerCommitments.push('OPEN QUESTION FROM CUSTOMER: Customer asked - "' + waitingOn[0].trim().substring(0,80) + '". ANSWER THIS FIRST before asking for an appointment. Do not ignore an unanswered question.');
 
       // Decision pending on something specific
       var pendingDecision = recentInboundText.match(/i.ll (think about it|check|talk to|ask|decide|let you know|get back to you).{0,40}/i)
         || recentInboundText.match(/need to (check|talk|ask|think|discuss).{0,40}/i);
-      if(pendingDecision) customerCommitments.push('PENDING DECISION: Customer said — "' + pendingDecision[0].trim().substring(0,80) + '". Acknowledge where they left off. Do not skip past this — ask if they had a chance to [check/talk/decide].');
+      if(pendingDecision) customerCommitments.push('PENDING DECISION: Customer said - "' + pendingDecision[0].trim().substring(0,80) + '". Acknowledge where they left off. Do not skip past this - ask if they had a chance to [check/talk/decide].');
 
       var commitmentBlock = customerCommitments.length > 0
-        ? '\n⚡ CUSTOMER COMMITMENTS / OPEN ITEMS — address these FIRST:\n' + customerCommitments.join('\n')
+        ? '\n! CUSTOMER COMMITMENTS / OPEN ITEMS - address these FIRST:\n' + customerCommitments.join('\n')
         : '';
 
       var concernBlock = customerConcerns.length > 0
-        ? '\nIDENTIFIED CUSTOMER CONCERNS — lead with these, do not bury them:\n' + customerConcerns.join('\n')
+        ? '\nIDENTIFIED CUSTOMER CONCERNS - lead with these, do not bury them:\n' + customerConcerns.join('\n')
         : '';
 
       conversationBrief = stateLabel + '\n'
@@ -1411,9 +1425,9 @@ function tryExecuteScript(tab, statusEl, dot) {
     for(var ii=0;ii<noteEls.length;ii++){
       var iiDir = (noteEls[ii].getAttribute('data-direction')||'').toLowerCase();
       var iiTitle = ((noteEls[ii].querySelector('.legacy-notes-and-history-title')||{}).innerText||'').toLowerCase();
-      // Skip system-generated inbound notes — lead received, auto-responses, TradePending data dumps
+      // Skip system-generated inbound notes - lead received, auto-responses, TradePending data dumps
       var isSystemInbound = /lead received|email auto response|auto response|system/i.test(iiTitle);
-      // Skip notes older than transcript cutoff — prevents ancient customer messages from bleeding in
+      // Skip notes older than transcript cutoff - prevents ancient customer messages from bleeding in
       var iiDateText = ((noteEls[ii].querySelector('.notes-and-hsitory-item-date')||{}).innerText||'').trim();
       var iiDateMs = iiDateText ? new Date(iiDateText).getTime() : 0;
       if(iiDateMs > 0 && iiDateMs < transcriptCutoffMs) continue;
@@ -1488,7 +1502,7 @@ function tryExecuteScript(tab, statusEl, dot) {
 
     // Also check for VinSolutions auto-generated appointment boarding pass email
     // IMPORTANT: Only treat as active appointment if boarding pass is recent (within 48h)
-    // A boarding pass from 2 weeks ago means the appointment already passed — lead may be stalled
+    // A boarding pass from 2 weeks ago means the appointment already passed - lead may be stalled
     if(!hasApptSet) {
       var todayMsBP = Date.now();
       var hasApptBoardingPass = noteEls.slice(0,10).some(function(n){
@@ -1507,7 +1521,7 @@ function tryExecuteScript(tab, statusEl, dot) {
     // (not lead received, system notes, or Gubagoo data dumps which may contain appointment URLs)
     // IMPORTANT: Only treat as active appointment if the reminder note is recent (within 48h).
     // An old reminder message (e.g. "quick reminder of our appointment on Saturday") should NOT
-    // keep hasApptSet=true days later — that appointment has already passed.
+    // keep hasApptSet=true days later - that appointment has already passed.
     if(!hasApptSet) {
       var todayMsRem = Date.now();
       noteEls.slice(0,8).forEach(function(n){
@@ -1631,7 +1645,7 @@ function tryExecuteScript(tab, statusEl, dot) {
     if(lastOutboundIsMissedApptReengagement && !customerConfirmedSpecificTime) {
       hasApptSet = false;
       apptDetails = '';
-      console.log('[Lead Pro] Missed appt re-engagement detected — hasApptSet forced false, no fabricated confirmation allowed');
+      console.log('[Lead Pro] Missed appt re-engagement detected - hasApptSet forced false, no fabricated confirmation allowed');
     }
 
     // Detect sold/delivered - only flag RECENT sales (within 30 days) as congratulations territory
@@ -1640,18 +1654,18 @@ function tryExecuteScript(tab, statusEl, dot) {
     var thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
     // Determine if current lead is active BEFORE running any sold detection
     // Must be defined here so all detection paths can use it
-    // Determine if the CURRENT lead is active — check multiple sources
+    // Determine if the CURRENT lead is active - check multiple sources
     var currentLeadIsActive = /active|waiting|appointment/i.test(currentStatus)
       || /Status[:\s]+Active/i.test(TEXT.substring(0, 5000))
       || /Active New Lead/i.test(TEXT.substring(0, 5000))
       || /Status Not Set/i.test(currentStatus)  // blank dropdown = not confirmed sold
       || /truecar|sams club|gubagoo|tradepending|cars\.com|autotrader|facebook|kbb|kelley blue/i.test(leadSource||''); // fresh lead sources are never sold
-    // TrueCar post-sale benefit language is marketing — never a real sale
+    // TrueCar post-sale benefit language is marketing - never a real sale
     if(/post sale benefit|eligible for post sale|sams club.*gift|truecar.*gift|gift card.*truecar/i.test(TEXT)) currentLeadIsActive = true;
-    // Primary: Sale Info section shows a sold date AND a Deal # — both required to avoid
+    // Primary: Sale Info section shows a sold date AND a Deal # - both required to avoid
     // false positives from TradePending/KBB valuation text which also contains "Sold" dates
-    // Require sold date to appear in Sale Info section — not in lead received notes or TrueCar data
-    // TrueCar uses "Sold" to mean "matched through platform" — not an actual customer purchase
+    // Require sold date to appear in Sale Info section - not in lead received notes or TrueCar data
+    // TrueCar uses "Sold" to mean "matched through platform" - not an actual customer purchase
     var saleInfoSection = TEXT.match(/Sale Info[\s\S]{0,500}/i);
     var saleInfoText = saleInfoSection ? saleInfoSection[0] : '';
     var soldDateMatch = saleInfoText.match(/Sold[:\s]+(\d{1,2}\/\d{1,2}\/\d{2,4})/i);
@@ -1665,12 +1679,12 @@ function tryExecuteScript(tab, statusEl, dot) {
       }
     }
     // Secondary: status dropdown explicitly says sold/delivered
-    // Guard with currentLeadIsActive — the selector may pick up Sales History table rows
+    // Guard with currentLeadIsActive - the selector may pick up Sales History table rows
     if(!isSoldDelivered && !currentLeadIsActive && /\bsold\b|\bdelivered\b/i.test(currentStatus)) {
       isSoldDelivered = true;
     }
-    // Secondary-B: Lead Info Status label says "Sold" — must be in Lead Info context
-    // IMPORTANT: Also check currentStatus from the dropdown — if dropdown shows Active/Waiting,
+    // Secondary-B: Lead Info Status label says "Sold" - must be in Lead Info context
+    // IMPORTANT: Also check currentStatus from the dropdown - if dropdown shows Active/Waiting,
     // the current lead is not sold even if old Sales History rows show "Sold"
     // currentLeadIsActive defined above before sold detection block
     if(!isSoldDelivered && !currentLeadIsActive && /Status:\s*Sold\b/i.test(TEXT.substring(0, 1500))) {
@@ -1678,7 +1692,7 @@ function tryExecuteScript(tab, statusEl, dot) {
       var hasActiveLead = /Status:\s*Active/i.test(soldStatusArea);
       if(!hasActiveLead) isSoldDelivered = true;
     }
-    // Tertiary: Sale Info section shows Delivered badge + Deal number — skip if current lead is active
+    // Tertiary: Sale Info section shows Delivered badge + Deal number - skip if current lead is active
     if(!isSoldDelivered && !currentLeadIsActive && hasDealNumber && /Sale Info[\s\S]{0,300}Delivered/i.test(TEXT.substring(0,3000))) {
       var createdMatch = TEXT.match(/Created[:\s]+(\d{1,2}\/\d{1,2}\/\d{2,4})/i);
       if(createdMatch) {
@@ -1691,7 +1705,7 @@ function tryExecuteScript(tab, statusEl, dot) {
     // Scrape past showroom visits and general notes for stalled lead context
     // IMPORTANT: Only include General Notes that describe an actual in-person interaction
     // (test drive, walked lot, met with rep). Generic notes like "sent email" or vehicle
-    // mentions without visit language must NOT be included — they cause hallucinated visit references.
+    // mentions without visit language must NOT be included - they cause hallucinated visit references.
     var pastVisitNotes = [];
     var hasConfirmedVisit = false;
     for(var pni=0; pni<Math.min(25, noteEls.length); pni++){
@@ -1704,7 +1718,7 @@ function tryExecuteScript(tab, statusEl, dot) {
         hasConfirmedVisit = true;
       } else if(/general\s*note/i.test(pnTitle) && pnContent){
         // Only include General Notes that explicitly describe an in-person visit
-        // Must contain visit language — not just a vehicle mention or system note
+        // Must contain visit language - not just a vehicle mention or system note
         var hasVisitLanguage = /test.?drove?|came in|stopped in|walked|visited|showroom|in.person|met with|showed (him|her|them)|demo|we showed|customer (came|was here|visited)/i.test(pnContent);
         if(hasVisitLanguage){
           pastVisitNotes.push('DEALER NOTE (' + pnDate + '): ' + pnContent.substring(0,300));
@@ -2001,7 +2015,12 @@ function buildSystemPrompt() {
     'You are Lead Pro, a BDC response engine for Community Auto Group dealerships.',
     'Respond ONLY with a single valid JSON object. No markdown. No text outside the JSON.',
     'Format: {"sms":"...","email":"...","voicemail":"..."}',
-    '',
+    'CRITICAL JSON STRUCTURE: All three fields (sms, email, voicemail) MUST be flat strings. Do NOT nest objects inside any field.',
+    'WRONG: {"email": {"subject": "...", "body": "..."}} — this is invalid.',
+    'WRONG: {"voicemail": {"translation": "..."}} — this is invalid.',
+    'WRONG: {"sms": {"message": "..."}} — this is invalid.',
+    'CORRECT: {"sms": "...", "email": "Subject: ...\n\nbody text here", "voicemail": "..."}',
+    'The email field must always start with "Subject: " on the first line, then a blank line, then the body.',
     'UNIVERSAL RULES:',
     '- SMS: message body + newline + agent first name + newline + phone number. Nothing else in signature.',
     '- Email: Subject line first ("Subject: ..."), then full message, then complete signature stacked on separate lines (Name on line 1, Title on line 2, Store on line 3, Phone on line 4). Never use slashes between signature parts.',
@@ -3556,9 +3575,39 @@ async function generateAll() {
     }
 
     // Populate tabs
-    const smsText   = (parsed.sms       || '').trim();
-    const emailText = (parsed.email     || '').trim();
-    const vmText    = (parsed.voicemail || '').trim();
+    // Normalize all three fields — handle nested objects from non-standard AI responses
+
+    function flattenField(raw, fieldType) {
+      if (!raw) return '';
+      // Already a string — unescape any literal \n sequences then use directly
+      if (typeof raw === 'string') {
+        return raw.replace(/\\n/g, '\n').replace(/\\t/g, '\t').trim();
+      }
+      // Object — try to extract meaningful content
+      if (typeof raw === 'object') {
+        // Email: {subject, body}
+        if (fieldType === 'email') {
+          var subj = raw.subject || raw.Subject || raw.asunto || '';
+          var bod  = raw.body    || raw.Body    || raw.mensaje || raw.message || raw.content || '';
+          return ((subj ? 'Subject: ' + subj + '\n\n' : '') + bod).trim();
+        }
+        // Voicemail: {translation, text, script, message}
+        if (fieldType === 'voicemail') {
+          return (raw.translation || raw.text || raw.script || raw.voicemail || raw.message || raw.content || JSON.stringify(raw)).trim();
+        }
+        // SMS: {message, text, sms}
+        if (fieldType === 'sms') {
+          return (raw.message || raw.text || raw.sms || raw.content || JSON.stringify(raw)).trim();
+        }
+        // Fallback — try common keys
+        return (raw.text || raw.message || raw.content || raw.body || JSON.stringify(raw)).trim();
+      }
+      return String(raw).trim();
+    }
+
+    const smsText   = flattenField(parsed.sms,       'sms');
+    const emailText = flattenField(parsed.email,      'email');
+    const vmText    = flattenField(parsed.voicemail,  'voicemail');
 
     function setOutput(key, text) {
       const f = document.getElementById('output-' + key);
@@ -3630,7 +3679,7 @@ chrome.runtime.onMessage.addListener(function(msg) {
 });
 
 window.addEventListener('load', function() {
-  console.log('[Lead Pro] v8.57 loaded');
+  console.log('[Lead Pro] v8.69 loaded');
 
   // On popup open — read storage immediately in case content.js already has data
   // This handles the case where the popup was closed and reopened after grab
@@ -3654,5 +3703,5 @@ window.addEventListener('load', function() {
     document.getElementById('keyWarning').classList.add('visible');
     console.warn('[Lead Pro] No proxy URL or API key configured. Set up config.js.');
   }
-  console.log('[Lead Pro] v8.53 loaded — manifest 8.53');
+  console.log('[Lead Pro] v8.69 loaded — manifest 8.53');
 });
