@@ -3477,7 +3477,7 @@ async function generateAll() {
     console.log('[Lead Pro] API response:', data);
 
     if (data.error) {
-      showError('API Error: ' + data.error.message);
+      showError('API Error: ' + (data.error.message || data.error));
       return;
     }
 
