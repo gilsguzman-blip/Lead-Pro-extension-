@@ -3519,6 +3519,21 @@ async function generateAll() {
         result += ch;
       }
       clean = result;
+      // Strip any trailing garbage after the outermost } closes.
+      // The model sometimes appends extra "}", "}", or ``` after the JSON.
+      // Track brace depth to find the true end of the top-level object.
+      var depth2 = 0, inStr2 = false, esc2 = false, jsonEnd = -1;
+      for (var ji = 0; ji < clean.length; ji++) {
+        var jc = clean[ji];
+        if (esc2)            { esc2 = false; continue; }
+        if (jc === '\\' && inStr2) { esc2 = true; continue; }
+        if (jc === '"')      { inStr2 = !inStr2; continue; }
+        if (!inStr2) {
+          if (jc === '{') depth2++;
+          else if (jc === '}') { if (--depth2 === 0) { jsonEnd = ji; break; } }
+        }
+      }
+      if (jsonEnd !== -1 && jsonEnd < clean.length - 1) clean = clean.substring(0, jsonEnd + 1);
       parsed = JSON.parse(clean);
       console.log('[Lead Pro] JSON parsed successfully');
     } catch(e) {
