@@ -339,6 +339,12 @@ function populateFromData(d) {
     vehicleExtras.push('- Lead with the customer action (chat question, trade inquiry, source intent) — not the vehicle.');
   }
 
+  // Override contactRecovery flags if phone already scraped correctly
+  if (d.phone && d.phone.replace(/\D/g,'').length >= 7) d.contactRecoveryPhone = false;
+  // Landline: suppress SMS and voicemail, email only
+  if (d.isLandline) {
+    vehicleExtras.push('📵 LANDLINE ON FILE: Notes confirm this number cannot receive texts. SMS and voicemail are not viable. Email is the only channel. Do NOT ask for a better number — they already provided contact info.');
+  }
   if (d.contactRecoveryEmail) {
     vehicleExtras.push('');
     vehicleExtras.push(d.isMaskedEmail
@@ -778,6 +784,8 @@ function tryExecuteScript(tab, statusEl, dot) {
     const detailEl=document.querySelector('.CustomerInfo_CustomerDetail,[id*="_CustomerDetail"]');
     let phone='';
     if(detailEl){const m=(detailEl.innerText||'').match(/(?:C|H|W|M|Cell|Home|Work|Eve)[:\s]+([\(\d][\d\(\)\-\. ]{7,18})/i);if(m)phone=m[1].replace(/[^\d\(\)\-\. ]/g,'').trim();}
+    if(!phone){var phoneM=TEXT.match(/(?:Cell|Home|Work|Mobile|Day|Eve)[:\s]+([\(\d][\d\(\)\-\. ]{7,18})/i)||TEXT.match(/\((\d{3})\)\s*(\d{3})[-\s](\d{4})/);
+      if(phoneM)phone=(phoneM[0]||'').replace(/^[^\d(]+/,'').trim().substring(0,20);}
     const agent=(function(){
       var a = firstOf([
         gid('ActiveLeadPanelWONotesAndHistory1_m_CurrentAssignedBDAgentLabel'),
@@ -958,9 +966,12 @@ function tryExecuteScript(tab, statusEl, dot) {
     var isMaskedEmail = maskedDomains.some(function(d){ return buyerEmail.indexOf(d) !== -1; });
     var directDomains = ['gmail.com','yahoo.com','icloud.com','outlook.com','hotmail.com','live.com','msn.com','aol.com','me.com','att.net','comcast.net'];
     var isDirectEmail = directDomains.some(function(d){ return buyerEmail.indexOf(d) !== -1; });
-    var phonePattern = /(d{3})[s]?d{3}[s-]d{4}|d{3}[s-]d{3}[s-]d{4}/;
+    var phonePattern = /(\d{3})[\s]?\d{3}[\s-]\d{4}|\d{3}[\s-]\d{3}[\s-]\d{4}/;
     var hasPhone = phonePattern.test(TEXT.substring(0,2000));
     var hasEmail = buyerEmail.length > 4;
+    // Landline: only flag if notes explicitly say landline/cannot receive texts
+    // Do NOT infer from Work/Home label — those are often cell numbers
+    var isLandline = /landline|cannot receive.*message|unable to receive.*text|sms.*opt.out.*landline/i.test(TEXT);
     var contactRecoveryPhone = !hasPhone && hasEmail;
     var contactRecoveryEmail = isMaskedEmail || (!hasEmail && hasPhone);
 
@@ -1057,6 +1068,30 @@ function tryExecuteScript(tab, statusEl, dot) {
       // dollar amounts that the AI misreads as customer concerns
       var isDataDump = /value-to-dealer|market report|plugin\.tradepending|tradepending\.com|kelley blue book|kbb\.com|market size.*within|estimated.*miles.*value|landing page.*phone|automated response|we are not open for business|assurance that your request|we are working on your request/i.test(content);
       var isLeadReceived = /lead received/i.test(title);
+      // Exception: Gubagoo SMS/chat transcripts are embedded in the lead received note
+      // Extract and preserve the conversation before stripping the note
+      if(isLeadReceived && content) {
+        // Detect chat transcript pattern: "timestamp (customer): message"
+        var hasChatTranscript = /\d{10}\s*\(\d{2}\/\d{2}\/\d{2}.*?\):|Lead Type.*sms.chat|Lead Type.*chat/i.test(content);
+        if(hasChatTranscript) {
+          // Extract customer messages from the chat
+          var chatLines = content.split(/\n|(?=\d{10}\s*\()/).map(function(l){return l.trim();}).filter(Boolean);
+          var chatOut = [];
+          chatLines.forEach(function(line){
+            // Customer messages: phone number (timestamp): message
+            var custMatch = line.match(/^\d{10}\s*\([^)]+\):\s*(.+)/);
+            if(custMatch && !/chat started|all notification|send stop|by texting|sure! i|could i please|thank you.*our sales|is there anything/i.test(custMatch[1])){
+              chatOut.push('[CUSTOMER] ' + custMatch[1].trim());
+            }
+            // Subject line has the first message
+            var subjectMatch = line.match(/Subject:\s*(.+)/i);
+            if(subjectMatch) chatOut.push('[CHAT SUBJECT] ' + subjectMatch[1].trim());
+          });
+          if(chatOut.length) {
+            transcript.push('[' + date + '] [GUBAGOO CHAT] Chat transcript:\n  ' + chatOut.join('\n  '));
+          }
+        }
+      }
       var isAutoResponse = /email auto response|auto response/i.test(title) || (/email/i.test(title) && /welcome to community|thank you for your inquiry|your request was received/i.test(content));
       // Also catch TradePending/KBB data by content pattern - in case title varies
       var isValuationContent = /value-to-dealer|market report|plugin\.tradepending|tradepending\.com|value to dealer|market size.*within|installed from.*landing page|view market report/i.test(content);
@@ -1253,6 +1288,12 @@ function tryExecuteScript(tab, statusEl, dot) {
 
     // Conversation header passed to AI
     var conversationBrief = '';
+    // For Gubagoo SMS/chat leads: inject chat transcript into brief even on first-touch
+    // The chat happened BEFORE the lead was created — it IS the first contact
+    var gubogooChatEntry = transcript.filter(function(t){ return t.indexOf('[GUBAGOO CHAT]') !== -1; });
+    if(gubogooChatEntry.length) {
+      conversationBrief = 'CHAT TRANSCRIPT (customer already spoke with the chat bot — read this before writing):\n' + gubogooChatEntry.join('\n');
+    }
     if(convState !== 'first-touch'){
       var stateLabel = {
         'exit':             'EXIT SIGNAL: customer purchased elsewhere or is not interested. Write a gracious close only.',
@@ -1734,7 +1775,7 @@ function tryExecuteScript(tab, statusEl, dot) {
       leadSource,leadStatus: currentStatus || leadStatus,hasTrade,tradeDescription,buyingSignals,
       history, totalNoteCount, hasOutbound, isContacted, contactedAgeDays, lastOutboundMsg, lastInboundMsg,
       hasPauseSignal, hasExitSignal, convState, conversationBrief, customerSaidNotToday, customerScheduleConstraint, isLiveConversation, isRecentOutbound, recentOutboundContent,
-      isInTransit, hasApptSet, apptDetails, isSoldDelivered, hasMissedAppt, missedApptTiming: missedApptTiming2, vrCreditApp, vrPaymentSelected, vrTradeIn, vrCompleted, vrDroppedOff, noVehicleAtAll, agentLPCommands, contactRecoveryPhone, contactRecoveryEmail, isMaskedEmail, isSRPVehicle, isVelocityResponse,
+      isInTransit, hasApptSet, apptDetails, isSoldDelivered, hasMissedAppt, missedApptTiming: missedApptTiming2, vrCreditApp, vrPaymentSelected, vrTradeIn, vrCompleted, vrDroppedOff, noVehicleAtAll, agentLPCommands, contactRecoveryPhone, contactRecoveryEmail, isMaskedEmail, isSRPVehicle, isVelocityResponse, isLandline,
       isShowroomFollowUp, showroomDetails, showroomVisitToday,
       pastVisitNotes,
       hasConfirmedVisit,
@@ -1866,7 +1907,7 @@ function classifyScenario(data) {
   console.log('[Lead Pro] classifyScenario — ls:', (data.leadSource||''), '| isFollowUp:', s.isFollowUp, '| hasRealOutbound:', hasRealOutbound, '| convState:', data.convState);
   // Click & Go = virtual retailing / digital deal / finance app / DRS — NOT chat leads
   // Gubagoo Chat, HDS Chat are standard chat leads, not Click & Go
-  const isGubagooChat = /chat/i.test(ls);
+  const isGubagooChat = /chat|\bsms\b/i.test(ls) || /sms.chat|chat.sms/i.test(ls);
   const isClickAndGoSource = !isGubagooChat && /gubagoo|click.*go|click\s*&\s*go|\bdrs\b|dynamic.*credit|digital retail|virtual retail|hds dr|finance app/i.test(ls);
   // Click & Go wins when it's the lead source AND the lead is fresh (not stalled).
   // A Gubagoo-DRS source on a 47-day-old lead with a past visit and no purchase is the
@@ -1901,7 +1942,7 @@ function classifyScenario(data) {
   s.isCarGurus     = (!s.isFollowUp || !hasRealOutbound) && !s.isCarGurusDD && /cargurus/i.test(ls);
   s.isFacebook     = (!s.isFollowUp || !hasRealOutbound) && /facebook|fb marketplace|fb lead|meta lead/i.test(ls);
   s.isDealerWebsite = (!s.isFollowUp || !hasRealOutbound) && /dealer\.com|dealersocket|dealerfire|dealer website|website lead|internet lead|hds dr lead|dealertrack.*lead/i.test(ls) && !s.isClickAndGo;
-  s.isChatLead     = (!s.isFollowUp || !hasRealOutbound) && /chat/i.test(ls) && !s.isClickAndGo;
+  s.isChatLead     = (!s.isFollowUp || !hasRealOutbound) && (/chat/i.test(ls) || /gubagoo.*sms|sms.*chat/i.test(ls)) && !s.isClickAndGo;
   s.isCarFax       = (!s.isFollowUp || !hasRealOutbound) && /carfax|iseecars|autobytel|car.*genie|modalyst/i.test(ls);
   // High-volume sources from store data
   // Walk-ins are handled by isShowroomFollowUp — no separate flag needed (they always have prior history)
@@ -2040,6 +2081,7 @@ function buildSystemPrompt() {
     '  RIGHT EXAMPLE: "Hi Maria, this is Kristen from Community Kia Baytown. I just pulled up some information on the Telluride and I have numbers I think are going to work really well for you — give me a call at 281-837-3383. That is 281-837-3383."',
     '  WRONG EXAMPLE: "Hi Maria, this is Kristen from Community Kia Baytown. I am following up on your inquiry about the Telluride and would love to schedule a time to discuss your needs and answer any questions you might have. Please call me back at your earliest convenience at 281-837-3383. Thank you and have a great day."',
     '- PROHIBITED PHRASES — GENERIC OPENERS (kills engagement): "Checking in" "Following up" "Touching base" "Just wanted to reach out" "Just wanted to connect" "Just checking" "Circling back" "Looping back" "Reaching out to see" "I hope this finds you well" "Hope your day is going well" "Hope you are having a good" "Hi there"',
+    '- PROHIBITED PHRASES — OVERUSED VEHICLE AVAILABILITY (sounds scripted and robotic): "I have it pulled up and ready for you" "pulled up and ready to see" "pulled up and ready for you to see" "I have it pulled up" — ALL banned. Use fresh alternatives instead: "it is here", "we have it on the lot", "I checked and it is here", "it is in stock", "it is here waiting for you".',
     '- PROHIBITED PHRASES — PASSIVE CLOSINGS (kills show rate): "Let me know" "Stop by anytime" "Feel free to reach out" "Give us a call when you ready" "Anytime works" "Whatever works for you" "I look forward to hearing from you" "I look forward to your response" "Talk soon"',
     '- PROHIBITED PHRASES — TRACKING/SURVEILLANCE LANGUAGE: "I saw you were looking at" "I noticed you were looking at" "I saw you browsing" "I was looking at your" "I saw you looking at the" "We noticed you" "I thought of you" "I saw you visited"',
     '- PROHIBITED PHRASES — CORPORATE/SCRIPTED: "As per our conversation" "As a valued customer" "As a previous customer" "That is a fantastic choice" "Great choice" "Excited to see your request" "I understand that" "I wanted to follow up" "I am reaching out" "Just confirming" "Still working on" "I have been working on"',
@@ -2262,16 +2304,30 @@ function buildUserPrompt(data) {
     var buyerBonus = buyerBonusMatch ? buyerBonusMatch[1].trim() : '';
     var hasPerkspot = /perkspot|employer perk|employee.*perk|perks site/i.test(tcContext);
 
-    // Detect standard TrueCar affinity partners from lead source
+    // Parse affinity partner directly from lead source format "TrueCar/PartnerName"
     var tcAffinityPartner = '';
     var ls2 = (data.leadSource||'').toLowerCase();
-    if(/credit karma|intuit.*credit karma/i.test(ls2 + ' ' + tcContext)) tcAffinityPartner = 'Credit Karma';
-    else if(/usaa/i.test(ls2 + ' ' + tcContext)) tcAffinityPartner = 'USAA';
-    else if(/navy federal/i.test(ls2 + ' ' + tcContext)) tcAffinityPartner = 'Navy Federal';
-    else if(/sam.s club/i.test(ls2 + ' ' + tcContext)) tcAffinityPartner = "Sam's Club";
-    else if(/costco/i.test(ls2 + ' ' + tcContext)) tcAffinityPartner = 'Costco';
-    else if(/aaa/i.test(ls2)) tcAffinityPartner = 'AAA';
-    else if(/consumer reports/i.test(ls2 + ' ' + tcContext)) tcAffinityPartner = 'Consumer Reports';
+    var tcSlashMatch = (data.leadSource||'').match(/truecar\s*\/\s*(.+)/i);
+    if(tcSlashMatch) {
+      var parsed = tcSlashMatch[1].trim();
+      // Normalize known variations
+      if(/beneplace/i.test(parsed)) tcAffinityPartner = 'Beneplace';
+      else if(/credit karma/i.test(parsed)) tcAffinityPartner = 'Credit Karma';
+      else if(/usaa/i.test(parsed)) tcAffinityPartner = 'USAA';
+      else if(/navy federal/i.test(parsed)) tcAffinityPartner = 'Navy Federal';
+      else if(/sam.s club/i.test(parsed)) tcAffinityPartner = "Sam's Club";
+      else if(/costco/i.test(parsed)) tcAffinityPartner = 'Costco';
+      else if(/aaa/i.test(parsed)) tcAffinityPartner = 'AAA';
+      else if(/consumer reports/i.test(parsed)) tcAffinityPartner = 'Consumer Reports';
+      else tcAffinityPartner = parsed; // use whatever is after the slash as-is
+    }
+    // Fallback: scan context for known partners if no slash pattern
+    if(!tcAffinityPartner) {
+      if(/credit karma/i.test(tcContext)) tcAffinityPartner = 'Credit Karma';
+      else if(/usaa/i.test(tcContext)) tcAffinityPartner = 'USAA';
+      else if(/navy federal/i.test(tcContext)) tcAffinityPartner = 'Navy Federal';
+      else if(/beneplace/i.test(tcContext)) tcAffinityPartner = 'Beneplace';
+    }
 
     scenarioDirective = 'TASK: TrueCar affinity/partner lead. Customer submitted a pricing request through TrueCar. They expect a real price response — not a redirect.';
     scenarioRules = [
@@ -3477,7 +3533,7 @@ async function generateAll() {
     console.log('[Lead Pro] API response:', data);
 
     if (data.error) {
-      showError('API Error: ' + (data.error.message || data.error));
+      showError('API Error: ' + data.error.message);
       return;
     }
 
@@ -3519,21 +3575,6 @@ async function generateAll() {
         result += ch;
       }
       clean = result;
-      // Strip any trailing garbage after the outermost } closes.
-      // The model sometimes appends extra "}", "}", or ``` after the JSON.
-      // Track brace depth to find the true end of the top-level object.
-      var depth2 = 0, inStr2 = false, esc2 = false, jsonEnd = -1;
-      for (var ji = 0; ji < clean.length; ji++) {
-        var jc = clean[ji];
-        if (esc2)            { esc2 = false; continue; }
-        if (jc === '\\' && inStr2) { esc2 = true; continue; }
-        if (jc === '"')      { inStr2 = !inStr2; continue; }
-        if (!inStr2) {
-          if (jc === '{') depth2++;
-          else if (jc === '}') { if (--depth2 === 0) { jsonEnd = ji; break; } }
-        }
-      }
-      if (jsonEnd !== -1 && jsonEnd < clean.length - 1) clean = clean.substring(0, jsonEnd + 1);
       parsed = JSON.parse(clean);
       console.log('[Lead Pro] JSON parsed successfully');
     } catch(e) {
@@ -3694,7 +3735,7 @@ chrome.runtime.onMessage.addListener(function(msg) {
 });
 
 window.addEventListener('load', function() {
-  console.log('[Lead Pro] v8.69 loaded');
+  console.log('[Lead Pro] v8.75 loaded');
 
   // On popup open — read storage immediately in case content.js already has data
   // This handles the case where the popup was closed and reopened after grab
@@ -3718,5 +3759,5 @@ window.addEventListener('load', function() {
     document.getElementById('keyWarning').classList.add('visible');
     console.warn('[Lead Pro] No proxy URL or API key configured. Set up config.js.');
   }
-  console.log('[Lead Pro] v8.69 loaded — manifest 8.53');
+  console.log('[Lead Pro] v8.75 loaded — manifest 8.53');
 });
