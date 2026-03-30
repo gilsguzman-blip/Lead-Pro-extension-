@@ -984,6 +984,18 @@ function tryExecuteScript(tab, statusEl, dot) {
     var lpNoteFound = false;
     for(var lpIdx = 0; lpIdx < noteEls.length; lpIdx++) {
       var lpNote = noteEls[lpIdx];
+      // Expand collapsed notes before reading — VinSolutions collapses long notes with Show More
+      var showMoreBtn = lpNote.querySelector('a.show-more, a.showMore, [class*="show-more"], [class*="showMore"], a[data-action="show-more"]');
+      if(!showMoreBtn) {
+        // Also try finding by text content
+        var allLinks = lpNote.querySelectorAll('a, button, span[role="button"]');
+        for(var smi=0; smi<allLinks.length; smi++){
+          if(/(show more|show all|see more|expand)/i.test((allLinks[smi].innerText||'').trim())){
+            showMoreBtn = allLinks[smi]; break;
+          }
+        }
+      }
+      if(showMoreBtn) { try { showMoreBtn.click(); } catch(e) {} }
       var c = ((lpNote.querySelector('.notes-and-history-item-content')||{}).innerText||'').trim();
       if(!c) c = ((lpNote.querySelector('.note-content')||{}).innerText||'').trim();
       if(!c) c = ((lpNote.querySelector('[class*="content"]')||{}).innerText||'').trim();
@@ -1180,7 +1192,10 @@ function tryExecuteScript(tab, statusEl, dot) {
     var boughtElsewhere = /we (bought|purchased|went with|decided on).{0,30}(another|elsewhere|different|other dealer|from them|from there)/i.test(fullScanText)
       || /bought (one|a car|a vehicle) (from|at|with)/i.test(fullScanText);
     var keepingTrade = /keep it if|keep my (car|truck|suv|altima|camry|vehicle)|hold onto it|just keep (it|my)/i.test(fullScanText);
-    const hasExitSignal = (exitRaw || boughtElsewhere) && !keepingTrade;
+    // Re-engagement override: if customer sent an active message AFTER the exit signal, cancel exit
+    // e.g. "I am still on the hunt" after "no longer interested" = re-engaged
+    var recentCustomerActive = /still (on the hunt|looking|interested|searching|in the market)|still want|still need|haven.t found|haven.t bought|still shopping|changed my mind|reconsidering|actually.*interested|would like to|still considering/i.test(recentInbound);
+    const hasExitSignal = (exitRaw || boughtElsewhere) && !keepingTrade && !recentCustomerActive;
     const hasPauseSignal = !hasExitSignal && /taking a break|no luck|need time|not ready|still looking|need to think|not able to upgrade|not looking to upgrade|too early|just got|only have \d+k|low miles/i.test(fullScanText);
 
     // Detect live/hot conversation - inbound reply within last few hours = customer is actively engaged
@@ -1223,7 +1238,9 @@ function tryExecuteScript(tab, statusEl, dot) {
     // Skip system-generated notes even if tagged as inbound (lead received, TradePending data dumps)
     for(var nti=0; nti<Math.min(5, noteEls.length); nti++){
       var ntDir = (noteEls[nti].getAttribute('data-direction')||'').toLowerCase();
-      if(ntDir === 'inbound'){
+      var ntTitleCheck = ((noteEls[nti].querySelector('.legacy-notes-and-history-title')||{}).innerText||'').toLowerCase();
+      var isInboundNote = ntDir === 'inbound' || /inbound text|inbound sms|text message.*inbound|inbound.*text/i.test(ntTitleCheck);
+      if(isInboundNote){
         var ntTitle = ((noteEls[nti].querySelector('.legacy-notes-and-history-title')||{}).innerText||'').toLowerCase();
         var ntRawText = ((noteEls[nti].querySelector('.notes-and-history-item-content')||{}).innerText||'');
         // Skip system/automated inbound notes - these are data dumps not customer messages
@@ -1232,7 +1249,7 @@ function tryExecuteScript(tab, statusEl, dot) {
         if(ntIsSystem) continue; // skip this note, check next one
         var ntText = ntRawText.toLowerCase();
         // Explicit same-day block
-        if(/not today|can.t today|busy today|can.t make it today|no today|not available today|working today|at work today|won.t be able.*today|not.*able.*come.*today|not.*able.*out.*today|can.t come.*today|don.t think.*today|unable.*today|not going to make it today|won.t make it today|can.t.*today|not.*coming.*today|won.t be.*today|don.t think i.ll be able/i.test(ntText)){
+        if(/not today|can.t today|busy today|can.t make it today|no today|not available today|working today|at work today|won.t be able.*today|not.*able.*come.*today|not.*able.*out.*today|can.t come.*today|don.t think.*today|unable.*today|not going to make it today|won.t make it today|can.t.*today|not.*coming.*today|won.t be.*today|don.t think i.ll be able|i will call|i'll call|will call.*when|call.*when.*ready|not available today/i.test(ntText)){
           customerSaidNotToday = true;
         }
         // Customer specifies a future day as their availability - lock onto that day
@@ -1263,6 +1280,23 @@ function tryExecuteScript(tab, statusEl, dot) {
         if(hasScheduleBlock){
           var constraintMatch = ntText.match(/.{0,50}(work|busy|tied up).{0,60}/i);
           customerScheduleConstraint = constraintMatch ? constraintMatch[0].trim() : ntText.substring(0,100);
+        }
+        // Direct time-of-day preference — customer replies with just "morning" or "afternoon"
+        // e.g. "Morning please" "morning works" "afternoon is better" "evening preferred"
+        if(!customerScheduleConstraint) {
+          var todPref = ntText.match(/^(morning|afternoon|evening|night)/i)
+            || ntText.match(/(morning|afternoon|evening)\s+(?:please|works|is better|preferred|only|time)/i)
+            || ntText.match(/prefer(?:red|s)?\s+(?:the\s+)?(morning|afternoon|evening)/i);
+          if(todPref) {
+            var tod = (todPref[1] || todPref[2] || '').toLowerCase();
+            var todMap = {
+              'morning':   'MORNING PREFERENCE: Customer said they prefer morning. Offer times between 9:00 AM and 12:00 PM ONLY. Do NOT offer afternoon or evening times.',
+              'afternoon': 'AFTERNOON PREFERENCE: Customer said they prefer afternoon. Offer times between 12:00 PM and 5:00 PM ONLY. Do NOT offer morning times.',
+              'evening':   'EVENING PREFERENCE: Customer said they prefer evening. Offer times after 5:00 PM ONLY. Do NOT offer morning or early afternoon times.',
+              'night':     'EVENING PREFERENCE: Customer said they prefer evening. Offer times after 5:00 PM ONLY.'
+            };
+            customerScheduleConstraint = todMap[tod] || 'TIME PREFERENCE: Customer said ' + tod + '. Match appointment times to this preference.';
+          }
         }
         break;
       }
@@ -2104,6 +2138,7 @@ function buildSystemPrompt() {
     '- ANSWERING QUESTIONS — THREE PATHS: (1) If you know the answer confidently, give it directly and briefly. (2) If it is a pricing/payment question, give a range or starting point and position the visit as where they get the exact number. (3) If it is a spec/feature question you are not certain about (towing capacity, exact MPG, specific option), say: "I want to make sure I give you the right answer on that — let me confirm and get back to you" OR invite them in: "The best way to go over all the details is in person so nothing gets lost in translation." NEVER guess or fabricate specs.',
     '- SPEC ACCURACY RULE: Do NOT invent or guess specific numbers for towing capacity, payload, MPG, horsepower, or technical specs. If unsure, say you will confirm rather than risk giving wrong information.',
     '- FABRICATION RULE: NEVER reference a co-signer, co-buyer, credit issue, trade-in, or any customer circumstance unless it appears explicitly in the customer messages or the lead data fields. Do NOT infer these from form field labels, system notes, or lead received data. If the customer did not say it, do not mention it.',
+    '- AGENT AVAILABILITY FABRICATION: NEVER claim the agent is "booked", "fully booked", "slammed", "packed", or "unavailable" on any day as a sales tactic. The agent\'s availability is unknown — do not invent scheduling pressure. If the customer asks about the weekend, either offer weekend times or redirect to today with a vehicle reason (inventory, availability), NOT a fake schedule reason.',
     '- APPOINTMENT FABRICATION RULE: NEVER confirm, reference, or imply a specific appointment time unless the customer explicitly agreed to that time in their messages. "Thank you" is NOT an appointment confirmation. If no time has been agreed to, offer new times — do not invent one.',
     '- CLOSE STRATEGY — READ THE ROOM: The two-time appointment close is not automatic. Choose the right tier:',
     '  TIER 0 — CONFIRM THEIR TIME: Customer already gave you a specific time or window ("3-4 PM", "Saturday morning", "around noon"). DO NOT offer alternative times. Confirm what they said and build around it. Example: "3:00 or 3:30 works great — I\'ll have everything ready for you." Offering earlier times when they told you 3-4 PM is a close strategy failure.',
@@ -3236,8 +3271,12 @@ function buildUserPrompt(data) {
       }
     });
     if(lpHasUrl) {
+      var urlLooksTruncated = !/\.[a-z]{2,6}(\/|$)/i.test(lpExtractedUrl);
       lines.push('');
       lines.push('⚠ URL MANDATE: The agent provided this link: ' + lpExtractedUrl);
+      if(urlLooksTruncated) {
+        lines.push('NOTE: This URL may be incomplete — the agent should verify and paste the full link manually if needed.');
+      }
       lines.push('This URL MUST appear in the SMS on its own line. This is NOT optional.');
       lines.push('SMS format: write the message, then on a new line write just the URL, then the signature.');
       lines.push('Do NOT paraphrase, shorten, or omit the URL under any circumstances.');
@@ -3552,7 +3591,26 @@ async function generateAll() {
     console.log('[Lead Pro] Raw response length:', rawText.length, '| finish:', finishReason, '| First 200:', rawText.substring(0,200));
     let parsed;
     try {
-      let clean = rawText.replace(/^```json\s*/i,'').replace(/^```\s*/,'').replace(/\s*```$/,'').trim();
+      // Strip markdown fences at start and end
+      let clean = rawText.replace(/^```json\s*/i,'').replace(/^```\s*/,'').replace(/\s*```\s*$/,'').trim();
+      // Find the root JSON object by tracking brace depth
+      // This handles models that append "} "} "} "`  or extra garbage after valid JSON
+      (function() {
+        var first = clean.indexOf('{');
+        if (first === -1) return;
+        var depth = 0;
+        var inStr = false;
+        var escaped = false;
+        for (var ci = first; ci < clean.length; ci++) {
+          var ch = clean[ci];
+          if (escaped) { escaped = false; continue; }
+          if (ch === '\\') { escaped = true; continue; }
+          if (ch === '"' && !escaped) { inStr = !inStr; continue; }
+          if (inStr) continue;
+          if (ch === '{') depth++;
+          else if (ch === '}') { depth--; if (depth === 0) { clean = clean.substring(first, ci + 1); return; } }
+        }
+      })();
       clean = clean.replace(/^\uFEFF/,'').replace(/^[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]+/,'');
       // Fix common AI JSON breakage: trailing period before closing quote
       clean = clean.replace(/\.(\")/g, '$1');  // escaped quotes
@@ -3735,7 +3793,7 @@ chrome.runtime.onMessage.addListener(function(msg) {
 });
 
 window.addEventListener('load', function() {
-  console.log('[Lead Pro] v8.75 loaded');
+  console.log('[Lead Pro] v8.83 loaded');
 
   // On popup open — read storage immediately in case content.js already has data
   // This handles the case where the popup was closed and reopened after grab
@@ -3759,5 +3817,5 @@ window.addEventListener('load', function() {
     document.getElementById('keyWarning').classList.add('visible');
     console.warn('[Lead Pro] No proxy URL or API key configured. Set up config.js.');
   }
-  console.log('[Lead Pro] v8.75 loaded — manifest 8.53');
+  console.log('[Lead Pro] v8.83 loaded — manifest 8.53');
 });
