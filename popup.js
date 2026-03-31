@@ -232,7 +232,7 @@ function populateFromData(d) {
     });
     if(lpUrlExtracted) {
       vehicleExtras.push('AGENT-PROVIDED LINK: ' + lpUrlExtracted);
-      vehicleExtras.push('- This URL must appear in the SMS on its own line. Mandatory — do not omit.');
+      vehicleExtras.push('- This URL must appear in BOTH the SMS and the email. Mandatory — do not omit or paraphrase.');
     }
   }
 
@@ -1101,6 +1101,14 @@ function tryExecuteScript(tab, statusEl, dot) {
           });
           if(chatOut.length) {
             transcript.push('[' + date + '] [GUBAGOO CHAT] Chat transcript:\n  ' + chatOut.join('\n  '));
+            // Detect customer-proposed time from chat (e.g. "I can come around 3:30")
+            // This is NOT a confirmed appointment — customer proposed a time, agent must confirm it
+            var chatAllCustomer = chatOut.join(' ');
+            var chatTimeMatch = chatAllCustomer.match(/(?:i can (?:come|be there|make it|stop by)|i.ll (?:come|be there|stop by)|can come (?:at|around|by)|come (?:at|around))[\s]*(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)/i)
+              || chatAllCustomer.match(/(?:around|at)\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm))/i);
+            if(chatTimeMatch) {
+              transcript.push('[CHAT NOTE] CUSTOMER PROPOSED TIME: Customer said they can come at ' + chatTimeMatch[1].trim() + '. CONFIRM this time in your response — do NOT offer different times. Say something like "Perfect, I will have everything ready for you at [time]."');
+            }
           }
         }
       }
@@ -3277,9 +3285,22 @@ function buildUserPrompt(data) {
       if(urlLooksTruncated) {
         lines.push('NOTE: This URL may be incomplete — the agent should verify and paste the full link manually if needed.');
       }
-      lines.push('This URL MUST appear in the SMS on its own line. This is NOT optional.');
+      lines.push('This URL MUST appear in BOTH the SMS and the email. This is NOT optional.');
       lines.push('SMS format: write the message, then on a new line write just the URL, then the signature.');
+      lines.push('Email format: include the URL as a clickable link in the email body — either as its own line or naturally embedded in a sentence.');
       lines.push('Do NOT paraphrase, shorten, or omit the URL under any circumstances.');
+    }
+    // Detect pending agent actions in LP (pics, video, callback) and surface them explicitly
+    var allLPText = data.agentLPCommands.join(' ');
+    var hasPicsAction = /pic|photo|video|image|shot|footage/i.test(allLPText);
+    var hasCallbackAction = /i will call|i.ll call|will callback|call.*back|reaching out.*call/i.test(allLPText);
+    if(hasPicsAction) {
+      lines.push('AGENT PENDING ACTION: The agent said they will provide photos or video of this vehicle.');
+      lines.push('REQUIRED: Reference this in the message — tell the customer to expect photos/video shortly. Example: "I am having our team grab some photos and video for you right now."');
+    }
+    if(hasCallbackAction) {
+      lines.push('AGENT PENDING ACTION: The agent indicated they will call the customer.');
+      lines.push('REQUIRED: Reference this commitment in the message.');
     }
     lines.push('These instructions override all other defaults.');
   }
@@ -3793,7 +3814,7 @@ chrome.runtime.onMessage.addListener(function(msg) {
 });
 
 window.addEventListener('load', function() {
-  console.log('[Lead Pro] v8.83 loaded');
+  console.log('[Lead Pro] v8.85 loaded');
 
   // On popup open — read storage immediately in case content.js already has data
   // This handles the case where the popup was closed and reopened after grab
@@ -3817,5 +3838,5 @@ window.addEventListener('load', function() {
     document.getElementById('keyWarning').classList.add('visible');
     console.warn('[Lead Pro] No proxy URL or API key configured. Set up config.js.');
   }
-  console.log('[Lead Pro] v8.83 loaded — manifest 8.53');
+  console.log('[Lead Pro] v8.85 loaded — manifest 8.53');
 });

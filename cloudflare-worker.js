@@ -1,87 +1,95 @@
-/**
- * Lead Pro — Cloudflare Worker v3.5
- * Promise.any hedge strategy: primary fires immediately, secondary at +400ms,
- * pro at +1000ms. First success wins and cancels the rest.
- */
+// ─────────────────────────────────────────────────────────────────
+// Lead Pro — Cloudflare Worker Proxy  v2.0
+// Race strategy: fires both models simultaneously, first success wins
+// gemini-3.1-flash-lite-preview = fastest, lowest latency
+// gemini-3-flash-preview = higher quality fallback
+// ─────────────────────────────────────────────────────────────────
 
-const PRIMARY_MODEL   = 'gemini-3.1-flash-lite-preview';
-const SECONDARY_MODEL = 'gemini-3-flash-preview';
-const FALLBACK_MODEL  = 'gemini-3.1-pro-preview';
+const PRIMARY_MODEL  = 'gemini-3.1-flash-lite-preview';  // fastest TTFT
+const FALLBACK_MODEL = 'gemini-3-flash-preview';           // quality fallback
 
-const TIMEOUT_MS = 12000;
+function geminiUrl(model) {
+  return `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+}
+
+const ALLOWED_ORIGINS = [];
 
 export default {
   async fetch(request, env) {
 
+    // ── CORS preflight ─────────────────────────────────────────────
     if (request.method === 'OPTIONS') return corsResponse(null, 204);
     if (request.method !== 'POST')
       return corsResponse(JSON.stringify({ error: 'Method not allowed' }), 405);
 
-    const apiKey = env.GEMINI_API_KEY;
-    if (!apiKey)
-      return corsResponse(JSON.stringify({ error: 'Missing API key' }), 500);
+    // ── Origin check ───────────────────────────────────────────────
+    if (ALLOWED_ORIGINS.length > 0) {
+      const origin = request.headers.get('Origin') || '';
+      if (!ALLOWED_ORIGINS.includes(origin))
+        return corsResponse(JSON.stringify({ error: 'Origin not allowed' }), 403);
+    }
 
+    // ── Parse body ─────────────────────────────────────────────────
     let body;
     try { body = await request.json(); }
-    catch { return corsResponse(JSON.stringify({ error: 'Invalid JSON' }), 400); }
+    catch (e) { return corsResponse(JSON.stringify({ error: 'Invalid JSON body' }), 400); }
 
     if (!body.contents || !body.system_instruction)
       return corsResponse(JSON.stringify({ error: 'Missing required fields' }), 400);
 
-    // Honour generationConfig from the caller; fall back to safe defaults.
-    const generationConfig = body.generationConfig || {
-      temperature:      0.5,
-      maxOutputTokens:  3000,
-      responseMimeType: 'application/json'
-    };
+    const apiKey = env.GEMINI_API_KEY;
+    if (!apiKey)
+      return corsResponse(JSON.stringify({ error: 'API key not configured' }), 500);
 
     const geminiPayload = {
       system_instruction: body.system_instruction,
       contents:           body.contents,
-      generationConfig
+      generationConfig:   body.generationConfig || {
+        temperature:      0.5,
+        maxOutputTokens:  3000,
+        topP:             0.9,
+        responseMimeType: 'application/json'
+      }
     };
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
-
-    const callGemini = async (model, delay = 0, tag = '') => {
-      if (delay) await scheduler.wait(delay);
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-        {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify(geminiPayload),
-          signal:  controller.signal
-        }
-      );
-      if (!res.ok) {
-        const errBody = await res.json().catch(() => ({}));
-        throw new Error(errBody?.error?.message || `${model} HTTP ${res.status}`);
+    // ── Race strategy: fire both models, first valid 200 wins ──────
+    const fetchModel = async (model, delayMs) => {
+      if (delayMs) await scheduler.wait(delayMs);
+      const url  = `${geminiUrl(model)}?key=${apiKey}`;
+      const resp = await fetch(url, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(geminiPayload)
+      });
+      if (!resp.ok) {
+        const errText = await resp.text().catch(() => resp.statusText);
+        throw new Error(`${model} → ${resp.status}: ${errText.substring(0, 200)}`);
       }
-      const data = await res.json();
-      data._model = model;
-      data._tier  = tag;
-      controller.abort(); // cancel the other in-flight requests
+      const data = await resp.json();
+      data._model = model; // tag which model responded for debugging
       return data;
     };
 
     try {
+      // Primary fires immediately, fallback fires after 400ms
+      // If primary responds in < 400ms, fallback never fires (saves quota)
+      // If primary is slow or errors, fallback kicks in at 400ms
       const result = await Promise.any([
-        callGemini(PRIMARY_MODEL,      0,    'primary'),
-        callGemini(SECONDARY_MODEL,  400,    'secondary'),
-        callGemini(FALLBACK_MODEL,  1000,    'pro')
+        fetchModel(PRIMARY_MODEL, 0),
+        fetchModel(FALLBACK_MODEL, 400)
       ]);
-      clearTimeout(timeout);
       return corsResponse(JSON.stringify(result), 200);
 
-    } catch (err) {
-      clearTimeout(timeout);
-      // AggregateError when all three reject — extract individual messages.
-      const detail = err.errors
-        ? err.errors.map(e => e.message).join(' | ')
-        : err.message;
-      return corsResponse(JSON.stringify({ error: 'Gemini unavailable', detail }), 503);
+    } catch (aggregateError) {
+      // Both models failed — return clean error to extension
+      const errors = aggregateError.errors
+        ? aggregateError.errors.map(e => e.message).join(' | ')
+        : aggregateError.message || 'Unknown error';
+      console.error('[Lead Pro Worker] Both models failed:', errors);
+      return corsResponse(
+        JSON.stringify({ error: 'Service temporarily unavailable. Please try again in a moment.', detail: errors }),
+        503
+      );
     }
   }
 };
@@ -94,7 +102,6 @@ function corsResponse(body, status) {
       'Access-Control-Allow-Origin':  '*',
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type',
-      'X-Content-Type-Options':       'nosniff'
     }
   });
 }
