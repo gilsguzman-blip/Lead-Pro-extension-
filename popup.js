@@ -467,6 +467,8 @@ function populateFromData(d) {
   // Enable generate button once we have something
   const canGenerate = !!(d.name || d.vehicle || detectedStore);
   document.getElementById('btnGenerate').disabled = !canGenerate;
+  const vmBtnEl = document.getElementById('btnVoicemail');
+  if (vmBtnEl) vmBtnEl.disabled = !canGenerate;
 
   return filled;
 }
@@ -496,7 +498,7 @@ function clearFields() {
     const el = document.getElementById(id);
     if (el) { el.value = ''; el.classList.remove('populated'); }
   });
-  ['sms','email','vm'].forEach(function(k) {
+  ['sms','email'].forEach(function(k) {
     const f = document.getElementById('output-' + k);
     if (f) f.value = '';
     const tabBtn = document.querySelector('.tab-btn.' + k);
@@ -995,8 +997,25 @@ function tryExecuteScript(tab, statusEl, dot) {
           }
         }
       }
-      if(showMoreBtn) { try { showMoreBtn.click(); } catch(e) {} }
+      if(showMoreBtn) {
+        try {
+          showMoreBtn.click();
+          // Also try to find and remove any CSS truncation directly
+          var contentEl = lpNote.querySelector('.notes-and-history-item-content, .note-content, [class*="content"]');
+          if(contentEl) {
+            contentEl.style.maxHeight = 'none';
+            contentEl.style.overflow = 'visible';
+            contentEl.style.webkitLineClamp = 'unset';
+            contentEl.style.display = 'block';
+          }
+        } catch(e) {}
+      }
+      // Also try reading full text from the note's data attributes or hidden elements
+      var fullNoteText = '';
+      var hiddenSpans = lpNote.querySelectorAll('[style*="display:none"], [style*="display: none"], [hidden], .show-more-content, [class*="full-text"], [class*="fullText"]');
+      hiddenSpans.forEach(function(el){ fullNoteText += ' ' + (el.innerText || el.textContent || ''); });
       var c = ((lpNote.querySelector('.notes-and-history-item-content')||{}).innerText||'').trim();
+      if(fullNoteText.trim().length > c.length) c = fullNoteText.trim();
       if(!c) c = ((lpNote.querySelector('.note-content')||{}).innerText||'').trim();
       if(!c) c = ((lpNote.querySelector('[class*="content"]')||{}).innerText||'').trim();
       if(!c) c = (lpNote.innerText||'').trim();
@@ -1195,7 +1214,10 @@ function tryExecuteScript(tab, statusEl, dot) {
     // Exit signal detection - customer bought elsewhere or is no longer interested
     // GUARDS: exclude trade-in ownership language ("we bought it brand new", "bought it new")
     // and conditional trade language ("I'll keep it if the offer is too low")
-    var exitRaw = /already bought|bought.*something|bought.*elsewhere|purchased.*already|going.*elsewhere|not interested|not ever interested|never going back|will not be back|will never go back|won.t be back|never coming back|remove.*from.*list|stop.*contacting|decided to (buy|go with|purchase)|went with (another|a different|ford|chevy|toyota|kia|nissan|hyundai|chevrolet|gmc|ram|jeep|dodge|subaru|mazda|volvo|bmw|mercedes|lexus|acura|infiniti|cadillac|lincoln|buick)|found (one|a car|what we)|no longer (interested|looking|in the market)|took (a|the) (deal|offer) (at|from|with)|not satisfied.*process|bad experience|sharing.*bad.*experience|terrible.*experience|horrible.*experience/i.test(fullScanText);
+    // STOP = SMS opt-out — treat as exit, do NOT generate follow-up content
+    var isSmsOptOut = /^stop$|^stop\s*$/i.test((recentInbound||'').trim())
+      || /successfully.*removed.*text|opted out of text|removed from.*text messages/i.test(fullScanText);
+    var exitRaw = isSmsOptOut || /already bought|bought.*something|bought.*elsewhere|purchased.*already|going.*elsewhere|not interested|not ever interested|never going back|will not be back|will never go back|won.t be back|never coming back|remove.*from.*list|stop.*contacting|decided to (buy|go with|purchase)|went with (another|a different|ford|chevy|toyota|kia|nissan|hyundai|chevrolet|gmc|ram|jeep|dodge|subaru|mazda|volvo|bmw|mercedes|lexus|acura|infiniti|cadillac|lincoln|buick)|found (one|a car|what we)|no longer (interested|looking|in the market)|took (a|the) (deal|offer) (at|from|with)|not satisfied.*process|bad experience|sharing.*bad.*experience|terrible.*experience|horrible.*experience/i.test(fullScanText);
     // "we bought" / "bought it" - only exit if followed by purchase context, not ownership history
     var boughtElsewhere = /we (bought|purchased|went with|decided on).{0,30}(another|elsewhere|different|other dealer|from them|from there)/i.test(fullScanText)
       || /bought (one|a car|a vehicle) (from|at|with)/i.test(fullScanText);
@@ -1204,7 +1226,7 @@ function tryExecuteScript(tab, statusEl, dot) {
     // e.g. "I am still on the hunt" after "no longer interested" = re-engaged
     var recentCustomerActive = /still (on the hunt|looking|interested|searching|in the market)|still want|still need|haven.t found|haven.t bought|still shopping|changed my mind|reconsidering|actually.*interested|would like to|still considering/i.test(recentInbound);
     const hasExitSignal = (exitRaw || boughtElsewhere) && !keepingTrade && !recentCustomerActive;
-    const hasPauseSignal = !hasExitSignal && /taking a break|no luck|need time|not ready|still looking|need to think|not able to upgrade|not looking to upgrade|too early|just got|only have \d+k|low miles/i.test(fullScanText);
+    const hasPauseSignal = !hasExitSignal && /taking a break|no luck|need time|not ready|still looking|need to think|not able to upgrade|not looking to upgrade|too early|just got|only have \d+k|low miles|get back to you later|i.ll reach out|contact you later|good day|have a good|have a great|talk later|i.ll let you know|let you know when|not right now|maybe later|later on/i.test(fullScanText);
 
     // Detect live/hot conversation - inbound reply within last few hours = customer is actively engaged
     var isLiveConversation = false;
@@ -1242,9 +1264,10 @@ function tryExecuteScript(tab, statusEl, dot) {
 
     var customerSaidNotToday = false;
     var customerScheduleConstraint = ''; // captures recurring schedule blocks
-    // Scan last 5 notes for timing constraints - INBOUND CUSTOMER MESSAGES ONLY
+    // Scan last 10 notes for timing constraints - INBOUND CUSTOMER MESSAGES ONLY
     // Skip system-generated notes even if tagged as inbound (lead received, TradePending data dumps)
-    for(var nti=0; nti<Math.min(5, noteEls.length); nti++){
+    // Also skip single-word confirmations (C, YES, Morning, OK) — these are replies not schedule info
+    for(var nti=0; nti<Math.min(10, noteEls.length); nti++){
       var ntDir = (noteEls[nti].getAttribute('data-direction')||'').toLowerCase();
       var ntTitleCheck = ((noteEls[nti].querySelector('.legacy-notes-and-history-title')||{}).innerText||'').toLowerCase();
       var isInboundNote = ntDir === 'inbound' || /inbound text|inbound sms|text message.*inbound|inbound.*text/i.test(ntTitleCheck);
@@ -1255,6 +1278,11 @@ function tryExecuteScript(tab, statusEl, dot) {
         var ntIsSystem = /lead received|email auto response|auto response|system/i.test(ntTitle)
           || /value-to-dealer|market report|tradepending|plugin\.tradepending|kelley blue|kbb\.com|estimated.*miles.*value|market size.*within|automated response|we are not open|assurance that your request/i.test(ntRawText.substring(0,300));
         if(ntIsSystem) continue; // skip this note, check next one
+        // Skip very short replies (1-2 words) that are confirmations not schedule info
+        // e.g. "C", "YES", "Morning", "OK", "Sure" — these don't contain schedule constraints
+        var ntWordCount = ntRawText.trim().split(/\s+/).filter(Boolean).length;
+        var isShortConfirmation = ntWordCount <= 2 && /^(c|yes|ok|okay|sure|morning|afternoon|evening|great|perfect|sounds good|got it|thanks|thank you|hi|hello|\d{1,2}(:\d{2})?\s*(am|pm)?)$/i.test(ntRawText.trim());
+        if(isShortConfirmation && !customerScheduleConstraint) continue; // skip but keep looking deeper
         var ntText = ntRawText.toLowerCase();
         // Explicit same-day block
         if(/not today|can.t today|busy today|can.t make it today|no today|not available today|working today|at work today|won.t be able.*today|not.*able.*come.*today|not.*able.*out.*today|can.t come.*today|don.t think.*today|unable.*today|not going to make it today|won.t make it today|can.t.*today|not.*coming.*today|won.t be.*today|don.t think i.ll be able|i will call|i'll call|will call.*when|call.*when.*ready|not available today/i.test(ntText)){
@@ -2097,12 +2125,11 @@ function buildSystemPrompt() {
   return [
     'You are Lead Pro, a BDC response engine for Community Auto Group dealerships.',
     'Respond ONLY with a single valid JSON object. No markdown. No text outside the JSON.',
-    'Format: {"sms":"...","email":"...","voicemail":"..."}',
-    'CRITICAL JSON STRUCTURE: All three fields (sms, email, voicemail) MUST be flat strings. Do NOT nest objects inside any field.',
+    'Format: {"sms":"...","email":"..."}',
+    'CRITICAL JSON STRUCTURE: Both fields (sms, email) must be flat strings. Do NOT nest objects.',
     'WRONG: {"email": {"subject": "...", "body": "..."}} — this is invalid.',
-    'WRONG: {"voicemail": {"translation": "..."}} — this is invalid.',
     'WRONG: {"sms": {"message": "..."}} — this is invalid.',
-    'CORRECT: {"sms": "...", "email": "Subject: ...\n\nbody text here", "voicemail": "..."}',
+    'CORRECT: {"sms": "...", "email": "Subject: ...\n\nbody text here"}',
     'The email field must always start with "Subject: " on the first line, then a blank line, then the body.',
     'UNIVERSAL RULES:',
     '- SMS: message body + newline + agent first name + newline + phone number. Nothing else in signature.',
@@ -2119,11 +2146,11 @@ function buildSystemPrompt() {
     '  PART 3 — CALLBACK: "Give me a call back at [number]." Repeat the number once: "That is [number] again." Nothing after the second number. End there.',
     '  TOTAL LENGTH: 60-80 words. Long enough to sound human, short enough to not lose them.',
     '  DO NOT include appointment times in voicemail — that is for SMS/email. Voicemail goal is ONE thing: get a callback.',
-    '  DO NOT say: "following up" "touching base" "just wanted to" "at your earliest convenience" "please let me know" "I look forward to" — these kill callbacks.',
-    '  RIGHT EXAMPLE: "Hi Maria, this is Kristen from Community Kia Baytown. I just pulled up some information on the Telluride and I have numbers I think are going to work really well for you — give me a call at 281-837-3383. That is 281-837-3383."',
-    '  WRONG EXAMPLE: "Hi Maria, this is Kristen from Community Kia Baytown. I am following up on your inquiry about the Telluride and would love to schedule a time to discuss your needs and answer any questions you might have. Please call me back at your earliest convenience at 281-837-3383. Thank you and have a great day."',
-    '- PROHIBITED PHRASES — GENERIC OPENERS (kills engagement): "Checking in" "Following up" "Touching base" "Just wanted to reach out" "Just wanted to connect" "Just checking" "Circling back" "Looping back" "Reaching out to see" "I hope this finds you well" "Hope your day is going well" "Hope you are having a good" "Hi there"',
-    '- PROHIBITED PHRASES — OVERUSED VEHICLE AVAILABILITY (sounds scripted and robotic): "I have it pulled up and ready for you" "pulled up and ready to see" "pulled up and ready for you to see" "I have it pulled up" — ALL banned. Use fresh alternatives instead: "it is here", "we have it on the lot", "I checked and it is here", "it is in stock", "it is here waiting for you".',
+    '  DO NOT use prohibited phrases listed above — these kill callbacks.',
+    '  EXAMPLE: "Hi Maria, this is Kristen from Community Kia Baytown. I just pulled up some information on the Telluride and I have numbers I think are going to work really well for you — give me a call at 281-837-3383. That is 281-837-3383."',
+    '- BANNED OPENERS: "Checking in" "Following up" "Touching base" "Just wanted to" "Circling back" "I hope this finds you well" "Hi there"',
+    '- BANNED (sounds scripted): \"pulled up and ready\" in any form. Say \"it is here\" or \"we have it here\" instead.',
+
     '- PROHIBITED PHRASES — PASSIVE CLOSINGS (kills show rate): "Let me know" "Stop by anytime" "Feel free to reach out" "Give us a call when you ready" "Anytime works" "Whatever works for you" "I look forward to hearing from you" "I look forward to your response" "Talk soon"',
     '- PROHIBITED PHRASES — TRACKING/SURVEILLANCE LANGUAGE: "I saw you were looking at" "I noticed you were looking at" "I saw you browsing" "I was looking at your" "I saw you looking at the" "We noticed you" "I thought of you" "I saw you visited"',
     '- PROHIBITED PHRASES — CORPORATE/SCRIPTED: "As per our conversation" "As a valued customer" "As a previous customer" "That is a fantastic choice" "Great choice" "Excited to see your request" "I understand that" "I wanted to follow up" "I am reaching out" "Just confirming" "Still working on" "I have been working on"',
@@ -2156,44 +2183,15 @@ function buildSystemPrompt() {
     '  TIER 4 — NO CLOSE: Customer expressed frustration, bought elsewhere, or is not interested. No appointment ask.',
     '- APPOINTMENT TIMES: When offering times, offer them ONCE. Never repeat.',
     '- APPOINTMENT LANGUAGE: Always frame as in-store — "come in," "stop by," "visit us." Never "discuss" or "talk."',
-    '- EMAIL TONE — Write like a knowledgeable person who genuinely wants to help, not a corporate template:',
-    '  WARMTH RULES:',
-    '  • Contractions everywhere: "I\'ve", "I\'ll", "we\'ve", "it\'s", "that\'s", "can\'t", "won\'t", "you\'re" — formal language feels cold and distant',
-    '  • Open with the most relevant thing to THIS customer — their specific vehicle, their specific situation, what they just said',
-    '  • One moment of genuine enthusiasm or personality is allowed — not over the top, just human',
-    '  • Reference something specific from their conversation or situation early in the first paragraph',
-    '  • Write like you are continuing a relationship, not starting a form letter',
-    '  WHAT NOT TO DO:',
-    '  • Never open with: "I hope this email finds you well" / "Thank you for your interest" / "I am reaching out regarding" / "I wanted to follow up"',
-    '  • Never stack feature lists or bullet points of vehicle specs',
-    '  • Never write more than 3 short paragraphs — emails that are too long go unread',
-    '  • Never sound like a press release or a form letter',
-    '  STRUCTURE:',
-    '  • Para 1: React to their specific situation — what they said, what they need, what matters to them',
-    '  • Para 2: One relevant piece of useful information or what you have ready for them',
-    '  • Para 3: The ask — duration, times, what happens next',
-    '  WARM EMAIL OPENER EXAMPLES:',
-    '  COLD: "I am reaching out regarding your interest in the 2026 Civic Sport. It is currently showing available here at Community Honda Lafayette."',
-    '  WARM: "That Crystal Black Civic Sport is a great choice — I\'ve got it pulled up and it\'s showing available right now."',
-    '  COLD: "I wanted to follow up on your Capital One pre-approval and confirm our next steps."',
-    '  WARM: "Having that Capital One pre-approval already started puts you in a strong position — we\'re really just matching it to the right vehicle now."',
     '- SMS TONE — THIS IS THE MOST IMPORTANT FORMATTING RULE:',
     '  SMS must read like a real person texting, not a system generating a response.',
-    '  WARMTH RULES:',
-    '  • Use the customer first name naturally — not robotically at the start of every sentence',
-    '  • Contractions are required: "I\'ve", "I\'ll", "we\'ve", "it\'s", "that\'s", "you\'re", "can\'t", "won\'t" — stiff formal language kills warmth',
-    '  • One moment of genuine personality is allowed — a light observation, a brief expression of enthusiasm, a human reaction to what they said',
-    '  • If customer said something specific (color preference, timeline, situation), react to THAT before moving to structure',
-    '  • Match the customer energy — casual customer gets casual response, excited customer gets a slightly warmer tone',
-    '  STRUCTURE RULES:',
-    '  • Get to the point in the first sentence — do not build up to it',
-    '  • One topic per SMS — do not stack multiple questions or multiple value points',
-    '  • Close with ONE action — not multiple options, not multiple questions',
-    '  • LENGTH: 3-5 lines before the signature. SHORT is not a goal — WARM is the goal. A 2-sentence SMS often feels dismissive. A 4-sentence SMS that reacts to the customer, references the vehicle, and makes a clear ask feels like a real person. Err on the side of slightly longer and warmer rather than short and clipped.',
-    '  WHAT WARM LOOKS LIKE vs COLD:',
-    '  COLD: "Latoya, this is Tania with Community Honda Lafayette. I am reaching out regarding your inquiry on the 2026 Civic Sport. It is currently showing available. It typically takes about 30-45 minutes. Would 9:15 AM or 10:30 AM Thursday work for you?"',
-    '  WARM: "Latoya — that Civic Sport in Crystal Black is sharp. I\'ve got it pulled up and ready for you to see. Since Saturday works better, would 10:00 or 11:30 AM work for you?"',
-    '  The warm version is shorter, more human, and reacts to what the customer actually said.',
+    '  WARMTH: Contractions required. React to what they said. Match their energy. Name once, not every sentence.',
+    '  STRUCTURE: Get to the point first. One topic. One action. 3-5 lines before signature.',
+    '  WARM beats formal: React to what they said, then advance.',
+        '- EMAIL TONE — Write like a knowledgeable person who genuinely wants to help, not a corporate template:',
+
+    '  WARMTH: Contractions. React to what the customer said. Open with something specific to them — not pleasantries.',
+    '  RIGHT: \"Hi Michael, Bring your wife by — the Highlander is here till 8. Would 4:00 or 4:45 work?\"',
     '- VOICEMAIL TONE: Confident, friendly, genuine. Sound like you actually want to talk to this person.',
     '- DISTANCE BUYER: If the Distance Buyer context flag is present, the message must acknowledge and justify the trip. A customer driving 30-60+ minutes needs a stronger reason than "come see it." Tactics: (1) Confirm the vehicle will be held/ready when they arrive. (2) Mention that everything can be mostly handled in advance so their time in-store is efficient. (3) Position the visit as worth the drive — "We can have everything ready so you\'re in and out in 45 minutes." Never casually say "stop by" to a distance buyer — the ask must feel worth the commitment.',
     '- TIME SENSITIVITY: Match urgency to the time of day. Same-day appointments = urgency. Late afternoon = mention closing time. Morning = position the full day as available.',
@@ -2202,13 +2200,6 @@ function buildSystemPrompt() {
     '  Ask yourself: Could this exact SMS be sent to any customer? If yes — it is too generic. REWRITE.',
     '  The customer\'s last message is the most important input. If they said "Saturday works", open with Saturday. If they said "I love the black one", open with the black one. If they said "I\'m nervous about credit", open with empathy about that.',
     '  EXCEPTION: For AI Buying Signal leads, outbound marketing blasts are NOT customer messages — ignore them entirely. Only react to genuine inbound customer replies.',
-    'AI BUYING SIGNAL ABSOLUTE RULES — when the scenario section contains "AI BUYING SIGNAL", these rules are NON-NEGOTIABLE and cannot be overridden by any other instruction:',
-    '  RULE 1: The email subject line MUST NOT contain the word "upgrade". Use "Your [Model]" or "[Model] options for you".',
-    '  RULE 2: The words "newer model", "newer models", "newer [model]", "latest model", "step up", "brand new" are BANNED. Do not write them.',
-    '  RULE 3: Do not write "upgrading your [vehicle]". Write "your next [model]" or "your [model] search" instead.',
-    '  RULE 4: Do not mention a trade-in unless the LEAD section explicitly lists one.',
-    '  RULE 5: Do not reference any sale event, 0% APR, or promotional offer.',
-    '  RULE 6: Open with ownership hook: "[First name], still driving the [owned vehicle]? We have some great [model] options available right now."',
     'CRITICAL: Return only the JSON object.'
   ].join('\n');
 }
@@ -2216,6 +2207,22 @@ function buildSystemPrompt() {
 // ─────────────────────────────────────────────────────────────────
 // FOCUSED USER PROMPT — scenario-specific, built by JS
 // ─────────────────────────────────────────────────────────────────
+
+function buildSystemPromptVoicemailOnly() {
+  return [
+    'You are Lead Pro, a BDC response engine for Community Auto Group dealerships.',
+    'Respond ONLY with a single valid JSON object: {"voicemail":"..."}',
+    'No markdown. No text outside the JSON. The voicemail field must be a flat string.',
+    'VOICEMAIL STRUCTURE — EXACT 3 PARTS:',
+    '  PART 1 — INTRO: "Hi [First Name], this is [Agent First Name] from [Store Name]." One sentence.',
+    '  PART 2 — HOOK: ONE sentence. The single most compelling reason to call back, specific to THIS lead.',
+    '  PART 3 — CALLBACK: "Give me a call back at [number]. That is [number] again." End there.',
+    'TOTAL LENGTH: 60-80 words. DO NOT include appointment times in voicemail — goal is callback only.',
+    'DO NOT say: "following up" "touching base" "just wanted to" "at your earliest convenience"',
+    'Agent name and phone come from the lead context provided.',
+  ].join('\n');
+}
+
 function buildUserPrompt(data) {
   const sc   = classifyScenario(data);
   const appt = computeAppointmentTimes(data.store);
@@ -2536,16 +2543,10 @@ function buildUserPrompt(data) {
     scenarioRules = [
       ...stalledRules,
       sc.isStalled ? '' : '- Do NOT use a first-touch opening. This is a continuation of an existing conversation.',
-      sc.isStalled ? '' : '- CONCERN-FIRST RULE: If IDENTIFIED CUSTOMER CONCERNS are listed above, your opening MUST directly address the top concern. Do not acknowledge it mid-message or at the end — lead with it. A response that ignores the customer\'s stated concern and opens with a generic vehicle pitch is a failure.',
-      sc.isStalled ? '' : '- CONCERN EXAMPLES (RIGHT): "Hi Maria, I wanted to make sure we could work with your budget before you come in —" or "Hi James, wanted to follow up on the numbers you were looking at —"',
+      sc.isStalled ? '' : '- CONCERN-FIRST: If customer expressed a concern, lead with it. Never open with a generic vehicle pitch when a concern exists.',      sc.isStalled ? '' : '- CONCERN EXAMPLES (RIGHT): "Hi Maria, I wanted to make sure we could work with your budget before you come in —" or "Hi James, wanted to follow up on the numbers you were looking at —"',
       sc.isStalled ? '' : '- CONCERN EXAMPLES (WRONG): "Hi Maria, just wanted to check in on the CR-V — we have it ready for you!" (ignores the budget concern entirely)',
-      '- TONE CALIBRATION — CRITICAL: Match the register of the actual conversation across ALL THREE formats. If the conversation is casual texts, write ALL formats (SMS, email, voicemail) with that same warmth. The email should NOT flip into corporate formal mode just because it is an email — it should feel like the same person who sent the SMS.',
-      '- EMAIL TONE RULE: When the conversation has been casual and text-based, the email should open with energy, not pleasantries. Skip "I hope this email finds you well." Skip "Thank you for letting me know." Start with the forward motion — same as the SMS.',
-      '- EXAMPLE of the RIGHT email tone for a casual text follow-up:',
-      '  WRONG email opening: "Hi Michael, Thanks for letting me know you need to discuss the Highlander with your wife. That\'s perfectly understandable! The 2011 Toyota Highlander Limited is still showing available..."',
-      '  RIGHT email opening: "Hi Michael, Bring your wife by — the Highlander is still here and we\'re open till 8. Would 4:00 or 4:45 PM work for you both?"',
-      '- BREVITY RULE: Match the energy of the conversation. Same-day hot active thread = 2-3 sentences. Standard follow-up or first touch = 3-5 sentences is ideal. SMS should feel complete — not clipped.',
-      '- Never re-state information the customer already knows from the conversation.',
+      '- TONE: Match conversation register in all formats. Casual thread = casual email. No pleasantries.',      '- RIGHT: "Hi Michael, Bring your wife by — Highlander is here, open till 8. Would 4:00 or 4:45 work?"',
+      '- BREVITY: Hot active thread = 2-3 sentences. Standard follow-up = 3-5 sentences. Warm beats short.',      '- Never re-state information the customer already knows from the conversation.',
       '- Never start with "I understand..." — lead with energy and forward motion instead.',
       '- CRITICAL: If a note says "she said for me to call her at [TIME]" — the call has NOT happened yet.',
       '- CRITICAL: Check WHO made each note. If the Sales Rep made a call note, acknowledge their conversation.',
@@ -2970,8 +2971,7 @@ function buildUserPrompt(data) {
       lastOutbound ? '2. AGENT LAST SAID: "' + lastOutbound.substring(0, 200) + '"' : '2. No agent message yet.',
       agentAsked   ? '3. OPEN QUESTION FROM AGENT: "' + agentAsked + '" — if unanswered, do not re-ask the same question.' : '',
       '4. REQUIRED: Your opening line must react to what the customer said (if they replied) or acknowledge what the agent asked. Do NOT open with a generic greeting that ignores the conversation.',
-      '5. HUMAN TEST: Would a real person who just read this conversation write this message? If it could be sent to any customer, rewrite it.',
-    ].filter(Boolean).join('\n');
+      '5. HUMAN TEST: Could this message be sent to any customer? If yes — rewrite it to be specific.',    ].filter(Boolean).join('\n');
   }
 
   // ── Build the prompt ───────────────────────────────────────────
@@ -3009,6 +3009,30 @@ function buildUserPrompt(data) {
 
   if (inventoryNote) lines.push('INVENTORY: ' + inventoryNote, '');
   if (audiNote)      lines.push(audiNote, '');
+  // OPEN AVAILABILITY QUESTION DETECTION — must be declared before use below
+  var customerAsksAvailability = false;
+  if (data.lastInboundMsg) {
+    var lastMsg = data.lastInboundMsg.toLowerCase();
+    customerAsksAvailability = /when(?:s|\s+is|\s+can|\s+would|\s+do|\s+are)?\s+(?:a\s+)?(?:good|best|better)?\s*(?:time|day|days?|moment|chance|available|availability|work)/i.test(lastMsg)
+      || /what\s+(?:day|time|days?|time\s+works?|works?\s+for\s+you)/i.test(lastMsg)
+      || /when\s+(?:can|should|could|would)\s+(?:i|we|be\s+a)/i.test(lastMsg)
+      || /(?:when|what time)\s+(?:can|should|do)\s+i\s+(?:come|stop|visit|swing|head|get)/i.test(lastMsg)
+      || /(?:whens|when's)\s+(?:a\s+)?(?:good|best|great)/i.test(lastMsg);
+  }
+
+  // Append open availability override INSIDE conversation analysis block
+  // so it appears before the transcript and cannot be overridden by old history
+  if (customerAsksAvailability && !lpSuppressAppointment) {
+    conversationAnalysis += (conversationAnalysis ? '\n' : '') +
+      '\n⛔ CRITICAL — CUSTOMER ASKED OPEN SCHEDULING QUESTION:\n' +
+      'Customer said: "' + (data.lastInboundMsg || '').trim() + '"\n' +
+      'This is an OPEN question asking WHEN they can come in.\n' +
+      'They did NOT propose a specific day. DO NOT invent or assume any day (not Thursday, not Friday, not tomorrow).\n' +
+      'REQUIRED RESPONSE: Ask what day and time works best for them.\n' +
+      'CORRECT: "What day works best for you this week?"\n' +
+      'WRONG: "Would Thursday at 2:00 or 4:30 work?" — you made that day up.\n' +
+      'This rule overrides any day mentioned anywhere else in the transcript.';
+  }
   if (conversationAnalysis) lines.push(conversationAnalysis, '');
 
   // ── Brand mismatch — competitor vehicle at wrong store ───────────
@@ -3137,8 +3161,51 @@ function buildUserPrompt(data) {
     lines.push('════════════════════════════════════════════');
   }
 
+  // LP APPOINTMENT SUPPRESSION — if agent LP command explicitly says no scheduling/no appointment push,
+  // suppress the appointment engine for ALL formats (SMS and email)
+  var lpSuppressAppointment = false;
+  // Check LP commands from scraper AND scan leadContext for LP blocks (catches stale scrape)
+  var lpCheckText = '';
+  if (data.agentLPCommands && data.agentLPCommands.length > 0) {
+    lpCheckText = data.agentLPCommands.join(' ');
+  }
+  // Also scan the full context for any LP instruction block
+  if (!lpCheckText && data.context) {
+    var lpContextMatch = data.context.match(/AGENT INSTRUCTIONS[\s\S]{0,800}?(?:These instructions|━━━)/i);
+    var lpArrowMatches = data.context.match(/► .{20,300}/g);
+    if (lpContextMatch) {
+      lpCheckText = lpContextMatch[0];
+    } else if (lpArrowMatches) {
+      lpCheckText = lpArrowMatches.join(' ');
+    }
+  }
+  if (lpCheckText) {
+    lpSuppressAppointment = /(?:do not|no(?:t)?|never|avoid)\s+(?:\w+\s+){0,4}(?:offer|push|schedule|give|provide|include|use)\s+(?:\w+\s+){0,3}(?:times?|appointment|appt|close|scheduling)|goal[:\s]+discovery(?:,?\s*not\s*scheduling)|\bno\s+(?:appointment|close|times|scheduling)\b|discovery only\b|no close\b|soft re.?engagement only/i.test(lpCheckText.toLowerCase());
+    if (lpSuppressAppointment) {
+      lines.push('');
+      lines.push('🚫 LP COMMAND APPOINTMENT OVERRIDE: The agent LP instruction explicitly suppresses appointment scheduling.');
+      lines.push('DO NOT offer appointment times in ANY format — SMS, email, or voicemail.');
+      lines.push('DO NOT include duration ("30-45 minutes"). DO NOT say "stop by" or "come in".');
+      lines.push('EMAIL: Follow the LP instruction exactly — discovery/temperature check only. End with one open question.');
+      lines.push('SMS: One warm sentence + one open question. No times. No close.');
+    }
+  }
+
   if (!sc.isApptConfirmation && !sc.isExitSignal && !sc.isPauseSignal && !sc.isSoldDelivered && !isZeroContactStalled) {
-    if (sc.notToday || (data.customerScheduleConstraint && (data.customerScheduleConstraint.indexOf('SHIFT_WORKER:') === 0 || data.customerScheduleConstraint.indexOf('OUT_OF_TOWN:') === 0))) {
+    if (lpSuppressAppointment) {
+      // LP command suppresses appointment engine — already injected override block above
+      // Do not inject times, duration, or urgency language
+    } else if (customerAsksAvailability) {
+      // Customer asked an open availability question ("whens a good time?", "what day works?")
+      // Do NOT assume a day or offer specific times — ask for their availability instead
+      lines.push('');
+      lines.push('📅 CUSTOMER ASKING OPEN AVAILABILITY QUESTION:');
+      lines.push('Customer asked WHEN they can come in — they did not propose a day or time.');
+      lines.push('DO NOT assume or invent a day (e.g. Thursday, Friday). DO NOT offer specific times.');
+      lines.push('INSTEAD: Ask what day and time works best for them this week.');
+      lines.push('Example SMS: "What day works best for you this week?"');
+      lines.push('Example email: "What day works best for you? Just let me know and I will have everything ready."');
+    } else if (sc.notToday || (data.customerScheduleConstraint && (data.customerScheduleConstraint.indexOf('SHIFT_WORKER:') === 0 || data.customerScheduleConstraint.indexOf('OUT_OF_TOWN:') === 0))) {
       if (data.customerScheduleConstraint && data.customerScheduleConstraint.indexOf('SHIFT_WORKER:') === 0) {
         lines.push('', 'SHIFT WORKER TIMING: Do NOT offer the standard two appointment times. This customer works shift/hitch/rotation.',
           'INSTEAD: Ask an open-ended scheduling question.',
@@ -3256,6 +3323,25 @@ function buildUserPrompt(data) {
     lines.push('  GOOD EMAIL CLOSE: "Is the Audi A3 still something you\'re exploring, or has your search taken a different direction?"');
     lines.push('  BAD EMAIL CLOSE: "Would 10:45 AM or 11:30 AM today work for your visit?"');
     lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  }
+
+  // Day-off override — scan context for explicit day-off statements that may be buried
+  // This catches cases like "I am actually off on Friday" where the computed appointment
+  // times defaulted to the wrong day because the constraint wasn't scraped
+  if (data.context && !sc.isApptConfirmation && !sc.isExitSignal && !sc.isPauseSignal) {
+    var ctxLower = data.context.toLowerCase();
+    var dayOffMatch = ctxLower.match(/(?:i(?:'m| am)(?: actually)? off (?:on |this )?)(monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i)
+      || ctxLower.match(/(?:day off (?:on |this )?)(monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i)
+      || ctxLower.match(/(?:off (?:on |this )?)(monday|tuesday|wednesday|thursday|friday|saturday|sunday)(?:\s|,|\.)/i);
+    if (dayOffMatch) {
+      var offDay = (dayOffMatch[1] || dayOffMatch[2] || '').toLowerCase();
+      offDay = offDay.charAt(0).toUpperCase() + offDay.slice(1);
+      lines.push('');
+      lines.push('⚠ CUSTOMER DAY-OFF OVERRIDE — CRITICAL: Customer explicitly said they are off on ' + offDay + '.');
+      lines.push('REQUIRED: Offer appointment times on ' + offDay + ' ONLY. Do NOT offer any other day.');
+      lines.push('The computed appointment times above may be wrong — IGNORE them. Use ' + offDay + ' morning times instead.');
+      lines.push('Example: "Would 9:15 AM or 10:30 AM ' + offDay + ' work for you?"');
+    }
   }
 
   if (data.context) {
@@ -3576,7 +3662,7 @@ async function generateAll() {
       contents: [{ role:'user', parts:[{ text: userPrompt }] }],
       generationConfig: {
         temperature:      0.5,
-        maxOutputTokens:  8000,
+        maxOutputTokens:  2000,
         topP:             0.9,
         responseMimeType: 'application/json',
         thinkingConfig:   { thinkingLevel: 'low' }
@@ -3683,15 +3769,14 @@ async function generateAll() {
             // Clean up the extracted value — may be truncated
             let val = m[1].replace(/\\n/g,'\n').replace(/\\"/g,'"').replace(/\\\\/g,'\\');
             // If truncated, add ellipsis so agents know it's incomplete
-            if (finishReason === 'MAX_TOKENS') val = val + '\n[Response was cut short — regenerate for complete message]';
+            if (finishReason === 'MAX_TOKENS') val = val + '\n[Voicemail cut short — hit Generate again for full response]';
             return val;
           };
           const sms   = extractField('sms');
           const email = extractField('email');
-          const vm    = extractField('voicemail');
-          if (sms || email || vm) {
-            parsed = { sms, email, voicemail: vm };
-            console.log('[Lead Pro] Recovery 2 (regex) succeeded — fields:', !!sms, !!email, !!vm);
+          if (sms || email) {
+            parsed = { sms, email };
+            console.log('[Lead Pro] Recovery 2 (regex) succeeded — fields:', !!sms, !!email);
           }
         } catch(e3) { console.log('[Lead Pro] Recovery 2 failed:', e3.message); }
       }
@@ -3742,7 +3827,6 @@ async function generateAll() {
 
     const smsText   = flattenField(parsed.sms,       'sms');
     const emailText = flattenField(parsed.email,      'email');
-    const vmText    = flattenField(parsed.voicemail,  'voicemail');
 
     function setOutput(key, text) {
       const f = document.getElementById('output-' + key);
@@ -3755,7 +3839,6 @@ async function generateAll() {
 
     setOutput('sms',   smsText);
     setOutput('email', emailText);
-    setOutput('vm',    vmText);
 
     // Switch to SMS tab and update word count
     switchTab('sms');
@@ -3765,9 +3848,75 @@ async function generateAll() {
   } finally {
     btn.disabled = false;
     btn.classList.remove('loading');
-    btn.querySelector('.btn-label').textContent = '✦ Generate SMS · Email · Voicemail';
+    btn.querySelector('.btn-label').textContent = '✦ Generate SMS · Email';
   }
 }
+
+async function generateVoicemail() {
+  if (!lastScrapedData) { showError('Grab a lead first.'); return; }
+
+  const vmBtn = document.getElementById('btnVoicemail');
+  if (vmBtn) { vmBtn.disabled = true; vmBtn.textContent = 'Generating…'; }
+
+  // Clear voicemail field
+  const vmField = document.getElementById('output-vm');
+  if (vmField) { vmField.value = ''; vmField.classList.add('generating'); }
+  const vmTab = document.querySelector('.tab-btn.vm');
+  if (vmTab) vmTab.classList.remove('ready-vm');
+
+  try {
+    // Build a lightweight voicemail-only payload
+    const sc = classifyScenario(lastScrapedData);
+    const userPrompt = buildUserPrompt(lastScrapedData, sc);
+
+    const vmSystemPrompt = buildSystemPromptVoicemailOnly();
+
+    const endpoint = getEndpoint();
+    const payload = {
+      system_instruction: { parts: [{ text: vmSystemPrompt }] },
+      contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+      generationConfig: {
+        temperature:      0.5,
+        maxOutputTokens:  600,
+        topP:             0.9,
+        responseMimeType: 'application/json',
+      }
+    };
+
+    const resp = await fetch(endpoint.url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await resp.json();
+    if (data.error) { showError('Voicemail error: ' + data.error.message); return; }
+    if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
+      showError('No voicemail returned — try again.'); return;
+    }
+
+    const rawText = data.candidates[0].content.parts[0].text.trim();
+    let vmText = '';
+    try {
+      const parsed = JSON.parse(rawText.replace(/^```json\s*/i,'').replace(/\s*```\s*$/,'').trim());
+      vmText = parsed.voicemail || parsed.vm || parsed.message || rawText;
+    } catch(e) {
+      // If not JSON, use raw text
+      vmText = rawText;
+    }
+
+    if (vmField) { vmField.value = vmText; vmField.classList.remove('generating'); }
+    if (vmText && vmTab) vmTab.classList.add('ready-vm');
+    switchTab('vm');
+
+  } catch(e) {
+    if (vmField) { vmField.classList.remove('generating'); }
+    showError('Voicemail error: ' + e.message);
+  } finally {
+    if (vmBtn) { vmBtn.disabled = false; vmBtn.textContent = '📞 Generate Voicemail'; }
+  }
+}
+
 
 function showError(msg) {
   ['sms','email','vm'].forEach(function(k) {
@@ -3795,6 +3944,8 @@ if (spBtn) {
 // ── Init ──────────────────────────────────────────────────────────
 document.getElementById('btnGrab').addEventListener('click', grabLead);
 document.getElementById('btnGenerate').addEventListener('click', generateAll);
+const btnVm = document.getElementById('btnVoicemail');
+if (btnVm) btnVm.addEventListener('click', generateVoicemail);
 
 // Listen for content.js DOM updates — fires when notes change in the CRM
 // This catches cases where executeScript callback misses due to channel timeout
@@ -3814,7 +3965,7 @@ chrome.runtime.onMessage.addListener(function(msg) {
 });
 
 window.addEventListener('load', function() {
-  console.log('[Lead Pro] v8.85 loaded');
+  console.log('[Lead Pro] v8.96 loaded');
 
   // On popup open — read storage immediately in case content.js already has data
   // This handles the case where the popup was closed and reopened after grab
@@ -3838,5 +3989,5 @@ window.addEventListener('load', function() {
     document.getElementById('keyWarning').classList.add('visible');
     console.warn('[Lead Pro] No proxy URL or API key configured. Set up config.js.');
   }
-  console.log('[Lead Pro] v8.85 loaded — manifest 8.53');
+  console.log('[Lead Pro] v8.96 loaded — manifest 8.53');
 });
