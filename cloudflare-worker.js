@@ -1,23 +1,32 @@
 /**
- * Lead Pro — Cloudflare Worker v6.1
+ * Lead Pro — Cloudflare Worker v6.9
  *
- * Architecture: Single model — gemini-3.1-flash-lite-preview only
- * Optimizations v6.1:
- * - CORS headers hoisted to module scope (no per-request object recreation)
- * - requestId/startTime moved after early exits (no wasted UUID on OPTIONS/invalid)
- * - clearTimeout moved to finally block (guaranteed cleanup)
- * - Eliminated parse → mutate → re-stringify pattern
- * - corsResponse accepts extra headers (no post-construction header mutation)
+ * Architecture: Smart sequential — primary first, immediate fallback on capacity error.
  *
- * Performance targets:
- * - Typical response: 2–5s
- * - Hard timeout: 9s (gives model full runway, fallback before Cloudflare 10s limit)
- * - maxOutputTokens: 2000 (headroom for all three formats — voicemail is third and needs budget)
+ * Key insight from logs: gemini-2.5-flash capacity rejections happen in 1-2s (fast fail).
+ * Timeouts happen when flash-lite is slow under load (8s+).
+ *
+ * Strategy:
+ * - Primary (2.5-flash): attempt with 11s timeout
+ *   - If capacity rejected (fast, ~1-2s) → immediately try fallback, no wait
+ *   - If timeout → try fallback with reduced tokens
+ * - Fallback (3.1-flash-lite): 650 tokens, thinkingLevel minimal, 10s timeout
+ * - Emergency (2.0-flash): only if fallback also fails, separate payload with thinkingBudget
+ * - Safe fallback: only if all three fail
+ *
+ * Token cost: one model call per request on happy path.
+ * Only pays for fallback when primary actually fails.
  */
 
-const MODEL      = 'gemini-3.1-flash-lite-preview';
-const TIMEOUT_MS = 9000;
-const MAX_TOKENS = 2000;
+const PRIMARY_MODEL   = 'gemini-2.5-flash';
+const FALLBACK_MODEL  = 'gemini-3.1-flash-lite-preview';
+const EMERGENCY_MODEL = 'gemini-2.0-flash';
+
+const PRIMARY_TIMEOUT  = 11000;
+const FALLBACK_TIMEOUT = 10000;
+const MAX_TOKENS       = 2500;
+const FALLBACK_TOKENS  = 650;       // Smaller = faster response under load
+const MIN_RESPONSE_CHARS = 200;     // Reject degraded placeholder responses below this
 
 const CORS_HEADERS = {
   'Content-Type':                 'application/json',
@@ -29,111 +38,158 @@ const CORS_HEADERS = {
 
 export default {
   async fetch(request, env) {
-
     if (request.method === 'OPTIONS') return corsResponse(null, 204);
     if (request.method !== 'POST')
       return corsResponse(JSON.stringify({ error: 'Method not allowed' }), 405);
 
     const apiKey = env.GEMINI_API_KEY;
-    if (!apiKey)
-      return corsResponse(JSON.stringify({ error: 'Missing API key' }), 500);
+    if (!apiKey) return corsResponse(JSON.stringify({ error: 'Missing API key' }), 500);
 
     const requestId = crypto.randomUUID();
     const startTime = Date.now();
 
     let body;
     try { body = await request.json(); }
-    catch {
-      return corsResponse(JSON.stringify({ error: 'Invalid JSON' }), 400);
-    }
+    catch { return corsResponse(JSON.stringify({ error: 'Invalid JSON' }), 400); }
 
     if (!body.contents || !body.system_instruction)
       return corsResponse(JSON.stringify({ error: 'Missing required fields' }), 400);
 
     const extConfig = body.generationConfig || {};
-    const generationConfig = {
-      temperature:      extConfig.temperature      ?? 0.5,
-      maxOutputTokens:  Math.min(extConfig.maxOutputTokens ?? MAX_TOKENS, MAX_TOKENS),
-      topP:             extConfig.topP             ?? 0.9,
-      responseMimeType: extConfig.responseMimeType ?? 'application/json',
-      ...(extConfig.thinkingConfig ? { thinkingConfig: extConfig.thinkingConfig } : {})
-    };
 
-    console.log(
-      `[${requestId}] CONFIG maxOutputTokens=${generationConfig.maxOutputTokens}` +
-      ` source=${body.generationConfig ? 'extension' : 'worker-default'}`
-    );
-
-    const geminiPayload = {
+    const primaryPayload = {
       system_instruction: body.system_instruction,
       contents:           body.contents,
-      generationConfig
+      generationConfig: {
+        temperature:      extConfig.temperature      ?? 0.5,
+        maxOutputTokens:  Math.min(extConfig.maxOutputTokens ?? MAX_TOKENS, MAX_TOKENS),
+        topP:             extConfig.topP             ?? 0.9,
+        responseMimeType: extConfig.responseMimeType ?? 'application/json',
+        thinkingConfig:   { thinkingBudget: 0 }
+      }
     };
 
-    const controller = new AbortController();
-    const timeout    = setTimeout(() => controller.abort(), TIMEOUT_MS);
-    const callStart  = Date.now();
-
-    try {
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`,
-        {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify(geminiPayload),
-          signal:  controller.signal
-        }
-      );
-
-      const latency = Date.now() - callStart;
-
-      if (!res.ok) {
-        const errBody = await res.json().catch(() => ({}));
-        const errMsg  = errBody?.error?.message || `HTTP ${res.status}`;
-        console.warn(`[${requestId}] FAIL ${MODEL} in ${latency}ms → ${errMsg}`);
-        return safeFallback(requestId, startTime, 'model-error');
+    // gemini-3.1 uses thinkingLevel; gemini-2.0 uses thinkingBudget — separate payloads
+    const fallbackPayload = {
+      system_instruction: body.system_instruction,
+      contents:           body.contents,
+      generationConfig: {
+        temperature:      0.5,
+        maxOutputTokens:  FALLBACK_TOKENS,
+        topP:             0.9,
+        responseMimeType: extConfig.responseMimeType ?? 'application/json',
+        thinkingConfig:   { thinkingLevel: 'minimal' }
       }
+    };
 
-      const data  = await res.json();
-      const usage = data.usageMetadata || {};
+    const emergencyPayload = {
+      system_instruction: body.system_instruction,
+      contents:           body.contents,
+      generationConfig: {
+        temperature:      0.5,
+        maxOutputTokens:  FALLBACK_TOKENS,
+        topP:             0.9,
+        responseMimeType: extConfig.responseMimeType ?? 'application/json',
+        thinkingConfig:   { thinkingBudget: 0 }
+      }
+    };
+
+    console.log(`[${requestId}] CONFIG tokens=${primaryPayload.generationConfig.maxOutputTokens} source=${body.generationConfig ? 'ext' : 'worker'}`);
+
+    // ── Step 1: Try primary ──────────────────────────────────────────
+    const primaryResult = await callGemini(PRIMARY_MODEL, primaryPayload, apiKey, PRIMARY_TIMEOUT, requestId);
+
+    if (primaryResult.ok) {
       const total = Date.now() - startTime;
-
-      console.log(
-        `[${requestId}] SUCCESS ${MODEL} in ${latency}ms` +
-        ` | promptTokens=${usage.promptTokenCount ?? '?'}` +
-        ` outputTokens=${usage.candidatesTokenCount ?? '?'}` +
-        ` totalTokens=${usage.totalTokenCount ?? '?'}` +
-        ` | total=${total}ms`
-      );
-
-      const output = { ...data, _model: MODEL, _latency: latency };
-
-      return corsResponse(JSON.stringify(output), 200, {
-        'X-Request-ID':    requestId,
-        'X-Model':         MODEL,
-        'X-Total-Latency': String(total)
-      });
-
-    } catch (err) {
-      const latency = Date.now() - callStart;
-
-      if (err.name === 'AbortError') {
-        console.warn(`[${requestId}] TIMEOUT ${MODEL} after ${latency}ms`);
-        return safeFallback(requestId, startTime, 'timeout');
-      }
-
-      console.error(`[${requestId}] ERROR ${MODEL} in ${latency}ms → ${err.message}`);
-      return safeFallback(requestId, startTime, 'unexpected');
-
-    } finally {
-      clearTimeout(timeout);
+      const usage = primaryResult.data.usageMetadata || {};
+      console.log(`[${requestId}] SUCCESS ${PRIMARY_MODEL} in ${primaryResult.latency}ms | promptTokens=${usage.promptTokenCount ?? '?'} outputTokens=${usage.candidatesTokenCount ?? '?'} totalTokens=${usage.totalTokenCount ?? '?'} | total=${total}ms`);
+      return corsResponse(JSON.stringify({
+        ...primaryResult.data, _model: PRIMARY_MODEL, _latency: primaryResult.latency
+      }), 200, { 'X-Request-ID': requestId, 'X-Model': PRIMARY_MODEL, 'X-Total-Latency': String(total) });
     }
+
+    console.warn(`[${requestId}] PRIMARY FAIL ${PRIMARY_MODEL} in ${primaryResult.latency}ms → ${primaryResult.error}`);
+
+    // ── Step 2: Try fallback ─────────────────────────────────────────
+    const fallbackResult = await callGemini(FALLBACK_MODEL, fallbackPayload, apiKey, FALLBACK_TIMEOUT, requestId);
+
+    if (fallbackResult.ok) {
+      const total = Date.now() - startTime;
+      const usage = fallbackResult.data.usageMetadata || {};
+      console.log(`[${requestId}] FALLBACK SUCCESS ${FALLBACK_MODEL} in ${fallbackResult.latency}ms | promptTokens=${usage.promptTokenCount ?? '?'} outputTokens=${usage.candidatesTokenCount ?? '?'} | total=${total}ms`);
+      return corsResponse(JSON.stringify({
+        ...fallbackResult.data, _model: FALLBACK_MODEL, _latency: fallbackResult.latency, _fallbackUsed: true
+      }), 200, { 'X-Request-ID': requestId, 'X-Model': FALLBACK_MODEL, 'X-Total-Latency': String(total) });
+    }
+
+    console.warn(`[${requestId}] FALLBACK FAIL ${FALLBACK_MODEL} in ${fallbackResult.latency}ms → ${fallbackResult.error}`);
+
+    // ── Step 3: Emergency model ──────────────────────────────────────
+    // 2.0-flash is a separate capacity pool — different quota bucket from 2.5/3.x
+    // Uses thinkingBudget (not thinkingLevel) — separate emergencyPayload required
+    const emergencyResult = await callGemini(EMERGENCY_MODEL, emergencyPayload, apiKey, FALLBACK_TIMEOUT, requestId);
+
+    if (emergencyResult.ok) {
+      const total = Date.now() - startTime;
+      const usage = emergencyResult.data.usageMetadata || {};
+      console.log(`[${requestId}] EMERGENCY SUCCESS ${EMERGENCY_MODEL} in ${emergencyResult.latency}ms | promptTokens=${usage.promptTokenCount ?? '?'} outputTokens=${usage.candidatesTokenCount ?? '?'} | total=${total}ms`);
+      return corsResponse(JSON.stringify({
+        ...emergencyResult.data, _model: EMERGENCY_MODEL, _latency: emergencyResult.latency, _emergencyUsed: true
+      }), 200, { 'X-Request-ID': requestId, 'X-Model': EMERGENCY_MODEL, 'X-Total-Latency': String(total) });
+    }
+
+    console.error(`[${requestId}] EMERGENCY FAIL ${EMERGENCY_MODEL} in ${emergencyResult.latency}ms → ${emergencyResult.error}`);
+
+    // ── All three failed ─────────────────────────────────────────────
+    return safeFallback(requestId, startTime, 'all-models-failed');
   }
 };
 
+async function callGemini(model, payload, apiKey, timeoutMs, requestId) {
+  const controller = new AbortController();
+  const timeout    = setTimeout(() => controller.abort(), timeoutMs);
+  const callStart  = Date.now();
+
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+      {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(payload),
+        signal:  controller.signal
+      }
+    );
+
+    let latency = Date.now() - callStart;
+
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      const errMsg  = errBody?.error?.message || `HTTP ${res.status}`;
+      return { ok: false, latency, error: errMsg.substring(0, 100) };
+    }
+
+    const data = await res.json();
+    latency    = Date.now() - callStart;
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+    if (!text || text.length < MIN_RESPONSE_CHARS) {
+      return { ok: false, latency, error: `Degraded response (${text.length} chars)` };
+    }
+
+    return { ok: true, data, latency };
+
+  } catch (err) {
+    const latency = Date.now() - callStart;
+    return { ok: false, latency, error: err.name === 'AbortError' ? `Timeout after ${timeoutMs}ms` : err.message };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 function safeFallback(requestId, startTime, reason) {
   const totalTime = Date.now() - startTime;
-  console.warn(`[${requestId}] SAFE FALLBACK used after ${totalTime}ms | reason: ${reason}`);
+  console.warn(`[${requestId}] SAFE FALLBACK after ${totalTime}ms | reason: ${reason}`);
 
   const fallbackText = JSON.stringify({
     sms:       "I'm pulling everything together for you now — would today or tomorrow work better to come in?",
@@ -143,10 +199,7 @@ function safeFallback(requestId, startTime, reason) {
 
   return corsResponse(JSON.stringify({
     candidates: [{
-      content: {
-        parts: [{ text: fallbackText }],
-        role:  'model'
-      },
+      content:      { parts: [{ text: fallbackText }], role: 'model' },
       finishReason: 'STOP',
       _fallback:    true,
       _fallbackMs:  totalTime,
