@@ -622,40 +622,70 @@ async function grabLead() {
   }
 
   chrome.storage.local.remove(['leadpro_data']);
-  lastScrapedData = null; // clear so storage fallback isn't blocked by stale data
-  tryExecuteScript(tab, statusEl, dot);
+  lastScrapedData = null;
 
-  // Safety net: if executeScript callback doesn't fire (channel closed),
-  // content.js MutationObserver will have written data to storage — read it
-  // Storage fallback — poll storage until data arrives or timeout
-  // Popup may close/reopen so we can't rely on a single delayed timer
+  // ── Fallback coordination ─────────────────────────────────────────
+  // executeScript is the primary path. Storage fallback is the safety net.
+  // Both are cancelled once valid data is received from either path.
+  var fallbackDone = false;
+  var fallbackTimer = null;
+  var fallbackDelays = [300, 600, 1200, 2400, 4000]; // exponential backoff in ms
   var fallbackAttempts = 0;
-  var fallbackMax = 24; // 24 x 500ms = 12 seconds total — longer for split-frame layouts
+
+  function applyStorageData(m, source) {
+    if (fallbackDone) return;
+    if (!(m && (m.name || m.vehicle) && m.totalNoteCount > 0)) return;
+    fallbackDone = true;
+    if (fallbackTimer) { clearTimeout(fallbackTimer); fallbackTimer = null; }
+    chrome.runtime.onMessage.removeListener(onDataReady);
+    console.log('[Lead Pro] Data applied via', source, '| notes:', m.totalNoteCount, '| leadAgeDays:', m.leadAgeDays);
+    lastScrapedData = m;
+    const filled = populateFromData(m);
+    if (filled > 0) {
+      statusEl.className = 'crm-status found';
+      statusEl.textContent = '✓ ' + m.totalNoteCount + ' notes';
+      dot.classList.add('active');
+    }
+  }
+
   function tryStorageFallback() {
+    if (fallbackDone) return;
     fallbackAttempts++;
     chrome.storage.local.get(['leadpro_data'], function(stored) {
+      if (fallbackDone) return;
       const m = stored && stored.leadpro_data;
       if (m && (m.name || m.vehicle) && m.totalNoteCount > 0) {
-        console.log('[Lead Pro] Storage fallback triggered — attempt', fallbackAttempts, '| notes:', m.totalNoteCount, '| leadAgeDays:', m.leadAgeDays, '| isContacted:', m.isContacted, '| hasOutbound:', m.hasOutbound);
-        lastScrapedData = m;
-        const filled = populateFromData(m);
-        if (filled > 0) {
-          statusEl.className = 'crm-status found';
-          statusEl.textContent = '✓ ' + m.totalNoteCount + ' notes';
-          dot.classList.add('active');
-        }
-      } else if (fallbackAttempts < fallbackMax) {
-        setTimeout(tryStorageFallback, 500);
+        applyStorageData(m, 'storage-fallback attempt ' + fallbackAttempts);
+      } else if (fallbackAttempts < fallbackDelays.length) {
+        fallbackTimer = setTimeout(tryStorageFallback, fallbackDelays[fallbackAttempts]);
       } else {
         console.log('[Lead Pro] Storage fallback exhausted after', fallbackAttempts, 'attempts');
       }
     });
   }
-  setTimeout(tryStorageFallback, 1500); // first attempt after 1.5s
+
+  // content.js fires LEADPRO_DATA_READY immediately after its storage write —
+  // reads storage right away instead of waiting for next polling interval
+  function onDataReady(msg) {
+    if (msg && msg.type === 'LEADPRO_DATA_READY' && msg.hasData && !fallbackDone) {
+      if (fallbackTimer) { clearTimeout(fallbackTimer); fallbackTimer = null; }
+      chrome.storage.local.get(['leadpro_data'], function(stored) {
+        applyStorageData(stored && stored.leadpro_data, 'LEADPRO_DATA_READY');
+      });
+    }
+    return false;
+  }
+  chrome.runtime.onMessage.addListener(onDataReady);
+
+  tryExecuteScript(tab, statusEl, dot, function(m) {
+    applyStorageData(m, 'executeScript');
+  });
+
+  fallbackTimer = setTimeout(tryStorageFallback, fallbackDelays[0]);
 }
 
 // ── Execute script scraper ────────────────────────────────────────
-function tryExecuteScript(tab, statusEl, dot) {
+function tryExecuteScript(tab, statusEl, dot, onSuccess) {
   statusEl.textContent = 'Reading frames…';
 
   function inlineScraper() {
@@ -668,10 +698,11 @@ function tryExecuteScript(tab, statusEl, dot) {
     function firstOf(a) {
       for(const v of a){const s=(v||'').toString().trim();if(s&&s!=='None'&&s!=='none')return s;} return '';
     }
+    var _lvRows = null;
     function labelValue(lbl) {
       try {
-        const rows=document.querySelectorAll('tr');
-        for(const row of rows){
+        if (!_lvRows) _lvRows = Array.from(document.querySelectorAll('tr'));
+        for(const row of _lvRows){
           const cells=row.querySelectorAll('td');
           if(cells.length<2)continue;
           const label=(cells[0].innerText||cells[0].textContent||'').trim();
@@ -1598,165 +1629,85 @@ function tryExecuteScript(tab, statusEl, dot) {
     var isWalkInSource = /walk.?in|drive.?by|walkin|showroom inquiry/i.test((leadSource||'').toLowerCase());
     const isShowroomFollowUp = recentShowroomVisit || isWalkInSource || (/showroom\s*visit\s*follow\s*up/i.test(processText) && recentShowroomVisit);
 
-    // -- Appointment status - live status field + outbound text content -
-    // Check status dropdown, status label, AND scan recent outbound messages for appointment times
+    // -- Appointment status — single-pass detection ──────────────────
     const apptStatusEl = document.querySelector('select[id*="Status"]');
     const statusDropdownVal = apptStatusEl ? (apptStatusEl.value || apptStatusEl.innerText || '') : '';
     const statusLabelEl2 = document.querySelector('[id*="LeadStatusLabel"]');
     const statusLabelVal = statusLabelEl2 ? (statusLabelEl2.innerText || '') : '';
     const currentStatus = (statusDropdownVal + ' ' + statusLabelVal).toLowerCase();
 
-    // Appointment detection: check status field AND scan recent outbound messages
     var hasApptSet = /appointment made|appt made|appointment set/i.test(currentStatus);
     var apptDetails = '';
     var hasMissedAppt = false;
-
-    // Also check for VinSolutions auto-generated appointment boarding pass email
-    // IMPORTANT: Only treat as active appointment if boarding pass is recent (within 48h)
-    // A boarding pass from 2 weeks ago means the appointment already passed - lead may be stalled
-    if(!hasApptSet) {
-      var todayMsBP = Date.now();
-      var hasApptBoardingPass = noteEls.slice(0,10).some(function(n){
-        var title = ((n.querySelector('.legacy-notes-and-history-title')||{}).innerText||'');
-        var content = ((n.querySelector('.notes-and-history-item-content')||{}).innerText||'');
-        var dateStr = ((n.querySelector('.notes-and-hsitory-item-date')||{}).innerText||'').trim();
-        var noteMs = dateStr ? new Date(dateStr).getTime() : 0;
-        var noteAge = noteMs > 0 ? (todayMsBP - noteMs) : Infinity;
-        var isRecent = noteAge < 2 * 24 * 60 * 60 * 1000; // within 48 hours
-        return isRecent && /email auto response/i.test(title) && /boarding pass|appointment boarding/i.test(content);
-      });
-      if(hasApptBoardingPass) hasApptSet = true;
-    }
-
-    // Check for explicit appointment reminder language in OUTBOUND AGENT notes only
-    // (not lead received, system notes, or Gubagoo data dumps which may contain appointment URLs)
-    // IMPORTANT: Only treat as active appointment if the reminder note is recent (within 48h).
-    // An old reminder message (e.g. "quick reminder of our appointment on Saturday") should NOT
-    // keep hasApptSet=true days later - that appointment has already passed.
-    if(!hasApptSet) {
-      var todayMsRem = Date.now();
-      noteEls.slice(0,8).forEach(function(n){
-        if(hasApptSet) return;
-        var dir = (n.getAttribute('data-direction')||'').toLowerCase();
-        var title = ((n.querySelector('.legacy-notes-and-history-title')||{}).innerText||'').toLowerCase();
-        var content = ((n.querySelector('.notes-and-history-item-content')||{}).innerText||'');
-        var dateStrRem = ((n.querySelector('.notes-and-hsitory-item-date')||{}).innerText||'').trim();
-        var noteMsRem = dateStrRem ? new Date(dateStrRem).getTime() : 0;
-        var noteAgeRem = noteMsRem > 0 ? (todayMsRem - noteMsRem) : Infinity;
-        var isRecentRem = noteAgeRem < 2 * 24 * 60 * 60 * 1000; // within 48 hours
-        // Must be an actual outbound agent message, not a system note or lead received
-        var isAgentOutbound = dir === 'outbound' && !/lead received|system|auto response/i.test(title);
-        if(isAgentOutbound && isRecentRem && /reminder of our appointment|remind you of the appointment|appointment you had set|your appointment.*(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)|quick reminder.*appointment/i.test(content)){
-          hasApptSet = true;
-          apptDetails = content.trim().substring(0,250);
-        }
-      });
-    }
-
-    // Check if the most recent OUTBOUND agent notes indicate a missed appointment
-    // ONLY agent outbound messages count - "sorry you couldn't make it" etc.
-    // Must be within last 48 hours - not old history
-    var todayMs2 = Date.now();
-    var missedApptNoteDate = null;
-    var recentOutbound3 = Array.from(noteEls).slice(0,5).filter(function(n){
-      var dir = (n.getAttribute('data-direction')||'').toLowerCase();
-      var dateStr = ((n.querySelector('.notes-and-hsitory-item-date')||{}).innerText||'').trim();
-      var noteMs2 = dateStr ? new Date(dateStr).getTime() : 0;
-      var age2 = noteMs2 > 0 ? (todayMs2 - noteMs2) : Infinity;
-      return dir === 'outbound' && age2 < 2 * 24 * 60 * 60 * 1000;
-    });
-    var recentOutbound3Text = recentOutbound3.map(function(n){
-      return ((n.querySelector('.notes-and-history-item-content')||{}).innerText||'').toLowerCase();
-    }).join(' ');
-    if(/couldn.t make it|missed.*appointment|no.show|wasn.t able to make|sorry you couldn|sorry.*miss/i.test(recentOutbound3Text)){
-      hasMissedAppt = true;
-    }
-    // Also scan ALL notes for appointment reminder language to find the original appointment date
-    // This catches cases where the reminder was sent yesterday (>48h ago from now)
     var missedApptTiming2 = 'recently';
-    try {
-      var centralNow2 = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' }));
-      var todayDateOnly = new Date(centralNow2.getFullYear(), centralNow2.getMonth(), centralNow2.getDate()).getTime();
-      for(var msi=0; msi<Math.min(15, noteEls.length); msi++){
-        var msDir = (noteEls[msi].getAttribute('data-direction')||'').toLowerCase();
-        var msContent = ((noteEls[msi].querySelector('.notes-and-history-item-content')||{}).innerText||'');
-        var msDateStr = ((noteEls[msi].querySelector('.notes-and-hsitory-item-date')||{}).innerText||'').trim();
-        var msNoteMs = msDateStr ? new Date(msDateStr).getTime() : 0;
-        // Look for appointment reminder notes (outbound, contains time + date)
-        if(msDir === 'outbound' && /reminder.*appointment|appointment.*at\s+\d|your appt/i.test(msContent)){
-          if(msNoteMs > 0){
-            var noteDateOnly = new Date(new Date(msNoteMs).toLocaleDateString('en-US', {timeZone:'America/Chicago'})).getTime();
-            var diffMs = todayDateOnly - noteDateOnly;
-            var diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
-            if(diffDays === 0) missedApptTiming2 = 'today';
-            else if(diffDays === 1) missedApptTiming2 = 'yesterday';
-            else if(diffDays > 1) missedApptTiming2 = diffDays + ' days ago';
-            break;
-          }
-        }
-      }
-    } catch(e) {}
-    // Also check if hasApptSet was already confirmed - if so, it's not a missed appt yet
-    // hasMissedAppt should never be true when hasApptSet is true (appointment is future)
-    // This gets resolved after hasApptSet is set below
 
-    // Only set hasApptSet from outbound note scan if there's a genuine confirmation
-    // A close question ("Would 4:00 work?") is NOT a confirmed appointment
-    // Require: explicit confirmation language ("confirmed for", "we have you scheduled", "see you at", "your appointment is")
-    // OR: a customer inbound reply with a time after an agent offered times (customer accepted)
-    if(!hasMissedAppt) {
-      var todayMs = Date.now();
-      // First check for agent confirmation language in outbound (agent confirmed the appt)
-      for(var ai=0; ai<Math.min(5, noteEls.length); ai++){
-        var aDir = (noteEls[ai].getAttribute('data-direction')||'').toLowerCase();
-        var aText = ((noteEls[ai].querySelector('.notes-and-history-item-content')||{}).innerText||'');
-        var aDate = ((noteEls[ai].querySelector('.notes-and-hsitory-item-date')||{}).innerText||'').trim();
-        var hasTime = /\d{1,2}:\d{2}\s*(?:AM|PM)/i.test(aText);
-        // Only fire on CONFIRMED appointment language - not on close questions or invitations
-        var hasConfirmedLang = /confirmed for|we have you scheduled|see you at|your appointment is|appointment.*confirmed|we.ll see you|you.re all set|we.re set for|scheduled.*at|set.*for\s+\d/i.test(aText);
-        var hasConfirmRequestLang = /text C to confirm|reply C|reply YES|please confirm/i.test(aText);
-        if(aDir === 'outbound' && hasTime && (hasConfirmedLang || hasConfirmRequestLang)){
-          var noteMs = aDate ? new Date(aDate).getTime() : 0;
-          var noteAge = noteMs > 0 ? (todayMs - noteMs) : Infinity;
-          if(noteAge < 2 * 24 * 60 * 60 * 1000) {
-            hasApptSet = true;
-            apptDetails = aText.trim().substring(0,250);
-          }
-          break;
-        }
-      }
-      // Also check if customer replied with acceptance (inbound with a time or "yes"/"ok" after agent offered times)
-      if(!hasApptSet) {
-        for(var ci=0; ci<Math.min(5, noteEls.length); ci++){
-          var cDir = (noteEls[ci].getAttribute('data-direction')||'').toLowerCase();
-          var cText = ((noteEls[ci].querySelector('.notes-and-history-item-content')||{}).innerText||'').toLowerCase();
-          var cDate = ((noteEls[ci].querySelector('.notes-and-hsitory-item-date')||{}).innerText||'').trim();
-          var cMs = cDate ? new Date(cDate).getTime() : 0;
-          var cAge = cMs > 0 ? (todayMs - cMs) : Infinity;
-          if(cDir === 'inbound' && cAge < 2 * 24 * 60 * 60 * 1000){
-            // Require more specific confirmation - not just "yes" or "ok" which appear in many contexts
-            if(/\b(sounds good|i.ll be there|see you then|see you at|confirmed|works for me|i.ll come in|we.ll be there|that works)\b/i.test(cText)){
-              hasApptSet = true;
-              break;
-            }
-          }
-        }
+    // One pass — collect all signals, resolve state at end (replaces 8 separate scans)
+    var _sig = { bp: false, rem: false, remC: '', miss: false, conf: false, confC: '', cust: false };
+    var _now = Date.now();
+    var _48h = 172800000;
+    var _lim = Math.min(15, noteEls.length);
+
+    for (var _i = 0; _i < _lim; _i++) {
+      var _n   = noteEls[_i];
+      var _dir = (_n.getAttribute('data-direction') || '').toLowerCase();
+      var _ttl = ((_n.querySelector('.legacy-notes-and-history-title') || {}).innerText || '');
+      var _cnt = ((_n.querySelector('.notes-and-history-item-content') || {}).innerText || '');
+      var _ds  = ((_n.querySelector('.notes-and-hsitory-item-date') || {}).innerText || '').trim();
+      var _ms  = _ds ? new Date(_ds).getTime() : 0;
+      var _rec = _ms > 0 ? (_now - _ms) < _48h : false;
+
+      if (!_sig.bp && _i < 10 && _rec && /email auto response/i.test(_ttl) && /boarding pass|appointment boarding/i.test(_cnt))
+        _sig.bp = true;
+
+      if (!_sig.rem && _i < 8 && _rec && _dir === 'outbound' && !/lead received|system|auto response/i.test(_ttl.toLowerCase())
+          && /reminder of our appointment|remind you of the appointment|appointment you had set|your appointment.*(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)|quick reminder.*appointment/i.test(_cnt))
+        { _sig.rem = true; _sig.remC = _cnt.trim().substring(0, 250); }
+
+      if (!_sig.miss && _i < 5 && _dir === 'outbound' && _rec
+          && /couldn.t make it|missed.*appointment|no.show|wasn.t able to make|sorry you couldn|sorry.*miss/i.test(_cnt.toLowerCase()))
+        _sig.miss = true;
+
+      if (!_sig.conf && _i < 5 && _dir === 'outbound' && _rec
+          && /\d{1,2}:\d{2}\s*(?:AM|PM)/i.test(_cnt)
+          && (/confirmed for|we have you scheduled|see you at|your appointment is|appointment.*confirmed|we.ll see you|you.re all set|we.re set for|scheduled.*at|set.*for\s+\d/i.test(_cnt)
+              || /text C to confirm|reply C|reply YES|please confirm/i.test(_cnt)))
+        { _sig.conf = true; _sig.confC = _cnt.trim().substring(0, 250); }
+
+      if (!_sig.cust && _i < 5 && _dir === 'inbound' && _rec
+          && /\b(sounds good|i.ll be there|see you then|see you at|confirmed|works for me|i.ll come in|we.ll be there|that works)\b/i.test(_cnt.toLowerCase()))
+        _sig.cust = true;
+
+      if (missedApptTiming2 === 'recently' && _dir === 'outbound' && _ms > 0
+          && /reminder.*appointment|appointment.*at\s+\d|your appt/i.test(_cnt)) {
+        try {
+          var _cNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' }));
+          var _tDay = new Date(_cNow.getFullYear(), _cNow.getMonth(), _cNow.getDate()).getTime();
+          var _nDay = new Date(new Date(_ms).toLocaleDateString('en-US', { timeZone: 'America/Chicago' })).getTime();
+          var _dd   = Math.round((_tDay - _nDay) / 86400000);
+          if (_dd === 0) missedApptTiming2 = 'today';
+          else if (_dd === 1) missedApptTiming2 = 'yesterday';
+          else if (_dd > 1)  missedApptTiming2 = _dd + ' days ago';
+        } catch(e) {}
       }
     }
-    // If a future appointment is confirmed, it can't also be a missed appointment
-    if(hasApptSet) hasMissedAppt = false;
 
-    // MISSED APPT RE-ENGAGEMENT GUARD:
-    // If the most recent outbound was a re-engagement message (missed appt language)
-    // and the customer replied but did NOT confirm a specific new time,
-    // force hasApptSet = false so the AI cannot generate an appointment confirmation
+    // Resolve state from signals (preserves original logic ordering)
+    if (_sig.bp)  hasApptSet = true;
+    if (!hasApptSet && _sig.rem)  { hasApptSet = true; apptDetails = _sig.remC; }
+    if (_sig.miss) hasMissedAppt = true;
+    if (!hasMissedAppt) {
+      if (!hasApptSet && _sig.conf) { hasApptSet = true; apptDetails = _sig.confC; }
+      if (!hasApptSet && _sig.cust)   hasApptSet = true;
+    }
+    if (hasApptSet) hasMissedAppt = false;
+
+    // Re-engagement guard
     var lastOutboundIsMissedApptReengagement = /life is busy|sorry you couldn.t make it|couldn.t make it out|missed.*appointment|reschedule.*convenient|more convenient/i.test(lastOutboundMsg||'');
-    var customerConfirmedSpecificTime = /([0-9]{1,2}:[0-9]{2}\s*(?:am|pm)?)/i.test(lastInboundMsg||'')
+    var customerConfirmedSpecificTime = /([0-9]{1,2}:[0-9]{2}\s*(?:am|pm)?)/i.test(lastInboundMsg||'')
       && /(yes|ok|okay|sure|works|confirmed|see you|i.ll be|sounds good)/i.test(lastInboundMsg||'');
-    if(lastOutboundIsMissedApptReengagement && !customerConfirmedSpecificTime) {
-      hasApptSet = false;
-      apptDetails = '';
-      console.log('[Lead Pro] Missed appt re-engagement detected - hasApptSet forced false, no fabricated confirmation allowed');
+    if (lastOutboundIsMissedApptReengagement && !customerConfirmedSpecificTime) {
+      hasApptSet = false; apptDetails = '';
+      console.log('[Lead Pro] Missed appt re-engagement — hasApptSet forced false');
     }
 
     // Detect sold/delivered - only flag RECENT sales (within 30 days) as congratulations territory
@@ -1858,7 +1809,7 @@ function tryExecuteScript(tab, statusEl, dot) {
   chrome.scripting.executeScript(
     { target: { tabId: tab.id, allFrames: true }, func: function() {
       // Inline polling scraper — waits for notes DOM then returns data
-      var maxWait = 3000, interval = 250, elapsed = 0;
+      var maxWait = 1500, interval = 150, elapsed = 0;
       function wait(resolve) {
         var noteCount = document.querySelectorAll('.notes-and-history-item').length;
         var hasContent = !!(document.querySelector('span[id*="BDAgentLabel"]') ||
@@ -1923,10 +1874,14 @@ function tryExecuteScript(tab, statusEl, dot) {
           }
           // Set best store after all frames processed
           m.store = bestStore;
+          console.log('[Lead Pro] Merged store:', m.store, '| dealerId:', m.dealerId);
 
+          // Deliver to grabLead via callback — it handles deduplication with fallback
+          if (typeof onSuccess === 'function') { onSuccess(m); return; }
+
+          // Direct path when called without callback (should not normally happen)
           lastScrapedData = m;
           const filled = populateFromData(m);
-          console.log('[Lead Pro] Merged store:', m.store, '| dealerId:', m.dealerId);
           if (filled > 0 || selectedStore) {
             statusEl.className = 'crm-status found';
             const parts = [];
@@ -2119,87 +2074,61 @@ function lookupPhone(agentName, store) {
 }
 
 // ─────────────────────────────────────────────────────────────────
-// FOCUSED SYSTEM PROMPT — universal rules only, short
+// FOCUSED SYSTEM PROMPT — universal rules only
 // ─────────────────────────────────────────────────────────────────
 function buildSystemPrompt() {
   return [
     'You are Lead Pro, a BDC response engine for Community Auto Group dealerships.',
     'Respond ONLY with a single valid JSON object. No markdown. No text outside the JSON.',
     'Format: {"sms":"...","email":"..."}',
-    'CRITICAL JSON STRUCTURE: Both fields (sms, email) must be flat strings. Do NOT nest objects.',
-    'WRONG: {"email": {"subject": "...", "body": "..."}} — this is invalid.',
-    'WRONG: {"sms": {"message": "..."}} — this is invalid.',
-    'CORRECT: {"sms": "...", "email": "Subject: ...\n\nbody text here"}',
-    'The email field must always start with "Subject: " on the first line, then a blank line, then the body.',
-    'UNIVERSAL RULES:',
-    '- SMS: message body + newline + agent first name + newline + phone number. Nothing else in signature.',
-    '- Email: Subject line first ("Subject: ..."), then full message, then complete signature stacked on separate lines (Name on line 1, Title on line 2, Store on line 3, Phone on line 4). Never use slashes between signature parts.',
-    '- Voicemail: EXACT 3-PART STRUCTURE — no deviations:',
-    '  PART 1 — INTRO: "Hi [First Name], this is [Agent First Name] from [Store Name]." One sentence. Nothing else.',
-    '  PART 2 — HOOK: ONE sentence only. The single most compelling reason to call back, specific to THIS lead. Make it feel like news or a personal update — not a script. Choose the hook based on what is true:',
-    '    • Vehicle available: "The [vehicle] you were looking at is still available and I wanted to make sure you had a chance to see it before it moves."',
-    '    • Trade-in: "I pulled up some numbers on your trade and I think you are going to like what I found."',
-    '    • Credit/Click & Go: "Your application came through and I have some information I think will make this work for you."',
-    '    • Stalled/re-engagement: "I was thinking about you and wanted to reach out — I have something specific to share about the [vehicle/category]."',
-    '    • Appointment reminder: "Just a reminder that we have you set for [time] and I will have everything ready when you arrive."',
-    '    • General follow-up: "I have some information on the [vehicle] that I wanted to share with you personally."',
-    '  PART 3 — CALLBACK: "Give me a call back at [number]." Repeat the number once: "That is [number] again." Nothing after the second number. End there.',
-    '  TOTAL LENGTH: 60-80 words. Long enough to sound human, short enough to not lose them.',
-    '  DO NOT include appointment times in voicemail — that is for SMS/email. Voicemail goal is ONE thing: get a callback.',
-    '  DO NOT use prohibited phrases listed above — these kill callbacks.',
-    '  EXAMPLE: "Hi Maria, this is Kristen from Community Kia Baytown. I just pulled up some information on the Telluride and I have numbers I think are going to work really well for you — give me a call at 281-837-3383. That is 281-837-3383."',
-    '- BANNED OPENERS: "Checking in" "Following up" "Touching base" "Just wanted to" "Circling back" "I hope this finds you well" "Hi there"',
-    '- BANNED (sounds scripted): \"pulled up and ready\" in any form. Say \"it is here\" or \"we have it here\" instead.',
+    'CRITICAL: Both fields must be flat strings. WRONG: {"email":{"subject":"..."}} CORRECT: {"sms":"...","email":"Subject: ...\n\nbody"}',
+    'The email field must start with "Subject: " then a blank line then the body.',
 
-    '- PROHIBITED PHRASES — PASSIVE CLOSINGS (kills show rate): "Let me know" "Stop by anytime" "Feel free to reach out" "Give us a call when you ready" "Anytime works" "Whatever works for you" "I look forward to hearing from you" "I look forward to your response" "Talk soon"',
-    '- PROHIBITED PHRASES — TRACKING/SURVEILLANCE LANGUAGE: "I saw you were looking at" "I noticed you were looking at" "I saw you browsing" "I was looking at your" "I saw you looking at the" "We noticed you" "I thought of you" "I saw you visited"',
-    '- PROHIBITED PHRASES — CORPORATE/SCRIPTED: "As per our conversation" "As a valued customer" "As a previous customer" "That is a fantastic choice" "Great choice" "Excited to see your request" "I understand that" "I wanted to follow up" "I am reaching out" "Just confirming" "Still working on" "I have been working on"',
-    '- PROHIBITED PHRASES — BRAND/PLATFORM: "Carfax" "CARFAX" "Gubagoo" "Virtual retailing" "Digital retailing platform"',
-    '- PROHIBITED PHRASES — APPOINTMENT PRESSURE: "Let us lock this in" "We just need your signature" "Let us get you locked in" "Strategy session" "Consultation" "Come in to buy"',
-    '- PROHIBITED PHRASES — CREDIT SHAME: "Bad credit" "Poor credit history" "Low credit score" "You need a co-signer" "The bank requires"',
-    '- PROHIBITED PHRASES — AI BUYING SIGNAL leads only: "newer model" "newer models" "latest model" "newest" "brand new" "new [model]" — use neutral: "[model] options available" "a few [models] on the lot"',
-    '- Never fabricate inventory status. Never guarantee approval or rates.',
-    '- VEHICLE RULE: ONLY reference the vehicle in the LEAD section. If the LEAD section says "(none specified)", do NOT name any vehicle at all — not from history, not from your training. Vehicles mentioned in conversation history belong to other leads or conversations and must be ignored.',
-    '- Write all three formats completely. Do not truncate.',
-    '- TRADE-IN: When a trade-in is present, mention it in ALL three formats including SMS.',
-    '- SYSTEM DATA RULE: The conversation transcript may contain system-generated notes tagged as [NOTE] including lead received data, TradePending/KBB valuation reports, and automated responses. These contain market prices, dollar ranges, credit scores, and vehicle statistics. NEVER treat this system data as customer communication or use it to infer customer concerns. Only infer concerns from messages explicitly sent by the customer.',
-    '- SCHEDULE ASSUMPTION RULE: NEVER assume a customer works shifts, has schedule constraints, or works unusual hours unless they explicitly said so in a customer message. Do NOT say "I know your schedule can vary with shift work" or similar unless the SHIFT WORKER flag is active in the context. Inferring schedule from job title, location, or industry is forbidden.',
+    'FORMAT:',
+    '- SMS: message body + newline + agent first name + newline + phone number.',
+    '- Email: "Subject: ..." line, then body, then signature on separate lines (Name / Title / Store / Phone).',
 
-    '- SCHEDULE LANGUAGE RULE: If a customer mentioned schedule constraints, ask directly and specifically: "When works best for you this week?" or "What days or times work for you?" — NOT vague phrases like "since your schedule can vary" or "whenever works for you". Be direct.',
-    '- TRADE-IN CONDITIONAL LANGUAGE: Phrases like "I\'ll just keep it if the offer is too low", "I\'ll keep my car if the price isn\'t right", or "I might just hold onto it" are NOT exit signals. They are negotiating leverage — the customer is still engaged and wants a good trade offer. NEVER generate a closing/goodbye message for trade-in conditional language. Respond by acknowledging the trade concern and moving toward locking in a real number.',
-    '- CUSTOMER ECHO RULE: NEVER parrot back the customer\'s own words as a compliment or validation. Do NOT say "Comparing prices is the smartest way to shop" if the customer said "just comparing prices." Do NOT say "That\'s a great question" or mirror their phrasing back at them. Respond naturally without echoing.',
-    '- URL / LINK RULE: NEVER construct, guess, or fabricate inventory URLs or website links. Do NOT build links like "communityhondabaytown.com/inventory/P4776" — you do not know the correct URL format and guessing will produce wrong links. If a customer asks for a link, respond: "I will send you the direct link right now" and leave the URL out of the generated message — the agent will paste the real VDP link manually.',
-    '- ANSWER FIRST RULE: If the customer asked a direct question in their last message (price, availability, color, payment, trade value, financing, features, specs, towing, MPG, packages), you MUST address it BEFORE asking for an appointment. Ignoring a customer question kills trust.',
-    '- ANSWERING QUESTIONS — THREE PATHS: (1) If you know the answer confidently, give it directly and briefly. (2) If it is a pricing/payment question, give a range or starting point and position the visit as where they get the exact number. (3) If it is a spec/feature question you are not certain about (towing capacity, exact MPG, specific option), say: "I want to make sure I give you the right answer on that — let me confirm and get back to you" OR invite them in: "The best way to go over all the details is in person so nothing gets lost in translation." NEVER guess or fabricate specs.',
-    '- SPEC ACCURACY RULE: Do NOT invent or guess specific numbers for towing capacity, payload, MPG, horsepower, or technical specs. If unsure, say you will confirm rather than risk giving wrong information.',
-    '- FABRICATION RULE: NEVER reference a co-signer, co-buyer, credit issue, trade-in, or any customer circumstance unless it appears explicitly in the customer messages or the lead data fields. Do NOT infer these from form field labels, system notes, or lead received data. If the customer did not say it, do not mention it.',
-    '- AGENT AVAILABILITY FABRICATION: NEVER claim the agent is "booked", "fully booked", "slammed", "packed", or "unavailable" on any day as a sales tactic. The agent\'s availability is unknown — do not invent scheduling pressure. If the customer asks about the weekend, either offer weekend times or redirect to today with a vehicle reason (inventory, availability), NOT a fake schedule reason.',
-    '- APPOINTMENT FABRICATION RULE: NEVER confirm, reference, or imply a specific appointment time unless the customer explicitly agreed to that time in their messages. "Thank you" is NOT an appointment confirmation. If no time has been agreed to, offer new times — do not invent one.',
-    '- CLOSE STRATEGY — READ THE ROOM: The two-time appointment close is not automatic. Choose the right tier:',
-    '  TIER 0 — CONFIRM THEIR TIME: Customer already gave you a specific time or window ("3-4 PM", "Saturday morning", "around noon"). DO NOT offer alternative times. Confirm what they said and build around it. Example: "3:00 or 3:30 works great — I\'ll have everything ready for you." Offering earlier times when they told you 3-4 PM is a close strategy failure.',
-    '  TIER 1 — TWO-TIME CLOSE: Customer is warm and engaged but has NOT given a specific time. Offer two specific times.',
-    '  TIER 2 — QUALIFYING CLOSE: Customer has an objection or unresolved question. Ask ONE qualifying question before offering times. Example: "What monthly payment or out-the-door number would make this work for you?"',
-    '  TIER 3 — SOFT CLOSE: Customer said not today or is lukewarm. Do not offer specific times. Ask what day works: "What day this week is looking best for you?"',
-    '  TIER 4 — NO CLOSE: Customer expressed frustration, bought elsewhere, or is not interested. No appointment ask.',
-    '- APPOINTMENT TIMES: When offering times, offer them ONCE. Never repeat.',
-    '- APPOINTMENT LANGUAGE: Always frame as in-store — "come in," "stop by," "visit us." Never "discuss" or "talk."',
-    '- SMS TONE — THIS IS THE MOST IMPORTANT FORMATTING RULE:',
-    '  SMS must read like a real person texting, not a system generating a response.',
-    '  WARMTH: Contractions required. React to what they said. Match their energy. Name once, not every sentence.',
-    '  STRUCTURE: Get to the point first. One topic. One action. 3-5 lines before signature.',
-    '  WARM beats formal: React to what they said, then advance.',
-        '- EMAIL TONE — Write like a knowledgeable person who genuinely wants to help, not a corporate template:',
+    'BANNED OPENERS: "Checking in" "Following up" "Touching base" "Just wanted to" "Circling back" "I hope this finds you well" "Hi there" — these signal a template, not a person.',
+    'BANNED WORDS: "pulled up and ready" (use "it\'s here" or "we have it"). "newer model" "latest model" "upgrade" in subject lines.',
+    'BANNED PASSIVE CLOSINGS: "Let me know" "Stop by anytime" "Feel free to reach out" "Whatever works for you" "I look forward to hearing from you" "Talk soon"',
+    'BANNED SURVEILLANCE LANGUAGE: "I saw you were looking at" "I noticed you browsing" "We noticed you" "I thought of you when I saw"',
+    'BANNED CORPORATE PHRASES: "As per our conversation" "As a valued customer" "Great choice" "Excited to see your request" "I am reaching out" "I wanted to follow up"',
+    'BANNED PLATFORM NAMES: "Carfax" "Gubagoo" "Virtual retailing" "Digital retailing platform"',
+    'BANNED PRESSURE: "Let us lock this in" "Let us get you locked in" "Come in to buy" "Strategy session"',
+    'BANNED CREDIT SHAME: "Bad credit" "Poor credit history" "You need a co-signer" "The bank requires"',
+    'BANNED on AI BUYING SIGNAL leads: "newer model" "latest model" "brand new [model]" — say "[model] options" instead.',
 
-    '  WARMTH: Contractions. React to what the customer said. Open with something specific to them — not pleasantries.',
-    '  RIGHT: \"Hi Michael, Bring your wife by — the Highlander is here till 8. Would 4:00 or 4:45 work?\"',
-    '- VOICEMAIL TONE: Confident, friendly, genuine. Sound like you actually want to talk to this person.',
-    '- DISTANCE BUYER: If the Distance Buyer context flag is present, the message must acknowledge and justify the trip. A customer driving 30-60+ minutes needs a stronger reason than "come see it." Tactics: (1) Confirm the vehicle will be held/ready when they arrive. (2) Mention that everything can be mostly handled in advance so their time in-store is efficient. (3) Position the visit as worth the drive — "We can have everything ready so you\'re in and out in 45 minutes." Never casually say "stop by" to a distance buyer — the ask must feel worth the commitment.',
-    '- TIME SENSITIVITY: Match urgency to the time of day. Same-day appointments = urgency. Late afternoon = mention closing time. Morning = position the full day as available.',
-    '- LANGUAGE: Always write in English unless explicitly instructed otherwise by the agent.',
-    'CONVERSATION RULE: When a transcript is provided, the SMS opening MUST be a direct human reaction to what the customer said last — not a summary, not a restatement, not a re-introduction. React first, then advance.',
-    '  Ask yourself: Could this exact SMS be sent to any customer? If yes — it is too generic. REWRITE.',
-    '  The customer\'s last message is the most important input. If they said "Saturday works", open with Saturday. If they said "I love the black one", open with the black one. If they said "I\'m nervous about credit", open with empathy about that.',
-    '  EXCEPTION: For AI Buying Signal leads, outbound marketing blasts are NOT customer messages — ignore them entirely. Only react to genuine inbound customer replies.',
+    'CORE RULES:',
+    '- VEHICLE: Only reference the vehicle listed in the LEAD section. If it says "(none specified)", name no vehicle — not from history, not from training.',
+    '- FABRICATION: Never invent co-signers, credit issues, trade-ins, or circumstances the customer did not mention. Never fabricate inventory status, approval odds, or appointment times.',
+    '- AGENT SCHEDULE: Never claim the agent is booked or unavailable as a tactic. Availability is unknown.',
+    '- APPOINTMENT CONFIRMATION: Only confirm an appointment the customer explicitly agreed to. "Thank you" is not a confirmation.',
+    '- ANSWER FIRST: If the customer asked a direct question (price, availability, payment, specs), address it before asking for an appointment.',
+    '- SPECS: Never guess towing, MPG, payload, or horsepower. Say you will confirm rather than risk wrong info.',
+    '- TRADE-IN LEVERAGE: "I\'ll keep it if the offer is too low" is NOT an exit signal — it is negotiating. Respond with trade value focus, not a goodbye.',
+    '- SYSTEM NOTES: [NOTE] tags in transcripts contain system data (valuations, scores, automated responses) — not customer statements. Never infer concerns from them.',
+    '- SCHEDULE ASSUMPTIONS: Never assume shift work, unusual hours, or schedule constraints unless the customer explicitly said so.',
+    '- ECHO RULE: Never parrot the customer\'s words back as validation. "Comparing prices is smart" after they said "just comparing" is sycophancy.',
+    '- LINKS: Never construct or guess URLs. If asked for a link, write "I\'ll send you the direct link" and leave the URL blank for the agent to paste.',
+    '- TRADE-IN IN ALL FORMATS: When a trade-in is present, mention it in SMS and email.',
+
+    'CLOSE STRATEGY — READ THE ROOM:',
+    '  TIER 0: Customer gave a specific time → confirm it, do not offer alternatives.',
+    '  TIER 1: Customer is warm, no time given → offer two specific times.',
+    '  TIER 2: Unresolved objection → ask one qualifying question first.',
+    '  TIER 3: Not today / lukewarm → ask what day works, no specific times.',
+    '  TIER 4: Frustrated, bought elsewhere, not interested → no appointment ask.',
+    '- Offer times ONCE. Never repeat.',
+    '- Frame as in-store: "come in" "stop by" "visit us" — not "discuss" or "talk".',
+
+    'TONE:',
+    '- SMS: Real person texting. Contractions required. React to what they said. Match their energy. 3-5 lines before signature.',
+    '- Email: Knowledgeable, warm, human. Open with something specific to THIS customer. Max 3 short paragraphs. Contractions throughout.',
+    '- DISTANCE BUYER flag: Justify the drive. Confirm vehicle will be ready. "In and out in 45 minutes." Never say "stop by."',
+    '- TIME SENSITIVITY: Same-day = urgency. Late afternoon = mention closing time.',
+
+    'CONVERSATION RULE: SMS opening MUST be a direct human reaction to what the customer said last. Ask: could this SMS go to any customer? If yes — rewrite it.',
+    '  For AI Buying Signal leads: ignore outbound marketing blasts. React only to genuine inbound replies.',
     'CRITICAL: Return only the JSON object.'
   ].join('\n');
 }
@@ -3423,7 +3352,16 @@ function buildUserPrompt(data) {
 // Computes valid appointment time pairs entirely in JS.
 // The AI receives pre-validated times — it never does this math.
 function computeAppointmentTimes(store) {
-  // All times in Central Time
+  // Memoize by store + day + hour — appointment times only change hourly
+  const _ck = (store || '') + ':' + (function() {
+    const _c = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' }));
+    return _c.getDay() + ':' + _c.getHours();
+  })();
+  if (computeAppointmentTimes._cache && computeAppointmentTimes._cache[_ck])
+    return computeAppointmentTimes._cache[_ck];
+  if (!computeAppointmentTimes._cache) computeAppointmentTimes._cache = {};
+
+    // All times in Central Time
   const now    = new Date();
   const central = new Date(now.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
   const dayOfWeek = central.getDay(); // 0=Sun, 1=Mon ... 6=Sat
@@ -3531,7 +3469,7 @@ function computeAppointmentTimes(store) {
     const pair = findSameDayPair(earliestSlot);
     if (pair) {
       const today = fmtDate(central);
-      return {
+      const _result = {
         time1: fmtTime(pair[0]) + ' today',
         time2: fmtTime(pair[1]) + ' today',
         dayLabel: 'today',
@@ -3539,6 +3477,8 @@ function computeAppointmentTimes(store) {
         minsUntilClose: closeMins - nowMins,
         note: 'Same-day slots available.'
       };
+      computeAppointmentTimes._cache[_ck] = _result;
+      return _result;
     }
   }
 
@@ -3559,11 +3499,11 @@ function computeAppointmentTimes(store) {
   }
 
   // Pick two slots well-spaced in the next day morning
-  const slot1 = nextOpen + 15;       // e.g. 9:15
-  const slot2 = nextOpen + 60 + 30;  // e.g. 10:45 (~90 min later)
+  const slot1 = nextOpen + 15;
+  const slot2 = nextOpen + 60 + 30;
 
   const nextDayLabel = fmtDate(tomorrowCentral);
-  return {
+  const _fallback = {
     time1: fmtTime(slot1),
     time2: fmtTime(slot2) + ' ' + nextDayLabel,
     dayLabel: nextDayLabel,
@@ -3571,6 +3511,8 @@ function computeAppointmentTimes(store) {
     minsUntilClose: null,
     note: 'No same-day slots available — next business day used.'
   };
+  computeAppointmentTimes._cache[_ck] = _fallback;
+  return _fallback;
 }
 
 

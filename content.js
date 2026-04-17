@@ -50,9 +50,11 @@
   // Read the value cell next to a label in a table
   // Works on the confirmed Lead Info HTML structure:
   // <tr><td class="datalabel">BD Agent:</td><td class="datavalue"><span>Carly Osuna</span></td></tr>
+  var _cachedTableRows = null;
   function labelValue(labelText) {
     try {
-      const rows = document.querySelectorAll('tr');
+      if (!_cachedTableRows) _cachedTableRows = Array.from(document.querySelectorAll('tr'));
+      const rows = _cachedTableRows;
       for (const row of rows) {
         const cells = row.querySelectorAll('td');
         if (cells.length < 2) continue;
@@ -467,8 +469,11 @@
         }
       }
     }
-    chrome.storage.local.set({ leadpro_data: merged });
-    console.log('[Lead Pro] Storage updated:', { name: merged.name, agent: merged.agent, store: merged.store, storeConfident: merged.storeConfident, dealerId: merged.dealerId, ownedVehicle: merged.ownedVehicle, ampEmailSubject: merged.ampEmailSubject, ownedMileage: merged.ownedMileage, lastServiceDate: merged.lastServiceDate });
+    chrome.storage.local.set({ leadpro_data: merged }, function() {
+      console.log('[Lead Pro] Storage updated:', { name: merged.name, agent: merged.agent, store: merged.store, storeConfident: merged.storeConfident, dealerId: merged.dealerId, ownedVehicle: merged.ownedVehicle, ampEmailSubject: merged.ampEmailSubject, ownedMileage: merged.ownedMileage, lastServiceDate: merged.lastServiceDate });
+      // Signal popup immediately — eliminates 1.5s fallback delay on happy path
+      try { chrome.runtime.sendMessage({ type: 'LEADPRO_DATA_READY', noteCount: merged.totalNoteCount || 0, hasName: !!(merged.name), hasData: true }); } catch(e) {}
+    });
   });
 
   // ── Debounced MutationObserver — re-scrape when VinSolutions re-renders ──
