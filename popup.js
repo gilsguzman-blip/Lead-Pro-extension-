@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────
-// Lead Pro -- popup.js  v9.0.6
+// Lead Pro -- popup.js  v9.0.7
 // Calls either a proxy server (recommended for team use) OR
 // the Gemini API directly. Both configured in config.js.
 // ─────────────────────────────────────────────────────────────────
@@ -756,6 +756,7 @@ function tryExecuteScript(tab, statusEl, dot) {
     }
     const TEXT=(document.body?document.body.innerText||document.body.textContent||'':'').substring(0,12000);
     var leadReceivedCustomerQuestion='';
+    var firstLeadReceivedSeen=false;
     function tm(pats){for(const r of pats){try{const m=TEXT.match(r);if(m&&m[1])return m[1].trim();}catch(x){}}return '';}
 
     const dbg=document.getElementById('vindebug-section-wrap');
@@ -1246,12 +1247,14 @@ function tryExecuteScript(tab, statusEl, dot) {
     // Use lead created date as transcript cutoff - ignore history predating this lead
     // This prevents old lead history from bleeding into fresh lead responses
     var transcriptCutoffMs = Date.now() - (180 * 24 * 60 * 60 * 1000); // default 180 days
+    var leadCreatedMs = 0; // exposed for marker logic below
     try {
       var createdRaw = labelValue('Created') || TEXT.match(/Created[:\s]+([^\n]{5,40})/i)?.[1] || '';
       var createdDateMatch = createdRaw.match(/(\d{1,2}\/\d{1,2}\/\d{2,4})/);
       if(createdDateMatch) {
         var createdMs = new Date(createdDateMatch[1]).getTime();
         if(createdMs > 0) {
+          leadCreatedMs = createdMs;
           // Set cutoff to lead created date minus 1 day buffer
           var leadCutoff = createdMs - (24 * 60 * 60 * 1000);
           // Only use lead date if it's more restrictive than 180 days
@@ -1259,6 +1262,8 @@ function tryExecuteScript(tab, statusEl, dot) {
         }
       }
     } catch(e) {}
+    // Detect phone-up leads -- source contains "Phone"
+    var isPhoneUpLead = /phone/i.test(leadSource || '');
     noteEls.slice(0,25).forEach(function(item){
       var date    = ((item.querySelector('.notes-and-hsitory-item-date')||{}).innerText||'').trim(); // NOTE: 'hsitory' typo is intentional - matches VinSolutions DOM typo
       var title   = ((item.querySelector('.legacy-notes-and-history-title')||{}).innerText||'').trim();
@@ -1276,6 +1281,32 @@ function tryExecuteScript(tab, statusEl, dot) {
       // dollar amounts that the AI misreads as customer concerns
       var isDataDump = /value-to-dealer|market report|plugin\.tradepending|tradepending\.com|kelley blue book|kbb\.com|market size.*within|estimated.*miles.*value|landing page.*phone|automated response|we are not open for business|assurance that your request|we are working on your request/i.test(content);
       var isLeadReceived = /lead received/i.test(title);
+      // MARK where the CURRENT lead starts.
+      // Logic differs by source type:
+      //  - Phone-up leads (source contains "phone"): the "Inbound phone call" is the starting point.
+      //    Phone-up leads often have OLD Lead Received notes stacked from previous web inquiries;
+      //    the current inquiry is the inbound call, not any old Lead Received.
+      //  - Internet leads: the Lead Received note closest to the lead Created date is the starting point.
+      //    Some leads have multiple Lead Received notes from different inquiry cycles -- we want the one
+      //    that matches the current lead's Created timestamp.
+      if(!firstLeadReceivedSeen) {
+        var noteMs = date ? new Date(date).getTime() : 0;
+        // Date must be within 2 days of the lead's Created date to count as the current lead starter
+        var withinLeadWindow = leadCreatedMs > 0 && noteMs > 0 && Math.abs(noteMs - leadCreatedMs) < 2 * 86400000;
+        var isCurrentLeadStart = false;
+        if(isPhoneUpLead) {
+          // Phone-up: first Inbound phone call within the lead window is the current lead
+          isCurrentLeadStart = /inbound phone/i.test(title) && withinLeadWindow;
+        } else {
+          // Internet: first Lead Received within the lead window is the current lead
+          // If no Created date is available, fall back to just the first Lead Received (old behavior)
+          isCurrentLeadStart = isLeadReceived && (leadCreatedMs === 0 || withinLeadWindow);
+        }
+        if(isCurrentLeadStart) {
+          firstLeadReceivedSeen = true;
+          transcript.push('[' + date + '] [=== CURRENT LEAD SUBMITTED HERE ===]\n  This is when the current inquiry was submitted. The transcript is newest-first. Everything ABOVE this line is the active conversation for THIS lead (today\'s outreach, replies, calls). Everything BELOW is older history from prior interactions -- use only for background context, not as active conversation. Count attempts, recent messages, and outreach only from above this marker.');
+        }
+      }
       // Extract customer question from lead received note BEFORE stripping
       // VinSolutions embeds the customer's comment/question at the end of lead received notes
       // e.g. "I'm gonna have to pay APR?" or "Consumer requests to be contacted by text"
@@ -1783,7 +1814,7 @@ function tryExecuteScript(tab, statusEl, dot) {
       if(colorMatch) customerConcerns.push('COLOR PREFERENCE: Customer mentioned ' + colorMatch[0] + '. Match this in your message or acknowledge availability honestly.');
       if(trimMatch) customerConcerns.push('TRIM/CONFIG PREFERENCE: Customer referenced ' + trimMatch[0] + '. Reference this specifically - do not pitch a different trim without reason.');
       if(/trade.?(in|value|worth|get|offer)|what.*get for|how much.*trade|payoff|owe on/i.test(allTranscriptText)){
-        customerConcerns.push('TRADE-IN CONCERN: Customer mentioned their trade. Use it as the hook - lead with the trade value conversation, not the vehicle pitch.');
+        customerConcerns.push('TRADE-IN CONCERN: Customer mentioned their trade-in. This is THE hook -- lead with it in BOTH the SMS and email. Do not bury it. Do not default to a generic vehicle check-in. Example SMS opener: "Angel, still want to get that 2023 Tacoma appraised -- took 10 min to pull values, just need to confirm before I send."');
       }
       if(/credit|financing|pre.?approv|interest rate|down payment|how much down/i.test(allTranscriptText)){
         customerConcerns.push('FINANCING CONCERN: Customer raised credit or financing. Acknowledge that the visit is the easiest way to get real numbers - keep it low pressure.');
@@ -2699,42 +2730,52 @@ function lookupPhone(agentName, store) {
 // ─────────────────────────────────────────────────────────────────
 function buildSystemPrompt() {
   return [
-    'You are a BDC agent at a car dealership writing SMS, email, and voicemail responses to customers.',
+    'You are a BDC agent at a car dealership. You write SMS, email, and voicemail responses to real customers.',
     'Respond ONLY with valid JSON: {"sms":"...","email":"...","voicemail":"...","subject":"..."}. No markdown, no text outside JSON.',
     '',
-    'Your job: a customer showed interest in a vehicle or submitted a lead. Write a response that gets them to book an appointment.',
+    '━━━ HOW TO THINK ━━━',
+    'Before you write anything, read the transcript and ask: Where does this conversation actually stand right now?',
     '',
-    'VOICE AND TONE — applies to ALL formats:',
-    'Write like a real person. Warm, direct, confident. Not corporate. Not scripted. Use contractions. No filler. No fluff.',
-    'Every sentence must earn its place. If a sentence does not move the customer toward action, cut it.',
+    'If you see "[=== CURRENT LEAD SUBMITTED HERE ===]" in the transcript, that line marks where the current inquiry was submitted. The transcript is newest-first, so everything ABOVE that marker is today\'s active conversation for THIS lead. Everything BELOW is older history from prior lead submissions — you can use it for background ("customer has looked at us before" or "they asked about a Tacoma two years ago"), but do NOT treat old messages as part of the current conversation. Don\'t reference "11 attempts" if only 1 attempt happened on this lead. Don\'t write like you\'ve been chasing someone who just inquired today.',
     '',
-    'SMS — same engine as email, formatted for text:',
-    'The SMS is NOT a compression of the email. It is built from the same raw material — same vehicle, same personal hook, same reason to act, same urgency — written at text length.',
-    'Structure: (1) Open with the customer name and one specific thing from the lead — the vehicle, their trade, their question, or what they said. (2) One concrete reason to come in — what will be ready, how long it takes, what they will get. (3) Close — either two specific times OR an open question if CLOSE OVERRIDE is active. (4) Signature: first name, store name, phone on separate lines.',
-    'Length: 3-5 sentences of real substance. Not 1 sentence. Not a placeholder. A complete message a real agent would actually send.',
-    'The SMS must be as specific and personal as the email. If the email mentions the trade-in, the SMS mentions the trade-in. If the email opens with what the customer said, the SMS opens with what the customer said. No exceptions.',
+    'Read the room. Every lead has a specific state:',
+    '- What has the customer said (their actual words, their tone, their mood)?',
+    '- What has the agent already sent (so you do not repeat it)?',
+    '- What is the one thing that would move this conversation forward RIGHT NOW?',
     '',
-    'EMAIL — full format:',
-    'Paragraph 1: Open with the specific vehicle and what they did (credit app, color preference, trade, payment, what they said).',
-    'Paragraph 2: Concrete reason to come in — what you will have ready, how long it takes, what happens next.',
-    'Paragraph 3 (if needed): Address something specific from the transcript — a question, a concern, how long it has been.',
-    'Close with two specific appointment times. Full signature. Specific subject line in the "subject" field.',
-    'NO filler: no "I hope this finds you well", no "I completely understand how busy", no "I wanted to follow up", no "You have already done the hard part".',
+    'Match the customer\'s energy:',
+    '- They sent a one-word reply? Keep yours short. A novel in response feels tone-deaf.',
+    '- They wrote a detailed message with specific questions? Answer each one. Match their depth.',
+    '- They sound frustrated or tired of outreach? Slow down. Acknowledge it. Give them space.',
+    '- They sound excited or high-intent? Move with them. Do not stall.',
+    '- They asked a question? Answer it FIRST. Everything else comes after.',
     '',
-    'VOICEMAIL: 20-30 seconds. Natural. Specific reason for calling. Phone number twice.',
+    'Be the human who read their file, not the template that got triggered. Real agents write differently to different people. Your responses should feel like a person thinking, not a form being filled.',
     '',
-    'BANNED OPENERS — SMS and email: "I saw your inquiry", "I noticed you", "I wanted to reach out", "I am reaching out", "Just checking in", "I saw you started a deal", "I\'d love to help", "I hope", "Following up", "I saw you were looking".',
+    '━━━ WHAT MAKES A RESPONSE LAND ━━━',
+    'Specific beats generic. Every time. The opening sentence should tell the customer: "you know I read what I said, not a script."',
+    'Examples of specific: "The Blueprint with graphite is the combo you asked about..." / "That trade number you mentioned..." / "Since the Pilot already sold, the gray Touring is the closer match..."',
+    'Examples of generic (avoid): "I wanted to reach out about your inquiry..." / "Just checking in..." / "I saw your interest in our vehicle..."',
     '',
-    'NEVER say: "I wanted to", "Just wanted to", "proactively", "my goal is", "make your visit seamless", "smooth and efficient", "get ahead of your schedule", "touch base", "circle back", "as per", "please do not hesitate".',
-    'NEVER invent inventory timing. NEVER confirm a specific unit available without stock number or VIN. NEVER invent a vehicle not in the lead. NEVER fabricate an agent name.',
+    'The difference: the specific version could only be sent to THIS customer. The generic version could be copy-pasted to any lead.',
     '',
-    'SIGNATURE — REQUIRED ON EVERY SMS WITHOUT EXCEPTION:',
-    'Every SMS must end with exactly this format on separate lines:',
-    '[First name]',
-    '[Store name]',
-    '[Phone number]',
-    'This applies to ALL messages — short replies, conversational follow-ups, confirmations, everything. No SMS is ever sent without a signature. If the message feels complete without it, add it anyway.',
-    'Email signature: full name, title, store, phone.',
+    '━━━ FORMAT ━━━',
+    'SMS — text message. The SMS is NOT a shorter, dumber email. It is built from the same raw material: same specific hook, same reason, same tone, written at text length. The quality bar is identical. If the email mentions the trade, the SMS mentions the trade. If the email answers their question, the SMS answers their question. If the email has a specific opener, the SMS has a specific opener. Never default to "wanted to see if you had questions" or "just checking in" — that is empty filler and a dead giveaway of an automated message. The SMS opener must name a specific thing: their vehicle, their trade, their question, their price concern, something they actually said. Always end with signature on three lines: first name, store name, phone. Never skip the signature, even on a one-liner reply.',
+    '',
+    'EMAIL — full format. Open with something specific (their question, their vehicle, what they said). Body addresses the actual conversation. Close naturally — two appointment times if scheduling makes sense, an open question if it does not. Include a subject line in the "subject" field. Full signature at the end.',
+    '',
+    'VOICEMAIL — 20-30 seconds, natural, one specific reason for calling, phone number said twice.',
+    '',
+    '━━━ WHEN TO CLOSE WITH TIMES ━━━',
+    'Default: offer two specific appointment times when the customer is engaged and ready.',
+    'Skip the time close when: customer said timing is off, price is unresolved, they have not replied to previous attempts, or they asked an open scheduling question ("what time works for you"). In those cases close with a question or leave the door open.',
+    '',
+    '━━━ HARD RULES ━━━',
+    'Never invent: vehicles not in the lead, inventory timing, stock numbers, agent names. If the agent name is unknown, sign the SMS with the phone number only.',
+    'Never confirm a specific unit available without a stock number or VIN. Use soft language: "we have the model available" instead.',
+    'Never copy the exact scenario opener verbatim when prior outreach already used it — that is a dead giveaway this is automated.',
+    '',
+    'Contractions are fine. Imperfect is fine if it sounds human. Avoid anything that reads like it came from a BDC handbook.',
   ].join('\n');
 }
 
@@ -2766,7 +2807,16 @@ function buildUserPrompt(data) {
 
   // ── SITUATION BRIEF — pre-digest the transcript so the model reads the room ──
   var situationBrief = [];
-  var ctx_sb = data.context || '';
+
+  // Isolate the CURRENT LEAD portion of the transcript.
+  // Transcript is newest-first, so the marker appears in the MIDDLE of the string:
+  //   [today's notes] [MARKER] [older history]
+  // We want to analyze only the part BEFORE the marker (the current lead's activity).
+  var ctx_sb_raw = data.context || '';
+  var currentLeadMarkerIdx = ctx_sb_raw.indexOf('=== CURRENT LEAD SUBMITTED HERE ===');
+  var ctx_sb = currentLeadMarkerIdx >= 0
+    ? ctx_sb_raw.substring(0, currentLeadMarkerIdx)
+    : ctx_sb_raw;
 
   // Attempt counting
   var sbTexts    = (ctx_sb.match(/Outbound Text Message/gi) || []).length;
@@ -2789,8 +2839,13 @@ function buildUserPrompt(data) {
   var sbSpecificQuestion = data.lastInboundMsg && /\?/.test(data.lastInboundMsg);
   var sbShortMsg  = (data.lastInboundMsg || '').trim().split(/\s+/).length <= 6;
   var sbLongMsg   = (data.lastInboundMsg || '').trim().split(/\s+/).length > 20;
+  // Emotional read — helps AI calibrate tone
+  var sbFrustrated    = /stop (texting|calling|emailing|messaging)|leave me alone|not interested|already told|already said|told you|how many times|multiple times|quit contacting|unsubscribe/i.test(sbCustLow);
+  var sbEnthusiastic  = /ready to (buy|purchase|move)|let.s do|sounds great|perfect|awesome|excited|can.?t wait|love it|absolutely|definitely/i.test(sbCustLow);
+  var sbHesitant      = /thinking about|not sure|maybe|might|considering|weighing|on the fence|need to discuss|talk to (my|the)/i.test(sbCustLow);
+  var sbApologetic    = /sorry|apologize|my bad|didn.?t mean|wasn.?t trying/i.test(sbCustLow);
 
-  if (sbTotal > 0 || sbHungUp || sbMsgs > 0 || sbPriceConcern || sbTimingConcern) {
+  if (sbTotal > 0 || sbHungUp || sbMsgs > 0 || sbPriceConcern || sbTimingConcern || sbFrustrated || sbEnthusiastic || sbHesitant || data.lastInboundMsg) {
     situationBrief.push('━━━ SITUATION BRIEF ━━━');
     situationBrief.push('Read this before writing. It tells you what has already happened and what approach will work.');
     situationBrief.push('');
@@ -2807,31 +2862,48 @@ function buildUserPrompt(data) {
     if (sbNoVm)            situationBrief.push('⚠ No voicemail box — cannot leave VM. Text or email only.');
     if (sbMachine > 2)     situationBrief.push('⚠ ' + sbMachine + ' calls hit voicemail — customer is not answering. A different approach is needed.');
     if (sbContacted > 0)   situationBrief.push('✓ Customer was reached ' + sbContacted + ' time(s) — they know who we are. No need to re-introduce.');
-    if (sbMsgs > 1)        situationBrief.push('⚠ ' + sbMsgs + ' messages already left — do not send another generic check-in. Change the approach.');
+    if (sbMsgs > 1 && (data.leadAgeDays || 0) >= 2) situationBrief.push('⚠ ' + sbMsgs + ' messages already left over ' + (data.leadAgeDays || 0) + ' days — do not send another generic check-in. Change the approach.');
 
-    // Customer signals
+    // Customer signals (price/timing/question)
     if (sbPriceConcern)    situationBrief.push('💰 Customer raised price or package concerns — address this directly. Do not pivot past it.');
     if (sbTimingConcern)   situationBrief.push('⏳ Customer indicated timing is not right yet — soft re-engagement only. No appointment pressure.');
     if (sbSpecificQuestion) situationBrief.push('❓ Customer asked a specific question in their last message — answer it first before anything else.');
 
+    // Emotional read — calibrate tone
+    if (sbFrustrated)      situationBrief.push('😤 Customer sounds frustrated. Slow down. Acknowledge it directly. Do not push — give them an easy out.');
+    if (sbEnthusiastic)    situationBrief.push('🔥 Customer is enthusiastic and high-intent. Match their energy. Move fast. Do not over-explain.');
+    if (sbHesitant)        situationBrief.push('🤔 Customer is weighing options. Be informative, not pushy. Help them think it through, do not close hard.');
+    if (sbApologetic)      situationBrief.push('🫶 Customer apologized for being slow to respond. Be warm and gracious — no guilt trip, no urgency.');
+
+    // Email depth guidance — applies to EMAIL tone, not SMS length
+    // SMS should always be specific and substantive, matching email quality, regardless of customer message length
+    if (sbLongMsg)         situationBrief.push('📝 Customer wrote a detailed message. In the EMAIL, match that depth — address each thing they said. The SMS should still be specific and substantive (same quality bar as email), not a short generic reply.');
+    if (sbShortMsg && data.lastInboundMsg)  situationBrief.push('💬 Customer sent a short reply. The EMAIL can be tighter, but the SMS should still carry the specific hook (trade, question, price point). Do not let "short reply" become an excuse for a generic SMS.');
+
     // Recommended play
     situationBrief.push('');
     situationBrief.push('BEST APPROACH:');
-    if (data.convState === 'call-followup') {
+    if (sbFrustrated) {
+      situationBrief.push('→ Customer sounds frustrated. This is the most important signal. Acknowledge the friction directly — "I hear you" or "I won\'t keep pushing." Offer a real easy-out. Do not try to close. Earning trust back comes before selling anything.');
+    } else if (data.convState === 'call-followup') {
       var vmNote = sbMachine > 0 ? 'Left a voicemail.' : (sbMsgs > 0 ? 'Left a message.' : 'Called — no contact made.');
       situationBrief.push('→ ' + vmNote + ' This text and email follow up on that call. Reference the call naturally — do not re-introduce as if this is the first contact. Keep it brief.');
     } else if (sbHungUp && sbTotal >= 3) {
       situationBrief.push('→ Pattern breaker required. ' + sbTotal + ' attempts + hang-ups. Try: curiosity angle ("Did you go a different direction?"), easy-out ("No pressure — just let me know"), or value shift ("Something came in I thought of you for"). NOT another check-in.');
+    } else if (sbTotal >= 5 && sbContacted === 0 && (data.leadAgeDays || 0) >= 2) {
+      situationBrief.push('→ ' + sbTotal + ' attempts over ' + (data.leadAgeDays || 0) + ' days, zero contact. This is a last re-engagement. Use curiosity or easy-out only. Short. Low pressure.');
     } else if (sbTotal >= 5 && sbContacted === 0) {
-      situationBrief.push('→ ' + sbTotal + ' attempts, zero contact. This is a last re-engagement. Use curiosity or easy-out only. Short. Low pressure.');
+      situationBrief.push('→ Multiple attempts today with no reply yet. Normal for a same-day lead — stay confident, lead with the specific hook, and keep moving. Do NOT write a giveup or "last attempt" message.');
     } else if (sbPriceConcern) {
       situationBrief.push('→ Price/package is the blocker. Lead with it. Either address the specific concern or invite them in to review options together. Do not skip past it.');
     } else if (sbTimingConcern) {
       situationBrief.push('→ Timing is the issue. Do NOT push for appointment. Warm acknowledgment + leave the door open with one specific reason to come back when ready.');
+    } else if (sbEnthusiastic) {
+      situationBrief.push('→ High-intent customer. Move fast, do not over-explain. They are ready — confirm the next step and get out of the way. Short, confident, clear.');
+    } else if (sbHesitant) {
+      situationBrief.push('→ Customer is weighing options. Be a helpful resource, not a closer. Share one useful piece of info that helps them decide, then make the next step optional.');
     } else if (sbLongMsg) {
       situationBrief.push('→ Customer sent a detailed message — they are engaged. Be collaborative. Answer everything they said. Match their energy.');
-    } else if (sbShortMsg && data.lastInboundMsg) {
-      situationBrief.push('→ Short reply. Keep it efficient. One direct next step. No extra setup.');
     } else if (sbContacted > 0 && sbTotal > 2) {
       situationBrief.push('→ Customer was reached before but went quiet. Reference the last real conversation and re-open naturally. Do not start from scratch.');
     } else {
@@ -3231,10 +3303,9 @@ function buildUserPrompt(data) {
         '- Tone: direct and real.'
       ].join('\n')
       : [
-        '- MUST mention CarGurus in the opening.',
-        '- CarGurus price-aware buyer. Lead with the vehicle.',
-        '- Position the visit as where they finalize the best deal.',
-        '- Tone: direct and real.'
+        '- CarGurus buyers have already seen your price and compared it against other listings. They are not shopping — they are validating. Your job is to confirm the vehicle is real, available, and worth the drive.',
+        '- Mention CarGurus once so they know you saw their inquiry, then move directly to what matters: the vehicle is here, here is why it is a good one, here is when you can come see it.',
+        '- Tone: direct and real. No sales-speak. They can tell.'
       ].join('\n');
 
   } else if (sc.isFacebook) {
@@ -3250,9 +3321,9 @@ function buildUserPrompt(data) {
         '- Do NOT re-introduce yourself. Do NOT re-pitch the vehicle.'
       ].join('\n')
       : [
-        '- MUST mention Facebook in the opening.',
-        '- Facebook Marketplace buyer. Casual, deal-focused.',
-        '- They want direct answers on price and availability.'
+        '- Facebook Marketplace buyers expect casual, direct messaging. They are not looking for dealership formality — they want to know if the car is still there and what the real number is.',
+        '- Acknowledge Facebook briefly, then give them what they want: yes it is here, here is the out-the-door ballpark or an honest way to get it, come check it out.',
+        '- Tone: text-message casual. Contractions. Short sentences. Match how a person actually types on Facebook Marketplace.'
       ].join('\n');
 
   } else if (sc.isAutoTrader) {
@@ -3262,7 +3333,7 @@ function buildUserPrompt(data) {
       : 'TASK: AutoTrader lead.';
     scenarioRules = atFollowUp
       ? '- Prior outreach already sent. Read the transcript. Continue naturally.'
-      : '- MUST mention AutoTrader in the opening. AutoTrader buyers are comparison shoppers.';
+      : '- AutoTrader buyers are comparison shoppers — they are likely looking at multiple similar vehicles across different dealers. Acknowledge AutoTrader briefly, then give them a reason this specific vehicle and this specific store are worth their attention. Close with a concrete next step.';
 
   } else if (sc.isCarscom) {
     var ccFollowUp = sc.isFollowUp && hasRealOutbound;
@@ -3271,7 +3342,7 @@ function buildUserPrompt(data) {
       : 'TASK: Cars.com lead.';
     scenarioRules = ccFollowUp
       ? '- Prior outreach already sent. Read the transcript. Continue naturally.'
-      : '- MUST mention Cars.com in the opening.';
+      : '- Cars.com buyers have done their homework — reviews, comparisons, pricing. They expect professionalism and straight answers. Acknowledge Cars.com, confirm the vehicle, explain what makes it a good one, close with a time.';
 
   } else if (sc.isEdmunds) {
     var edFollowUp = sc.isFollowUp && hasRealOutbound;
@@ -3280,7 +3351,7 @@ function buildUserPrompt(data) {
       : 'TASK: Edmunds lead.';
     scenarioRules = edFollowUp
       ? '- Prior outreach already sent. Read the transcript. Continue naturally.'
-      : '- MUST mention Edmunds in the opening.';
+      : '- Edmunds buyers are research-heavy — they have likely read reviews, compared trims, and know the market price. Treat them as informed. Skip the basics. Confirm the vehicle, share any unique detail that makes this unit notable, close with a time.';
 
   } else if (sc.isDealerWebsite) {
     scenarioDirective = 'TASK: Dealer website lead — customer submitted an inquiry directly through the dealership website. High intent.';
@@ -3495,12 +3566,10 @@ function buildUserPrompt(data) {
     const agentAsked = lastOutbound.match(/\?[^?]*$/)?.[0]?.trim() || '';
 
     conversationAnalysis = [
-      '━━━ READ THE TRANSCRIPT ━━━',
-      'The full conversation is above. Read all of it before writing anything.',
-      'Find: what the customer said, what was already asked, what they told you they want.',
-      'React to where the conversation actually stands — not a template for this scenario type.',
-      'If the customer answered a question, do not ask it again.',
-      'If the customer told you what they want, lead with that.',
+      '━━━ READ BEFORE WRITING ━━━',
+      'The transcript above is the full conversation. Read it like you\'re the agent picking up this lead.',
+      'Your message must reflect THIS conversation specifically — what was said, asked, promised, or left open.',
+      'If the customer answered something, do not ask it again. If they said what they want, lead with that.',
     ].filter(Boolean).join('\n');
   }
 
@@ -3536,12 +3605,12 @@ function buildUserPrompt(data) {
     closeOverride = 'CLOSE OVERRIDE: Do NOT offer appointment times. Customer is not ready.';
   } else if (sbHungUp && sbTotal >= 3) {
     closeOverride = 'CLOSE OVERRIDE: Customer has hung up on ' + sbTotal + ' attempts. Do NOT offer appointment times. Use TIER 4 — pattern breaker only. Curiosity, easy-out, or value shift.';
-  } else if (sbTotal >= 5 && sbContacted === 0) {
-    closeOverride = 'CLOSE OVERRIDE: ' + sbTotal + ' attempts, zero contact. Do NOT offer specific times. TIER 4 — short, low pressure, easy-out only.';
+  } else if (sbTotal >= 5 && sbContacted === 0 && (data.leadAgeDays || 0) >= 2) {
+    closeOverride = 'CLOSE OVERRIDE: ' + sbTotal + ' attempts over ' + (data.leadAgeDays || 0) + ' days, zero contact. Do NOT offer specific times. TIER 4 — short, low pressure, easy-out only.';
   } else if (sbTimingConcern) {
     closeOverride = 'CLOSE OVERRIDE: Customer indicated timing is not right. Do NOT offer specific times. TIER 3 — soft close or leave door open only.';
-  } else if (sbMsgs >= 3 && sbContacted === 0) {
-    closeOverride = 'CLOSE OVERRIDE: ' + sbMsgs + ' messages left with no response. Do NOT send another appointment push. TIER 3 or TIER 4 only.';
+  } else if (sbMsgs >= 3 && sbContacted === 0 && (data.leadAgeDays || 0) >= 2) {
+    closeOverride = 'CLOSE OVERRIDE: ' + sbMsgs + ' messages left over ' + (data.leadAgeDays || 0) + ' days with no response. Do NOT send another appointment push. TIER 3 or TIER 4 only.';
   } else if (sbPriceConcern) {
     closeOverride = 'CLOSE OVERRIDE: Price/package is unresolved. Do NOT offer times yet. TIER 2 — answer the price concern first, then ask what day works.';
   }
@@ -3720,8 +3789,11 @@ function buildUserPrompt(data) {
   console.log('[Lead Pro] isZeroContactStalled:', isZeroContactStalled, '| ctx_scan:', isZeroContactStalled_ctx, '| hasCustomerReply:', hasCustomerReply, '| hasOutbound:', hasOutbound_final, '| ageDays:', ageDays_final, '| _isStalled:', data._isStalled);
 
   if (isZeroContactStalled) {
-    var stalledTexts = (ctx_raw.match(/Outbound Text Message/gi) || []).length;
-    var stalledEmails = (ctx_raw.match(/Email reply to prospect/gi) || []).length;
+    // Only count attempts on the CURRENT lead (before the marker, since transcript is newest-first)
+    var stalledMarkerIdx = ctx_raw.indexOf('=== CURRENT LEAD SUBMITTED HERE ===');
+    var ctx_stalled = stalledMarkerIdx >= 0 ? ctx_raw.substring(0, stalledMarkerIdx) : ctx_raw;
+    var stalledTexts = (ctx_stalled.match(/Outbound Text Message/gi) || []).length;
+    var stalledEmails = (ctx_stalled.match(/Email reply to prospect/gi) || []).length;
     var stalledTouches = stalledTexts + stalledEmails;
     var stalledPhase = '';
     var stalledApproach = '';
@@ -4669,7 +4741,7 @@ chrome.runtime.onMessage.addListener(_lpMsgListener);
 window.addEventListener('beforeunload', function() { chrome.runtime.onMessage.removeListener(_lpMsgListener); lastScrapedData = null; _lpTimerIds.forEach(function(id) { clearTimeout(id); }); _lpTimerIds = []; });;
 
 window.addEventListener('load', function() {
-  console.log('[Lead Pro] v9.0.6 loaded');
+  console.log('[Lead Pro] v9.0.7 loaded');
 
   // On popup open — read storage immediately in case content.js already has data
   // This handles the case where the popup was closed and reopened after grab
@@ -4693,5 +4765,5 @@ window.addEventListener('load', function() {
     document.getElementById('keyWarning').classList.add('visible');
     console.warn('[Lead Pro] No proxy URL or API key configured. Set up config.js.');
   }
-  console.log('[Lead Pro] v9.0.6 loaded -- manifest 9.06');
+  console.log('[Lead Pro] v9.0.7 loaded -- manifest 9.07');
 });
