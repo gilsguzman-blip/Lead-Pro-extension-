@@ -220,9 +220,18 @@ function populateFromData(d) {
   if (d.vin)              vehicleExtras.push('VIN: ' + d.vin);
   if (d.noSpecificVehicle && !d.stockNum && !d.vin && !stageActive) vehicleExtras.push('⚠ NO SPECIFIC UNIT: No stock number or VIN — do NOT say the vehicle is "showing available", "in stock", "here and ready", or "available right now". Say "we have the [model] available" or ask a qualifying question about color, trim, or configuration.');
   // Only warn about no vehicle if notes don't mention one either
-  var contextMentionsVehicle = d.context && /\b(pilot|odyssey|civic|accord|cr-v|crv|hr-v|hrv|ridgeline|passport|highlander|camry|corolla|rav4|tacoma|tundra|sequoia|4runner|venza|sienna|k5|sportage|telluride|sorento|seltos|carnival|stinger|ev6|niro|q3|q5|q7|q8|a3|a4|a5|a6|a7|a8|e-tron|etron|silverado|f-150|f150|ram|explorer|bronco|mustang|equinox|traverse|tahoe|suburban|yukon|escalade|chevy|chevrolet|ford|gmc|dodge|jeep|nissan|altima|rogue|pathfinder|armada|frontier|hyundai|santa fe|tucson|elantra|ioniq|palisade|genesis)\b/i.test(d.context);
+  // IMPORTANT: only check the current lead context (above the marker), not old 2022 history
+  var ctxForVehicleCheck = d.context || '';
+  var markerInCtx = ctxForVehicleCheck.indexOf('=== CURRENT LEAD SUBMITTED HERE ===');
+  if (markerInCtx > 0) ctxForVehicleCheck = ctxForVehicleCheck.substring(0, markerInCtx);
+  var contextMentionsVehicle = /\b(pilot|odyssey|civic|accord|cr-v|crv|hr-v|hrv|ridgeline|passport|highlander|camry|corolla|rav4|tacoma|tundra|sequoia|4runner|venza|sienna|k5|sportage|telluride|sorento|seltos|carnival|stinger|ev6|niro|q3|q5|q7|q8|a3|a4|a5|a6|a7|a8|e-tron|etron|silverado|f-150|f150|ram|explorer|bronco|mustang|equinox|traverse|tahoe|suburban|yukon|escalade|chevy|chevrolet|ford|gmc|dodge|jeep|nissan|altima|rogue|pathfinder|armada|frontier|hyundai|santa fe|tucson|elantra|ioniq|palisade|genesis)\b/i.test(ctxForVehicleCheck);
+  // Seller-intent detection — customer appears to be selling, not buying
+  var sellerIntent = /i might have.*buyer|have.*buyer for you|looking to sell|want to sell|selling my|sell.*vehicle|sell.*car|sell.*truck/i.test(ctxForVehicleCheck);
   if (d.noVehicleAtAll && !d.vehicle && !stageActive && !contextMentionsVehicle) {
     vehicleExtras.push('⚠ NO VEHICLE ON LEAD: No vehicle in the lead header. READ THE NOTES AND TRANSCRIPT FIRST — if a vehicle is mentioned there, write about that vehicle. Only ask a qualifying question if no vehicle appears anywhere in the notes or transcript.');
+  }
+  if (sellerIntent) {
+    vehicleExtras.push('⚠ SELLER INTENT DETECTED: The customer\'s message suggests they may be looking to SELL a vehicle, not buy one. Read the lead note carefully before writing. Do not pitch inventory or offer appointment times to buy — respond to what they actually said.');
   }
   // Agent LP commands — highest priority
   if (d.agentLPCommands && Array.isArray(d.agentLPCommands) && d.agentLPCommands.length > 0) {
@@ -1326,10 +1335,24 @@ function tryExecuteScript(tab, statusEl, dot) {
           : (custInstruction && custInstruction[1])
           ? custInstruction[0].trim()
           : '';
+        // Fallback: catch short freeform vehicle interest statements ("looking for a honda pilot", "interested in tacoma trd")
+        // These appear as standalone text in simple lead notes (CarPro, basic website leads)
+        if(!extractedCustQ && content && content.trim().length < 300) {
+          var freeformMatch = content.trim().match(/^([^\n]{5,150})$/m);
+          if(freeformMatch && /looking for|interested in|need a|want a|searching for|inquir/i.test(freeformMatch[1])) {
+            extractedCustQ = freeformMatch[1].trim();
+          }
+        }
         if(extractedCustQ) {
           leadReceivedCustomerQuestion = extractedCustQ;
-          // Also push to transcript as a customer request so AI sees it
           transcript.push('[CUSTOMER REQUEST FROM INQUIRY] ' + extractedCustQ);
+          // If no vehicle detected yet, try to extract model from the statement
+          if(!vehicle) {
+            var vehicleFromStatement = extractedCustQ.match(/(?:looking for|interested in|need a|want a|searching for)\s+(?:a\s+)?(.{5,60}?)(?:\s*$|\s*[,.])/i);
+            if(vehicleFromStatement && vehicleFromStatement[1]) {
+              vehicle = vehicleFromStatement[1].trim();
+            }
+          }
         }
       }
       // Extract TFS/lease maturity data from lead received note before stripping
@@ -1373,6 +1396,14 @@ function tryExecuteScript(tab, statusEl, dot) {
         if(browsedVehicles.length && !vehicle) {
           // Use most-viewed vehicle as the vehicle of interest
           vehicle = browsedVehicles[0];
+        }
+        if(browsedVehicles.length && vehicle && browsedVehicles[0] !== vehicle) {
+          // If a vehicle was already scraped (e.g. from an old sold record), but browse history
+          // shows something different, prefer the browse history on new leads with no stock/VIN
+          // This prevents the 2017 sold Camry from bleeding into a fresh Tundra inquiry
+          if(!stockNum && !vin) {
+            vehicle = browsedVehicles[0];
+          }
         }
         if(browsedVehicles.length) {
           // Store browsing context for the transcript
@@ -2570,14 +2601,14 @@ function classifyScenario(data) {
   s.isFacebook = /facebook|fb marketplace|fb lead|meta lead/i.test(ls);
   s.isDealerWebsite = /dealer\.com|dealersocket|dealerfire|dealer website|website lead|internet lead|hds dr lead|dealertrack.*lead/i.test(ls) && !s.isClickAndGo;
   s.isChatLead = (/chat/i.test(ls) || /gubagoo.*sms|sms.*chat/i.test(ls)) && !s.isClickAndGo;
-  s.isCarFax = /carfax|iseecars|autobytel|car.*genie|modalyst/i.test(ls);
+  s.isCarPro = /carpro|carprousa|car pro usa|car pro show/i.test(ls);
   // High-volume sources from store data
   // Walk-ins are handled by isShowroomFollowUp — no separate flag needed (they always have prior history)
   s.isRepeatCustomer = /repeat|returning|prior customer|dms sales|previous (customer|buyer|owner)|sold customer/i.test(ls);
   s.isThirdPartyOEM = /third.?party|3rd.?party|kia digital|honda digital|toyota digital|hyundai digital|oem partner|audi partner|manufacturer partner/i.test(ls) && !s.isOEMLead;
   s.isGoogleAd = /google.*ad|google.*digital|paid search|sem lead|ppc/i.test(ls);
   s.isReferral = /referral|referred by|word of mouth/i.test(ls);
-  s.isStandard     = !s.isClickAndGo && !s.isTradePending && !s.isCarGurusDD && !s.isCarGurus && !s.isKBB && !s.isCapitalOne && !s.isTrueCar && !s.isAMP && !s.isAutoTrader && !s.isCarscom && !s.isEdmunds && !s.isOEMLead && !s.isPhoneUp && !s.isAIBuyingSignalNew && !s.isAIBuyingSignalReturner && !s.isFacebook && !s.isDealerWebsite && !s.isChatLead && !s.isCarFax && !s.isRepeatCustomer && !s.isThirdPartyOEM && !s.isGoogleAd && !s.isReferral && !s.isLoyalty;
+  s.isStandard     = !s.isClickAndGo && !s.isTradePending && !s.isCarGurusDD && !s.isCarGurus && !s.isKBB && !s.isCapitalOne && !s.isTrueCar && !s.isAMP && !s.isAutoTrader && !s.isCarscom && !s.isEdmunds && !s.isOEMLead && !s.isPhoneUp && !s.isAIBuyingSignalNew && !s.isAIBuyingSignalReturner && !s.isFacebook && !s.isDealerWebsite && !s.isChatLead && !s.isCarFax && !s.isRepeatCustomer && !s.isThirdPartyOEM && !s.isGoogleAd && !s.isReferral && !s.isLoyalty && !s.isCarPro;
 
   // ── Inventory status ───────────────────────────────────────────
   s.vehicleSold        = ctx.includes('vehicle status: sold');
@@ -2655,8 +2686,11 @@ function classifyScenario(data) {
   }
   s.salesRep   = data.salesRep || '';
 
-  // Lease maturity / TFS off-lease lead
+  // Lease maturity / TFS / AFS / Kia LUV off-lease and off-loan leads
+  // These are end-of-term transition leads — specific verbiage required
   s.isLeaseMature = /off.?lease|lease.?fin|tfs|toyota.*financial|insprod/i.test(ls)
+    || /afs.*off.?lease|off.?lease.*in.*month|off.?loan.*in.*month/i.test(ls)
+    || /kmf.*off.?lease|luv.*off.?lease|kia.*luv|luv.*kia/i.test(ls)
     || /maturity date|account type.*lease/i.test(ctx);
 
   // Distance buyer — customer address is out of state, or customer explicitly mentions distance/delivery
@@ -2666,7 +2700,7 @@ function classifyScenario(data) {
   var customerOnlyCtx = ctxLines.filter(function(line) {
     return !/^Outbound Text Message|^Outbound phone call|^Email reply to prospect|^Sent (to|by):/i.test(line.trim());
   }).join(' ').toLowerCase();
-  s.isDistanceBuyer = (!s.isShowroomFollowUp) && (
+  s.isDistanceBuyer = (!s.isShowroomFollowUp) && (!s.isLeaseMature) && (!s.isLoyalty) && (
     !!(data.isDistanceBuyer)
     || /home delivery|ship.*vehicle|out.of.state|how far|located.*away|drive.*from|deliver.*to me/i.test(customerOnlyCtx)
   );
@@ -2973,7 +3007,7 @@ function buildUserPrompt(data) {
     // ACCURACY: Only reference what the notes confirm — never claim a credit app was submitted if notes say "Not Started"
     var vrOpening;
     if (data.vrCompleted) vrOpening = 'I saw you completed your deal online through Click & Go — you have done all the heavy lifting!';
-    else if (data.vrCreditApp) vrOpening = 'I saw your credit application come through via Click & Go.';
+    else if (data.vrCreditApp) vrOpening = 'I saw your credit application come through — that is a great first step and puts us in a strong position to move fast.';
     else if (data.vrPaymentSelected && data.vrTradeIn) vrOpening = 'I saw you started your deal online through Click & Go — including your payment preferences and trade-in.';
     else if (data.vrPaymentSelected) vrOpening = 'I saw you started your deal online and selected your payment preferences through Click & Go.';
     else if (data.vrTradeIn) vrOpening = 'I saw you started your deal online through Click & Go — including your trade-in details.';
@@ -2981,7 +3015,7 @@ function buildUserPrompt(data) {
 
     var vrProgress;
     if (data.vrCompleted) vrProgress = 'You have done all the heavy lifting — we just need to finalize the details in person';
-    else if (data.vrCreditApp) vrProgress = 'Having that credit application started puts us in a great position to move quickly';
+    else if (data.vrCreditApp) vrProgress = 'With your application already submitted, I can have financing options and numbers ready before you even arrive — coming in typically takes about 30-45 minutes to finalize everything';
     else if (data.vrTradeIn) vrProgress = 'Having your trade-in details in already saves time — I can have a solid number ready when you arrive';
     else if (data.noVehicleAtAll && data.vrCreditApp) vrProgress = 'With your application already in, we can match you to the right vehicle and get you numbers fast — coming in takes about 30 minutes';
     else if (data.noVehicleAtAll) vrProgress = 'You have already taken the first step — let me help you find the right vehicle to go along with it';
@@ -2990,7 +3024,9 @@ function buildUserPrompt(data) {
     var clickGoHasOutreach = data.hasOutbound || data.isContacted;
     scenarioDirective = clickGoHasOutreach
       ? 'TASK: Click & Go lead with PRIOR OUTREACH already made. This is a follow-up — NOT a first introduction. Do NOT re-introduce yourself as if this is first contact. React to where the conversation actually stands.'
-      : 'TASK: Click & Go lead — first contact. Customer took an online action. Acknowledge EXACTLY what they completed.';
+      : data.vrCreditApp
+        ? 'TASK: Gubagoo Dynamic Credit App — customer submitted a credit application online. This is HIGH INTENT. They are ready to move. Your job is to confirm the vehicle, acknowledge the application, and get them in to finalize.'
+        : 'TASK: Click & Go lead — first contact. Customer took an online action. Acknowledge EXACTLY what they completed.';
     scenarioRules = clickGoHasOutreach
       ? [
         '- Prior outreach already sent. Do NOT use the Click & Go opening again.',
@@ -3000,10 +3036,25 @@ function buildUserPrompt(data) {
         '- Close with two appointment times (or easy-out if CLOSE OVERRIDE is active).',
         '- Never say Gubagoo, virtual retailing platform, digital retailing, or "dynamic credit app".'
       ].join('\n')
+      : data.vrCreditApp
+      ? [
+        '- What happened: This customer submitted a credit application through the Click & Go online retailing tool before the lead came in. That is a buying signal, not a casual inquiry.',
+        '- BOTH SMS and EMAIL must mention Click & Go by name once — briefly, naturally. Something like "through our Click & Go tool" or "via Click & Go." Do not explain what it is. Just reference it in both formats.',
+        '- SMS quality bar is the same as email. The SMS should not be a watered-down version — same specificity, same confidence, same Click & Go reference, same urgency. Just shorter.',
+        '- What they want: They want to know where things stand and what happens next. Answer that.',
+        '- What to avoid: Do NOT open with a generic "I saw your inquiry" opener. Reference the application specifically — they filled something out. Acknowledge that they took a real step.',
+        '- How to position it: Frame the visit as the finishing line, not the starting line. The hard part is already done on their end — you just need to confirm the vehicle, pull the numbers, and get them in.',
+        '- Tone: Confident and ready. Match their energy — they moved fast, you move fast.',
+        '- Never say Gubagoo, virtual retailing platform, or "dynamic credit app". Say "your application" or "the info you submitted."',
+        '- Close: Two specific appointment times in BOTH SMS and email. This lead warrants a direct, confident close.'
+      ].join('\n')
       : [
-        '- Open with: ' + vrOpening,
-        '- Then: ' + vrProgress,
-        '- Close with two appointment times (or easy-out if CLOSE OVERRIDE is active).',
+        '- What happened: Customer used the Click & Go online retailing tool and took an action — ' + vrOpening.toLowerCase().replace(/^i saw /, '') + '.',
+        '- Mention Click & Go by name once in BOTH SMS and email — briefly and naturally. Do not explain what it is. Just reference it.',
+        '- SMS quality bar is the same as email — same specific hook, same confidence, same Click & Go reference. Just shorter.',
+        '- Reference what they actually did. Do not restate the whole VR process — just name the specific thing they completed.',
+        '- ' + vrProgress + '. Lead with that angle.',
+        '- Close with two appointment times in both SMS and email.',
         '- Never say Gubagoo, virtual retailing platform, digital retailing, or "dynamic credit app".'
       ].join('\n');
 
@@ -3093,6 +3144,38 @@ function buildUserPrompt(data) {
       ].join('\n');
     }
 
+  } else if (sc.isLeaseMature) {
+    var lsLower2 = (data.leadSource || '').toLowerCase();
+    var isAFSlead   = /afs/i.test(lsLower2);
+    var isKiaLUV    = /luv|kmf/i.test(lsLower2);
+    var isTFSlead   = /tfs|toyota.*financ|insprod/i.test(lsLower2);
+    var monthsOut   = (lsLower2.match(/in\s+(\d+)\s+month/i) || [])[1] || '';
+    var acctType    = /off.?loan/i.test(lsLower2) ? 'loan' : 'lease';
+    var programName = isAFSlead ? 'Audi Financial Services (AFS)'
+      : isKiaLUV ? 'Kia Motors Finance (KMF / LUV program)'
+      : isTFSlead ? 'Toyota Financial Services (TFS)'
+      : 'manufacturer finance program';
+    var timingLine = monthsOut
+      ? 'Their ' + acctType + ' matures in approximately ' + monthsOut + ' months -- this is the hook.'
+      : 'Their ' + acctType + ' is approaching maturity -- lead with this timing.';
+    scenarioDirective = 'TASK: ' + programName + ' end-of-' + acctType + ' lead. Customer\'s ' + acctType + ' is coming due. This is a warm transition opportunity, not a cold inquiry.';
+    scenarioRules = [
+      '- The vehicle shown is their CURRENT ' + acctType + 'ed vehicle -- NEVER say it is in stock, available, or on the lot.',
+      '- ' + timingLine,
+      '- Open by acknowledging their current vehicle and the upcoming ' + acctType + ' end. Frame it as good timing to review options.',
+      acctType === 'lease'
+        ? '- Options to present: return and lease new, purchase at residual, or switch to finance. Let them lead -- do not push one.'
+        : '- Options to present: trade in and finance new, pay off and keep, or upgrade. Do not push one option.',
+      isAFSlead
+        ? '- Audi Concierge tone: premium, personal, white-glove. Frame this as a planned transition, not a sales call.'
+        : isKiaLUV
+        ? '- Kia LUV/KMF tone: warm and loyalty-based. Acknowledge they are a returning Kia customer and you want to make their transition easy.'
+        : isTFSlead
+        ? '- TFS tone: helpful and informative. Reference Toyota Financial naturally. Frame the maturity date as an opportunity, not a deadline.'
+        : '',
+      '- If payoff or residual data is in context, reference the buyout amount naturally (e.g. \"your buyout is around $X\").',
+      '- CLOSE: Invite them in for a no-pressure options review. Two specific appointment times.'
+    ].filter(Boolean).join('\n');
   } else if (sc.isDistanceBuyer) {
     scenarioDirective = 'TASK: Distance buyer — customer is out of state or has explicitly asked about delivery/shipping. They cannot easily come in. Adjust the entire approach.';
     scenarioRules = [
@@ -3104,16 +3187,7 @@ function buildUserPrompt(data) {
       '- If they asked a specific question, answer it directly before anything else.',
     ].join('\n');
 
-  } else if (sc.isLeaseMature) {
-    scenarioDirective = 'TASK: Lease maturity / off-lease lead. Customer is coming off a lease — this is not a cold inquiry, it is a warm transition opportunity.';
-    scenarioRules = [
-      '- The customer is at or near the end of their lease. This is the hook — lead with it.',
-      '- Reference the lease maturity date and transition options naturally: purchase, finance, or new lease.',
-      '- If payoff and residual data is available in context, use it to frame the conversation (e.g. "your buyout is around $X").',
-      '- Do NOT treat this like a cold first-touch. They have a Toyota, they are already in the ecosystem.',
-      '- Goal: get them in before the lease matures to discuss their options. Frame it as timing-sensitive.',
-      '- CLOSE: Two specific appointment times. Urgency is appropriate here.'
-    ].join('\n');
+
   } else if (sc.isTrueCar) {
     // TrueCar / affinity partner leads (Sam's Club, USAA, etc.)
     var ls = (data.leadSource || '');
@@ -3463,6 +3537,26 @@ function buildUserPrompt(data) {
       '- Tone: warm, personal. They are already predisposed to like you.'
     ].join('\n');
 
+  } else if (sc.isCarPro && !sc.isStalled) {
+    var carProFollowUp = sc.isFollowUp && hasRealOutbound;
+    scenarioDirective = carProFollowUp
+      ? 'TASK: Car Pro Show lead with PRIOR OUTREACH already made. Read the transcript and continue naturally.'
+      : 'TASK: Car Pro Show lead — customer came through the Car Pro Show with Jerry Reynolds. This is a relationship-based lead with a specific expectation.';
+    scenarioRules = carProFollowUp
+      ? [
+        '- Prior outreach already sent. Continue from where things left off.',
+        '- Do NOT re-use the Car Pro Show opening.',
+        '- Read the transcript. Continue naturally.'
+      ].join('\n')
+      : [
+        '- MUST mention the Car Pro Show and Jerry Reynolds in the opening of BOTH SMS and email. The customer came through that relationship — acknowledge it in both formats.',
+        '- Car Pro Show customers have a pre-built trust. They chose this dealership because Jerry Reynolds recommended it. Honor that.',
+        '- Opening example: "Hi [Name], I saw you came to us through the Car Pro Show with Jerry Reynolds — welcome."',
+        '- Let them know the General Manager will be personally reaching out as well — include this in BOTH SMS and email. This is part of the Car Pro experience.',
+        '- Tone: warm, trustworthy, personal. This is not a cold inquiry — they chose you specifically.',
+        '- CLOSE: Two specific appointment times.'
+      ].join('\n');
+
   } else {
     scenarioDirective = 'TASK: Standard first-touch response to a new inquiry.';
     if (sc.noSpecificVehicle) {
@@ -3481,7 +3575,9 @@ function buildUserPrompt(data) {
 
   // ── Inventory status overrides scenario directive for first-touch ─
   // Only applies when this is a first-touch lead (not follow-up/exit/etc.)
-  if (!sc.isFollowUp && !sc.isExitSignal && !sc.isPauseSignal && !sc.isApptConfirmation && !sc.isShowroomFollowUp && !sc.isSoldDelivered) {
+  // Exempt loyalty/lease-end leads — the vehicle shown IS the customer's current car,
+  // not inventory that "sold". Sold-vehicle pivot is irrelevant for AFS/TFS/Kia LUV leads.
+  if (!sc.isFollowUp && !sc.isExitSignal && !sc.isPauseSignal && !sc.isApptConfirmation && !sc.isShowroomFollowUp && !sc.isSoldDelivered && !sc.isLeaseMature && !sc.isLoyalty) {
     if (sc.vehicleInTransit) {
       scenarioDirective = 'TASK: This vehicle is IN TRANSIT — the VIN is confirmed, meaning it exists and is assigned, but it has not yet arrived on the lot. This is a STRONG selling opportunity — the customer can secure it before it arrives.';
       scenarioRules = [
