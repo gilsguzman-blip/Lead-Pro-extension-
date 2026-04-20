@@ -4514,17 +4514,50 @@ async function generateAll() {
     // Enforce SMS signature — append if model dropped it
   function enforceSmsSig(sms) {
     if (!sms) return sms;
-    var agentFirst = (data.agent || '').split(' ')[0] || '';
-    var storeName  = data.store ? data.store.replace(/VinSolutions Connect \[.*?\]/i, '').trim() : '';
-    var agentPhone = data.agentPhone || '';
-    var isAudi     = /audi/i.test(storeName);
-    // Check if phone already present near end of message
-    var hasPhone = /\(\d{3}\)\s?\d{3}[-.]\d{4}|\d{3}[-.]\d{3}[-.]\d{4}/.test(sms.slice(-120));
-    if (hasPhone) return sms;
+    // Use lastScrapedData — `data` in this scope is the Gemini API response, not the lead info
+    var leadInfo = lastScrapedData || {};
+    var agentFirst = (leadInfo.agent || '').split(' ')[0] || '';
+    var agentPhone = leadInfo.agentPhone || '';
+
+    // Resolve proper store name — prefer dealerId lookup, fall back to cleaning selectedStore
+    var storeName = '';
+    var dealerId = (leadInfo.dealerId || '') + '';
+    if (dealerId && DEALER_ID_MAP[dealerId]) {
+      storeName = DEALER_ID_MAP[dealerId];
+    } else {
+      var raw = (selectedStore || '').replace(/VinSolutions Connect \[.*?\]/i, '').trim();
+      if (raw && !/^VinSolutions/i.test(raw)) storeName = raw;
+    }
+
+    var isAudi = /audi/i.test(storeName);
+    var storeSigLine = isAudi ? 'Audi Concierge | Audi Lafayette' : storeName;
+
+    var tail = sms.slice(-200);
+    var hasPhone = /\(\d{3}\)\s?\d{3}[-.]\d{4}|\d{3}[-.]\d{3}[-.]\d{4}/.test(tail);
+    // Check if store name (or key fragment) is present near the end of the message
+    var storeKey = isAudi ? 'audi' : (storeName ? storeName.split(/\s+/)[0] : '');
+    var hasStore = storeKey ? new RegExp(storeKey, 'i').test(tail) : true;
+
+    console.log('[Lead Pro] enforceSmsSig — dealerId:', dealerId, '| storeName:', storeName, '| storeKey:', storeKey, '| hasPhone:', hasPhone, '| hasStore:', hasStore);
+
+    // Case 1: complete signature already present — leave it alone
+    if (hasPhone && hasStore) return sms;
+
+    // Case 2: phone is present but store is missing — inject store line before phone
+    if (hasPhone && !hasStore && storeSigLine) {
+      var phoneMatch = sms.match(/(\n[^\n]*(?:\(\d{3}\)\s?\d{3}[-.]\d{4}|\d{3}[-.]\d{3}[-.]\d{4})[^\n]*)$/);
+      if (phoneMatch) {
+        var insertPos = sms.lastIndexOf(phoneMatch[1]);
+        var result = sms.substring(0, insertPos) + '\n' + storeSigLine + phoneMatch[1];
+        console.log('[Lead Pro] SMS store name missing — injected "' + storeSigLine + '" by enforcer');
+        return result;
+      }
+    }
+
+    // Case 3: no phone — append full signature
     var sig = '';
     if (agentFirst) sig += '\n' + agentFirst;
-    if (isAudi)     sig += '\nAudi Concierge | Audi Lafayette';
-    else if (storeName) sig += '\n' + storeName;
+    if (storeSigLine) sig += '\n' + storeSigLine;
     if (agentPhone) sig += '\n' + agentPhone;
     if (sig) {
       console.log('[Lead Pro] SMS signature missing — appended by enforcer');
