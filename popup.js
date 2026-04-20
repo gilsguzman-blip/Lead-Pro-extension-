@@ -1692,9 +1692,12 @@ function tryExecuteScript(tab, statusEl, dot) {
         var dir = (item.getAttribute('data-direction')||'').toLowerCase();
         var title = ((item.querySelector('.legacy-notes-and-history-title')||{}).innerText||'').toLowerCase();
         var content = ((item.querySelector('.notes-and-history-item-content')||{}).innerText||'').trim();
-        return dir === 'inbound' && /inbound text|inbound sms|text message/i.test(title)
+        var isRealInboundText = dir === 'inbound' && /inbound text|inbound sms|text message/i.test(title)
           && content && content.length > 3
           && !/lead received|auto response|opted out|stop$/i.test(content);
+        var isRealEmailReply = dir === 'inbound' && /email reply from prospect|email from prospect/i.test(title)
+          && content && content.length > 3;
+        return isRealInboundText || isRealEmailReply;
       });
       if(hasNewLeadToday && hasRecentReoptIn && !hasRealCustomerReply) {
         // Brand new lead submitted today — customer re-engaged fresh, no reply yet
@@ -2087,6 +2090,36 @@ function tryExecuteScript(tab, statusEl, dot) {
       });
     }
 
+    // Check for customer confirming a call-back time via email or text reply
+    // e.g. "9:15 is fine give me a call" -- this is a MISSED CALL-BACK PROMISE, not a dealership appointment
+    // We flag it separately so the AI acknowledges the missed call, not a missed visit
+    // Note: do NOT gate on !hasApptSet -- CarGurus injects "Scheduled appointment: YES" in lead data
+    // which sets hasApptSet=true and would block this detection
+    var hasMissedCallBackPromise = false;
+    var missedCallBackDetail = '';
+    noteEls.slice(0,10).some(function(n) {
+      var dir = (n.getAttribute('data-direction')||'').toLowerCase();
+      var title = ((n.querySelector('.legacy-notes-and-history-title')||{}).innerText||'').toLowerCase();
+      var content = ((n.querySelector('.notes-and-history-item-content')||{}).innerText||'').trim();
+      if(dir === 'inbound' && /inbound text|inbound sms|email reply from prospect|email from prospect/i.test(title)) {
+        var confirmsCallBack = /(\d{1,2}:\d{2})\s*(am|pm)?\s*(is|works|fine|good|ok|okay|sounds).*call/i.test(content.substring(0,200))
+          || /give me a call|call me|call back/i.test(content.substring(0,200));
+        if(confirmsCallBack) {
+          // Only flag as MISSED if the note is old enough that the call should have happened
+          var cbDateStr = ((n.querySelector('.notes-and-hsitory-item-date')||{}).innerText||'').trim();
+          var cbMs = cbDateStr ? new Date(cbDateStr).getTime() : 0;
+          var cbAge = cbMs > 0 ? (Date.now() - cbMs) : 0;
+          var isMissed = cbAge > 12 * 60 * 60 * 1000; // more than 12 hours ago
+          if(isMissed) {
+            hasMissedCallBackPromise = true;
+            missedCallBackDetail = content.substring(0,150);
+            return true;
+          }
+        }
+      }
+      return false;
+    });
+
     // Check for explicit appointment reminder language in OUTBOUND AGENT notes only
     // (not lead received, system notes, or Gubagoo data dumps which may contain appointment URLs)
     // IMPORTANT: Only treat as active appointment if the reminder note is recent (within 48h).
@@ -2305,7 +2338,7 @@ function tryExecuteScript(tab, statusEl, dot) {
       history, totalNoteCount, hasOutbound, isContacted, contactedAgeDays, lastOutboundMsg, lastInboundMsg: lastInboundMsg||leadReceivedCustomerQuestion,
       hasPauseSignal, hasExitSignal, isSmsOptOutOnly, hasTextOrEmailSent, convState,
       vrMonthlyPayment, vrDownPayment, vrCreditScore, vrAPR, vrTerm, vrLender, conversationBrief, customerSaidNotToday, customerScheduleConstraint, isLiveConversation, isRecentOutbound, recentOutboundContent,
-      isInTransit, hasApptSet, apptDetails, isSoldDelivered, hasMissedAppt, missedApptTiming: missedApptTiming2, vrCreditApp, vrPaymentSelected, vrTradeIn, vrCompleted, vrDroppedOff, noVehicleAtAll, agentLPCommands, contactRecoveryPhone, contactRecoveryEmail, isMaskedEmail, isSRPVehicle, isVelocityResponse, isLandline,
+      isInTransit, hasApptSet, apptDetails, isSoldDelivered, hasMissedAppt, missedApptTiming: missedApptTiming2, hasMissedCallBackPromise, missedCallBackDetail, vrCreditApp, vrPaymentSelected, vrTradeIn, vrCompleted, vrDroppedOff, noVehicleAtAll, agentLPCommands, contactRecoveryPhone, contactRecoveryEmail, isMaskedEmail, isSRPVehicle, isVelocityResponse, isLandline,
       isShowroomFollowUp, showroomDetails, showroomVisitToday,
       pastVisitNotes,
       hasConfirmedVisit,
@@ -2538,7 +2571,7 @@ function classifyScenario(data) {
   const s   = {};
 
   // ── Conversation stage (highest priority) ──────────────────────
-  s.isApptConfirmation = ctx.includes('appointment already set');
+  s.isApptConfirmation = ctx.includes('appointment already set') && !data.hasMissedCallBackPromise;
   s.isShowroomFollowUp = ctx.includes('showroom stage');
   s.isSoldDelivered    = /sold\/delivered/i.test(ctx) || !!data.isSoldDelivered;
   s.isMissedAppt       = ctx.includes('missed appointment');
@@ -2879,7 +2912,7 @@ function buildUserPrompt(data) {
   var sbHesitant      = /thinking about|not sure|maybe|might|considering|weighing|on the fence|need to discuss|talk to (my|the)/i.test(sbCustLow);
   var sbApologetic    = /sorry|apologize|my bad|didn.?t mean|wasn.?t trying/i.test(sbCustLow);
 
-  if (sbTotal > 0 || sbHungUp || sbMsgs > 0 || sbPriceConcern || sbTimingConcern || sbFrustrated || sbEnthusiastic || sbHesitant || data.lastInboundMsg) {
+  if (sbTotal > 0 || sbHungUp || sbMsgs > 0 || sbPriceConcern || sbTimingConcern || sbFrustrated || sbEnthusiastic || sbHesitant || data.lastInboundMsg || data.hasMissedCallBackPromise) {
     situationBrief.push('━━━ SITUATION BRIEF ━━━');
     situationBrief.push('Read this before writing. It tells you what has already happened and what approach will work.');
     situationBrief.push('');
@@ -2893,6 +2926,7 @@ function buildUserPrompt(data) {
 
     // Call outcomes
     if (sbHungUp)          situationBrief.push('⚠ Customer has hung up on calls. Phone is not the right channel right now — use text.');
+    if (data.hasMissedCallBackPromise) situationBrief.push('📞 MISSED CALL-BACK: Customer replied and confirmed a time to be called (they said: "' + (data.missedCallBackDetail || '').substring(0,100) + '"). That call never happened. Acknowledge this directly — apologize for missing the call, re-open naturally. Do NOT re-offer an appointment or re-pitch the vehicle.');
     if (sbNoVm)            situationBrief.push('⚠ No voicemail box — cannot leave VM. Text or email only.');
     if (sbMachine > 2)     situationBrief.push('⚠ ' + sbMachine + ' calls hit voicemail — customer is not answering. A different approach is needed.');
     if (sbContacted > 0)   situationBrief.push('✓ Customer was reached ' + sbContacted + ' time(s) — they know who we are. No need to re-introduce.');
@@ -2917,7 +2951,9 @@ function buildUserPrompt(data) {
     // Recommended play
     situationBrief.push('');
     situationBrief.push('BEST APPROACH:');
-    if (sbFrustrated) {
+    if (data.hasMissedCallBackPromise) {
+      situationBrief.push('→ You missed a call-back this customer was expecting. Own it briefly and warmly — "Sorry I missed connecting with you." Then re-open the conversation naturally around what they wanted to discuss. Do NOT re-pitch from scratch.');
+    } else if (sbFrustrated) {
       situationBrief.push('→ Customer sounds frustrated. This is the most important signal. Acknowledge the friction directly — "I hear you" or "I won\'t keep pushing." Offer a real easy-out. Do not try to close. Earning trust back comes before selling anything.');
     } else if (data.convState === 'call-followup') {
       var vmNote = sbMachine > 0 ? 'Left a voicemail.' : (sbMsgs > 0 ? 'Left a message.' : 'Called — no contact made.');
@@ -4435,6 +4471,8 @@ async function generateAll() {
       _isStalled:                lastScrapedData ? !!lastScrapedData._isStalled : false,
       _neverReplied:             lastScrapedData ? !!lastScrapedData._neverReplied : false,
       isSoldDelivered:           lastScrapedData ? !!lastScrapedData.isSoldDelivered : false,
+      hasMissedCallBackPromise:  lastScrapedData ? !!lastScrapedData.hasMissedCallBackPromise : false,
+      missedCallBackDetail:      lastScrapedData ? (lastScrapedData.missedCallBackDetail || '') : '',
       activeFlags: Array.from(activeFlags),
       dealerId: lastScrapedData ? (lastScrapedData.dealerId || '') : ''
     });
