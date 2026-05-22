@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Lead Pro",
-  "version": "8.46",
-  "description": "AI-powered BDC Lead Response Generator for VinSolutions CRM",
+  "version": "9.7.120",
+  "description": "AI-powered BDC response tool for Community Auto Group",
   "permissions": [
     "activeTab",
     "scripting",
@@ -14,7 +14,7 @@
   "host_permissions": [
     "https://*.vinsolutions.com/*",
     "https://*.coxautoinc.com/*",
-    "https://generativelanguage.googleapis.com/*"
+    "https://leadpro-proxy.gilsguzman.workers.dev/*"
   ],
   "content_scripts": [
     {
@@ -32,12 +32,14 @@
   "side_panel": {
     "default_path": "popup.html"
   },
-  "action": {
-    "default_popup": "popup.html"
-  },
+  "action": {},
   "icons": {
     "16": "icon128.png",
     "48": "icon128.png",
     "128": "icon128.png"
+  },
+  "version_name": "v9.7.120",
+  "background": {
+    "service_worker": "background.js"
   }
 }
