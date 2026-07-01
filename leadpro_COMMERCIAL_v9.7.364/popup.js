@@ -1240,7 +1240,7 @@ function populateFromData(d) {
     vehicleExtras.push('');
     vehicleExtras.push('⚡ VELOCITY RESPONSE: This is the first outbound response within seconds of lead creation. SUPPRESS the appointment engine for this message only.');
     vehicleExtras.push('- Structure: Acknowledge inquiry + ONE light qualifying question. NO duration. NO appointment times.');
-    vehicleExtras.push('- Example: "Hi [Name], this is ' + agentFirst + ' with [Store]. I saw your request on the [Vehicle] — are you just starting your search or looking to move soon?"');
+    vehicleExtras.push('- Example: "Hi [Name], this is ' + ((d.agent || '').split(' ')[0] || '[agent first name]') + ' with [Store]. I saw your request on the [Vehicle] — are you just starting your search or looking to move soon?"');
     vehicleExtras.push('- Appointment engine activates on the second exchange after the customer replies.');
   }
 
@@ -3441,7 +3441,10 @@ function tryExecuteScript(tab, statusEl, dot) {
     // System status changes go undetected.
     var hasSystemOptOutNote = false;
     try {
-      var _activeConvPhone = (data.phone || lastScrapedData && lastScrapedData.phone || '').replace(/\D/g,'');
+      // (fix) `data`/`lastScrapedData` do NOT exist in the injected inlineScraper scope —
+      // referencing them threw a (silently swallowed) ReferenceError, so this entire
+      // System-opt-out-note scan never ran. `phone` is the scraper-local buyer phone.
+      var _activeConvPhone = (phone || '').replace(/\D/g,'');
       hasSystemOptOutNote = noteEls.slice(0,30).some(function(item){
         var content = ((item.querySelector('.notes-and-history-item-content')||{}).innerText||'').toLowerCase();
         var title   = ((item.querySelector('.legacy-notes-and-history-title')||{}).innerText||'').toLowerCase();
@@ -3459,6 +3462,10 @@ function tryExecuteScript(tab, statusEl, dot) {
         return true;
       });
     } catch(e) {}
+    // (diagnostic — remove after a few days in production) surfaces how often the
+    // System-note opt-out path fires now that the scope fix above lets it run at all;
+    // tells us whether real opt-outs were being silently missed before the fix.
+    if (hasSystemOptOutNote) console.log('[LP OPTOUT DIAG] System-note opt-out detected (this path was dead before the scope fix)');
     var rawStopSignal = /^stop[\s.!]*$/i.test(inboundMessageOnly)
       || /^stop[\s.!]*$/i.test((recentInbound||'').trim())
       || /successfully.*removed.*text|opted out of text|removed from.*text messages|sms status.*opt.?out|manually changed to:?\s*opt.?out/i.test(fullScanText)
@@ -6498,7 +6505,14 @@ function classifyScenario(data) {
   // classify the VOI as sold, even when a note or the inventory snapshot says so. The agent handles
   // true stock status off-message. Same shape as the loyalty / lease-mature exclusions.
   var _audiAllAvail = (String(data.dealerId) === '21135');
-  s.vehicleSold        = !s.isLoyalty && !s.isLeaseMature && !_audiAllAvail && (
+  // (fix) Read-before-assignment: s.isLeaseMature is not assigned until ~80 lines below,
+  // so it was always undefined here and the lease-mature exclusion never fired — a
+  // lease-maturity lead (e.g. "Csc-Off Lease Financing-Tfs") whose transcript contained
+  // "no longer available" phrasing could be told their own leased car "has been sold."
+  // Compute the same condition early; the assignment below reuses it (single definition).
+  var _isLeaseMatureEarly = /off.?lease|lease.?fin|tfs|toyota.*financial|insprod|kfa.*equity|kfa.*in.equity/i.test(ls)
+    || /maturity date|account type.*lease/i.test(ctx);
+  s.vehicleSold        = !s.isLoyalty && !_isLeaseMatureEarly && !_audiAllAvail && (
     ctx.includes('vehicle status: sold')
     || /the vehicle (?:has |I sent you has )?sold|vehicle sold|that (?:car|vehicle|unit) (?:has been |is )?sold|sorry.*(?:vehicle|car|it).*sold|unfortunately.*sold|no longer available/i.test(ctx)
   );
@@ -6578,10 +6592,9 @@ function classifyScenario(data) {
 
   // Lease maturity / TFS / AFS / Kia LUV off-lease and off-loan leads
   // These are end-of-term transition leads — specific verbiage required
-  s.isLeaseMature = /off.?lease|lease.?fin|tfs|toyota.*financial|insprod|kfa.*equity|kfa.*in.equity/i.test(ls)
+  s.isLeaseMature = _isLeaseMatureEarly
     || /afs.*off.?lease|off.?lease.*in.*month|off.?loan.*in.*month/i.test(ls)
-    || /kmf.*off.?lease|luv.*off.?lease|kia.*luv|luv.*kia/i.test(ls)
-    || /maturity date|account type.*lease/i.test(ctx);
+    || /kmf.*off.?lease|luv.*off.?lease|kia.*luv|luv.*kia/i.test(ls);
 
   // Distance buyer — customer address is out of state, or customer explicitly mentions distance/delivery
   // IMPORTANT: only scan INBOUND/customer lines — not agent outbound messages
@@ -9597,7 +9610,7 @@ function buildUserPrompt(data) {
     } else if (sc.isEdmunds) {
       namedSourceNote = 'NAMED SOURCE — EDMUNDS:\n- The customer came in through Edmunds. MUST mention "Edmunds" once in BOTH the SMS and the email — naturally, in the first or second sentence. Example: "Got your Edmunds inquiry" or "Saw your message from Edmunds."\n- Do NOT skip the mention. Edmunds shoppers do their research — naming the source signals you saw their specific inquiry.\n- Do NOT mention Edmunds more than once.';
     } else if (sc.isCarFax) {
-      namedSourceNote = 'NAMED SOURCE — CARFAX:\n- The customer came in through CarFax. MUST mention "CarFax" once in BOTH the SMS and the email — naturally, in the first or second sentence. Example: "Saw your CarFax inquiry on the [vehicle]" or "Got your message from CarFax."\n- Do NOT skip the mention. CarFax shoppers care about vehicle history — naming the source confirms you read their specific inquiry.\n- Do NOT mention CarFax more than once.';
+      namedSourceNote = 'NAMED SOURCE — CARFAX:\n- The customer came in through CarFax. MUST mention "CarFax" once in BOTH the SMS and the email — naturally, in the first or second sentence. Example: "Saw your CarFax inquiry on the [vehicle]" or "Got your message from CarFax."\n- Do NOT skip the mention. CarFax shoppers care about vehicle history — naming the source confirms you read their specific inquiry.\n- Do NOT mention CarFax more than once.\n- NOTE: the "never say Carfax" rule elsewhere in your instructions refers to the vehicle history REPORT PRODUCT (say "AutoCheck report" or "vehicle history report" for that) — it does NOT apply to naming CarFax as this lead\'s SOURCE, which this rule requires.';
     } else if (sc.isKBB) {
       namedSourceNote = 'NAMED SOURCE — KBB:\n- The customer came in through Kelley Blue Book (KBB) — they used KBB to value their trade. MUST mention "KBB" or "Kelley Blue Book" once in BOTH the SMS and the email — naturally, in the first or second sentence. Example: "Saw you got a KBB value on your [trade vehicle]" or "Thanks for using KBB to start the trade conversation."\n- Naming the source confirms you saw what they actually did — they did not just inquire, they took the step of valuing their trade.\n- Do NOT mention KBB more than once.';
     } else if (sc.isTradePending) {
