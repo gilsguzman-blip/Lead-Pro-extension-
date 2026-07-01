@@ -1,0 +1,23 @@
+diff --git a/leadpro_COMMERCIAL_v9.7.364/popup.js b/leadpro_COMMERCIAL_v9.7.364/popup.js
+index d2b8b3b..856b266 100644
+--- a/leadpro_COMMERCIAL_v9.7.364/popup.js
++++ b/leadpro_COMMERCIAL_v9.7.364/popup.js
+@@ -5438,7 +5438,18 @@ function tryExecuteScript(tab, statusEl, dot) {
+             if (d.store && _customerVerified && (!bestStore || d.store.length > bestStore.length)) bestStore = d.store;
+             for (const k of Object.keys(d)) {
+               var _isIdentityField = (k === 'dealerId' || k === 'store' || k === 'name' || k === 'agent' || k === 'salesRep' || k === 'manager' || k === 'customerId' || k === 'phone' || k === 'email' || k === 'vehicle' || k === 'vehicleRaw' || k === 'condition' || k === 'stockNum' || k === 'vin' || k === 'priorSoldVehicle');
++              // (fix) Same bleed class as vehicle (v9.7.51) and leadSource (v9.7.292):
++              // a stale, ID-less customer-level frame must not supply the transcript or
++              // reply/exit state when PASS 1 already scraped the active lead. Without
++              // this gate, a leftover frame from prior navigation could inject another
++              // lead's conversationBrief/convState/hasCustomerReply whenever the active
++              // frame scraped 0 notes (the rims2 count=0 race). When PASS 1 had NO
++              // active frame (AI Buying Signal leads), merging still happens — mirrors
++              // the leadSource gate's shape.
++              var _isConversationField = historyFields.has(k) ||
++                ['hasCustomerReply','hasExitSignal','hasOutbound','isContacted','hasApptSet'].includes(k);
+               if (_isIdentityField && !_customerVerified) continue;
++              if (_isConversationField && !_customerVerified && _pass1HadActiveFrame) continue;
+               if (['hasTrade','inventoryWarning','isLeadFrame','hasExitSignal','hasPauseSignal','hasOutbound','isContacted','isInTransit','hasApptSet','isShowroomFollowUp','hasCustomerReply'].includes(k)) {
+                 if(d[k]) m[k]=true;
+               } else if (k === 'store') {
