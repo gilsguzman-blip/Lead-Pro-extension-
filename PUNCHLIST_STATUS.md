@@ -57,20 +57,33 @@ real-lead before/after batch (fresh, repeat-customer, multi-tab leads) comparing
 `vehicle` / `leadSource` / `convState` / transcript population — the gate is
 stricter than before and only live leads can prove nothing legitimate went empty.
 
-## Section 3 (item 6) — decision needed from Gil, not auto-resolved ❓
+## Section 3 (item 6) — RESOLVED: Option B applied (registry pipeline deleted) ✅
 
-The lead-source registry (`s._registryScenario`, set at ~line 6220) is never read
-anywhere — the registry UI, storage sync, worker push/pull, and onboarding mapping
-maintain a classification that changes no output. Two options, pick one:
+Gil's call: delete. The registry's classification (`s._registryScenario`) was never
+read anywhere; `classifyScenario`'s regex chain was and remains the real classifier.
 
-- **A — make it real:** wire `_registryScenario` into scenario branch selection in
-  `classifyScenario` (bigger change; gives the Director-editable mapping actual
-  effect; the hardcoded regexes become the fallback).
-- **B — delete it:** remove `lead-source-registry.js`, the onboarding mapping UI,
-  the worker registry endpoints usage, and the "Push Registry to Worker" button
-  (onboarding already unconditionally skips itself at ~line 12166).
+Removed (own commit, `patches/section3-item6-option-b.patch` for the DEV build):
+- `lead-source-registry.js` and `onboarding.js` (files + their `<script>` tags)
+- popup.js: the unused `s._registryScenario` assignment, `initRegistry` boot block,
+  `window._leadProSourceRegistry` global, registry load inside
+  `checkAndShowOnboarding` (its dealer-data refresh is kept, so boot behavior is
+  unchanged), the Director "Push Registry to Worker" button, and the
+  "Manage Lead Source Mappings" settings wiring
+- popup.html: the onboarding overlay and the Lead Source Mappings settings section
 
-No code was changed for this item.
+Deliberately NOT removed:
+- Director Export/Import Settings backup (generic full-storage backup — it shared an
+  `if` block with the push button; the block's guard now keys on the export button)
+- The Cloudflare worker's `/registry` GET/POST endpoints — server-side, out of scope
+  for the extension. They become unused once this ships; retire them in a worker
+  release whenever convenient. A stale `leadpro_source_registry` key may remain in
+  agents' chrome.storage.sync — harmless (nothing reads it), can be left to rot.
+
+Verified: full harness re-run post-deletion is 20/20, and the patched build now
+boots in the harness *without* the deleted files (exercises the whole script load
+path, `classifyScenario`, `populateFromData`, `buildUserPrompt`).
+Live smoke test still recommended: open the extension, check the profile panel
+renders (Export/Import intact, no mappings button), grab + generate one lead.
 
 ## Section 4 (item 7) — scheduled, not done 📋
 
@@ -80,5 +93,6 @@ settled. Not touched in this branch.
 
 ## Files added
 - `leadpro_COMMERCIAL_v9.7.364/` — v9.7.364 source: pristine baseline commit + fix commits
-- `patches/section1-items1-4.patch`, `patches/section2-item5.patch` — for the DEV build
+- `patches/section1-items1-4.patch`, `patches/section2-item5.patch`,
+  `patches/section3-item6-option-b.patch` — for the DEV build
 - `audit-tests/stub-env.js`, `audit-tests/run-tests.js` — regression harness (`node audit-tests/run-tests.js`)

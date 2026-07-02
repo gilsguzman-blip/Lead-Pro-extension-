@@ -23,12 +23,22 @@ function resolveBaselineRef() {
   return out[out.length - 1];
 }
 
+// lead-source-registry.js / onboarding.js were removed in the Option B cleanup;
+// load them (from git if no longer on disk) only for builds that still reference them.
 const SUPPORT_FILES = ['config.js', 'lead-source-registry.js', 'dealer-config.js', 'dealer-setup.js', 'onboarding.js', 'auth.js'];
+
+function readSupportFile(f) {
+  const p = path.join(SRC_DIR, f);
+  if (fs.existsSync(p)) return fs.readFileSync(p, 'utf8');
+  return gitShow(resolveBaselineRef(), f); // deleted file — pull from the pristine baseline
+}
 
 function loadBuild(popupSource, ctxOpts) {
   const ctx = buildContext(ctxOpts || {});
   for (const f of SUPPORT_FILES) {
-    vm.runInContext(fs.readFileSync(path.join(SRC_DIR, f), 'utf8'), ctx, { filename: f });
+    const needed = fs.existsSync(path.join(SRC_DIR, f)) || popupSource.indexOf('LEADPRO_REGISTRY.loadRegistry') !== -1;
+    if (!needed) continue;
+    vm.runInContext(readSupportFile(f), ctx, { filename: f });
   }
   vm.runInContext(popupSource, ctx, { filename: 'popup.js' });
   return ctx;

@@ -1028,15 +1028,6 @@
     </div>
   </div>
 
-  <!-- Onboarding overlay — shown when no source registry exists -->
-  <div id="lp-onboarding-overlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; z-index:1001; overflow-y:auto; background:#080e1a;">
-    <div style="padding:8px 10px; border-bottom:1px solid rgba(0,210,150,0.15); display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; background:#080e1a; z-index:1;">
-      <div style="font-size:11px; font-weight:700; color:#e8f0ff;">🗂 Lead Source Setup</div>
-      <div style="font-size:9px; color:#3d5070;">One-time setup · takes 2 minutes</div>
-    </div>
-    <div id="lp-onboarding-content"></div>
-  </div>
-
   <!-- Auth overlay — shown when no profile is set -->
   <div id="lp-auth-overlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; z-index:1000; overflow-y:auto; background:#080e1a;"></div>
 
@@ -1047,14 +1038,6 @@
       <button id="lp-profile-close" style="background:none; border:1px solid rgba(0,210,150,0.2); color:#7a90b8; border-radius:4px; padding:2px 8px; font-size:10px; cursor:pointer;">✕ Close</button>
     </div>
     <div id="lp-profile-content"></div>
-    <div style="border-top:1px solid rgba(0,210,150,0.1); margin-top:0;">
-      <button id="lp-source-settings-btn" style="
-        width:100%; background:none; border:none; padding:10px 14px; cursor:pointer;
-        text-align:left; font-size:10px; color:#7a90b8; display:flex; align-items:center; gap:6px;
-      ">🗂 Manage Lead Source Mappings</button>
-    </div>
-    <div id="lp-source-settings-content" style="display:none; border-top:1px solid rgba(0,210,150,0.08);"></div>
-
     <!-- Store Assignments — agent sets phone/title per rooftop -->
     <div style="border-top:1px solid rgba(0,210,150,0.1);">
       <button id="lp-store-assignments-btn" style="
@@ -1077,10 +1060,8 @@
 
   <!-- config.js MUST load before popup.js — contains LEADPRO_API_KEY -->
   <script src="config.js"></script>
-  <script src="lead-source-registry.js"></script>
   <script src="dealer-config.js"></script>
   <script src="dealer-setup.js"></script>
-  <script src="onboarding.js"></script>
   <script src="auth.js"></script>
   <script src="popup.js"></script>
 </body>

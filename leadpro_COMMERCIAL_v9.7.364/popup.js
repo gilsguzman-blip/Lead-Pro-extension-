@@ -6233,10 +6233,8 @@ function classifyScenario(data) {
   const hasRealOutbound = !!(data.hasOutbound);
   console.log('[Lead Pro] classifyScenario — ls:', (data.leadSource||''), '| isFollowUp:', s.isFollowUp, '| hasRealOutbound:', hasRealOutbound, '| convState:', data.convState);
 
-  // Registry-aware classification
-  if (typeof LEADPRO_REGISTRY !== 'undefined' && window._leadProSourceRegistry) {
-    s._registryScenario = LEADPRO_REGISTRY.classify(data.leadSource || '', window._leadProSourceRegistry);
-  }
+  // (Option B) Registry-aware classification removed — s._registryScenario was never
+  // consumed anywhere; the regex chain below is and remains the real classifier.
 
   // Auto persona resolution (trigger matrix)
   s.resolvedPersona = (function() {
@@ -11967,7 +11965,6 @@ if (spBtn) {
 
 // ─── Commercial Boot ─────────────────────────────────────────────────────────
 let _leadProProfile = null;
-window._leadProSourceRegistry = null;
 window._leadProDealerData = { group: null, stores: [], assignments: [] };
 window._leadProPersonaOverride = null;
 window._leadProResolvedPersona = null;
@@ -11993,14 +11990,9 @@ window._leadProResolvedSigner  = null;
   });
 })();
 
-(function initRegistry() {
-  if (typeof LEADPRO_REGISTRY === 'undefined') return;
-  LEADPRO_REGISTRY.loadRegistry(function(registry) {
-    window._leadProSourceRegistry = registry;
-    var hasMappings = registry && Object.keys(registry.mappings || {}).length > 0;
-    if (!hasMappings) console.log('[Lead Pro] No source registry found — onboarding will be shown after login');
-  });
-})();
+// (Option B) initRegistry removed — the lead-source registry pipeline (registry file,
+// storage sync, worker push/pull, onboarding mapping UI) maintained a classification
+// that no code ever read. classifyScenario's regex chain is the classifier.
 
 function updateProfileBadge(profile) {
   var btn = document.getElementById('btnProfile');
@@ -12183,14 +12175,10 @@ function updatePersonaBar(leadData) {
   if (typeof LEADPRO_AUTH === 'undefined') return;
   LEADPRO_AUTH.loadProfile(function(profile, licenseKey) {
     function checkAndShowOnboarding(afterCb) {
-      if (typeof LEADPRO_ONBOARDING === 'undefined' || typeof LEADPRO_REGISTRY === 'undefined') { if (afterCb) afterCb(); return; }
-      LEADPRO_REGISTRY.loadRegistry(function(registry) {
-        window._leadProSourceRegistry = registry;
-        if (typeof LEADPRO_DEALER !== 'undefined') { LEADPRO_DEALER.loadAll(function(data) { window._leadProDealerData = data; }); }
-        // Lead source mapping is pre-configured at the dealer level — agents never go through onboarding.
-        // Always skip the onboarding screen regardless of registry state.
-        if (afterCb) afterCb(); return;
-      });
+      // (Option B) Onboarding + lead-source registry removed. Only the dealer-data
+      // refresh this function also performed is kept, so boot behavior is unchanged.
+      if (typeof LEADPRO_DEALER !== 'undefined') { LEADPRO_DEALER.loadAll(function(data) { window._leadProDealerData = data; }); }
+      if (afterCb) afterCb();
     }
     if (!profile) {
       showLoginScreen(function() { checkAndShowOnboarding(null); });
@@ -12221,68 +12209,12 @@ function updatePersonaBar(leadData) {
             showLoginScreen(null);
           }
         );
-        // Director-only: Push Registry to Worker button
+        // (Option B) Director-only "Push Registry to Worker" button removed with the
+        // lead-source registry pipeline. Export/Import Settings below is kept — it is
+        // a generic full-storage backup, not registry-specific.
         var isDir = _leadProProfile && _leadProProfile.persona === 'internet_director';
-        var existingPushBtn = profileContent.querySelector('#lp-push-registry-btn');
-        if (isDir && !existingPushBtn) {
-          var pushWrap = document.createElement('div');
-          pushWrap.style.cssText = 'margin-top:12px; padding-top:12px; border-top:1px solid rgba(255,255,255,0.08);';
-          var pushBtn = document.createElement('button');
-          pushBtn.id = 'lp-push-registry-btn';
-          pushBtn.textContent = '⬆ Push Registry to Worker';
-          pushBtn.style.cssText = 'width:100%; background:#1B4F8A; color:#fff; border:none; border-radius:4px; padding:8px 12px; font-size:11px; font-weight:700; cursor:pointer; letter-spacing:0.5px;';
-          var pushStatus = document.createElement('div');
-          pushStatus.style.cssText = 'font-size:10px; margin-top:6px; color:#7a90b8; text-align:center; min-height:14px;';
-          pushBtn.addEventListener('click', function() {
-            pushBtn.disabled = true;
-            pushBtn.textContent = 'Pushing...';
-            pushStatus.textContent = '';
-            var STORAGE_KEY = 'leadpro_source_registry';
-            chrome.storage.sync.get([STORAGE_KEY, 'leadpro_license', 'lp_profile'], function(result) {
-              var registry = result[STORAGE_KEY];
-              var licenseKey = result['leadpro_license'] || '';
-              var prof = {}; try { prof = JSON.parse(result['lp_profile'] || '{}'); } catch(e) {}
-              var DEALER_MAP = { '6189':'Community Toyota Baytown','6190':'Community Kia Baytown','6191':'Community Honda Baytown','24399':'Community Honda Lafayette','21135':'Audi Lafayette' };
-              var storeName = (prof.store || '').toLowerCase();
-              var dealerId = '';
-              for (var did in DEALER_MAP) { if (DEALER_MAP[did].toLowerCase().includes(storeName.substring(0,8))) { dealerId = did; break; } }
-              if (!registry || !Object.keys(registry.mappings || {}).length) {
-                pushBtn.textContent = '⬆ Push Registry to Worker'; pushBtn.disabled = false;
-                pushStatus.style.color = '#e05'; pushStatus.textContent = '❌ No registry found in storage.'; return;
-              }
-              if (!licenseKey) {
-                pushBtn.textContent = '⬆ Push Registry to Worker'; pushBtn.disabled = false;
-                pushStatus.style.color = '#e05'; pushStatus.textContent = '❌ No license key found.'; return;
-              }
-              if (!dealerId) {
-                pushBtn.textContent = '⬆ Push Registry to Worker'; pushBtn.disabled = false;
-                pushStatus.style.color = '#e05'; pushStatus.textContent = '❌ Could not detect dealer ID from store: "' + prof.store + '"'; return;
-              }
-              var workerBase = (typeof LEADPRO_PROXY_URL !== 'undefined') ? LEADPRO_PROXY_URL.replace(/\/$/, '') : 'https://leadpro-proxy.gilsguzman.workers.dev';
-              fetch(workerBase + '/registry', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ licenseKey: licenseKey, dealerId: dealerId, registry: registry })
-              }).then(function(r) { return r.json(); }).then(function(res) {
-                pushBtn.textContent = '⬆ Push Registry to Worker'; pushBtn.disabled = false;
-                if (res.ok) {
-                  pushStatus.style.color = '#1E6B3C';
-                  pushStatus.textContent = '✅ Pushed ' + Object.keys(registry.mappings).length + ' mappings to Worker.';
-                } else {
-                  pushStatus.style.color = '#e05';
-                  pushStatus.textContent = '❌ Worker error: ' + (res.error || 'unknown');
-                }
-              }).catch(function(err) {
-                pushBtn.textContent = '⬆ Push Registry to Worker'; pushBtn.disabled = false;
-                pushStatus.style.color = '#e05';
-                pushStatus.textContent = '❌ Network error: ' + err.message;
-              });
-            });
-          });
-          pushWrap.appendChild(pushBtn);
-          pushWrap.appendChild(pushStatus);
-          profileContent.appendChild(pushWrap);
-
+        var existingBackupBtn = profileContent.querySelector('#lp-export-settings-btn');
+        if (isDir && !existingBackupBtn) {
           // ── Export / Import Settings (Director-only) ──────────────────
           // Belt-and-suspenders backup before Chrome Store reinstall.
           // Captures both chrome.storage.local and chrome.storage.sync into
@@ -12293,7 +12225,7 @@ function updatePersonaBar(leadData) {
           var exportBtn = document.createElement('button');
           exportBtn.id = 'lp-export-settings-btn';
           exportBtn.textContent = '⬇ Export Settings';
-          exportBtn.title = 'Download a complete backup of your Lead Pro settings, dealer config, lead source mappings, and profile.';
+          exportBtn.title = 'Download a complete backup of your Lead Pro settings, dealer config, and profile.';
           exportBtn.style.cssText = 'flex:1; background:#2A6B3C; color:#fff; border:none; border-radius:4px; padding:8px 10px; font-size:11px; font-weight:700; cursor:pointer; letter-spacing:0.5px;';
 
           var importBtn = document.createElement('button');
@@ -12446,22 +12378,8 @@ function updatePersonaBar(leadData) {
     if (profileClose && profilePanel) {
       profileClose.addEventListener('click', function() { profilePanel.style.display = 'none'; });
     }
-    // Wire source settings
-    var srcBtn = document.getElementById('lp-source-settings-btn');
-    var srcContent = document.getElementById('lp-source-settings-content');
-    if (srcBtn && srcContent) {
-      srcBtn.addEventListener('click', function() {
-        var isOpen = srcContent.style.display !== 'none';
-        srcContent.style.display = isOpen ? 'none' : 'block';
-        if (!isOpen && typeof LEADPRO_ONBOARDING !== 'undefined') {
-          LEADPRO_REGISTRY.loadRegistry(function(registry) {
-            LEADPRO_ONBOARDING.buildSourceSettingsUI(srcContent, registry, function(updated) {
-              window._leadProSourceRegistry = updated;
-            });
-          });
-        }
-      });
-    }
+    // (Option B) Lead Source settings panel removed with the registry pipeline
+    // (its mappings were never consumed by classification).
     // Wire store assignments
     var asgnBtn = document.getElementById('lp-store-assignments-btn');
     var asgnContent = document.getElementById('lp-store-assignments-content');
