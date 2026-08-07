@@ -20,13 +20,28 @@ function sliceRegion(file) {
 
 // Minimal stand-in for a VinSolutions note element, so the internal-note scans
 // (hasInternalSoldElsewhere / hasInternalNotInterested) run for real.
-function noteEl(text) {
+// `text` keeps its NEWLINES — the real .notes-and-history-item-content innerText is
+// multi-line ("Received from: …\nReceived by: …\nSTOP"), proven by [LP SCHED DIAG]
+// rendering it as "received from: … | received by: gil guzman | stop".
+function noteEl(text, opts) {
+  opts = opts || {};
   return {
+    getAttribute(a) { return a === 'data-direction' ? (opts.dir || '') : null; },
     querySelector(sel) {
       if (sel === '.notes-and-history-item-content') return { innerText: text };
+      if (sel === '.legacy-notes-and-history-title') return { innerText: opts.title || '' };
+      if (sel === '.notes-and-hsitory-item-date') return { innerText: opts.date || '' };
       return null;
     }
   };
+}
+
+// popup.js pushes transcript entries as:
+//   '[' + date + '] [' + who + '] ' + title + '\n  ' + sanitize(content)
+// and sanitize() COLLAPSES NEWLINES TO SPACES, so the note body arrives on ONE line.
+// Fixtures must reproduce that or they test a shape the page never produces.
+function entry(date, who, title, content) {
+  return '[' + date + '] [' + who + '] ' + title + '\n  ' + String(content).replace(/\s+/g, ' ').trim();
 }
 
 function makeCtx(o) {
@@ -44,7 +59,7 @@ function makeCtx(o) {
   return {
     transcript,
     filteredTranscript,
-    noteEls: notes.map(noteEl),
+    noteEls: (o.noteEls || notes.map(function(n){ return typeof n === 'string' ? noteEl(n) : noteEl(n.text, n); })),
     recentInbound,
     inboundMessageOnly: (recentInbound || '').replace(/^\s*Received (from|by)[^\n]*\n?/gim, '').trim(),
     fullScanText,
@@ -102,4 +117,4 @@ function buildRunner(file) {
   };
 }
 
-module.exports = { buildRunner, sliceRegion };
+module.exports = { buildRunner, sliceRegion, noteEl, entry };

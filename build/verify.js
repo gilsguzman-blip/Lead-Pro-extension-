@@ -3,69 +3,113 @@
 //
 //   node verify.js dev/popup.js
 //   node verify.js commercial/popup.js
+//
+// FIXTURES USE THE REAL PAGE SHAPES. The first version of this file fed the region
+// '[CUSTOMER] STOP' and passed 20/20 while the live page still produced the farewell
+// (log99). VinSolutions notes are multi-line innerText with routing headers —
+//     Received from: (346) 417-5343⏎Received by: Gil Guzman⏎STOP
+// — and the transcript entry is that content AFTER sanitize() collapses the newlines.
+// Both forms are reproduced here; a fixture that skips the headers tests nothing.
 
-const { buildRunner } = require('./harness.js');
+const { buildRunner, entry, noteEl } = require('./harness.js');
 
 const file = process.argv[2] || 'dev/popup.js';
 const R = buildRunner(file);
 
-// ── Fixtures ────────────────────────────────────────────────────────────────
-// Gerra Bell — Community Kia Baytown, lead 2061540346, 5 days old, 8/7.
-// Completed a credit application through Click & Go; the outbound asked which
-// model she was shopping. Her entire reply was the single word STOP.
-const GERRA = {
-  leadAgeDays: 5,
-  transcript: [
-    '[CUSTOMER] STOP',
-    "[AGENT] I saw you completed your application through Click & Go, but no vehicle is attached yet. What model are you shopping for?",
-    '[SYSTEM] CURRENT LEAD SUBMITTED HERE',
-    '[SYSTEM] Click & Go credit application completed'
-  ],
-  notes: ['Click & Go application received - no vehicle attached']
-};
+const CUST_PHONE = '(346) 417-5343';
+const AGENT = 'Gil Guzman';
 
-// Raul Meza — STOP on a PRIOR lead (below the CURRENT LEAD marker), new inquiry above it.
-const RAUL = {
-  leadAgeDays: 2,
-  transcript: [
-    '[CUSTOMER] Interested in the 2026 RAV4, what can you do on price?',
-    '[SYSTEM] CURRENT LEAD SUBMITTED HERE',
-    '[CUSTOMER] Stop',
-    '[SYSTEM] Customer successfully removed from text messages'
-  ]
-};
+// Build a lead from newest-first events, producing the transcript entries and the
+// note elements exactly as the page does.
+function lead(o) {
+  const transcript = [], noteEls = [], notesFlat = [];
+  let lastInboundMsg = '';
+  let d = 12;
+  for (const ev of o.events) {
+    const date = '08/07/2026 ' + String(d--).padStart(2, '0') + ':00 PM';
+    let raw, title, dir, who;
+    if (ev.who === 'CUSTOMER') {
+      raw = 'Received from: ' + CUST_PHONE + '\nReceived by: ' + AGENT + '\n' + ev.text;
+      title = 'Inbound Text Message'; dir = 'inbound'; who = 'CUSTOMER';
+      if (!lastInboundMsg) lastInboundMsg = raw.replace(/\s+/g, ' ').trim();
+    } else if (ev.who === 'AGENT') {
+      raw = 'Sent to: ' + CUST_PHONE + '\nSent by: ' + AGENT + '\n' + ev.text;
+      title = 'Outbound Text Message'; dir = 'outbound'; who = 'AGENT';
+    } else {
+      raw = 'By: Abby Montez\n' + ev.text;
+      title = 'Outbound phone call'; dir = 'outbound'; who = 'NOTE';
+    }
+    transcript.push(entry(date, who, title, raw));
+    noteEls.push(noteEl(raw, { dir, title }));
+    notesFlat.push(raw);
+  }
+  // Internal notes live only in the note list + scan text (not as transcript entries),
+  // which is how agent call notes reach the internal-note detectors.
+  for (const n of (o.internalNotes || [])) {
+    noteEls.push(noteEl('By: Abby Montez\n' + n, { dir: 'outbound', title: 'Outbound phone call' }));
+    notesFlat.push(n);
+  }
+  if (o.marker) transcript.push('[08/02/2026 03:54 AM] [=== CURRENT LEAD SUBMITTED HERE ===]');
+  for (const p of (o.priorLead || [])) {
+    transcript.push(entry('01/02/2025 09:00 AM', p.who, p.who === 'CUSTOMER' ? 'Inbound Text Message' : 'Outbound Text Message',
+      (p.who === 'CUSTOMER' ? 'Received from: ' + CUST_PHONE + '\nReceived by: ' + AGENT + '\n' : 'Sent to: ' + CUST_PHONE + '\nSent by: ' + AGENT + '\n') + p.text));
+    notesFlat.push(p.text);
+  }
+  return Object.assign({
+    transcript, noteEls, lastInboundMsg,
+    fullScanText: (transcript.join('\n') + '\n' + notesFlat.join('\n')).toLowerCase(),
+    leadAgeDays: o.leadAgeDays === undefined ? 5 : o.leadAgeDays
+  }, o.flags || {});
+}
 
-function base(o) { return Object.assign({ leadAgeDays: 4 }, o); }
+const CLICKNGO = 'Gerra, I saw you completed your application through Click & Go, but no vehicle is attached yet. What model are you shopping for? Kaylee Internet Sales Coordinator | Community Kia Baytown Reply STOP to cancel.';
+const REMOVED  = 'You have successfully been removed from Community Auto Group text messages.';
 
-// ── Cases ───────────────────────────────────────────────────────────────────
-// expect: what must hold AFTER the fix. `unchanged` documents pre-fix parity.
 const CASES = [
   // ---- must now suppress the farewell (SMS still off, email proceeds) ----
   {
     group: 'MUST NOW SUPPRESS FAREWELL',
     name: "Gerra's exact shape — bare STOP, current lead, 5d old, live Click & Go application",
-    input: GERRA,
+    input: lead({
+      marker: true,
+      flags: { hasSystemOptOutNote: true },
+      events: [
+        { who: 'NOTE', text: 'Left message' },
+        { who: 'AGENT', text: REMOVED },
+        { who: 'CUSTOMER', text: 'STOP' },
+        { who: 'AGENT', text: CLICKNGO }
+      ]
+    }),
     expect: { isSmsOptOut: true, smsOptOutIsExit: false, hasExitSignal: false, isSmsOptOutOnly: true }
   },
   {
     group: 'MUST NOW SUPPRESS FAREWELL',
     name: 'bare STOP on a current lead, no other exit signal present',
-    input: base({ transcript: ['[CUSTOMER] STOP', '[AGENT] Following up on your inquiry'] }),
+    input: lead({ events: [{ who: 'CUSTOMER', text: 'STOP' }, { who: 'AGENT', text: 'Following up on your inquiry' }] }),
     expect: { isSmsOptOut: true, smsOptOutIsExit: false, hasExitSignal: false, isSmsOptOutOnly: true }
   },
   {
     group: 'MUST NOW SUPPRESS FAREWELL',
     name: 'bare "stop." lowercase with trailing punctuation',
-    input: base({ transcript: ['[CUSTOMER] stop.', '[AGENT] Checking in'] }),
+    input: lead({ events: [{ who: 'CUSTOMER', text: 'stop.' }, { who: 'AGENT', text: 'Checking in' }] }),
     expect: { isSmsOptOut: true, smsOptOutIsExit: false, hasExitSignal: false, isSmsOptOutOnly: true }
   },
   {
     group: 'MUST NOW SUPPRESS FAREWELL',
-    name: 'bare STOP that ALSO produced a carrier system note (same event, two records)',
-    input: base({
-      transcript: ['[CUSTOMER] STOP', '[AGENT] What model are you shopping for?'],
-      notes: ['Customer successfully removed from text messages'],
-      hasSystemOptOutNote: true
+    name: 'bare STOP with the carrier system note alongside it (same event, two records)',
+    input: lead({
+      flags: { hasSystemOptOutNote: true },
+      events: [{ who: 'AGENT', text: REMOVED }, { who: 'CUSTOMER', text: 'STOP' }, { who: 'AGENT', text: CLICKNGO }]
+    }),
+    expect: { isSmsOptOut: true, smsOptOutIsExit: false, hasExitSignal: false, isSmsOptOutOnly: true }
+  },
+  {
+    group: 'MUST NOW SUPPRESS FAREWELL',
+    name: 'bare STOP on a lead created TODAY (hasNewLeadToday) — STOP still honoured, no farewell',
+    input: lead({
+      leadAgeDays: 0,
+      flags: { hasNewLeadToday: true },
+      events: [{ who: 'CUSTOMER', text: 'STOP' }, { who: 'AGENT', text: CLICKNGO }]
     }),
     expect: { isSmsOptOut: true, smsOptOutIsExit: false, hasExitSignal: false, isSmsOptOutOnly: true }
   },
@@ -74,87 +118,77 @@ const CASES = [
   {
     group: 'MUST STILL EXIT (unchanged)',
     name: '"please stop contacting me" — written request, not a carrier keyword',
-    input: base({ transcript: ['[CUSTOMER] please stop contacting me', '[AGENT] Following up'] }),
+    input: lead({ events: [{ who: 'CUSTOMER', text: 'please stop contacting me' }, { who: 'AGENT', text: 'Following up' }] }),
     expect: { hasExitSignal: true, isSmsOptOutOnly: false },
-    alsoRequire: { exitRawIndependent: true }   // stands on its own, per the instructions
+    alsoRequire: { exitRawIndependent: true }
   },
   {
     group: 'MUST STILL EXIT (unchanged)',
     name: '"stop contacting me" AND a separate bare STOP text on the same lead',
-    input: base({
-      transcript: ['[CUSTOMER] STOP', '[CUSTOMER] stop contacting me', '[AGENT] Following up']
-    }),
+    input: lead({ events: [{ who: 'CUSTOMER', text: 'STOP' }, { who: 'CUSTOMER', text: 'stop contacting me' }, { who: 'AGENT', text: 'Following up' }] }),
     expect: { hasExitSignal: true, isSmsOptOutOnly: false },
     alsoRequire: { exitRawIndependent: true }
   },
   {
     group: 'MUST STILL EXIT (unchanged)',
     name: '"I am no longer interested"',
-    input: base({ transcript: ['[CUSTOMER] I am no longer interested', '[AGENT] Following up'] }),
+    input: lead({ events: [{ who: 'CUSTOMER', text: 'I am no longer interested' }, { who: 'AGENT', text: 'Following up' }] }),
     expect: { hasExitSignal: true },
     alsoRequire: { exitRawIndependent: true }
   },
   {
     group: 'MUST STILL EXIT (unchanged)',
     name: '"we bought elsewhere"',
-    input: base({ transcript: ['[CUSTOMER] we bought elsewhere', '[AGENT] Following up'] }),
+    input: lead({ events: [{ who: 'CUSTOMER', text: 'we bought elsewhere' }, { who: 'AGENT', text: 'Following up' }] }),
     expect: { hasExitSignal: true },
     alsoRequire: { exitRawIndependent: true }
   },
   {
     group: 'MUST STILL EXIT (unchanged)',
     name: '"we went with another dealer"',
-    input: base({ transcript: ['[CUSTOMER] we went with another dealer', '[AGENT] Following up'] }),
+    input: lead({ events: [{ who: 'CUSTOMER', text: 'we went with another dealer' }, { who: 'AGENT', text: 'Following up' }] }),
     expect: { hasExitSignal: true },
     alsoRequire: { exitRawIndependent: true }
   },
   {
     group: 'MUST STILL EXIT (unchanged)',
-    name: '"take me off your list" (exitByRemoval component alone)',
-    input: base({ transcript: ['[CUSTOMER] take me off your list'] }),
+    name: '"take me off your list" (exitByRemoval component)',
+    input: lead({ events: [{ who: 'CUSTOMER', text: 'take me off your list' }] }),
     expect: { hasExitSignal: true },
     alsoRequire: { exitByRemoval: true }
   },
   {
     group: 'MUST STILL EXIT (unchanged)',
-    name: 'boughtElsewhere component alone — "we purchased from another dealer"',
-    input: base({ transcript: ['[CUSTOMER] we purchased from another dealer down the road'] }),
+    name: 'boughtElsewhere component — "we purchased from another dealer"',
+    input: lead({ events: [{ who: 'CUSTOMER', text: 'we purchased from another dealer down the road' }] }),
     expect: { hasExitSignal: true },
     alsoRequire: { boughtElsewhere: true }
   },
   {
     group: 'MUST STILL EXIT (unchanged)',
-    name: 'hasInternalSoldElsewhere component alone — agent note, no customer words',
-    input: base({
-      transcript: ['[AGENT] left voicemail'],
-      notes: ['Spoke with customer, she bought elsewhere last week.']
-    }),
+    name: 'hasInternalSoldElsewhere component — agent note, no customer words',
+    input: lead({ events: [{ who: 'AGENT', text: 'left voicemail' }], internalNotes: ['Spoke with customer, she bought elsewhere last week.'] }),
     expect: { hasExitSignal: true },
     alsoRequire: { hasInternalSoldElsewhere: true }
   },
   {
     group: 'MUST STILL EXIT (unchanged)',
-    name: 'hasInternalNotInterested component alone — agent-recorded verbal decline',
-    input: base({
-      transcript: ['[AGENT] called customer'],
-      notes: ['Customer stated she is not interested, do not need to follow up.']
-    }),
+    name: 'hasInternalNotInterested component — agent-recorded verbal decline',
+    input: lead({ events: [{ who: 'AGENT', text: 'called customer' }], internalNotes: ['Customer stated she is not interested, no need to follow up.'] }),
     expect: { hasExitSignal: true },
     alsoRequire: { hasInternalNotInterested: true }
   },
   {
     group: 'MUST STILL EXIT (unchanged)',
-    name: 'hasBereavementSignal component alone — death notification',
-    input: base({ transcript: ['[CUSTOMER] Sorry to inform you, my husband passed away last month.'] }),
+    name: 'hasBereavementSignal component — death notification',
+    input: lead({ events: [{ who: 'CUSTOMER', text: 'Sorry to inform you, my husband passed away last month.' }] }),
     expect: { hasExitSignal: true },
     alsoRequire: { hasBereavementSignal: true }
   },
   {
     group: 'MUST STILL EXIT (unchanged)',
     name: 'bare STOP + an independent exit signal in history — exit still wins',
-    input: base({
-      transcript: ['[CUSTOMER] STOP', '[CUSTOMER] we already bought something else', '[AGENT] Following up']
-    }),
+    input: lead({ events: [{ who: 'CUSTOMER', text: 'STOP' }, { who: 'CUSTOMER', text: 'we already bought something else' }, { who: 'AGENT', text: 'Following up' }] }),
     expect: { hasExitSignal: true, isSmsOptOutOnly: false },
     alsoRequire: { exitRawIndependent: true }
   },
@@ -162,57 +196,65 @@ const CASES = [
   // ---- must not regress ----
   {
     group: 'MUST NOT REGRESS',
-    name: "Raul Meza's shape — prior-lead STOP under the CURRENT LEAD marker",
-    input: RAUL,
+    name: "Raul Meza's shape — prior-lead STOP below the CURRENT LEAD marker",
+    input: lead({
+      marker: true,
+      events: [{ who: 'CUSTOMER', text: 'Interested in the 2026 RAV4, what can you do on price?' }],
+      priorLead: [{ who: 'CUSTOMER', text: 'Stop' }, { who: 'AGENT', text: REMOVED }]
+    }),
     expect: { isSmsOptOut: true, smsOptOutIsExit: false, hasExitSignal: false, isSmsOptOutOnly: true },
     alsoRequire: { _optOutPriorLead: true }
   },
   {
     group: 'MUST NOT REGRESS',
     name: 'no opt-out at all — ordinary live lead, untouched',
-    input: base({ transcript: ['[CUSTOMER] Can you send me pricing on the Telluride?', '[AGENT] Sure'] }),
+    input: lead({ events: [{ who: 'CUSTOMER', text: 'Can you send me pricing on the Telluride?' }, { who: 'AGENT', text: 'Sure' }] }),
     expect: { isSmsOptOut: false, smsOptOutIsExit: false, hasExitSignal: false, isSmsOptOutOnly: false }
   },
   {
     group: 'MUST NOT REGRESS',
     name: 'historical system-note opt-out, no bare STOP message, established lead',
-    input: base({
-      transcript: ['[AGENT] Following up on your inquiry'],
-      notes: ['SMS status has been manually changed to: Opt-Out'],
-      hasSystemOptOutNote: true
+    input: lead({
+      flags: { hasSystemOptOutNote: true },
+      events: [{ who: 'AGENT', text: 'Following up on your inquiry' }],
+      internalNotes: ['SMS status has been manually changed to: Opt-Out']
     }),
     expect: { isSmsOptOut: true, smsOptOutIsExit: true, hasExitSignal: true, isSmsOptOutOnly: false }
   },
   {
     group: 'MUST NOT REGRESS',
     name: 'opt-out + explicit re-opt-in — SMS restored, no exit (hasRecentReoptIn path)',
-    input: base({
-      transcript: ['[AGENT] Following up'],
-      notes: ['SMS status has been manually changed to: Opt-In by Abby Montez'],
-      hasSystemOptOutNote: true,
-      hasRecentReoptIn: true
+    input: lead({
+      flags: { hasSystemOptOutNote: true, hasRecentReoptIn: true },
+      events: [{ who: 'AGENT', text: 'Following up' }],
+      internalNotes: ['SMS status has been manually changed to: Opt-In by Abby Montez']
     }),
     expect: { isSmsOptOut: false, smsOptOutIsExit: false, isSmsOptOutOnly: false }
   },
   {
     group: 'MUST NOT REGRESS',
-    name: 'Wendy Browne — bare STOP is the newest message with 30 notes of history behind it',
-    input: base({
-      transcript: [
-        '[CUSTOMER] STOP',
-        '[CUSTOMER] Yes I am still interested in the Sportage',
-        '[AGENT] Following up on your inquiry'
+    name: 'Wendy Browne — bare STOP is newest with re-engagement history behind it',
+    input: lead({
+      events: [
+        { who: 'CUSTOMER', text: 'STOP' },
+        { who: 'CUSTOMER', text: 'Yes I am still interested in the Sportage' },
+        { who: 'AGENT', text: 'Following up on your inquiry' }
       ]
     }),
-    // isSmsOptOut must stay TRUE (the STOP is respected); only the framing changes.
     expect: { isSmsOptOut: true, smsOptOutIsExit: false, isSmsOptOutOnly: true }
   }
 ];
 
-// ── Runner ──────────────────────────────────────────────────────────────────
-let pass = 0, fail = 0, lastGroup = '';
-const rows = [];
+// The REAL render-time compliance gate, from popup.js "DETERMINISTIC SMS SUPPRESSION on
+// opt-out":  _optOutNow = lastScrapedData.isSmsOptOutOnly
+//                      || /^stop[\s.!]*$/i.test(String(lastScrapedData.lastInboundMsg||'').trim())
+// This is the gate that FAILED on Gerra's live run, because lastInboundMsg carries the
+// "Received from:/Received by:" header. Asserted per case, with the real lastInboundMsg.
+function suppressedAtRender(out, lastInboundMsg) {
+  return out.isSmsOptOutOnly === true || /^stop[\s.!]*$/i.test(String(lastInboundMsg || '').trim());
+}
 
+let pass = 0, fail = 0, lastGroup = '';
 console.log('\n  file: ' + file + '   region: lines ' + R.lines + ' (real shipped bytes)\n');
 
 for (const c of CASES) {
@@ -222,31 +264,28 @@ for (const c of CASES) {
 
   const checks = Object.assign({}, c.expect, c.alsoRequire || {});
   const bad = [];
+  let smsState = '?';
   if (err) {
     bad.push('threw: ' + err.message);
   } else {
     for (const k of Object.keys(checks)) {
       if (out[k] !== checks[k]) bad.push(k + '=' + out[k] + ' (want ' + checks[k] + ')');
     }
-    // COMPLIANCE INVARIANT, asserted on every single case:
-    // whenever a stop signal is present, the SMS channel must be suppressed —
-    // either as an opt-out-only draft or as a full exit. It may never be "live".
-    if (out.isSmsOptOut === true && !(out.isSmsOptOutOnly === true || out.hasExitSignal === true)) {
-      bad.push('COMPLIANCE: isSmsOptOut true but neither isSmsOptOutOnly nor hasExitSignal set');
+    // COMPLIANCE INVARIANT, asserted on every case against the REAL render-time gate:
+    // if the customer is opted out, the SMS field must actually be blanked.
+    const rendered = suppressedAtRender(out, c.input.lastInboundMsg);
+    if (out.isSmsOptOut === true && !rendered && out.hasExitSignal !== true) {
+      bad.push('COMPLIANCE: opted out but render-time gate does NOT suppress SMS');
     }
+    smsState = out.isSmsOptOut
+      ? (rendered ? 'SUPPRESSED (render gate fires)' : (out.hasExitSignal ? 'exit close' : '⚠ NOT SUPPRESSED'))
+      : 'n/a — no opt-out';
   }
-
-  const smsState = err ? '?' :
-    (out.isSmsOptOut ? (out.isSmsOptOutOnly ? 'SUPPRESSED (opt-out-only)' : 'SUPPRESSED (exit)') : 'n/a — no opt-out');
 
   if (bad.length) { fail++; console.log('  ✗ ' + c.name); bad.forEach(b => console.log('      ' + b)); }
   else { pass++; console.log('  ✓ ' + c.name); }
   if (!err) console.log('      exit=' + out.hasExitSignal + '  optOutOnly=' + out.isSmsOptOutOnly + '  smsOptOutIsExit=' + out.smsOptOutIsExit + '  SMS: ' + smsState);
-  rows.push({ group: c.group, name: c.name, out, ok: !bad.length });
 }
 
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
-if (process.env.LP_JSON) {
-  require('fs').writeFileSync(process.env.LP_JSON, JSON.stringify(rows, null, 1));
-}
 process.exit(fail ? 1 : 0);

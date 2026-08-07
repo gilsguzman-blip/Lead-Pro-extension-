@@ -1,119 +1,115 @@
-// Differential / monotonicity test: pristine v9.7.533 vs patched, across a matrix
-// of lead shapes. Both sides run the REAL shipped region via harness.js.
+// Differential / monotonicity test: pristine v9.7.533 vs patched, over a matrix of
+// lead shapes built with the REAL VinSolutions note format (routing headers, multi-line
+// raw innerText, sanitize()-collapsed transcript entries).
 //
-// The compliance claim being proved mechanically:
-//   (a) isSmsOptOut is byte-for-byte unchanged in every case — the change cannot
-//       make the system think a customer is opted IN when the old build said out.
-//   (b) SMS suppression never weakens. Suppression at render is
-//       `isSmsOptOutOnly || /^stop[\s.!]*$/i.test(lastInboundMsg)` (popup.js,
-//       "DETERMINISTIC SMS SUPPRESSION on opt-out"). For every input, if the old
-//       build suppressed, the new build must also suppress.
-//   (c) hasExitSignal only ever goes true -> false (farewells are removed, never added).
+// Claims proved mechanically:
+//   (a) SMS suppression never weakens. The gate is the real render-time one:
+//       isSmsOptOutOnly || /^stop[\s.!]*$/i.test(lastInboundMsg.trim()), OR an exit close.
+//       For every shape, if the old build suppressed, the new build must too.
+//   (b) hasExitSignal is never ADDED (farewells are only ever removed).
+//   (c) isSmsOptOut is never turned OFF (a STOP the old build honoured is still honoured).
 
-const { buildRunner } = require('./harness.js');
+const { buildRunner, entry, noteEl } = require('./harness.js');
 
 const OLD = buildRunner('orig/dev/popup.js');
 const NEW = buildRunner('dev/popup.js');
 
-// Fragments combined exhaustively into lead shapes.
-const CUSTOMER = [
-  null,
-  'STOP',
-  'stop.',
-  'Stop!',
-  'stop contacting me',
-  'please stop contacting me about this',
-  'not interested',
-  'we bought elsewhere',
-  'we went with another dealer',
-  'take me off your list',
-  'Yes still interested in the Sportage',
-  'What is the price on the Telluride?',
-  'my husband passed away last month',
-  'STOP',            // paired below with extra history
+const PHONE = '(346) 417-5343', AGENT = 'Gil Guzman';
+
+function build(custMsgs, agentMsgs, internalNotes, marker, priorStop) {
+  const transcript = [], noteEls = [], flat = [];
+  let lastInboundMsg = '';
+  let d = 12;
+  const push = (who, title, dir, raw) => {
+    transcript.push(entry('08/07/2026 ' + String(d--).padStart(2, '0') + ':00 PM', who, title, raw));
+    noteEls.push(noteEl(raw, { dir, title }));
+    flat.push(raw);
+  };
+  for (const m of custMsgs) {
+    const raw = 'Received from: ' + PHONE + '\nReceived by: ' + AGENT + '\n' + m;
+    if (!lastInboundMsg) lastInboundMsg = raw.replace(/\s+/g, ' ').trim();
+    push('CUSTOMER', 'Inbound Text Message', 'inbound', raw);
+  }
+  for (const m of agentMsgs) push('AGENT', 'Outbound Text Message', 'outbound', 'Sent to: ' + PHONE + '\nSent by: ' + AGENT + '\n' + m);
+  for (const n of internalNotes) { noteEls.push(noteEl('By: Abby Montez\n' + n, { dir: 'outbound', title: 'Outbound phone call' })); flat.push(n); }
+  if (marker) transcript.push('[08/02/2026 03:54 AM] [=== CURRENT LEAD SUBMITTED HERE ===]');
+  if (priorStop) {
+    transcript.push(entry('01/02/2025 09:00 AM', 'CUSTOMER', 'Inbound Text Message', 'Received from: ' + PHONE + '\nReceived by: ' + AGENT + '\nStop'));
+    flat.push('Stop');
+  }
+  return { transcript, noteEls, lastInboundMsg, fullScanText: (transcript.join('\n') + '\n' + flat.join('\n')).toLowerCase() };
+}
+
+const CUST = [
+  [], ['STOP'], ['stop.'], ['Stop!'], ['STOP', 'I completed the application'],
+  ['stop contacting me'], ['please stop contacting me about this'],
+  ['not interested'], ['we bought elsewhere'], ['we went with another dealer'],
+  ['take me off your list'], ['Yes still interested in the Sportage'],
+  ['What is the price on the Telluride?'], ['my husband passed away last month'],
+  ['STOP', 'Yes I am still interested'], ['STOP', 'we already bought something else']
 ];
-const EXTRA_CUSTOMER = [null, 'Yes I am still interested', 'we already bought something else', 'I completed the application'];
+const AGENTM = [
+  [], ['Following up on your inquiry'],
+  ['You have successfully been removed from Community Auto Group text messages.']
+];
 const NOTES = [
-  [],
-  ['Customer successfully removed from text messages'],
-  ['SMS status has been manually changed to: Opt-Out'],
-  ['Customer stated she is not interested'],
-  ['She bought elsewhere last week'],
-  ['Click & Go application received - no vehicle attached'],
+  [], ['SMS status has been manually changed to: Opt-Out'],
+  ['Customer stated she is not interested'], ['She bought elsewhere last week'],
+  ['Click & Go application received - no vehicle attached']
 ];
-const MARKER = [false, true];
 const FLAGS = [
-  {},
-  { hasNewLeadToday: true, leadAgeDays: 0 },
-  { hasRecentReoptIn: true },
-  { hasRecentReactivation: true },
-  { hasSystemOptOutNote: true },
+  {}, { hasNewLeadToday: true, leadAgeDays: 0 }, { hasRecentReoptIn: true },
+  { hasRecentReactivation: true }, { hasSystemOptOutNote: true }
 ];
 
 function suppressed(out, lastInboundMsg) {
-  // Mirrors the real render-time gate _optOutNow, plus the exit path (an exit close
-  // routes through the farewell branch which never drafts SMS for an opted-out lead).
-  return out.isSmsOptOutOnly === true || /^stop[\s.!]*$/i.test(String(lastInboundMsg || '').trim());
+  return out.isSmsOptOutOnly === true
+      || /^stop[\s.!]*$/i.test(String(lastInboundMsg || '').trim())
+      || out.hasExitSignal === true;
 }
 
-let n = 0, optOutDrift = 0, suppressionLoss = 0, exitAdded = 0, exitRemoved = 0, changed = 0;
-const examples = { suppressionLoss: [], optOutDrift: [], exitAdded: [], exitRemoved: [] };
+let n = 0, optOutTurnedOff = 0, suppressionLoss = 0, exitAdded = 0, exitRemoved = 0;
+let newlyDetected = 0, newlySuppressed = 0;
+const ex = { optOutTurnedOff: [], suppressionLoss: [], exitAdded: [] };
 
-for (const cust of CUSTOMER)
-for (const extra of EXTRA_CUSTOMER)
+for (const cust of CUST)
+for (const ag of AGENTM)
 for (const notes of NOTES)
-for (const marker of MARKER)
+for (const marker of [false, true])
+for (const prior of [false, true])
 for (const flags of FLAGS) {
-  const transcript = [];
-  if (cust) transcript.push('[CUSTOMER] ' + cust);
-  if (extra) transcript.push('[CUSTOMER] ' + extra);
-  transcript.push('[AGENT] I saw you completed your application through Click & Go. What model are you shopping for?');
-  if (marker) transcript.push('[SYSTEM] CURRENT LEAD SUBMITTED HERE');
-  if (marker) transcript.push('[CUSTOMER] Stop');
-
-  const input = Object.assign({ transcript, notes, leadAgeDays: 5, lastInboundMsg: cust || '' }, flags);
-  const a = OLD.run(input);
-  const b = NEW.run(input);
+  const input = Object.assign(build(cust, ag, notes, marker, prior), { leadAgeDays: 5 }, flags);
+  const a = OLD.run(input), b = NEW.run(input);
   n++;
 
-  if (a.isSmsOptOut !== b.isSmsOptOut) {
-    optOutDrift++;
-    if (examples.optOutDrift.length < 3) examples.optOutDrift.push({ input, a: a.isSmsOptOut, b: b.isSmsOptOut });
+  if (a.isSmsOptOut === true && b.isSmsOptOut !== true) {
+    optOutTurnedOff++;
+    if (ex.optOutTurnedOff.length < 3) ex.optOutTurnedOff.push({ cust, ag, notes, marker, prior, flags });
   }
+  if (a.isSmsOptOut !== true && b.isSmsOptOut === true) newlyDetected++;
+
   const sa = suppressed(a, input.lastInboundMsg), sb = suppressed(b, input.lastInboundMsg);
-  if (sa && !sb) {
-    suppressionLoss++;
-    if (examples.suppressionLoss.length < 3) examples.suppressionLoss.push({ input, a, b });
-  }
-  if (!a.hasExitSignal && b.hasExitSignal) {
-    exitAdded++;
-    if (examples.exitAdded.length < 3) examples.exitAdded.push({ input, a: a.hasExitSignal, b: b.hasExitSignal });
-  }
-  if (a.hasExitSignal && !b.hasExitSignal) {
-    exitRemoved++;
-    if (examples.exitRemoved.length < 3) examples.exitRemoved.push({ cust, extra, notes, marker, flags });
-  }
-  if (a.hasExitSignal !== b.hasExitSignal || a.isSmsOptOutOnly !== b.isSmsOptOutOnly) changed++;
+  if (sa && !sb) { suppressionLoss++; if (ex.suppressionLoss.length < 3) ex.suppressionLoss.push({ cust, ag, notes, marker, prior, flags }); }
+  if (!sa && sb) newlySuppressed++;
+
+  if (!a.hasExitSignal && b.hasExitSignal) { exitAdded++; if (ex.exitAdded.length < 3) ex.exitAdded.push({ cust, ag, notes, marker, prior, flags }); }
+  if (a.hasExitSignal && !b.hasExitSignal) exitRemoved++;
 }
 
-console.log('\n  DIFFERENTIAL: pristine v9.7.533 vs patched — ' + n + ' lead shapes\n');
-console.log('  isSmsOptOut drift (must be 0) ................ ' + optOutDrift);
-console.log('  SMS suppression LOST (must be 0) ............. ' + suppressionLoss);
-console.log('  hasExitSignal ADDED (must be 0) .............. ' + exitAdded);
-console.log('  hasExitSignal REMOVED (the intended effect) .. ' + exitRemoved);
-console.log('  shapes with any behaviour change ............. ' + changed);
+console.log('\n  DIFFERENTIAL: pristine v9.7.533 vs patched — ' + n + ' lead shapes (real note format)\n');
+console.log('  MUST BE ZERO');
+console.log('    isSmsOptOut turned OFF ...................... ' + optOutTurnedOff);
+console.log('    SMS suppression LOST ....................... ' + suppressionLoss);
+console.log('    hasExitSignal ADDED ........................ ' + exitAdded);
+console.log('  INTENDED EFFECTS');
+console.log('    farewell removed (bare keyword -> channel) .. ' + exitRemoved);
+console.log('    STOP newly DETECTED (was missed entirely) .. ' + newlyDetected);
+console.log('    SMS newly SUPPRESSED (compliance repair) ... ' + newlySuppressed);
 
-if (exitRemoved) {
-  console.log('\n  sample of shapes where the farewell was removed:');
-  for (const e of examples.exitRemoved) {
-    console.log('    customer="' + e.cust + '"' + (e.extra ? ' + "' + e.extra + '"' : '') +
-                '  notes=' + JSON.stringify(e.notes) + '  marker=' + e.marker + '  flags=' + JSON.stringify(e.flags));
-  }
-}
-for (const k of ['optOutDrift', 'suppressionLoss', 'exitAdded']) {
-  if (examples[k].length) console.log('\n  VIOLATION ' + k + ':', JSON.stringify(examples[k], null, 1));
+for (const k of Object.keys(ex)) {
+  if (ex[k].length) console.log('\n  VIOLATION ' + k + ':\n' + JSON.stringify(ex[k], null, 1));
 }
 
-const bad = optOutDrift + suppressionLoss + exitAdded;
-console.log('\n  ' + (bad ? 'FAILED — ' + bad + ' violations' : 'PASS — SMS suppression never weakens; no farewell is ever added') + '\n');
+const bad = optOutTurnedOff + suppressionLoss + exitAdded;
+console.log('\n  ' + (bad ? 'FAILED — ' + bad + ' violations' : 'PASS — suppression only ever increases; no farewell is ever added') + '\n');
 process.exit(bad ? 1 : 0);
