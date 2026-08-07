@@ -1,0 +1,45 @@
+{
+  "manifest_version": 3,
+  "name": "Lead Pro",
+  "version": "9.7.532",
+  "description": "AI-powered BDC response tool for Community Auto Group",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage",
+    "clipboardWrite",
+    "tabs",
+    "sidePanel"
+  ],
+  "host_permissions": [
+    "https://*.vinsolutions.com/*",
+    "https://*.coxautoinc.com/*",
+    "https://leadpro-proxy.gilsguzman.workers.dev/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.vinsolutions.com/*",
+        "https://*.coxautoinc.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": true
+    }
+  ],
+  "side_panel": {
+    "default_path": "popup.html"
+  },
+  "action": {},
+  "icons": {
+    "16": "icon128.png",
+    "48": "icon128.png",
+    "128": "icon128.png"
+  },
+  "version_name": "9.7.532",
+  "background": {
+    "service_worker": "background.js"
+  }
+}
