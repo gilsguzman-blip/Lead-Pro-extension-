@@ -1,6 +1,48 @@
 /**
- * Lead Pro — Cloudflare Worker v7.47 (OpenAI)
+ * Lead Pro — Cloudflare Worker v7.48 (OpenAI)
  *
+ * v7.48: LATENCY REVIEW — ONE REAL FIX, ONE INSTRUMENTATION-ONLY CHANGE, AND A RETRACTION.
+ *   Prompted by "a few long waits" against the 8/8 log window (13:04-13:19). What the log
+ *   actually shows: 3 generations at 4443 / 5094 / 5335ms, feedback at 154-179ms, KV config
+ *   reads at ~0ms, zero errors, zero retries, zero SAFE_FALLBACK, finish=STOP on all three.
+ *   The worker is healthy. Of a 5309ms request, 4765ms (90%) is the single primary model call
+ *   on ~9.4-11.1k input tokens at effort=low, and ~545ms (10%) is the phone-ask classifier.
+ *   (1) EDGE CACHE TTL 604800s -> 120s. Unambiguous dead weight, and the one behavioural change
+ *       here. edgeCacheKey() hashes today + systemText + userText, and the user prompt embeds
+ *       "CURRENT TIME: h:mm AM/PM Central" from an UNROUNDED getMinutes() popup-side (verified
+ *       in popup.js: _now_min = String(_cal_now.getMinutes()).padStart(2,'0')). The key turns
+ *       over every clock minute, so a 7-day entry is unreadable ~60s after it is written. The
+ *       log agrees: 3 MISS, 3 STORED, 0 HIT. 120s preserves the only case the key can serve —
+ *       a double-clicked Generate or a retry inside the same minute, which otherwise buys a
+ *       second model call — and stops the write amplification.
+ *   (2) CLASSIFIER SKIP REASONS ARE NOW LOGGED. They were computed into classifyDiag and never
+ *       printed; the only console.log lived in the running branch. That is why one of the three
+ *       8/8 generations showed FINAL total == PRIMARY total with no CLASSIFY line and NOTHING in
+ *       the log could say which gate skipped it — phoneOnFile false, or both drafts <=20 chars.
+ *       The reason was reaching the popup as envelope._classify and dying there.
+ *   (3) PHONE-ASK PREFILTER, SHADOW MODE ONLY, ZERO BEHAVIOUR CHANGE. The tempting fix is to
+ *       regex-skip the classifier when a draft plainly contains no phone request. Its saving is
+ *       ~545ms (measured twice: 5086-4539=547, 5309-4765=544) times the fraction of runs that
+ *       could be safely skipped — and that fraction is UNKNOWN. Both runs on record returned NO;
+ *       n=2 is not a rate, and the run rate itself was unmeasurable until (2). So the prefilter
+ *       computes a verdict and logs agreement with the model, gating nothing. A false skip
+ *       reintroduces the exact defect the classifier prevents (asking for a phone number already
+ *       on the lead), so the gate ships only once wouldSkip is common AND miss has held at zero
+ *       on real traffic. Note the ceiling honestly: CLASSIFIER_PROMPT_PREFIX names "just send the
+ *       best one to use" as a positive and it contains no phone word at all — a regex covers that
+ *       by a targeted alternative, not by understanding it.
+ *   RETRACTED FROM THE PRIOR ANALYSIS: I attributed part of the wait to "6.3s of scrape
+ *   stabilisation" from log99's [LP STABILITY DIAG] windowMs:6309. That number measures nothing
+ *   of the sort. runStabilityDiagnostic is POLL_INTERVAL_MS=300 x MAX_POLLS=20 = ~6000ms BY
+ *   CONSTRUCTION, fire-and-forget, DEV-only, and it starts AFTER the pre-scrape has already
+ *   committed — it never blocks a generation and would read ~6300 on a fast lead and a slow one
+ *   alike. The related "10.6s panel-warm to START" gap is wall-clock containing the agent
+ *   navigating and clicking, not latency. Where the non-worker portion of the wait goes is
+ *   therefore UNMEASURED; settling it needs a popup log from the same window or client-side
+ *   timing that does not exist yet. Verified offline against the extracted real bytes: 30-case
+ *   prefilter corpus (recall 15/15 on phone-ask phrasings incl. all three the classifier prompt
+ *   names, 15/15 silent on non-asking drafts), and an edge-key test proving the key changes
+ *   across a one-minute boundary and is stable within it. No deploy — worker ships separately.
  * v7.47: REGRESSION IN THE v7.45/7.46 GUARD — not a pre-existing bug; the degenerate-field
  *   guard shipped in v7.45 and extended in v7.46 introduced this, and the version history is
  *   the only reason it was traceable at all. LIVE, all three tiers, 8/6. The daily report
@@ -434,7 +476,17 @@ const REGEN_CONSTRAINT_TEXT =
 const CACHE_KEY_PREFIX = 'lp';
 const CACHE_RETENTION  = '24h';
 
-const EDGE_CACHE_TTL = 604800;
+// (v7.48) TTL CUT FROM 604800s (7 DAYS) TO 120s. The old value could never be reached:
+// edgeCacheKey() hashes centralTodayStr() + systemText + userText, and the USER prompt
+// carries "CURRENT TIME: <h>:<mm> <AM/PM> Central", built popup-side from an unrounded
+// getMinutes(). The key therefore turns over every clock minute, so an entry written with a
+// 7-day TTL is unreadable roughly 60 seconds after it is stored. Measured on the 8/8 log:
+// 3 generations, 3 MISS, 3 STORED, 0 HIT — the cache was pure write amplification.
+// 120s keeps the ONE case the key can actually serve — a double-clicked Generate or a client
+// retry landing inside the same minute, which would otherwise pay for a second model call —
+// and stops hoarding entries nothing will ever read. If [EDGE-CACHE] HIT stays at zero over a
+// real week, delete the lookup and the store outright; the log line is what tells you.
+const EDGE_CACHE_TTL = 120;
 
 const DEALER_INFO = {
   '6189':  { name: 'Community Toyota',          address: '4701 East Fwy, Baytown, TX 77521',
@@ -460,6 +512,44 @@ const CLASSIFIER_PROMPT_PREFIX =
   'you yet"), and trailing tags ("just send the best one to use").\n\n' +
   'Message:\n"""\n';
 const CLASSIFIER_PROMPT_SUFFIX = '\n"""\n\nAnswer with only YES or NO.';
+
+// (v7.48) PHONE-ASK PREFILTER — SHADOW MODE, NOT YET GATING ANYTHING.
+// The classifier costs ~545ms (measured twice on the 8/8 log: 5086-4539=547, 5309-4765=544)
+// and runs AFTER the primary returns, so it is serial in the agent's wait. The obvious saving
+// is to skip the model call when the draft plainly contains no phone request — but the size of
+// that saving is UNMEASURED: the worker never logged how often the classifier runs at all
+// (fixed above), and of the two runs on record both returned NO, which is not a rate.
+// So this ships as measurement only. It computes a verdict, logs agreement with the model, and
+// changes NOTHING. Flip it to an actual skip once real traffic shows the run rate and zero
+// "prefilter=NO but model=YES" misses — never before.
+//
+// A FALSE SKIP REINTRODUCES A KNOWN DEFECT, which is why this is deliberately over-broad: the
+// classifier exists to stop LP asking for a phone number already on the lead, a rule the system
+// prompt states outright ("NEVER ask for contact information that is already on the lead").
+// Recall matters, precision does not — a prefilter YES just means we pay what we pay today.
+//
+// MEASURED CAVEAT THAT LOWERS THE EXPECTED PAYOFF, recorded so it is not rediscovered: "number"
+// is badly overloaded in this domain. The 30-case corpus is 15/15 on recall but only 14/15
+// silent, and the one noisy case is ordinary price talk — "let me see what the manager can do on
+// the numbers" — which is a routine BDC sentence, not a phone ask. Every draft that discusses
+// payment, trade or OTD figures will trip \bnumbers\b and still pay for the model call, so the
+// real wouldSkip rate is likely well below what the phrase list suggests. Tightening it (require
+// your/a/best/good/this before "number") would trade recall for precision, and recall is the side
+// that carries the compliance risk — so it stays broad and the shadow data decides.
+//
+// The hard case, and the reason a regex can never be the whole answer: CLASSIFIER_PROMPT_PREFIX
+// names "just send the best one to use" as a positive, and that phrasing contains no phone word
+// whatsoever. It is covered here by the bare "best one/way to use|reach|send" alternative, but
+// that is a patch on one known phrasing, not a general solution. Any future skip must be judged
+// on measured misses, not on this list looking complete.
+const PHONE_ASK_PREFILTER_RE = new RegExp([
+  '\\b(?:phone|number|numbers|cell|mobile|digits|extension)\\b',
+  '\\breach (?:you|me)\\b', '\\bcall (?:you|me)\\b', '\\btext (?:you|me)\\b',
+  '\\bcontact (?:info|information|details)\\b',
+  '\\bbest (?:one|way|time)\\s+to\\s+(?:use|reach|call|text|send)\\b',
+  '\\bsend\\s+(?:me|over|us)\\b', '\\bshare\\s+(?:it|that|the best)\\b',
+  '\\bwhat(?:\'|\u2019)?s\\s+the\\s+best\\b', '\\bgood\\s+(?:one|way)\\s+to\\s+(?:use|reach)\\b'
+].join('|'), 'i');
 
 const FINISH_MAP = {
   stop:           'STOP',
@@ -1038,6 +1128,22 @@ export default {
               classifyDiag = `sms=${smsFlag ? 'YES' : 'NO'} email=${emailFlag ? 'YES' : 'NO'} phoneOnFile=true`;
               console.log(`[${requestId}] CLASSIFY ${classifyDiag}`);
 
+              // (v7.48) PREFILTER SHADOW MODE — see PHONE_ASK_PREFILTER_RE. Observes only.
+              // wouldSkip=true means a future gated version would have skipped BOTH model calls
+              // and saved ~545ms. miss=true means it would have skipped a draft the model
+              // flagged — a real phone-ask reaching the agent unregenerated. Ship the gate only
+              // once wouldSkip is common AND miss has stayed at zero across real traffic.
+              try {
+                const pfSms   = smsText.length   > 20 && PHONE_ASK_PREFILTER_RE.test(smsText);
+                const pfEmail = emailText.length > 20 && PHONE_ASK_PREFILTER_RE.test(emailText);
+                const pfMiss  = (smsFlag && !pfSms) || (emailFlag && !pfEmail);
+                console.log(`[${requestId}] PREFILTER shadow wouldSkip=${!pfSms && !pfEmail}`
+                  + ` pf(sms=${pfSms} email=${pfEmail}) model(sms=${smsFlag} email=${emailFlag})`
+                  + ` miss=${pfMiss}${pfMiss ? ' <-- WOULD HAVE MISSED A REAL PHONE ASK' : ''}`);
+              } catch (pfErr) {
+                console.warn(`[${requestId}] PREFILTER shadow error: ${pfErr.message || 'unknown'}`);
+              }
+
               if (smsFlag || emailFlag) {
                 flagged = true;
                 const reasons = [];
@@ -1077,10 +1183,20 @@ export default {
                 }
               }
             } else {
+              // (v7.48) LOG THE SKIP, DO NOT JUST RECORD IT. Both skip reasons below were
+              // already being written to classifyDiag, but the only console.log sits inside the
+              // RUNNING branch above — so a skip was invisible in worker logs and surfaced only
+              // popup-side via [LP WORKER CLASSIFIER] reading envelope._classify. On the 8/8 log
+              // that made one of three generations unexplainable: it showed FINAL total ==
+              // PRIMARY total with no CLASSIFY line, and nothing in the log could say which of
+              // the two gates skipped it. Without this line the classifier's run rate cannot be
+              // measured worker-side, and the run rate is exactly what sizes the prefilter below.
               classifyDiag = `skipped (sms+email too short)`;
+              console.log(`[${requestId}] CLASSIFY ${classifyDiag}`);
             }
           } else {
             classifyDiag = `skipped (no phone on file)`;
+            console.log(`[${requestId}] CLASSIFY ${classifyDiag}`);
           }
         } catch (err) {
           console.warn(`[${requestId}] CLASSIFY ERROR → ${err.message || 'unknown'} (keeping primary output)`);

@@ -9,7 +9,7 @@ that reads a VinSolutions lead and drafts SMS / email / voicemail.
 build/dev/           DEV extension source        — v9.7.536-dev
 build/commercial/    COMMERCIAL extension source — v9.7.534
 build/*.js           verification harnesses (see below)
-worker/              Cloudflare Worker source    — v7.47
+worker/worker.js     Cloudflare Worker source    — v7.48 (deployed: v7.47)
 dist/                packaged .zip for the current build pair only
 ```
 
@@ -82,6 +82,7 @@ Self-contained (work from a fresh clone):
 | `node build/verify.js build/dev/popup.js` | SMS carrier-STOP / exit-signal decision, 21 cases |
 | `node build/repro_gerra.js build/dev/popup.js` | reproduces the Gerra incident from log99 field-for-field |
 | `node build/leadpro.test.js` | 125 scenario tests (see caveat below) |
+| `node build/worker_verify.js` | worker prefilter recall/precision + edge-cache key behaviour |
 
 Comparative — these diff **two** builds, so they need a prior `popup.js` on disk. Stage it
 in `build/orig/` (what `differential.js` and `gerra_e2e.js` expect) or pass paths directly:
@@ -106,6 +107,24 @@ blanket fix, and are left failing rather than silenced.
 
 `build/orig/` and `build/new/` are gitignored scratch directories used to hold prior builds
 for differential runs.
+
+## The worker
+
+`worker/worker.js` is the Cloudflare Worker (model proxy, prompt caching, phone-ask
+classifier, edge cache). It deploys **separately** from the extension and is not packaged by
+`package.js`. Its changelog is the header comment, same convention as `popup.js`.
+
+Reading its logs: `POST /` is a generation and prints `START` → `PRIMARY OK` → `CLASSIFY` →
+`FINAL`. `FINAL total` minus `PRIMARY total` is the phone-ask classifier's cost (~545 ms
+measured). `[EDGE-CACHE] HIT/MISS/STORED` reports the edge cache, and `[PREFILTER] shadow`
+reports the prefilter's would-be verdict without acting on it.
+
+> **v7.48 is unreleased.** It carries the prefilter in shadow mode: it logs `wouldSkip` and
+> `miss` but gates nothing. Turn the skip on only when real traffic shows `wouldSkip` is
+> common **and** `miss` has stayed at zero. `miss=true` means a draft that genuinely asked for
+> a phone number would have gone out unregenerated — the exact defect the classifier exists to
+> prevent. Expect `wouldSkip` to be lower than the phrase list suggests: `numbers` is
+> overloaded by ordinary price talk, which trips the filter on drafts that ask for nothing.
 
 ## Not in the repo
 
