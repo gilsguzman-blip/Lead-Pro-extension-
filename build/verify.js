@@ -13,7 +13,12 @@
 
 const { buildRunner, entry, noteEl } = require('./harness.js');
 
-const file = process.argv[2] || 'dev/popup.js';
+// Run from anywhere: CLI paths resolve against your shell's cwd, everything else
+// against this directory.
+const _ARGV = process.argv.slice(2).map(function (a) { return require('path').resolve(a); });
+process.chdir(__dirname);
+
+const file = _ARGV[0] || 'dev/popup.js';
 const R = buildRunner(file);
 
 const CUST_PHONE = '(346) 417-5343';

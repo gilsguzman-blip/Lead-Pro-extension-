@@ -11,6 +11,11 @@
 
 const { buildRunner, entry, noteEl } = require('./harness.js');
 
+// Run from anywhere: CLI paths resolve against your shell's cwd, everything else
+// against this directory.
+const _ARGV = process.argv.slice(2).map(function (a) { return require('path').resolve(a); });
+process.chdir(__dirname);
+
 const INBOUND_RAW  = 'Received from: (346) 417-5343\nReceived by: Gil Guzman\nSTOP';
 const OUT_REMOVED  = 'Sent to: (346) 417-5343\nSent by: Gil Guzman\nYou have successfully been removed from Community Auto Group text messages.';
 const OUT_CLICKNGO = 'Sent to: (346) 417-5343\nSent by: Gil Guzman\nGerra, I saw you completed your application through Click & Go, but no vehicle is attached yet. What model are you shopping for? Kaylee Internet Sales Coordinator | Community Kia Baytown Reply STOP to cancel.';
@@ -44,7 +49,7 @@ const LOG99 = {   // observed on the real page, v9.7.534-dev
   hasExitSignal: true, isSmsOptOutOnly: false
 };
 
-const out = buildRunner(process.argv[2] || 'dev/popup.js').run(GERRA_REAL);
+const out = buildRunner(_ARGV[0] || 'dev/popup.js').run(GERRA_REAL);
 
 console.log('\n  Gerra, REAL note/transcript shapes — harness vs log99\n');
 let mismatch = 0;

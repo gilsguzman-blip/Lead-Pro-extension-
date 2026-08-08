@@ -11,6 +11,11 @@
 
 const { buildRunner, entry, noteEl } = require('./harness.js');
 
+// Run from anywhere: CLI paths resolve against your shell's cwd, everything else
+// against this directory.
+const _ARGV = process.argv.slice(2).map(function (a) { return require('path').resolve(a); });
+process.chdir(__dirname);
+
 const OLD = buildRunner('orig/dev/popup.js');
 const NEW = buildRunner('dev/popup.js');
 

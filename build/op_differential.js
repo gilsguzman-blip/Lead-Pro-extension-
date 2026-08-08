@@ -4,8 +4,13 @@
 // disagree is printed for audit — the point is that no disagreement goes unexamined.
 
 const { buildOp } = require('./op_harness.js');
-const A = buildOp(process.argv[2] || 'new/dev/popup.js');   // v9.7.535
-const B = buildOp(process.argv[3] || 'dev/popup.js');       // corrected
+
+// Run from anywhere: CLI paths resolve against your shell's cwd, everything else
+// against this directory.
+const _ARGV = process.argv.slice(2).map(function (a) { return require('path').resolve(a); });
+process.chdir(__dirname);
+const A = buildOp(_ARGV[0] || 'new/dev/popup.js');   // v9.7.535
+const B = buildOp(_ARGV[1] || 'dev/popup.js');       // corrected
 
 // left-hand fragments: genuine presence (G) vs idiom/inventory noise (N)
 const LEFT = [

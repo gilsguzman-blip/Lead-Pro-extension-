@@ -1,8 +1,14 @@
 #!/usr/bin/env node
 'use strict';
 /**
- * leadpro.test.js — Lead Pro v8.07 unit tests
- * Run with: node leadpro.test.js
+ * leadpro.test.js — Lead Pro scenario tests (written for v8.07)
+ * Run with: node build/leadpro.test.js   (loads build/dev/popup.js)
+ *
+ * STATE, v9.7.536: 125 tests, 106 pass, 19 fail. The 19 are STALE EXPECTATIONS,
+ * not defects — they assert prompt wording that changed over ~500 versions
+ * ("REQUIRED OPENING", "universal rules section", "(see directory)" fallback).
+ * They need per-test triage — decide whether the assertion or the code is right —
+ * which is real work, not cleanup, and was deliberately NOT done in the move.
  *
  * Tests S1–S25 + BONUS via classifyScenario(), buildUserPrompt(), and
  * buildSystemPrompt() loaded directly from popup.js using Node vm.
@@ -102,7 +108,7 @@ const popupCtx = vm.createContext({
 });
 
 // Load popup.js — DOM-interaction code at the bottom runs but is harmless
-const popupSrc = fs.readFileSync(path.join(__dirname, 'popup.js'), 'utf8');
+const popupSrc = fs.readFileSync(path.join(__dirname, 'dev', 'popup.js'), 'utf8');
 try {
   vm.runInContext(popupSrc, popupCtx);
 } catch (e) {

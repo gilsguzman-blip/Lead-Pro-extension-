@@ -5,8 +5,13 @@
 //   want:'gap'     documented cross-clause loss of the same-clause rule: reported, not a failure
 
 const { buildOp } = require('./op_harness.js');
-const OLD = buildOp(process.argv[2] || 'dev/popup.js');        // pre-535 logic
-const NEW = buildOp(process.argv[3] || 'new/dev/popup.js');    // v9.7.535
+
+// Run from anywhere: CLI paths resolve against your shell's cwd, everything else
+// against this directory.
+const _ARGV = process.argv.slice(2).map(function (a) { return require('path').resolve(a); });
+process.chdir(__dirname);
+const OLD = buildOp(_ARGV[0] || 'dev/popup.js');        // pre-535 logic
+const NEW = buildOp(_ARGV[1] || 'new/dev/popup.js');    // v9.7.535
 
 const BY = 'By: Rotaxlyn\n';
 const C = [
@@ -45,7 +50,7 @@ const C = [
 ];
 
 let fail = 0, lost = 0, kept = 0;
-console.log('\n  old = ' + (process.argv[2] || 'dev/popup.js') + '   new = ' + (process.argv[3] || 'new/dev/popup.js') + '\n');
+console.log('\n  old = ' + (_ARGV[0] || 'dev/popup.js') + '   new = ' + (_ARGV[1] || 'new/dev/popup.js') + '\n');
 console.log('  ' + 'case'.padEnd(38) + 'want    old    new');
 console.log('  ' + '-'.repeat(62));
 for (const [name, want, text] of C) {
