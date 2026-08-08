@@ -36,23 +36,34 @@ detector logic.** Several entries exist specifically to stop a later reader from
 DEV and COMMERCIAL ship together and their changed regions must be byte-identical.
 
 1. Edit both `build/dev/popup.js` and `build/commercial/popup.js`; diff the changed region.
-2. Bump the version in **three** places — the top-of-file changelog header, `manifest.json`
-   `"version"`, and `manifest.json` `"version_name"`. A missed `version_name` once caused a
-   Chrome Web Store rejection.
-3. `node --check` both builds.
-4. Package with `zip -j` including `*.png` — **11 files**. A build that omitted the icons
-   was rejected.
-5. Confirm both `manifest.json` files parse.
+2. Write the changelog entry as the new top line of both `popup.js` files.
+3. Bump and package:
 
 ```sh
-cd build/dev        && zip -j ../../dist/leadpro_DEV_v9_7_536.zip        *.js *.json *.html *.png
-cd build/commercial && zip -j ../../dist/leadpro_COMMERCIAL_v9_7_534.zip *.js *.json *.html *.png
+node build/package.js --dev 9.7.537 --comm 9.7.535
+node build/package.js              # no bump: re-check and repackage the current pair
+node build/package.js --no-zip     # check only, write nothing
 ```
 
-`dist/` holds only the current pair. Superseded zips are removed on each build so there is
-exactly one artifact per side — v9.7.535 shipped a regression precisely because it was
-forked from a superseded build carrying an already-used version number. **Never reuse a
-version number for changed code.**
+`package.js` sets `manifest.version` and `version_name`, then refuses to package unless
+every convention holds. It exists because these were prose, and prose got violated three
+times with real consequences — each is now a hard failure:
+
+| guard | the incident it prevents |
+|---|---|
+| version already in the changelog | v9.7.535 forked from a superseded v9.7.534 and shipped without that build's fix |
+| `version_name` missing or mismatched | Chrome Web Store rejection |
+| all 11 files present, 2 `.png` | a zip without icons was rejected |
+| `node --check` both builds | broken syntax reaching a package |
+| changelog header vs `manifest.version` | silent version drift between the two places |
+| dev/commercial file sets match | one side shipping a file the other lacks |
+
+All six are covered by a self-test that deliberately breaks each one and confirms it fails.
+
+`dist/` holds only the current pair; `package.js` prunes superseded zips so there is exactly
+one artifact per side. **Never reuse a version number for changed code** — that is what the
+first guard is for. Repackaging is content-stable but not byte-stable: `zip` records mtimes,
+so re-running produces a different blob with identical contents.
 
 ## Verification
 
