@@ -1,4 +1,8 @@
 /**
+ * v7.50: mirrors reporter v1.9 — 'incomplete' (extension v9.7.541) excluded from every quality
+ *   denominator; adds produced/usedRate. A session that never rendered a draft is a generate
+ *   reliability signal, not a rejection.
+ *
  * v7.49: EXPLICIT/IMPLICIT SPLIT surfaced from aggregate(), plus 'abandoned' recognition.
  *
  *   THE BUG, reproduced against two real production days. Any tile labelled "EXPLICIT" that
@@ -625,7 +629,7 @@ const SAFE_FALLBACK_TEXT = JSON.stringify({
 function _newBucket() {
   // (v7.49) 'abandoned' added alongside the top-level ratings map; without it a bucket's
   // total counts rows its rating fields do not, and per-store rates drift from the top line.
-  return { up: 0, weak_up: 0, neutral: 0, down: 0, abandoned: 0, total: 0 };
+  return { up: 0, weak_up: 0, neutral: 0, down: 0, abandoned: 0, incomplete: 0, total: 0 };
 }
 function _tallyBucket(bucket, rating) {
   bucket.total++;
@@ -639,10 +643,11 @@ function _bucketRates(b) {
   return {
     up: b.up || 0, weak_up: b.weak_up || 0, neutral: b.neutral || 0, down,
     abandoned: b.abandoned || 0,
+    incomplete: b.incomplete || 0,
     total,
-    engaged: total - (b.abandoned || 0),
-    engagedShippedRate:  (total - (b.abandoned || 0)) ? Math.round(100 * shipped  / (total - (b.abandoned || 0))) : 0,
-    engagedFirstTryRate: (total - (b.abandoned || 0)) ? Math.round(100 * firstTry / (total - (b.abandoned || 0))) : 0,
+    engaged: total - (b.abandoned || 0) - (b.incomplete || 0),
+    engagedShippedRate:  (total - (b.abandoned || 0) - (b.incomplete || 0)) ? Math.round(100 * shipped  / (total - (b.abandoned || 0) - (b.incomplete || 0))) : 0,
+    engagedFirstTryRate: (total - (b.abandoned || 0) - (b.incomplete || 0)) ? Math.round(100 * firstTry / (total - (b.abandoned || 0) - (b.incomplete || 0))) : 0,
     shipped,
     firstTry,
     posRate:      total ? Math.round(100 * shipped  / total) : 0,
@@ -1702,7 +1707,7 @@ function aggregate(entries) {
   const total = entries.length;
   // (v7.49) 'abandoned' is the extension v9.7.540 rating for a generate the agent never used.
   // Without it here the row lands in `total` but in no bucket, so every rate silently deflates.
-  const ratings = { up: 0, weak_up: 0, neutral: 0, down: 0, abandoned: 0 };
+  const ratings = { up: 0, weak_up: 0, neutral: 0, down: 0, abandoned: 0, incomplete: 0 };
   // (v7.49) EXPLICIT vs IMPLICIT SPLIT. `rating` alone cannot carry this: the extension's
   // _lpFeedbackDeriveRating returns 'up' BOTH for an explicit thumbs-up and for a copied-as-is
   // draft, distinguished only by `signal`. So ratings.up has always been implicit_copy +
@@ -1756,7 +1761,10 @@ function aggregate(entries) {
   // existing all-rows denominator -- that is the honest product metric now that the denominator
   // finally contains the drafts nobody used -- while engaged*Rate reproduces the pre-v9.7.540
   // basis so an existing chart series does not appear to collapse on the day the fleet updates.
-  const engaged             = total - ratings.abandoned;
+  // (v7.50) 'incomplete' = extension v9.7.541, a session that never rendered a draft (failed or
+  // aborted generate). Not a rejection, so it belongs in no quality denominator.
+  const produced            = total - ratings.incomplete;
+  const engaged             = produced - ratings.abandoned;
   const engagedShippedRate  = engaged ? Math.round(100 * shipped  / engaged) : 0;
   const engagedFirstTryRate = engaged ? Math.round(100 * firstTry / engaged) : 0;
 
@@ -1766,7 +1774,8 @@ function aggregate(entries) {
     // (v7.49) Use these for any tile labelled "explicit". explicitUp/explicitDown are the true
     // thumb counts; implicitUp is the copied-as-is count that was being folded in with them.
     explicitUp, explicitDown, implicitUp,
-    engaged, engagedShippedRate, engagedFirstTryRate,
+    engaged, produced, engagedShippedRate, engagedFirstTryRate,
+    usedRate: produced ? Math.round(100 * shipped / produced) : 0,
     ratings, signals,
     byStore:      _decorateBuckets(byStore),
     byPersona:    _decorateBuckets(byPersona),

@@ -40,6 +40,17 @@
  *        Previously it would land in `total` but in no ratings bucket, silently deflating every
  *        rate the day the fleet updates. Shipped/First-Try stay on the ENGAGED denominator so the
  *        existing series remains comparable; the all-generates "used" rate is disclosed alongside.
+ * v1.9 — separates "no draft was ever produced" from "draft produced but not used", and stops
+ *        showing 0% for a bucket with nothing to measure. Extension v9.7.540's first live day
+ *        (8/11) produced 34 abandoned rows, 28 of which carried NO meta — an "unknown" store at
+ *        0% shipped / 0% first-try. Cause: the extension captures feedback meta only AFTER a
+ *        generation succeeds, so an empty meta means the session never rendered a draft (failed
+ *        or aborted generate, or a second Generate click landing mid-flight). Those are not
+ *        rejections. Extension v9.7.541 now reports them as rating 'incomplete'; this build
+ *        excludes them from every quality denominator and shows the count on its own.
+ *        usedRate is now shipped / drafts-actually-produced, which is the question it was meant
+ *        to answer. A store row with zero engaged sessions renders "—" rather than 0%, which
+ *        read as total failure when the truth was "nothing to measure".
  */
 
 // (v1.4) DST-safe Central Time. Previously CT_OFFSET = -5 was hardcoded (CDT); correct in
@@ -377,16 +388,18 @@ function buildReport(reqs, dateLabel, feedbackData = null) {
       .sort((a,b) => b[1].total - a[1].total)
       .map(([store, s]) => {
         // (v1.8) engaged denominator, mirroring the headline — abandoned rows are volume, not failure
-        const sEngaged  = (s.total || 0) - (s.abandoned || 0);
+        const sEngaged  = (s.total || 0) - (s.abandoned || 0) - (s.incomplete || 0);
         const sShipped  = sEngaged ? Math.round(100 * ((s.up||0)+(s.weak_up||0)+(s.neutral||0)) / sEngaged) : 0;
         const sFirstTry = sEngaged ? Math.round(100 * ((s.up||0)+(s.weak_up||0)) / sEngaged) : 0;
         const col = sShipped >= 90 ? '#34d399' : sShipped >= 75 ? '#fbbf24' : '#f87171';
         const ftCol = sFirstTry < sShipped ? '#94a3b8' : col;
+        // (v1.9) Zero engaged sessions means nothing to measure — "0%" read as total failure.
+        const dash = '<span style="color:#4b5563">—</span>';
         return tr([
           store.replace('Community ',''),
           s.total,
-          `<span style="color:${col}">${sShipped}%</span>`,
-          `<span style="color:${ftCol}">${sFirstTry}%</span>`,
+          sEngaged ? `<span style="color:${col}">${sShipped}%</span>` : dash,
+          sEngaged ? `<span style="color:${ftCol}">${sFirstTry}%</span>` : dash,
           s.down || 0
         ]);
       }).join('');
@@ -421,8 +434,8 @@ function buildReport(reqs, dateLabel, feedbackData = null) {
       )}
       <div style="font-size:10px;color:#4b5563;margin-top:6px">Shipped = copied &amp; sent (incl. after a regen). First-try = sent with no regen. Both are of ${fd.engaged != null ? fd.engaged : fd.total} engaged sessions.</div>
       <div style="font-size:10px;color:#4b5563;margin-top:4px">
-        👍/👎 above are explicit thumb clicks only. Implicit: ${fd.implicitUp || 0} copied as-is, ${fd.implicitDown || 0} regenerated or chipped then abandoned${(fd.abandoned || 0) ? `, ${fd.abandoned} generated and never used` : ''}.${(fd.abandoned || 0) ? ` Used rate across all ${fd.total} generations: ${fd.usedRate}%.` : ''}
-      </div>
+        👍/👎 above are explicit thumb clicks only. Implicit: ${fd.implicitUp || 0} copied as-is, ${fd.implicitDown || 0} regenerated or chipped then abandoned${(fd.abandoned || 0) ? `, ${fd.abandoned} produced and never used` : ''}.${(fd.produced != null && (fd.abandoned || 0)) ? ` Used rate across the ${fd.produced} drafts produced: ${fd.usedRate}%.` : ''}
+      </div>${(fd.incomplete || 0) ? `<div style="font-size:10px;color:#fbbf24;margin-top:4px">${fd.incomplete} session${fd.incomplete === 1 ? '' : 's'} never rendered a draft (failed or aborted generate) and ${fd.incomplete === 1 ? 'is' : 'are'} excluded from every rate above.</div>` : ''}
       <div style="margin-top:12px">
         ${table(['Signal Type', 'Count', ''], [sigRows])}
       </div>
@@ -650,7 +663,7 @@ async function runReport(env, dateLabel, sendMail = true) {
       if (entries.length > 0) {
         // (v1.8) 'abandoned' = extension v9.7.540, a generate the agent never used. Without it
         // here the row counts toward `total` but no rating bucket, deflating every rate.
-        const ratings  = { up:0, weak_up:0, neutral:0, down:0, abandoned:0 };
+        const ratings  = { up:0, weak_up:0, neutral:0, down:0, abandoned:0, incomplete:0 };
         // (v1.8) `rating` cannot distinguish an explicit thumb from an implicit copy/rejection —
         // only `signal` can. Track the split explicitly so the tiles can say what they mean.
         let explicitUp = 0, explicitDown = 0, implicitUp = 0, implicitDown = 0;
@@ -705,17 +718,20 @@ async function runReport(env, dateLabel, sendMail = true) {
         // the existing series is unbroken by v9.7.540; usedRate carries the all-generates view
         // ("of everything generated, what fraction was actually used"), which is the honest
         // product number now that the denominator finally contains the unused drafts.
-        const engaged  = total - ratings.abandoned;
+        // (v1.9) PRODUCED = sessions that actually rendered a draft. 'incomplete' sessions never
+        // did, so they belong in no quality denominator — they are a generate-reliability number.
+        const produced = total - ratings.incomplete;
+        const engaged  = produced - ratings.abandoned;
         feedbackData = {
-          date: dateLabel, total, engaged,
+          date: dateLabel, total, engaged, produced,
           shippedRate:  engaged ? Math.round(100*shipped/engaged)  : 0,
           firstTryRate: engaged ? Math.round(100*firstTry/engaged) : 0,
-          usedRate:     total   ? Math.round(100*shipped/total)    : 0,
+          usedRate:     produced ? Math.round(100*shipped/produced) : 0,
           downRate:     engaged ? Math.round(100*ratings.down/engaged) : 0,
           // posRate kept as alias of shippedRate for any downstream consumer.
           posRate:      engaged ? Math.round(100*shipped/engaged)  : 0,
           explicitUp, explicitDown, implicitUp, implicitDown,
-          abandoned: ratings.abandoned,
+          abandoned: ratings.abandoned, incomplete: ratings.incomplete,
           ratings, signals, chipFreq, byStore, byPersona, byLeadSource, byScenario,
           downSessions,
           avgRegens: total ? +(totalRegens/total).toFixed(2) : 0,

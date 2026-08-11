@@ -109,5 +109,26 @@ eq('bucket total equals the sum of its rating fields', (() => {
   return b.up + b.weak_up + b.neutral + b.down + b.abandoned === b.total;
 })(), true);
 
+console.log('\nincomplete sessions (extension v9.7.541) sit outside quality math:');
+const A11 = [
+  ...rows(102, 'up', 'implicit_copy'),
+  ...rows(42, 'up', 'explicit'),
+  ...rows(1, 'down', 'explicit'),
+  ...rows(2, 'down', 'implicit_regen_no_copy'),
+  ...rows(6, 'abandoned', 'no_interaction'),
+  ...rows(28, 'incomplete', 'no_interaction'),
+];
+const a11 = aggregate(A11);
+eq('total counts every session (181)', a11.total, 181);
+eq('produced excludes incomplete (153)', a11.produced, 153);
+eq('engaged excludes abandoned too (147)', a11.engaged, 147);
+eq('engagedShippedRate = 144/147 = 98%', a11.engagedShippedRate, 98);
+eq('usedRate = 144/153 = 94%', a11.usedRate, 94);
+eq('explicitUp untouched by the new bucket (42)', a11.explicitUp, 42);
+eq('bucket total still reconciles with its rating fields', (() => {
+  const b = a11.byStore['Honda Lafayette'];
+  return b.up + b.weak_up + b.neutral + b.down + b.abandoned + b.incomplete === b.total;
+})(), true);
+
 console.log('\n' + (fail ? 'FAILED' : 'PASSED') + ' — ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);

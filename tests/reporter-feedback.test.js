@@ -102,5 +102,31 @@ eq('shippedRate stays on the engaged basis (460/509 = 90%)', fA.shippedRate, 90)
 eq('usedRate exposes the all-generates view (460/599 = 77%)', fA.usedRate, 77);
 eq('every rejection still reaches the sessions table (49)', fA.downSessions.length, 49);
 
+// ── The real first day of the flush: 2026-08-11 ───────────────────────────────
+// 34 abandoned rows, 28 of them with NO meta -> those never rendered a draft and must not
+// count as rejections. Modelled as extension v9.7.541 now reports them: 'incomplete'.
+console.log('\n2026-08-11 — incomplete sessions excluded from quality math:');
+const AUG11 = [
+  ...rows(102, 'up', 'implicit_copy'),
+  ...rows(42, 'up', 'explicit'),
+  ...rows(1, 'down', 'explicit'),
+  ...rows(2, 'down', 'implicit_regen_no_copy'),
+  ...rows(6, 'abandoned', 'no_interaction'),                       // draft produced, unused
+  ...rows(28, 'incomplete', 'no_interaction', 'unknown'),          // never rendered a draft
+];
+const f11 = aggregate(AUG11);
+eq('explicit 👍 = 42', f11.explicitUp, 42);
+eq('explicit 👎 = 1', f11.explicitDown, 1);
+eq('total still counts every session (181)', f11.total, 181);
+eq('produced excludes incomplete (153)', f11.produced, 153);
+eq('engaged excludes abandoned too (147)', f11.engaged, 147);
+eq('shippedRate unchanged at 98% (144/147)', f11.shippedRate, 98);
+eq('usedRate is now of drafts PRODUCED, not all sessions (144/153 = 94%)', f11.usedRate, 94);
+eq('incomplete surfaced on its own (28)', f11.incomplete, 28);
+eq('the phantom store has zero engaged sessions', (() => {
+  const u = f11.byStore['unknown'];
+  return (u.total || 0) - (u.abandoned || 0) - (u.incomplete || 0);
+})(), 0);
+
 console.log('\n' + (fail ? 'FAILED' : 'PASSED') + ' — ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);
