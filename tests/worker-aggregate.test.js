@@ -130,5 +130,40 @@ eq('bucket total still reconciles with its rating fields', (() => {
   return b.up + b.weak_up + b.neutral + b.down + b.abandoned + b.incomplete === b.total;
 })(), true);
 
+
+// ── Real day 2026-08-11: BY STORE 👎 column merged explicit with implicit no-copy ──────
+// Report showed Honda Baytown 👎7 and Kia Baytown 👎6, reading as the worst rejection rates
+// of the day. Only 2 explicit thumbs-down occurred, both Toyota Baytown.
+console.log('\n2026-08-11 — per-store 👎 must separate explicit from implicit no-copy:');
+const AUG11_STORES = [
+  // Toyota Baytown: the ONLY explicit rejections all day, plus one regen-then-abandon
+  ...rows(2, 'down', 'explicit', 'Toyota Baytown'),
+  ...rows(1, 'down', 'implicit_regen_no_copy', 'Toyota Baytown'),
+  // every other store: regen/chip-then-abandoned only, zero real pushback
+  ...rows(7, 'down', 'implicit_regen_no_copy', 'Honda Baytown'),
+  ...rows(4, 'down', 'implicit_regen_no_copy', 'Kia Baytown'),
+  ...rows(2, 'down', 'implicit_chip_no_copy',  'Kia Baytown'),
+  ...rows(1, 'down', 'implicit_regen_no_copy', 'Honda Lafayette'),
+  ...rows(2, 'down', 'implicit_regen_no_copy', 'unknown'),
+  // shipped volume so the buckets are realistic
+  ...rows(170, 'up', 'implicit_copy', 'Honda Lafayette'),
+  ...rows(49, 'up', 'explicit', 'Toyota Baytown'),
+];
+const st = aggregate(AUG11_STORES).byStore;
+eq('Toyota Baytown — explicit 👎 = 2', st['Toyota Baytown'].explicitDown, 2);
+eq('Toyota Baytown — no-copy = 1', st['Toyota Baytown'].implicitDown, 1);
+eq('Toyota Baytown — merged total was 3', st['Toyota Baytown'].down, 3);
+eq('Honda Baytown — explicit 👎 = 0 (showed 7)', st['Honda Baytown'].explicitDown, 0);
+eq('Honda Baytown — no-copy = 7', st['Honda Baytown'].implicitDown, 7);
+eq('Kia Baytown — explicit 👎 = 0 (showed 6)', st['Kia Baytown'].explicitDown, 0);
+eq('Kia Baytown — no-copy = 6', st['Kia Baytown'].implicitDown, 6);
+eq('Honda Lafayette — explicit 👎 = 0', st['Honda Lafayette'].explicitDown, 0);
+eq('unknown — explicit 👎 = 0', st['unknown'].explicitDown, 0);
+eq('explicit 👎 across all stores = 2, matching the tile',
+  Object.values(st).reduce((a, b) => a + b.explicitDown, 0), 2);
+eq('no-copy across all stores = 17', Object.values(st).reduce((a, b) => a + b.implicitDown, 0), 17);
+eq('every store still reconciles: explicit + implicit === merged down',
+  Object.values(st).every(b => b.explicitDown + b.implicitDown === b.down), true);
+
 console.log('\n' + (fail ? 'FAILED' : 'PASSED') + ' — ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);

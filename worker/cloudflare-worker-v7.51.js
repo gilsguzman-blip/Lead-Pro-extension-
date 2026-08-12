@@ -1,4 +1,8 @@
 /**
+ * v7.51: per-bucket explicit/implicit down split (byStore/byPersona/byLeadSource/byFlag), so a
+ *   renderer's 👎 column can stop merging a thumbs-down with a regen-then-abandoned session.
+ *   Mirrors reporter v1.10.
+ *
  * v7.50: mirrors reporter v1.9 — 'incomplete' (extension v9.7.541) excluded from every quality
  *   denominator; adds produced/usedRate. A session that never rendered a draft is a generate
  *   reliability signal, not a rejection.
@@ -629,11 +633,20 @@ const SAFE_FALLBACK_TEXT = JSON.stringify({
 function _newBucket() {
   // (v7.49) 'abandoned' added alongside the top-level ratings map; without it a bucket's
   // total counts rows its rating fields do not, and per-store rates drift from the top line.
-  return { up: 0, weak_up: 0, neutral: 0, down: 0, abandoned: 0, incomplete: 0, total: 0 };
+  return { up: 0, weak_up: 0, neutral: 0, down: 0, abandoned: 0, incomplete: 0,
+           explicitUp: 0, explicitDown: 0, implicitDown: 0, total: 0 };
 }
-function _tallyBucket(bucket, rating) {
+// (v7.51) `signal` is the only field that separates an explicit thumb from an implicit
+// regen/chip-then-abandoned session, so a bucket keyed on `rating` alone merges them and every
+// per-bucket 👎 column overstates real rejection. Live 8/11: Honda Baytown showed 7 and Kia
+// Baytown 6 while the true explicit count for the whole day was 2, both at Toyota Baytown.
+function _tallyBucket(bucket, rating, signal) {
   bucket.total++;
   if (rating && bucket[rating] !== undefined) bucket[rating]++;
+  if (signal === 'explicit') {
+    if (rating === 'down') bucket.explicitDown++;
+    else if (rating === 'up' || rating === 'weak_up') bucket.explicitUp++;
+  } else if (rating === 'down') bucket.implicitDown++;
 }
 function _bucketRates(b) {
   const shipped  = (b.up || 0) + (b.weak_up || 0) + (b.neutral || 0);
@@ -644,6 +657,7 @@ function _bucketRates(b) {
     up: b.up || 0, weak_up: b.weak_up || 0, neutral: b.neutral || 0, down,
     abandoned: b.abandoned || 0,
     incomplete: b.incomplete || 0,
+    explicitUp: b.explicitUp || 0, explicitDown: b.explicitDown || 0, implicitDown: b.implicitDown || 0,
     total,
     engaged: total - (b.abandoned || 0) - (b.incomplete || 0),
     engagedShippedRate:  (total - (b.abandoned || 0) - (b.incomplete || 0)) ? Math.round(100 * shipped  / (total - (b.abandoned || 0) - (b.incomplete || 0))) : 0,
@@ -1735,19 +1749,19 @@ function aggregate(entries) {
 
     const store = e.meta?.store || 'unknown';
     if (!byStore[store]) byStore[store] = _newBucket();
-    _tallyBucket(byStore[store], e.rating);
+    _tallyBucket(byStore[store], e.rating, e.signal);
 
     const persona = e.meta?.persona || 'unknown';
     if (!byPersona[persona]) byPersona[persona] = _newBucket();
-    _tallyBucket(byPersona[persona], e.rating);
+    _tallyBucket(byPersona[persona], e.rating, e.signal);
 
     const ls = e.meta?.leadSource || 'unknown';
     if (!byLeadSource[ls]) byLeadSource[ls] = _newBucket();
-    _tallyBucket(byLeadSource[ls], e.rating);
+    _tallyBucket(byLeadSource[ls], e.rating, e.signal);
 
     (e.meta?.flags || []).forEach(f => {
       if (!byFlag[f]) byFlag[f] = _newBucket();
-      _tallyBucket(byFlag[f], e.rating);
+      _tallyBucket(byFlag[f], e.rating, e.signal);
     });
   }
 

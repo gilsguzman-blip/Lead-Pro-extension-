@@ -128,5 +128,28 @@ eq('the phantom store has zero engaged sessions', (() => {
   return (u.total || 0) - (u.abandoned || 0) - (u.incomplete || 0);
 })(), 0);
 
+
+// ── Real day 2026-08-11: the BY STORE 👎 column ────────────────────────────────
+console.log('\n2026-08-11 — BY STORE 👎 split (report showed Honda Bay 7, Kia Bay 6):');
+const AUG11_STORES = [
+  ...rows(2, 'down', 'explicit', 'Toyota Baytown'),
+  ...rows(1, 'down', 'implicit_regen_no_copy', 'Toyota Baytown'),
+  ...rows(7, 'down', 'implicit_regen_no_copy', 'Honda Baytown'),
+  ...rows(4, 'down', 'implicit_regen_no_copy', 'Kia Baytown'),
+  ...rows(2, 'down', 'implicit_chip_no_copy',  'Kia Baytown'),
+  ...rows(1, 'down', 'implicit_regen_no_copy', 'Honda Lafayette'),
+  ...rows(2, 'down', 'implicit_regen_no_copy', 'unknown'),
+  ...rows(170, 'up', 'implicit_copy', 'Honda Lafayette'),
+  ...rows(49, 'up', 'explicit', 'Toyota Baytown'),
+];
+const fs11 = aggregate(AUG11_STORES).byStore;
+eq('Toyota Baytown explicit 👎 = 2', fs11['Toyota Baytown'].explicitDown, 2);
+eq('Honda Baytown explicit 👎 = 0, no-copy 7', [fs11['Honda Baytown'].explicitDown, fs11['Honda Baytown'].implicitDown], [0, 7]);
+eq('Kia Baytown explicit 👎 = 0, no-copy 6', [fs11['Kia Baytown'].explicitDown, fs11['Kia Baytown'].implicitDown], [0, 6]);
+eq('Honda Lafayette explicit 👎 = 0', fs11['Honda Lafayette'].explicitDown, 0);
+eq('unknown explicit 👎 = 0', fs11['unknown'].explicitDown, 0);
+eq('store explicit sum = 2, matching the tile', Object.values(fs11).reduce((a,b)=>a+b.explicitDown,0), 2);
+eq('every store reconciles to the old merged count', Object.values(fs11).every(b => b.explicitDown + b.implicitDown === b.down), true);
+
 console.log('\n' + (fail ? 'FAILED' : 'PASSED') + ' — ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);

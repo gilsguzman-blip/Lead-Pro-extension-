@@ -51,6 +51,16 @@
  *        usedRate is now shipped / drafts-actually-produced, which is the question it was meant
  *        to answer. A store row with zero engaged sessions renders "—" rather than 0%, which
  *        read as total failure when the truth was "nothing to measure".
+ * v1.10 — the BY STORE "👎" column merged explicit thumbs-down with implicit regen/chip-then-
+ *        abandoned under one icon. On 8/11 that showed Honda Baytown 👎7 and Kia Baytown 👎6,
+ *        reading as the worst rejection rates of any store, when only 2 explicit thumbs-down
+ *        happened all day and both were Toyota Baytown. The top-level tile (correctly 2) and the
+ *        signal table already separated them; the per-store bucket keyed on `rating` alone, which
+ *        cannot carry the distinction — same root cause as the v1.8 tile bug, one table lower.
+ *        Buckets now tally the signal split too, and the table shows EXPLICIT 👎 and NO-COPY as
+ *        separate columns. Rejected Sessions gains the same breakdown in its header. The split is
+ *        tallied for byPersona / byLeadSource / byScenario as well, so the live KV dashboard's
+ *        own 👎 columns can use it without another aggregation change.
  */
 
 // (v1.4) DST-safe Central Time. Previously CT_OFFSET = -5 was hardcoded (CDT); correct in
@@ -400,7 +410,10 @@ function buildReport(reqs, dateLabel, feedbackData = null) {
           s.total,
           sEngaged ? `<span style="color:${col}">${sShipped}%</span>` : dash,
           sEngaged ? `<span style="color:${ftCol}">${sFirstTry}%</span>` : dash,
-          s.down || 0
+          // (v1.10) explicit thumb clicks and implicit no-copy are different signals — an agent
+          // pressing 👎 is not the same event as a draft being regenerated and left unsent.
+          `<span style="color:${(s.explicitDown || 0) > 0 ? '#f87171' : '#4b5563'}">${s.explicitDown || 0}</span>`,
+          `<span style="color:${(s.implicitDown || 0) > 0 ? '#fbbf24' : '#4b5563'}">${s.implicitDown || 0}</span>`
         ]);
       }).join('');
 
@@ -445,10 +458,10 @@ function buildReport(reqs, dateLabel, feedbackData = null) {
       </div>` : ''}
       ${storeRows ? `<div style="margin-top:12px">
         <div style="font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">By Store</div>
-        ${table(['Store', 'Signals', 'Shipped', '1st-Try', '👎'], [storeRows])}
+        ${table(['Store', 'Signals', 'Shipped', '1st-Try', 'Explicit 👎', 'No-Copy'], [storeRows])}
       </div>` : ''}
       ${downRows ? `<div style="margin-top:12px">
-        <div style="font-size:10px;color:#f87171;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Rejected Sessions (${fd.downSessions.length}) &nbsp;<span style="color:#4b5563;text-transform:none;letter-spacing:0">explicit 👎 and implicit regen/chip-then-abandoned &mdash; see Signal column</span></div>
+        <div style="font-size:10px;color:#f87171;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Rejected Sessions (${fd.downSessions.length}) &nbsp;<span style="color:#4b5563;text-transform:none;letter-spacing:0">${fd.explicitDown || 0} explicit 👎 &middot; ${fd.implicitDown || 0} regenerated or chipped then left unsent &mdash; see Signal column</span></div>
         ${table(['Time CT','Store','Lead Source','Scenario','State','Regens','Signal'], [downRows])}
       </div>` : ''}
       <div style="font-size:10px;color:#4b5563;margin-top:8px">
@@ -671,6 +684,17 @@ async function runReport(env, dateLabel, sendMail = true) {
         const chipFreq = {}, byStore = {}, byPersona = {}, byLeadSource = {}, byScenario = {};
         const downSessions = [];
         let totalRegens = 0, totalChips = 0;
+        const _fbTally = (map, key, e) => {
+          if (!map[key]) map[key] = { up:0, weak_up:0, neutral:0, down:0, abandoned:0, incomplete:0,
+                                      explicitUp:0, explicitDown:0, implicitDown:0, total:0 };
+          const b = map[key];
+          b.total++;
+          if (e.rating) b[e.rating] = (b[e.rating] || 0) + 1;
+          if (e.signal === 'explicit') {
+            if (e.rating === 'down') b.explicitDown++;
+            else if (e.rating === 'up' || e.rating === 'weak_up') b.explicitUp++;
+          } else if (e.rating === 'down') b.implicitDown++;
+        };
         for (const e of entries) {
           if (ratings[e.rating]  !== undefined) ratings[e.rating]++;
           if (e.rating === 'down') downSessions.push({
@@ -689,22 +713,13 @@ async function runReport(env, dateLabel, sendMail = true) {
           totalRegens += e.regenCount || 0;
           totalChips  += e.chipCount  || 0;
           (e.chipsUsed || []).forEach(c => { chipFreq[c] = (chipFreq[c]||0)+1; });
-          const store = e.meta?.store || 'unknown';
-          if (!byStore[store]) byStore[store] = { up:0,weak_up:0,neutral:0,down:0,total:0 };
-          byStore[store].total++;
-          if (e.rating) byStore[store][e.rating] = (byStore[store][e.rating]||0)+1;
-          const persona = e.meta?.persona || 'unknown';
-          if (!byPersona[persona]) byPersona[persona] = { up:0,weak_up:0,neutral:0,down:0,total:0 };
-          byPersona[persona].total++;
-          if (e.rating) byPersona[persona][e.rating] = (byPersona[persona][e.rating]||0)+1;
-          const ls = e.meta?.leadSource || 'unknown';
-          if (!byLeadSource[ls]) byLeadSource[ls] = { up:0,weak_up:0,neutral:0,down:0,total:0 };
-          byLeadSource[ls].total++;
-          if (e.rating) byLeadSource[ls][e.rating] = (byLeadSource[ls][e.rating]||0)+1;
-          const sc = e.meta?.scenario || 'unknown';
-          if (!byScenario[sc]) byScenario[sc] = { up:0,weak_up:0,neutral:0,down:0,total:0 };
-          byScenario[sc].total++;
-          if (e.rating) byScenario[sc][e.rating] = (byScenario[sc][e.rating]||0)+1;
+          // (v1.10) One tally for all four breakdowns. Keying on `rating` alone merged an
+          // explicit thumbs-down with a regen/chip-then-abandoned session, so every per-bucket
+          // 👎 column overstated real rejection. `signal` is the only field that separates them.
+          _fbTally(byStore,      e.meta?.store      || 'unknown', e);
+          _fbTally(byPersona,    e.meta?.persona    || 'unknown', e);
+          _fbTally(byLeadSource, e.meta?.leadSource || 'unknown', e);
+          _fbTally(byScenario,   e.meta?.scenario   || 'unknown', e);
         }
         const total = entries.length;
         // v1.3: SHIPPED rate (up+weak_up+neutral)/total is the headline — matches
