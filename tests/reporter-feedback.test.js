@@ -27,10 +27,16 @@ const BLOCK = src.slice(a, b);
 
 const ctx = {};
 vm.createContext(ctx);
-const aggregate = vm.runInContext(
+const NORMALISE = (arr) => arr.map(e => (e.rating === 'abandoned' && !(e.meta && Object.keys(e.meta).length))
+  ? Object.assign({}, e, { rating: 'incomplete' }) : e);
+if (!/rating === 'abandoned' && !\(e\.meta && Object\.keys\(e\.meta\)\.length\)/.test(src)) {
+  console.error('FAIL: reporter is missing the retroactive normalisation'); process.exit(1);
+}
+const aggregateRaw = vm.runInContext(
   '(function(entries){ let feedbackData=null; const dateLabel="2026-08-10";\n' +
   BLOCK.replace(/^\s*const total = entries\.length;/m, 'const total = entries.length;') +
   '\n return feedbackData; })', ctx);
+const aggregate = (entries) => aggregateRaw(NORMALISE(entries));
 
 const rows = (n, rating, signal, store) =>
   Array.from({ length: n }, (_, i) => ({
@@ -150,6 +156,27 @@ eq('Honda Lafayette explicit 👎 = 0', fs11['Honda Lafayette'].explicitDown, 0)
 eq('unknown explicit 👎 = 0', fs11['unknown'].explicitDown, 0);
 eq('store explicit sum = 2, matching the tile', Object.values(fs11).reduce((a,b)=>a+b.explicitDown,0), 2);
 eq('every store reconciles to the old merged count', Object.values(fs11).every(b => b.explicitDown + b.implicitDown === b.down), true);
+
+
+// ── Retroactive re-render of 8/11 as the rows are actually stored ──────────────
+console.log('\nretroactive — 8/11 as stored (rating=abandoned, meta empty):');
+const STORED_811 = [
+  ...rows(102, 'up', 'implicit_copy'),
+  ...rows(42, 'up', 'explicit'),
+  ...rows(1, 'down', 'explicit'),
+  ...rows(2, 'down', 'implicit_regen_no_copy'),
+  ...rows(6, 'abandoned', 'no_interaction'),
+  ...Array.from({ length: 28 }, () => ({
+    rating: 'abandoned', signal: 'no_interaction', ts: '2026-08-10T18:00:00.000Z',
+    regenCount: 0, chipCount: 0, chipsUsed: [], meta: {}
+  })),
+];
+const rr = aggregate(STORED_811);
+eq('reclassified to incomplete on read (28)', rr.incomplete, 28);
+eq('genuine abandons preserved (6)', rr.abandoned, 6);
+eq('usedRate corrected without a re-write of KV (94%)', rr.usedRate, 94);
+eq('shipped rate still 98%', rr.shippedRate, 98);
+eq('explicit tiles unaffected (42 / 1)', [rr.explicitUp, rr.explicitDown], [42, 1]);
 
 console.log('\n' + (fail ? 'FAILED' : 'PASSED') + ' — ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);

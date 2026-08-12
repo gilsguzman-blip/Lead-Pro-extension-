@@ -61,6 +61,13 @@
  *        separate columns. Rejected Sessions gains the same breakdown in its header. The split is
  *        tallied for byPersona / byLeadSource / byScenario as well, so the live KV dashboard's
  *        own 👎 columns can use it without another aggregation change.
+ * v1.11 — retroactive normalisation so corrected math applies to days ALREADY recorded. The
+ *        explicit/implicit splits (v1.8, v1.10) were always retroactive because `signal` has
+ *        been stored since the feedback system shipped — re-rendering any day with ?date= recomputes
+ *        them from the raw KV rows. The 'incomplete' split was NOT: it depends on extension
+ *        v9.7.541, and 8/11 ran on v9.7.540, which wrote those sessions as 'abandoned'. Rows with
+ *        an empty meta are unambiguous evidence no draft was produced, so they are reclassified at
+ *        read time. Every day inside the 90-day KV window now renders with correct math.
  */
 
 // (v1.4) DST-safe Central Time. Previously CT_OFFSET = -5 was hardcoded (CDT); correct in
@@ -670,7 +677,19 @@ async function runReport(env, dateLabel, sendMail = true) {
       // Without this, a rating recorded near CT midnight (UTC-dated the next day) shows up in
       // BOTH days' reports. Entries with no timestamp are kept as-is (fail open) rather than
       // dropped, since we can't verify their date either way.
-      const entries = [...e1, ...e2].filter(e => !e.ts || ctDateLabel(new Date(e.ts)) === dateLabel);
+      // (v1.11/v7.52) RETROACTIVE NORMALISATION. Extension v9.7.541 is what labels a session
+// that never rendered a draft as 'incomplete'; rows written by v9.7.540 -- which is what ran on
+// 8/11 -- recorded the same thing as 'abandoned'. Re-rendering an old day cannot change what the
+// extension already wrote, so those rows would keep inflating the used-rate denominator forever.
+// They are identifiable without guessing: _lpFeedbackCaptureMeta runs only after a generation
+// succeeds, so an EMPTY meta is positive evidence no draft was ever produced. Normalise here and
+// every historical day re-renders correctly. Rows from v9.7.541 onward already carry the right
+// rating and pass through untouched.
+      const entries = [...e1, ...e2]
+        .filter(e => !e.ts || ctDateLabel(new Date(e.ts)) === dateLabel)
+        .map(e => (e.rating === 'abandoned' && !(e.meta && Object.keys(e.meta).length))
+          ? Object.assign({}, e, { rating: 'incomplete' })
+          : e);
       console.log(`[FEEDBACK] ${beforeFilter} raw entries -> ${entries.length} after CT-date filter`);
 
       if (entries.length > 0) {

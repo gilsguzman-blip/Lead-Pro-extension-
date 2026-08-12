@@ -165,5 +165,28 @@ eq('no-copy across all stores = 17', Object.values(st).reduce((a, b) => a + b.im
 eq('every store still reconciles: explicit + implicit === merged down',
   Object.values(st).every(b => b.explicitDown + b.implicitDown === b.down), true);
 
+
+// ── Retroactive: 8/11 rows are stored as 'abandoned' (v9.7.540 wrote them, v9.7.541 was
+// not deployed yet). Re-rendering that day must still produce the corrected math.
+console.log('\nretroactive — pre-v9.7.541 rows re-render correctly:');
+const AS_STORED_811 = [
+  ...rows(102, 'up', 'implicit_copy'),
+  ...rows(42, 'up', 'explicit'),
+  ...rows(1, 'down', 'explicit'),
+  ...rows(2, 'down', 'implicit_regen_no_copy'),
+  ...rows(6, 'abandoned', 'no_interaction'),                  // real abandons: meta present
+  ...Array.from({ length: 28 }, () => ({                      // never rendered a draft: meta EMPTY
+    rating: 'abandoned', signal: 'no_interaction', meta: {}
+  })),
+];
+const rr = aggregate(AS_STORED_811);
+eq('28 meta-less rows reclassified as incomplete', rr.ratings.incomplete, 28);
+eq('only the 6 genuine abandons remain', rr.ratings.abandoned, 6);
+eq('produced excludes them (153)', rr.produced, 153);
+eq('engaged (147)', rr.engaged, 147);
+eq('usedRate corrected on re-render (94%, was 80%)', rr.usedRate, 94);
+eq('explicit counts untouched by the rewrite (42 / 1)', [rr.explicitUp, rr.explicitDown], [42, 1]);
+eq('total is preserved — nothing dropped (181)', rr.total, 181);
+
 console.log('\n' + (fail ? 'FAILED' : 'PASSED') + ' — ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);

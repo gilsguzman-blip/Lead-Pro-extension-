@@ -1,4 +1,8 @@
 /**
+ * v7.52: retroactive normalisation of pre-v9.7.541 'abandoned' rows that carry no meta — they
+ *   never rendered a draft, so they re-render as 'incomplete'. Applied in aggregate() AND in the
+ *   /feedback/range byDay loop, which counts raw entries itself. Mirrors reporter v1.11.
+ *
  * v7.51: per-bucket explicit/implicit down split (byStore/byPersona/byLeadSource/byFlag), so a
  *   renderer's 👎 column can stop merging a thumbs-down with a regen-then-abandoned session.
  *   Mirrors reporter v1.10.
@@ -797,7 +801,13 @@ export default {
           // the same gap within a day.
           const vals = await Promise.all(page.keys.map(key => env.LEADPRO_LICENSES.get(key.name)));
           for (const val of vals) {
-            if (val) { try { const e = JSON.parse(val); dayEntries.push(e); allEntries.push(e); } catch {} }
+            if (val) { try {
+              let e = JSON.parse(val);
+              // (v7.52) same retroactive normalisation as aggregate() — the byDay series below
+              // filters raw entries itself, so it needs the rewrite applied before it counts.
+              if (e.rating === 'abandoned' && !(e.meta && Object.keys(e.meta).length)) e = Object.assign({}, e, { rating: 'incomplete' });
+              dayEntries.push(e); allEntries.push(e);
+            } catch {} }
           }
           cursor = page.list_complete ? null : page.cursor;
         } while (cursor);
@@ -1718,6 +1728,17 @@ async function sendAppointmentInvite(env, { customerName, customerEmail, dealerN
 }
 
 function aggregate(entries) {
+  // (v1.11/v7.52) RETROACTIVE NORMALISATION. Extension v9.7.541 is what labels a session
+// that never rendered a draft as 'incomplete'; rows written by v9.7.540 -- which is what ran on
+// 8/11 -- recorded the same thing as 'abandoned'. Re-rendering an old day cannot change what the
+// extension already wrote, so those rows would keep inflating the used-rate denominator forever.
+// They are identifiable without guessing: _lpFeedbackCaptureMeta runs only after a generation
+// succeeds, so an EMPTY meta is positive evidence no draft was ever produced. Normalise here and
+// every historical day re-renders correctly. Rows from v9.7.541 onward already carry the right
+// rating and pass through untouched.
+  entries = (entries || []).map(e => (e && e.rating === 'abandoned' && !(e.meta && Object.keys(e.meta).length))
+    ? Object.assign({}, e, { rating: 'incomplete' })
+    : e);
   const total = entries.length;
   // (v7.49) 'abandoned' is the extension v9.7.540 rating for a generate the agent never used.
   // Without it here the row lands in `total` but in no bucket, so every rate silently deflates.
