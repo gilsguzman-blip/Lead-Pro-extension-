@@ -9562,7 +9562,7 @@ function tryExecuteScript(tab, statusEl, dot) {
                   }
                 }
               } else if (k === 'customerState' || k === 'customerZip') {
-                // (v9.7.547/545) CUSTOMER HOME ADDRESS IS AN ATOMIC BUNDLE. The two fields merged
+                // (v9.7.547/546) CUSTOMER HOME ADDRESS IS AN ATOMIC BUNDLE. The two fields merged
                 // independently under the generic first-truthy rule, so a STATE from one frame
                 // could pair with a ZIP from another — and the distance system reads them as one
                 // fact (state decides out-of-state, zip decides the local set). Same shape as the
@@ -9851,7 +9851,7 @@ function tryExecuteScript(tab, statusEl, dot) {
                   }
                 }
               } else if (k === 'customerState' || k === 'customerZip') {
-                // (v9.7.547/545) THE CUSTOMER'S HOME ADDRESS WAS THE ONE IDENTITY FACT NOTHING
+                // (v9.7.547/546) THE CUSTOMER'S HOME ADDRESS WAS THE ONE IDENTITY FACT NOTHING
                 // GUARDED. `phone` and `email` are in _isIdentityField; `vehicle`, `leadSource`,
                 // the conversation fields and the lead-state fields all have their own gates. The
                 // buyer's STATE and ZIP were in none of the three lists, so they fell through to
@@ -9885,7 +9885,7 @@ function tryExecuteScript(tab, statusEl, dot) {
               }
             }
           }
-          // (v9.7.547/545) [LP ADDRESS DIAG] — what every frame claimed the customer's home
+          // (v9.7.547/546) [LP ADDRESS DIAG] — what every frame claimed the customer's home
           // address is, and what the merge kept. A disagreement here IS the bleed; without it the
           // merge erases the evidence and the next distance incident has to be reasoned backwards
           // from the delivered prompt again.
@@ -11749,7 +11749,7 @@ function classifyScenario(data) {
   var _custStateUP = String(data.customerState||'').toUpperCase();
   var _isOutOfState = !!(_storeHomeState && /^[A-Z]{2}$/.test(_custStateUP) && _custStateUP !== _storeHomeState);
   // May the message name the actual distance/mileage? Only for a genuine remote situation.
-  // (v9.7.547/545) A confirmed-local ZIP vetoes an out-of-state STATE here too. Without this a
+  // (v9.7.547/546) A confirmed-local ZIP vetoes an out-of-state STATE here too. Without this a
   // bled state still bought permission to name the customer's mileage back to them, which is the
   // exact behaviour v9.7.401 exists to prevent.
   s.mayStateDistance = (_isOutOfState && !_isLocalByZip) || _explicitDistanceReq;
@@ -15464,7 +15464,7 @@ function buildUserPrompt(data) {
   var _localSetHit = null; // true=in local set, false=in-state but not, null=undetermined
   try {
     var _dealerIdForDist = data.dealerId || (typeof STORE_NAME_TO_ID !== 'undefined' ? STORE_NAME_TO_ID[data.store] : '');
-    // (v9.7.547/545) The local-set lookup used to be skipped entirely when _geoOutOfState was
+    // (v9.7.547/546) The local-set lookup used to be skipped entirely when _geoOutOfState was
     // already true, so a wrong STATE permanently outranked a right ZIP and the block below never
     // got to disagree with it. Look the ZIP up whenever we have one; the in-state-far TIER still
     // only applies to same-state buyers, which is all the short-circuit was ever protecting.
@@ -15486,7 +15486,7 @@ function buildUserPrompt(data) {
       }
     }
   } catch(e) {}
-  // (v9.7.547/545) THE ZIP OUTRANKS A STATE THAT CONTRADICTS IT. Each rooftop's local-ZIP set is
+  // (v9.7.547/546) THE ZIP OUTRANKS A STATE THAT CONTRADICTS IT. Each rooftop's local-ZIP set is
   // single-state by construction (Baytown = TX ZIPs, Lafayette = LA ZIPs), so a ZIP sitting IN the
   // store's own local set while the scraped STATE says out-of-state is not a close call — the two
   // facts cannot both be true, and one of them is bled from another frame. The ZIP is the better
