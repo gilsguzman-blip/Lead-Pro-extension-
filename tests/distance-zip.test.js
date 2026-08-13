@@ -131,6 +131,37 @@ eq('...and with no chip at all, still nothing',
 eq('our own voicemail ("Since you’re not local") no longer proves the customer is remote',
   i => i.remote(BILLY(['distance']), { localVeto: true, geoOutOfState: false }).remote, false);
 
+// ── Kevin Cordes, the second live incident of the same day ────────────────────────────────
+// Community Honda Baytown (6191), Cars.com Finance Intent, marked Duplicate by the system.
+// Buyer panel: "Baytown, TX 77521" — the store's own town, and '77521' is in LOCAL_ZIPS_BAYTOWN.
+// His CELL is (337) 400-5105, a Lafayette LOUISIANA area code, which is the whole trap: the
+// phone looks out-of-area and the address is across the street. The delivered drafts read
+// "Since you're out of state" and "Since you're not local". Nothing in the geo path can produce
+// that — TX customer at a TX rooftop, ZIP in the local set — so the flag came from activeFlags
+// and was honoured verbatim, exactly as on Billy.
+const KEVIN = (flags) => ({
+  store: 'Community Honda Baytown', dealerId: '6191',
+  customerState: 'TX', customerZip: '77521',
+  phone: '(337) 400-5105',
+  vehicle: '2018 Chevrolet Silverado 1500 LT',
+  lastInboundMsg: '',
+  context: 'AGENT CONTEXT — READ THIS FIRST.\n' +
+           '[08/13/2026 9:53 AM] [AGENT] Outbound Text Message\n' +
+           '  Good morning Kevin My name is Mario please let me how I can help with your next car purchase\n',
+  activeFlags: flags || [], relationshipSignals: { personalContext: [] }
+});
+
+console.log('\nTHE SECOND INCIDENT — Kevin Cordes, Baytown TX 77521 at dealerId 6191:');
+eq('a Louisiana area code does not make a Baytown address remote — _isLocalByZip true',
+  i => i.scenario(KEVIN(), {}).isLocalByZip, true);
+eq('in-state at his own rooftop — _geoOutOfState false',
+  i => i.decide(KEVIN(['distance'])).geoOutOfState, false);
+eq('the local veto fires', i => i.decide(KEVIN(['distance'])).localVeto, true);
+eq('NO distance block renders — this is "Since you\'re out of state"',
+  i => i.decide(KEVIN(['distance'])).rendered, false);
+eq('scenario agrees — s.isDistanceBuyer false with the chip on',
+  i => i.scenario(KEVIN(['distance']), {}).isDistanceBuyer, false);
+
 console.log('\nthe veto is a ZIP fact, not a blanket mute — a customer who ASKS still wins:');
 const BILLY_ASKS = Object.assign(BILLY(['distance']), {
   lastInboundMsg: 'Can you ship the vehicle to me? I would rather not make the drive.'
