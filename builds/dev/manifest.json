@@ -38,7 +38,7 @@
     "48": "icon128.png",
     "128": "icon128.png"
   },
-  "version_name": "9.7.545-dev",
+  "version_name": "9.7.547-dev",
   "background": {
     "service_worker": "background.js"
   }
