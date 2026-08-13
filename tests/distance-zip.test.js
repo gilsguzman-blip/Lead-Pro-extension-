@@ -42,7 +42,11 @@ function build(file) {
   // Shared prerequisites, verbatim: the ZIP sets, the haversine tables, and the two shared
   // "did the customer say it themselves" helpers.
   vm.runInContext(
-    cut(src, 'const LOCAL_ZIPS_BAYTOWN', '\nconst STORE_TO_DEALER_ID', 'the geo constants', file) +
+    // (v9.7.548) Start the slice at the state allowlist, which now sits immediately above the ZIP
+    // sets — _lpIsUSState is called by every consumer below, and the distance decision swallows a
+    // ReferenceError in its own try/catch, so omitting it fails as a silent `false` rather than a
+    // throw. That is exactly how this harness gap first presented.
+    cut(src, '// (v9.7.548/547) THE 50 STATES + DC.', '\nconst STORE_TO_DEALER_ID', 'the geo constants', file) +
     '\n' + cut(src, 'function _lpCustomerText(d){', '\n// (v9.7.429/427) ONE Director-mode', 'the text helpers', file),
     ctx);
 
