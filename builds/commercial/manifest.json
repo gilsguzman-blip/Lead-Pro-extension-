@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Lead Pro",
-  "version": "9.7.544",
+  "version": "9.7.545",
   "description": "AI-powered BDC response tool for Community Auto Group",
   "permissions": [
     "activeTab",

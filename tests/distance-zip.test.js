@@ -36,7 +36,7 @@ function cut(src, from, to, what, file) {
 
 function build(file) {
   const src = fs.readFileSync(file, 'utf8');
-  const ctx = { console: { log() {} } };
+  const ctx = { console: { log() {}, warn() {}, error() {} } };
   vm.createContext(ctx);
 
   // Shared prerequisites, verbatim: the ZIP sets, the haversine tables, and the two shared
@@ -53,6 +53,7 @@ function build(file) {
     cut(src, '  var _geoOutOfState = false;', "  if (flags.includes('trade')) {", 'the prompt distance decision', file) +
     '\n  return { flags: flags, geoOutOfState: _geoOutOfState, inStateFar: _inStateFar,\n' +
     '           localSetHit: _localSetHit, localVeto: _bpLocalVeto, explicitReq: _bpExplicitReq,\n' +
+    '           zipVetoedState: _zipVetoedState,\n' +
     '           rendered: flags.indexOf("distance") !== -1 }; })', ctx);
 
   // ── B: which branch renders — REMOTE vs the softer in-state DISTANCE BUYER ──────────────
@@ -74,7 +75,23 @@ function build(file) {
     "  if (manualFlags.indexOf('distance') !== -1 && !_isLocalByZip)  { s.isDistanceBuyer = true; }\n" +
     '  return { isLocalByZip: _isLocalByZip, explicitReq: _explicitDistanceReq, isDistanceBuyer: !!s.isDistanceBuyer }; })', ctx);
 
-  return { name: path.basename(path.dirname(file)), decide, remote, scenario };
+  // ── D: the PASS-2 address merge, verbatim from the shipped block ────────────────────────
+  // Exercised as the merge exercises it: one frame at a time, in `sorted` order, against a
+  // partially-built `m`.
+  const mergeAddr = vm.runInContext(
+    '(function(frames, activeCustomerId, pass1HadActiveFrame){\n' +
+    '  var m = {};\n' +
+    '  for (var n = 0; n < frames.length; n++) {\n' +
+    '    var d = frames[n];\n' +
+    '    var _activeCustomerId = activeCustomerId, _pass1HadActiveFrame = pass1HadActiveFrame;\n' +
+    '    var _customerVerified = !!(_activeCustomerId && d.customerId && d.customerId === _activeCustomerId);\n' +
+    '    var k = "customerState";\n' +
+    '    if (true) {\n' +
+    cut(src, "                if (_customerVerified || !_pass1HadActiveFrame) {",
+             '              } else if (!m[k] && d[k]) {', 'the PASS-2 address branch', file) +
+    '    }\n  }\n  return { state: m.customerState || "", zip: m.customerZip || "" }; })', ctx);
+
+  return { name: path.basename(path.dirname(file)), decide, remote, scenario, mergeAddr };
 }
 
 const impls = BUILDS.map(build);
@@ -183,8 +200,13 @@ const OUT_OF_STATE = {
 eq('LA customer at a TX rooftop — out of state, distance renders',
   i => i.decide(OUT_OF_STATE).rendered, true);
 eq('...and routes REMOTE', i => i.remote(OUT_OF_STATE, { localVeto: false, geoOutOfState: true }).remote, true);
-eq('...with no local-set lookup attempted (out-of-state short-circuits it)',
-  i => i.decide(OUT_OF_STATE).localSetHit, null);
+// (v9.7.547) The local-set lookup is now attempted even when the state already reads
+// out-of-state — that is what lets the ZIP disagree with a bled state. Here the two agree:
+// 70506 is a Lafayette ZIP and this is the Baytown rooftop, so the lookup confirms non-local
+// rather than vetoing anything.
+eq('the local-set lookup still runs, and confirms the state rather than contradicting it',
+  i => i.decide(OUT_OF_STATE).localSetHit, false);
+eq('...so no veto is claimed', i => i.decide(OUT_OF_STATE).zipVetoedState, false);
 
 const IN_STATE_FAR = {
   store: 'Community Honda Lafayette', dealerId: '24399',
@@ -246,6 +268,67 @@ const AGENT_SAID = {
 };
 eq('OUR OWN prior message saying it does not — this is the Broussard loop',
   i => i.remote(AGENT_SAID, { localVeto: false, geoOutOfState: false }).remote, false);
+
+// ── The mechanism itself: a bled address, and the two places it is now stopped ────────────
+// Gil confirmed the Distance chip was never clicked on either 8/13 lead. The scraper never
+// assigns d.isDistanceBuyer (only content.js does, and content.js results are not consumed),
+// so the auto-detect toggleFlag is dead code — which leaves the geo path as the only way the
+// flag could reach the prompt, and a wrong customerState as the only way the geo path fires on
+// two customers who are both demonstrably local.
+console.log('\nTHE MECHANISM — the customer address was ungated in the PASS-2 merge:');
+
+const frame = (leadId, custId, st, zip) =>
+  ({ autoLeadId: leadId, customerId: custId, customerState: st, customerZip: zip });
+
+eq('a chrome/stale frame with NO customerId cannot supply the address once PASS 1 scraped the lead',
+  i => i.mergeAddr([frame(null, null, 'TX', '77521')], '1440099537', true),
+  { state: '', zip: '' });
+eq('...but the verified customer-dashboard frame still can (the v9.7.228 case)',
+  i => i.mergeAddr([frame(null, '1440099537', 'LA', '70526')], '1440099537', true),
+  { state: 'LA', zip: '70526' });
+eq('a DIFFERENT customer\'s frame is refused even though it looks well-formed',
+  i => i.mergeAddr([frame(null, '9999999999', 'TX', '77521')], '1440099537', true),
+  { state: '', zip: '' });
+eq('the bleed shape: stale frame first, real frame second — the real one wins',
+  i => i.mergeAddr([frame(null, null, 'TX', '77521'), frame(null, '1440099537', 'LA', '70526')], '1440099537', true),
+  { state: 'LA', zip: '70526' });
+eq('when PASS 1 found no active frame at all, an unverified frame may still supply it',
+  i => i.mergeAddr([frame(null, null, 'LA', '70526')], '', false),
+  { state: 'LA', zip: '70526' });
+
+console.log('\n   ...and the address travels as one fact, never half from each frame:');
+eq('state and zip come from the same frame',
+  i => i.mergeAddr([frame(null, '1440099537', 'LA', '70526'), frame(null, '1440099537', 'TX', '77521')], '1440099537', true),
+  { state: 'LA', zip: '70526' });
+eq('a state-only frame does not strand a later frame\'s zip against it',
+  i => i.mergeAddr([frame(null, '1440099537', 'LA', ''), frame(null, '1440099537', 'TX', '77521')], '1440099537', true),
+  { state: 'LA', zip: '' });
+eq('a zip-only frame can still fill an empty zip when no state has been taken',
+  i => i.mergeAddr([frame(null, '1440099537', '', '70526')], '1440099537', true),
+  { state: '', zip: '70526' });
+
+console.log('\nTHE BACKSTOP — if a bled state gets through anyway, the ZIP outranks it:');
+const BILLY_BLED_STATE = Object.assign(BILLY(), { customerState: 'TX' }); // Baytown bleed at a Lafayette rooftop
+eq('a TX state on a 70526 ZIP at dealer 21135 no longer reads out-of-state',
+  i => i.decide(BILLY_BLED_STATE).geoOutOfState, false);
+eq('...the contradiction is recorded', i => i.decide(BILLY_BLED_STATE).zipVetoedState, true);
+eq('...and no distance block renders', i => i.decide(BILLY_BLED_STATE).rendered, false);
+const KEVIN_BLED_STATE = Object.assign(KEVIN(), { customerState: 'LA' }); // Lafayette bleed at Baytown
+eq('an LA state on a 77521 ZIP at dealer 6191 no longer reads out-of-state',
+  i => i.decide(KEVIN_BLED_STATE).geoOutOfState, false);
+eq('...and no distance block renders', i => i.decide(KEVIN_BLED_STATE).rendered, false);
+
+console.log('\n   the arbitration is narrow — it only fires on a ZIP inside the store\'s OWN set:');
+const REAL_OUT_OF_STATE = {
+  store: 'Community Honda Baytown', dealerId: '6191', customerState: 'LA', customerZip: '70506',
+  lastInboundMsg: '', context: '', activeFlags: [], relationshipSignals: { personalContext: [] }
+};
+eq('a genuine LA customer at Baytown (ZIP not in the Baytown set) is still out-of-state',
+  i => i.decide(REAL_OUT_OF_STATE).geoOutOfState, true);
+eq('...no veto claimed', i => i.decide(REAL_OUT_OF_STATE).zipVetoedState, false);
+eq('...distance still renders', i => i.decide(REAL_OUT_OF_STATE).rendered, true);
+eq('an out-of-state customer with no ZIP on file is unaffected',
+  i => i.decide(Object.assign({}, REAL_OUT_OF_STATE, { customerZip: '' })).geoOutOfState, true);
 
 console.log('\n' + (fail ? 'FAILED' : 'PASSED') + ' — ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);
