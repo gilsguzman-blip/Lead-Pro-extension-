@@ -25,6 +25,24 @@
   derived as ratings.down - explicitDown, so this page renders correctly against v7.49+ regardless
   of which proxy version is deployed. Per-bucket implicitDown has existed since v7.51.
 
+  v1.3 — RATES MOVE TO THE ENGAGED DENOMINATOR, matching the report and the API. Every rate on the
+  page was hand-computed from raw counts, and each one differed from the report on the same rows:
+    · the headline tile used data.posRate = shipped/total   → 70% where the report said 86%
+    · store bars used (up+weak_up)/total                    → Honda Laf. 59/85 = 69% vs 64/80 = 80%
+    · lead-source rows and flag chips used up/total alone, dropping weak_up AND neutral
+  Two separate deviations. The numerator dropped `neutral` — a draft copied AFTER a regen still
+  shipped, which is the whole point of v1.3 of the reporter — and the denominator counted
+  `abandoned` and `incomplete` rows, which are sessions that produced nothing anyone used or
+  nothing at all. A generate-reliability number does not belong in a quality rate.
+  As with the 👎 split, no new computation was needed: _bucketRates has returned engagedShippedRate
+  and engagedFirstTryRate per bucket since proxy v7.50, and aggregate() returns them at the top
+  level. The tile is relabelled "Shipped Rate" to say what it measures, with first-try beside it —
+  the same two numbers, in the same words, as the daily report.
+  A bucket with zero engaged sessions now renders an em-dash rather than 0%, which read as total
+  failure when the truth was "nothing to measure" (reporter v1.9 made the same correction).
+  COMPATIBILITY: byDay's engaged pair is new in proxy v7.54, so the per-day trend falls back to the
+  raw fields, and finally to posRate, when it is absent. Deploy order does not matter.
+
   v1.1 — director-key patch (7/7/26).
 -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
@@ -129,6 +147,7 @@
   .store-rate { font-size: 13px; font-weight: 600; font-family: var(--mono); }
   .store-down { font-size: 11px; color: var(--red); }
   .store-nocopy { font-size: 11px; color: var(--amber); font-family: var(--mono); }
+  .store-firsttry { font-size: 11px; color: var(--muted); font-family: var(--mono); }
   .bar-bg { height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; }
   .bar-fill { height: 100%; border-radius: 3px; transition: width 0.8s cubic-bezier(0.4,0,0.2,1); }
 
@@ -212,6 +231,39 @@ function implicitUpOf(d)    {
   return (d.signals && d.signals.implicit_copy) || 0;
 }
 
+// (v1.3) RATES — one reader, used everywhere, so no two panels can disagree again.
+// The quality denominator is ENGAGED: total minus `abandoned` (a draft was produced and nobody
+// used it) minus `incomplete` (no draft was ever produced — a failed or aborted generate). Those
+// are reliability signals, not rejections, and the proxy has excluded them since v7.50. The
+// numerator is SHIPPED: up + weak_up + neutral, because a draft copied after a regen still went to
+// the customer. Prefer the API's own field; derive it only where an older payload lacks it; and
+// return null — rendered as an em-dash — when there is genuinely nothing to measure.
+function engagedOf(d) {
+  if (!d) return 0;
+  if (typeof d.engaged === 'number') return d.engaged;
+  return Math.max(0, (d.total || 0) - (d.abandoned || 0) - (d.incomplete || 0));
+}
+function shippedRateOf(d) {
+  if (!d) return null;
+  if (typeof d.engagedShippedRate === 'number' && engagedOf(d) > 0) return d.engagedShippedRate;
+  const eng = engagedOf(d);
+  if (!eng) return null;
+  const shipped = (typeof d.shipped === 'number')
+    ? d.shipped
+    : (d.up || 0) + (d.weak_up || 0) + (d.neutral || 0);
+  return Math.round(100 * shipped / eng);
+}
+function firstTryRateOf(d) {
+  if (!d) return null;
+  if (typeof d.engagedFirstTryRate === 'number' && engagedOf(d) > 0) return d.engagedFirstTryRate;
+  const eng = engagedOf(d);
+  if (!eng) return null;
+  const ft = (typeof d.firstTry === 'number') ? d.firstTry : (d.up || 0) + (d.weak_up || 0);
+  return Math.round(100 * ft / eng);
+}
+const DASH = '—';
+function pct(v) { return v === null || v === undefined ? DASH : v + '%'; }
+
 const STORE_COLORS = {
   'Community Honda Lafayette': '#38bdf8',
   'Community Honda Baytown':   '#34d399',
@@ -262,7 +314,7 @@ function CT({ active, payload, label }) {
   return h('div', { className: 'custom-tooltip' },
     h('div', { className: 'label' }, label),
     payload.map((p,i) => h('div', { key: i, style: { color: p.color || '#e2e8f0' } },
-      `${p.name}: `, h('strong', null, p.value + (p.name === 'Pos %' ? '%' : ''))
+      `${p.name}: `, h('strong', null, p.value + (p.name === 'Shipped %' ? '%' : ''))
     ))
   );
 }
@@ -278,8 +330,9 @@ function Stat({ label, value, color, sub }) {
 
 // ── Store bar ──
 function StoreBar({ name, data }) {
-  const pos = (data.up||0) + (data.weak_up||0);
-  const rate = data.total ? Math.round(100*pos/data.total) : 0;
+  // (v1.3) was (up+weak_up)/total — wrong numerator and wrong denominator, both.
+  const rate = shippedRateOf(data);
+  const ftRate = firstTryRateOf(data);
   const color = STORE_COLORS[name] || '#60a5fa';
   const short = name.replace('Community ','').replace(' Lafayette',' Laf.').replace(' Baytown',' Bay.');
   // (v1.2) Two separate facts, never one blended count. An agent pressing 👎 is not the same
@@ -292,13 +345,15 @@ function StoreBar({ name, data }) {
       h('div', { className: 'store-name' }, short),
       h('div', { className: 'store-stats' },
         h('span', { className: 'store-signals' }, data.total + ' sig'),
-        h('span', { className: 'store-rate', style: { color: posColor(rate) } }, rate + '%'),
+        h('span', { className: 'store-rate', style: { color: rate === null ? '#4b5563' : posColor(rate) },
+          title: 'Shipped — copied and sent, including after a regen' }, pct(rate)),
+        ftRate !== null && h('span', { className: 'store-firsttry', title: 'First try — sent with no regen' }, pct(ftRate)),
         exDown > 0 && h('span', { className: 'store-down', title: 'Explicit thumbs-down' }, '👎 ' + exDown),
         imDown > 0 && h('span', { className: 'store-nocopy', title: 'Regenerated or chipped, then left unsent — not an explicit rejection' }, 'no-copy ' + imDown)
       )
     ),
     h('div', { className: 'bar-bg' },
-      h('div', { className: 'bar-fill', style: { width: rate + '%', background: color } })
+      h('div', { className: 'bar-fill', style: { width: (rate || 0) + '%', background: color } })
     )
   );
 }
@@ -328,7 +383,10 @@ function App() {
   const trend = data ? Object.entries(data.byDay||{})
     .filter(([,d]) => d.total > 0)
     .sort(([a],[b]) => a.localeCompare(b))
-    .map(([date,d]) => ({ date: date.slice(5), 'Pos %': d.posRate, 'Signals': d.total,
+    // (v1.3) same denominator as the tile above it — byDay's own posRate is shipped/total, so the
+    // line used to sit ~16 points below the headline on identical rows.
+    .map(([date,d]) => ({ date: date.slice(5), 'Shipped %': shippedRateOf(d) ?? d.posRate ?? 0,
+                          'Signals': d.total,
                           'Explicit 👎': explicitDownOf(d), 'No-copy': implicitDownOf(d) }))
     : [];
 
@@ -350,7 +408,10 @@ function App() {
     .sort((a,b) => b[1].total - a[1].total) : [];
 
   const total = data?.total || 0;
-  const posRate = data?.posRate || 0;
+  // (v1.3) was data.posRate — shipped/TOTAL, which counts sessions that produced nothing anyone
+  // used. The report's headline is the engaged basis; on 8/15 that was 86% here against 70%.
+  const shippedRate  = shippedRateOf(data);
+  const firstTryRate = firstTryRateOf(data);
   // (v1.2) These were `data.ratings.up` and `data.ratings.down` — the blended fields. Under a tile
   // labelled EXPLICIT that overstated 👍 by the entire implicit-copy count and 👎 by every
   // regenerated-then-abandoned session. 8/15: 156 shown for 0 real thumbs-up, 27 for 0 real
@@ -389,7 +450,9 @@ function App() {
       // Stats row 1
       h('div', { className: 'stats-grid fade-up fade-up-1' },
         h(Stat, { label:'Total Signals', value: total.toLocaleString() }),
-        h(Stat, { label:'Positive Rate', value: posRate+'%', color: posColor(posRate) }),
+        h(Stat, { label:'Shipped Rate', value: pct(shippedRate),
+          color: shippedRate === null ? '#4b5563' : posColor(shippedRate),
+          sub: 'first try ' + pct(firstTryRate) }),
         h(Stat, { label:'Explicit 👍', value: explicitUp.toLocaleString(), color:'#34d399',
           sub: implicitUp.toLocaleString()+' implicit copy' }),
         h(Stat, { label:'Explicit 👎', value: explicitDown,
@@ -403,7 +466,14 @@ function App() {
         '👍/👎 above are explicit thumb clicks only. Implicit: ',
         h('strong', null, implicitUp.toLocaleString()), ' copied as-is, ',
         h('strong', null, implicitDown.toLocaleString()), ' regenerated or chipped then left unsent.',
-        (total ? ' Explicit rejection rate: ' + Math.round(100*explicitDown/total) + '%.' : '')
+        // (v1.3) engaged basis here too — an explicit thumb can only be pressed on a draft that
+        // rendered and was looked at, so the sessions excluded from every other rate do not belong
+        // in this one either.
+        (engagedOf(data) ? ' Explicit rejection rate: ' + Math.round(100*explicitDown/engagedOf(data)) + '%.' : ''),
+        h('br'),
+        'Shipped and first-try are of ' + engagedOf(data).toLocaleString() + ' engaged sessions — ' +
+        (data.abandoned || 0).toLocaleString() + ' produced but never used and ' +
+        (data.incomplete || 0).toLocaleString() + ' that never rendered a draft are excluded.'
       ),
 
       // Stats row 2
@@ -417,14 +487,14 @@ function App() {
 
       // Trend line
       chartsAvailable && trend.length > 1 && h('div', { className: 'card fade-up fade-up-3', style:{marginBottom:12} },
-        h('div', { className: 'section-title' }, 'Positive Rate Trend'),
+        h('div', { className: 'section-title' }, 'Shipped Rate Trend'),
         h(ResponsiveContainer, { width:'100%', height:155 },
           h(LineChart, { data: trend, margin:{top:4,right:4,left:-22,bottom:0} },
             h(XAxis, { dataKey:'date', tick:{fontSize:10,fill:'#6b7280'}, axisLine:false, tickLine:false }),
             h(YAxis, { domain:[50,100], tick:{fontSize:10,fill:'#6b7280'}, axisLine:false, tickLine:false }),
             h(Tooltip, { content: h(CT) }),
-            h(Line, { type:'monotone', dataKey:'Pos %', stroke:'#3b82f6', strokeWidth:2.5,
-              dot:{r:3,fill:'#3b82f6',strokeWidth:0}, name:'Pos %' })
+            h(Line, { type:'monotone', dataKey:'Shipped %', stroke:'#3b82f6', strokeWidth:2.5,
+              dot:{r:3,fill:'#3b82f6',strokeWidth:0}, name:'Shipped %' })
           )
         )
       ),
@@ -439,7 +509,7 @@ function App() {
             h(Tooltip, { content: h(CT) }),
             h(Bar, { dataKey:'Signals', radius:[3,3,0,0] },
               trend.map((e,i) => h(Cell, { key:i,
-                fill: e['Pos %'] >= 85 ? '#1d4ed8' : e['Pos %'] >= 70 ? '#92400e' : '#7f1d1d' }))
+                fill: e['Shipped %'] >= 85 ? '#1d4ed8' : e['Shipped %'] >= 70 ? '#92400e' : '#7f1d1d' }))
             )
           )
         )
@@ -459,18 +529,17 @@ function App() {
             h('thead', null, h('tr', null,
               h('th', null, 'Persona'),
               h('th', { className:'right' }, 'Signals'),
-              h('th', { className:'right' }, 'Pos Rate'),
+              h('th', { className:'right' }, 'Shipped'),
               h('th', { className:'right' }, 'Expl. 👎'),
               h('th', { className:'right' }, 'No-Copy')
             )),
             h('tbody', null, personas.map(([name,d]) => {
-              const pos = (d.up||0)+(d.weak_up||0);
-              const rate = d.total ? Math.round(100*pos/d.total) : 0;
+              const rate = shippedRateOf(d);   // (v1.3) was (up+weak_up)/total
               const ex = explicitDownOf(d), im = implicitDownOf(d);
               return h('tr', { key:name },
                 h('td', null, PERSONA_LABELS[name]||name),
                 h('td', { className:'right mono', style:{color:'#94a3b8'} }, d.total),
-                h('td', { className:'right mono', style:{color:posColor(rate),fontWeight:600} }, rate+'%'),
+                h('td', { className:'right mono', style:{color: rate === null ? '#4b5563' : posColor(rate),fontWeight:600} }, pct(rate)),
                 h('td', { className:'right', style:{color: ex > 0 ? '#f87171' : '#4b5563'} }, ex > 0 ? '👎 '+ex : '—'),
                 h('td', { className:'right mono', style:{color: im > 0 ? '#fbbf24' : '#4b5563'} }, im > 0 ? im : '—')
               );
@@ -486,18 +555,20 @@ function App() {
           h('thead', null, h('tr', null,
             h('th', null, 'Source'),
             h('th', { className:'right' }, 'Signals'),
-            h('th', { className:'right' }, 'Pos Rate'),
+            h('th', { className:'right' }, 'Shipped'),
             h('th', { className:'right' }, 'Expl. 👎'),
             h('th', { className:'right' }, 'No-Copy')
           )),
           h('tbody', null, visSrc.map(([name,d]) => {
-            const rate = d.total ? Math.round(100*d.up/d.total) : 0;
+            // (v1.3) was up/total — dropped weak_up AND neutral from the numerator, on top of the
+            // wrong denominator. This column was the furthest of any from the report.
+            const rate = shippedRateOf(d);
             const short = name.length > 42 ? name.slice(0,40)+'…' : name;
             const ex = explicitDownOf(d), im = implicitDownOf(d);
             return h('tr', { key:name },
               h('td', null, short),
               h('td', { className:'right mono', style:{color:'#94a3b8'} }, d.total),
-              h('td', { className:'right mono', style:{color:posColor(rate),fontWeight:600} }, rate+'%'),
+              h('td', { className:'right mono', style:{color: rate === null ? '#4b5563' : posColor(rate),fontWeight:600} }, pct(rate)),
               h('td', { className:'right', style:{color: ex > 0 ? '#f87171' : '#4b5563'} }, ex > 0 ? ex : '—'),
               h('td', { className:'right mono', style:{color: im > 0 ? '#fbbf24' : '#4b5563'} }, im > 0 ? im : '—')
             );
@@ -513,11 +584,11 @@ function App() {
         h('div', { className: 'section-title' }, 'By Context Flag'),
         h('div', { className: 'flag-grid' },
           flags.map(([flag,d]) => {
-            const rate = d.total ? Math.round(100*d.up/d.total) : 0;
+            const rate = shippedRateOf(d);   // (v1.3) was up/total
             const ex = explicitDownOf(d), im = implicitDownOf(d);
             return h('div', { key:flag, className:'flag-chip' },
               h('div', { className:'flag-name' }, flag),
-              h('div', { className:'flag-rate', style:{color:posColor(rate)} }, rate+'%'),
+              h('div', { className:'flag-rate', style:{color: rate === null ? '#4b5563' : posColor(rate)} }, pct(rate)),
               h('div', { className:'flag-meta' }, d.total+' signals · 👎'+ex+' · '+im+' no-copy')
             );
           })

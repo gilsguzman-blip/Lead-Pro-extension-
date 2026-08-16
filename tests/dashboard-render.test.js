@@ -32,7 +32,8 @@ if (!HTML || !WORKER) {
 const html = fs.readFileSync(HTML, 'utf8');
 const dctx = {};
 vm.createContext(dctx);
-for (const name of ['explicitDownOf', 'implicitDownOf', 'explicitUpOf', 'implicitUpOf']) {
+for (const name of ['explicitDownOf', 'implicitDownOf', 'explicitUpOf', 'implicitUpOf',
+                    'engagedOf', 'shippedRateOf', 'firstTryRateOf']) {
   const decl = 'function ' + name;
   const i = html.indexOf(decl);
   if (i < 0) { console.error('could not locate ' + name + ' in ' + HTML); process.exit(2); }
@@ -48,6 +49,9 @@ const R = {
   imDown: vm.runInContext('implicitDownOf', dctx),
   exUp:   vm.runInContext('explicitUpOf',   dctx),
   imUp:   vm.runInContext('implicitUpOf',   dctx),
+  engaged:  vm.runInContext('engagedOf',       dctx),
+  shipped:  vm.runInContext('shippedRateOf',   dctx),
+  firstTry: vm.runInContext('firstTryRateOf',  dctx),
 };
 
 // ── the shipped proxy aggregate(), verbatim ──────────────────────────────────────────────
@@ -156,6 +160,54 @@ const offenders = script.split('\n')
   // the compatibility fallback inside implicitDownOf is the one legitimate reader of ratings.down
   .filter(([, l]) => !/const down = \(d\.ratings \? d\.ratings\.down : d\.down\) \|\| 0;/.test(l));
 eq('zero remaining reads of ratings.up / ratings.down / bucket.down', offenders.map(o => o[0]), []);
+
+// ── RATES (dashboard v1.3) ───────────────────────────────────────────────────────────────
+// A store shaped like Honda Lafayette on 8/15: 85 signals, 59 first-try, 5 neutral (copied after a
+// regen — those shipped), 16 down, and 5 sessions that produced nothing anyone used. The old page
+// rendered 59/85 = 69%; the report rendered 64/80 = 80% shipped and 59/80 = 74% first-try.
+const HONDA_LAF = [];
+const pushN = (n, o) => { for (let k = 0; k < n; k++) HONDA_LAF.push(Object.assign(
+  { id: 'h' + HONDA_LAF.length, ts: '2026-08-15T14:00:00.000Z', regenCount: 0, chipCount: 0, chipsUsed: [],
+    meta: { store: 'Community Honda Lafayette', persona: 'bdc', leadSource: 'Facebook', scenario: 'standard' } }, o)); };
+pushN(59, { rating: 'up',         signal: 'implicit_copy' });
+pushN(5,  { rating: 'neutral',    signal: 'implicit_regen_copy', regenCount: 1 });
+pushN(16, { rating: 'down',       signal: 'implicit_regen_no_copy', regenCount: 1 });
+pushN(3,  { rating: 'abandoned',  signal: 'no_interaction' });
+pushN(2,  { rating: 'incomplete', signal: 'no_interaction' });
+const ha = aggregate(HONDA_LAF);
+const hb = ha.byStore['Community Honda Lafayette'];
+
+console.log('\nRATES — the engaged denominator, matching the report:');
+eq('85 signals in, as on the real day', hb.total, 85);
+eq('engaged is 80 — the 3 abandoned and 2 incomplete are excluded', R.engaged(hb), 80);
+eq('shipped rate is 80%, not the 69% the old page showed', R.shipped(hb), 80);
+eq('first-try is 74%', R.firstTry(hb), 74);
+eq('the headline tile agrees with the store row on identical rows',
+  [R.shipped(ha), R.firstTry(ha)], [80, 74]);
+eq('neutral is IN the shipped numerator — a draft copied after a regen still went out',
+  R.shipped(hb) > R.firstTry(hb), true);
+
+console.log('\n   nothing to measure renders an em-dash, not 0%:');
+eq('a bucket of only incomplete sessions has no rate', R.shipped({ total: 4, incomplete: 4 }), null);
+eq('...and no first-try either', R.firstTry({ total: 4, incomplete: 4 }), null);
+eq('a bucket of only abandoned sessions likewise', R.shipped({ total: 3, abandoned: 3 }), null);
+eq('an empty payload does not throw', [R.shipped(undefined), R.firstTry(undefined), R.engaged(undefined)], [null, null, 0]);
+
+console.log('\n   compatibility — payloads without the engaged pair still compute correctly:');
+const rawBucket = { total: 85, up: 59, weak_up: 0, neutral: 5, down: 16, abandoned: 3, incomplete: 2 };
+eq('derived from raw counts when engagedShippedRate is absent', R.shipped(rawBucket), 80);
+eq('...and first-try too', R.firstTry(rawBucket), 74);
+eq('a byDay row (pre-v7.54: shipped/firstTry present, engaged pair absent)',
+  R.shipped({ total: 85, shipped: 64, firstTry: 59, abandoned: 3, incomplete: 2 }), 80);
+eq('a byDay row with no incomplete field at all falls back to what it has',
+  R.shipped({ total: 82, shipped: 64, firstTry: 59, abandoned: 3 }), 81);
+
+console.log('\n   the old formulas are genuinely different — this is not a no-op:');
+const oldStoreRate = Math.round(100 * ((hb.up||0) + (hb.weak_up||0)) / hb.total);
+const oldSourceRate = Math.round(100 * (hb.up||0) / hb.total);
+eq('old store formula (up+weak_up)/total gave 69%', oldStoreRate, 69);
+eq('old lead-source formula up/total gave 69% too, by dropping weak_up as well', oldSourceRate, 69);
+eq('new formula differs from both', R.shipped(hb) !== oldStoreRate, true);
 
 console.log('\n' + (fail ? 'FAILED' : 'PASSED') + ' — ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);
