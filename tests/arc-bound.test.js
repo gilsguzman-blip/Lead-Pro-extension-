@@ -25,7 +25,10 @@ function build(file) {
 
   // ── A: the active-panel-empty discriminator, verbatim from the shipped block ──
   const a0 = src.indexOf('              var _sfActivePanelEmpty = false;');
-  const a1 = src.indexOf('              if (_sfActivePanelEmpty && _sfCandidates.length) {');
+  // (v9.7.551) the refusal now carries three reasons, so the branch is keyed on _sfRefuseReason;
+  // slice up to it and keep testing _sfActivePanelEmpty, which is still the discriminator this
+  // suite is about.
+  const a1 = src.indexOf('              // (v9.7.551/550) THE THIRD GATE');
   if (a0 < 0 || a1 < 0) throw new Error('could not locate the split-frame guard in ' + file);
   const refuses = vm.runInContext(
     '(function(sorted, _aid){\n' + src.slice(a0, a1) + '\nreturn _sfActivePanelEmpty; })', ctx);
