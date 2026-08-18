@@ -24,10 +24,18 @@ function extract(file) {
   const b = src.indexOf(END);
   if (a < 0 || b < 0 || b <= a) throw new Error('could not locate pivot block in ' + file);
   const block = src.slice(a, b);
+  // (v9.7.552) The custOnlyLines state machine now closes on LP_SCAFFOLD_LINE_RE, a
+  // module-scope constant. Slice it out of the SAME shipped file rather than restating it,
+  // so the suite still exercises shipped bytes on both sides of the boundary.
+  const ha = src.indexOf('var LP_SCAFFOLD_LINE_RE =');
+  const hb = src.indexOf('// (v9.7.429/427) ONE definition of');
+  if (ha < 0 || hb < 0 || hb <= ha) throw new Error('could not locate LP_SCAFFOLD_LINE_RE in ' + file);
+  const helper = src.slice(ha, hb);
   // The block reads `data`, `hasCustomerReply` and `hasRealOutbound` from the enclosing
   // buildUserPrompt scope, and writes `vehiclePivotNote`. Wrap it with exactly those.
   const fn = new vm.Script(
-    '(function(data, hasCustomerReply, hasRealOutbound){\n' +
+    helper +
+    '\n(function(data, hasCustomerReply, hasRealOutbound){\n' +
     block +
     '\nreturn vehiclePivotNote; })'
   );

@@ -23,11 +23,17 @@ if (!BUILDS.length) { console.error('usage: sold-scan.test.js <popup.js> [popup.
 
 function build(file) {
   const src = fs.readFileSync(file, 'utf8');
-  const a = src.indexOf('  var _ctxSold = ctx;');
+  const a = src.indexOf('  var _ctxSold = ctx, _csScope');
   const b = src.indexOf('  s.vehicleInTransit   =');
   if (a < 0 || b < 0 || b <= a) throw new Error('could not locate the sold scan in ' + file);
+  // (v9.7.552) The fences-not-found fallback now strips Lead Pro's own scaffold via the
+  // module-scope _lpStripScaffold. Slice it out of the SAME shipped file.
+  const ha = src.indexOf('var LP_SCAFFOLD_LINE_RE =');
+  const hb = src.indexOf('// (v9.7.429/427) ONE definition of');
+  if (ha < 0 || hb < 0 || hb <= ha) throw new Error('could not locate LP_SCAFFOLD_LINE_RE in ' + file);
   const ctxObj = { console: { log() {} } };
   vm.createContext(ctxObj);
+  vm.runInContext(src.slice(ha, hb), ctxObj);
   const sold = vm.runInContext(
     '(function(data, opts){\n' +
     '  var ctx = (data.context || "").toLowerCase();\n' +
