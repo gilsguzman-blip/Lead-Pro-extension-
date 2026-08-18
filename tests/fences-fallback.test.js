@@ -98,7 +98,8 @@ function extract(file) {
     src.slice(pa, pb) +
     '\n  return { note: vehiclePivotNote, candidates: _pivotCandidates.slice(),' +
     '           custLines: custOnlyLines.length, custChars: custOnlyLines.join(" ").length,' +
-    '           closedByTag: _pvClosedByTag, closedByScaffold: _pvClosedByScaffold }; })', sandbox);
+    '           closedByTag: _pvClosedByTag, closedByScaffold: _pvClosedByScaffold,' +
+    '           openedBy: Object.keys(_pvOpenedBy).sort() }; })', sandbox);
 
   // The scaffold stripper on its own, so the boundary itself is testable.
   const strip = vm.runInContext('(function(t){ return _lpStripScaffold(t); })', sandbox);
@@ -259,6 +260,61 @@ check('multi-line customer text is still absorbed after its own header',
       lastInboundMsg: '' },
     true, false).candidates,
   ['Pilot']);
+
+// ── (v9.7.553) all three customer tag shapes open the scan ─────────────────────
+// Found by reading the v9.7.552 diag, not from a bad draft. The scraper writes the customer's
+// own words under three tags: [CUSTOMER] (full turns), [CUSTOMER CHAT SUMMARY] (chat leads past
+// first-touch, popup.js ~6310) and [CUSTOMER REQUEST FROM INQUIRY] (extracted lead-received
+// question, ~6460). The v9.7.552 opener was a literal [CUSTOMER], so the other two not only
+// failed to open the block — they matched the NEW uppercase-tag closer and shut it.
+// Confirmed live on Jeffrey Best's own follow-up capture: custLines:0.
+console.log('\nall three customer tag shapes open the scan (v9.7.553):');
+
+check('[CUSTOMER CHAT SUMMARY] opens — the shape that reported custLines:0',
+  i => i.pivot({ vehicle: '2021 Kia Telluride EX', context:
+      '[CUSTOMER CHAT SUMMARY] Asked about a Highlander for his granddaughter\n' + LP_TAIL,
+      lastInboundMsg: '' }, true, true).candidates,
+  ['Highlander']);
+
+check('[CUSTOMER REQUEST FROM INQUIRY] opens',
+  i => i.pivot({ vehicle: '2021 Kia Telluride EX', context:
+      '[CUSTOMER REQUEST FROM INQUIRY] Looking for a Sorento instead\n' + LP_TAIL,
+      lastInboundMsg: '' }, true, true).candidates,
+  ['Sorento']);
+
+check('the opening tag shape is reported, so a fourth shape is visible from the log',
+  i => i.pivot({ vehicle: '2021 Kia Telluride EX', context:
+      '  [CUSTOMER] what is the mileage\n' +
+      '  [CHAT BOT] one moment\n' +
+      '[CUSTOMER CHAT SUMMARY] Asked about a Pilot\n' + LP_TAIL,
+      lastInboundMsg: '' }, true, true).openedBy,
+  ['[CUSTOMER CHAT SUMMARY]', '[CUSTOMER]']);
+
+check('nothing recognised opens the block — reported as an empty set, not silence',
+  i => i.pivot({ vehicle: '2021 Kia Telluride EX', context:
+      '[08/18/2026] [NOTE] General Note\n  customer mentioned a Highlander\n' + LP_TAIL,
+      lastInboundMsg: '' }, true, true).openedBy,
+  []);
+
+check('a summary tag still CLOSES a preceding block it did not open — closers unchanged',
+  i => i.pivot({ vehicle: '2021 Kia Telluride EX', context:
+      '  [CUSTOMER] what is the mileage\n' +
+      '  [GUBAGOO CHAT] we also have a Highlander\n',
+      lastInboundMsg: '' }, true, true).candidates,
+  []);
+
+check('an agent NOTE naming a model still cannot open the scan',
+  i => i.pivot({ vehicle: '2021 Kia Telluride EX', context:
+      '[08/18/2026] [NOTE] General Note\n  told him about the Highlander\n',
+      lastInboundMsg: '' }, true, true).candidates,
+  []);
+
+check('Jeffrey\'s real context is unaffected by the wider opener',
+  i => i.pivot({ vehicle: '2021 Kia Telluride EX', store: 'Community Honda Baytown',
+                 context: JEFFREY, convState: 'first-touch',
+                 lastInboundMsg: 'My name is Jeffrey what is the mileage on the 2021 telluride' },
+               true, false).candidates,
+  []);
 
 // ── The stripper, isolated ─────────────────────────────────────────────────────
 console.log('\n_lpStripScaffold — keeps captured content, drops our own:');
