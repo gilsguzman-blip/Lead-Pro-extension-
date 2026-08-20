@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.558-dev (DEV. PHASE 2 OF 2 -- A COMPREHENSION PASS THAT CAN ONLY WATCH. NO CUSTOMER-FACING BEHAVIOUR CHANGES IN THIS BUILD, by design and by test. The frustration this answers is real: nearly every incident this month was the EXTRACTION layer missing a phrasing shape or a boundary, not the model failing to understand a note once it saw the right thing. But this exact block carries the counter-evidence -- v9.7.197 and v9.7.368 are two tightenings that each FOLLOWED a looser, more interpretive version fabricating a verbal commitment and shipping it to a real customer. Both failed by INTERPRETING LOOSELY, not by misreading clear text. So this is not 'trust the model instead of the regex'; it is a second reading that runs alongside and is structurally incapable of authoring anything. THREE CONTAINMENT PROPERTIES, each asserted rather than promised. (1) IT NEVER REACHES A PROMPT: buildUserPrompt and classifyScenario contain ZERO references to any symbol the pass defines, and the window stash is written exactly once and read exactly nowhere. If a later build wires it in, those assertions fail first. The regex verdict stash is written inside buildUserPrompt and read only at the observer dispatch, which the suite pins at exactly one read in the whole file. (2) ITS OUTPUT IS FALSIFIABLE, NOT A JUDGEMENT: the probe must return a quote copied character-for-character out of ONE named note, or say there is none. The quote is then VERIFIED as a literal substring of a note -- whitespace-normalised and case-insensitive, because a model reflowing a line is not the failure mode that hurt us; inventing words is. A paraphrase is rejected as QUOTE-FABRICATED and counted. That is the single biggest lever against repeating v9.7.197/368, and it is mechanical, so 'the model made something up' becomes a number rather than an argument. (3) IT IS ISOLATED FROM THE REGEX'S OWN ANSWER: the probe sees ONLY the walked call-note entries -- no Lead Pro directives, no VOI, no scenario, and specifically NOT the 'CALL NOTE -- READ BEFORE WRITING' block the regex writes when it fires. This one is load-bearing and easy to get wrong: a probe embedded in the main generation call would sit in a prompt that already states the answer, agree by construction, and produce disagreement data worth nothing. It is therefore a separate, isolated call. IT RUNS ON PHASE 1'S WALKED ENTRIES -- the same _lpWalkCrmEntries(context, {type:'[CALL NOTE]', max:6}) the regex path reads -- so both verdicts are answering a question about the SAME text and a disagreement is about comprehension, never about boundaries. That is the concrete payoff of shipping Phase 1 first. WHAT IT LOGS: [LP COMMIT COMPREHENSION DIAG] prints the two verdicts side by side with a delta -- AGREE-COMMITMENT, AGREE-NONE, DISAGREE-REGEX-ONLY, DISAGREE-COMPREHENSION-ONLY, or QUOTE-FABRICATED -- in the same family as [LP COMMAND COVERAGE DIAG]'s sms-vs-email delta. Every exit path logs, including SKIPPED (no call notes / no endpoint), UNPARSEABLE, FAILED and THREW: a probe that silently did not run would quietly bias the very count this build exists to collect. COST AND LATENCY, PLAINLY, because this is not free: it is a SECOND API call on any lead that has a real call note. It is fire-and-forget -- dispatched after the draft is already rendered and never awaited, which the suite asserts -- so it cannot delay or alter a message, and it is gated so it does not run when there are no notes to read. LEADPRO_COMMIT_COMPREHENSION = false switches it off entirely. VERIFIED 42/42 in a new suite plus all 24 suites green (660 assertions), dev===comm on every case, run against the real captures: Jason Pellegrin's 22-call-note history and the log119 line-436 lead. The fetch is injected, so every branch -- fabricated quote, wrong note number, fenced JSON, unparseable text, rejected fetch, missing candidates, unknown kind, flag off -- is exercised with no network. DISAGREE-COMPREHENSION-ONLY is asserted REACHABLE on a real phrasing shape the regex does not cover ('said he would swing past after work thursday'), because a disagreement detector that can only ever agree would be worthless. A CONTAINMENT ASSERTION CAUGHT MY OWN TEST BUG, which is the point of writing it that way: the first version sliced buildUserPrompt as 'from its declaration to classifyScenario', but classifyScenario is defined BEFORE it in the file, so the slice silently ran to end-of-file and swept in the dispatch site. It is now taken from the function's own closing brace, plus an anti-vacuity assertion that the sliced body is really the whole function. WHAT HAPPENS NEXT, AND WHAT DELIBERATELY DOES NOT: nothing is promoted on the strength of this build. The next step is reading the delta counts off live logs -- how often the two differ, in which direction, and on what shape of note -- and that data decides whether the comprehension pass ever becomes load-bearing. It is not a judgement call to make here. WHAT THIS MIGHT BREAK, PLAINLY: nothing customer-facing, and the suite is structured so that claim fails loudly if it stops being true. The real costs are money and log volume -- one extra model call per generation on a lead with call notes, and one extra diagnostic line. If either bites, the flag turns it off with no other change. node --check clean both builds; both manifests parse; nothing added inside inlineScraper, verified against the file's own '} // end inlineScraper' marker; version and version_name both bumped. Phase 1 (v9.7.557) shipped and was verified green before this build started, per instruction. Builds on v9.7.557-dev.)
 // Lead Pro -- popup.js  v9.7.557-dev (DEV. PHASE 1 OF 2 -- ONE SHARED CRM ENTRY WALKER. CONSOLIDATION, NOT A BUG FIX: no live incident, no customer-facing behaviour change, and every migrated consumer is verified byte-identical rather than merely suite-green. WHY: five consumers hand-rolled 'split the notes into entries and do not absorb across a boundary' and five shipped their own boundary bug -- v9.7.552, v9.7.553, v9.7.554, v9.7.555 and v9.7.556 (twice in one build). New _lpWalkCrmEntries(context, opts) splits on LP_CRM_ENTRY_SPLIT_RE (the pattern v9.7.556 proved against Jason Pellegrin's real 22-note history), trims trailing scaffold per-entry with the shared v9.7.552 LP_SCAFFOLD_LINE_RE, and returns entries in context order with an optional type filter, an optional cap applied AFTER the filter, and opts.trimText for byte-exact migration. WHAT THE INVESTIGATION CHANGED ABOUT THE SCOPE, and it is the main finding: OF THE FIVE CONSUMERS NAMED, ONLY ONE IS ACTUALLY A DATED-ENTRY WALKER. From the shipped bytes -- v9.7.552/553 pivot is ctxForPivot.split('\\n'), a LINE-level tag state machine; v9.7.554 coverage is cmdText.split(/[,;\\n]/) over an AGENT'S COMMAND STRING, which is not context at all; v9.7.555 off-franchise is new RegExp(makes.join('|')), a TOKEN boundary; only v9.7.556 verbal-commit splits dated entries. They are THREE different boundary problems that happen to share a symptom, and forcing the other four onto an entry walker would buy nothing and obscure what each actually does. The two other families are real and named for a later build: token-boundary (v9.7.554's _lpCmdTermHit and v9.7.555's make alternation are literally the same bug and could share one helper) and line-level tag state machine (v9.7.552/553's pivot opener/closer and _lpCustomerText / _lpArcHasSchedulingConstraint, which is the family with TWO shipped bugs). A SIXTH INSTANCE THE REPORT DID NOT LIST was found and IS a genuine fit: ctxEntries, the arc-bound / scaffold-leak splitter, splitting on /\\n(?=\\[\\d{2}\\/\\d{2}\\/)/ -- narrower than v9.7.556's, requiring a two-digit month AND day AND no leading whitespace. On every real capture the two agree exactly (68 entries on Jason's context either way), but the narrow one silently fails to split '[8/2/2026 ...]' or an indented entry: the same absorb-across-the-boundary class, latent rather than live, now closed. SHIPPED AS TWO SEPARATE VERIFIED STEPS, per Gil's instruction not to write and consolidate in one diff: step 1 commits the utility and its 37-assertion suite with ZERO consumers touched, so 'the utility is correct' is checkable on its own; step 2 migrates verbal-commit and ctxEntries, so 'the migration preserved behaviour' is a separate claim. MIGRATION PROOF IS BYTE-LEVEL, NOT CONTENT-LEVEL. The first migration of ctxEntries was content-identical but NOT byte-identical -- the walker trims each entry and the hand-rolled split did not, so the FINAL entry of every context lost its trailing newline. Rather than argue that delta is inert, opts.trimText was added and the site passes trimText:false; all three real captures now compare byte-for-byte entry-by-entry, and the suite asserts BOTH that they match with the flag and that exactly one entry differs without it, so the flag cannot rot into a no-op. TESTED AGAINST REAL CAPTURES ONLY: Jason Pellegrin's 68-entry / 22-call-note history, Jeffrey Best's Gubagoo chat (where the [GUBAGOO CHAT] entry must survive as ONE entry with all five [CUSTOMER] turns intact), and the Corolla context. Asserted: no entry ever contains two dated headers; order is newest-first as VinSolutions renders; the cap counts KEPT entries; an entry's own dated header is never treated as scaffold while a scaffold line below it still cuts; a date inside an entry body does not split it; and null/undefined/empty/whitespace-only inputs never throw. TWO OF MY OWN TEST EXPECTATIONS WERE WRONG AND THE SUITE CAUGHT BOTH: Jeffrey's context does carry one [CALL NOTE] (08/18 9:54 AM), and a dated header with an empty body is real content that must be KEPT rather than dropped as whitespace. All 23 suites green (618 assertions), dev===comm on every case. WHAT THIS MIGHT BREAK, PLAINLY: ctxEntries now splits shapes it previously ran together -- a one-digit-dated or indented entry. That is strictly more correct, but it means an arc that previously presented as one entry could now present as two, which changes what the v9.7.543 per-entry scaffold cut sees on such a lead. No capture reviewed contains that shape, which is exactly why it is latent. node --check clean both builds; both manifests parse; nothing added inside inlineScraper, verified against the file's own '} // end inlineScraper' marker; version and version_name both bumped. PHASE 2 (comprehension-pass observer) is deliberately NOT in this build and starts only now that this one is verified. Builds on v9.7.556-dev.)
 // Lead Pro -- popup.js  v9.7.556-dev (DEV. A CUSTOMER'S SATURDAY COMMITMENT WAS BLOCKED BY THE VOICEMAIL NOTE SITTING NEXT TO IT. LIVE INCIDENT: Jason Pellegrin (Community Honda Lafayette, dealerId 24399, lead 2043828702, 8/20). He told Chassica Vincent by phone on 8/19 at 4:10 PM -- disposition Contacted, a real conversation, not a drop -- that he would 'try to come in on sat just to see what her car is worth'. The draft was a cold 'did you end up getting a number elsewhere?' with no mention of Saturday. Gil identified the capture as the cause and was right; reproducing it against his real 20,913-char context found TWO MORE defects behind it, and fixing only the reported one leaves the lead broken. (1) THE REPORTED CAUSE: the capture was /\\[CALL NOTE\\][\\s\\S]{0,500}/ -- it started at the FIRST [CALL NOTE] tag and swept a flat 500 characters with no boundary at the next note. Context is newest-first and the newest entry on his lead is an unrelated 8/20 11:36 AM '(Machine) / Left message', so the window held BOTH notes concatenated and _isVoicemailBoilerplate tested the combined blob. log119 line 1442 printed exactly that. (2) THE SCAN ONLY EVER LOOKED AT THE FIRST CALL NOTE. Bounded but not iterated, it would have examined the 8/20 voicemail, correctly blocked on it, and NEVER REACHED the 8/19 commitment one entry below -- Jason would still have got the cold message. Of his 22 call notes only 7 are non-boilerplate and the real one is #2. The walk now skips boilerplate notes and keeps looking. (3) THE COMMITMENT REGEX MATCHED NEITHER NOTE. 'will try to come in on sat' fails `will (?:come|be|visit|stop|bring)` because of the intervening 'try to', and 'coming sat 29th 4pm' fails `coming (?:in|by|today|tomorrow)` because 'sat' is not in that list. Both notes could be extracted perfectly and still not fire. A SECOND VICTIM IN THE SAME LOG, not reported and found by reading it: line 436, a different lead, identical collision -- an unrelated '(Machine) / Left message' by Rochelle Price blocking an even more explicit '(Contacted) ... coming sat 29th 4pm' by Jolette Aguilar. Line 1195 in the same log is a genuine voicemail-only lead that must keep blocking, and does. THE FIX. Notes are split on the dated-entry boundary the context is already built with, trailing scaffold is trimmed per-note with the shared v9.7.552 LP_SCAFFOLD_LINE_RE (so a 'FOLLOW-UP: read the full transcript' block can no longer ride along on the last entry), and the boilerplate test runs against ONE note's own text. The walk is CAPPED at the newest 6 notes: the old 500-char window reached about two notes deep, so walking all 60 entries on a lead like this one would be a real widening and could surface a months-old commitment as though it were live. The cap covers a run of voicemail drops before the real conversation and stops there, and it is stated in the log rather than applied silently. If the entry shape ever changes the block degrades to the previous flat-window behaviour rather than losing the feature, same discipline as the v9.7.544 fence fallback. WIDENING THE COMMITMENT REGEX IS NOT DONE LIGHTLY -- it has three prior tightenings against it (v9.7.197, v9.7.368, v9.7.429/427), two of which followed a fabricated commitment shipping to a real customer. Two shapes were added, both from real notes in this log, both kept as the OBJECT of a commitment verb so the v9.7.429 rule still holds that a day-word never matches standalone: 'will TRY TO/AND come' and 'coming <day-name>'. Every documented false positive is re-asserted in the suite and none of them match. A NEW NEGATION GUARD ships with the widening, because a wider net over agent shorthand meets 'not coming in' and "won't be coming in" sooner: a commitment phrase preceded by not/never/won't/can't/cannot/unable to/no longer within 12 characters is refused and the refusal is logged. FOUR DIAGNOSTIC STATES INSTEAD OF TWO, all naming the single note they read and how many were walked past: FIRED, NO COMMITMENT (a real conversation that carries no commitment phrase -- previously indistinguishable from no note being read at all, which is exactly the difference between defects 1 and 2 here), NO USABLE NOTE (every note in the capped walk was boilerplate, with the counts), and REFUSED (negated). The old BLOCKED line is now reachable only on the degraded flat-window path and is labelled as such rather than left looking live. VERIFIED 36/36 IN A NEW SUITE against the real captures, sliced out of the SHIPPED file of both builds, dev===comm on every case. There was no committed suite for this block before -- three tightenings and no regression file -- so the documented false positives from all three are now asserted rather than trusted. The before/after is run against Jason's actual context: v9.7.555 emits the BLOCKED line byte-identical to log119 line 1442 with hasVerbalCommitment false; v9.7.556 fires, quotes his exact words, and reports 'note 2 of 22 (examined 2, skipped 1 boilerplate)'. The second lead fires on 'coming sat 29th 4pm' with the FOLLOW-UP scaffold trimmed off; the voicemail-only lead still refuses; the showroom-followup exception still suppresses the whole block; and the nine shapes that already fired all still fire. TWO OF MY OWN TEST EXPECTATIONS WERE WRONG AND THE SUITE CAUGHT THEM: the negation guard as first written missed "won't BE coming in" because it required the negator immediately adjacent, and I had asserted the old BLOCKED wording for a voicemail-only lead when the correct new report is NO USABLE NOTE, which carries more (how many notes existed and how many were refused). WHAT THIS MIGHT BREAK, PLAINLY: the walk now reaches up to six notes deep instead of roughly two, so a lead carrying five voicemail drops above a stale commitment from weeks ago could surface that commitment as current. The cap bounds it, the note's own date is printed in the diagnostic, and the alternative -- a customer who told us they are coming Saturday getting asked whether they bought elsewhere -- is worse. The regex widening admits 'coming <day>', which an agent might write about their OWN callback plan rather than the customer's visit; the negation guard does not catch that shape and it is a real residual risk worth watching in the FIRED lines. node --check clean both builds; both manifests parse; nothing added inside inlineScraper, verified against the file's own '} // end inlineScraper' marker (dev 4532-9299, commercial 4303-8982); version and version_name both bumped. Builds on v9.7.555-dev.)
 // Lead Pro -- popup.js  v9.7.555-dev (DEV. A CALL-METADATA LINE WAS READ AS CUSTOMER SPEECH, AND 'ram' WAS FOUND INSIDE 'timeframe'. LIVE INCIDENT: Hayden N (Community Honda Lafayette, dealerId 24399, lead 2070578764, 8/20). A CarGurus PHONE lead -- no chat transcript, no Ram in the call notes, the agent notes, the panel, or anywhere on the record -- was asked TWICE: 'Are you calling about the Civic, or were you specifically looking for a Ram?' log118 lines 1278 and 1477 both carry [LP OFF-FRANCHISE DIAG] "ram" (make ram) vs honda store | saidNew:false | inStockOfMake:0. TWO INDEPENDENT DEFECTS STACKED, and Gil identified both before reporting; each is sufficient alone to produce the incident. (1) _lpCustomerText PREPENDED d.lastInboundMsg AS CUSTOMER SPEECH WITH NO GATE, unlike every other source it reads -- the conversationBrief and context scans both require a real [CUSTOMER] tag, and lastInboundMsg required nothing. On a phone lead with no transcript that field is not the customer's words at all; it is the provider's call record. Hayden's, verbatim: 'Phone Lead from CarGurus. Caller Id: None, Duration: 6 minutes, 51 seconds Likelihood to buy: Standard Timeframe: 2 weeks. Show Less'. Nobody said that, and FIVE consumers were reading it as though someone had -- the off-franchise guard, the deal-condition and trade scans, isRemoteBuyer (which tests for 'out of state', a phrase a call record could easily carry), and the day-off scan. (2) _lpChatVehicleCandidates BUILT ITS MAKE ALTERNATION WITH NO WORD BOUNDARY on either side, so 'ram' matched inside 'Timef(ram)e'. Exactly the defect class v9.7.554 fixed one build ago in _lpCmdTermHit, where bare substring matching let 'poi' match 'appointment' -- and the short makes are a standing trap: ram (timeframe, program, dramatic), kia (Kiawah), mini (minivan), gmc, vw, benz (benzene). TWO FIXES, both layered deliberately so neither is load-bearing alone. (A) A METADATA-SHAPE GATE, NOT A LEAD-TYPE CHECK. New _lpIsSystemMetadataLine tests the STRING, not the source: an opening 'Phone/Call/Inbound/Voice Lead from <provider>', or two-or-more distinct call-record labels (caller id, duration, likelihood to buy, timeframe, disposition, lead type/source, talk time, ring time, show less). A leadSource==='phone' check would have been enumeration, and this file has been bitten by enumerating the shapes it happened to have seen in three consecutive builds -- v9.7.552 (five closers, [CHAT BOT] not among them), v9.7.553 (one opener, two tags missing), v9.7.554 (keyword tokens). A shape test rejects the NEXT provider's blob too, whatever it is called. The bar is deliberately TWO labels: one alone ('Duration: 3 minutes') is a phrase a person could plausibly type. (B) THE MAKE ALTERNATION IS NOW \\b-BOUNDED on both sides, matching the v9.7.554 treatment. NEW [LP CUSTOMER-TEXT DIAG] logs every refusal with the leadSource, convState and the rejected value verbatim -- ONCE PER DISTINCT STRING, not once per call, because _lpCustomerText runs five times a generation and a five-line-per-lead diagnostic is noise rather than instrumentation. A future case where a metadata line collides with a make name now surfaces from the log. VERIFIED 44/44 IN A NEW SUITE, sliced out of the SHIPPED file of both builds, dev===comm on every case, against Hayden's REAL lastInboundMsg rather than a reconstruction. PROVENANCE NOTE, because it matters: the v9.7.483 changelog records 'VERIFIED 21/21' for this guard, but that harness was a one-off and NEVER landed in tests/ -- there was no committed off-franchise suite before this build. The new file reconstructs that coverage from the incidents v9.7.483 names and adds the v9.7.555 regressions on top. A TRAP CAUGHT WHILE WRITING IT, worth recording: the first version of the Hayden assertions passed an EMPTY inventory cache, and they passed against the PREVIOUS build too -- because the guard fires via `_ofSaidNew || (_ofUnits && _ofMatch.length === 0)`, so a missing cache suppresses it on its own and the test proved nothing. log118's 'inStockOfMake:0' says the cache WAS loaded, which is what made it fire. Every Hayden case now runs against a loaded, Ram-free Honda cache, plus an explicit CONTROL asserting that the SAME cache and rooftop DO fire on real prose naming a Ram -- so the silence is caused by the fix and not by the fixture. Confirmed against the previous build under that cache: v9.7.554 emits the diag line byte-identical to log118 line 1278; v9.7.555 emits nothing. The suite also asserts EACH LAYER ALONE stops the incident, that Halie Bott's verbatim inbound ('we are planning to purchase a new chevy silverado...') still fires with chevy normalised to Chevrolet and her own Dodge Durango trade still correctly not the hit, that Monique Meaux's '2022+ Ford F-150 XLT' still produces its candidate, that a genuine Ram request fires even when the word 'timeframe' sits beside it, and that every pre-existing precision guard is unchanged (house brand silent, own trade silent, agent notes cannot trigger, off-brand IN stock silent without 'new', explicit NEW fires and surfaces the real used unit, unknown rooftop silent, Kia rooftop fires on Honda). The boundary rule is tested directly against timeframe/programs/dramatic/Kiawah/minivan/benzene while Ram 1500, Kia Telluride, GMC Sierra, Honda Civic Sport and Mini Cooper all still match. All 21 suites green (545 assertions). WHAT THIS MIGHT BREAK, PLAINLY: a customer whose genuine first message IS terse and label-shaped -- something like 'Trade: 2019 Durango. Timeframe: 2 weeks.' typed by hand -- would now be refused as metadata and drop out of all five consumers. It takes two labels to trigger, the message still reaches the model in full through the prompt's own CUSTOMER'S INQUIRY block (nothing is hidden from the model here; only the five internal scans are affected), and the new diagnostic makes it visible if it happens. Losing a trigger on a rare hand-typed label-shaped message is the right trade against asking a Honda buyer twice about a truck we cannot sell. ALSO NOW BOUNDED, as a side effect worth naming: 'mini' no longer matches 'minivan', which was a real latent false positive at every rooftop. node --check clean both builds; both manifests parse; the new helpers verified absent from inlineScraper against the file's own '} // end inlineScraper' marker (dev 4531-9298, commercial 4302-8981); version and version_name both bumped. Builds on v9.7.554-dev.)
@@ -548,6 +549,173 @@ function _lpWalkCrmEntries(context, opts) {
     }
   } catch (e) { /* fall through with whatever parsed */ }
   return out;
+}
+
+// ── (v9.7.558) COMPREHENSION PASS — OBSERVER ONLY, NEVER AUTHORITATIVE ──────────
+// PHASE 2. Nearly every incident this month was the extraction layer missing a phrasing
+// shape or a boundary, not the model failing to understand a note it was shown. But this
+// exact block has the scar tissue that argues the other way: v9.7.197 and v9.7.368 are two
+// tightenings that each FOLLOWED a looser, more interpretive version fabricating a verbal
+// commitment and shipping it to a real customer.
+//
+// So this is deliberately NOT "trust the model instead of the regex". It is a second,
+// comprehension-based reading that runs ALONGSIDE the regex, can only ever be logged, and
+// is structurally incapable of authoring a directive. Three properties make that true
+// rather than merely intended:
+//
+//  1. IT NEVER REACHES A PROMPT. Its only outputs are a console line and one window stash
+//     read by nothing. The suite asserts buildUserPrompt contains zero references to any
+//     symbol defined here — if a later build wires it in, that assertion fails first.
+//
+//  2. ITS OUTPUT IS FALSIFIABLE, NOT A JUDGEMENT. It must return a quote copied
+//     character-for-character out of one named note, or explicitly say there is none. The
+//     quote is then VERIFIED as a literal substring of that note. A paraphrase — which is
+//     precisely how v9.7.197/368 failed, by interpreting loosely rather than by misreading
+//     clear text — is rejected as FABRICATED and counted as such. That check is mechanical,
+//     so "the model made something up" is measurable rather than argued.
+//
+//  3. IT IS ISOLATED FROM THE REGEX'S OWN OUTPUT. It sees ONLY the walked call-note
+//     entries — no Lead Pro directives, no VOI, no scenario, and specifically not the
+//     "CALL NOTE — READ BEFORE WRITING" block the regex writes when it fires. Asking the
+//     model a question inside a prompt that already answers it would produce agreement by
+//     construction and disagreement data worth nothing.
+//
+// COST, PLAINLY: this is a SECOND API call on any lead that has a real call note. It is
+// fire-and-forget so it never delays a draft, and it is gated so it does not run when there
+// is nothing to read. Flip LEADPRO_COMMIT_COMPREHENSION to false to switch it off entirely.
+var LEADPRO_COMMIT_COMPREHENSION = true;
+
+// The probe prompt. Deliberately narrow: one question, one output shape, and the two
+// failure modes this block has actually shipped (our own voicemail read as the customer
+// speaking; a negated statement read as a commitment) named as explicit non-commitments.
+function _lpBuildCommitProbe(notes) {
+  var lines = [];
+  for (var i = 0; i < notes.length; i++) {
+    lines.push('[' + (i + 1) + '] ' + String(notes[i] || '').replace(/\s+/g, ' ').trim());
+  }
+  return 'You are reading dealership CRM call notes. Decide exactly ONE thing: did the CUSTOMER '
+    + 'say they will come to the dealership?\n\n'
+    + 'RULES:\n'
+    + '- Answer only from the notes below. If they do not say it, the answer is none.\n'
+    + '- "quote" must be copied CHARACTER FOR CHARACTER from a single note. Never paraphrase, '
+    + 'never summarise, never combine two notes, never add words that are not there.\n'
+    + '- A voicemail we left, a message we sent, or something an agent plans to do is NOT the '
+    + 'customer committing to anything.\n'
+    + '- A negated statement ("not coming in", "won\'t be able to make it") is NOT a commitment.\n'
+    + '- "firm" means they named a day or time. "soft" means they said they would try or '
+    + 'probably would. "none" means they did not say it at all.\n\n'
+    + 'NOTES:\n' + lines.join('\n') + '\n\n'
+    + 'Respond with ONLY this JSON and nothing else: '
+    + '{"kind":"firm"|"soft"|"none","note":<the note number, or null>,"quote":"<verbatim text, or null>"}';
+}
+
+// Is the quote actually IN the note it named? Whitespace-normalised and case-insensitive,
+// because a model reflowing a line is not the failure mode we care about — inventing words
+// is. Returns the 1-based note number it verified against, or 0 for no match anywhere.
+function _lpVerifyCommitQuote(quote, notes) {
+  var q = String(quote || '').replace(/\s+/g, ' ').trim().toLowerCase();
+  if (q.length < 4) return 0;
+  for (var i = 0; i < notes.length; i++) {
+    var n = String(notes[i] || '').replace(/\s+/g, ' ').trim().toLowerCase();
+    if (n.indexOf(q) >= 0) return i + 1;
+  }
+  return 0;
+}
+
+// Classify the two verdicts against each other. This is the number Phase 2 exists to
+// collect: how often do they differ, and in which direction.
+function _lpCommitVerdictDelta(regexFired, compKind, quoteOk) {
+  if (compKind !== 'none' && !quoteOk) return 'QUOTE-FABRICATED';
+  var compFired = (compKind === 'firm' || compKind === 'soft');
+  if (regexFired && compFired)   return 'AGREE-COMMITMENT';
+  if (!regexFired && !compFired) return 'AGREE-NONE';
+  if (regexFired && !compFired)  return 'DISAGREE-REGEX-ONLY';
+  return 'DISAGREE-COMPREHENSION-ONLY';
+}
+
+// Fire-and-forget. Returns a promise only so tests can await it; nothing in the generation
+// path does. Every exit path logs, including the failure ones — a probe that silently does
+// not run would leave the disagreement count quietly biased.
+function _lpRunCommitComprehension(ctxText, regexVerdict, deps) {
+  deps = deps || {};
+  var _fetch    = deps.fetch    || (typeof fetch === 'function' ? fetch : null);
+  var _endpoint = deps.endpoint || (typeof getEndpoint === 'function' ? getEndpoint() : null);
+  var _attach   = deps.attach   || (typeof _lpAttachLicense === 'function' ? _lpAttachLicense : function (p) { return p; });
+  var _log      = deps.log      || function () { try { console.log.apply(console, arguments); } catch (e) {} };
+  var rv = regexVerdict || { fired: false, quote: '' };
+
+  try {
+    if (!LEADPRO_COMMIT_COMPREHENSION) return Promise.resolve(null);
+
+    // Same walked entries the regex reads — Phase 1's utility, one boundary for both.
+    var walked = _lpWalkCrmEntries(ctxText, { type: '[CALL NOTE]', max: 6 });
+    var notes = [];
+    for (var i = 0; i < walked.length; i++) notes.push(walked[i].text);
+    if (!notes.length) {
+      _log('[LP COMMIT COMPREHENSION DIAG] SKIPPED — no call notes to read | regex:' + (rv.fired ? 'FIRED' : 'none'));
+      return Promise.resolve(null);
+    }
+    if (!_fetch || !_endpoint || !_endpoint.url) {
+      _log('[LP COMMIT COMPREHENSION DIAG] SKIPPED — no endpoint available | regex:' + (rv.fired ? 'FIRED' : 'none'));
+      return Promise.resolve(null);
+    }
+
+    var payload = {
+      system_instruction: { parts: [{ text: 'You extract one fact from CRM notes and answer in JSON. You never guess and never paraphrase.' }] },
+      contents: [{ role: 'user', parts: [{ text: _lpBuildCommitProbe(notes) }] }],
+      generationConfig: { temperature: 0, maxOutputTokens: 300, responseMimeType: 'application/json' }
+    };
+
+    return _fetch(_endpoint.url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(_attach(payload))
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        var raw = '';
+        try { raw = data.candidates[0].content.parts[0].text.trim(); } catch (e) { raw = ''; }
+        var parsed = null;
+        try { parsed = JSON.parse(raw.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '')); } catch (e) { parsed = null; }
+        if (!parsed || typeof parsed !== 'object') {
+          _log('[LP COMMIT COMPREHENSION DIAG] UNPARSEABLE — probe returned no usable JSON | regex:'
+            + (rv.fired ? 'FIRED' : 'none') + ' | raw:' + JSON.stringify(String(raw).slice(0, 160)));
+          return null;
+        }
+        var kind    = (parsed.kind === 'firm' || parsed.kind === 'soft') ? parsed.kind : 'none';
+        var quote   = parsed.quote == null ? '' : String(parsed.quote);
+        var verified = kind === 'none' ? 0 : _lpVerifyCommitQuote(quote, notes);
+        var quoteOk = kind === 'none' ? true : verified > 0;
+        var delta   = _lpCommitVerdictDelta(!!rv.fired, kind, quoteOk);
+
+        var result = {
+          regexFired: !!rv.fired, regexQuote: String(rv.quote || ''),
+          kind: kind, quote: quote, claimedNote: parsed.note == null ? null : parsed.note,
+          verifiedNote: verified, quoteVerified: quoteOk, delta: delta, notesRead: notes.length
+        };
+        // Stash is read by NOTHING. It exists so a future build can aggregate without
+        // re-running the probe; wiring it into a prompt is a separate, deliberate decision.
+        try { window._lpCommitComprehension = result; } catch (e) {}
+
+        _log('[LP COMMIT COMPREHENSION DIAG] ' + delta
+          + ' | regex:' + (rv.fired ? 'FIRED "' + String(rv.quote || '').slice(0, 70) + '"' : 'none')
+          + ' | comprehension:' + kind
+          + (kind === 'none' ? '' : ' note ' + (parsed.note == null ? '?' : parsed.note)
+              + (verified && parsed.note !== verified ? ' (verified against note ' + verified + ')' : '')
+              + ' "' + quote.slice(0, 70) + '"')
+          + ' | quoteVerified:' + quoteOk
+          + ' | notesRead:' + notes.length);
+        return result;
+      })
+      .catch(function (err) {
+        _log('[LP COMMIT COMPREHENSION DIAG] FAILED — ' + (err && err.message ? err.message : String(err))
+          + ' | regex:' + (rv.fired ? 'FIRED' : 'none'));
+        return null;
+      });
+  } catch (e) {
+    try { _log('[LP COMMIT COMPREHENSION DIAG] THREW — ' + (e && e.message ? e.message : String(e))); } catch (e2) {}
+    return Promise.resolve(null);
+  }
 }
 
 // ── (v9.7.554) AGENT LP COMMAND CHANNEL COVERAGE — DIAGNOSTIC ONLY ──────────────
@@ -14491,6 +14659,9 @@ function buildUserPrompt(data) {
     // per-entry scaffold trim, same order — this build extracted the logic, it did not
     // change it. The cap moves into the walker's own `max`, which counts KEPT (call-note)
     // entries, exactly as the hand-rolled loop counted them.
+    // (v9.7.558) Cleared every generation, so the comprehension observer can never compare
+    // against a previous lead's verdict.
+    try { window._lpVerbalCommitVerdict = { fired: false, quote: '', note: '' }; } catch (eVr) {}
     var _vcNotes = _lpWalkCrmEntries(data.context, { type: '[CALL NOTE]' })
       .map(function (e) { return e.text; });
     // If the entry shape ever changes, degrade to the previous behaviour rather than losing the
@@ -14564,6 +14735,10 @@ function buildUserPrompt(data) {
         if (dayCommitPre) {
           hasVerbalCommitment = true;
           var commitText = dayCommitPre[0].trim().substring(0, 150);
+          // (v9.7.558) Stash for the comprehension observer to compare against. WRITE-ONLY from
+          // the prompt's point of view — nothing in buildUserPrompt reads it back, and the suite
+          // asserts that.
+          try { window._lpVerbalCommitVerdict = { fired: true, quote: commitText, note: _vcChosen }; } catch (eVs) {}
           // (diagnostic) exact raw match, so a future fire (true or false positive) can be
           // verified directly against real data instead of inferred from output alone.
           console.log('[LP VERBAL COMMIT DIAG] FIRED — matched:', JSON.stringify(commitText),
@@ -18324,6 +18499,19 @@ async function generateAll() {
               })));
         }
       } catch (_lpcErr) { try { console.log('[LP COMMAND COVERAGE DIAG] compute failed:', _lpcErr && _lpcErr.message); } catch (e) {} }
+      // (v9.7.558) PHASE 2 OBSERVER. Fired here, after the draft is already rendered, and NOT
+      // awaited — it can never delay or alter a message. It reads the same walked call notes the
+      // regex read and logs the two verdicts side by side, exactly as [LP COMMAND COVERAGE DIAG]
+      // logs the sms-vs-email delta. Its only job in this build is to make disagreement countable
+      // before anyone decides whether it should ever be load-bearing.
+      try {
+        if (typeof _lpRunCommitComprehension === 'function') {
+          _lpRunCommitComprehension(
+            (lastScrapedData && lastScrapedData.context) || '',
+            (window._lpVerbalCommitVerdict || { fired: false, quote: '' })
+          );
+        }
+      } catch (_lpccErr) { try { console.log('[LP COMMIT COMPREHENSION DIAG] dispatch failed:', _lpccErr && _lpccErr.message); } catch (e) {} }
       // (v9.7.455-dev) Conflict computed HERE, popup-side, at generate time -- from fields the
       // scraper already returns (context = assembled AGENT CONTEXT notes string; pageSnippet =
       // frame text) -- NEVER inside the injected scraper. See changelog: the v9.7.449 version of
