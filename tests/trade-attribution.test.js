@@ -5,7 +5,9 @@ const impls=['builds/dev/popup.js','builds/commercial/popup.js'].map(f=>{
   const src=fs.readFileSync(f,'utf8');
   const ctx={console:{log(){}}};vm.createContext(ctx);
   const fn=vm.runInContext('(function(){'
-    + block(src,'function _lpCustomerText(d){','\n\n// (v9.7.429/427) ONE definition')
+    // (v9.7.555) Slice from the metadata gate, not from _lpCustomerText itself — the shipped
+    // function now calls _lpIsSystemMetadataLine, which is defined immediately above it.
+    + block(src,'// (v9.7.555) IS THIS A PROVIDER METADATA BLOB','\n\n// (v9.7.429/427) ONE definition')
     + ' return function(data){ var _ddCtxRaw=String((data&&data.context)||"");'
     + lineWith(src,'var _ddCtxMk  =') + lineWith(src,'var _ddCtxArc =')
     + ' var _ddRecent="";'

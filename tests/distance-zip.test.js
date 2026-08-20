@@ -47,7 +47,10 @@ function build(file) {
     // ReferenceError in its own try/catch, so omitting it fails as a silent `false` rather than a
     // throw. That is exactly how this harness gap first presented.
     cut(src, '// (v9.7.548/547) THE 50 STATES + DC.', '\nconst STORE_TO_DEALER_ID', 'the geo constants', file) +
-    '\n' + cut(src, 'function _lpCustomerText(d){', '\n// (v9.7.429/427) ONE Director-mode', 'the text helpers', file),
+    // (v9.7.555) Start at the metadata gate — _lpCustomerText now calls _lpIsSystemMetadataLine,
+    // and isRemoteBuyer wraps its geo block in try/catch, so omitting it would present as a
+    // silent `false` rather than a throw. Same harness gap the v9.7.548 note above describes.
+    '\n' + cut(src, '// (v9.7.555) IS THIS A PROVIDER METADATA BLOB', '\n// (v9.7.429/427) ONE Director-mode', 'the text helpers', file),
     ctx);
 
   // ── A: the distance-flag decision in buildUserPrompt ────────────────────────────────────
