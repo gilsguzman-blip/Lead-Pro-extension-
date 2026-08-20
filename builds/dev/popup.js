@@ -470,6 +470,80 @@ function _lpCustomerText(d){
   return out;
 }
 
+// ── (v9.7.557) ONE WAY TO WALK CRM ENTRIES ─────────────────────────────────────
+// Five consumers hand-rolled "split the notes into entries and don't absorb across a
+// boundary", and five shipped their own boundary bug. This is the shared entry walker.
+//
+// WHAT IT IS FOR, PRECISELY: splitting data.context into the DATED CRM ENTRIES
+// VinSolutions renders. It is not a general-purpose tokenizer. Two of the file's
+// boundary families are a different problem and deliberately do NOT use it — see the
+// note at the migration sites.
+//
+// THE SPLIT is the pattern v9.7.556 proved against Jason Pellegrin's real 22-note
+// history: a newline followed by a dated header. It is deliberately more permissive
+// than the older ctxEntries pattern /\n(?=\[\d{2}\/\d{2}\/)/, which requires a
+// two-digit month AND day AND no leading whitespace. On every real capture reviewed
+// the two agree exactly (68 entries on Jason's context either way), but the narrow one
+// silently fails to split "[8/2/2026 ...]" or an indented entry — the same
+// absorb-across-the-boundary class, latent rather than live. One pattern, the
+// permissive one, everywhere.
+var LP_CRM_ENTRY_SPLIT_RE = /\n(?=\s*\[\d{1,2}\/\d{1,2}\/\d{2,4}[^\n\]]*\])/;
+
+// Trailing Lead Pro scaffold can ride along on the LAST entry in a context, because
+// scaffold lines are not dated headers and so never open a new entry. Trimmed with the
+// shared v9.7.552 marker set rather than a per-consumer list. The entry's OWN first
+// line is never tested — a dated header is not scaffold, and testing it would let a
+// header that happens to start with a scaffold word delete the whole entry.
+function _lpTrimEntryScaffold(entry) {
+  var keep = [], stop = false;
+  try {
+    String(entry || '').split('\n').forEach(function (l, n) {
+      if (stop) return;
+      if (n > 0 && LP_SCAFFOLD_LINE_RE.test(l)) { stop = true; return; }
+      keep.push(l);
+    });
+  } catch (e) { return String(entry || ''); }
+  return keep.join('\n');
+}
+
+// Walk the dated CRM entries in a context.
+//   opts.type         string or array — keep only entries containing one of these tags
+//                     (e.g. '[CALL NOTE]'). Omit to keep every entry.
+//   opts.max          stop after this many KEPT entries (applied AFTER the type filter,
+//                     so a cap of 6 means six call notes, not six entries of any kind).
+//   opts.trimScaffold default true; pass false to get the raw entry text.
+// Returns [{ text, date, index }] in context order — which is newest-first, the order
+// VinSolutions renders and every existing consumer already assumes.
+// Never throws: a malformed context returns whatever it managed to parse.
+function _lpWalkCrmEntries(context, opts) {
+  var out = [];
+  try {
+    opts = opts || {};
+    var types = opts.type ? (Array.isArray(opts.type) ? opts.type : [opts.type]) : null;
+    var trim  = opts.trimScaffold !== false;
+    var parts = String(context || '').split(LP_CRM_ENTRY_SPLIT_RE);
+    for (var i = 0; i < parts.length; i++) {
+      var ent = parts[i];
+      if (types) {
+        var hit = false;
+        for (var t = 0; t < types.length; t++) {
+          if (ent.indexOf(types[t]) >= 0) { hit = true; break; }
+        }
+        if (!hit) continue;
+      }
+      var txt = (trim ? _lpTrimEntryScaffold(ent) : ent);
+      if (!txt.trim()) continue;
+      out.push({
+        text: txt.trim(),
+        date: (txt.match(/^\s*\[(\d{1,2}\/\d{1,2}\/\d{2,4}[^\]]*)\]/) || [])[1] || '',
+        index: out.length
+      });
+      if (opts.max && out.length >= opts.max) break;
+    }
+  } catch (e) { /* fall through with whatever parsed */ }
+  return out;
+}
+
 // ── (v9.7.554) AGENT LP COMMAND CHANNEL COVERAGE — DIAGNOSTIC ONLY ──────────────
 // Amber Johnson (Community Kia Baytown, dealerId 6190, lead 2070428771, 8/20). The agent
 // wrote a three-part command -- "Need POI, How much money as initial investment is the most
