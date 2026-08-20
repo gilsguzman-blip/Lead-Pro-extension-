@@ -35,7 +35,9 @@ function build(file) {
 
   // ── B: the transcript-fence bounding, verbatim from the shipped block ──
   const b0 = src.indexOf("    var _ctxRaw = data.context || '';");
-  const b1 = src.indexOf('    var ctxEntries = ctx_full.split(');
+  // (v9.7.557) Anchor on the declaration itself rather than its initialiser — ctxEntries moved
+  // onto the shared _lpWalkCrmEntries, and the old anchor named the initialiser it replaced.
+  const b1 = src.indexOf('    var ctxEntries = ');
   if (b0 < 0 || b1 < 0) throw new Error('could not locate the arc bounding in ' + file);
   const bound = vm.runInContext(
     '(function(data){\n' + src.slice(b0, b1) + '\nreturn ctx_full; })', ctx);

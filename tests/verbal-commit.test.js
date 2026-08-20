@@ -55,10 +55,18 @@ function extract(file) {
   const b = src.indexOf('  if (data.conversationBrief && (data.convState !== ');
   if (a < 0 || b < 0 || b <= a) throw new Error('could not locate the verbal-commit block in ' + file);
 
+  // (v9.7.557) The block now calls the shared _lpWalkCrmEntries, so the walker has to be in
+  // scope too. Sliced from the same shipped file, so the suite still exercises shipped bytes on
+  // both sides of the migration.
+  const wa = src.indexOf('var LP_CRM_ENTRY_SPLIT_RE =');
+  const wb = src.indexOf('// ── (v9.7.554) AGENT LP COMMAND CHANNEL COVERAGE');
+  if (wa < 0 || wb < 0 || wb <= wa) throw new Error('could not locate the entry walker in ' + file);
+
   const logs = [];
   const sandbox = { console: { log: (...x) => logs.push(x.map(v => typeof v === 'string' ? v : JSON.stringify(v)).join(' ')) } };
   vm.createContext(sandbox);
   vm.runInContext(src.slice(ha, hb), sandbox);
+  vm.runInContext(src.slice(wa, wb), sandbox);
 
   const run = vm.runInContext(
     '(function(data, hasCallNoteContent){\n' +

@@ -215,6 +215,26 @@ check('an array of types matches any of them',
 check('date is empty string, not undefined, when an entry has no header',
   i => i.walk('no header here')[0].date, '');
 
+console.log('\nthe migration guarantee — byte-identical, not merely content-identical:');
+
+// The walker trims each entry by default, which the hand-rolled ctxEntries split did not: the
+// FINAL entry in a context otherwise loses its trailing newline. trimText:false exists so a
+// migration can be proven byte-identical rather than argued to be inert.
+[['jason', JASON], ['jeffrey', JEFFREY], ['corolla', COROLLA]].forEach(([label, ctx]) =>
+  check('ctxEntries on the ' + label + ' capture is byte-identical to the old split',
+    i => {
+      const oldWay = ctx.split(NARROW).filter(Boolean);
+      const newWay = i.walk(ctx, { trimScaffold: false, trimText: false }).map(e => e.text).filter(Boolean);
+      return oldWay.length === newWay.length && oldWay.every((x, n) => x === newWay[n]);
+    }, true));
+
+check('...and WITHOUT trimText:false the last entry differs, which is why the option exists',
+  i => {
+    const oldWay = JASON.split(NARROW).filter(Boolean);
+    const trimmed = i.walk(JASON, { trimScaffold: false }).map(e => e.text).filter(Boolean);
+    return oldWay.map((x, n) => x === trimmed[n]).filter(v => !v).length;
+  }, 1);
+
 console.log('\nboth builds ship the identical boundary:');
 check('LP_CRM_ENTRY_SPLIT_RE source is the v9.7.556-proven pattern',
   i => i.splitRe, '\\n(?=\\s*\\[\\d{1,2}\\/\\d{1,2}\\/\\d{2,4}[^\\n\\]]*\\])');
