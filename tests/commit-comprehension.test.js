@@ -340,8 +340,10 @@ checkAsync('a voicemail-only lead now SKIPS rather than claiming an answer it ne
     return r.result;
   }, null);
 
+// (v9.7.562) SKIPPED is now three-way: a wiring fault, a genuinely note-free lead, and
+// "everything was refused" no longer read identically. This is the refused case.
 checkAsync('...and the skip says how many notes it refused',
-  async i => /SKIPPED — no readable notes \(1 refused as boilerplate or contact data\)/.test(
+  async i => /SKIPPED — every note was refused \(1 as boilerplate or contact data\) \| ctxLen:\d+/.test(
     (await i.run('[08/20/2026 10:14 AM] [CALL NOTE] Outbound phone call (Machine)\n  By: A\n  Left message' + FOLLOWUP,
       { fired: false, quote: '' }, '{"kind":"none","note":null,"quote":null}')).logs.join(' ')),
   true);
@@ -358,9 +360,14 @@ section('every exit path logs — a silent skip would bias the count:');
 
 // "nothing here" is now READABLE content (12 chars of real prose), so it no longer skips — use a
 // context that genuinely carries neither note type.
-checkAsync('a context with neither note type skips',
+checkAsync('a context with neither note type skips, and says the lead is note-free',
   async i => (await i.run('[08/20/2026] [AGENT] Outbound Text Message\n  By: A\n  anything', { fired: false, quote: '' }, '{}'))
-    .logs.filter(l => /SKIPPED — no readable notes \(0 refused/.test(l)).length, 1);
+    .logs.filter(l => /SKIPPED — this lead genuinely carries no CRM notes \| ctxLen:\d+/.test(l)).length, 1);
+
+// The distinction that was missing: an EMPTY context is a wiring fault, not a note-free lead.
+checkAsync('an empty context is reported as a WIRING FAULT instead',
+  async i => (await i.run('', { fired: false, quote: '' }, '{}'))
+    .logs.filter(l => /NO CONTEXT TEXT REACHED THE OBSERVER — this is a wiring fault/.test(l)).length, 1);
 
 checkAsync('a general note with real prose IS read rather than skipped',
   async i => (await i.run('[08/20/2026] [NOTE] General Note\n  By: A\n  nothing here',

@@ -291,6 +291,8 @@ checkAsync('a duplicate-check note is filtered out before the probe is built',
     return ['337', '256-3478', 'apelle4', '@gmail'].filter(n => sentText.indexOf(n) >= 0);
   }, []);
 
+// (v9.7.562) The skip line is now three-way, so this asserts the "everything refused" branch
+// specifically rather than the old catch-all wording.
 checkAsync('a lead whose only notes are contact-data notes SKIPS, and says how many it refused',
   async i => {
     const logs = [];
@@ -299,7 +301,7 @@ checkAsync('a lead whose only notes are contact-data notes SKIPS, and says how m
       { fetch: () => { throw new Error('probe must not run'); },
         endpoint: { url: 'https://example.invalid/g' }, attach: p => p,
         log: (...x) => logs.push(x.join(' ')), send: () => {} });
-    return /SKIPPED — no readable notes \(1 refused as boilerplate or contact data\)/.test(logs.join(' '));
+    return /SKIPPED — every note was refused \(1 as boilerplate or contact data\)/.test(logs.join(' '));
   }, true);
 
 checkAsync('the observer reports the note type on BOTH sides',
