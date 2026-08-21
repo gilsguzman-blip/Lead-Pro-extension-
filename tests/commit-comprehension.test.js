@@ -263,10 +263,22 @@ check('an unverified quote outranks every other classification',
 // ── End to end against the real captures ───────────────────────────────────────
 section("end to end on Jason Pellegrin's real 22-call-note history:");
 
-checkAsync('reads the capped walk of his call notes, not the whole context',
+// (v9.7.560) The boilerplate filter now runs BEFORE the probe, so refused notes never reach it.
+// Of Jason's top-6 call notes only the 8/19 Contacted one is readable — the other five are
+// voicemail drops — and all 12 of his general notes are housekeeping or empty. The probe
+// therefore sees ONE note, and the commitment is note 1 in its numbering rather than note 2.
+// That is the intended effect: no wasted tokens on "Left message", and no contact data.
+checkAsync('the probe reads only the READABLE notes, not the raw walk',
   async i => (await i.run(JASON, { fired: true, quote: 'will try to come in on sat' },
-    '{"kind":"soft","note":2,"quote":"will try to come in on sat just to see what her car is worth sent contact info"}')).result.notesRead,
-  6);
+    '{"kind":"soft","note":1,"quote":"will try to come in on sat just to see what her car is worth sent contact info"}')).result.notesRead,
+  1);
+
+// 11, not 17: the walk is capped at 6 PER TYPE, so it examines 6 call notes (5 refused) and 6
+// of his 12 general notes (all 6 refused) — the cap is applied before the filter, not after.
+checkAsync('...and the ones it dropped are counted, not silently gone',
+  async i => (await i.run(JASON, { fired: true, quote: 'x' },
+    '{"kind":"none","note":null,"quote":null}')).result.notesRefused,
+  11);
 
 checkAsync('the probe it sent contains his notes and no Lead Pro scaffold',
   async i => {
@@ -279,9 +291,9 @@ checkAsync('the probe it sent contains his notes and no Lead Pro scaffold',
 checkAsync('regex FIRED + comprehension soft on the same note = AGREE-COMMITMENT',
   async i => {
     const r = await i.run(JASON, { fired: true, quote: 'will try to come in on sat' },
-      '{"kind":"soft","note":2,"quote":"will try to come in on sat just to see what her car is worth sent contact info"}');
+      '{"kind":"soft","note":1,"quote":"will try to come in on sat just to see what her car is worth sent contact info"}');
     return { delta: r.result.delta, verified: r.result.verifiedNote, logged: /AGREE-COMMITMENT/.test(r.logs.join(' ')) };
-  }, { delta: 'AGREE-COMMITMENT', verified: 2, logged: true });
+  }, { delta: 'AGREE-COMMITMENT', verified: 1, logged: true });
 
 checkAsync('a paraphrased quote is reported FABRICATED even when the regex agrees',
   async i => {
@@ -293,9 +305,9 @@ checkAsync('a paraphrased quote is reported FABRICATED even when the regex agree
 checkAsync('the log prints both verdicts side by side',
   async i => {
     const r = await i.run(JASON, { fired: true, quote: 'will try to come in on sat' },
-      '{"kind":"soft","note":2,"quote":"will try to come in on sat just to see what her car is worth sent contact info"}');
+      '{"kind":"soft","note":1,"quote":"will try to come in on sat just to see what her car is worth sent contact info"}');
     const l = r.logs.join(' ');
-    return /regex:FIRED "will try to come in on sat"/.test(l) && /comprehension:soft note 2/.test(l);
+    return /regex:FIRED "will try to come in on sat"/.test(l) && /comprehension:soft note 1/.test(l);
   }, true);
 
 checkAsync('the model naming the wrong note number is recorded, not silently accepted',
@@ -303,24 +315,36 @@ checkAsync('the model naming the wrong note number is recorded, not silently acc
     const r = await i.run(JASON, { fired: true, quote: 'x' },
       '{"kind":"soft","note":5,"quote":"will try to come in on sat"}');
     return { claimed: r.result.claimedNote, verified: r.result.verifiedNote,
-             noted: /verified against note 2/.test(r.logs.join(' ')) };
-  }, { claimed: 5, verified: 2, noted: true });
+             noted: /verified against note 1/.test(r.logs.join(' ')) };
+  }, { claimed: 5, verified: 1, noted: true });
 
 section('the second log119 lead — a commitment one note below a voicemail:');
 
 checkAsync('comprehension finds "coming sat 29th 4pm" and agrees with the regex',
   async i => {
     const r = await i.run(SECOND_LEAD, { fired: true, quote: 'coming sat 29th 4pm' },
-      '{"kind":"firm","note":2,"quote":"coming sat 29th 4pm"}');
+      '{"kind":"firm","note":1,"quote":"coming sat 29th 4pm"}');
     return { delta: r.result.delta, verified: r.result.verifiedNote };
-  }, { delta: 'AGREE-COMMITMENT', verified: 2 });
+  }, { delta: 'AGREE-COMMITMENT', verified: 1 });
 
-checkAsync('a voicemail-only lead: both say none, and that is logged as agreement',
+// (v9.7.560) BEHAVIOUR CHANGE, stated rather than absorbed: a lead whose every note is refused
+// now SKIPS instead of producing an AGREE-NONE row. Emitting AGREE-NONE would assert the model
+// answered "none" when it was never asked — the probe cannot run with no readable notes. The
+// cost is a real one: the agreement denominator shifts at the v9.7.559/560 boundary, so rates
+// either side are not directly comparable. Rows carry extensionVersion, and the SKIP line names
+// how many notes were refused, so the discontinuity is visible rather than silent.
+checkAsync('a voicemail-only lead now SKIPS rather than claiming an answer it never got',
   async i => {
     const r = await i.run('[08/20/2026 10:14 AM] [CALL NOTE] Outbound phone call (Machine)\n  By: A\n  Left message' + FOLLOWUP,
       { fired: false, quote: '' }, '{"kind":"none","note":null,"quote":null}');
-    return r.result.delta;
-  }, 'AGREE-NONE');
+    return r.result;
+  }, null);
+
+checkAsync('...and the skip says how many notes it refused',
+  async i => /SKIPPED — no readable notes \(1 refused as boilerplate or contact data\)/.test(
+    (await i.run('[08/20/2026 10:14 AM] [CALL NOTE] Outbound phone call (Machine)\n  By: A\n  Left message' + FOLLOWUP,
+      { fired: false, quote: '' }, '{"kind":"none","note":null,"quote":null}')).logs.join(' ')),
+  true);
 
 checkAsync('DISAGREE-COMPREHENSION-ONLY is reachable — the case that would justify promotion',
   async i => {
@@ -332,9 +356,15 @@ checkAsync('DISAGREE-COMPREHENSION-ONLY is reachable — the case that would jus
 
 section('every exit path logs — a silent skip would bias the count:');
 
-checkAsync('no call notes at all',
-  async i => (await i.run('[08/20/2026] [NOTE] General Note\n  By: A\n  nothing here', { fired: false, quote: '' }, '{}'))
-    .logs.filter(l => /SKIPPED — no call notes/.test(l)).length, 1);
+// "nothing here" is now READABLE content (12 chars of real prose), so it no longer skips — use a
+// context that genuinely carries neither note type.
+checkAsync('a context with neither note type skips',
+  async i => (await i.run('[08/20/2026] [AGENT] Outbound Text Message\n  By: A\n  anything', { fired: false, quote: '' }, '{}'))
+    .logs.filter(l => /SKIPPED — no readable notes \(0 refused/.test(l)).length, 1);
+
+checkAsync('a general note with real prose IS read rather than skipped',
+  async i => (await i.run('[08/20/2026] [NOTE] General Note\n  By: A\n  nothing here',
+    { fired: false, quote: '' }, '{"kind":"none","note":null,"quote":null}')).result.notesRead, 1);
 
 checkAsync('no endpoint configured',
   async i => (await i.run(JASON, { fired: false, quote: '' }, '{}', { endpoint: null }))

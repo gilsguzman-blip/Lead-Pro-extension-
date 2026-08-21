@@ -136,10 +136,17 @@ check('the note it chose is the 8/19 4:10 PM Contacted one, alone',
         && !/Left message/.test(l);
   }, true);
 
-check('the log says which note and how many voicemails it walked past',
+// (v9.7.560) The log now reports what the lead HAS by type and what was examined, which are
+// different numbers. Jason carries 22 call notes and 12 general notes.
+check('the log says which note, how many the lead has by type, and how many it walked past',
   i => (i.run({ context: JASON, isShowroomFollowUp: false }).logs.join(' ')
-        .match(/note (\d+) of (\d+) \(examined (\d+), skipped (\d+)/) || []).slice(1, 5),
-  ['2', '22', '2', '1']);
+        .match(/note (\d+) of (\d+) on the lead \((\d+) call, (\d+) general; examined (\d+), skipped (\d+)/) || []).slice(1, 7),
+  ['2', '34', '22', '12', '2', '1']);
+
+check('the fire reports the note type and the subject reading',
+  i => (i.run({ context: JASON, isShowroomFollowUp: false }).logs.join(' ')
+        .match(/noteType:(\S+ ?\S*) subject:(\w+)/) || []).slice(1, 3),
+  ['[CALL NOTE]', 'unattributed']);
 
 check('the directive quotes the Saturday commitment to the model',
   i => /will try to come in on sat/.test(i.run({ context: JASON, isShowroomFollowUp: false }).analysis)
@@ -169,12 +176,12 @@ check('a voicemail-only lead still BLOCKS',
 // The walk now SKIPS boilerplate rather than selecting it, so the old BLOCKED wording is
 // reachable only on the degraded flat-window path. NO USABLE NOTE is the normal report, and it
 // carries more than BLOCKED did — how many notes existed and how many were refused.
-check('and it says so, naming how many notes it refused',
-  i => /NO USABLE NOTE — 1 call note\(s\) parsed, examined 1, all 1 were voicemail/
+check('and it says so, naming how many notes it refused and why',
+  i => /NO USABLE NOTE — 1 note\(s\) on the lead \(1 call, 0 general\), examined 1, all 1 refused — \[CALL NOTE\]: voicemail\/machine boilerplate/
         .test(i.run({ context: VOICEMAIL_ONLY }).logs.join(' ')), true);
 
 check('a lead whose every note is a voicemail reports NO USABLE NOTE',
-  i => /NO USABLE NOTE — 3 call note\(s\) parsed, examined 3, all 3 were voicemail/.test(
+  i => /NO USABLE NOTE — 3 note\(s\) on the lead \(3 call, 0 general\), examined 3, all 3 refused/.test(
     i.run({ context:
       '[08/20/2026 9:00 AM] [CALL NOTE] Outbound phone call (Machine)\n  By: A\n  Left message\n' +
       '[08/19/2026 9:00 AM] [CALL NOTE] Outbound phone call (Machine)\n  By: B\n  No answer\n' +
@@ -182,7 +189,7 @@ check('a lead whose every note is a voicemail reports NO USABLE NOTE',
   true);
 
 check('a real conversation carrying no commitment reports NO COMMITMENT, not silence',
-  i => /NO COMMITMENT — note is a real conversation but carries no commitment phrase/.test(
+  i => /NO COMMITMENT — note is real content but carries no commitment phrase/.test(
     i.run({ context: '[08/20/2026 9:00 AM] [CALL NOTE] Outbound phone call (Contacted)\n  By: A\n  wrong number' }).logs.join(' ')),
   true);
 
@@ -247,8 +254,20 @@ check('no call-note content at all is a no-op',
 check('an empty context is a no-op and does not throw',
   i => i.run({ context: '' }).fired, false);
 
-check('a context with notes but no [CALL NOTE] tag is a no-op',
-  i => i.run({ context: '[08/20/2026 9:00 AM] [NOTE] General Note\n  By: A\n  will come in Friday' }).fired, false);
+// (v9.7.560) THIS EXPECTATION IS DELIBERATELY INVERTED. It encoded the old scope — call notes
+// only — and the whole point of this build is that a general note carrying a real commitment is
+// now read. The companion assertion pins the subject reading, because an unattributed general
+// note is exactly the ambiguity the subject veto is measuring rather than resolving.
+check('a general note carrying a commitment now FIRES — the widening, working',
+  i => i.run({ context: '[08/20/2026 9:00 AM] [NOTE] General Note\n  By: A\n  will come in Friday' }).fired, true);
+
+check('...and it is reported as a general note with an unattributed subject',
+  i => (i.run({ context: '[08/20/2026 9:00 AM] [NOTE] General Note\n  By: A\n  will come in Friday' })
+        .logs.join(' ').match(/noteType:(\S+ ?\S*) subject:(\w+)/) || []).slice(1, 3),
+  ['[NOTE]', 'unattributed']);
+
+check('a context with NEITHER note type is still a no-op',
+  i => i.run({ context: '[08/20/2026 9:00 AM] [AGENT] Outbound Text Message\n  By: A\n  will come in Friday' }).fired, false);
 
 check('the walk is capped — a commitment below the cap is NOT surfaced',
   i => i.run({ context: Array.from({ length: 8 }, (_, n) =>

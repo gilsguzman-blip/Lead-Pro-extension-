@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.560-dev (DEV. BOTH COMMIT READERS NOW READ GENERAL NOTES, NOT JUST CALL NOTES. Scope expansion, pairs with proxy v7.56 and reporter v1.14. TWO FINDINGS MEASURED BEFORE ANY CODE WAS WRITTEN, and both changed the build. (1) THE TAG IS [NOTE], NOT [GENERAL NOTE]. The scraper emits '[<date>] [NOTE] General Note' and this file's own General-Note filter reads indexOf('[NOTE]') && indexOf('General Note'). A type list of '[GENERAL NOTE]' matches ZERO entries on every capture in the repo -- it would have shipped as a silent no-op and looked like a working feature. Asserted against all three fixtures. (2) 13 OF 23 REAL GENERAL NOTES -- 57% -- CONTAIN THE CUSTOMER'S PHONE OR EMAIL. A new fixture, tests/fixtures/general-notes-corpus.json, holds 23 distinct general notes pulled from 13 leads' delivered prompts. Classified: 14 are pure CRM housekeeping ('no dupes <name> <phone> <email> <address>', 'SubmitSENT NEW LEAD Dismiss Edit Assigned To:', 'Customer copied from <store> and assigned to <rep>', '*Sales rep was alerted*'), 3 are empty or an [LP: ...] remnant the context builder already stripped, and only 3 carry real contact-free content. THE MOST COMMON GENERAL NOTE IS THE DUPLICATE-CHECK NOTE AND IT IS A BLOCK OF CONTACT DATA. That makes the general-note boilerplate filter a PRIVACY REQUIREMENT rather than a noise filter: without it those notes reach the comprehension probe's model prompt, and the v9.7.559 unverified-quote path could then persist them to KV -- straight against the v9.7.489 posture that contact data never leaves the CRM. WHAT WAS BUILT. Per-type boilerplate via _lpNoteBoilerplateReason(text, kind), which returns a REASON string rather than a boolean so an over-filtered note type is visible in the log instead of silently missing. The call-note list is v9.7.556's, unchanged. The general-note rule enumerates the housekeeping shapes AND -- because this file has been bitten four builds running by enumerating only what it had already seen -- adds a SHAPE-BASED CONTACT GATE: any general note carrying a phone number or an email is refused outright. That gate earned itself immediately: the corpus contains "GIRLFRIEND'S INFO BUT DO NOT CONTACT SINCE ITS A SURPRISE <name> <phone> <email>", which is not a duplicate-check note, whose shape nobody enumerated, and which carries a THIRD PARTY's contact details. I had written the test expecting it to survive as content; the gate refused it and the suite caught my expectation. SUBJECT ATTRIBUTION IS FINALLY ADDRESSED rather than deferred a third time. v9.7.556 recorded it as residual risk on the 'coming <day>' widening -- an agent might be writing about their own callback plan -- and agent-typed general notes make that common. New _lpCommitSubject reads the words governing the matched verb and returns us / customer / unattributed. It is a NARROW VETO PLUS A REPORTED READING, deliberately not a classifier: it refuses only where the subject is unambiguously us (first person, a named dealership role, or 'told him/her'), and it reports its reading on EVERY fire so the ambiguous middle becomes countable instead of assumed. The corpus contains exactly that ambiguity -- 'spoke with manager said he will let Marvin know to give him a calll' -- where even a human cannot say whose plan 'he' is; that note is reported, not guessed at. SET EXPECTATIONS HONESTLY: the v9.7.556 commitment regex fires on ZERO of the 23 real general notes. This widening adds no detections on today's data. What it adds is coverage of a note type that CAN carry one ('Customer is rescheduling appointment for tomorrow' is in the corpus and is exactly that shape) plus the per-type disagreement data to tell whether it ever matters. BOTH DIAGS NOW REPORT NOTE TYPE, per the brief: [LP VERBAL COMMIT DIAG] carries noteType and subject on every outcome and now reports the lead's TRUE per-type totals ('note 2 of 34 on the lead (22 call, 12 general; examined 2, skipped 1)') -- an earlier draft capped first and silently turned 'of 22' into 'of 12', losing the fact that the lead HAS 22 call notes. [LP COMMIT COMPREHENSION DIAG] carries regexNoteType and compNoteType, the per-type read counts and the refusal count; proxy v7.56 stores all of it clamped to the two known tags; reporter v1.14 adds a BY NOTE TYPE table and a NOTE column on the disagreement list, with pre-v9.7.560 rows landing under 'unknown' rather than being dropped or silently counted as call notes. VERIFIED 53/53 in a new suite plus all 26 suites green (769 assertions), dev===comm on every case, against the real captures. The call-note path is asserted UNCHANGED on Jason Pellegrin's real context: his verdict still fires from the 8/19 CALL note, a call note still wins over a general note when both could fire, and the per-type walk exists precisely so a lead's general notes can never push its call notes past the cap and change an existing verdict. BEHAVIOUR CHANGE STATED RATHER THAN ABSORBED, and it is the one thing to watch: a lead whose every note is refused now SKIPS instead of producing an AGREE-NONE row. Emitting AGREE-NONE would assert the model answered 'none' when it was never asked. The cost is real -- the agreement DENOMINATOR shifts at the v9.7.559/560 boundary, so rates either side are not directly comparable. Rows carry extensionVersion and the SKIP line names how many notes were refused, so the discontinuity is visible rather than silent; on Jason that is 11 refused of the 12 examined. WHAT ELSE THIS MIGHT BREAK, PLAINLY: a genuine general note that happens to contain a phone number -- an agent writing 'customer will come in Friday, call him at 555-1234' -- is now refused entirely, losing a real commitment. That is the deliberate trade against putting customer contact data in a model prompt and in KV, and the refusal reason is logged so the case is countable if it turns out to be real. The subject veto can also refuse a genuine customer commitment an agent happened to write in the first person; it is narrow for that reason, and every fire reports its reading. NOTE: refused notes are refused only from the COMMIT DETECTORS and the probe -- they still reach the model through the ordinary AGENT CONTEXT path, so nothing is hidden from the draft. node --check clean on both builds, the proxy and the reporter; both manifests parse; nothing added inside inlineScraper, verified against the file's own '} // end inlineScraper' marker; version and version_name both bumped. Builds on v9.7.559-dev.)
 // Lead Pro -- popup.js  v9.7.559-dev (DEV. THE PHASE 2 OBSERVER BECOMES DURABLE. Pairs with proxy v7.55 (POST /commit-comprehension) and reporter v1.13 (Commit Comprehension section). STILL NO CUSTOMER-FACING BEHAVIOUR CHANGE -- this is instrumentation, now persistent instead of ephemeral. WHY: v9.7.558 logged [LP COMMIT COMPREHENSION DIAG] to console exactly like every other diagnostic in this file, visible only in a live DevTools session and gone unless someone manually captured it. That defeated the observer's own stated purpose -- the plan is to read delta counts off LIVE traffic to decide whether the comprehension pass is ever trusted, and a console line nobody exports cannot produce a sample. EXTENSION SIDE: new _lpSendCommitComprehension follows _lpFeedbackSend exactly -- same endpoint resolution, same _lpAttachLicense, keepalive:true, .catch(function(){}), never awaited. It is called from INSIDE the observer's own resolution rather than from a second dispatch site, so it fires exactly when a verdict exists and inherits the observer's kill switch for free: LEADPRO_COMMIT_COMPREHENSION = false means the observer never runs, so nothing logs and nothing posts. No second flag, per instruction. WHAT IS PERSISTED, AND THE POSTURE IS v9.7.489's RATHER THAN A NEW ONE: the row carries CRM RECORD LOCATORS -- autoLeadId, customerId, dealerId, leadSource, store -- so a disagreement is investigated by opening the lead in VinSolutions and reading the real notes there. No customer contact data. No CRM note text: the notes stay in the CRM, exactly as feedback rows leave drafts out unless a correction happened. ONE DELIBERATE EXCEPTION, narrow and stated rather than slipped in: when the comprehension quote FAILED verification, that string IS sent (scrubbed with the same _lpScrubPII the draft-pair capture uses, capped at 300 chars). It is MODEL-GENERATED and by definition does NOT appear in the lead, so opening the lead cannot recover it -- it is the one thing a QUOTE-FABRICATED row could not be audited without. A VERIFIED quote is never sent; only its length, because the note it came from is already in the CRM. WORKER v7.55: POST /commit-comprehension mirrors POST /feedback line for line -- invalid-JSON rejection, required-field check, REQUIRE_LICENSE handling with the same fleet-readiness log when it is off, a SERVER timestamp in the KV key (a client-chosen ts+id could otherwise overwrite another row -- the v7.29/W3 lesson), the same LEADPRO_LICENSES namespace and the same 90-day TTL. It additionally rejects an unrecognised delta rather than storing junk, and clamps every stored string. The /feedback handler is asserted BYTE-IDENTICAL to v7.54 -- this is purely additive. REPORTER v1.13: a Commit Comprehension section reading the commit: KV prefix with the same two-UTC-prefix + CT-date filter the feedback read uses, so a verdict recorded near CT midnight cannot appear in both days' reports. It shows agreement rate, disagreement rate, a fabricated-quote count, the per-delta breakdown with what each delta MEANS in plain words, a by-lead-source table, and a disagreement list whose LEAD column deep-links into VinSolutions via the v1.12 vinLeadUrl. The read sits in its own try/catch: instrumentation ABOUT an observer must never cost the daily report its operational content. An unrecognised delta is skipped rather than crashing the render. The section states on its face that no comprehension verdict has ever changed a customer-facing message. VERIFIED 50/50 in a new suite plus all 25 suites green (710 assertions), dev===comm on every case, and the two things that actually matter are PROVEN rather than asserted. (1) FIRE-AND-FORGET IS REAL: the observer is handed a POST that NEVER resolves, and separately one that throws synchronously, and it still resolves with its own verdict both times -- so a hung or failing proxy cannot delay or alter a draft. A rejecting fetch is swallowed; a verdict with no delta sends nothing; buildUserPrompt references the sender nowhere. (2) THE PRIVACY POSTURE IS ENFORCED, NOT DESCRIBED: the payload is built from a scraped record deliberately loaded with phone, email, name and ZIP, and the test asserts NONE of those strings appears anywhere in the body, field by field. The worker's stored meta is asserted to be exactly the five locator keys with no phone/email/name/zip/address field. THREE OF MY OWN TEST ASSERTIONS WERE WRONG AND THE SUITE CAUGHT ALL THREE, which is the value of writing them this way: the /feedback byte-identity check sliced 'from /feedback to /list-licenses' and broke the moment a new endpoint was inserted between them (now bounded by the handler's own first and last lines); the reporter harness omitted percentiles and _CT_FMT from its helper slice; and a NaN assertion scoped to the WHOLE report failed on the pre-existing Latency table reacting to this test's own deliberately thin reqs fixture -- asserting on my fixture rather than on the code under test. That one is now scoped to the commit section, with an anti-vacuity check that the section was really found. WHAT THIS MIGHT BREAK, PLAINLY: nothing customer-facing, and the suite fails loudly if that stops being true. The real costs are KV write volume (one row per generation that has a real call note, 90-day TTL, same namespace as feedback -- worth watching against the v7.29/W6c precedent where feedback: keys at 90-day retention were being parsed as licenses by /list-licenses; commit: keys are a NEW prefix and /list-licenses filters on its own unprefixed list, so this should not recur, but it is named here so it is checked rather than assumed) and one extra POST per verdict. The flag turns all of it off with no other change. node --check clean on both builds, the proxy and the reporter; both manifests parse; nothing added inside inlineScraper, verified against the file's own '} // end inlineScraper' marker; version and version_name both bumped. Builds on v9.7.558-dev.)
 // Lead Pro -- popup.js  v9.7.558-dev (DEV. PHASE 2 OF 2 -- A COMPREHENSION PASS THAT CAN ONLY WATCH. NO CUSTOMER-FACING BEHAVIOUR CHANGES IN THIS BUILD, by design and by test. The frustration this answers is real: nearly every incident this month was the EXTRACTION layer missing a phrasing shape or a boundary, not the model failing to understand a note once it saw the right thing. But this exact block carries the counter-evidence -- v9.7.197 and v9.7.368 are two tightenings that each FOLLOWED a looser, more interpretive version fabricating a verbal commitment and shipping it to a real customer. Both failed by INTERPRETING LOOSELY, not by misreading clear text. So this is not 'trust the model instead of the regex'; it is a second reading that runs alongside and is structurally incapable of authoring anything. THREE CONTAINMENT PROPERTIES, each asserted rather than promised. (1) IT NEVER REACHES A PROMPT: buildUserPrompt and classifyScenario contain ZERO references to any symbol the pass defines, and the window stash is written exactly once and read exactly nowhere. If a later build wires it in, those assertions fail first. The regex verdict stash is written inside buildUserPrompt and read only at the observer dispatch, which the suite pins at exactly one read in the whole file. (2) ITS OUTPUT IS FALSIFIABLE, NOT A JUDGEMENT: the probe must return a quote copied character-for-character out of ONE named note, or say there is none. The quote is then VERIFIED as a literal substring of a note -- whitespace-normalised and case-insensitive, because a model reflowing a line is not the failure mode that hurt us; inventing words is. A paraphrase is rejected as QUOTE-FABRICATED and counted. That is the single biggest lever against repeating v9.7.197/368, and it is mechanical, so 'the model made something up' becomes a number rather than an argument. (3) IT IS ISOLATED FROM THE REGEX'S OWN ANSWER: the probe sees ONLY the walked call-note entries -- no Lead Pro directives, no VOI, no scenario, and specifically NOT the 'CALL NOTE -- READ BEFORE WRITING' block the regex writes when it fires. This one is load-bearing and easy to get wrong: a probe embedded in the main generation call would sit in a prompt that already states the answer, agree by construction, and produce disagreement data worth nothing. It is therefore a separate, isolated call. IT RUNS ON PHASE 1'S WALKED ENTRIES -- the same _lpWalkCrmEntries(context, {type:'[CALL NOTE]', max:6}) the regex path reads -- so both verdicts are answering a question about the SAME text and a disagreement is about comprehension, never about boundaries. That is the concrete payoff of shipping Phase 1 first. WHAT IT LOGS: [LP COMMIT COMPREHENSION DIAG] prints the two verdicts side by side with a delta -- AGREE-COMMITMENT, AGREE-NONE, DISAGREE-REGEX-ONLY, DISAGREE-COMPREHENSION-ONLY, or QUOTE-FABRICATED -- in the same family as [LP COMMAND COVERAGE DIAG]'s sms-vs-email delta. Every exit path logs, including SKIPPED (no call notes / no endpoint), UNPARSEABLE, FAILED and THREW: a probe that silently did not run would quietly bias the very count this build exists to collect. COST AND LATENCY, PLAINLY, because this is not free: it is a SECOND API call on any lead that has a real call note. It is fire-and-forget -- dispatched after the draft is already rendered and never awaited, which the suite asserts -- so it cannot delay or alter a message, and it is gated so it does not run when there are no notes to read. LEADPRO_COMMIT_COMPREHENSION = false switches it off entirely. VERIFIED 42/42 in a new suite plus all 24 suites green (660 assertions), dev===comm on every case, run against the real captures: Jason Pellegrin's 22-call-note history and the log119 line-436 lead. The fetch is injected, so every branch -- fabricated quote, wrong note number, fenced JSON, unparseable text, rejected fetch, missing candidates, unknown kind, flag off -- is exercised with no network. DISAGREE-COMPREHENSION-ONLY is asserted REACHABLE on a real phrasing shape the regex does not cover ('said he would swing past after work thursday'), because a disagreement detector that can only ever agree would be worthless. A CONTAINMENT ASSERTION CAUGHT MY OWN TEST BUG, which is the point of writing it that way: the first version sliced buildUserPrompt as 'from its declaration to classifyScenario', but classifyScenario is defined BEFORE it in the file, so the slice silently ran to end-of-file and swept in the dispatch site. It is now taken from the function's own closing brace, plus an anti-vacuity assertion that the sliced body is really the whole function. WHAT HAPPENS NEXT, AND WHAT DELIBERATELY DOES NOT: nothing is promoted on the strength of this build. The next step is reading the delta counts off live logs -- how often the two differ, in which direction, and on what shape of note -- and that data decides whether the comprehension pass ever becomes load-bearing. It is not a judgement call to make here. WHAT THIS MIGHT BREAK, PLAINLY: nothing customer-facing, and the suite is structured so that claim fails loudly if it stops being true. The real costs are money and log volume -- one extra model call per generation on a lead with call notes, and one extra diagnostic line. If either bites, the flag turns it off with no other change. node --check clean both builds; both manifests parse; nothing added inside inlineScraper, verified against the file's own '} // end inlineScraper' marker; version and version_name both bumped. Phase 1 (v9.7.557) shipped and was verified green before this build started, per instruction. Builds on v9.7.557-dev.)
 // Lead Pro -- popup.js  v9.7.557-dev (DEV. PHASE 1 OF 2 -- ONE SHARED CRM ENTRY WALKER. CONSOLIDATION, NOT A BUG FIX: no live incident, no customer-facing behaviour change, and every migrated consumer is verified byte-identical rather than merely suite-green. WHY: five consumers hand-rolled 'split the notes into entries and do not absorb across a boundary' and five shipped their own boundary bug -- v9.7.552, v9.7.553, v9.7.554, v9.7.555 and v9.7.556 (twice in one build). New _lpWalkCrmEntries(context, opts) splits on LP_CRM_ENTRY_SPLIT_RE (the pattern v9.7.556 proved against Jason Pellegrin's real 22-note history), trims trailing scaffold per-entry with the shared v9.7.552 LP_SCAFFOLD_LINE_RE, and returns entries in context order with an optional type filter, an optional cap applied AFTER the filter, and opts.trimText for byte-exact migration. WHAT THE INVESTIGATION CHANGED ABOUT THE SCOPE, and it is the main finding: OF THE FIVE CONSUMERS NAMED, ONLY ONE IS ACTUALLY A DATED-ENTRY WALKER. From the shipped bytes -- v9.7.552/553 pivot is ctxForPivot.split('\\n'), a LINE-level tag state machine; v9.7.554 coverage is cmdText.split(/[,;\\n]/) over an AGENT'S COMMAND STRING, which is not context at all; v9.7.555 off-franchise is new RegExp(makes.join('|')), a TOKEN boundary; only v9.7.556 verbal-commit splits dated entries. They are THREE different boundary problems that happen to share a symptom, and forcing the other four onto an entry walker would buy nothing and obscure what each actually does. The two other families are real and named for a later build: token-boundary (v9.7.554's _lpCmdTermHit and v9.7.555's make alternation are literally the same bug and could share one helper) and line-level tag state machine (v9.7.552/553's pivot opener/closer and _lpCustomerText / _lpArcHasSchedulingConstraint, which is the family with TWO shipped bugs). A SIXTH INSTANCE THE REPORT DID NOT LIST was found and IS a genuine fit: ctxEntries, the arc-bound / scaffold-leak splitter, splitting on /\\n(?=\\[\\d{2}\\/\\d{2}\\/)/ -- narrower than v9.7.556's, requiring a two-digit month AND day AND no leading whitespace. On every real capture the two agree exactly (68 entries on Jason's context either way), but the narrow one silently fails to split '[8/2/2026 ...]' or an indented entry: the same absorb-across-the-boundary class, latent rather than live, now closed. SHIPPED AS TWO SEPARATE VERIFIED STEPS, per Gil's instruction not to write and consolidate in one diff: step 1 commits the utility and its 37-assertion suite with ZERO consumers touched, so 'the utility is correct' is checkable on its own; step 2 migrates verbal-commit and ctxEntries, so 'the migration preserved behaviour' is a separate claim. MIGRATION PROOF IS BYTE-LEVEL, NOT CONTENT-LEVEL. The first migration of ctxEntries was content-identical but NOT byte-identical -- the walker trims each entry and the hand-rolled split did not, so the FINAL entry of every context lost its trailing newline. Rather than argue that delta is inert, opts.trimText was added and the site passes trimText:false; all three real captures now compare byte-for-byte entry-by-entry, and the suite asserts BOTH that they match with the flag and that exactly one entry differs without it, so the flag cannot rot into a no-op. TESTED AGAINST REAL CAPTURES ONLY: Jason Pellegrin's 68-entry / 22-call-note history, Jeffrey Best's Gubagoo chat (where the [GUBAGOO CHAT] entry must survive as ONE entry with all five [CUSTOMER] turns intact), and the Corolla context. Asserted: no entry ever contains two dated headers; order is newest-first as VinSolutions renders; the cap counts KEPT entries; an entry's own dated header is never treated as scaffold while a scaffold line below it still cuts; a date inside an entry body does not split it; and null/undefined/empty/whitespace-only inputs never throw. TWO OF MY OWN TEST EXPECTATIONS WERE WRONG AND THE SUITE CAUGHT BOTH: Jeffrey's context does carry one [CALL NOTE] (08/18 9:54 AM), and a dated header with an empty body is real content that must be KEPT rather than dropped as whitespace. All 23 suites green (618 assertions), dev===comm on every case. WHAT THIS MIGHT BREAK, PLAINLY: ctxEntries now splits shapes it previously ran together -- a one-digit-dated or indented entry. That is strictly more correct, but it means an arc that previously presented as one entry could now present as two, which changes what the v9.7.543 per-entry scaffold cut sees on such a lead. No capture reviewed contains that shape, which is exactly why it is latent. node --check clean both builds; both manifests parse; nothing added inside inlineScraper, verified against the file's own '} // end inlineScraper' marker; version and version_name both bumped. PHASE 2 (comprehension-pass observer) is deliberately NOT in this build and starts only now that this one is verified. Builds on v9.7.556-dev.)
@@ -552,6 +553,97 @@ function _lpWalkCrmEntries(context, opts) {
   return out;
 }
 
+// ── (v9.7.560) NOTE TYPES: CALL NOTES AND GENERAL NOTES ARE NOT THE SAME CONTENT ─
+// Scope expansion. The verbal-commit regex and the Phase 2 observer both read only
+// [CALL NOTE], inherited from the original detector's scope — a customer's verbal
+// commitment on a phone call. General notes are agent-typed, and that changes what
+// reading them safely requires.
+//
+// THE TAG IS [NOTE], NOT [GENERAL NOTE]. Checked before building on it: the scraper
+// emits '[' + date + '] [NOTE] General Note' — the file's own General-Note filter at
+// the context builder reads `indexOf('[NOTE]') !== -1 && indexOf('General Note') !== -1`.
+// A type list of '[GENERAL NOTE]' would have matched ZERO entries on every capture in
+// the repo and shipped as a silent no-op.
+//
+// MEASURED ON A REAL CORPUS of 23 distinct general notes pulled from 13 leads' delivered
+// prompts, because both design decisions turn on what these notes actually contain:
+//   • 14 of 23 are pure CRM housekeeping — "no dupes <name> <phone> <email> <address>",
+//     "SubmitSENT NEW LEAD Dismiss Edit Assigned To: <name>", "Customer copied from
+//     <store> and assigned to <rep>", "*Sales rep was alerted*".
+//   •  3 are empty or an [LP: ...] tag remnant the context builder already stripped.
+//   •  4 carry real content, and only ONE of those is a customer statement.
+//   •  THIRTEEN OF 23 — 57% — CONTAIN THE CUSTOMER'S PHONE OR EMAIL.
+//
+// That last number is why the general-note boilerplate filter is a PRIVACY requirement
+// and not just a false-positive guard. The duplicate-check note is the single most
+// common general note in the corpus and it is a block of contact data. Feeding it to
+// the comprehension probe would send customer contact details to the model, and the
+// v9.7.559 unverified-quote path could then persist them to KV — directly against the
+// v9.7.489 posture that contact data never leaves the CRM.
+//
+// Also measured, and it sets expectations honestly: the v9.7.556 commitment regex fires
+// on ZERO of the 23. Widening to general notes is not currently adding detections on
+// this corpus; what it adds is COVERAGE of a note type that can carry a commitment
+// ("Customer is rescheduling appointment for tomorrow" is in the corpus and is exactly
+// the shape that would), plus the disagreement data to tell whether it ever matters.
+var LP_NOTE_TYPES = { CALL: '[CALL NOTE]', GENERAL: '[NOTE]' };
+
+// Call-note boilerplate — the v9.7.556 list, unchanged, now named by type.
+var LP_CALL_BOILERPLATE_RE = /left message|no answer|auto.?generated|voicemail|\bmachine\b|mb full|full mailbox/i;
+
+// General-note boilerplate. Enumerated shapes FIRST, then a shape-based backstop, because
+// this file has been bitten repeatedly by enumerating only what it had already seen
+// (v9.7.552 closers, v9.7.553 openers, v9.7.554 tokens, v9.7.555 makes).
+var LP_GENERAL_BOILERPLATE_RE = /\bno (?:active )?dupe?s?\b|\bdupe but\b|\bno dupe\b|submit\s*sent new lead|dismiss\s+edit|assigned to\s*:|sales rep was alerted|customer copied from|copied from .* and assigned|lead log|changed from .* to |^\s*lp\s*:/i;
+
+// Does this general note carry customer contact data? Any note that does is a
+// duplicate-check / contact-capture note by construction — nobody types a phone number
+// and an email into a note ABOUT a conversation. Refusing on the SHAPE catches the
+// variants nobody has enumerated yet, and it is what keeps contact data out of the
+// comprehension probe and out of KV.
+var LP_NOTE_CONTACT_RE = /\(\d{3}\)\s*\d{3}-\d{4}|\b\d{3}-\d{3}-\d{4}\b|[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/;
+
+// One boilerplate decision, per note type. Returns '' when the note is real content, or
+// a short reason string naming why it was refused — the reason is logged, so a note type
+// that turns out to be over-filtered is visible rather than silently missing.
+function _lpNoteBoilerplateReason(text, kind) {
+  var t = String(text || '');
+  // Strip the dated header and the "By: <name>" attribution before judging the BODY —
+  // an agent's name is not content, and leaving it in made every note look non-empty.
+  var body = t.replace(/^\s*\[[^\]]*\]\s*\[[^\]]*\][^\n]*\n?/, '')
+              .replace(/^\s*By:\s*[^\n]*\n?/im, '')
+              .replace(/\bBy:\s*[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*/g, ' ')
+              .replace(/\s+/g, ' ').trim();
+  if (kind === LP_NOTE_TYPES.CALL) {
+    return LP_CALL_BOILERPLATE_RE.test(t) ? 'voicemail/machine boilerplate' : '';
+  }
+  if (body.replace(/[^a-z0-9]/gi, '').length < 8) return 'empty or tag-remnant note';
+  if (LP_NOTE_CONTACT_RE.test(body)) return 'carries customer contact data — duplicate-check note';
+  if (LP_GENERAL_BOILERPLATE_RE.test(body)) return 'CRM housekeeping boilerplate';
+  return '';
+}
+
+// ── SUBJECT ATTRIBUTION ────────────────────────────────────────────────────────
+// v9.7.556 widened the commitment regex to "coming <day>" and recorded, as residual
+// risk, that an agent might be writing about their OWN callback plan rather than the
+// customer's visit. On call notes that stayed rare. General notes are agent-typed prose
+// and make it common, so it is addressed here rather than deferred a second time.
+// Deliberately a NARROW VETO plus a REPORTED READING, not a classifier: it refuses the
+// cases where the subject is unambiguously us, and it reports its reading on every fire
+// so the ambiguous middle becomes countable instead of assumed. The real corpus contains
+// exactly the ambiguity — "spoke with manager said he will let Marvin know to give him a
+// calll" — where even a human cannot say whose plan "he" is.
+function _lpCommitSubject(text, matchIndex) {
+  var before = String(text || '').slice(Math.max(0, matchIndex - 60), matchIndex).toLowerCase();
+  // Us, unambiguously: first person, or a named dealership role, governing the verb.
+  if (/\b(?:i|we)\s*(?:'|’)?(?:ll|m|re|ve)?\s+(?:\w+\s+){0,2}$/.test(before)) return 'us';
+  if (/\b(?:manager|sales\s*rep|rep|bdc|advisor|consultant|desk)\s+(?:\w+\s+){0,2}$/.test(before)) return 'us';
+  if (/\b(?:told|advised|informed|asked)\s+(?:him|her|them|customer|cust)\s*(?:\w+\s+){0,2}$/.test(before)) return 'us';
+  // Them, unambiguously.
+  if (/\b(?:customer|cust|he|she|they|client|buyer)\s*(?:'|’)?(?:ll|s|d)?\s+(?:\w+\s+){0,2}$/.test(before)) return 'customer';
+  return 'unattributed';
+}
+
 // ── (v9.7.558) COMPREHENSION PASS — OBSERVER ONLY, NEVER AUTHORITATIVE ──────────
 // PHASE 2. Nearly every incident this month was the extraction layer missing a phrasing
 // shape or a boundary, not the model failing to understand a note it was shown. But this
@@ -589,10 +681,14 @@ var LEADPRO_COMMIT_COMPREHENSION = true;
 // The probe prompt. Deliberately narrow: one question, one output shape, and the two
 // failure modes this block has actually shipped (our own voicemail read as the customer
 // speaking; a negated statement read as a commitment) named as explicit non-commitments.
-function _lpBuildCommitProbe(notes) {
+function _lpBuildCommitProbe(notes, kinds) {
   var lines = [];
   for (var i = 0; i < notes.length; i++) {
-    lines.push('[' + (i + 1) + '] ' + String(notes[i] || '').replace(/\s+/g, ' ').trim());
+    // (v9.7.560) Label each note with its TYPE. A call note is a record of a conversation; a
+    // general note is agent-typed prose that is just as often the agent's own plan. Telling the
+    // probe which it is reading is the cheapest form of the subject-attribution guard.
+    var label = (kinds && kinds[i]) ? ' ' + kinds[i] : '';
+    lines.push('[' + (i + 1) + ']' + label + ' ' + String(notes[i] || '').replace(/\s+/g, ' ').trim());
   }
   return 'You are reading dealership CRM call notes. Decide exactly ONE thing: did the CUSTOMER '
     + 'say they will come to the dealership?\n\n'
@@ -603,6 +699,11 @@ function _lpBuildCommitProbe(notes) {
     + '- A voicemail we left, a message we sent, or something an agent plans to do is NOT the '
     + 'customer committing to anything.\n'
     + '- A negated statement ("not coming in", "won\'t be able to make it") is NOT a commitment.\n'
+    + '- WHOSE PLAN IS IT: a [NOTE] is typed by the dealership, so it often records what WE will '
+    + 'do ("will call back Thursday", "I will follow up Monday", "manager will reach out"). That '
+    + 'is our plan, not the customer committing to come in. Only a statement about what the '
+    + 'CUSTOMER will do counts.\n'
+    + '- CRM housekeeping is not a commitment: duplicate checks, lead assignment, rep changes.\n'
     + '- "firm" means they named a day or time. "soft" means they said they would try or '
     + 'probably would. "none" means they did not say it at all.\n\n'
     + 'NOTES:\n' + lines.join('\n') + '\n\n'
@@ -648,12 +749,25 @@ function _lpRunCommitComprehension(ctxText, regexVerdict, deps) {
   try {
     if (!LEADPRO_COMMIT_COMPREHENSION) return Promise.resolve(null);
 
-    // Same walked entries the regex reads — Phase 1's utility, one boundary for both.
-    var walked = _lpWalkCrmEntries(ctxText, { type: '[CALL NOTE]', max: 6 });
-    var notes = [];
-    for (var i = 0; i < walked.length; i++) notes.push(walked[i].text);
+    // (v9.7.560) Same walked entries the regex reads, now BOTH note types, per-type capped, in
+    // the same call-notes-first order — so a disagreement is never an artefact of the two paths
+    // having read different text.
+    // THE BOILERPLATE FILTER IS A PRIVACY GATE HERE, not just a noise filter. Measured on 23
+    // real general notes from 13 leads: 13 of them (57%) contain the customer's phone or email,
+    // because the single most common general note is the duplicate-check note and that note IS a
+    // block of contact data. Sending those to the probe would put customer contact details in a
+    // model prompt, and the v9.7.559 unverified-quote path could then persist them to KV —
+    // straight against the v9.7.489 posture. Refused notes never reach the probe at all.
+    var notes = [], noteKinds = [], _ccRefused = 0;
+    [LP_NOTE_TYPES.CALL, LP_NOTE_TYPES.GENERAL].forEach(function (kind) {
+      _lpWalkCrmEntries(ctxText, { type: kind, max: 6 }).forEach(function (e) {
+        if (_lpNoteBoilerplateReason(e.text, kind)) { _ccRefused++; return; }
+        notes.push(e.text); noteKinds.push(kind);
+      });
+    });
     if (!notes.length) {
-      _log('[LP COMMIT COMPREHENSION DIAG] SKIPPED — no call notes to read | regex:' + (rv.fired ? 'FIRED' : 'none'));
+      _log('[LP COMMIT COMPREHENSION DIAG] SKIPPED — no readable notes ('
+        + _ccRefused + ' refused as boilerplate or contact data) | regex:' + (rv.fired ? 'FIRED' : 'none'));
       return Promise.resolve(null);
     }
     if (!_fetch || !_endpoint || !_endpoint.url) {
@@ -663,7 +777,7 @@ function _lpRunCommitComprehension(ctxText, regexVerdict, deps) {
 
     var payload = {
       system_instruction: { parts: [{ text: 'You extract one fact from CRM notes and answer in JSON. You never guess and never paraphrase.' }] },
-      contents: [{ role: 'user', parts: [{ text: _lpBuildCommitProbe(notes) }] }],
+      contents: [{ role: 'user', parts: [{ text: _lpBuildCommitProbe(notes, noteKinds) }] }],
       generationConfig: { temperature: 0, maxOutputTokens: 300, responseMimeType: 'application/json' }
     };
 
@@ -692,7 +806,15 @@ function _lpRunCommitComprehension(ctxText, regexVerdict, deps) {
         var result = {
           regexFired: !!rv.fired, regexQuote: String(rv.quote || ''),
           kind: kind, quote: quote, claimedNote: parsed.note == null ? null : parsed.note,
-          verifiedNote: verified, quoteVerified: quoteOk, delta: delta, notesRead: notes.length
+          verifiedNote: verified, quoteVerified: quoteOk, delta: delta, notesRead: notes.length,
+          // (v9.7.560) Which note TYPE sourced the verdict, on both sides — so a future
+          // disagreement is diagnosable by note type from the log and the report without
+          // re-deriving it from the lead.
+          regexNoteType: String(rv.noteType || ''),
+          compNoteType: verified > 0 ? (noteKinds[verified - 1] || '') : '',
+          notesRefused: _ccRefused,
+          callNotesRead: noteKinds.filter(function (k) { return k === LP_NOTE_TYPES.CALL; }).length,
+          generalNotesRead: noteKinds.filter(function (k) { return k === LP_NOTE_TYPES.GENERAL; }).length
         };
         // Stash is read by NOTHING. It exists so a future build can aggregate without
         // re-running the probe; wiring it into a prompt is a separate, deliberate decision.
@@ -705,7 +827,10 @@ function _lpRunCommitComprehension(ctxText, regexVerdict, deps) {
               + (verified && parsed.note !== verified ? ' (verified against note ' + verified + ')' : '')
               + ' "' + quote.slice(0, 70) + '"')
           + ' | quoteVerified:' + quoteOk
-          + ' | notesRead:' + notes.length);
+          + ' | regexNoteType:' + (rv.noteType || '(none)')
+          + ' compNoteType:' + (result.compNoteType || '(none)')
+          + ' | notesRead:' + notes.length + ' (' + result.callNotesRead + ' call, '
+          + result.generalNotesRead + ' general; ' + _ccRefused + ' refused)');
         // (v9.7.559) Persist the verdict pair. Fired from inside the observer's own resolution,
         // so it lands exactly when a verdict exists and inherits the observer's kill switch and
         // its fire-and-forget posture — no second flag, no second dispatch site to keep in sync.
@@ -777,6 +902,12 @@ function _lpSendCommitComprehension(result, deps) {
       claimedNote:      result.claimedNote == null ? null : result.claimedNote,
       verifiedNote:     result.verifiedNote || 0,
       notesRead:        result.notesRead || 0,
+      // (v9.7.560) Note type on both sides, so the report can break disagreement down by note
+      // type without re-deriving it. A type tag is not content and carries no PII.
+      regexNoteType:    result.regexNoteType || '',
+      compNoteType:     result.compNoteType || '',
+      callNotesRead:    result.callNotesRead || 0,
+      generalNotesRead: result.generalNotesRead || 0,
       extensionVersion: ver,
       meta: {
         autoLeadId: _scraped.autoLeadId || '',
@@ -14742,9 +14873,25 @@ function buildUserPrompt(data) {
     // entries, exactly as the hand-rolled loop counted them.
     // (v9.7.558) Cleared every generation, so the comprehension observer can never compare
     // against a previous lead's verdict.
-    try { window._lpVerbalCommitVerdict = { fired: false, quote: '', note: '' }; } catch (eVr) {}
-    var _vcNotes = _lpWalkCrmEntries(data.context, { type: '[CALL NOTE]' })
-      .map(function (e) { return e.text; });
+    try { window._lpVerbalCommitVerdict = { fired: false, quote: '', note: '', noteType: '', subject: '' }; } catch (eVr) {}
+    // (v9.7.560) Two types now, walked SEPARATELY and concatenated call-notes-first, with
+    // their own caps. A single mixed walk with one cap would let a lead's general notes push
+    // its call notes past the cap and change an existing lead's verdict; walking each type
+    // with its own budget makes a call-note-only lead byte-identical to v9.7.559, which the
+    // suite asserts against Jason Pellegrin's real capture.
+    var _VC_PER_TYPE = 6;
+    var _vcAllCall = _lpWalkCrmEntries(data.context, { type: LP_NOTE_TYPES.CALL });
+    var _vcAllGen  = _lpWalkCrmEntries(data.context, { type: LP_NOTE_TYPES.GENERAL });
+    // True totals kept separately from the capped walk. "note 2 of 22" told you the lead had
+    // 22 call notes; capping first would have silently turned that into "of 12" and lost the
+    // fact. The log reports what the lead HAS and what was examined, which are different
+    // numbers and both matter when reading a disagreement back.
+    var _vcTotalCall = _vcAllCall.length, _vcTotalGen = _vcAllGen.length;
+    var _vcNotes = [];
+    _vcAllCall.slice(0, _VC_PER_TYPE)
+      .forEach(function (e) { _vcNotes.push({ text: e.text, kind: LP_NOTE_TYPES.CALL }); });
+    _vcAllGen.slice(0, _VC_PER_TYPE)
+      .forEach(function (e) { _vcNotes.push({ text: e.text, kind: LP_NOTE_TYPES.GENERAL }); });
     // If the entry shape ever changes, degrade to the previous behaviour rather than losing the
     // feature outright — same discipline as the v9.7.544 fence fallback.
     var _vcDegraded = false;
@@ -14752,13 +14899,16 @@ function buildUserPrompt(data) {
       var _vcFlat = (data.context || '').match(/\[CALL NOTE\][\s\S]{0,500}/i);
       if (_vcFlat) { _vcNotes = [_vcFlat[0]]; _vcDegraded = true; }
     }
-    var _VC_MAX_NOTES = 6;
-    var _vcBoilerRe = /left message|no answer|auto.?generated|voicemail|\bmachine\b|mb full|full mailbox/i;
+    // (v9.7.560) The cap now lives in the per-type walks above, so this loop walks everything
+    // they returned. Boilerplate is decided PER TYPE and the reason is kept, because a
+    // general note is refused for entirely different reasons than a voicemail is.
     var _vcExamined = 0, _vcSkipped = 0, _vcChosen = '', _vcChosenIx = -1;
-    for (var _vcI = 0; _vcI < _vcNotes.length && _vcI < _VC_MAX_NOTES; _vcI++) {
+    var _vcChosenKind = '', _vcSkipReasons = [];
+    for (var _vcI = 0; _vcI < _vcNotes.length; _vcI++) {
       _vcExamined++;
-      if (_vcBoilerRe.test(_vcNotes[_vcI])) { _vcSkipped++; continue; }
-      _vcChosen = _vcNotes[_vcI]; _vcChosenIx = _vcI; break;
+      var _vcReason = _lpNoteBoilerplateReason(_vcNotes[_vcI].text, _vcNotes[_vcI].kind);
+      if (_vcReason) { _vcSkipped++; _vcSkipReasons.push(_vcNotes[_vcI].kind + ': ' + _vcReason); continue; }
+      _vcChosen = _vcNotes[_vcI].text; _vcChosenIx = _vcI; _vcChosenKind = _vcNotes[_vcI].kind; break;
     }
     var callNoteRawPre = _vcChosen ? [_vcChosen] : null;
     if (callNoteRawPre) {
@@ -14778,7 +14928,7 @@ function buildUserPrompt(data) {
       // conversation. Kept as a second checkpoint anyway: it is cheap, and the whole reason this
       // check exists is that upstream filtering was trusted once and shipped a fabricated
       // commitment to a customer.
-      var _isVoicemailBoilerplate = _vcBoilerRe.test(callTextPre);
+      var _isVoicemailBoilerplate = !!_lpNoteBoilerplateReason(callTextPre, _vcChosenKind);
       if (!_isVoicemailBoilerplate) {
         // (fix) Tightened: bare "confirmed?"/"coming"/"scheduled?" matched vehicle-status language
         // ("vehicle confirmed in stock") as if it were a customer commitment. Now requires the
@@ -14802,6 +14952,20 @@ function buildUserPrompt(data) {
         // (v9.7.556) A NEGATED COMMITMENT IS NOT A COMMITMENT. Added with the widening above,
         // because a wider net over agent shorthand meets "not coming in" and "won't be able to
         // come" sooner. Looks at the words immediately before the match rather than a lookbehind.
+        // (v9.7.560) SUBJECT VETO, applied before the negation veto. An agent's own stated plan
+        // is not a customer commitment. Narrow by design: it refuses only where the subject is
+        // unambiguously us, and the reading is reported on every fire so the ambiguous middle
+        // becomes countable rather than assumed.
+        var _vcSubject = 'n/a';
+        if (dayCommitPre) {
+          _vcSubject = _lpCommitSubject(callTextPre, dayCommitPre.index);
+          if (_vcSubject === 'us') {
+            console.log('[LP VERBAL COMMIT DIAG] REFUSED — the subject is US, not the customer'
+              + ' | noteType:' + (_vcChosenKind || '?')
+              + ' | matched:' + JSON.stringify(dayCommitPre[0].trim().substring(0, 90)));
+            dayCommitPre = null;
+          }
+        }
         if (dayCommitPre) {
           var _vcBefore = callTextPre.slice(Math.max(0, dayCommitPre.index - 24), dayCommitPre.index);
           // Allow a few words between the negator and the verb — "won't BE coming in",
@@ -14819,11 +14983,14 @@ function buildUserPrompt(data) {
           // (v9.7.558) Stash for the comprehension observer to compare against. WRITE-ONLY from
           // the prompt's point of view — nothing in buildUserPrompt reads it back, and the suite
           // asserts that.
-          try { window._lpVerbalCommitVerdict = { fired: true, quote: commitText, note: _vcChosen }; } catch (eVs) {}
+          try { window._lpVerbalCommitVerdict = { fired: true, quote: commitText, note: _vcChosen,
+                                                  noteType: _vcChosenKind, subject: _vcSubject }; } catch (eVs) {}
           // (diagnostic) exact raw match, so a future fire (true or false positive) can be
           // verified directly against real data instead of inferred from output alone.
           console.log('[LP VERBAL COMMIT DIAG] FIRED — matched:', JSON.stringify(commitText),
-            '| note ' + (_vcChosenIx + 1) + ' of ' + _vcNotes.length + ' (examined ' + _vcExamined
+            '| noteType:' + (_vcChosenKind || '?') + ' subject:' + _vcSubject,
+            '| note ' + (_vcChosenIx + 1) + ' of ' + (_vcTotalCall + _vcTotalGen)
+            + ' on the lead (' + _vcTotalCall + ' call, ' + _vcTotalGen + ' general; examined ' + _vcExamined
             + ', skipped ' + _vcSkipped + ' boilerplate' + (_vcDegraded ? ', DEGRADED to the flat window' : '') + ')',
             '| this note ONLY:', JSON.stringify(callTextPre.substring(0,300)));
           conversationAnalysis = [
@@ -14844,8 +15011,10 @@ function buildUserPrompt(data) {
         // boilerplate notes rather than selecting one, so a normal lead whose notes are all
         // voicemail reports NO USABLE NOTE below instead. Kept because the degraded path can
         // still hand a boilerplate blob straight through.
-        console.log('[LP VERBAL COMMIT DIAG] BLOCKED (degraded path) — this note is voicemail/machine boilerplate'
-          + ' | note ' + (_vcChosenIx + 1) + ' of ' + _vcNotes.length + ' (examined ' + _vcExamined
+        console.log('[LP VERBAL COMMIT DIAG] BLOCKED (degraded path) — this note is boilerplate'
+          + ' | noteType:' + (_vcChosenKind || '?')
+          + ' | note ' + (_vcChosenIx + 1) + ' of ' + (_vcTotalCall + _vcTotalGen)
+          + ' on the lead (' + _vcTotalCall + ' call, ' + _vcTotalGen + ' general; examined ' + _vcExamined
           + ', skipped ' + _vcSkipped + (_vcDegraded ? ', DEGRADED to the flat window' : '') + ')',
           '| this note ONLY:', JSON.stringify(callTextPre.substring(0,200)));
       }
@@ -14853,15 +15022,19 @@ function buildUserPrompt(data) {
       // nothing" was indistinguishable from "no note was ever read". On Jason's lead that is the
       // difference between the two defects this build fixes.
       if (!_isVoicemailBoilerplate && !hasVerbalCommitment) {
-        console.log('[LP VERBAL COMMIT DIAG] NO COMMITMENT — note is a real conversation but carries no commitment phrase'
-          + ' | note ' + (_vcChosenIx + 1) + ' of ' + _vcNotes.length + ' (examined ' + _vcExamined
+        console.log('[LP VERBAL COMMIT DIAG] NO COMMITMENT — note is real content but carries no commitment phrase'
+          + ' | noteType:' + (_vcChosenKind || '?')
+          + ' | note ' + (_vcChosenIx + 1) + ' of ' + (_vcTotalCall + _vcTotalGen)
+          + ' on the lead (' + _vcTotalCall + ' call, ' + _vcTotalGen + ' general; examined ' + _vcExamined
           + ', skipped ' + _vcSkipped + (_vcDegraded ? ', DEGRADED to the flat window' : '') + ')',
           '| this note ONLY:', JSON.stringify(callTextPre.substring(0,200)));
       }
     } else {
-      console.log('[LP VERBAL COMMIT DIAG] NO USABLE NOTE — ' + _vcNotes.length + ' call note(s) parsed, examined '
-        + _vcExamined + ', all ' + _vcSkipped + ' were voicemail/machine boilerplate'
-        + (_vcNotes.length > _VC_MAX_NOTES ? ' (walk capped at ' + _VC_MAX_NOTES + ')' : ''));
+      console.log('[LP VERBAL COMMIT DIAG] NO USABLE NOTE — ' + (_vcTotalCall + _vcTotalGen)
+        + ' note(s) on the lead (' + _vcTotalCall + ' call, ' + _vcTotalGen + ' general), examined '
+        + _vcExamined + ', all ' + _vcSkipped + ' refused'
+        + (_vcSkipReasons.length ? ' — ' + _vcSkipReasons.slice(0, 4).join('; ') : '')
+        + ' (walk capped at ' + _VC_PER_TYPE + ' per type)');
     }
   }
   if (data.conversationBrief && (data.convState !== 'first-touch' || hasCallNoteContent)) {
