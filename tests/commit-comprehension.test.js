@@ -175,12 +175,15 @@ check('the containment check is not vacuous — the body really is the whole fun
     return body.length > 100000 && /CALL NOTE — READ BEFORE WRITING/.test(body);
   }, true);
 
+// (v9.7.564) TWO writes now, not one — the PROBE-FAILED path stashes its own result so a dead
+// probe is inspectable in the console the same way a real verdict is. `reads: 0` is the
+// load-bearing half of this assertion and is unchanged: nothing in the file consumes the stash.
 check('the window stash is written but never read anywhere in the file',
   i => {
     const writes = (i.src.match(/window\._lpCommitComprehension\s*=/g) || []).length;
     const reads  = (i.src.match(/window\._lpCommitComprehension(?!\s*=)/g) || []).length;
     return { writes, reads };
-  }, { writes: 1, reads: 0 });
+  }, { writes: 2, reads: 0 });
 
 check('the regex verdict stash is written inside buildUserPrompt but never read back there',
   i => {
@@ -396,9 +399,17 @@ checkAsync('the fetch rejects',
     { fetch: () => Promise.reject(new Error('network down')) }))
     .logs.filter(l => /FAILED — network down/.test(l)).length, 1);
 
-checkAsync('the response has no candidates at all',
-  async i => (await i.run(JASON, { fired: false, quote: '' }, { error: 'nope' }))
-    .logs.filter(l => /UNPARSEABLE/.test(l)).length, 1);
+// (v9.7.564) A PROXY ERROR IS NOT A MODEL PARSE FAILURE. This used to log UNPARSEABLE, which
+// reads as "the model returned bad JSON" and is the wrong diagnosis — nothing was returned at
+// all. It is now PROBE-FAILED with the proxy's own reason, and the genuinely-unparseable case
+// above (model returned prose) still logs UNPARSEABLE, so the two stay distinguishable.
+checkAsync('a proxy error envelope reports PROBE-FAILED, not UNPARSEABLE',
+  async i => {
+    const r = await i.run(JASON, { fired: false, quote: '' }, { error: 'nope' });
+    return { unparseable: r.logs.filter(l => /UNPARSEABLE/.test(l)).length,
+             probeFailed: r.logs.filter(l => /PROBE-FAILED/.test(l)).length,
+             delta: r.result && r.result.delta };
+  }, { unparseable: 0, probeFailed: 1, delta: 'PROBE-FAILED' });
 
 checkAsync('an unknown kind is treated as none, not as a commitment',
   async i => (await i.run(JASON, { fired: false, quote: '' },

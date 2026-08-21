@@ -271,11 +271,34 @@ pending.push(async () => {
     () => /if \(!cc \|\| !cc\.id \|\| !cc\.delta\) return corsResponse\('\{"error":"Missing required fields"\}', 400\);/.test(proxySrc), true);
   one('it rejects an unknown delta rather than storing junk',
     () => /if \(CC_DELTAS\.indexOf\(cc\.delta\) < 0\) return corsResponse\('\{"error":"Unknown delta"\}', 400\);/.test(proxySrc), true);
-  // (v9.7.563) Six now: NO-REGEX-VERDICT marks a row where the regex was gated off entirely.
-  one('the accepted delta set is exactly the six the observer emits',
+  // (v9.7.564) Seven now: PROBE-FAILED marks a row where the probe call itself returned no usable
+  // answer. Before it existed that failure arrived here wearing AGREE-NONE, because the canned
+  // SAFE_FALLBACK the proxy returned instead is valid JSON that simply has no "kind" key.
+  one('the accepted delta set is exactly the seven the observer emits',
     () => (proxySrc.match(/const CC_DELTAS = \[([\s\S]*?)\];/) || [, ''])[1]
       .match(/'[A-Z-]+'/g).map(x => x.replace(/'/g, '')),
-    ['AGREE-COMMITMENT', 'AGREE-NONE', 'DISAGREE-REGEX-ONLY', 'DISAGREE-COMPREHENSION-ONLY', 'QUOTE-FABRICATED', 'NO-REGEX-VERDICT']);
+    ['AGREE-COMMITMENT', 'AGREE-NONE', 'DISAGREE-REGEX-ONLY', 'DISAGREE-COMPREHENSION-ONLY',
+     'QUOTE-FABRICATED', 'NO-REGEX-VERDICT', 'PROBE-FAILED']);
+  one('every delta the extension can emit is accepted by the endpoint — no silent 400s',
+    () => {
+      const accepted = (proxySrc.match(/const CC_DELTAS = \[([\s\S]*?)\];/) || [, ''])[1]
+        .match(/'[A-Z-]+'/g).map(x => x.replace(/'/g, ''));
+      // Scoped to the observer block ONLY. A file-wide scan for /return '[A-Z-]+'/ also picks up
+      // 'BOTH', 'NEITHER', 'TX' and 'LA' from unrelated functions — measured, which is why this
+      // is bounded by the block's own markers rather than run over the whole file.
+      const emitted = new Set();
+      impls.forEach(i => {
+        const a = i.src.indexOf('// ── (v9.7.558) COMPREHENSION PASS');
+        const b = i.src.indexOf('// ── (v9.7.554) AGENT LP COMMAND CHANNEL COVERAGE');
+        if (a < 0 || b < a) throw new Error('observer block markers not found in ' + i.name);
+        const block = i.src.slice(a, b);
+        (block.match(/delta:\s*'([A-Z-]+)'/g) || []).forEach(m => emitted.add(m.replace(/.*'([A-Z-]+)'.*/, '$1')));
+        (block.match(/return '([A-Z][A-Z-]{4,})';/g) || []).forEach(m => emitted.add(m.replace(/.*'([A-Z-]+)'.*/, '$1')));
+        (block.match(/:\s*'(NO-REGEX-VERDICT|PROBE-FAILED)'/g) || []).forEach(m => emitted.add(m.replace(/.*'([A-Z-]+)'.*/, '$1')));
+      });
+      if (emitted.size < 5) throw new Error('scan found only ' + emitted.size + ' deltas — the scope is wrong, not the code');
+      return [...emitted].filter(d => accepted.indexOf(d) < 0);
+    }, []);
   one('it honours REQUIRE_LICENSE the same way /feedback does',
     () => /if \(env\.REQUIRE_LICENSE === 'true'\) \{\s*const ccAuth = await validateLicenseRecord\(cc\.licenseKey, env\);/.test(proxySrc), true);
   one('the KV key uses a SERVER timestamp, not the client one',
@@ -329,9 +352,20 @@ pending.push(async () => {
     () => /Commit-comprehension query failed:/.test(reporterSrc), true);
   one('it reports agreement AND disagreement rate',
     () => /Agreement rate/.test(reporterSrc) && /Disagreement rate/.test(reporterSrc), true);
+  // (v1.16) Rates read verifiedDeltas — rows whose probe actually answered — not the raw deltas.
   one('it counts fabricated quotes separately from disagreements',
     () => /Fabricated quotes/.test(reporterSrc)
-       && /const disagree\s+= cd\.deltas\['DISAGREE-REGEX-ONLY'\] \+ cd\.deltas\['DISAGREE-COMPREHENSION-ONLY'\];/.test(reporterSrc), true);
+       && /const disagree\s+= vd\['DISAGREE-REGEX-ONLY'\] \+ vd\['DISAGREE-COMPREHENSION-ONLY'\];/.test(reporterSrc), true);
+  one('every rate reads verifiedDeltas, so an unanswered probe cannot move one',
+    () => /const vd\s+= cd\.verifiedDeltas \|\| cd\.deltas;/.test(reporterSrc)
+       && /const agree\s+= vd\['AGREE-COMMITMENT'\] \+ vd\['AGREE-NONE'\];/.test(reporterSrc), true);
+  one('a row without probeOk===true is counted and then skipped, not silently dropped',
+    () => /if \(e\.probeOk !== true\) \{ unverifiedProbe\+\+; continue; \}/.test(reporterSrc), true);
+  one('comparable is COUNTED in the loop, not derived by subtracting overlapping exclusions',
+    () => /if \(e\.delta !== 'NO-REGEX-VERDICT' && e\.delta !== 'PROBE-FAILED'\) comparable\+\+;/.test(reporterSrc)
+       && !/const comparable = cd\.total - noRegex;/.test(reporterSrc), true);
+  one('zero comparable rows renders an explanation instead of a rate over nothing',
+    () => /No usable comprehension verdicts for this date/.test(reporterSrc), true);
   one('disagreements deep-link to the lead via the v1.12 helper',
     () => /vinLeadUrl\(d\.autoLeadId, d\.customerId\)/.test(reporterSrc), true);
   one('it says plainly that the observer is not authoritative',
