@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.560 (Commercial. PHASE A OF THE FULL-ARC RELEVANCY PASS -- LIBRARY ONLY, DELIBERATELY NOT WIRED. The goal is broader than the last four builds: given a lead's whole history, what facts, stated preferences or context should the NEXT message account for? This build ships the READ and its VERIFICATION and stops there, per Gil's instruction to scope Phase A as its own build for review. Nothing here is dispatched, logged in the generate path, persisted, or referenced by any prompt builder -- Phase B wires it as an observer, Phase C decides promotion off real disagreement data. The NON-WIRING IS ASSERTED, five ways: buildUserPrompt and classifyScenario reference zero Phase A symbols, nothing outside the block calls the walker, the block contains no fetch and no console.log at all, and an anti-vacuity check confirms the block is really there. A later build cannot quietly wire it without this suite failing first. IT DOES NOT SUBSUME THE VERBAL-COMMIT CHECKS, and that is a decision with a reason. 'Did they name a day' is a binary with a single verified quote and four builds of scar tissue (v9.7.197, v9.7.368, v9.7.429/427, v9.7.556); the relevancy read is a multi-item interpretation with far more surface. Folding the commit question into it would put the one question that has actually shipped bad output behind a looser reader, and would break the AGREE/DISAGREE series Phases 2 and 2.5 exist to accumulate. They run ALONGSIDE, share the same walked arc so a disagreement can never be a boundary artefact, and any overlap is REPORTED via _lpRelevancyCommitOverlap rather than silently duplicated. TWO FINDINGS FROM THE REAL CAPTURES, measured across 19 delivered prompts plus the three stored contexts, and both shaped the walker. (1) THE ENTRY TAG DOES NOT ESTABLISH THE SPEAKER. Of 19 distinct [CUSTOMER]-tagged entries, FOUR were written by an agent or by System -- identifiable only from the entry's own attribution line, where 'Received from: <phone> Received by: <agent>' means the customer genuinely sent it and 'By: <name>' means someone at the store typed it. One of those four reads 'wanting to get his girlfriend a new vehicle for her birthday, coming in next thursday to meet with a sales rep' -- and the v9.7.560 commitment regex MATCHES 'coming in next thursday' inside it. A reader trusting the tag would attribute agent-written text to the customer, which is the v9.7.560 subject-attribution problem arriving at entry level. Speaker is therefore derived from the attribution line, never from the tag, and the model is not permitted to overrule it: _lpVerifyRelevancy overwrites the model's claimed speaker with the arc's, keeping the claim only as claimedSpeaker. (2) EVERY GENUINE INBOUND CARRIES THE CUSTOMER'S PHONE IN ITS HEADER -- 15 of 15. Unlike a general note, that contact data is a structural PREFIX rather than the content, so the v9.7.560 whole-entry refusal would have thrown away every customer message. The header is stripped and the body kept; the whole-entry refusal still applies to general notes, where the contact data IS the note. No arc item from any real capture carries a phone or an email, asserted. THE VERIFICATION IS THE WHOLE DESIGN. A 'what matters here' read is nothing but interpretation surface, so the constraint is tighter than the commit probe's, not looser: EVERY item must name the arc line it came from AND quote it character for character, and the quote is verified as a literal substring of that line. A free-floating summary claim cannot survive, by construction. A REAL quote on the WRONG line is reported as a distinct failure from an invented one and is NOT counted as fabrication -- those are different mistakes and only one is dishonest. Items are verified individually, so a response with one good and one invented item keeps the good one and counts the other. An empty items array is an explicitly valid answer, and the probe says so, because the cheapest way to get a fabricated relevancy item is to imply the list must be non-empty. TWO REAL BUGS THIS SUITE CAUGHT BEFORE THEY SHIPPED, both of which would have been silent. (a) VinSolutions puts the message on the SAME LINE as its header -- 'Received from: (713) 725-6721 Received by: Mario Sanchez I am sorry frist day of school...' -- and the first LP_ARC_MSG_HEADER_RE ran to end of line, swallowing all 15 real customer messages and returning an empty body for every one. The arc would have been able to read nothing the customer ever said. The header is now bounded at the agent's name, shaped so the message's own first word ('I', 'Ok', 'Hi') cannot be eaten as a surname. (b) Lead Pro's own 'ZERO-CONTACT LEAD -- APPOINTMENT ENGINE DISABLED' preamble was entering the arc as an item, because it sits above the first dated entry and so has no date -- the self-pollution class of v9.7.545/552/556 arriving by a new door. Undated entries are now skipped; both bugs have their own regression. VERIFIED 54/54 in a new suite plus all 27 suites green (823 assertions), dev===comm on every case, against the real captures and a new 25-item corpus of genuine customer-authored content (tests/fixtures/customer-arc-corpus.json) pulled from those prompts rather than written by hand. Jeffrey Best's Gubagoo chat explodes into his five real turns with the [CHAT BOT] turns never surfaced as customer speech (the v9.7.552 lesson); Jason Pellegrin's housekeeping general notes are filtered out; a real customer line about wanting to trade in verifies, and a plausible invention about the same arc does not. WHAT THIS MIGHT BREAK, PLAINLY: nothing, today -- no code path calls any of it, which the suite asserts. The risks are all Phase B's to take on: a second API call per generation with a much larger prompt than the commit probe's (the arc can be 24 items), and a verification bar that will reject genuinely useful paraphrase along with fabrication, which is the deliberate trade and is exactly what the Phase B disagreement data is meant to size. Also noted rather than fixed: the arc drops one- and two-character bodies as noise, so a bare 'Ok' -- a real reply in the corpus -- is not carried; the stripper keeps it intact and only the arc filter drops it, and both halves are asserted separately so the decision is visible. node --check clean both builds; both manifests parse; nothing added inside inlineScraper, verified against the file's own '} // end inlineScraper' marker; version and version_name both bumped. Phase B and Phase C are deliberately NOT in this build. Builds on v9.7.559.)
 // Lead Pro -- popup.js  v9.7.559 (Commercial. BOTH COMMIT READERS NOW READ GENERAL NOTES, NOT JUST CALL NOTES. Scope expansion, pairs with proxy v7.56 and reporter v1.14. TWO FINDINGS MEASURED BEFORE ANY CODE WAS WRITTEN, and both changed the build. (1) THE TAG IS [NOTE], NOT [GENERAL NOTE]. The scraper emits '[<date>] [NOTE] General Note' and this file's own General-Note filter reads indexOf('[NOTE]') && indexOf('General Note'). A type list of '[GENERAL NOTE]' matches ZERO entries on every capture in the repo -- it would have shipped as a silent no-op and looked like a working feature. Asserted against all three fixtures. (2) 13 OF 23 REAL GENERAL NOTES -- 57% -- CONTAIN THE CUSTOMER'S PHONE OR EMAIL. A new fixture, tests/fixtures/general-notes-corpus.json, holds 23 distinct general notes pulled from 13 leads' delivered prompts. Classified: 14 are pure CRM housekeeping ('no dupes <name> <phone> <email> <address>', 'SubmitSENT NEW LEAD Dismiss Edit Assigned To:', 'Customer copied from <store> and assigned to <rep>', '*Sales rep was alerted*'), 3 are empty or an [LP: ...] remnant the context builder already stripped, and only 3 carry real contact-free content. THE MOST COMMON GENERAL NOTE IS THE DUPLICATE-CHECK NOTE AND IT IS A BLOCK OF CONTACT DATA. That makes the general-note boilerplate filter a PRIVACY REQUIREMENT rather than a noise filter: without it those notes reach the comprehension probe's model prompt, and the v9.7.559 unverified-quote path could then persist them to KV -- straight against the v9.7.489 posture that contact data never leaves the CRM. WHAT WAS BUILT. Per-type boilerplate via _lpNoteBoilerplateReason(text, kind), which returns a REASON string rather than a boolean so an over-filtered note type is visible in the log instead of silently missing. The call-note list is v9.7.556's, unchanged. The general-note rule enumerates the housekeeping shapes AND -- because this file has been bitten four builds running by enumerating only what it had already seen -- adds a SHAPE-BASED CONTACT GATE: any general note carrying a phone number or an email is refused outright. That gate earned itself immediately: the corpus contains "GIRLFRIEND'S INFO BUT DO NOT CONTACT SINCE ITS A SURPRISE <name> <phone> <email>", which is not a duplicate-check note, whose shape nobody enumerated, and which carries a THIRD PARTY's contact details. I had written the test expecting it to survive as content; the gate refused it and the suite caught my expectation. SUBJECT ATTRIBUTION IS FINALLY ADDRESSED rather than deferred a third time. v9.7.556 recorded it as residual risk on the 'coming <day>' widening -- an agent might be writing about their own callback plan -- and agent-typed general notes make that common. New _lpCommitSubject reads the words governing the matched verb and returns us / customer / unattributed. It is a NARROW VETO PLUS A REPORTED READING, deliberately not a classifier: it refuses only where the subject is unambiguously us (first person, a named dealership role, or 'told him/her'), and it reports its reading on EVERY fire so the ambiguous middle becomes countable instead of assumed. The corpus contains exactly that ambiguity -- 'spoke with manager said he will let Marvin know to give him a calll' -- where even a human cannot say whose plan 'he' is; that note is reported, not guessed at. SET EXPECTATIONS HONESTLY: the v9.7.556 commitment regex fires on ZERO of the 23 real general notes. This widening adds no detections on today's data. What it adds is coverage of a note type that CAN carry one ('Customer is rescheduling appointment for tomorrow' is in the corpus and is exactly that shape) plus the per-type disagreement data to tell whether it ever matters. BOTH DIAGS NOW REPORT NOTE TYPE, per the brief: [LP VERBAL COMMIT DIAG] carries noteType and subject on every outcome and now reports the lead's TRUE per-type totals ('note 2 of 34 on the lead (22 call, 12 general; examined 2, skipped 1)') -- an earlier draft capped first and silently turned 'of 22' into 'of 12', losing the fact that the lead HAS 22 call notes. [LP COMMIT COMPREHENSION DIAG] carries regexNoteType and compNoteType, the per-type read counts and the refusal count; proxy v7.56 stores all of it clamped to the two known tags; reporter v1.14 adds a BY NOTE TYPE table and a NOTE column on the disagreement list, with pre-v9.7.560 rows landing under 'unknown' rather than being dropped or silently counted as call notes. VERIFIED 53/53 in a new suite plus all 26 suites green (769 assertions), dev===comm on every case, against the real captures. The call-note path is asserted UNCHANGED on Jason Pellegrin's real context: his verdict still fires from the 8/19 CALL note, a call note still wins over a general note when both could fire, and the per-type walk exists precisely so a lead's general notes can never push its call notes past the cap and change an existing verdict. BEHAVIOUR CHANGE STATED RATHER THAN ABSORBED, and it is the one thing to watch: a lead whose every note is refused now SKIPS instead of producing an AGREE-NONE row. Emitting AGREE-NONE would assert the model answered 'none' when it was never asked. The cost is real -- the agreement DENOMINATOR shifts at the v9.7.559/560 boundary, so rates either side are not directly comparable. Rows carry extensionVersion and the SKIP line names how many notes were refused, so the discontinuity is visible rather than silent; on Jason that is 11 refused of the 12 examined. WHAT ELSE THIS MIGHT BREAK, PLAINLY: a genuine general note that happens to contain a phone number -- an agent writing 'customer will come in Friday, call him at 555-1234' -- is now refused entirely, losing a real commitment. That is the deliberate trade against putting customer contact data in a model prompt and in KV, and the refusal reason is logged so the case is countable if it turns out to be real. The subject veto can also refuse a genuine customer commitment an agent happened to write in the first person; it is narrow for that reason, and every fire reports its reading. NOTE: refused notes are refused only from the COMMIT DETECTORS and the probe -- they still reach the model through the ordinary AGENT CONTEXT path, so nothing is hidden from the draft. node --check clean on both builds, the proxy and the reporter; both manifests parse; nothing added inside inlineScraper, verified against the file's own '} // end inlineScraper' marker; version and version_name both bumped. Builds on v9.7.558.)
 // Lead Pro -- popup.js  v9.7.558 (Commercial. THE PHASE 2 OBSERVER BECOMES DURABLE. Pairs with proxy v7.55 (POST /commit-comprehension) and reporter v1.13 (Commit Comprehension section). STILL NO CUSTOMER-FACING BEHAVIOUR CHANGE -- this is instrumentation, now persistent instead of ephemeral. WHY: v9.7.558 logged [LP COMMIT COMPREHENSION DIAG] to console exactly like every other diagnostic in this file, visible only in a live DevTools session and gone unless someone manually captured it. That defeated the observer's own stated purpose -- the plan is to read delta counts off LIVE traffic to decide whether the comprehension pass is ever trusted, and a console line nobody exports cannot produce a sample. EXTENSION SIDE: new _lpSendCommitComprehension follows _lpFeedbackSend exactly -- same endpoint resolution, same _lpAttachLicense, keepalive:true, .catch(function(){}), never awaited. It is called from INSIDE the observer's own resolution rather than from a second dispatch site, so it fires exactly when a verdict exists and inherits the observer's kill switch for free: LEADPRO_COMMIT_COMPREHENSION = false means the observer never runs, so nothing logs and nothing posts. No second flag, per instruction. WHAT IS PERSISTED, AND THE POSTURE IS v9.7.489's RATHER THAN A NEW ONE: the row carries CRM RECORD LOCATORS -- autoLeadId, customerId, dealerId, leadSource, store -- so a disagreement is investigated by opening the lead in VinSolutions and reading the real notes there. No customer contact data. No CRM note text: the notes stay in the CRM, exactly as feedback rows leave drafts out unless a correction happened. ONE DELIBERATE EXCEPTION, narrow and stated rather than slipped in: when the comprehension quote FAILED verification, that string IS sent (scrubbed with the same _lpScrubPII the draft-pair capture uses, capped at 300 chars). It is MODEL-GENERATED and by definition does NOT appear in the lead, so opening the lead cannot recover it -- it is the one thing a QUOTE-FABRICATED row could not be audited without. A VERIFIED quote is never sent; only its length, because the note it came from is already in the CRM. WORKER v7.55: POST /commit-comprehension mirrors POST /feedback line for line -- invalid-JSON rejection, required-field check, REQUIRE_LICENSE handling with the same fleet-readiness log when it is off, a SERVER timestamp in the KV key (a client-chosen ts+id could otherwise overwrite another row -- the v7.29/W3 lesson), the same LEADPRO_LICENSES namespace and the same 90-day TTL. It additionally rejects an unrecognised delta rather than storing junk, and clamps every stored string. The /feedback handler is asserted BYTE-IDENTICAL to v7.54 -- this is purely additive. REPORTER v1.13: a Commit Comprehension section reading the commit: KV prefix with the same two-UTC-prefix + CT-date filter the feedback read uses, so a verdict recorded near CT midnight cannot appear in both days' reports. It shows agreement rate, disagreement rate, a fabricated-quote count, the per-delta breakdown with what each delta MEANS in plain words, a by-lead-source table, and a disagreement list whose LEAD column deep-links into VinSolutions via the v1.12 vinLeadUrl. The read sits in its own try/catch: instrumentation ABOUT an observer must never cost the daily report its operational content. An unrecognised delta is skipped rather than crashing the render. The section states on its face that no comprehension verdict has ever changed a customer-facing message. VERIFIED 50/50 in a new suite plus all 25 suites green (710 assertions), dev===comm on every case, and the two things that actually matter are PROVEN rather than asserted. (1) FIRE-AND-FORGET IS REAL: the observer is handed a POST that NEVER resolves, and separately one that throws synchronously, and it still resolves with its own verdict both times -- so a hung or failing proxy cannot delay or alter a draft. A rejecting fetch is swallowed; a verdict with no delta sends nothing; buildUserPrompt references the sender nowhere. (2) THE PRIVACY POSTURE IS ENFORCED, NOT DESCRIBED: the payload is built from a scraped record deliberately loaded with phone, email, name and ZIP, and the test asserts NONE of those strings appears anywhere in the body, field by field. The worker's stored meta is asserted to be exactly the five locator keys with no phone/email/name/zip/address field. THREE OF MY OWN TEST ASSERTIONS WERE WRONG AND THE SUITE CAUGHT ALL THREE, which is the value of writing them this way: the /feedback byte-identity check sliced 'from /feedback to /list-licenses' and broke the moment a new endpoint was inserted between them (now bounded by the handler's own first and last lines); the reporter harness omitted percentiles and _CT_FMT from its helper slice; and a NaN assertion scoped to the WHOLE report failed on the pre-existing Latency table reacting to this test's own deliberately thin reqs fixture -- asserting on my fixture rather than on the code under test. That one is now scoped to the commit section, with an anti-vacuity check that the section was really found. WHAT THIS MIGHT BREAK, PLAINLY: nothing customer-facing, and the suite fails loudly if that stops being true. The real costs are KV write volume (one row per generation that has a real call note, 90-day TTL, same namespace as feedback -- worth watching against the v7.29/W6c precedent where feedback: keys at 90-day retention were being parsed as licenses by /list-licenses; commit: keys are a NEW prefix and /list-licenses filters on its own unprefixed list, so this should not recur, but it is named here so it is checked rather than assumed) and one extra POST per verdict. The flag turns all of it off with no other change. node --check clean on both builds, the proxy and the reporter; both manifests parse; nothing added inside inlineScraper, verified against the file's own '} // end inlineScraper' marker; version and version_name both bumped. Builds on v9.7.557.)
 // Lead Pro -- popup.js  v9.7.557 (Commercial. PHASE 2 OF 2 -- A COMPREHENSION PASS THAT CAN ONLY WATCH. NO CUSTOMER-FACING BEHAVIOUR CHANGES IN THIS BUILD, by design and by test. The frustration this answers is real: nearly every incident this month was the EXTRACTION layer missing a phrasing shape or a boundary, not the model failing to understand a note once it saw the right thing. But this exact block carries the counter-evidence -- v9.7.197 and v9.7.368 are two tightenings that each FOLLOWED a looser, more interpretive version fabricating a verbal commitment and shipping it to a real customer. Both failed by INTERPRETING LOOSELY, not by misreading clear text. So this is not 'trust the model instead of the regex'; it is a second reading that runs alongside and is structurally incapable of authoring anything. THREE CONTAINMENT PROPERTIES, each asserted rather than promised. (1) IT NEVER REACHES A PROMPT: buildUserPrompt and classifyScenario contain ZERO references to any symbol the pass defines, and the window stash is written exactly once and read exactly nowhere. If a later build wires it in, those assertions fail first. The regex verdict stash is written inside buildUserPrompt and read only at the observer dispatch, which the suite pins at exactly one read in the whole file. (2) ITS OUTPUT IS FALSIFIABLE, NOT A JUDGEMENT: the probe must return a quote copied character-for-character out of ONE named note, or say there is none. The quote is then VERIFIED as a literal substring of a note -- whitespace-normalised and case-insensitive, because a model reflowing a line is not the failure mode that hurt us; inventing words is. A paraphrase is rejected as QUOTE-FABRICATED and counted. That is the single biggest lever against repeating v9.7.197/368, and it is mechanical, so 'the model made something up' becomes a number rather than an argument. (3) IT IS ISOLATED FROM THE REGEX'S OWN ANSWER: the probe sees ONLY the walked call-note entries -- no Lead Pro directives, no VOI, no scenario, and specifically NOT the 'CALL NOTE -- READ BEFORE WRITING' block the regex writes when it fires. This one is load-bearing and easy to get wrong: a probe embedded in the main generation call would sit in a prompt that already states the answer, agree by construction, and produce disagreement data worth nothing. It is therefore a separate, isolated call. IT RUNS ON PHASE 1'S WALKED ENTRIES -- the same _lpWalkCrmEntries(context, {type:'[CALL NOTE]', max:6}) the regex path reads -- so both verdicts are answering a question about the SAME text and a disagreement is about comprehension, never about boundaries. That is the concrete payoff of shipping Phase 1 first. WHAT IT LOGS: [LP COMMIT COMPREHENSION DIAG] prints the two verdicts side by side with a delta -- AGREE-COMMITMENT, AGREE-NONE, DISAGREE-REGEX-ONLY, DISAGREE-COMPREHENSION-ONLY, or QUOTE-FABRICATED -- in the same family as [LP COMMAND COVERAGE DIAG]'s sms-vs-email delta. Every exit path logs, including SKIPPED (no call notes / no endpoint), UNPARSEABLE, FAILED and THREW: a probe that silently did not run would quietly bias the very count this build exists to collect. COST AND LATENCY, PLAINLY, because this is not free: it is a SECOND API call on any lead that has a real call note. It is fire-and-forget -- dispatched after the draft is already rendered and never awaited, which the suite asserts -- so it cannot delay or alter a message, and it is gated so it does not run when there are no notes to read. LEADPRO_COMMIT_COMPREHENSION = false switches it off entirely. VERIFIED 42/42 in a new suite plus all 24 suites green (660 assertions), dev===comm on every case, run against the real captures: Jason Pellegrin's 22-call-note history and the log119 line-436 lead. The fetch is injected, so every branch -- fabricated quote, wrong note number, fenced JSON, unparseable text, rejected fetch, missing candidates, unknown kind, flag off -- is exercised with no network. DISAGREE-COMPREHENSION-ONLY is asserted REACHABLE on a real phrasing shape the regex does not cover ('said he would swing past after work thursday'), because a disagreement detector that can only ever agree would be worthless. A CONTAINMENT ASSERTION CAUGHT MY OWN TEST BUG, which is the point of writing it that way: the first version sliced buildUserPrompt as 'from its declaration to classifyScenario', but classifyScenario is defined BEFORE it in the file, so the slice silently ran to end-of-file and swept in the dispatch site. It is now taken from the function's own closing brace, plus an anti-vacuity assertion that the sliced body is really the whole function. WHAT HAPPENS NEXT, AND WHAT DELIBERATELY DOES NOT: nothing is promoted on the strength of this build. The next step is reading the delta counts off live logs -- how often the two differ, in which direction, and on what shape of note -- and that data decides whether the comprehension pass ever becomes load-bearing. It is not a judgement call to make here. WHAT THIS MIGHT BREAK, PLAINLY: nothing customer-facing, and the suite is structured so that claim fails loudly if it stops being true. The real costs are money and log volume -- one extra model call per generation on a lead with call notes, and one extra diagnostic line. If either bites, the flag turns it off with no other change. node --check clean both builds; both manifests parse; nothing added inside inlineScraper, verified against the file's own '} // end inlineScraper' marker; version and version_name both bumped. Phase 1 (v9.7.557) shipped and was verified green before this build started, per instruction. Builds on v9.7.556.)
@@ -702,6 +703,243 @@ function _lpCommitSubject(text, matchIndex) {
   // Them, unambiguously.
   if (/\b(?:customer|cust|he|she|they|client|buyer)\s*(?:'|’)?(?:ll|s|d)?\s+(?:\w+\s+){0,2}$/.test(before)) return 'customer';
   return 'unattributed';
+}
+
+// ── (v9.7.561) PHASE A — THE FULL-ARC READ, LIBRARY ONLY ───────────────────────
+// First step toward a relevancy pass: given a lead's whole history, what facts,
+// stated preferences or context should the next response account for? This build
+// ships the READ and its verification ONLY. Nothing here is dispatched, logged in
+// the generate path, persisted, or referenced by any prompt builder — Phase B wires
+// it up as an observer, Phase C decides promotion off real data. The suite asserts
+// that non-wiring, so the claim fails loudly if a later build quietly changes it.
+//
+// IT DOES NOT SUBSUME THE VERBAL-COMMIT CHECKS, and that is a decision rather than an
+// oversight. "Did they name a day" is a binary with a verified single quote and four
+// builds of scar tissue behind it (v9.7.197, v9.7.368, v9.7.429/427, v9.7.556); the
+// relevancy read is a multi-item interpretation with far more surface. Folding the
+// commit question into it would put the one question that has actually shipped bad
+// output behind a much looser reader, and would break the AGREE/DISAGREE series
+// Phases 2 and 2.5 exist to accumulate. They run ALONGSIDE, share the same walked
+// arc so a disagreement can never be a boundary artefact, and any overlap is
+// REPORTED (see _lpRelevancyCommitOverlap) rather than silently duplicated.
+//
+// ── TWO FINDINGS FROM THE REAL CAPTURES, both of which shaped the walker ──
+// Measured across 19 real delivered prompts and the three stored fixtures.
+//
+// (1) THE ENTRY TAG DOES NOT ESTABLISH THE SPEAKER. Of 19 distinct [CUSTOMER]-tagged
+//     entries, FOUR were written by an agent or by System, identifiable only from the
+//     entry's own attribution line: a "Received from: <phone> Received by: <agent>"
+//     header means the customer genuinely sent it, while "By: <name>" means a person
+//     at the store typed it. One of those four reads "wanting to get his girlfriend a
+//     new vehicle for her birthday, coming in next thursday to meet with a sales rep"
+//     — and the v9.7.560 commitment regex MATCHES "coming in next thursday" inside it.
+//     A reader that trusted the tag would attribute agent-written text to the customer.
+//     Speaker is therefore derived from the attribution line, never from the tag.
+//
+// (2) EVERY GENUINE INBOUND CARRIES THE CUSTOMER'S PHONE IN ITS HEADER — 15 of 15.
+//     Unlike a general note, that contact data is a structural PREFIX rather than the
+//     content, so refusing the whole entry (the v9.7.560 treatment) would throw away
+//     the actual message. The header is stripped and the body kept, which is what lets
+//     the arc read customer messages at all while keeping contact data out of the
+//     probe. The v9.7.560 whole-entry refusal still applies to general notes, where
+//     the contact data IS the note.
+var LP_ARC_SPEAKER = { CUSTOMER: 'customer', US: 'us', SYSTEM: 'system', UNKNOWN: 'unknown' };
+
+// The structural header on an inbound/outbound message entry. Carries the customer's
+// phone and the receiving agent's name; neither is content.
+// BOUNDED AT THE AGENT'S NAME, not at end of line. VinSolutions puts the message on the
+// SAME line as the header — "Received from: (713) 725-6721 Received by: Mario Sanchez I am
+// sorry frist day of school..." — so a trailing [^\n]* swallowed every customer message and
+// left an empty body. The suite caught it; the first version of this build would have shipped
+// an arc that could read nothing the customer ever said.
+// The name is one capitalised word plus at most one more of three-plus letters, so "Mario
+// Sanchez" is consumed while the message's own first word is not: "I", "Ok" and "Hi" all fail
+// the surname shape by design.
+var LP_ARC_MSG_HEADER_RE = /^\s*(?:Received from:|Sent to:)\s*[^\n]{0,40}?(?:Received by:|Sent by:)\s*[A-Z][a-z]+(?:\s+[A-Z][a-z]{2,})?\s*/;
+
+// Who actually authored this entry? Read from the attribution line, not the tag.
+function _lpArcSpeaker(entryText, tag) {
+  var t = String(entryText || '');
+  if (/(?:^|\n)\s*Received from:/i.test(t)) return LP_ARC_SPEAKER.CUSTOMER;   // a real inbound
+  if (/(?:^|\n)\s*Sent to:/i.test(t))       return LP_ARC_SPEAKER.US;         // a real outbound
+  var by = (t.match(/(?:^|\n)\s*By:\s*([^\n]{0,60})/i) || [, ''])[1].trim();
+  if (by) return /^system\b/i.test(by) ? LP_ARC_SPEAKER.SYSTEM : LP_ARC_SPEAKER.US;
+  if (/\[AGENT\]/.test(tag || t)) return LP_ARC_SPEAKER.US;
+  if (/\[CUSTOMER\]/.test(tag || t)) return LP_ARC_SPEAKER.UNKNOWN;  // tagged, unattributed
+  return LP_ARC_SPEAKER.UNKNOWN;
+}
+
+// Strip the structural header and the attribution line, leaving the words someone
+// actually wrote. Returns '' when nothing is left.
+function _lpArcBody(entryText) {
+  var t = String(entryText || '')
+    .replace(/^\s*\[[^\]]*\]\s*(?:\[[^\]]*\])?[^\n]*\n?/, '')   // dated header + tag line
+    .replace(LP_ARC_MSG_HEADER_RE, '')
+    .replace(/(?:^|\n)\s*By:\s*[^\n]*/i, '')
+    .replace(/(?:^|\n)\s*(?:Received from:|Sent to:|Received by:|Sent by:)\s*[^\n]*/gi, '');
+  return t.replace(/\s+/g, ' ').trim();
+}
+
+// Walk the WHOLE arc, not one note type: CRM-authored notes plus customer-authored
+// messages, plus the [CUSTOMER] turns inside a chat transcript (never the [CHAT BOT]
+// turns — that is the widget talking, the v9.7.552 lesson). Each item carries the
+// speaker, the tag it came from, and a body with contact headers already removed.
+//   opts.max        total items to return, newest first (default 24)
+//   opts.speakers   restrict to these speakers
+function _lpWalkArc(context, opts) {
+  var out = [];
+  try {
+    opts = opts || {};
+    var max = opts.max || 24;
+    var want = opts.speakers || null;
+    var entries = _lpWalkCrmEntries(context, {});
+    for (var i = 0; i < entries.length && out.length < max; i++) {
+      // An entry with no dated header is not a CRM entry at all — it is the prompt preamble
+      // sitting above the first one (on Jason's context that is the "ZERO-CONTACT LEAD —
+      // APPOINTMENT ENGINE DISABLED" directive). Letting it in would put Lead Pro's own words
+      // into the arc as though the customer or an agent had said them: the self-pollution class
+      // of v9.7.545/552/556, arriving by a new door.
+      if (!entries[i].date) continue;
+      var raw = entries[i].text;
+      var tag = (raw.match(/^\s*\[[^\]]*\]\s*(\[[A-Z][^\]]*\])/) || [, ''])[1] || '';
+
+      // A chat transcript is many turns in one entry. Explode it so each customer turn
+      // is its own citable item, and drop the bot's turns entirely.
+      if (/\[GUBAGOO CHAT\]|CHAT TRANSCRIPT/i.test(tag + raw)) {
+        var lines = raw.split('\n');
+        for (var L = 0; L < lines.length && out.length < max; L++) {
+          var cm = lines[L].match(/^\s*\[CUSTOMER\]\s*(.+)$/);
+          if (!cm) continue;
+          var ct = cm[1].trim();
+          if (ct.replace(/[^a-z0-9]/gi, '').length < 3) continue;
+          if (want && want.indexOf(LP_ARC_SPEAKER.CUSTOMER) < 0) continue;
+          out.push({ speaker: LP_ARC_SPEAKER.CUSTOMER, tag: '[CHAT]', date: entries[i].date,
+                     body: ct, index: out.length });
+        }
+        continue;
+      }
+
+      // A general note that is housekeeping, empty, or a block of contact data is
+      // refused whole — the v9.7.560 rule, unchanged, because there the contact data
+      // IS the note rather than a header on it.
+      if (tag === LP_NOTE_TYPES.GENERAL && _lpNoteBoilerplateReason(raw, LP_NOTE_TYPES.GENERAL)) continue;
+      if (tag === LP_NOTE_TYPES.CALL && _lpNoteBoilerplateReason(raw, LP_NOTE_TYPES.CALL)) continue;
+
+      var speaker = _lpArcSpeaker(raw, tag);
+      if (want && want.indexOf(speaker) < 0) continue;
+      var body = _lpArcBody(raw);
+      if (body.replace(/[^a-z0-9]/gi, '').length < 3) continue;
+      // Belt and braces: no item leaves this walker carrying contact data, whatever
+      // shape it arrived in.
+      if (LP_NOTE_CONTACT_RE.test(body)) continue;
+      out.push({ speaker: speaker, tag: tag, date: entries[i].date, body: body, index: out.length });
+    }
+  } catch (e) { /* return whatever parsed */ }
+  return out;
+}
+
+// ── (v9.7.561) THE RELEVANCY READ — STRUCTURED AND FALSIFIABLE ─────────────────
+// The question is broader than "did they name a day", so the CONSTRAINT has to be
+// tighter, not looser. v9.7.197 and v9.7.368 were both caused by interpretation, and
+// a "what matters here" read is nothing but interpretation surface. The discipline
+// that made the commit probe safe is therefore applied per ITEM: every surfaced item
+// must name the arc item it came from AND quote it verbatim, and the quote is then
+// verified as a literal substring of that item. A free-floating summary claim cannot
+// survive verification, by construction.
+var LP_RELEVANCY_KINDS = ['stated_preference', 'constraint', 'open_question', 'commitment',
+                          'objection', 'life_context', 'vehicle_detail'];
+
+function _lpBuildRelevancyProbe(items) {
+  var lines = [];
+  for (var i = 0; i < items.length; i++) {
+    lines.push('[' + (i + 1) + '] (' + items[i].speaker + (items[i].date ? ', ' + items[i].date : '') + ') '
+      + String(items[i].body || '').replace(/\s+/g, ' ').trim());
+  }
+  return 'You are reading the full history of one car-dealership sales lead. Identify what the NEXT '
+    + 'message to this customer should account for.\n\n'
+    + 'RULES:\n'
+    + '- Every item you return MUST cite the numbered line it came from and quote it CHARACTER FOR '
+    + 'CHARACTER. Never paraphrase in the quote, never merge two lines, never add words.\n'
+    + '- Return only things a reply would be WRONG to ignore. An ordinary greeting, an acknowledgement, '
+    + 'or something already resolved later in the history is not one.\n'
+    + '- WHO SAID IT MATTERS. Each line is marked (customer), (us), (system) or (unknown). Something WE '
+    + 'said is not the customer stating a preference. Something marked (unknown) is not attributable — '
+    + 'you may surface it, but say so by leaving "speaker" as unknown.\n'
+    + '- If a later line supersedes an earlier one, surface the LATER one.\n'
+    + '- If nothing in this history needs accounting for, return an empty items array. That is a valid '
+    + 'and common answer — do not invent something to fill it.\n'
+    + '- "kind" must be one of: ' + LP_RELEVANCY_KINDS.join(', ') + '.\n\n'
+    + 'HISTORY (newest first):\n' + lines.join('\n') + '\n\n'
+    + 'Respond with ONLY this JSON and nothing else: '
+    + '{"items":[{"kind":"<one of the above>","line":<number>,"quote":"<verbatim>",'
+    + '"speaker":"customer|us|system|unknown","why":"<max 12 words>"}]}';
+}
+
+// Verify one item against the arc it claims to come from. Returns a reason string when
+// the item fails, or '' when it holds up. The quote is matched whitespace-normalised
+// and case-insensitively — a model reflowing a line is not the failure mode; inventing
+// words is.
+function _lpVerifyRelevancyItem(item, items) {
+  if (!item || typeof item !== 'object') return 'not an object';
+  if (LP_RELEVANCY_KINDS.indexOf(item.kind) < 0) return 'unknown kind';
+  var q = String(item.quote == null ? '' : item.quote).replace(/\s+/g, ' ').trim().toLowerCase();
+  if (q.length < 4) return 'quote too short to verify';
+  var claimed = Number(item.line);
+  var norm = function (s) { return String(s || '').replace(/\s+/g, ' ').trim().toLowerCase(); };
+  // Prefer the line it named; fall back to a scan so a wrong NUMBER is distinguishable
+  // from an invented QUOTE — those are different failures and only one is fabrication.
+  if (claimed >= 1 && claimed <= items.length && norm(items[claimed - 1].body).indexOf(q) >= 0) return '';
+  for (var i = 0; i < items.length; i++) {
+    if (norm(items[i].body).indexOf(q) >= 0) return 'quote is real but line number is wrong (actually ' + (i + 1) + ')';
+  }
+  return 'FABRICATED — quote appears in no arc item';
+}
+
+// Verify the whole response. Items that fail are dropped from `kept` and listed in
+// `rejected` with their reason, so a model that fabricates is measured rather than
+// argued about.
+function _lpVerifyRelevancy(parsed, items) {
+  var kept = [], rejected = [], fabricated = 0;
+  try {
+    var list = (parsed && Array.isArray(parsed.items)) ? parsed.items : [];
+    for (var i = 0; i < list.length; i++) {
+      var reason = _lpVerifyRelevancyItem(list[i], items);
+      if (!reason) {
+        var n = Number(list[i].line);
+        var src = (n >= 1 && n <= items.length) ? items[n - 1] : null;
+        kept.push({
+          kind: list[i].kind, line: n,
+          quote: String(list[i].quote || ''),
+          // Speaker comes from the ARC, not from the model's claim — the model may not
+          // overrule the attribution the walker derived from the entry itself.
+          speaker: src ? src.speaker : LP_ARC_SPEAKER.UNKNOWN,
+          claimedSpeaker: String(list[i].speaker || ''),
+          why: String(list[i].why || '').slice(0, 80)
+        });
+      } else {
+        if (reason.indexOf('FABRICATED') === 0) fabricated++;
+        rejected.push({ reason: reason, kind: String((list[i] && list[i].kind) || ''),
+                        quoteLen: String((list[i] && list[i].quote) || '').length });
+      }
+    }
+  } catch (e) { /* fall through with whatever verified */ }
+  return { kept: kept, rejected: rejected, fabricated: fabricated,
+           claimed: kept.length + rejected.length };
+}
+
+// Does the relevancy read overlap the verbal-commit verdict? Reported, never merged —
+// the two checks run alongside each other on purpose and this is what makes any
+// duplication visible instead of silent.
+function _lpRelevancyCommitOverlap(kept, commitQuote) {
+  var cq = String(commitQuote || '').replace(/\s+/g, ' ').trim().toLowerCase();
+  if (!cq) return { overlaps: false, commitAlsoSurfaced: false, commitItems: 0 };
+  var n = 0;
+  for (var i = 0; i < kept.length; i++) {
+    var q = String(kept[i].quote || '').replace(/\s+/g, ' ').trim().toLowerCase();
+    if (!q) continue;
+    if (q.indexOf(cq) >= 0 || cq.indexOf(q) >= 0) n++;
+  }
+  return { overlaps: n > 0, commitAlsoSurfaced: n > 0, commitItems: n };
 }
 
 // ── (v9.7.558) COMPREHENSION PASS — OBSERVER ONLY, NEVER AUTHORITATIVE ──────────
