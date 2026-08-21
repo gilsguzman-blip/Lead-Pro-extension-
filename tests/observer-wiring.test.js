@@ -258,6 +258,112 @@ checkAsync('the skip line still carries the regex verdict for side-by-side readi
     return /regex:FIRED \(regex read a \[CALL NOTE\]\)/.test(logs.join(' '));
   }, true);
 
+// ── (v9.7.563) THE STALE VERDICT STASH ────────────────────────────────────────
+// log121, first live batch after the v9.7.562 fix. Its only two DISAGREE-REGEX-ONLY rows are
+// Alissa's two grabs — and BOTH are 🏪 SHOWROOM FOLLOW-UP leads carrying no [LP VERBAL COMMIT
+// DIAG] line at all, because the block is gated `if (hasCallNoteContent && !isShowroomFollowUp)`.
+// The regex never ran on her lead. v9.7.558 put the stash RESET inside that same gate, so
+// window._lpVerbalCommitVerdict kept the previous lead's value and the observer compared against
+// a verdict belonging to a different customer. The quote it reported — "coming in he lives in
+// Mississippi" — is not in Alissa's notes at all.
+// Same class as the v9.7.562 wiring bug, and this one was mine.
+section('the reset must run even when the verbal-commit block does not:');
+
+const resetSrc = (i) => {
+  const a = i.src.indexOf('  // ── (v9.7.563) THE RESET MUST BE OUTSIDE THE GATE');
+  const b = i.src.indexOf('  if (hasCallNoteContent && !data.isShowroomFollowUp) {');
+  return { block: i.src.slice(a, b), gateAt: b, resetAt: a };
+};
+
+check('the reset is placed BEFORE the gate, not inside it',
+  i => { const r = resetSrc(i); return r.resetAt > 0 && r.gateAt > r.resetAt; }, true);
+
+check('the reset no longer appears anywhere inside the gated block',
+  i => {
+    const g = i.src.indexOf('  if (hasCallNoteContent && !data.isShowroomFollowUp) {');
+    const e = i.src.indexOf('  if (data.conversationBrief && (data.convState !== ');
+    return (i.src.slice(g, e).match(/_lpVerbalCommitVerdict = \{ fired: false/g) || []).length;
+  }, 0);
+
+// Run the hoisted reset with the two shapes that skip the block.
+const runReset = (i, scope) => {
+  const sandbox = Object.assign({ window: {}, console: { log() {} } }, scope);
+  vm.createContext(sandbox);
+  vm.runInContext('(function(){\n' + resetSrc(i).block + '})()', sandbox);
+  return sandbox.window._lpVerbalCommitVerdict;
+};
+
+check('a showroom-followup lead clears the stash and records why',
+  i => runReset(i, { hasCallNoteContent: true, data: { isShowroomFollowUp: true } }),
+  { fired: false, quote: '', note: '', noteType: '', subject: '',
+    ran: false, skipReason: 'showroom follow-up — the v9.7.197 exception' });
+
+check('a lead with no call-note content clears it too',
+  i => runReset(i, { hasCallNoteContent: false, data: { isShowroomFollowUp: false } }),
+  { fired: false, quote: '', note: '', noteType: '', subject: '',
+    ran: false, skipReason: 'no call-note content on the lead' });
+
+check('a lead where the block WILL run marks ran:true',
+  i => runReset(i, { hasCallNoteContent: true, data: { isShowroomFollowUp: false } }).ran, true);
+
+check('...and Alissa can no longer inherit a previous lead\'s quote',
+  i => {
+    const sandbox = { window: { _lpVerbalCommitVerdict: { fired: true, quote: 'coming in he lives in Mississippi', ran: true } },
+                      console: { log() {} }, hasCallNoteContent: true, data: { isShowroomFollowUp: true } };
+    vm.createContext(sandbox);
+    vm.runInContext('(function(){\n' + resetSrc(i).block + '})()', sandbox);
+    return { fired: sandbox.window._lpVerbalCommitVerdict.fired,
+             quote: sandbox.window._lpVerbalCommitVerdict.quote };
+  }, { fired: false, quote: '' });
+
+section('a regex that never ran is reported as such, not as "none":');
+
+const observeRan = (i, verdict) => {
+  const { logs, run } = i.observer();
+  return run('[08/19/2026 4:10 PM] [CALL NOTE] Inbound phone call\n  By: A\n  returning call, transferred to gerald',
+    verdict, {
+      fetch: () => Promise.resolve({ json: () => Promise.resolve({ candidates: [{ content: { parts: [{ text: '{"kind":"none","note":null,"quote":null}' }] } }] }) }),
+      endpoint: { url: 'https://example.invalid/g' }, attach: p => p,
+      log: (...x) => logs.push(x.map(v => typeof v === 'string' ? v : JSON.stringify(v)).join(' ')),
+      send: () => {}, ctxSource: 'leadContext'
+    }).then(r => ({ result: r, logs }));
+};
+
+checkAsync('ran:false yields NO-REGEX-VERDICT, not AGREE-NONE',
+  async i => (await observeRan(i, { fired: false, quote: '', ran: false, skipReason: 'showroom follow-up — the v9.7.197 exception' })).result.delta,
+  'NO-REGEX-VERDICT');
+
+checkAsync('...and the log says the regex did not run, and why',
+  async i => /regex:DID NOT RUN \(showroom follow-up — the v9.7.197 exception\)/.test(
+    (await observeRan(i, { fired: false, quote: '', ran: false, skipReason: 'showroom follow-up — the v9.7.197 exception' })).logs.join(' ')),
+  true);
+
+checkAsync('a stale FIRED verdict with ran:false does NOT become a disagreement',
+  async i => (await observeRan(i, { fired: true, quote: 'coming in he lives in Mississippi', ran: false, skipReason: 'showroom follow-up — the v9.7.197 exception' })).result.delta,
+  'NO-REGEX-VERDICT');
+
+checkAsync('a genuine ran:true disagreement still reports DISAGREE-REGEX-ONLY',
+  async i => (await observeRan(i, { fired: true, quote: 'will come in Friday', ran: true })).result.delta,
+  'DISAGREE-REGEX-ONLY');
+
+checkAsync('rows from before v9.7.563 carry no `ran` and stay readable',
+  async i => (await observeRan(i, { fired: false, quote: '' })).result.delta, 'AGREE-NONE');
+
+checkAsync('quoteVerified reads n/a when comprehension said none — it verified nothing',
+  async i => /quoteVerified:n\/a \(nothing to verify\)/.test(
+    (await observeRan(i, { fired: false, quote: '', ran: true })).logs.join(' ')), true);
+
+checkAsync('the persisted payload carries regexRan so the reporter can exclude it',
+  async i => {
+    let body = null;
+    await observeRan(i, { fired: false, quote: '', ran: false, skipReason: 'x' });
+    const r = await i.observer().run('[08/19/2026 4:10 PM] [CALL NOTE] Inbound phone call\n  By: A\n  returning call, transferred to gerald',
+      { fired: false, quote: '', ran: false, skipReason: 'x' }, {
+        fetch: () => Promise.resolve({ json: () => Promise.resolve({ candidates: [{ content: { parts: [{ text: '{"kind":"none","note":null,"quote":null}' }] } }] }) }),
+        endpoint: { url: 'u' }, attach: p => p, log: () => {}, send: () => {} });
+    return r.regexRan;
+  }, false);
+
 (async () => {
   for (const p of pending) await p();
   console.log('\n' + (fail ? 'FAILED' : 'PASSED') + ' — ' + pass + ' passed, ' + fail + ' failed\n');

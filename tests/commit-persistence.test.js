@@ -271,10 +271,11 @@ pending.push(async () => {
     () => /if \(!cc \|\| !cc\.id \|\| !cc\.delta\) return corsResponse\('\{"error":"Missing required fields"\}', 400\);/.test(proxySrc), true);
   one('it rejects an unknown delta rather than storing junk',
     () => /if \(CC_DELTAS\.indexOf\(cc\.delta\) < 0\) return corsResponse\('\{"error":"Unknown delta"\}', 400\);/.test(proxySrc), true);
-  one('the accepted delta set is exactly the five the observer emits',
+  // (v9.7.563) Six now: NO-REGEX-VERDICT marks a row where the regex was gated off entirely.
+  one('the accepted delta set is exactly the six the observer emits',
     () => (proxySrc.match(/const CC_DELTAS = \[([\s\S]*?)\];/) || [, ''])[1]
       .match(/'[A-Z-]+'/g).map(x => x.replace(/'/g, '')),
-    ['AGREE-COMMITMENT', 'AGREE-NONE', 'DISAGREE-REGEX-ONLY', 'DISAGREE-COMPREHENSION-ONLY', 'QUOTE-FABRICATED']);
+    ['AGREE-COMMITMENT', 'AGREE-NONE', 'DISAGREE-REGEX-ONLY', 'DISAGREE-COMPREHENSION-ONLY', 'QUOTE-FABRICATED', 'NO-REGEX-VERDICT']);
   one('it honours REQUIRE_LICENSE the same way /feedback does',
     () => /if \(env\.REQUIRE_LICENSE === 'true'\) \{\s*const ccAuth = await validateLicenseRecord\(cc\.licenseKey, env\);/.test(proxySrc), true);
   one('the KV key uses a SERVER timestamp, not the client one',

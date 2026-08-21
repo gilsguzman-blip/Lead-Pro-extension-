@@ -99,6 +99,12 @@ function extract(file) {
 // slicing "buildUserPrompt -> classifyScenario" silently ran to end-of-file and swept in the
 // dispatch site — which is exactly how the first version of the containment assertions below
 // failed. Take the function's own closing brace at column 0 instead.
+// (v9.7.563) Strip line comments before counting symbol references. The containment checks
+// claim "no CODE reads this"; without stripping, a comment that merely NAMES the symbol counts
+// as a read and the assertion fails on prose. Caught by the v9.7.563 reset comment.
+function stripComments(t) {
+  return t.split('\n').map(l => l.replace(/^\s*\/\/.*$/, '').replace(/\s\/\/.*$/, '')).join('\n');
+}
 function fnBody(src, name) {
   const lines = src.split('\n');
   let a = -1;
@@ -154,7 +160,7 @@ console.log('builds under test: ' + impls.map(i => i.name).join(', ') + '\n');
 console.log('containment — this cannot influence a customer-facing message:');
 
 check('buildUserPrompt references NO comprehension symbol',
-  i => (fnBody(i.src, 'buildUserPrompt')
+  i => (stripComments(fnBody(i.src, 'buildUserPrompt'))
         .match(/_lpRunCommitComprehension|_lpCommitComprehension|LEADPRO_COMMIT_COMPREHENSION|_lpBuildCommitProbe|_lpVerifyCommitQuote|_lpCommitVerdictDelta/g) || []).length,
   0);
 
@@ -178,13 +184,13 @@ check('the window stash is written but never read anywhere in the file',
 
 check('the regex verdict stash is written inside buildUserPrompt but never read back there',
   i => {
-    const body = fnBody(i.src, 'buildUserPrompt');
+    const body = stripComments(fnBody(i.src, 'buildUserPrompt'));
     return { writes: (body.match(/window\._lpVerbalCommitVerdict\s*=/g) || []).length,
              reads:  (body.match(/window\._lpVerbalCommitVerdict(?!\s*=)/g) || []).length };
   }, { writes: 2, reads: 0 });
 
 check('the only read of it in the whole file is the observer dispatch',
-  i => (i.src.match(/window\._lpVerbalCommitVerdict(?!\s*=)/g) || []).length, 1);
+  i => (stripComments(i.src).match(/window\._lpVerbalCommitVerdict(?!\s*=)/g) || []).length, 1);
 
 check('the observer is dispatched WITHOUT await, so it cannot delay a draft',
   i => /(?:^|[^.\w])await\s+_lpRunCommitComprehension/.test(i.src), false);
