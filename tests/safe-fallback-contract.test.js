@@ -399,8 +399,28 @@ pCheck('...inside the probe payload specifically, not somewhere unrelated',
     return a > 0 && b > a && /responseContract: 'fact'/.test(i.src.slice(a, b));
   }, true);
 
-pCheck('the probe payload is the ONLY place the extension declares a non-draft contract',
-  i => (stripComments(i.src).match(/responseContract:/g) || []).length, 1);
+// (v9.7.566) TWO probe payloads now declare it — the v9.7.564 commit observer and the Phase 3
+// generic fact runner. Counting them is the wrong assertion; what must hold is that EVERY
+// declaration selects 'fact' and none of them sits in a draft-generation payload. A draft request
+// silently declaring 'fact' would disable MIN_CONTENT_CHARS and hasDegenerateField for real
+// customer messages, which is the one thing the contract must never allow.
+pCheck('every responseContract the extension declares is "fact" — never on a draft payload',
+  i => {
+    const code = stripComments(i.src);
+    const decls = code.match(/responseContract:\s*'([a-z]+)'/g) || [];
+    const values = decls.map(d => d.replace(/.*'([a-z]+)'.*/, '$1'));
+    // Every declaration must sit within 900 chars of a maxOutputTokens: 300 probe config, which
+    // is the probe shape; a draft payload uses 2500 or 1200.
+    const nearProbe = decls.length > 0 && (code.match(/maxOutputTokens: 300[\s\S]{0,900}?responseContract: 'fact'/g) || []).length === decls.length;
+    return { count: decls.length, allFact: values.every(v => v === 'fact'), allOnProbePayloads: nearProbe };
+  }, { count: 2, allFact: true, allOnProbePayloads: true });
+
+pCheck('the draft generation payloads declare NO contract at all — they get the strict default',
+  i => {
+    const code = stripComments(i.src);
+    return ['maxOutputTokens:  2500', 'maxOutputTokens:  1200']
+      .map(t => { const a = code.indexOf(t); return a < 0 ? 'missing' : /responseContract/.test(code.slice(a, a + 400)); });
+  }, [false, false]);
 
 checkAsync('the contract really rides on the wire, not just in the source',
   async i => {

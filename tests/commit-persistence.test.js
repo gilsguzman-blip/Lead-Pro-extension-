@@ -274,11 +274,14 @@ pending.push(async () => {
   // (v9.7.564) Seven now: PROBE-FAILED marks a row where the probe call itself returned no usable
   // answer. Before it existed that failure arrived here wearing AGREE-NONE, because the canned
   // SAFE_FALLBACK the proxy returned instead is valid JSON that simply has no "kind" key.
-  one('the accepted delta set is exactly the seven the observer emits',
+  // (v9.7.566) Nine now: Phase 3 adds AGREE-FIRED (both readers found the fact) and
+  // NO-COMPREHENSION-VERDICT (the probe produced nothing usable, so there was no comparison).
+  one('the accepted delta set is exactly the nine the observers emit',
     () => (proxySrc.match(/const CC_DELTAS = \[([\s\S]*?)\];/) || [, ''])[1]
       .match(/'[A-Z-]+'/g).map(x => x.replace(/'/g, '')),
     ['AGREE-COMMITMENT', 'AGREE-NONE', 'DISAGREE-REGEX-ONLY', 'DISAGREE-COMPREHENSION-ONLY',
-     'QUOTE-FABRICATED', 'NO-REGEX-VERDICT', 'PROBE-FAILED']);
+     'QUOTE-FABRICATED', 'NO-REGEX-VERDICT', 'PROBE-FAILED', 'AGREE-FIRED',
+     'NO-COMPREHENSION-VERDICT']);
   one('every delta the extension can emit is accepted by the endpoint — no silent 400s',
     () => {
       const accepted = (proxySrc.match(/const CC_DELTAS = \[([\s\S]*?)\];/) || [, ''])[1]
@@ -358,7 +361,7 @@ pending.push(async () => {
        && /const disagree\s+= vd\['DISAGREE-REGEX-ONLY'\] \+ vd\['DISAGREE-COMPREHENSION-ONLY'\];/.test(reporterSrc), true);
   one('every rate reads verifiedDeltas, so an unanswered probe cannot move one',
     () => /const vd\s+= cd\.verifiedDeltas \|\| cd\.deltas;/.test(reporterSrc)
-       && /const agree\s+= vd\['AGREE-COMMITMENT'\] \+ vd\['AGREE-NONE'\];/.test(reporterSrc), true);
+       && /const agree\s+= vd\['AGREE-COMMITMENT'\] \+ vd\['AGREE-NONE'\] \+ \(vd\['AGREE-FIRED'\] \|\| 0\);/.test(reporterSrc), true);
   one('a row without probeOk===true is counted and then skipped, not silently dropped',
     () => /if \(e\.probeOk !== true\) \{ unverifiedProbe\+\+; continue; \}/.test(reporterSrc), true);
   one('comparable is COUNTED in the loop, not derived by subtracting overlapping exclusions',

@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.566 (Commercial. PHASE 3 -- COMPREHENSION BECOMES THE AUTHORITATIVE READER FOR THREE CONVERSATIONAL-FACT DETECTORS, AND EVERY FLAG SHIPS OFF. Pairs with proxy v7.59 and reporter v1.17. THE THESIS THE DESIGN SERVES: for conversational facts -- did the customer commit, did they name a day, did they mention an off-brand vehicle -- a regex manufacturing a short 'fact' and handing it to the model as a trust-this-over-your-own-reading directive has been the source of nearly every live incident this month. Not the model misreading the transcript. Jeri's 'LOCK IN Monday' came from a Yahoo timestamp; Hayden's 'were you looking for a Ram?' came from the letters inside 'Timeframe'. In both cases the model was handed a false fact and obeyed it correctly. The fix is not a better regex; it is letting the model read the real, verified customer text for this category, with the regex demoted to comparison and mandatory fallback. PREMISE CORRECTION, AND IT CHANGED THE TIERING. The brief scoped verbal-commit to go live broadly 'given the existing data' (~113 observer verdicts) while day-lock and off-franchise waited behind flags. THAT ASYMMETRY DOES NOT EXIST. v9.7.564 established that the proxy's MIN_CONTENT_CHARS=150 floor -- already 150 in v7.52, while the observer shipped against v7.55 -- rejected EVERY probe answer at every tier, and that the SAFE_FALLBACK returned in its place is valid JSON with no 'kind' key, which the observer read as kind:'none'. Those ~113 rows are the count of PERSISTED ROWS and essentially all of them are that fabricated series; a row could only have been genuine if the model returned a quote over ~110 characters, which the probe prompt actively discourages. Proxy v7.58 fixes the floor but shipped hours ago with no post-fix traffic yet. SO ALL THREE DETECTORS HAVE THE SAME EVIDENCE BASE, WHICH IS ZERO, and LEADPRO_VERBALCOMMIT_AUTHORITATIVE ships OFF alongside the other two. That is a deliberate deviation from the brief, flagged rather than silent, and it is the ONLY thing narrowed: everything else asked for is built, and flipping any one flag is a single boolean with the override path already wired and tested. WHAT SHIPPED. A generic _lpRunFactProbe drives all three detectors through ONE code path, so a rail cannot be implemented in one and forgotten in another. Each detector has its own probe prompt naming the failure IT has actually shipped, its own observer kill switch, and its own authoritative flag -- six separate symbols, asserted separate. Both v9.7.564 fallback nets are reused unchanged, including the one that needs no cooperation from the proxy at all. THE RAILS, ALL THREE DETECTORS. (1) FALLBACK TO REGEX IS MANDATORY on every failure: flag off, no endpoint, no notes, SAFE_FALLBACK, proxy error, non-JSON, JSON array, missing answer key, unverified quote, timeout, a fetch that never settles, a fetch that throws synchronously -- eleven modes, each asserted individually. No path can end with less signal than today. (2) A POSITIVE ANSWER WITHOUT A LITERALLY VERIFIED QUOTE IS UNUSABLE, the same bar verbal-commit has always held; a NEGATIVE answer needs no quote and that asymmetry is deliberate and asserted. (3) EVERY DECISION LOGS ITS SOURCE per detector -- [LP FACT DIAG] carries source:comprehension or source:regex-fallback, whether the detector is authoritative or observer-only, both readings, and the agreement verdict. (4) SEPARATE KILL SWITCHES, asserted independent: turning day-lock off leaves the other two making their calls. (5) THE PROBE READS THE SAME BYTES THE REGEX READ. Day-lock's text is CARRIED OUT of inlineScraper by the scraper itself rather than re-walked popup-side from data.context -- those are not the same string, and a disagreement caused by two paths reading different text is worthless data. That also satisfies the brief's 'reuse _lpCustomerAuthoredPart, do not reimplement it': it is not reimplemented, its OUTPUT is transported, and the suite asserts exactly one definition of it and that the definition sits inside inlineScraper. Off-franchise reads _lpCustomerText -- the same function whose ungated lastInboundMsg caused Hayden's incident and which v9.7.555 fixed. THE ARCHITECTURAL PROBLEM THE BRIEF DID NOT NAME, AND HOW IT IS SOLVED. An authoritative reader must produce its answer BEFORE the prompt is built; an observer never had to. So the probes are AWAITED at generate time, three in parallel behind a 4.5s timeout, which adds one probe's latency rather than three. But day-lock and off-franchise render their directives inside populateFromData at SCRAPE time, before any probe has an answer -- and rewriting assembled prompt prose by pattern-matching it is exactly the fragile thing this file gets bitten by. Both directives are therefore SENTINEL-FENCED at the point they are written, and the generate path removes or replaces a whole fenced region deterministically. The fences are stripped UNCONDITIONALLY on every path including the throw path and including an orphan with no partner -- asserted four ways -- because a stray sentinel in a customer-facing prompt would be worse than any directive this prevents. Precedent: the LP_CACHE_BREAKPOINT sentinel already in the system prompt. A REAL DEFECT FOUND WHILE WIRING IT, worth recording because it would have doubled the cost and corrupted the data: the v9.7.559 observer would have kept firing alongside the Phase 3 probe, making TWO calls per generation for the SAME verbal-commit question and persisting two conflicting rows per lead -- the disagreement series would have double-counted itself. The old dispatch is now gated on the Phase 3 flag and says so in the log. It is NOT deleted: it stays the tested fallback observer for when Phase 3's verbal-commit comprehension is switched off. PROXY v7.59 stores `detector` (clamped to the three ids; a row without one is verbal-commit, which every pre-v9.7.566 row is by construction), plus `authoritative` and `sourceUsed`, and accepts AGREE-FIRED and NO-COMPREHENSION-VERDICT. REPORTER v1.17 splits the section BY DETECTOR -- merging three different questions into one rate makes every one uninterpretable -- and separates WOULD HAVE DISAGREED from ACTUALLY CHANGED THE DIRECTIVE. With all three flags off that CHANGED column must read 0; anything else means a flag is live that should not be. VERIFIED 58/58 in a new suite plus all 31 suites green (1,019 assertions), dev===comm on every case, against the three real captures the incidents came from. Jeri: the probe is asserted to receive only 'Thank you.' with the Yahoo header absent from the MESSAGES block; with the flag ON a no-day verdict REMOVES the fabricated LOCK IN directive; with the flag OFF -- today's default -- the directive is kept byte-untouched. Hayden: the probe is told the store brand (without it the question is unanswerable) and its prompt is asserted to name the exact failure, letters inside another word. Jason: the verbal-commit walk still reads his real 22-note history. Quote verification is asserted both ways on all three: a real quote verifies, a paraphrase is refused as fabricated, and verification is whitespace-normalised and case-insensitive rather than brittle. THREE OF MY OWN ERRORS THE SUITES CAUGHT. (1) The harness seeded flag overrides into the sandbox BEFORE running the code span -- which re-declares `var LEADPRO_DAYLOCK_AUTHORITATIVE = false` and silently clobbered them, so three assertions failed in a way that looked like the override was broken when the harness was. (2) An assertion that the Yahoo header never reaches the probe scanned the WHOLE prompt, and the probe's own RULES deliberately quote a Yahoo header as an example of what to ignore -- it was matching my own prose. (3) One expectation said REMOVE in its name and KEEP in its want. Also caught, and a genuine robustness gap rather than a test artefact: the verbal-commit override read `window` unguarded, which threw in any context without it; a comprehension layer that can break the prompt build is worse than no layer, so every override path is now defensive and degrades to regex. WHAT THIS MIGHT BREAK, PER DETECTOR, SINCE THEY CARRY DIFFERENT RISK. TODAY, WITH EVERY FLAG OFF: nothing customer-facing changes on any of the three -- the regex directive ships exactly as it does now, asserted. The real costs today are THREE PARALLEL API CALLS PER GENERATION (up from one) and up to 4.5s of added latency in front of the draft when the proxy is slow. Both are the price of collecting the evidence, and each detector's switch turns its own third off. IF VERBAL-COMMIT IS FLIPPED ON: a probe that reads the notes and finds no commitment SUPPRESSES the CALL NOTE block, so a genuine commitment the regex caught and the model misses is lost -- the failure mode inverts from fabrication to omission. IF DAY-LOCK IS FLIPPED ON: a real customer-named day that the probe misses means the lead gets today/tomorrow instead of their day -- annoying, recoverable, and strictly less bad than Jeri's three-days-out lock. IF OFF-FRANCHISE IS FLIPPED ON: a genuine off-brand request the probe misses means the store promises something it structurally cannot sell, which is the Halie Bott failure and is the WORST of the three -- flip that one last and on the most evidence. node --check clean on both builds, the proxy and the reporter; both manifests parse; nothing added inside inlineScraper except the schedCustomerNotes carrier, verified against the file's own '} // end inlineScraper' marker; version and version_name both bumped. Builds on v9.7.565.)
 // Lead Pro -- popup.js  v9.7.565 (Commercial. A DAY NAME IN A QUOTED-REPLY HEADER IS NOT A CUSTOMER STATEMENT. Jeri Mayes (Community Honda Lafayette, lead 2065165925, 8/21) was offered times three days out on Monday 8/24 -- skipping today AND Saturday -- while the store was open with four hours of usable time left, because the prompt carried "Customer said Monday is when they are available. LOCK IN Monday - do NOT offer any other day... Do NOT try to pull them in sooner." JERI NEVER WROTE THE WORD MONDAY. Her one inbound email, in full, is: "Thank you.Sent from Yahoo Mail for iPhoneOn Monday, August 10, 2026, 3:00 PM, Kaylee Guzman kguzman@... wrote: Jeri,Your CarGurus inquiry is for the 2026 Honda Odyssey..." She wrote "Thank you." The Monday is a YAHOO QUOTED-REPLY HEADER -- a timestamp her mail client generated, naming when OUR OWN email was sent -- and the detector's `(?:until|till|on|this|next)\s+(monday|...)` alternative matched the "On Monday" inside it. WHY IT SURVIVED THIS LONG, and log123 shows it exactly: this detector had NO DIAGNOSTIC AT ALL. Log123 records the note passing the gate ([LP SCHED GATE] noteIndex:7, dir:inbound, passesGate:true) and then NOTHING -- because the one adjacent diagnostic, [LP SCHED DIAG], sits inside `if(!customerScheduleConstraint)` and is suppressed precisely when this branch fires. The failure was invisible by construction, which is why it took a full live capture to notice a hard LOCK-IN directive being fabricated. ON GIL'S SELF-INDUCED HYPOTHESIS -- THE ORIGIN IS RIGHT, THE LOOP IS NOT, AND THE CORRECTION POINTS SOMEWHERE BETTER. The origin is almost certainly LP: an [LP: value] note sits at 8/14 3:22 PM, SEVENTEEN MINUTES before the 3:39 PM "Monday appraisal for your Passport" email, and the Yahoo artifact predates both (8/10 3:02 PM) -- so the 8/14 generation had exactly the input that produces LOCK IN Monday, and an agent sent it uncaught. BUT THAT EMAIL CANNOT FEED THE DETECTOR BACK: log123 line 345 shows it gated OUT -- {"noteIndex":3,"dir":"outbound","title":"email reply to prospect","passesGate":false}. The loop reads inbound notes only. So this is not a compounding loop, it is a PERSISTENT ARTIFACT: one static string, permanently in the notes, producing the same wrong directive on every generation forever. 8/14 and 8/21 are two independent firings of one cause, not a bug feeding itself. That distinction matters for triage in the direction that argues for fixing it HARDER -- a compounding bug needs someone to catch it once; a persistent one has no catch-it-next-time path at all and will fire on this lead every single time until the code changes. THE FIX. New _lpCustomerAuthoredPart cuts an inbound note at the FIRST marker of any kind and returns only what the customer typed. Because this file has been bitten repeatedly by enumerating shapes it had already seen, the two SHAPE rules carry the weight -- "On ... wrote:" and "<an email address> ... wrote:" cover every mail client without naming one -- with client signatures, -----Original Message-----, Outlook From:/Sent: blocks, the Outlook divider, "Begin forwarded message:" and bare ">" prefixes enumerated beneath them. The cut is applied ONCE, at the top of the loop, so every detector benefits: "out of town", "camping", the arrival-time scan and the work-hours scan are all equally capable of matching a quoted agent email, and fixing only the one that produced an incident would have left the rest loaded. TWO NEW DIAGNOSTICS, per the brief. [LP SCHED DAY DIAG] reports LOCKED or REFUSED on every day match, with the day, the matched text, the SOURCE LINE it came from, which marker cut the note, and what the customer actually authored -- so the next Jeri is a grep, not an investigation. [LP SCHED SOURCE DIAG] reports a note with no customer-authored text at all. [LP SCHED DIAG] now carries rawLen/cutBy/cutAt so "saw nothing" and "was shown a quoted agent email" stop looking identical. A SECOND CONSUMER, FOUND BY THE SURVEY THE BRIEF ASKED FOR, and it is in Jeri's delivered prompt too: the personalContext scanner rendered "[geographic] Sent from Yahoo Mail for iPhoneOn Monday, August 10, 2026, 3:00 PM, Kaylee Guzman kguzman@communityhondalafayette" under PERSONAL CONTEXT THE CUSTOMER HAS SHARED. Two independent faults: it read the whole note including the quoted agent email, and its geographic pattern's bare `from` alternative needed no first-person framing at all, so "Sent from Yahoo" matched `from` + [A-Z][a-z]+. Not cosmetic -- the v9.7.220 block promotes a [geographic] entry naming a US state to an operational DISTANCE BUYER fact. Both halves fixed; the movement verbs ("driving from", "coming from") were never the problem and are untouched. MEASURED, NOT ASSUMED, ACROSS THE CORPUS: the artifact appears in 3 of 22 recent captures (log103 x2, log120, plus Jeri) -- it is not a one-lead curiosity. VERIFIED 50/50 in a new suite plus all 30 suites green (960 assertions), dev===comm on every case, driving the loop sliced from the SHIPPED file against a fake DOM. Jeri's real email yields NO day lock, NO not-today flag, and a logged REFUSED line quoting the Yahoo header; the OLD behaviour is reproduced on the uncut text in the same suite so the fix is demonstrably what changed it; Kaylee's own 8/14 "Monday" subject is asserted gated out. THE FEATURE STILL WORKS: seven genuine phrasings still lock, including a real day sitting ABOVE an Apple signature and above a Gmail quote. Ten artifact shapes are refused, one of them by SHAPE ALONE with no client named. The other detectors are asserted both ways -- a quoted agent "out of town" no longer trips NOT-TODAY, a customer genuinely saying it still does. TWO OF MY OWN ERRORS THE SUITE CAUGHT, both worth recording. (1) The harness anchored on "if (dir === 'inbound' && body) {" which appears MORE THAN ONCE -- frustrationSignals opens identically and comes first -- so it silently tested the wrong block and reported empty results that read as a code failure. (2) Tightening the geographic pattern to `i'm from|i am from` DROPPED THE /i FLAG's protection: the old bare `from` matched lowercase text, my replacement was case-sensitive against a capitalised sentence start, so "I'm from Baton Rouge" stopped matching. A real regression, caught by the still-works assertion rather than by the fix's own tests. STILL OPEN, MEASURED AND DELIBERATELY NOT IN THIS DIFF: inboundMsgs (popup.js ~9055) pushes raw note text with no cut, and feeds the customer-commitment detector, which emits 'CUSTOMER COMMITTED: Customer said they would come in' and 'PENDING DECISION: Customer said -'. A quoted agent "I'll check on that for you" is exactly that shape. Same class, same fix, but inboundMsgs also feeds lastInboundMsg, trivial-reply and burst detection, so it changes behaviour well outside this incident and wants its own verified pass rather than a bolt-on -- the same discipline as the Phase 1 consumer migration. node --check clean on both builds; both manifests parse; the new helper and BOTH its call sites are asserted INSIDE inlineScraper and asserted to depend on nothing outside themselves (a module-scope reference there is a ReferenceError that aborts the entire scrape -- the v9.7.455/228 trap); version and version_name both bumped. Builds on v9.7.564.)
 // Lead Pro -- popup.js  v9.7.564 (Commercial. THE COMPREHENSION OBSERVER HAS NEVER ONCE PRODUCED A REAL READING, and every verdict it ever persisted was fabricated. Pairs with proxy v7.58 and reporter v1.16 -- DEPLOY THE PROXY FIRST. Gil reported an hour-long worker incident on 8/21 (15:04-16:02 UTC): 17 requests failed all three model tiers and returned SAFE_FALLBACK, the canned placeholder with unfilled [Agent]/[Store], and asked whether real customers received it. THEY DID NOT, AND NONE OF THE 17 WAS A CUSTOMER DRAFT. Proven, not inferred: every one carries cacheKey=lp_fd4886ea, which is promptCacheKey() of the OBSERVER PROBE's own system string, computed and matched against the shipped worker hash. In the same window the 71 real generations (cacheKey=lp_773499b2) were 71/71 OK -- 67 PRIMARY, 4 FALLBACK. The partition is perfect: 17/17 probes failed, 0/71 drafts did. The up|implicit_copy events Gil saw seconds after each SAFE_FALLBACK are causally BACKWARDS -- the probe fires because a generation just SUCCEEDED, and the copy is of that successful draft. ROOT CAUSE, AND IT IS MINE: the proxy's MIN_CONTENT_CHARS floor is 150 and applies to every response at every tier. The probe's CORRECT answer is {"kind":"none","note":null,"quote":null} -- 40 characters. A firm verdict with a 53-char quote is 89. EVERY POSSIBLE CORRECT PROBE ANSWER IS UNDER THE FLOOR, so all three tiers rejected it as "Empty response (finish=stop)", deterministically, on every probe ever sent. Not a rate limit, not a quota, not a provider issue, and NOT token starvation -- the logged tokens=300 never reached OpenAI, because spec.tokens is set on all three tiers and shadows callerMax. The models answered correctly in ~1s and the proxy threw the answer away. WORSE THAN THE FAILURE: SAFE_FALLBACK_TEXT is VALID JSON. This observer JSON.parse'd it, found no "kind" key, defaulted to kind:'none', and recorded and PERSISTED a canned customer apology as "the comprehension pass read the notes and found no commitment". All 17 rows that hour read AGREE-NONE or NO-REGEX-VERDICT and every one is fabricated. Because the 150 floor predates the observer, this is true of EVERY comprehension row ever collected -- three builds of fixing this observer (v9.7.562 empty context, v9.7.563 stale stash, this one) and the probe was dead for all of them. THREE PREMISE CORRECTIONS TO THE REPORT, all evidence-backed. (1) The draft path ALREADY refuses to render SAFE_FALLBACK -- v9.7.379/377 W4 reads candidates[0]._fallback and calls showError instead, on the main, voicemail and translate paths alike. The "agents cannot tell a placeholder from a draft" concern is false for drafts and was true only for this observer, the one consumer that never looked at the marker. (2) The 4 PRIMARY "Degenerate field content" failures on gpt-5.6-luna are NOT truncation -- the ellipsis in those log lines is DEGENERATE_SAMPLE_CHARS truncating the LOG, not the model truncating output. The email field genuinely held a nested {"subject":...} object, the exact second shape v7.45/7.46 was built for. The guard is model-agnostic, it FIRED, and FALLBACK rescued all 4; it needs no extension for Luna. (3) /feedback-to-generation requestId correlation was genuinely IMPOSSIBLE from existing data -- the proxy minted requestId per request but returned it only on the FALLBACK envelope, never on success. One missing field, now added. FIXES. PROXY v7.58 adds `responseContract`: 'draft' (the default, and the default for anything absent or unrecognised, so no caller can weaken the draft guards by omission) keeps MIN_CONTENT_CHARS and hasDegenerateField untouched; 'fact' replaces both with the floor that fits a one-fact answer -- it must parse to a non-array object with at least one key. It also refuses to serve SAFE_FALLBACK_TEXT to a non-draft contract at all, returning an explicit error envelope with no candidates, and returns _requestId on the SUCCESS envelope. EXTENSION: the probe declares responseContract:'fact', and the observer gets TWO INDEPENDENT NETS against ever reading a verdict out of a fallback again. Net one reads the _fallback marker the proxy has set since v7.30. Net two needs no cooperation from the proxy at all -- a parsed response that does not carry its own "kind" key is not a probe answer, whatever produced it -- and net two would have caught this alone, which is why it is there and not just net one. A failed probe now records PROBE-FAILED with a reason, so a dead probe is COUNTABLE instead of arriving disguised as agreement. Real verdicts carry probeOk:true; its absence on a stored row is the exact shape test for "collected while the probe was dead". Feedback rows carry workerRequestId, cleared in _lpFeedbackReset rather than left to be overwritten -- a generate that errors or aborts would otherwise stamp the next lead's row with a previous generation's id, which is the v9.7.562/563 stale-global class in a correlation field, where a wrong value is worse than a missing one. REPORTER v1.16 counts PROBE-FAILED separately, excludes it from both rates, and excludes every row without probeOk===true -- retiring the entire fabricated series on a shape test rather than a version comparison. VERIFIED 48/48 in the new safe-fallback-contract suite plus all 29 suites green (910 assertions), dev===comm on every case, against the real artifacts: the probe's own system string is asserted to hash to lp_fd4886ea using promptCacheKey sliced from the shipped worker; all four probe answer shapes are asserted under 150 chars; SAFE_FALLBACK_TEXT is asserted to parse and to yield kind:'none' under the OLD code and PROBE-FAILED under the new; the fact contract is asserted to still reject "", "{}", "[]", a bare brace, whitespace and prose while accepting all four real answer shapes; absent, unknown, malformed and hostile contract values are all asserted to fall back to 'draft'; the degenerate-field guard is asserted still to catch the nested {"subject":...} email shape and asserted NOT to be model-gated; and a non-draft contract is asserted to receive no candidates array at all. NET TWO IS ASSERTED WITHOUT THE PROXY'S HELP -- the same SAFE_FALLBACK text with the _fallback marker REMOVED is still refused -- and asserted not to over-fire on an unknown kind value or a null kind. WHAT THIS MEANS FOR THE DATA, PLAINLY: the Phase 2 corpus is not thin, it is EMPTY -- zero real readings, not zero disagreements among real readings. Phase C cannot be decided on anything collected before this build and the reporter now says so rather than showing a confident 100% agreement rate built entirely out of failed probes. The third rate discontinuity in three builds, and the last one that is an artefact. ALSO MEASURED, worth knowing: the probe contributed 17 of the day's 63 edge-cache MISSes and never STOREs, so part of the elevated cache-miss number is this bug rather than traffic. STILL OPEN, unchanged: the System callmeasurement URL row still reaches the probe. node --check clean on both builds, the proxy and the reporter; both manifests parse; version and version_name both bumped. Builds on v9.7.562.)
 // Lead Pro -- popup.js  v9.7.562 (Commercial. THE FIRST DISAGREEMENT THE PROGRAMME EVER RECORDED WAS AN ARTEFACT, AND THE BUG WAS MINE. Pairs with proxy v7.57 and reporter v1.15. Gil flagged log121's one disagreement -- Alissa (Community Honda Lafayette, Cap One Mailer), DISAGREE-REGEX-ONLY on the quote 'coming in he lives in Mississippi', twice on two grabs -- and read it as possibly a third party rather than her own commitment. The note turns out not to be hers at all. WHAT LOG121 ACTUALLY SHOWS: her two generations are BOTH marked SHOWROOM FOLLOW-UP, and NEITHER carries a [LP VERBAL COMMIT DIAG] line of any kind -- there is no FIRED line anywhere in the file. The verbal-commit block is gated `if (hasCallNoteContent && !data.isShowroomFollowUp)`, the v9.7.197 exception, so on her lead the block never ran. v9.7.558 placed the stash RESET INSIDE that same gate, 35 lines below it. When the gate is closed the reset never executes, so window._lpVerbalCommitVerdict keeps the PREVIOUS lead's value and the observer compares its reading against a verdict belonging to a different customer. The quote is a leftover from an earlier lead in the same panel session. SAME CLASS AS THE v9.7.562 WIRING BUG -- a stale global read as though it were current -- one build later, in code I wrote, and it produced a false positive rather than a false negative, which is the worse direction. TO BE PRECISE ABOUT ONE THING IN THE REPORT: 'quoteVerified:true' does not mean the regex quote was verified. That field reports the COMPREHENSION quote, and the code sets it true unconditionally when comprehension returns none -- there was nothing to verify. It read as corroboration and was vacuous. THREE FIXES. (1) THE RESET MOVES OUTSIDE THE GATE, so it runs on every generation regardless of which path the lead takes. (2) THE STASH NOW CARRIES `ran` AND `skipReason`, because 'the regex looked and found nothing' and 'the regex never looked at this lead' are different evidence and were being reported identically as 'regex:none'. A row where it never ran gets its own delta, NO-REGEX-VERDICT, and the log says 'regex:DID NOT RUN (showroom follow-up -- the v9.7.197 exception)'. Rows written before this build carry no `ran` field, so the check is `!== false` and they stay readable rather than being retroactively relabelled. (3) quoteVerified now prints 'n/a (nothing to verify)' when comprehension returned none. PROXY v7.57 accepts NO-REGEX-VERDICT and stores regexRan; REPORTER v1.15 counts those rows separately and EXCLUDES them from BOTH rates, showing 'X of Y comparable' -- folding a non-comparison into either rate would silently move the exact number Phase C is meant to decide on. WHAT THIS MEANS FOR THE DATA, PLAINLY: the disagreement dataset is still empty. log121's two DISAGREE rows were the same artefact twice, so the real count of genuine disagreements observed to date is ZERO, not one. The comprehension pass has not yet been shown to catch anything the regex missed, and it has not been shown not to either. VERIFIED 33/33 in the wiring suite (13 new) plus all 28 suites green (857 assertions), dev===comm on every case, against log121's real shape: the reset is asserted to sit BEFORE the gate and to appear nowhere inside it; a showroom-followup lead and a note-free lead each clear the stash with the right skipReason; a stash pre-loaded with Alissa's exact stale quote is asserted cleared; a ran:false verdict yields NO-REGEX-VERDICT rather than AGREE-NONE; a stale FIRED with ran:false does NOT become a disagreement; and a genuine ran:true disagreement still reports DISAGREE-REGEX-ONLY. A CONTAINMENT ASSERTION NEEDED FIXING TOO, and it is worth recording: the v9.7.558 check that buildUserPrompt never READS the stash counts symbol occurrences, and my new explanatory comment NAMES the symbol -- so prose failed a check that claims to measure code. It now strips line comments before counting, which is what it always meant. WHAT THIS MIGHT BREAK, PLAINLY: nothing customer-facing; the verbal-commit directive itself is untouched and the showroom exception still suppresses it exactly as v9.7.197 intended. The visible change is that a meaningful share of rows will now report NO-REGEX-VERDICT instead of AGREE-NONE, so the agreement rate will move -- not because behaviour changed but because rows that were never comparisons stop being counted as agreements. Rates either side of this build are not comparable, which is the second such discontinuity in three builds and is the honest cost of finding these before the data was trusted. ALSO STILL OPEN from v9.7.562, unchanged: a System callmeasurement URL row still reaches the probe. node --check clean on both builds, the proxy and the reporter; both manifests parse; version and version_name both bumped. Builds on v9.7.561.)
@@ -1329,6 +1330,526 @@ function _lpSendCommitComprehension(result, deps) {
       keepalive: true
     }).catch(function () {});   // fire and forget — a failed or slow POST changes nothing
   } catch (e) { return null; }
+}
+
+// ── (v9.7.566) PHASE 3 — COMPREHENSION AS THE AUTHORITATIVE READER ────────────────────────
+//
+// THE THESIS, and it is worth stating because the design serves it: for CONVERSATIONAL FACTS —
+// did the customer commit to something, did they name a day, did they mention an off-brand
+// vehicle — a regex manufacturing a short "fact" and handing it to the model as a
+// trust-this-over-your-own-reading directive has been the source of nearly every live incident
+// this month. Not the model misreading the transcript. Jeri's "LOCK IN Monday" came from a Yahoo
+// timestamp; Hayden's "were you looking for a Ram?" came from the letters inside "Timeframe".
+// In both cases the model was handed a false fact and obeyed it correctly.
+//
+// So the fix is not a better regex. It is letting the model read the real, verified customer text
+// for this category of fact, with the regex demoted to a comparison signal and a mandatory
+// fallback. The regex NEVER stops running: no path here can end with less signal than today.
+//
+// ── THE EVIDENCE BASE, STATED HONESTLY, BECAUSE IT SETS THE DEFAULTS ──────────────────────
+// The plan for this build was: verbal-commit goes live broadly on its ~113 observer verdicts;
+// day-lock and off-franchise start observer-only because they have none. That asymmetry does not
+// currently exist. v9.7.564 established that the proxy's MIN_CONTENT_CHARS=150 floor — which
+// predates the observer by many versions (it is already at 150 in v7.52; the observer shipped
+// against v7.55) — rejected EVERY probe answer at every tier, and that the SAFE_FALLBACK returned
+// in its place is valid JSON with no "kind" key, which the observer read as kind:'none'. So those
+// ~113 rows are the count of PERSISTED ROWS, and essentially all of them are that fabricated
+// series: a row could only have been genuine if the model returned a quote over ~110 characters,
+// which the probe prompt actively discourages. Proxy v7.58 fixes the floor, but it shipped hours
+// ago and no post-fix traffic exists yet.
+//
+// CONSEQUENCE: all three detectors have the same evidence base, which is zero. Every AUTHORITATIVE
+// flag below therefore ships OFF, verbal-commit included. That is a deliberate deviation from the
+// brief's tiering and it is flagged rather than silent — the brief's own stated reason for
+// promoting verbal-commit broadly was "given the existing data", and the existing data is void.
+// Everything else the brief asked for is built: flipping any one of these is a single boolean, the
+// override paths are wired and tested, and the disagreement data will now actually accumulate.
+//
+// ── THE RAILS, all three detectors, no exceptions ─────────────────────────────────────────
+//  1. FALLBACK TO REGEX IS MANDATORY on any comprehension failure — probe error, timeout, kill
+//     switch off, unverified quote, malformed answer. Asserted per failure mode in the suite.
+//  2. A FIRM ANSWER WITHOUT A LITERALLY VERIFIED QUOTE IS NOT USABLE. Same bar as verbal-commit's:
+//     the quote must appear character-for-character (whitespace-normalised, case-insensitive) in
+//     the exact note handed to the probe. A paraphrase is QUOTE-FABRICATED and falls back.
+//  3. EVERY GENERATION LOGS WHICH SOURCE PRODUCED THE SHIPPED DIRECTIVE, per detector.
+//  4. SEPARATE KILL SWITCHES PER DETECTOR — a problem in one never requires reverting all three.
+//  5. THE PROBE READS EXACTLY WHAT THE REGEX READ. Not "the same notes, re-derived" — the same
+//     bytes. Day-lock's text is carried out of inlineScraper by the scraper itself rather than
+//     re-walked popup-side, so a disagreement can never be a boundary artefact (the Phase 1
+//     guarantee, applied one layer lower).
+
+// Observer switches — does the probe run at all. Turning one off costs the disagreement data for
+// that detector and nothing else; the regex keeps producing the directive exactly as today.
+var LEADPRO_VERBALCOMMIT_COMPREHENSION = true;
+var LEADPRO_DAYLOCK_COMPREHENSION      = true;
+var LEADPRO_OFFFRANCHISE_COMPREHENSION = true;
+
+// Authoritative switches — MAY comprehension replace the regex directive. All three OFF; see the
+// evidence note above. Flip one only once its own disagreement series says something.
+var LEADPRO_VERBALCOMMIT_AUTHORITATIVE = false;
+var LEADPRO_DAYLOCK_AUTHORITATIVE      = false;
+var LEADPRO_OFFFRANCHISE_AUTHORITATIVE = false;
+
+// A probe that has not answered by this point is a failure and falls back. Deliberately shorter
+// than the proxy's own 24s cascade budget: an authoritative probe sits IN FRONT of the draft, so
+// its worst case is added latency an agent feels. Three probes run in parallel, so the total
+// added latency is one probe's worth, not three.
+var LP_FACT_PROBE_TIMEOUT_MS = 4500;
+
+var LP_FACT_IDS = { COMMIT: 'verbal-commit', DAYLOCK: 'day-lock', OFFFRANCHISE: 'off-franchise' };
+
+// Sentinels around the two directives that are BUILT AT SCRAPE TIME (day-lock and off-franchise
+// both render inside populateFromData, before any probe has an answer). The generate path can then
+// remove or replace a whole fenced region deterministically instead of pattern-matching its prose.
+// They are stripped unconditionally on the way out — asserted — so a sentinel can never reach a
+// customer-facing prompt even if every override is off, every flag is false and the probe never
+// ran. Chosen to be characters no CRM note or model output will contain.
+var LP_FACT_FENCE_OPEN  = '⟦LP_FACT:';
+var LP_FACT_FENCE_CLOSE = '⟦/LP_FACT:';
+
+// ── The three probes ──────────────────────────────────────────────────────────────────────
+// Each asks ONE question, requires a verbatim quote, and names the failure modes that detector
+// has actually shipped. None of them is shown the regex's answer — asking a model a question
+// inside a prompt that already answers it produces agreement by construction (the v9.7.558
+// isolation rule), and that matters more here than it did as an observer.
+var LP_FACT_DETECTORS = {
+  'verbal-commit': {
+    id: 'verbal-commit',
+    flagObserve: function () { return LEADPRO_VERBALCOMMIT_COMPREHENSION; },
+    flagAuth:    function () { return LEADPRO_VERBALCOMMIT_AUTHORITATIVE; },
+    system: 'You extract one fact from CRM notes and answer in JSON. You never guess and never paraphrase.',
+    build: function (notes, kinds) { return _lpBuildCommitProbe(notes, kinds); },
+    // 'firm'/'soft' are commitments; anything else is none.
+    fired: function (p) { return p.kind === 'firm' || p.kind === 'soft'; }
+  },
+  'day-lock': {
+    id: 'day-lock',
+    flagObserve: function () { return LEADPRO_DAYLOCK_COMPREHENSION; },
+    flagAuth:    function () { return LEADPRO_DAYLOCK_AUTHORITATIVE; },
+    system: 'You extract one fact from a customer message and answer in JSON. You never guess and never paraphrase.',
+    build: function (notes) { return _lpBuildDayLockProbe(notes); },
+    fired: function (p) { return !!p.day; }
+  },
+  'off-franchise': {
+    id: 'off-franchise',
+    flagObserve: function () { return LEADPRO_OFFFRANCHISE_COMPREHENSION; },
+    flagAuth:    function () { return LEADPRO_OFFFRANCHISE_AUTHORITATIVE; },
+    system: 'You extract one fact from a customer message and answer in JSON. You never guess and never paraphrase.',
+    build: function (notes, kinds, opts) { return _lpBuildOffFranchiseProbe(notes, opts); },
+    fired: function (p) { return !!p.make; }
+  }
+};
+
+// DAY-LOCK PROBE. The failure it exists to prevent is named explicitly, because it is not
+// hypothetical: Jeri Mayes's entire inbound email was "Thank you." followed by a Yahoo quoted-reply
+// header reading "On Monday, August 10, 2026, 3:00 PM, Kaylee Guzman ... wrote:". The v9.7.565
+// stripper already removes that before the text ever reaches here — this probe never sees it — but
+// the rule is stated anyway so the model is not relying on the stripper having been perfect.
+function _lpBuildDayLockProbe(notes) {
+  var lines = [];
+  for (var i = 0; i < notes.length; i++) {
+    lines.push('[' + (i + 1) + '] ' + String(notes[i] || '').replace(/\s+/g, ' ').trim());
+  }
+  return 'Below are messages a car dealership customer sent. Decide exactly ONE thing: did the '
+    + 'CUSTOMER say which DAY they are available or will come in?\n\n'
+    + 'RULES:\n'
+    + '- Answer only from the messages below. If they did not name a day, the answer is null.\n'
+    + '- "quote" must be copied CHARACTER FOR CHARACTER from a single message. Never paraphrase, '
+    + 'never summarise, never combine two messages, never add words that are not there.\n'
+    + '- A DATE OR DAY INSIDE EMAIL METADATA IS NOT THE CUSTOMER NAMING A DAY. Quoted-reply headers '
+    + '("On Monday, August 10, 2026, ... wrote:"), forwarded-message headers, mail-client '
+    + 'signatures and email timestamps are generated by software and say when a message was SENT. '
+    + 'They are never a statement of availability.\n'
+    + '- A day inside text the DEALERSHIP wrote — a quoted prior email, an agent note, a subject '
+    + 'line — is not the customer naming a day, even when it appears inside the customer\'s reply.\n'
+    + '- A day the customer RULED OUT ("I cannot do Monday", "not Tuesday") is NOT them naming '
+    + 'that day as their availability. The answer for that day is null.\n'
+    + '- "today", "tomorrow", "this weekend" and "next week" are NOT day names for this question — '
+    + 'answer null unless they named an actual weekday.\n\n'
+    + 'MESSAGES:\n' + lines.join('\n') + '\n\n'
+    + 'Respond with ONLY this JSON and nothing else: '
+    + '{"day":"Monday"|"Tuesday"|"Wednesday"|"Thursday"|"Friday"|"Saturday"|"Sunday"|null,'
+    + '"note":<the message number, or null>,"quote":"<verbatim text, or null>"}';
+}
+
+// OFF-FRANCHISE PROBE. Hayden N's incident is the shape: a CarGurus phone-lead metadata blob
+// ("Likelihood to buy: Standard Timeframe: 2 weeks") produced "Ram" because the letters r-a-m sit
+// inside "Timeframe". The word-boundary fix (v9.7.555, extended v9.7.565) still runs and still
+// gates what reaches here; this asks the separate question of whether a HUMAN actually named a
+// competing make, which a boundary rule cannot answer.
+function _lpBuildOffFranchiseProbe(notes, opts) {
+  var storeBrand = (opts && opts.storeBrand) ? String(opts.storeBrand) : '';
+  var lines = [];
+  for (var i = 0; i < notes.length; i++) {
+    lines.push('[' + (i + 1) + '] ' + String(notes[i] || '').replace(/\s+/g, ' ').trim());
+  }
+  return 'Below are messages a car dealership customer sent'
+    + (storeBrand ? '. The dealership sells ' + storeBrand + '.' : '.') + '\n\n'
+    + 'Decide exactly ONE thing: did the CUSTOMER ask about a vehicle from a DIFFERENT '
+    + 'manufacturer than ' + (storeBrand || 'the dealership\'s own brand') + '?\n\n'
+    + 'RULES:\n'
+    + '- Answer only from the messages below. If they did not, the answer is null.\n'
+    + '- "quote" must be copied CHARACTER FOR CHARACTER from a single message. Never paraphrase, '
+    + 'never summarise, never combine two messages, never add words that are not there.\n'
+    + '- THE MAKE MUST APPEAR AS A WHOLE WORD A PERSON WROTE. Letters that happen to sit inside '
+    + 'another word are not a vehicle: "ram" inside "Timeframe" or "program", "kia" inside '
+    + '"Kiawah", "mini" inside "minivan". If that is all you can find, the answer is null.\n'
+    + '- SYSTEM-GENERATED TEXT IS NOT THE CUSTOMER SPEAKING. Call-record blobs ("Caller Id:", '
+    + '"Duration:", "Likelihood to buy:", "Timeframe:"), lead-provider metadata and tracking '
+    + 'strings are not a person asking about a car.\n'
+    + '- THE CUSTOMER\'S OWN CAR IS NOT A REQUEST. A trade-in, a current vehicle or a car they '
+    + 'already own is almost always a different make and is NOT them asking to buy one.\n'
+    + '- A make the DEALERSHIP mentioned, in a quoted email or an agent note, is not the customer '
+    + 'asking about it.\n\n'
+    + 'MESSAGES:\n' + lines.join('\n') + '\n\n'
+    + 'Respond with ONLY this JSON and nothing else: '
+    + '{"make":"<the manufacturer name, or null>","note":<the message number, or null>,'
+    + '"quote":"<verbatim text, or null>"}';
+}
+
+// ── The generic runner ────────────────────────────────────────────────────────────────────
+// One code path for all three, so a rail cannot be implemented correctly in one detector and
+// forgotten in another. Returns a RESULT OBJECT rather than throwing: every failure mode resolves
+// to { usable:false, reason } and the caller falls back to the regex.
+function _lpRunFactProbe(detId, notes, deps) {
+  deps = deps || {};
+  var det = LP_FACT_DETECTORS[detId];
+  var _fail = function (reason, extra) {
+    return Promise.resolve(Object.assign({ detector: detId, usable: false, reason: reason,
+      kind: null, quote: '', claimedNote: null, verifiedNote: 0, quoteVerified: false,
+      notesRead: (notes || []).length, probeOk: false }, extra || {}));
+  };
+  try {
+    if (!det) return _fail('unknown detector');
+    if (!det.flagObserve()) return _fail('observer flag off for ' + detId);
+    if (!notes || !notes.length) return _fail('no customer-authored notes to read');
+
+    var _fetch    = deps.fetch    || (typeof fetch === 'function' ? fetch : null);
+    var _endpoint = deps.endpoint || (typeof getEndpoint === 'function' ? getEndpoint() : null);
+    var _attach   = deps.attach   || (typeof _lpAttachLicense === 'function' ? _lpAttachLicense : function (p) { return p; });
+    if (!_fetch || !_endpoint || !_endpoint.url) return _fail('no endpoint available');
+
+    var payload = {
+      system_instruction: { parts: [{ text: det.system }] },
+      contents: [{ role: 'user', parts: [{ text: det.build(notes, deps.kinds, deps.opts) }] }],
+      generationConfig: { temperature: 0, maxOutputTokens: 300, responseMimeType: 'application/json' },
+      // (v9.7.564 / proxy v7.58) A one-fact answer is 40-125 characters and the draft contract's
+      // 150-char floor rejects every one of them. Without this the probe cannot succeed at all.
+      responseContract: 'fact'
+    };
+
+    // A TIMEOUT IS A RAIL, NOT A NICETY. An authoritative probe sits in front of the draft, so a
+    // hung proxy would hold an agent's generation open indefinitely. AbortController where it
+    // exists; the Promise.race is the belt for environments (and tests) without one.
+    var ctrl = null;
+    try { if (typeof AbortController === 'function') ctrl = new AbortController(); } catch (e) {}
+    var budget = deps.timeoutMs || LP_FACT_PROBE_TIMEOUT_MS;
+    var timedOut = false;
+    var timer = setTimeout(function () { timedOut = true; try { if (ctrl) ctrl.abort(); } catch (e) {} }, budget);
+
+    var call = _fetch(_endpoint.url, Object.assign({
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(_attach(payload))
+    }, ctrl ? { signal: ctrl.signal } : {}))
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        // BOTH v9.7.564 FALLBACK NETS, unchanged in substance. Net one reads the proxy's own
+        // _fallback marker; net two needs no cooperation from the proxy at all — a parsed response
+        // that does not carry this detector's OWN answer key is not an answer to this question.
+        if (data && (data._fallback || (data.candidates && data.candidates[0] && data.candidates[0]._fallback))) {
+          return { usable: false, reason: 'proxy returned SAFE_FALLBACK ('
+            + ((data._lastError || (data.candidates && data.candidates[0] && data.candidates[0]._lastError)) || 'all tiers failed') + ')' };
+        }
+        if (data && data.error && !(data.candidates && data.candidates.length)) {
+          return { usable: false, reason: 'proxy error: ' + String((data.error && data.error.message) || data.error).slice(0, 80) };
+        }
+        var raw = '';
+        try { raw = data.candidates[0].content.parts[0].text.trim(); } catch (e) { raw = ''; }
+        var parsed = null;
+        try { parsed = JSON.parse(raw.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '')); } catch (e) { parsed = null; }
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+          return { usable: false, reason: 'probe returned no usable JSON' };
+        }
+        var answerKey = detId === 'day-lock' ? 'day' : detId === 'off-franchise' ? 'make' : 'kind';
+        if (!Object.prototype.hasOwnProperty.call(parsed, answerKey)) {
+          return { usable: false, reason: 'response carries no "' + answerKey + '" field — not a probe answer' };
+        }
+
+        var fired = det.fired(parsed);
+        var quote = parsed.quote == null ? '' : String(parsed.quote);
+        // RAIL 2. A firm answer with no literally verified quote is not usable, full stop. Note
+        // the asymmetry and it is deliberate: a NEGATIVE answer needs no quote (there is nothing
+        // to quote), a POSITIVE one always does.
+        var verified = fired ? _lpVerifyCommitQuote(quote, notes) : 0;
+        if (fired && verified === 0) {
+          return { usable: false, reason: 'QUOTE-FABRICATED — "' + quote.slice(0, 60)
+            + '" is not literally present in any note', fabricated: true, quote: quote,
+            claimedNote: parsed.note == null ? null : parsed.note };
+        }
+        return {
+          usable: true, probeOk: true, fired: fired,
+          kind: detId === 'verbal-commit' ? (fired ? parsed.kind : 'none')
+              : detId === 'day-lock' ? (parsed.day == null ? null : String(parsed.day))
+              : (parsed.make == null ? null : String(parsed.make)),
+          quote: quote, claimedNote: parsed.note == null ? null : parsed.note,
+          verifiedNote: verified, quoteVerified: true, reason: ''
+        };
+      })
+      .catch(function (err) {
+        return { usable: false, reason: timedOut
+          ? ('probe timed out after ' + budget + 'ms')
+          : ('probe failed: ' + ((err && err.message) || String(err))) };
+      });
+
+    // The race is the belt to AbortController's braces: a fetch stub that never settles (and the
+    // suite uses one) must still resolve this promise inside the budget.
+    var race = (typeof Promise.race === 'function')
+      ? Promise.race([call, new Promise(function (res) {
+          setTimeout(function () { res({ usable: false, reason: 'probe timed out after ' + budget + 'ms' }); }, budget + 50);
+        })])
+      : call;
+
+    return race.then(function (r) {
+      try { clearTimeout(timer); } catch (e) {}
+      return Object.assign({ detector: detId, notesRead: notes.length, probeOk: false,
+        kind: null, quote: '', claimedNote: null, verifiedNote: 0, quoteVerified: false }, r);
+    });
+  } catch (e) {
+    return _fail('threw: ' + ((e && e.message) || String(e)));
+  }
+}
+
+// Decide, and SAY WHICH SOURCE WON. Called once per detector per generation. `regexFired` and
+// `regexValue` describe what the regex produced; the return says what the prompt should use.
+function _lpFactDecide(detId, comp, regex, log) {
+  var _log = log || function () { try { console.log.apply(console, arguments); } catch (e) {} };
+  var det = LP_FACT_DETECTORS[detId] || {};
+  var authOn = typeof det.flagAuth === 'function' ? det.flagAuth() : false;
+  var rx = regex || { fired: false, value: '' };
+  var usable = !!(comp && comp.usable);
+
+  // RAIL 1. Every path that is not "authoritative AND usable" falls back to the regex, which has
+  // already run and whose directive is already built. There is no path to less signal than today.
+  var source = (authOn && usable) ? 'comprehension' : 'regex-fallback';
+  var agree = usable ? (!!comp.fired === !!rx.fired) : null;
+
+  _log('[LP FACT DIAG] ' + detId
+    + ' | source:' + source
+    + ' | authoritative:' + (authOn ? 'ON' : 'OFF (observer only)')
+    + ' | comprehension:' + (usable
+        ? (comp.fired ? 'FIRED ' + JSON.stringify(String(comp.kind)) + ' quote ' + JSON.stringify(String(comp.quote || '').slice(0, 70))
+                        + ' (verified in note ' + comp.verifiedNote + ')'
+                      : 'none')
+        : 'UNUSABLE — ' + (comp && comp.reason ? comp.reason : 'no result'))
+    + ' | regex:' + (rx.fired ? 'FIRED ' + JSON.stringify(String(rx.value || '').slice(0, 70)) : 'none')
+    + ' | agreement:' + (agree === null ? 'n/a (no comprehension verdict)' : (agree ? 'AGREE' : 'DISAGREE'))
+    + ' | notesRead:' + ((comp && comp.notesRead) || 0));
+
+  // PERSIST THE PAIR. Same endpoint, same v9.7.489 locator-only posture, same fire-and-forget
+  // posture as v9.7.559 — with a `detector` field so the three series stay separable. This is the
+  // data that decides whether any of these flags ever gets flipped, so it has to accumulate from
+  // the first generation, not from whenever someone remembers to wire it.
+  try {
+    if (typeof _lpSendCommitComprehension === 'function') {
+      _lpSendCommitComprehension({
+        detector: detId,
+        delta: (agree === null ? 'NO-COMPREHENSION-VERDICT'
+              : agree ? (comp.fired ? 'AGREE-COMMITMENT' : 'AGREE-NONE')
+              : (comp.fired ? 'DISAGREE-COMPREHENSION-ONLY' : 'DISAGREE-REGEX-ONLY')),
+        regexFired: !!rx.fired, regexQuote: String(rx.value || ''), regexRan: true,
+        probeOk: usable, probeFailReason: usable ? '' : String((comp && comp.reason) || '').slice(0, 60),
+        kind: usable ? String(comp.kind == null ? 'none' : comp.kind) : 'none',
+        quote: usable ? String(comp.quote || '') : '',
+        claimedNote: (comp && comp.claimedNote) == null ? null : comp.claimedNote,
+        verifiedNote: (comp && comp.verifiedNote) || 0,
+        quoteVerified: !!(comp && comp.quoteVerified),
+        notesRead: (comp && comp.notesRead) || 0,
+        authoritative: authOn, sourceUsed: source
+      });
+    }
+  } catch (eSend) { /* persistence can never affect the decision */ }
+
+  return {
+    detector: detId, source: source, authoritative: authOn, usable: usable,
+    // What the caller should actually use. On regex-fallback these mirror the regex exactly.
+    fired: source === 'comprehension' ? !!comp.fired : !!rx.fired,
+    value: source === 'comprehension' ? comp.kind : rx.value,
+    quote: source === 'comprehension' ? comp.quote : (rx.value || ''),
+    verifiedNote: source === 'comprehension' ? comp.verifiedNote : 0,
+    agree: agree,
+    delta: agree === null ? 'NO-COMPREHENSION-VERDICT'
+         : agree ? (comp.fired ? 'AGREE-FIRED' : 'AGREE-NONE')
+         : (comp.fired ? 'DISAGREE-COMPREHENSION-ONLY' : 'DISAGREE-REGEX-ONLY'),
+    reason: (comp && comp.reason) || ''
+  };
+}
+
+// Run all three in PARALLEL. Serially this would add three probe latencies to every generation;
+// in parallel it adds one. Each detector's flag is checked inside the runner, so a detector that
+// is switched off costs no network call at all.
+function _lpRunAllFactProbes(inputs, deps) {
+  deps = deps || {};
+  inputs = inputs || {};
+  var ids = [LP_FACT_IDS.COMMIT, LP_FACT_IDS.DAYLOCK, LP_FACT_IDS.OFFFRANCHISE];
+  var jobs = ids.map(function (id) {
+    var inp = inputs[id] || {};
+    return _lpRunFactProbe(id, inp.notes || [],
+      Object.assign({}, deps, { kinds: inp.kinds, opts: inp.opts }));
+  });
+  return Promise.all(jobs).then(function (rs) {
+    var out = {};
+    ids.forEach(function (id, n) { out[id] = rs[n]; });
+    try { window._lpFactVerdicts = out; } catch (e) {}
+    return out;
+  });
+}
+
+// ── Apply the verdicts to the two scrape-time directives, and ALWAYS strip the fences ─────
+// Three outcomes per fenced region:
+//   KEEP     — authoritative off, or the probe was unusable. The regex directive ships unchanged.
+//              This is the default and it is today's behaviour exactly (RAIL 1).
+//   REMOVE   — authoritative on and the probe read the same text and found no such fact. This is
+//              the Jeri and Hayden shape: a regex manufacturing something nobody said.
+//   REPLACE  — authoritative on and the probe found the fact but with a DIFFERENT value, so the
+//              directive is rebuilt around the verified quote.
+// The fences come off on every path, including the error path, because a stray sentinel in a
+// customer-facing prompt is a worse failure than any wrong directive this is trying to prevent.
+function _lpApplyFactOverrides(contextText, verdicts, log) {
+  var text = String(contextText || '');
+  var _log = log || function () { try { console.log.apply(console, arguments); } catch (e) {} };
+  var v = verdicts || {};
+  var applied = [];
+  try {
+    [LP_FACT_IDS.DAYLOCK, LP_FACT_IDS.OFFFRANCHISE].forEach(function (id) {
+      var open = LP_FACT_FENCE_OPEN + id + '⟧';
+      var close = LP_FACT_FENCE_CLOSE + id + '⟧';
+      var a = text.indexOf(open);
+      var b = text.indexOf(close);
+      if (a < 0 || b < 0 || b < a) return;            // not present on this lead — nothing to do
+      var inner = text.slice(a + open.length, b);
+      var det = LP_FACT_DETECTORS[id] || {};
+      var authOn = typeof det.flagAuth === 'function' ? det.flagAuth() : false;
+      var comp = v[id];
+      var decision = _lpFactDecide(id, comp, { fired: true, value: inner.replace(/\s+/g, ' ').trim().slice(0, 90) }, _log);
+
+      var action = 'KEEP';
+      var replacement = inner;
+      if (decision.source === 'comprehension') {
+        if (!decision.fired) {
+          action = 'REMOVE';
+          replacement = '';
+        } else if (id === LP_FACT_IDS.DAYLOCK && decision.value) {
+          var wantDay = String(decision.value);
+          if (inner.toLowerCase().indexOf(wantDay.toLowerCase()) < 0) {
+            action = 'REPLACE';
+            replacement = '\n📅 CUSTOMER NAMED A SPECIFIC DAY — THIS IS A HARD CONSTRAINT:\n'
+              + '- Customer said ' + wantDay + ' is when they are available. LOCK IN ' + wantDay
+              + ' - do NOT offer any other day. Offer two specific times on ' + wantDay + ' only.'
+              + ' Do NOT try to pull them in sooner.\n'
+              + '- Their exact words: "' + String(decision.quote || '').replace(/"/g, "'").slice(0, 140) + '"\n'
+              + '- Do NOT offer today. Do NOT offer any other day.\n'
+              + '- Do NOT add "or if you want to come sooner." That is a critical failure.\n'
+              + '- Your ONLY close is two times on the day the customer named. Nothing else.\n';
+          }
+        }
+      }
+      applied.push(id + ':' + action);
+      _log('[LP FACT OVERRIDE] ' + id + ' → ' + action
+        + ' | authoritative:' + (authOn ? 'ON' : 'OFF')
+        + ' | source:' + decision.source
+        + (action === 'REMOVE' ? ' | the regex directive was removed: the probe read the same customer text and found no such fact' : '')
+        + (action === 'REPLACE' ? ' | rebuilt around the verified quote' : ''));
+      text = text.slice(0, a) + replacement + text.slice(b + close.length);
+    });
+  } catch (e) {
+    try { _log('[LP FACT OVERRIDE] threw — keeping every regex directive: ' + ((e && e.message) || e)); } catch (e2) {}
+  }
+  // UNCONDITIONAL. Any sentinel left by any path — including one whose partner was lost to a
+  // truncation upstream — comes out here.
+  var before = text.length;
+  text = text.replace(/⟦\/?LP_FACT:[^⟧]{0,40}⟧/g, '');
+  if (text.length !== before) { /* stripped */ }
+  return { text: text, applied: applied };
+}
+
+// Assemble each detector's input from the SAME source its regex reads. Every one of these is a
+// deliberate choice about provenance, so they are named individually rather than derived from one
+// blob: verbal-commit walks the CRM entries exactly as _lpRunCommitComprehension does, day-lock
+// reads the strings the scraper carried out of inlineScraper, and off-franchise reads
+// _lpCustomerText — the same function whose ungated lastInboundMsg caused Hayden's incident and
+// which v9.7.555 fixed. Reading a DIFFERENT text than the regex would make every disagreement
+// uninterpretable, which is the trap Phase 1 exists to close.
+function _lpBuildFactInputs(data, deps) {
+  deps = deps || {};
+  data = data || {};
+  var out = {};
+
+  // verbal-commit — the walked notes, boilerplate-refused, per-type capped, call notes first.
+  try {
+    var vcNotes = [], vcKinds = [];
+    [LP_NOTE_TYPES.CALL, LP_NOTE_TYPES.GENERAL].forEach(function (kind) {
+      _lpWalkCrmEntries(data.context || '', { type: kind, max: 6 }).forEach(function (e) {
+        if (_lpNoteBoilerplateReason(e.text, kind)) return;
+        vcNotes.push(e.text); vcKinds.push(kind);
+      });
+    });
+    out[LP_FACT_IDS.COMMIT] = { notes: vcNotes, kinds: vcKinds };
+  } catch (e) { out[LP_FACT_IDS.COMMIT] = { notes: [], kinds: [] }; }
+
+  // day-lock — the exact customer-authored strings the scraper's own regex scanned.
+  try {
+    var sn = (data.schedCustomerNotes && data.schedCustomerNotes.length)
+      ? data.schedCustomerNotes
+      : ((deps.scraped && deps.scraped.schedCustomerNotes) || []);
+    out[LP_FACT_IDS.DAYLOCK] = { notes: sn.map(function (n) { return String((n && n.text) || ''); })
+                                        .filter(function (t) { return t.trim().length > 0; }) };
+  } catch (e) { out[LP_FACT_IDS.DAYLOCK] = { notes: [] }; }
+
+  // off-franchise — the same customer text the matcher reads, plus the rooftop's own brand so the
+  // probe knows what counts as "different". Without the brand the question is unanswerable.
+  try {
+    var ofText = '';
+    try { ofText = (typeof _lpCustomerText === 'function') ? (_lpCustomerText(data) || '') : ''; } catch (e) { ofText = ''; }
+    var brand = '';
+    try {
+      // Keyed by dealerId, not store name — checked against the definition rather than assumed.
+      brand = (typeof _LP_STORE_BRAND === 'object' && _LP_STORE_BRAND)
+        ? (_LP_STORE_BRAND[String(data.dealerId || '')] || '') : '';
+    } catch (e) { brand = ''; }
+    out[LP_FACT_IDS.OFFFRANCHISE] = {
+      notes: ofText.trim() ? [ofText.trim().substring(0, 2000)] : [],
+      opts: { storeBrand: brand }
+    };
+  } catch (e) { out[LP_FACT_IDS.OFFFRANCHISE] = { notes: [], opts: {} }; }
+
+  return out;
+}
+
+// The generate-path entry point. AWAITED — that is the whole difference between an observer and an
+// authoritative reader, and it is why the timeout above is a rail rather than a nicety. Resolves
+// to the verdict map; never rejects, so a failure here can only ever mean "everything falls back
+// to regex", which is today's behaviour exactly.
+function _lpPrepareFactVerdicts(data, deps) {
+  try {
+    var anyOn = LEADPRO_VERBALCOMMIT_COMPREHENSION || LEADPRO_DAYLOCK_COMPREHENSION
+             || LEADPRO_OFFFRANCHISE_COMPREHENSION;
+    if (!anyOn) { try { window._lpFactVerdicts = {}; } catch (e) {} return Promise.resolve({}); }
+    var t0 = Date.now();
+    return _lpRunAllFactProbes(_lpBuildFactInputs(data, deps), deps).then(function (v) {
+      try {
+        var _l = (deps && deps.log) || function () { try { console.log.apply(console, arguments); } catch (e) {} };
+        _l('[LP FACT DIAG] all probes settled in ' + (Date.now() - t0) + 'ms | '
+          + Object.keys(v).map(function (k) {
+              return k + ':' + (v[k] && v[k].usable ? 'usable' : 'fallback');
+            }).join(' '));
+      } catch (e) {}
+      return v;
+    });
+  } catch (e) {
+    try { window._lpFactVerdicts = {}; } catch (e2) {}
+    return Promise.resolve({});
+  }
 }
 
 // ── (v9.7.554) AGENT LP COMMAND CHANNEL COVERAGE — DIAGNOSTIC ONLY ──────────────
@@ -3352,7 +3873,10 @@ function populateFromData(d) {
             + _ofBrandCap + ' in the same segment as a real alternative worth a look. Do not name a specific unit or stock '
             + 'number unless one is confirmed elsewhere in this prompt. Be straight with them that we are a ' + _ofBrandCap
             + ' store — honesty here earns the appraisal appointment; a vague "let me check" loses the customer when nothing turns up.';
+          // (v9.7.566) Fenced for the same reason as the day-lock block above.
+          vehicleExtras.push(LP_FACT_FENCE_OPEN + LP_FACT_IDS.OFFFRANCHISE + '⟧');
           vehicleExtras.push(_ofMsg);
+          vehicleExtras.push(LP_FACT_FENCE_CLOSE + LP_FACT_IDS.OFFFRANCHISE + '⟧');
           console.log('[LP OFF-FRANCHISE DIAG] "' + _ofHit.phrase + '" (make ' + _ofHit.make + ') vs ' + _ofBrand
             + ' store | saidNew:' + _ofSaidNew + ' | inStockOfMake:' + (_ofUnits ? _ofMatch.length : 'no-cache'));
         }
@@ -4069,11 +4593,21 @@ function populateFromData(d) {
           var _nextOpen = _lpNextOpenDay(d.dealerId, _spDay);
           vehicleExtras.push('📅 CUSTOMER NAMED A CLOSED DAY — the customer asked for ' + _lpCap(_spDay) + ', but the store is CLOSED ' + _lpCap(_spDay) + '. Do NOT offer ' + _lpCap(_spDay) + ' times and do NOT lock in ' + _lpCap(_spDay) + '. Acknowledge their preference, let them know we are closed ' + _lpCap(_spDay) + ', and pivot to the next OPEN day going forward' + (_nextOpen ? ': ' + _lpCap(_nextOpen) + ' (use the CALENDAR REFERENCE above for the exact date)' : '') + '. Offer two specific times on ' + (_nextOpen ? _lpCap(_nextOpen) : 'the next open day') + ' within store hours. Do NOT offer an earlier day or today.');
         } else {
+          // (v9.7.566) FENCED so the generate-time comprehension verdict can replace or remove
+          // this whole block. populateFromData runs at SCRAPE time, before any probe has an
+          // answer, so the override cannot happen here — and rewriting assembled prompt text by
+          // pattern-matching its prose is exactly the fragile thing this file gets bitten by.
+          // An explicit sentinel pair is deterministic and testable, and is stripped
+          // unconditionally before the prompt ships whether or not a replacement happened.
+          // Precedent: the ⟦LP_CACHE_BREAKPOINT⟧ sentinel already in the system prompt.
+          vehicleExtras.push(LP_FACT_FENCE_OPEN + LP_FACT_IDS.DAYLOCK + '⟧');
           vehicleExtras.push('📅 CUSTOMER NAMED A SPECIFIC DAY — THIS IS A HARD CONSTRAINT:');
+
           vehicleExtras.push('- ' + dayLine);
           vehicleExtras.push('- Do NOT offer today. Do NOT offer any other day.');
           vehicleExtras.push('- Do NOT add "or if you want to come sooner." That is a critical failure.');
           vehicleExtras.push('- Your ONLY close is two times on the day the customer named. Nothing else.');
+          vehicleExtras.push(LP_FACT_FENCE_CLOSE + LP_FACT_IDS.DAYLOCK + '⟧');
         }
       } else {
         vehicleExtras.push('SCHEDULE NOTE: Customer mentioned an availability constraint in the conversation: "' + d.customerScheduleConstraint + '". Read it carefully and propose times that respect what they said, or ask them to pick a time that works.');
@@ -8286,6 +8820,13 @@ function tryExecuteScript(tab, statusEl, dot) {
 
     var customerSaidNotToday = false;
     var customerScheduleConstraint = ''; // captures recurring schedule blocks
+    // (v9.7.566) THE PROBE MUST READ THE SAME BYTES THE REGEX READ, not "the same notes" re-walked
+    // popup-side from data.context. Those are not the same thing — the context is assembled,
+    // reordered and scaffolded — and a disagreement caused by the two paths reading different text
+    // is worthless data. _lpCustomerAuthoredPart lives in here (the inlineScraper scope trap), so
+    // rather than reimplement it popup-side the scraper CARRIES ITS OUTPUT OUT. The day-lock
+    // comprehension probe then reads exactly this array.
+    var schedCustomerNotes = [];
     // Scan last 10 notes for timing constraints - INBOUND CUSTOMER MESSAGES ONLY
     // Skip system-generated notes even if tagged as inbound (lead received, TradePending data dumps)
     // Also skip single-word confirmations (C, YES, Morning, OK) - these are replies not schedule info
@@ -8315,6 +8856,13 @@ function tryExecuteScript(tab, statusEl, dot) {
         var ntCustomerText = ntCut.text;
         var ntText = ntCustomerText.toLowerCase();
         var ntTextFull = ntRawText.toLowerCase();   // kept ONLY to report what was refused
+        // (v9.7.566) Carried out for the comprehension probe — the exact string the regex below
+        // is about to scan. Capped so a pathological note cannot bloat the scrape payload.
+        if (ntCustomerText) {
+          schedCustomerNotes.push({ i: nti, title: ntTitle.substring(0, 60),
+                                    text: ntCustomerText.substring(0, 1200),
+                                    cutBy: ntCut.cutBy || '' });
+        }
         // If the cut leaves nothing, the note carries no customer-authored words at all — a bare
         // "Thank you." above a quoted thread, or a reply that is nothing but the quote. Detecting
         // a constraint from what remains would be detecting it from our own email.
@@ -9823,7 +10371,7 @@ function tryExecuteScript(tab, statusEl, dot) {
       leadSource,leadStatus: currentStatus || leadStatus,hasTrade,tradeDescription,buyingSignals,
       history, totalNoteCount, hasOutbound, isContacted, contactedAgeDays, lastOutboundMsg, lastSubstantiveOutboundMsg, noReplySinceLastOutbound, newestCustomerSignalType, newestCustomerSignalDesc, hasFreshCustomerSignal, hasCustomerReply: hasRealCustomerReply /* (v9.7.301) canonical ground truth — replaces divergent inline recomputations */, lastInboundMsg: lastInboundMsg||leadReceivedCustomerQuestion, lastInboundMs: _lastInboundMs, /* (v9.7.359) date of customer's last inbound — used to age their day-words */
       hasPauseSignal, hasExitSignal, hasRecentReactivation, isSmsOptOutOnly, hasTextOrEmailSent, convState,
-      vrMonthlyPayment, vrDownPayment, vrCreditScore, vrAPR, vrTerm, vrLender, conversationBrief, customerSaidNotToday, customerScheduleConstraint, isLiveConversation, isRecentOutbound, recentOutboundContent,
+      vrMonthlyPayment, vrDownPayment, vrCreditScore, vrAPR, vrTerm, vrLender, conversationBrief, customerSaidNotToday, customerScheduleConstraint, schedCustomerNotes, isLiveConversation, isRecentOutbound, recentOutboundContent,
       customerDeclinedAlternative, customerDeclinedAlternativeText,
       email: (isMaskedEmail ? '' : buyerEmail),
       emailRaw: buyerEmail, // (v9.7.459 fix) unmasked email preserved for consumers (Appointment Invite tab) that need the actual on-record address even when it's a marketplace relay — AI generation paths still read the masked `email` field above so the "ask for direct email" directive is unaffected.
@@ -15042,6 +15590,47 @@ function buildUserPrompt(data) {
         if (dayCommitPre) {
           hasVerbalCommitment = true;
           var commitText = dayCommitPre[0].trim().substring(0, 150);
+          // ── (v9.7.566) PHASE 3 — comprehension may replace this quote, or veto the fire ──────
+          // The regex has already produced its answer; that is the fallback and it is never
+          // discarded. When the authoritative flag is ON and the probe returned a QUOTE-VERIFIED
+          // answer, its quote becomes the one the directive carries — and a probe that read the
+          // same notes and found NO commitment suppresses the block entirely, which is the whole
+          // point: that is the Jeri/Hayden failure shape, a regex manufacturing a fact nobody said.
+          // DEFENSIVE ON PURPOSE, and not only for the test harness: if `window` is unavailable,
+          // or the Phase 3 block is absent from a partial build, or _lpFactDecide throws, the
+          // ONLY acceptable outcome is that the regex directive ships exactly as it does today.
+          // A comprehension layer that can break the prompt build is worse than no layer.
+          var _vcDecision = { source: 'regex-fallback', fired: true, quote: commitText };
+          try {
+            if (typeof _lpFactDecide === 'function' && typeof LP_FACT_IDS === 'object') {
+              var _vcStash = {};
+              try { _vcStash = (window && window._lpFactVerdicts) || {}; } catch (eW) { _vcStash = {}; }
+              _vcDecision = _lpFactDecide(LP_FACT_IDS.COMMIT, _vcStash[LP_FACT_IDS.COMMIT],
+                { fired: true, value: commitText });
+            }
+          } catch (eFd) { _vcDecision = { source: 'regex-fallback', fired: true, quote: commitText }; }
+          if (_vcDecision.source === 'comprehension') {
+            if (!_vcDecision.fired) {
+              hasVerbalCommitment = false;
+              console.log('[LP VERBAL COMMIT DIAG] SUPPRESSED by comprehension — the regex matched '
+                + JSON.stringify(commitText) + ' but the probe read the same notes and found no '
+                + 'customer commitment. source:comprehension');
+              // NO STASH WRITE HERE, deliberately. The v9.7.563 reset already ran OUTSIDE the gate
+              // this generation and left exactly the right value ({fired:false, ran:true}); the
+              // FIRED write below is skipped because dayCommitPre is nulled. Writing the stash
+              // again inside the gate would put a second assignment back inside the block
+              // v9.7.563 moved it out of, and two suites correctly fail on that — the invariant
+              // is "one reset, outside the gate", and a suppression is not a reset.
+              dayCommitPre = null;
+            } else if (_vcDecision.quote && _vcDecision.quote !== commitText) {
+              console.log('[LP VERBAL COMMIT DIAG] QUOTE REPLACED by comprehension — regex had '
+                + JSON.stringify(commitText) + ', verified comprehension quote is '
+                + JSON.stringify(_vcDecision.quote) + ' (note ' + _vcDecision.verifiedNote + ')');
+              commitText = _vcDecision.quote.trim().substring(0, 150);
+            }
+          }
+        }
+        if (dayCommitPre) {
           // (v9.7.558) Stash for the comprehension observer to compare against. WRITE-ONLY from
           // the prompt's point of view — nothing in buildUserPrompt reads it back, and the suite
           // asserts that.
@@ -17920,6 +18509,33 @@ async function generateAll() {
     window._lpTouchRole = (leadContext.match(/\[\s*LP\s*:[^\]]*\b(value|curiosity|soft)\b[^\]]*\]/i) || [])[1] || '';
     leadContext = leadContext.replace(/\[\s*LP\s*:[\s\S]*?\]/gi, '').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
     console.log('[Lead Pro] Generating — context length:', leadContext.length, '| first 300:', leadContext.substring(0,300));
+    // ── (v9.7.566) PHASE 3 — the comprehension read runs BEFORE the prompt is built ──────────
+    // This is the one structural difference between an observer and an authoritative reader: the
+    // verdicts have to exist when buildUserPrompt runs, so this is awaited. Three probes fire in
+    // parallel behind a 4.5s timeout, so the worst case is ONE probe's latency added to a
+    // generation that already takes 4-8s, and the timeout guarantees it is bounded. It never
+    // rejects: any failure resolves to "fall back to regex", which is today's behaviour exactly.
+    try {
+      await _lpPrepareFactVerdicts({
+        context: leadContext,
+        store: store, dealerId: lastScrapedData ? lastScrapedData.dealerId : '',
+        schedCustomerNotes: lastScrapedData ? (lastScrapedData.schedCustomerNotes || []) : [],
+        lastInboundMsg: lastScrapedData ? (lastScrapedData.lastInboundMsg || '') : '',
+        conversationBrief: lastScrapedData ? (lastScrapedData.conversationBrief || '') : '',
+        convState: leadConvState, leadSource: leadSource
+      });
+    } catch (_lpFactErr) {
+      try { window._lpFactVerdicts = {}; console.log('[LP FACT DIAG] prepare threw — every detector falls back to regex:', _lpFactErr && _lpFactErr.message); } catch (e) {}
+    }
+    // Apply the two scrape-time verdicts and strip the fences. Runs even when every flag is off,
+    // because the fences must come out either way.
+    try {
+      var _lpFactApplied = _lpApplyFactOverrides(leadContext, window._lpFactVerdicts || {});
+      leadContext = _lpFactApplied.text;
+    } catch (_lpOvErr) {
+      try { leadContext = String(leadContext).replace(/⟦\/?LP_FACT:[^⟧]{0,40}⟧/g, ''); } catch (e) {}
+    }
+
     const userPrompt = buildUserPrompt({
       name, agent, salesRep: leadSalesRep,
       store, vehicle: vehicleForPrompt, leadSource,
@@ -18796,7 +19412,16 @@ async function generateAll() {
       // is the layer below it, and nothing in the suite covered it: every observer test injects
       // ctxText directly, so they exercise the function and never the wiring.
       try {
-        if (typeof _lpRunCommitComprehension === 'function') {
+        // (v9.7.566) SUPERSEDED, NOT DELETED. Phase 3's _lpRunFactProbe now asks verbal-commit's
+        // question at generate time, BEFORE the prompt is built, because an authoritative reader
+        // has to. Leaving this v9.7.559 observer firing as well would mean TWO probe calls per
+        // generation for the same question and two conflicting persisted rows for the same lead —
+        // the disagreement series would double-count itself. So it runs only when Phase 3's
+        // verbal-commit comprehension is switched off, which keeps the v9.7.559 path alive and
+        // tested as the fallback observer rather than deleting a working, verified code path.
+        if (typeof LEADPRO_VERBALCOMMIT_COMPREHENSION !== 'undefined' && LEADPRO_VERBALCOMMIT_COMPREHENSION) {
+          try { console.log('[LP COMMIT COMPREHENSION DIAG] superseded by the Phase 3 fact probe this generation — not dispatching a second call'); } catch (e) {}
+        } else if (typeof _lpRunCommitComprehension === 'function') {
           // Same source the regex path reads. The fallbacks exist so a future refactor that
           // renames the live variable degrades to something rather than silently to ''.
           var _ccCtx = (typeof leadContext === 'string' && leadContext) ? leadContext
