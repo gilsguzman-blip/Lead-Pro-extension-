@@ -192,8 +192,24 @@ check('the regex verdict stash is written inside buildUserPrompt but never read 
              reads:  (body.match(/window\._lpVerbalCommitVerdict(?!\s*=)/g) || []).length };
   }, { writes: 2, reads: 0 });
 
-check('the only read of it in the whole file is the observer dispatch',
-  i => (stripComments(i.src).match(/window\._lpVerbalCommitVerdict(?!\s*=)/g) || []).length, 1);
+// (v9.7.568) TWO readers now, and the second one is the point of that build: the telemetry flush
+// reads the stash to recover the REGEX side of the pair, because the flush runs after
+// buildUserPrompt and that is the only moment the verdict exists. The load-bearing half of this
+// assertion is unchanged and asserted directly above — buildUserPrompt writes it and never reads
+// it back. What this one now pins is that both readers sit OUTSIDE the prompt builder.
+check('the stash is read only outside buildUserPrompt — the dispatch and the telemetry flush',
+  i => {
+    const code = stripComments(i.src);
+    const total = (code.match(/window\._lpVerbalCommitVerdict(?!\s*=)/g) || []).length;
+    const inPrompt = (stripComments(fnBody(i.src, 'buildUserPrompt'))
+      .match(/window\._lpVerbalCommitVerdict(?!\s*=)/g) || []).length;
+    const inFlush = (() => {
+      const a = i.src.indexOf('function _lpFlushFactTelemetry(');
+      const b = i.src.indexOf('\n// ── Apply the verdicts', a);
+      return (stripComments(i.src.slice(a, b)).match(/window\._lpVerbalCommitVerdict(?!\s*=)/g) || []).length;
+    })();
+    return { total, inPrompt, inFlush };
+  }, { total: 2, inPrompt: 0, inFlush: 1 });
 
 check('the observer is dispatched WITHOUT await, so it cannot delay a draft',
   i => /(?:^|[^.\w])await\s+_lpRunCommitComprehension/.test(i.src), false);

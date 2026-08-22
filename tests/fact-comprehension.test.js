@@ -120,6 +120,19 @@ function extract(file) {
       return { out, logs };
     },
 
+    // (v9.7.568) The telemetry flush, driven with a stubbed sender.
+    flush: (verdicts, decisions, over, vcStash) => {
+      const sb = box(over);
+      const rows = [];
+      const logs = [];
+      vm.runInContext('window._lpVerbalCommitVerdict = ' + JSON.stringify(vcStash || {}) + ';', sb);
+      const run = vm.runInContext('(function(d){ return _lpFlushFactTelemetry(d); })', sb);
+      const out = run({ verdicts, decisions, genId: 'gen-test',
+                        send: (r) => rows.push(r),
+                        log: (...x) => logs.push(x.join(' ')) });
+      return { out, rows, logs };
+    },
+
     read: (expr, over) => vm.runInContext(expr, box(over)),
     fences: () => {
       const sb = box();
@@ -508,6 +521,148 @@ checkAsync('a day the customer RULED OUT is named as a non-answer',
     const sent = (await i.probe('day-lock', ['x'], ANS.dayNone)).payloads[0].contents[0].parts[0].text;
     return /ruled out|RULED OUT/.test(sent);
   }, true);
+
+// ── (v9.7.568) THE TELEMETRY POST — the regression this suite did not have ─────
+section('RAIL 6 — the telemetry POST fires on EVERY generation, not only when a regex fired:');
+
+// THE BUG: v9.7.566 hung the POST off _lpFactDecide, whose two call sites both require the regex
+// to have fired first. On an ordinary lead nothing was ever sent — measured 8/22 as 8 of 8
+// generations with zero rows and three same-day reports reading "No comprehension verdicts
+// recorded for this date". This is the assertion that would have caught it on the day.
+const ALL_USABLE = {
+  'verbal-commit': { usable: true, fired: false, kind: 'none', quote: '', notesRead: 6, quoteVerified: true, verifiedNote: 0, claimedNote: null },
+  'day-lock':      { usable: true, fired: false, kind: null,   quote: '', notesRead: 2, quoteVerified: true, verifiedNote: 0, claimedNote: null },
+  'off-franchise': { usable: true, fired: false, kind: null,   quote: '', notesRead: 1, quoteVerified: true, verifiedNote: 0, claimedNote: null }
+};
+
+check('THE REGRESSION: a generation where NO regex fired still posts one row per detector',
+  i => i.flush(ALL_USABLE, {}).rows.map(r => r.detector),
+  ['verbal-commit', 'day-lock', 'off-franchise']);
+
+check('...and every one of them is AGREE-NONE, the majority case that was never being counted',
+  i => i.flush(ALL_USABLE, {}).rows.map(r => r.delta),
+  ['AGREE-NONE', 'AGREE-NONE', 'AGREE-NONE']);
+
+check('a generation where the verbal-commit regex DID fire posts a disagreement, not silence',
+  i => {
+    const rows = i.flush(ALL_USABLE, {}, {}, { fired: true, quote: 'will come in sat', ran: true }).rows;
+    return rows.filter(r => r.detector === 'verbal-commit').map(r => r.delta);
+  }, ['DISAGREE-REGEX-ONLY']);
+
+check('both readers finding the fact is AGREE-FIRED',
+  i => {
+    const v = Object.assign({}, ALL_USABLE, { 'verbal-commit': Object.assign({}, ALL_USABLE['verbal-commit'], { fired: true, kind: 'firm', quote: 'coming saturday', verifiedNote: 1 }) });
+    return i.flush(v, {}, {}, { fired: true, quote: 'coming saturday', ran: true }).rows
+      .filter(r => r.detector === 'verbal-commit').map(r => r.delta);
+  }, ['AGREE-FIRED']);
+
+check('an UNUSABLE probe still posts — a dead probe has to be countable, not invisible',
+  i => {
+    const v = Object.assign({}, ALL_USABLE, { 'day-lock': { usable: false, reason: 'probe timed out after 4500ms', notesRead: 2 } });
+    const r = i.flush(v, {}).rows.filter(x => x.detector === 'day-lock')[0];
+    return { delta: r.delta, probeOk: r.probeOk, reason: r.probeFailReason };
+  }, { delta: 'NO-COMPREHENSION-VERDICT', probeOk: false, reason: 'probe timed out after 4500ms' });
+
+check('a regex that never RAN is reported as such, not as "found nothing" (the v9.7.563 rule)',
+  i => i.flush(ALL_USABLE, {}, {}, { fired: false, quote: '', ran: false, skipReason: 'showroom follow-up' })
+        .rows.filter(r => r.detector === 'verbal-commit').map(r => r.delta),
+  ['NO-REGEX-VERDICT']);
+
+check('a detector whose observer flag is off contributes no row rather than a fabricated one',
+  i => {
+    const v = { 'verbal-commit': ALL_USABLE['verbal-commit'] };
+    return i.flush(v, {}).rows.map(r => r.detector);
+  }, ['verbal-commit']);
+
+check('when NO probe ran at all, nothing is posted — silence beats a fabricated verdict',
+  i => { const r = i.flush({}, {}); return { rows: r.rows.length, said: /no probes ran/.test(r.logs.join(' ')) }; },
+  { rows: 0, said: true });
+
+check('the flush is idempotent per generation — a re-entry does not double-post',
+  i => {
+    const sb = i.box();
+    const rows = [];
+    vm.runInContext('window._lpVerbalCommitVerdict = {};', sb);
+    const run = vm.runInContext('(function(d){ return _lpFlushFactTelemetry(d); })', sb);
+    const dep = { verdicts: ALL_USABLE, decisions: {}, genId: 'gen-1', send: r => rows.push(r), log: () => {} };
+    run(dep); run(dep);
+    return rows.length;
+  }, 3);
+
+check('...but a NEW generation flushes again',
+  i => {
+    const sb = i.box();
+    const rows = [];
+    vm.runInContext('window._lpVerbalCommitVerdict = {};', sb);
+    const run = vm.runInContext('(function(d){ return _lpFlushFactTelemetry(d); })', sb);
+    run({ verdicts: ALL_USABLE, decisions: {}, genId: 'gen-1', send: r => rows.push(r), log: () => {} });
+    run({ verdicts: ALL_USABLE, decisions: {}, genId: 'gen-2', send: r => rows.push(r), log: () => {} });
+    return rows.length;
+  }, 6);
+
+check('one detector\'s POST throwing does not stop the other two',
+  i => {
+    const sb = i.box();
+    const rows = [];
+    vm.runInContext('window._lpVerbalCommitVerdict = {};', sb);
+    const run = vm.runInContext('(function(d){ return _lpFlushFactTelemetry(d); })', sb);
+    run({ verdicts: ALL_USABLE, decisions: {}, genId: 'g',
+          send: r => { if (r.detector === 'day-lock') throw new Error('boom'); rows.push(r); }, log: () => {} });
+    return rows.map(r => r.detector);
+  }, ['verbal-commit', 'off-franchise']);
+
+check('the row carries the Phase 3 fields the proxy v7.59 handler stores',
+  i => {
+    const r = i.flush(ALL_USABLE, { 'verbal-commit': { source: 'regex-fallback', authoritative: false } }).rows[0];
+    return Object.keys(r).sort();
+  }, ['authoritative', 'claimedNote', 'delta', 'detector', 'kind', 'notesRead', 'probeFailReason',
+      'probeOk', 'quote', 'quoteVerified', 'regexFired', 'regexQuote', 'regexRan', 'sourceUsed',
+      'verifiedNote']);
+
+check('sourceUsed is empty when no decision was reached — its absence is information',
+  i => i.flush(ALL_USABLE, {}).rows.map(r => r.sourceUsed), ['', '', '']);
+
+check('...and carries the decision when one WAS reached',
+  i => i.flush(ALL_USABLE, { 'day-lock': { source: 'comprehension', authoritative: true } }).rows
+        .filter(r => r.detector === 'day-lock').map(r => r.sourceUsed), ['comprehension']);
+
+// The claim is NOT "one call site in the file" — the superseded v9.7.559 observer legitimately
+// keeps its own two, and they are unreachable while Phase 3's verbal-commit comprehension is on.
+// The claim is that _lpFactDecide does not send, because that is the function whose call sites
+// require the regex to have fired.
+check('_lpFactDecide no longer sends — that is exactly what made the POST conditional',
+  i => {
+    const a = i.src.indexOf('function _lpFactDecide(');
+    const b = i.src.indexOf('\nfunction ', a + 10);
+    const body = i.src.slice(a, b).replace(/^[ \t]*\/\/.*$/gm, '');
+    return (body.match(/_lpSendCommitComprehension/g) || []).length;
+  }, 0);
+
+check('...it records the decision for the flush to read instead',
+  i => {
+    const a = i.src.indexOf('function _lpFactDecide(');
+    const b = i.src.indexOf('\nfunction ', a + 10);
+    return /window\._lpFactDecisions\[detId\] = \{/.test(i.src.slice(a, b));
+  }, true);
+
+check('the only sends outside the flush live in the superseded v9.7.559 observer',
+  i => {
+    const code = i.src.replace(/^[ \t]*\/\/.*$/gm, '');
+    const a = code.indexOf('function _lpRunCommitComprehension(');
+    const b = code.indexOf('function _lpSendCommitComprehension(');
+    const inObserver = (code.slice(a, b).match(/_lpSendCommitComprehension\s*\(/g) || []).length;
+    const total = (code.match(/_lpSendCommitComprehension\s*\(/g) || []).length;
+    return { inObserver, total, definitionIsTheRest: total - inObserver === 1 };
+  }, { inObserver: 2, total: 3, definitionIsTheRest: true });
+
+check('the flush is dispatched once in the generate path',
+  i => (i.src.replace(/^[ \t]*\/\/.*$/gm, '').match(/_lpFlushFactTelemetry\(\)/g) || []).length, 1);
+
+check('the decision map is cleared per generation, so a stale source cannot ride over',
+  i => /window\._lpFactDecisions = \{\}; window\._lpFactFlushedFor = '';/.test(i.src), true);
+
+check('the "superseded" line is UNTOUCHED — it gates a duplicate probe, never the POST',
+  i => /superseded by the Phase 3 fact probe this generation/.test(i.src), true);
 
 (async () => {
   for (const p of pending) await p();
