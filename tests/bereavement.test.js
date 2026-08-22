@@ -219,6 +219,24 @@ check('...and quotes the surrounding source text, so the next case is a grep',
 check('a NON-fire logs too — silence and "never ran" must not look identical',
   i => /"fired":false/.test(i.fire(MARY_EMAIL).logs.join('\n')), true);
 
+// (v9.7.569) inlineScraper runs per FRAME. log130 carried 21 diag lines for 3 generations, 18 of
+// them {"fired":false,"scanLen":1} from frames with no transcript at all.
+check('a frame with no transcript logs NOTHING — 18 of 21 lines in log130 were that',
+  i => i.fire('').logs.length, 0);
+
+check('...and a whitespace-only frame is equally silent',
+  i => i.fire('   ').logs.length, 0);
+
+check('but a note-free LEAD frame still reports — "nothing to read" IS information',
+  i => {
+    const l = i.fire('customer called about the odyssey, left a message').logs.join('\n');
+    return { lines: i.fire('customer called about the odyssey, left a message').logs.length,
+             says: /"fired":false/.test(l) };
+  }, { lines: 1, says: true });
+
+check('a FIRE is never suppressed by the gate, whatever the scan length',
+  i => i.fire('funeral').logs.length, 1);
+
 check('exactly one rule is reported per fire — the first match wins and stops',
   i => (i.fire('my husband died and the funeral is Thursday').logs.join('\n')
         .match(/\[LP BEREAVEMENT DIAG\]/g) || []).length, 1);

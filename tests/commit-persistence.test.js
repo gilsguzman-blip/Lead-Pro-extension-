@@ -369,6 +369,59 @@ pending.push(async () => {
        && !/const comparable = cd\.total - noRegex;/.test(reporterSrc), true);
   one('zero comparable rows renders an explanation instead of a rate over nothing',
     () => /No usable comprehension verdicts for this date/.test(reporterSrc), true);
+
+  // ── (v7.60 / v1.18) The two bugs the 8/22 report exposed ────────────────────
+  one('THE CLAMP: day-lock and off-franchise answers are no longer collapsed to "none"',
+    () => {
+      // v7.59 clamped compKind to verbal-commit's vocabulary only, so "Saturday" and "Ram" — the
+      // ONLY things those two detectors ever answer with — were stored as 'none', which reads
+      // identically to "found nothing". Every positive they produced would have been lost.
+      // Run the shipped helper WITH its dependency — ccKind closes over CC_WEEKDAYS, so evaluating
+      // it alone throws "CC_WEEKDAYS is not defined", which looks like a code fault and is not one.
+      const a = proxySrc.indexOf('const CC_WEEKDAYS =');
+      const b = proxySrc.indexOf('\n      };', proxySrc.indexOf('const ccKind =', a)) + '\n      };'.length;
+      if (a < 0 || b <= a) return 'ccKind helper not found';
+      const box = { String, RegExp };
+      vm.createContext(box);
+      vm.runInContext(proxySrc.slice(a, b), box);
+      const fn = vm.runInContext('ccKind', box);
+      return {
+        dayReal:   fn('day-lock', 'Saturday'),
+        dayJunk:   fn('day-lock', 'Someday'),
+        makeReal:  fn('off-franchise', 'Ram'),
+        makeJunk:  fn('off-franchise', 'a'.repeat(60)),
+        commitOk:  fn('verbal-commit', 'firm'),
+        commitJunk:fn('verbal-commit', 'Saturday'),
+        nulls:     [fn('day-lock', null), fn('off-franchise', ''), fn('verbal-commit', 'none')]
+      };
+    },
+    { dayReal: 'saturday', dayJunk: 'none', makeReal: 'ram', makeJunk: 'none',
+      commitOk: 'firm', commitJunk: 'none', nulls: ['none', 'none', 'none'] });
+
+  one('...and the clamp is still a clamp — verbal-commit cannot smuggle a weekday through',
+    () => /if \(detector === 'day-lock'\)\s+return CC_WEEKDAYS\.indexOf\(v\) >= 0/.test(proxySrc), true);
+
+  one('the stored compKind is computed per detector, not from one shared list',
+    () => /compKind:\s+ccKind\(CC_DETECTORS\.indexOf\(cc\.detector\) >= 0 \? cc\.detector : 'verbal-commit', cc\.compKind\)/.test(proxySrc), true);
+
+  one('THE LIST: disagreements is a POSITIVE list, so a new delta cannot fall into it',
+    () => /\['DISAGREE-REGEX-ONLY', 'DISAGREE-COMPREHENSION-ONLY', 'QUOTE-FABRICATED'\]\.indexOf\(e\.delta\) >= 0/.test(reporterSrc), true);
+
+  one('...and the old exclusion form is gone — that is what put AGREE-FIRED under DISAGREEMENTS',
+    () => /e\.delta !== 'AGREE-COMMITMENT' && e\.delta !== 'AGREE-NONE'/.test(reporterSrc), false);
+
+  one('every delta the proxy accepts is classified by the reporter as exactly one of agree / disagree / neither',
+    () => {
+      const accepted = (proxySrc.match(/const CC_DELTAS = \[([\s\S]*?)\];/) || [, ''])[1]
+        .match(/'[A-Z-]+'/g).map(x => x.replace(/'/g, ''));
+      const disagree = ['DISAGREE-REGEX-ONLY', 'DISAGREE-COMPREHENSION-ONLY', 'QUOTE-FABRICATED'];
+      // Anything that is neither an AGREE-* nor a listed disagreement must be a "neither" — the
+      // three not-a-comparison deltas. Nothing may be unaccounted for.
+      const unaccounted = accepted.filter(d =>
+        d.indexOf('AGREE') !== 0 && disagree.indexOf(d) < 0 &&
+        ['NO-REGEX-VERDICT', 'PROBE-FAILED', 'NO-COMPREHENSION-VERDICT'].indexOf(d) < 0);
+      return unaccounted;
+    }, []);
   one('disagreements deep-link to the lead via the v1.12 helper',
     () => /vinLeadUrl\(d\.autoLeadId, d\.customerId\)/.test(reporterSrc), true);
   one('it says plainly that the observer is not authoritative',
