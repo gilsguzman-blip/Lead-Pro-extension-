@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.570 (Commercial. THE EMAIL SIGNED THE AGENT'S HOME STORE, AND PHASE A OF DRAFTED-vs-DELIVERED. Extension only; proxy v7.60 and reporter v1.18 unchanged. PART 1 -- THE SIGNATURE, AND GIL'S INSTINCT WAS RIGHT WITH THE MECHANISM ONE LAYER OVER. LIVE 8/22: eight emails on Community Honda Baytown and Community Kia Baytown leads were signed 'Community Toyota- Baytown'. Gil's read was 'agent info should be hard-coded in LP, this shouldn't have happened' -- and the hard-coding is already there and already correct. PHONE_DIR carries Patricia Galvan under both her names with identical, correct numbers for all three rooftops. ALL 22 DELIVERED PROMPTS IN THE REPO were checked and every EMAIL SIGNATURE block carries the RIGHT store and a phone matching its own Agent Phone line, Patricia's two included. So the data was right and the prompt was right. THE DEFECT IS IN enforceEmailPhone's STORE CHAIN, and it is a lead-scoped line resolved from an agent-scoped value. The chain was `remote dealer-config store.name -> resolvedContext.storeName -> _leadProProfile.store`. Two faults, either sufficient alone: (1) it PREFERRED THE REMOTE DEALER CONFIG over DEALER_ID_MAP, which is where 'Community Toyota- Baytown' comes from, stray hyphen and all -- that exact string appears NOWHERE in this extension, which is precisely why grepping for it found nothing and why it looked like model invention; (2) its last fallback is THE AGENT'S OWN PROFILE STORE, so any resolution miss signs Patricia's home rooftop onto whatever lead she is working. WHY THE SMS WAS NEVER WRONG ON THE SAME GENERATIONS: enforceSmsSig resolves the store from DEALER_ID_MAP -- the hard-coded map in this file -- keyed on the lead's own dealerId. The SMS is right because it is STAMPED BY CODE; the email was wrong because its signature was a request the model could ignore and a fallback chain that could answer wrongly. FIXED to mirror enforceSmsSig exactly: DEALER_ID_MAP first, keyed on THIS lead. The agent-profile fallback is REMOVED OUTRIGHT rather than demoted -- there is no lead on which the agent's home store is the right answer for the lead's signature, so keeping it lower would only make the same bug rarer and harder to find. New [LP EMAIL SIG DIAG] names the store used, its source, and flags when the agent's home store differs from the lead's. THE SAME CHAIN ONE LAYER UP is fixed too: buildSystemPrompt's storeName -- the line that states 'You are <agent> at <store>' -- had the identical fallback. LATENT rather than live (all 22 prompts are correct, so resolvedContext is winning in practice) and fixed anyway because it is the identical defect in the line that defines the agent's store identity. Its existing chain is KEPT beneath the map because buildSystemPrompt also runs on the VM path where no lead is scraped. PART 2 -- PHASE A OF DRAFTED-vs-DELIVERED, THE MATCHER AND ONLY THE MATCHER. THE GAP: Lead Pro scores itself on what it PRODUCED. The agent then edits in VinSolutions and sends. Nothing has ever compared the two -- which is why this very signature defect, on eight of twenty-one emails, read as an 89% positive rate and a 95% shipped rate. Every one counted a success because the agent copied the draft and then quietly corrected it. THE COPY BUTTON MEASURES INTENT TO USE, NOT QUALITY OF WHAT WAS USED. Both halves already existed and neither needed new plumbing: the final draft is captured by v9.7.311's draft pairs, the sent message is a CRM outbound note this file's scraper already walks. They had simply never been put side by side. PHASE A IS DELIBERATELY ONLY THE MATCHER -- no classification, no scoring, no persistence beyond a console line, flag OFF. Pairing a send to the draft that produced it is the entire risk: an agent may send something hand-written, send nothing, send hours later, or send from another tool, and A WRONG PAIRING PRODUCES CONFIDENTLY WRONG EDIT DATA -- it would report that an agent rewrote a draft they never saw. That is materially worse than no data, and it is the same shape as the v9.7.564 fabricated-agreement series that looked like a healthy corpus for four builds. So the rule is REFUSE RATHER THAN GUESS: THREE OF THE FOUR OUTCOMES ARE REFUSALS (NO-SEND, AMBIGUOUS, NO-MATCH) and that ratio is the design. Two or more candidates clearing the floor is refused outright rather than picking the closer one. The scraper carries recent real sends out with their title and timestamp (call logs and voicemails excluded at the carrier), capped at 8 notes and 2000 chars. The overlap score is a shared-rare-word measure rather than an edit distance -- deliberately explainable, so a match can be checked by eye from the log -- with sub-5-character function words excluded because every dealership message shares them and they inflate two unrelated drafts toward 1. ONE PROPERTY WORTH NAMING: signatures, phone numbers, URLs and the compliance footer are normalised out before comparison, because those are the parts LP itself rewrites deterministically. That means the 8/22 case -- body identical, store name corrected by hand -- MATCHES, which it must: otherwise the exact defect this feature exists to measure would read as 'the agent rewrote it'. Asserted directly. VERIFIED 39/39 in a new suite plus all 33 suites green (1,125 assertions), dev===comm on every case. Phase A's non-wiring is asserted five ways: the flag is off, the flag off produces zero output, the block contains no fetch and no persistence, nothing outside the block calls it, and an anti-vacuity check confirms the block is really there. Every refusal is asserted to carry a human-readable reason; both channels are asserted to report on every run, because silence on one would hide half the refusal rate; malformed notes are asserted not to throw. The signature fix is asserted by slicing enforceEmailPhone and checking the profile fallback is GONE rather than reordered, and enforceSmsSig is asserted UNCHANGED as the reference implementation. ONE FIXTURE ERROR OF MY OWN, caught and recorded: the URL-normalisation test used two sentences differing by a real word ('or call' vs 'call') and failed -- which read as a normaliser bug and was a fixture bug, the normaliser having correctly preserved a genuine difference. WHAT THIS MIGHT BREAK, PLAINLY: the signature change means an email on a lead whose dealerId is unknown to DEALER_ID_MAP now falls to the remote config or the VinSolutions chrome rather than the agent's profile -- strictly better, but it can now render a blank store where it previously rendered a wrong one, and blank is the honest answer. Phase A changes nothing today; its costs are 8 extra note bodies in the scrape payload and, when the flag is eventually turned on, two console lines per generation. PHASE B AND PHASE C ARE DELIBERATELY NOT BUILT and must not be until this matcher's false-match rate is known on real traffic -- if it cannot hold a low rate on live leads, the right move is to stop rather than ship a classifier on top of an untrusted pairing. node --check clean on both builds; both manifests parse. Builds on v9.7.569.)
 // Lead Pro -- popup.js  v9.7.569 (Commercial. THREE CONTAINED FIXES FOUND BY READING THE FIRST REAL COMPREHENSION DATA. Pairs with proxy v7.60 and reporter v1.18. FIRST, THE GOOD NEWS, because it is the thing that made the rest findable: v9.7.568's telemetry flush WORKS ON LIVE TRAFFIC. log130 (8/22, v9.7.568-dev) shows 3 generations, 3 rows each, 9 rows total -- '[LP FACT TELEMETRY] posted 3 row(s) to /commit-comprehension -- verbal-commit:AGREE-NONE day-lock:AGREE-NONE off-franchise:AGREE-NONE' twice, and once with verbal-commit:NO-REGEX-VERDICT where the regex was gated off on that lead (the v9.7.563 distinction doing its job). These are the FIRST genuine comprehension rows the programme has ever produced. It also settles the open question from the 8/22 17:16 report: the 40 rows there carry no probeOk field at all, so they were written by older code and the reporter's v1.16 shape test correctly refused to count them. The data handling was right; the '100% agreement' tile is a display artefact over an empty denominator. ALSO MEASURED AND WORTH RECORDING: the three parallel probes settle in 904-1113ms, not the 4500ms worst case v9.7.566 budgeted for. Added latency in front of the draft was the single largest risk I flagged on Phase 3 and it is a non-issue at ~1s. FIX 1 -- PROXY v7.60, AND THIS ONE WOULD HAVE SILENTLY CORRUPTED THE DECISION DATA. v7.59 made /commit-comprehension per-detector but left compKind clamped to ['firm','soft','none'] -- verbal-commit's vocabulary, and the only one that existed when the clamp was written. Day-lock answers with a WEEKDAY ('Saturday'); off-franchise answers with a MAKE ('Ram'). Both fell through and were stored as 'none', which is indistinguishable from 'found nothing'. Every positive verdict those two detectors ever produced would have been recorded as a negative, and the report would have shown them as working-but-quiet rather than broken -- the worst possible failure shape for data whose only job is to decide whether a flag gets flipped. Caught before it bit: every row in log130 is AGREE-NONE, so no real answer has been lost. The clamp is now per-detector and is still a clamp: unrecognised values still collapse to 'none', a make is bounded by shape and length rather than trusted, and verbal-commit cannot smuggle a weekday through. FIX 2 -- REPORTER v1.18. The disagreement list was an EXCLUSION list -- `delta !== 'AGREE-COMMITMENT' && delta !== 'AGREE-NONE'` -- which was complete when there were four deltas and silently wrong once there were nine. The three added since (AGREE-FIRED, PROBE-FAILED, NO-COMPREHENSION-VERDICT) plus NO-REGEX-VERDICT all landed in a table headed DISAGREEMENTS; the 8/22 report listed a genuine AGREE-FIRED row as a disagreement. Now a POSITIVE list of the three deltas that ARE disagreements, so a future delta cannot fall into it. That is the whole lesson: an exclusion list is a promise that nobody will ever add a case, and somebody always does. A new assertion checks every delta the proxy accepts is classified as exactly one of agree / disagree / neither, with nothing unaccounted for. FIX 3 -- EXTENSION. The v9.7.567 [LP BEREAVEMENT DIAG] fires per FRAME, and a VinSolutions page carries six or seven frames with no transcript at all: log130 has 21 diag lines for 3 generations, 18 of them {"fired":false,"scanLen":1} from empty frames. A miss on an empty frame is not information and 18 lines of it per grab buries the three that are. The non-fire line now requires something to have been scanned. The threshold is deliberately low so a genuinely note-free LEAD frame still reports -- 'this lead had nothing to read' IS information -- and a FIRE is never suppressed, whatever the scan length. Asserted four ways. VERIFIED all 32 suites green (1,086 assertions, 10 new), dev===comm on every case. The clamp is exercised by running the SHIPPED helper rather than restating it: Saturday survives, Someday collapses, Ram survives, a 60-char blob collapses, firm survives, and verbal-commit given 'Saturday' collapses. One harness error of my own, caught and worth recording: the first version eval'd ccKind alone and threw 'CC_WEEKDAYS is not defined' -- the helper closes over its weekday list, so slicing the function without its dependency fails in a way that reads as a code fault and is not one. WHAT THIS MIGHT BREAK, PLAINLY: nothing customer-facing on any of the three. The clamp change means compKind values that previously all read 'none' will now carry real weekday and make strings, so any consumer keyed on the old three-value vocabulary needs to expect more -- the reporter's own by-detector table does not read compKind, so nothing in this repo is affected. The reporter change makes the DISAGREEMENTS table SMALLER, which is correct but will look like a drop if compared against yesterday's inflated count. The diagnostic change removes ~18 log lines per grab; if a future investigation wants the empty-frame lines back, the threshold is one constant. node --check clean on both builds, the proxy and the reporter; both manifests parse. Builds on v9.7.568.)
 // Lead Pro -- popup.js  v9.7.568 (Commercial. THE TELEMETRY POST WAS CONDITIONAL ON THE REGEX HAVING FIRED, SO ON AN ORDINARY LEAD IT NEVER FIRED AT ALL. My regression, introduced in v9.7.566 and silent for its whole life. REPORTED: /commit-comprehension receives zero POSTs. Measured 8/22 on v9.7.567 (log129, 15:11 CT): 8 of 8 generations skipped, and three same-day reporter runs (02:18-10:10, 02:18-11:45, 02:18-14:01 CT, 578-867 requests) all read "No comprehension verdicts recorded for this date" with proxy v7.59 and extension v9.7.567 both live. The report was accurate: KV genuinely holds zero rows for the day. THE REPORTED MECHANISM IS A RED HERRING, and it matters because fixing it would have changed nothing. The line '[LP COMMIT COMPREHENSION DIAG] superseded by the Phase 3 fact probe this generation -- not dispatching a second call' is CORRECT and has never had anything to do with the POST. It suppresses a duplicate PROBE CALL for a question Phase 3 has already asked -- without it every generation makes two identical API calls and persists two conflicting rows for one lead. It is untouched. THE ACTUAL CAUSE: v9.7.566 hung the POST off _lpFactDecide, and that function has exactly TWO call sites -- inside _lpApplyFactOverrides, which returns early unless the day-lock or off-franchise directive is PRESENT in the context, and inside `if (dayCommitPre)`, which only runs when the verbal-commit REGEX ALREADY FIRED. So persistence happened only on leads where a regex had already found something, and the majority case -- regex silent, comprehension silent, AGREE-NONE, the row that establishes the baseline -- was never recorded. log127 shows the shape exactly: '[LP FACT DIAG] all probes settled in 2810ms | verbal-commit:usable day-lock:usable off-franchise:usable' and then NOT ONE per-detector decision line, because the verbal-commit regex found nothing and no fence existed. Three usable verdicts, produced, logged, and thrown away. ANSWERING THE RETROACTIVE QUESTION DIRECTLY: this is NOT new to .567. The shipped bytes of v9.7.566 and v9.7.567 are identical on this point -- one send, inside _lpFactDecide, two conditional call sites -- so EVERY comprehension row for the entire Phase 3 window is zero, not just 8/22. Worse in context: v9.7.559's observer persisted UNCONDITIONALLY on every generation with notes, so v9.7.566 replaced unconditional persistence with conditional persistence and nobody noticed because the rows it stopped writing were the ones nobody was watching. AND THE HONEST BOTTOM LINE, because it is the number Phase C rests on: combining this with v9.7.564, the disagreement dataset has NEVER contained a single real row. Before .564 the probe could not succeed at all (MIN_CONTENT_CHARS rejected every answer) so every row was a fabricated AGREE-NONE; from .566 the rows stopped being written entirely. The only window that could have produced genuine data is .564/.565 running against proxy v7.58, which was hours. That is three distinct causes in four builds, all of them mine, and the corpus is still empty. THE FIX: new _lpFlushFactTelemetry posts ONE ROW PER DETECTOR PER GENERATION, unconditionally, from the verdicts the Phase 3 probes already produced -- no second API call, exactly as the brief asked. _lpFactDecide no longer sends; it RECORDS its decision into window._lpFactDecisions and the flush reads it, so sourceUsed and authoritative still reach KV when a decision was reached, and are empty when none was -- an absence that is itself information. The flush runs at the old observer dispatch site specifically because that is AFTER buildUserPrompt, the only moment the verbal-commit regex verdict exists. The decision map and the flush token are CLEARED per generation, so a previous lead's source can never ride over into this one -- the v9.7.562/563 stale-global class, in the field that records whether comprehension changed a customer-facing directive. THREE PROPERTIES WORTH NAMING. The flush is IDEMPOTENT per generationId (a regen re-enters the generate path and must not double-post) but flushes again for a NEW generation. One detector's POST throwing cannot stop the other two. And when NO probe ran -- every observer flag off -- it posts NOTHING rather than a row asserting 'no comprehension verdict' on a question that was never asked, which would be the v9.7.564 fabrication mistake in a new costume. VERIFIED 78/78 in the Phase 3 suite (19 new) plus all 32 suites green (1,076 assertions), dev===comm on every case. THE REGRESSION THAT WOULD HAVE CAUGHT THIS ON THE DAY is asserted first: a generation where no regex fired still posts one row per detector, all three AGREE-NONE. Also asserted: a fired regex posts DISAGREE-REGEX-ONLY rather than silence; both readers firing is AGREE-FIRED; an unusable probe still posts as NO-COMPREHENSION-VERDICT with its reason; a regex that never RAN reports NO-REGEX-VERDICT (the v9.7.563 distinction); the row carries exactly the fifteen fields proxy v7.59 stores; _lpFactDecide contains zero sends; and the 'superseded' line is asserted still present, because removing it would reintroduce double-probing. WHAT I CANNOT VERIFY FROM HERE, stated plainly: the brief's step 3 asks for confirmation against real traffic. I can only verify the code path. What to look for after deploying: a '[LP FACT TELEMETRY] posted 3 row(s)' line popup-side on every generation, three '[COMMIT-COMP] <detector> | ...' lines proxy-side per generation, and a non-empty Commit Comprehension section on the next report. If the report is still empty with those popup lines present, the fault is between the extension and KV, not here. WHAT THIS MIGHT BREAK, PLAINLY: KV write volume goes from zero to THREE ROWS PER GENERATION -- roughly 2,600/day at 867 requests, on a 90-day TTL in the same namespace as feedback. That is the intended cost of having the data at all, but it is a real jump and worth watching against the v7.29/W6c precedent. No customer-facing behaviour changes: the flush is fire-and-forget, runs after the draft is rendered, and every authoritative flag is still OFF. node --check clean on both builds; both manifests parse. Builds on v9.7.567.)
 // Lead Pro -- popup.js  v9.7.567 (Commercial. "is passing" IS NOT A BEREAVEMENT, AND THE REPORTED CAUSE WAS NOT THE CAUSE. LIVE INCIDENT, and it reached an agent's screen: Mary Pacella (Community Toyota Baytown, lead 2040382104, 8/21, log127 on v9.7.566). LP generated "Mary, I'm very sorry for your loss. I know this is a difficult time -- please accept my condolences from all of us at Community Toyota Baytown" plus an email offering to "close out your file and stop any further contact". There is no death anywhere in her 39-note history. THE REPORT ATTRIBUTED IT TO AN iMESSAGE TAPBACK -- `Loved "...you will always get my friends and family pricing."` -- tripping a supposed loved/family proximity check. THERE IS NO SUCH CHECK, and that Tapback matches none of the four bereavement rules; both facts are asserted in the new suite rather than argued. THE ACTUAL TRIGGER IS MARY'S OWN INBOUND EMAIL OF 8/4, and it is the single most engaged message on the lead: "My apologies to you timing is passing.. I need to know when is the best time to consider buying a vehicle ? I want to stay in the Toyota family, thank you for reaching out and not giving up on me". The fourth rule was /\b\w+['`]?s\s+passing\b/ -- THE APOSTROPHE WAS OPTIONAL and \w+ can match a SINGLE letter, so "**is** passing" satisfies it as \w+="i" plus a literal s. It equally matches "was passing", "this passing", "days passing", "deals passing". A pattern written for "Robert's passing" was matching the ordinary English word "is" -- so a customer saying she wants to keep buying from us was told we were sorry for her loss and offered a file closure. Confirmed by lifting the old regex out of the shipped bytes and running it against the real dump: it returns "is passing" on her email and nothing on the Tapback. WHY IT TOOK A PAGE DUMP TO FIND: [LP EXIT DIAG] named the component ('fired via hasBereavementSignal') and never the EVIDENCE. This guard writes a condolence and offers to close a customer's file -- the most irreversible directive in the system -- and it logged only that it had fired, never on what. THREE CHANGES. (1) THE POSSESSIVE RULE IS NOW TWO RULES, because the genuine phrase comes in two shapes: a real possessive REQUIRES the apostrophe and a word of 2+ letters ("Robert's passing", straight or curly), and "his/her/their passing" -- genuine grief English with no apostrophe -- is NAMED EXPLICITLY rather than swept in by an optional-apostrophe wildcard. Everything else reaching "<word> passing" is ordinary prose and no longer qualifies. (2) NEW [LP BEREAVEMENT DIAG] on EVERY evaluation, firing or not, carrying which of the four rules matched, the matched string verbatim, and 200 chars of surrounding source text. The next case is a grep. (3) THE TAPBACK GUARD IS BUILT ANYWAY -- it was not the cause here, and the changelog says so, but the shape is real and unhandled: an iPhone Tapback over the SMS gateway arrives as literal `Loved "<our own prior outbound>"`, the customer authored ONE WORD of it, and every sentiment, exit, trade and schedule scan was reading our own marketing prose as something the customer typed. Handled inside _lpCustomerAuthoredPart (same semantic as a quoted-reply header: everything after the marker is somebody else's text) AND at the transcript level, where the quoted payload is replaced by the verb alone -- the reaction IS a positive customer signal and is kept as one, rather than the line being discarded. VERIFIED 37/37 in a new suite plus all 32 suites green (1,056 assertions), dev===comm on every case, against Mary's real notes rather than a reconstruction. Her 8/4 email is asserted silent; the Tapback is asserted silent AND asserted to have been silent under the OLD rule too, so the report's mechanism is ruled out rather than assumed away; the old rule is asserted to have matched "is passing", so the test is not vacuous. THE FEATURE IS INTACT: all nine genuine shapes still fire (passed away, husband died, death in the family, funeral, obituary, lost my mother, she passed, no longer with us, deceased), both apostrophe forms of a real possessive fire, his/her/their passing fire, and Robert's real 7/25 death notification -- the incident this guard was built for in v9.7.481 -- still fires. All nine automotive false-positive idioms the v9.7.481 lookahead exists for stay silent (battery died, car died, engine died, deal died, passed on/by/up/through/along). Eight new prose shapes stay silent, including the exact "timing is passing". The Tapback guard is asserted not to over-fire on a real message that merely starts with "Liked" or quotes something mid-sentence. WHAT THIS MIGHT BREAK, PLAINLY: a bereavement phrased ONLY as "<name>s passing" with the apostrophe genuinely omitted -- a real typo shape -- no longer fires. That is the deliberate trade: the cost of missing it is a normal follow-up message, and the cost of the false positive is a condolence and a file-closure offer sent to an active buyer. The Tapback change means a reaction no longer contributes its quoted text to ANY scan, so a lead whose only trade or scheduling evidence sat inside text we ourselves wrote loses that evidence -- which is correct, because it was never the customer's. ALSO NOTED, NOT CHANGED: the third rule still accepts bare "he"/"she" + passed behind a negative lookahead; it is tested, it did not misfire here, and narrowing it would need its own evidence. node --check clean on both builds; both manifests parse; the changed regions are inside inlineScraper and depend on nothing outside it. Builds on v9.7.566.)
@@ -1952,6 +1953,171 @@ function _lpPrepareFactVerdicts(data, deps) {
   } catch (e) {
     try { window._lpFactVerdicts = {}; } catch (e2) {}
     return Promise.resolve({});
+  }
+}
+
+// ── (v9.7.570) DRAFTED vs DELIVERED — PHASE A: THE MATCHER, AND ONLY THE MATCHER ──────────
+//
+// THE GAP THIS EXISTS TO CLOSE. Lead Pro scores itself on what it PRODUCED. The agent then edits
+// in VinSolutions and sends. Nothing has ever compared the two, so on 8/22 a wrong store name in
+// eight email signatures read as an 89% positive rate and a 95% shipped rate — every one of those
+// counted a success because the agent copied the draft and then quietly fixed it before sending.
+// The copy button measures intent to use, not quality of what was used.
+//
+// Both halves already exist and neither needs new plumbing: the final draft is captured by the
+// v9.7.311 draft-pair mechanism, and the sent message is in the CRM as an outbound note that this
+// file's scraper already reads for the arc. They have simply never been put side by side.
+//
+// PHASE A IS THE MATCHER AND NOTHING ELSE. No classification, no scoring, no persistence beyond a
+// console line. That is deliberate: pairing a sent message to the draft that produced it is the
+// entire risk in this idea. An agent may send something hand-written, send nothing at all, send
+// hours later, or send from a different tool. A WRONG PAIRING PRODUCES CONFIDENTLY WRONG EDIT
+// DATA, which is materially worse than having none — it would say the agent rewrote a draft they
+// never saw. So the rule here is REFUSE RATHER THAN GUESS, and the refusal rate is reported on
+// every run so the matcher's own reliability is the first number anyone sees.
+//
+// Phase B (classify the delta) and Phase C (the verbatim-send metric) are deliberately NOT here
+// and should not be built until this matcher's false-match rate is known on real traffic.
+var LEADPRO_DELIVERY_MATCH = false;   // OFF by default — observer, and not yet earning its keep
+
+// How long after a generation a send can still plausibly be that draft. Beyond this the agent has
+// almost certainly regenerated, switched leads, or written their own.
+var LP_DELIVERY_WINDOW_MS = 45 * 60 * 1000;
+
+// Normalise for comparison ONLY. Never for storage, never for display. Signatures, phone numbers
+// and URLs are stripped because they are the parts LP itself rewrites deterministically — leaving
+// them in would make every message look edited.
+function _lpDeliveryNorm(text) {
+  return String(text || '')
+    .toLowerCase()
+    .replace(/https?:\/\/\S+/g, ' ')
+    .replace(/\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}/g, ' ')
+    .replace(/reply stop to cancel\.?/g, ' ')
+    .replace(/[^\w\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// A cheap, explainable overlap score. Deliberately NOT an edit distance: what matters is whether
+// this is THE SAME MESSAGE, and a shared-rare-word measure answers that with a number a human can
+// check by eye. Returns 0..1 plus the shared anchors, so a match can be audited from the log.
+function _lpDeliveryOverlap(draft, sent) {
+  var a = _lpDeliveryNorm(draft).split(' ').filter(Boolean);
+  var b = _lpDeliveryNorm(sent).split(' ').filter(Boolean);
+  if (!a.length || !b.length) return { score: 0, shared: [], anchors: 0 };
+  // Words under 5 chars are function words that every dealership message shares; they inflate the
+  // score toward 1 for two completely different drafts. Anchors are the long words.
+  var stop = {};
+  ['thanks','there','their','would','which','about','these','those','because','please','still'].forEach(function (w) { stop[w] = 1; });
+  var isAnchor = function (w) { return w.length >= 5 && !stop[w]; };
+  var setB = {};
+  b.forEach(function (w) { if (isAnchor(w)) setB[w] = 1; });
+  var aAnchors = a.filter(isAnchor);
+  if (!aAnchors.length) return { score: 0, shared: [], anchors: 0 };
+  var shared = [];
+  var seen = {};
+  aAnchors.forEach(function (w) { if (setB[w] && !seen[w]) { seen[w] = 1; shared.push(w); } });
+  var uniqA = Object.keys(aAnchors.reduce(function (m, w) { m[w] = 1; return m; }, {}));
+  return { score: shared.length / uniqA.length, shared: shared.slice(0, 12), anchors: uniqA.length };
+}
+
+// The channel a CRM note represents, or '' when it is not a customer-facing send at all. Shape
+// test on the note TITLE, the same discipline as the v9.7.555 metadata gate — a title list is
+// what VinSolutions actually varies, and guessing from the body would read agent notes as sends.
+function _lpDeliveryChannel(title) {
+  var t = String(title || '').toLowerCase();
+  if (/outbound text message|outbound sms/.test(t)) return 'sms';
+  if (/email (reply to prospect|to prospect)|outbound email/.test(t)) return 'email';
+  return '';
+}
+
+// ── The matcher ───────────────────────────────────────────────────────────────────────────
+// Given the draft LP produced and the outbound notes on the lead, decide whether any note IS that
+// draft as sent. Returns one verdict per channel, and every verdict names its reason.
+//
+// FOUR OUTCOMES, and three of them are refusals. That ratio is the point.
+//   MATCHED     — one note in the window, same channel, overlap at or above the floor.
+//   NO-SEND     — nothing outbound on that channel after the generation. Not a failure; the
+//                 agent may simply not have sent yet, and this is the common case on a fresh grab.
+//   AMBIGUOUS   — more than one candidate clears the floor. Refused: picking the closer one is
+//                 exactly the guess that produces wrong edit data.
+//   NO-MATCH    — a send exists but nothing clears the floor. Either the agent rewrote it
+//                 wholesale or it is a different message. Phase A does NOT try to tell those
+//                 apart; that is Phase B's job and it needs this matcher trusted first.
+function _lpMatchDelivered(draft, notes, opts) {
+  opts = opts || {};
+  var genMs = Number(opts.generatedAtMs) || 0;
+  var windowMs = Number(opts.windowMs) || LP_DELIVERY_WINDOW_MS;
+  var floor = typeof opts.floor === 'number' ? opts.floor : 0.55;
+  var out = {};
+
+  ['sms', 'email'].forEach(function (ch) {
+    var text = String((draft && draft[ch]) || '').trim();
+    if (!text) { out[ch] = { verdict: 'NO-DRAFT', reason: 'LP produced nothing on this channel' }; return; }
+
+    var cands = [];
+    (notes || []).forEach(function (n) {
+      if (_lpDeliveryChannel(n && n.title) !== ch) return;
+      var ms = Number(n.ms) || 0;
+      // Strictly AFTER the generation. A note that predates it cannot be this draft, and
+      // accepting one is how a matcher starts crediting LP with messages a human wrote earlier.
+      if (!genMs || !ms || ms < genMs) return;
+      if (ms - genMs > windowMs) return;
+      var ov = _lpDeliveryOverlap(text, n.body);
+      cands.push({ ms: ms, ageMs: ms - genMs, score: ov.score, shared: ov.shared, anchors: ov.anchors,
+                   body: String(n.body || '') });
+    });
+
+    if (!cands.length) { out[ch] = { verdict: 'NO-SEND', reason: 'no outbound ' + ch + ' on this lead within ' + Math.round(windowMs / 60000) + ' min of the generation' }; return; }
+
+    var over = cands.filter(function (c) { return c.score >= floor; });
+    if (over.length > 1) {
+      out[ch] = { verdict: 'AMBIGUOUS', reason: over.length + ' candidate sends clear the floor — refusing to pick',
+                  candidates: over.length, best: Math.max.apply(null, over.map(function (c) { return c.score; })) };
+      return;
+    }
+    if (!over.length) {
+      var best = cands.reduce(function (m, c) { return c.score > m.score ? c : m; }, cands[0]);
+      out[ch] = { verdict: 'NO-MATCH', reason: 'a send exists but none resembles the draft',
+                  best: Math.round(best.score * 100) / 100, anchors: best.anchors, candidates: cands.length };
+      return;
+    }
+    var hit = over[0];
+    out[ch] = { verdict: 'MATCHED', score: Math.round(hit.score * 100) / 100,
+                anchors: hit.anchors, shared: hit.shared, ageMs: hit.ageMs,
+                // Lengths only. The message text itself is NOT carried out of here — Phase B does
+                // its comparison locally and the v9.7.489 posture keeps the content in the CRM.
+                draftLen: text.length, sentLen: hit.body.length,
+                identical: _lpDeliveryNorm(text) === _lpDeliveryNorm(hit.body) };
+  });
+  return out;
+}
+
+// Observer entry point. Logs one line per channel; persists nothing. Reports the REFUSAL as
+// loudly as the match, because a matcher that quietly refuses most of the time would look like a
+// working feature producing very little data — which is how the comprehension observer spent four
+// builds looking healthy while producing nothing.
+function _lpRunDeliveryMatch(draft, notes, opts) {
+  opts = opts || {};
+  var _log = opts.log || function () { try { console.log.apply(console, arguments); } catch (e) {} };
+  try {
+    if (!LEADPRO_DELIVERY_MATCH) return null;
+    var r = _lpMatchDelivered(draft, notes, opts);
+    ['sms', 'email'].forEach(function (ch) {
+      var v = r[ch] || {};
+      _log('[LP DELIVERY MATCH] ' + ch + ' → ' + v.verdict
+        + (v.verdict === 'MATCHED'
+            ? ' | overlap:' + v.score + ' of ' + v.anchors + ' anchors'
+              + ' | sent ' + Math.round((v.ageMs || 0) / 1000) + 's after the draft'
+              + ' | ' + (v.identical ? 'SENT VERBATIM' : 'EDITED (draft ' + v.draftLen + ' chars, sent ' + v.sentLen + ')')
+              + ' | shared:' + JSON.stringify((v.shared || []).slice(0, 6))
+            : ' | ' + (v.reason || '')
+              + (v.best !== undefined ? ' (best overlap ' + v.best + ')' : '')));
+    });
+    return r;
+  } catch (e) {
+    try { _log('[LP DELIVERY MATCH] threw — no verdict this generation: ' + ((e && e.message) || e)); } catch (e2) {}
+    return null;
   }
 }
 
@@ -9697,6 +9863,7 @@ function tryExecuteScript(tab, statusEl, dot) {
 
     // Last inbound/outbound for fallback context
     var lastOutboundMsg = '';
+    var outboundSends = [];                  // (v9.7.570) recent real sends, for the Phase A matcher
     var lastOutboundMs = 0;                  // (v9.7.269) timestamp of most-recent outbound
     var lastSubstantiveOutboundMsg = '';     // (v9.7.269) most-recent NON-trivial outbound (second-touch extraction #2)
     var lastSubstantiveOutboundMs = 0;       // (v9.7.271) timestamp of the most-recent SUBSTANTIVE outbound
@@ -9716,7 +9883,18 @@ function tryExecuteScript(tab, statusEl, dot) {
         var niOutIsCallLog=/phone call|voice\s?mail|left (a )?message|called in|hung up|\bc\/m\b|\(machine\)|callmeasurement/i.test(niOutTitle);
         if(!lastOutboundMsg){ lastOutboundMsg=niOutBody.substring(0,300); lastOutboundMs=niDateMs; }
         if(!lastSubstantiveOutboundMsg && !niOutIsCallLog && !_isTrivialOutbound(niOutBody)){ lastSubstantiveOutboundMsg=niOutBody.substring(0,300); lastSubstantiveOutboundMs=niDateMs; }
-        if(lastOutboundMsg && lastSubstantiveOutboundMsg) break;
+        // (v9.7.570) PHASE A CARRIER. The existing two fields keep only the NEWEST outbound and
+        // cap it at 300 chars — fine for their own purposes, useless for matching a draft to the
+        // message it became. This carries the recent real sends out WITH their title (which is
+        // what identifies the channel) and their timestamp (which is what bounds the match).
+        // Call logs and voicemails are excluded here rather than downstream: they are not
+        // customer-facing sends and would only ever produce NO-MATCH noise.
+        // Capped at 8 notes and 2000 chars each so the scrape payload cannot bloat.
+        if(!niOutIsCallLog && niOutBody && outboundSends.length < 8){
+          outboundSends.push({ title: niOutTitle.substring(0,80), ms: niDateMs,
+                               body: niOutBody.substring(0,2000) });
+        }
+        if(lastOutboundMsg && lastSubstantiveOutboundMsg && outboundSends.length >= 8) break;
       }
     }
     // TEXT fallback: only when no notes exist at all
@@ -10558,7 +10736,7 @@ function tryExecuteScript(tab, statusEl, dot) {
       leadSource,leadStatus: currentStatus || leadStatus,hasTrade,tradeDescription,buyingSignals,
       history, totalNoteCount, hasOutbound, isContacted, contactedAgeDays, lastOutboundMsg, lastSubstantiveOutboundMsg, noReplySinceLastOutbound, newestCustomerSignalType, newestCustomerSignalDesc, hasFreshCustomerSignal, hasCustomerReply: hasRealCustomerReply /* (v9.7.301) canonical ground truth — replaces divergent inline recomputations */, lastInboundMsg: lastInboundMsg||leadReceivedCustomerQuestion, lastInboundMs: _lastInboundMs, /* (v9.7.359) date of customer's last inbound — used to age their day-words */
       hasPauseSignal, hasExitSignal, hasRecentReactivation, isSmsOptOutOnly, hasTextOrEmailSent, convState,
-      vrMonthlyPayment, vrDownPayment, vrCreditScore, vrAPR, vrTerm, vrLender, conversationBrief, customerSaidNotToday, customerScheduleConstraint, schedCustomerNotes, isLiveConversation, isRecentOutbound, recentOutboundContent,
+      vrMonthlyPayment, vrDownPayment, vrCreditScore, vrAPR, vrTerm, vrLender, conversationBrief, customerSaidNotToday, customerScheduleConstraint, schedCustomerNotes, outboundSends, isLiveConversation, isRecentOutbound, recentOutboundContent,
       customerDeclinedAlternative, customerDeclinedAlternativeText,
       email: (isMaskedEmail ? '' : buyerEmail),
       emailRaw: buyerEmail, // (v9.7.459 fix) unmasked email preserved for consumers (Appointment Invite tab) that need the actual on-record address even when it's a marketplace relay — AI generation paths still read the masked `email` field above so the "ask for direct email" directive is unaffected.
@@ -13645,7 +13823,18 @@ function buildSystemPrompt(personaId) {
   var agentName = (_resolvedSigner && _resolvedSigner.name)
                   || (_leadProProfile && _leadProProfile.name)
                   || '';
-  var storeName = (window._leadProResolvedContext && window._leadProResolvedContext.storeName) || (_leadProProfile && _leadProProfile.store) || '';
+  // (v9.7.570) SAME CHAIN AS THE EMAIL SIGNATURE BUG, one layer up — this store name goes into
+  // "You are <agent>, <title> at <store>". It was `resolvedContext.storeName || profile.store`,
+  // so a resolution miss signs the AGENT'S HOME STORE onto whatever lead they are working.
+  // LATENT rather than live: all 22 delivered prompts reviewed carry the correct store, so
+  // resolvedContext is winning in practice. Fixed anyway, because it is the identical defect and
+  // this is the line that states the agent's store identity to the model.
+  // The existing chain is KEPT beneath it — buildSystemPrompt runs on paths with no scraped lead
+  // (the voicemail/VM path), where the profile is the only store available and is correct there.
+  var storeName = '';
+  var _sysDid = String((lastScrapedData && lastScrapedData.dealerId) || '');
+  if (_sysDid && typeof DEALER_ID_MAP === 'object' && DEALER_ID_MAP[_sysDid]) storeName = DEALER_ID_MAP[_sysDid];
+  if (!storeName) storeName = (window._leadProResolvedContext && window._leadProResolvedContext.storeName) || (_leadProProfile && _leadProProfile.store) || '';
   var _sysPhone = '';
   var _sysCtxDealerId = (window._leadProResolvedContext && window._leadProResolvedContext.dealerId)
     || (lastScrapedData && lastScrapedData.dealerId) || '';
@@ -19301,19 +19490,55 @@ async function generateAll() {
     // signer.phone has agent's direct number — store fallback (correctPhone) only if signer has none
     var agentPhone = signer.phone || correctPhone || (_leadProProfile && _leadProProfile.phone) || '';
 
-    // Store name from current lead's dealer config, not cached context
+    // ── (v9.7.570) THE EMAIL SIGNATURE WAS NAMING THE AGENT'S HOME STORE ────────────────────
+    // LIVE, 8/22: eight emails on Honda Baytown and Kia Baytown leads were signed
+    // "Community Toyota- Baytown". Every agent's SMS was correct on the same generations,
+    // because enforceSmsSig resolves the store from DEALER_ID_MAP — the hard-coded map in this
+    // file — while this function did not. Its chain was:
+    //     remote dealer-config store.name  →  resolvedContext.storeName  →  _leadProProfile.store
+    // Two faults in that chain, and each alone produces a wrong rooftop:
+    //   1. The REMOTE dealer-config name is authored in the admin panel, not here. That is where
+    //      "Community Toyota- Baytown" comes from, stray hyphen and all — the string appears
+    //      NOWHERE in this extension, which is exactly why it could not be found by grepping it.
+    //   2. The last fallback is THE AGENT'S OWN PROFILE STORE. Patricia Galvan's profile store is
+    //      Toyota Baytown, so on any lead at another rooftop her email signed the wrong store —
+    //      a LEAD-scoped line resolved from an AGENT-scoped value. That is the whole incident.
+    // FIXED to mirror enforceSmsSig exactly: DEALER_ID_MAP first, keyed on THIS LEAD's dealerId.
+    // The agent-profile fallback is REMOVED outright rather than demoted — there is no lead on
+    // which the agent's home store is the right answer for the lead's signature, so keeping it
+    // lower in the chain would only make the same bug rarer and harder to find.
     var _storeName = '';
-    var _did = (lastScrapedData && lastScrapedData.dealerId) || '';
+    var _did = String((lastScrapedData && lastScrapedData.dealerId) || '');
+    if (_did && typeof DEALER_ID_MAP === 'object' && DEALER_ID_MAP[_did]) {
+      _storeName = DEALER_ID_MAP[_did];
+    }
+    // Remote dealer config is consulted ONLY for the phone, and only when the directory had none.
     if (_did && window._leadProDealerData) {
       var _ds = (window._leadProDealerData.stores || []).find(function(s) {
         return String(s.crmDealerId) === String(_did) || String(s.id) === String(_did);
       });
       if (_ds) {
-        _storeName = _ds.name || '';
+        if (!_storeName) _storeName = _ds.name || '';   // unknown dealerId — better than blank
         if (!agentPhone && _ds.phone) agentPhone = _ds.phone;
       }
     }
-    if (!_storeName) _storeName = (window._leadProResolvedContext && window._leadProResolvedContext.storeName) || (_leadProProfile && _leadProProfile.store) || '';
+    // Lead-scoped only. NEVER _leadProProfile.store — see above.
+    if (!_storeName) {
+      var _rawSel = String((typeof selectedStore !== 'undefined' && selectedStore) || '')
+        .replace(/VinSolutions Connect \[.*?\]/i, '').trim();
+      if (_rawSel && !/^VinSolutions/i.test(_rawSel)) _storeName = _rawSel;
+    }
+    try {
+      var _profStore = (_leadProProfile && _leadProProfile.store) || '';
+      console.log('[LP EMAIL SIG DIAG] dealerId:' + (_did || '(none)')
+        + ' | store used:' + (_storeName || '(none)')
+        + ' | source:' + (_did && DEALER_ID_MAP && DEALER_ID_MAP[_did] ? 'DEALER_ID_MAP (hard-coded)'
+                        : _storeName ? 'fallback' : 'NONE')
+        + ' | agent profile store:' + (_profStore || '(none)')
+        + (_profStore && _storeName && _profStore !== _storeName
+            ? ' | NOTE: agent home store differs from lead store — this is the v9.7.570 case, and the lead store is the one used'
+            : ''));
+    } catch (e) {}
 
     if (!agentFull) return email; // nothing to enforce
 

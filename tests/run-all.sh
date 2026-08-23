@@ -37,7 +37,7 @@ run() {
 
 echo
 echo "extension suites (dev + commercial, both must agree):"
-for t in amp-banner arc-bound bereavement arc-relevancy commit-comprehension crm-entry-walk \
+for t in amp-banner arc-bound bereavement delivery-match arc-relevancy commit-comprehension crm-entry-walk \
          decline-attribution distance-zip feedback-copy feedback-flush fences-fallback \
          lp-command-coverage observer-wiring off-franchise pivot safe-fallback-contract \
          sched-attribution fact-comprehension \
