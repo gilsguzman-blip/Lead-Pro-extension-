@@ -655,6 +655,63 @@ check('the only sends outside the flush live in the superseded v9.7.559 observer
     return { inObserver, total, definitionIsTheRest: total - inObserver === 1 };
   }, { inObserver: 2, total: 3, definitionIsTheRest: true });
 
+// ── (v9.7.572) The detail line for rows that reach no decision ───────────────
+check('a COMPREHENSION-ONLY disagreement now says WHAT the probe found',
+  i => {
+    // The shape that had a telemetry row and no diagnostic: probe fired, regex silent, so
+    // _lpFactDecide never ran and [LP FACT DIAG] was never written.
+    const v = Object.assign({}, ALL_USABLE, { 'off-franchise': {
+      usable: true, fired: true, kind: 'ram', quote: 'do you have any Ram 1500s',
+      verifiedNote: 1, notesRead: 2, quoteVerified: true, claimedNote: 1 } });
+    const l = i.flush(v, {}).logs.join('\n');
+    return {
+      named:    /\[LP FACT DETAIL\] off-franchise → DISAGREE-COMPREHENSION-ONLY/.test(l),
+      quoted:   /quote "do you have any Ram 1500s"/.test(l),
+      verified: /verified in note 1 of 2/.test(l),
+      regexSaid:/regex:found nothing/.test(l),
+      noDecision:/no decision reached this generation/.test(l)
+    };
+  }, { named: true, quoted: true, verified: true, regexSaid: true, noDecision: true });
+
+check('the majority case stays quiet — AGREE-NONE writes no detail line',
+  i => i.flush(ALL_USABLE, {}).logs.filter(l => /FACT DETAIL/.test(l)).length, 0);
+
+check('...but every non-AGREE-NONE row gets one',
+  i => {
+    const v = Object.assign({}, ALL_USABLE, {
+      'day-lock': { usable: false, reason: 'probe timed out after 4500ms', notesRead: 2 },
+      'off-franchise': { usable: true, fired: true, kind: 'ram', quote: 'a Ram', verifiedNote: 1, notesRead: 1, quoteVerified: true, claimedNote: 1 }
+    });
+    return i.flush(v, {}, {}, { fired: true, quote: 'coming saturday', ran: true })
+      .logs.filter(l => /FACT DETAIL/.test(l)).length;
+  }, 3);
+
+check('an unusable probe reports its reason on the detail line',
+  i => {
+    const v = Object.assign({}, ALL_USABLE, { 'day-lock': { usable: false, reason: 'probe timed out after 4500ms', notesRead: 2 } });
+    return /day-lock → NO-COMPREHENSION-VERDICT \| comprehension:UNUSABLE \(probe timed out after 4500ms\)/
+      .test(i.flush(v, {}).logs.join('\n'));
+  }, true);
+
+check('a regex that never RAN says so rather than reading as "found nothing"',
+  i => /regex:DID NOT RUN \(showroom follow-up\)/.test(
+    i.flush(ALL_USABLE, {}, {}, { fired: false, quote: '', ran: false, skipReason: 'showroom follow-up' })
+      .logs.join('\n')), true);
+
+check('the detail line is CONSOLE ONLY — no quote text enters the persisted row',
+  i => {
+    const v = Object.assign({}, ALL_USABLE, { 'off-franchise': {
+      usable: true, fired: true, kind: 'ram', quote: 'do you have any Ram 1500s',
+      verifiedNote: 1, notesRead: 2, quoteVerified: true, claimedNote: 1 } });
+    // The row carries the quote field the sender already scrubs/caps; what must NOT happen is the
+    // detail line adding note text to the payload. Assert the row shape is unchanged.
+    const row = i.flush(v, {}).rows.filter(r => r.detector === 'off-franchise')[0];
+    return Object.keys(row).sort().join(',') ===
+      ['authoritative','claimedNote','delta','detector','kind','notesRead','probeFailReason',
+       'probeOk','quote','quoteVerified','regexFired','regexQuote','regexRan','sourceUsed',
+       'verifiedNote'].sort().join(',');
+  }, true);
+
 check('the flush is dispatched once in the generate path',
   i => (i.src.replace(/^[ \t]*\/\/.*$/gm, '').match(/_lpFlushFactTelemetry\(\)/g) || []).length, 1);
 
