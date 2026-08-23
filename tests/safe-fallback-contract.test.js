@@ -605,8 +605,15 @@ pOne('the DRAFT default is untouched — this build changes the probes only',
 
 section('prompt cache — the deprecated retention field is gone:');
 
-pOne('prompt_cache_retention appears nowhere in the shipped proxy',
-  () => (stripComments(proxySrc).match(/prompt_cache_retention/g) || []).length, 0);
+// (v7.64) THIS ASSERTION USED TO SAY prompt_cache_retention APPEARS NOWHERE, AND IT WAS WRONG.
+// It encoded v7.61's mistake as a requirement: the swap to prompt_cache_options was correct for
+// the 5.6 PRIMARY tier and catastrophic for the two older tiers, which reject that field with a
+// 400. Between v7.61 and v7.64 LP had no working recovery ladder and this suite was green
+// throughout — 68 assertions confirming the change had been made exactly as intended, with
+// nothing able to say the intention was wrong. A test pins behaviour; it cannot pin judgment.
+// It now asserts the real rule: the legacy field is REQUIRED, on the tiers that accept it.
+pOne('prompt_cache_retention is PRESENT for the older tiers — they 400 without it',
+  () => (stripComments(proxySrc).match(/prompt_cache_retention/g) || []).length, 2);
 
 pOne('the ttl is the value the 5.6 families document',
   () => W.TTL, '30m');
@@ -621,11 +628,31 @@ pOne('...so mode:explicit survives the swap',
     return a > 0 && b > a;   // the merge runs AFTER mode is set
   }, true);
 
-pOne('the older tiers get the current field too — v7.42 left them on the deprecated one',
-  () => /\} else \{\s*\n\s*payload\.prompt_cache_options = \{ ttl: CACHE_TTL \};/.test(proxySrc), true);
+pOne('the older tiers get the field THEY accept, not the 5.6 one — the 8/23 outage',
+  () => /\} else \{\s*\n\s*payload\.prompt_cache_retention = CACHE_RETENTION_LEGACY;/.test(proxySrc), true);
 
-pOne('the classifier call was swapped as well',
-  () => /prompt_cache_options:   \{ ttl: CACHE_TTL \},/.test(proxySrc), true);
+pOne('the classifier (gpt-4.1-nano) is on the legacy field too — its 400 was SILENT',
+  () => {
+    // The classifier's error path is `if (!res.ok) return false`, so a 400 there is
+    // indistinguishable from a genuine negative classification. It was broken from v7.61 and
+    // nothing could have surfaced it.
+    const i = proxySrc.indexOf('CACHE_KEY_PREFIX}_classifier');
+    const near = stripComments(proxySrc.slice(i, i + 700));
+    return { legacy: /prompt_cache_retention:/.test(near), fiveSix: /prompt_cache_options:/.test(near) };
+  }, { legacy: true, fiveSix: false });
+
+pOne('and the 5.6 field never reaches a tier that cannot take it',
+  () => {
+    const code = stripComments(proxySrc);
+    const bad = [];
+    const re = /^[^\n]*payload\.prompt_cache_options\s*=/gm;
+    let m;
+    while ((m = re.exec(code))) {
+      const before = code.slice(Math.max(0, m.index - 400), m.index);
+      if (!/spec\.cacheBreakpoints|_bpApplied/.test(before)) bad.push(m[0].trim().slice(0, 60));
+    }
+    return bad;
+  }, []);
 
 (async () => {
   for (const p of pending) await p();

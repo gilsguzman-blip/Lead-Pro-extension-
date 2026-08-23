@@ -174,5 +174,68 @@ pOne('BEFORE v7.63 the escalation would have reached the fallback tier — repro
 pOne('the guard is in the shipped proxy, not just in this test',
   () => /ESCALATION "' \+ want \+ '" is primary-tier only/.test(proxySrc), true);
 
+// ── (v7.64) THE 8/23 OUTAGE — the recovery ladder must actually be able to run ────
+console.log('\ncache fields per tier — the bug that took the whole ladder down:');
+
+pOne('THE INCIDENT: no non-breakpoint tier is handed prompt_cache_options',
+  () => {
+    // v7.61's else-branch set prompt_cache_options on exactly the tiers where cacheBreakpoints is
+    // false — the two older models — and both returned
+    //   400 "prompt_cache_options is not supported on this model"
+    // So from v7.61 until v7.64 there was NO working recovery ladder, invisible because the
+    // primary answers almost everything. Assert the else-branch now sends the legacy field.
+    const m = proxySrc.match(/if \(spec\.cacheBreakpoints\) \{\s*payload\.prompt_cache_options[\s\S]{0,200}?\} else \{\s*payload\.(\w+)/);
+    return m ? m[1] : '(no else-branch found)';
+  }, 'prompt_cache_retention');
+
+pOne('the classifier is gpt-4.1-nano and gets the field IT accepts',
+  () => {
+    const i = proxySrc.indexOf('CACHE_KEY_PREFIX}_classifier');
+    const near = proxySrc.slice(i, i + 700);
+    return { legacy: /prompt_cache_retention:/.test(near), fiveSix: /prompt_cache_options:/.test(near) };
+  }, { legacy: true, fiveSix: false });
+
+pOne('prompt_cache_options appears ONLY under a cacheBreakpoints guard',
+  () => {
+    // Shape test, not a count: every assignment of the 5.6-only field must be gated. This is the
+    // check that would have caught v7.61 — a count would have looked fine.
+    // COMMENTS STRIPPED FIRST. The first version of this scanned raw source and flagged its own
+    // explanatory comment quoting the v7.61 line — the same self-matching error this suite has
+    // made before. Only real code counts.
+    const code = proxySrc.replace(/^\s*(\/\/|\*|\/\*).*$/gm, '');
+    const bad = [];
+    const re = /^[^\n]*payload\.prompt_cache_options\s*=/gm;
+    let m;
+    while ((m = re.exec(code))) {
+      const before = code.slice(Math.max(0, m.index - 400), m.index);
+      if (!/spec\.cacheBreakpoints|_bpApplied/.test(before)) bad.push(m[0].trim().slice(0, 60));
+    }
+    return bad;
+  }, []);
+
+pOne('only ONE tier carries cacheBreakpoints, so "gated" means Luna alone',
+  () => (proxySrc.match(/cacheBreakpoints: true/g) || []).length, 1);
+
+console.log('\nthe escalated primary budget:');
+
+pOne('an escalated request gets a bigger primary slice than 12000ms',
+  () => {
+    const v = (proxySrc.match(/const ESCALATED_PRIMARY_TIMEOUT_MS = (\d+);/) || [])[1];
+    return { ms: Number(v), biggerThanSpec: Number(v) > 12000 };
+  }, { ms: 18000, biggerThanSpec: true });
+
+pOne('...and it applies to the PRIMARY tier only, and only on an escalation',
+  () => /const _escalated = spec\.tier === 'primary' && isEscalation\(reasoningEffort\);/.test(proxySrc), true);
+
+pOne('the total budget is NOT raised — the trade is the emergency tier, deliberately',
+  () => (proxySrc.match(/const TOTAL_BUDGET_MS\s*=\s*(\d+);/) || [])[1], '24000');
+
+pOne('an escalated primary still leaves the fallback tier a usable window',
+  () => {
+    const total = 24000, esc = 18000, slack = 300;
+    const left = total - esc;                 // what remains when the escalated primary times out
+    return { remaining: left, admitsFallback: left >= 2500 + slack };
+  }, { remaining: 6000, admitsFallback: true });
+
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);
