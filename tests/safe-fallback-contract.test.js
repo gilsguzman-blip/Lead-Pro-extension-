@@ -82,6 +82,7 @@ function workerApi() {
     + '  effort: (typeof resolveEffort === \'function\' ? resolveEffort : null),'
     + '  LADDER: (typeof EFFORT_LADDER !== \'undefined\' ? EFFORT_LADDER : null),'
     + '  TIERS: (typeof TIER_EFFORTS !== \'undefined\' ? TIER_EFFORTS : null),'
+    + '  SPECS: (typeof MODEL_CASCADE !== \'undefined\' ? MODEL_CASCADE : []),'
     + '  TTL: (typeof CACHE_TTL !== \'undefined\' ? CACHE_TTL : null) })', sandbox);
 }
 
@@ -516,12 +517,39 @@ pOne('...and every one of those now resolves to itself on the primary tier',
   () => ['none', 'xhigh', 'max'].map(e => W.effort('gpt-5.6-luna', e).effort),
   ['none', 'xhigh', 'max']);
 
-pOne('an effort the tier cannot take degrades to its NEAREST supported value, not to a 400',
+// (v7.62) 'none' now resolves to itself on the fallback tier. The GPT-5.4 guidance documents
+// 'none' as that family's lowest effort AND its default, so the previous list was too narrow and
+// was degrading the probes UPWARD — they ask for 'none' and were paying for 'low' on the slow path.
+pOne('the fallback tier accepts "none" — the probes ask for it and must not be upgraded',
   () => {
-    // A 400 on the fallback tier turns a recoverable primary failure into a SAFE_FALLBACK.
     const r = W.effort('gpt-5.4-nano-2026-03-17', 'none');
+    return { effort: r.effort, note: r.note };
+  }, { effort: 'none', note: '' });
+
+pOne('an effort the tier cannot take still degrades to its NEAREST supported value, not to a 400',
+  () => {
+    // CORRECTION to the v7.61 comment that stood here: a 400 does NOT produce a SAFE_FALLBACK.
+    // 400 is not in the fatal set (401/403/404), so the ladder continues to the emergency tier.
+    // Degrading is still preferable — it avoids a wasted round trip on the recovery path — but the
+    // consequence of being wrong is one fast failed call, not a placeholder shown to an agent.
+    const r = W.effort('gpt-5.4-nano-2026-03-17', 'xhigh');
     return { effort: r.effort, explained: /nearest supported/.test(r.note) };
-  }, { effort: 'low', explained: true });
+  }, { effort: 'high', explained: true });
+
+pOne('400 is genuinely NOT fatal — the claim above is checked, not asserted',
+  () => /const fatal\s+= status === 401 \|\| status === 403 \|\| status === 404;/.test(proxySrc), true);
+
+pOne('the emergency tier is a DIFFERENT model family on purpose',
+  () => {
+    // The 5.4 guide suggests gpt-4.1-nano -> gpt-5.4-nano with effort 'none'. Declined: that would
+    // put the fallback and emergency tiers on the same family, so one family-wide outage takes both
+    // and the ladder stops being a ladder. Tier diversity is the reason the third tier exists.
+    // Read from the shipped source: MODEL_CASCADE sits outside the extracted span.
+    const fams = (proxySrc.match(/\{ model: '([^']+)'/g) || [])
+      .map(m => m.slice(m.indexOf("'") + 1, -1))
+      .map(m => m.split('-').slice(0, 2).join('-'));
+    return { families: Array.from(new Set(fams)).sort(), distinct: new Set(fams).size >= 2 };
+  }, { families: ['gpt-4.1', 'gpt-5.4', 'gpt-5.6'], distinct: true });
 
 pOne('...and a high effort the tier cannot take degrades downward the same way',
   () => W.effort('gpt-5.4-nano-2026-03-17', 'max').effort, 'high');
