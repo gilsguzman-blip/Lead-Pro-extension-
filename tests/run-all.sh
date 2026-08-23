@@ -39,7 +39,7 @@ echo
 echo "extension suites (dev + commercial, both must agree):"
 for t in amp-banner arc-bound bereavement delivery-match arc-relevancy commit-comprehension crm-entry-walk \
          decline-attribution distance-zip feedback-copy feedback-flush fences-fallback \
-         lp-command-coverage observer-wiring off-franchise pivot safe-fallback-contract \
+         lp-command-coverage observer-wiring off-franchise pivot \
          sched-attribution fact-comprehension \
          scaffold-leak sold-scan splitframe-lead state-validity trade-attribution \
          trade-delivery verbal-commit; do
@@ -50,6 +50,9 @@ echo
 echo "cross-surface suites (extension + worker + reporter):"
 run commit-persistence.test.js "$DEV" "$COMM" "$PROXY" "$REPORTER"
 run note-types.test.js         "$DEV" "$COMM" "$PROXY" "$REPORTER"
+# safe-fallback-contract asserts on the PROXY as well as the extension — it belongs here,
+# not in the extension-only loop, where it silently tested whatever its default pointed at.
+run safe-fallback-contract.test.js "$DEV" "$COMM" "$PROXY"
 
 echo
 echo "worker / reporter suites:"

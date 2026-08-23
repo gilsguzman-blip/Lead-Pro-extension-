@@ -43,9 +43,13 @@ const path = require('path');
 
 const args   = process.argv.slice(2);
 const BUILDS = args.filter(a => /popup\.js$/.test(a));
-const PROXY  = args.find(a => /cloudflare-worker/.test(a)) || 'worker/cloudflare-worker-v7.58.js';
-if (!BUILDS.length) {
-  console.error('usage: safe-fallback-contract.test.js <popup.js...> [cloudflare-worker.js]');
+// (v7.61) NO DEFAULT. This used to fall back to a hardcoded 'worker/cloudflare-worker-v7.58.js',
+// so running it without a proxy argument silently tested a THREE-VERSION-OLD file and reported
+// green. That is the same silent-substitution shape this suite exists to catch, in the harness
+// itself. The proxy is now required and its absence is a loud failure.
+const PROXY  = args.find(a => /cloudflare-worker/.test(a));
+if (!BUILDS.length || !PROXY) {
+  console.error('usage: safe-fallback-contract.test.js <popup.js...> <cloudflare-worker.js>');
   process.exit(2);
 }
 const proxySrc = fs.readFileSync(path.resolve(PROXY), 'utf8');
@@ -61,6 +65,11 @@ function workerApi() {
   const spans = [
     [at('function promptCacheKey('), at('function logCacheHit(')],
     [at('const MIN_CONTENT_CHARS  = 150;'), at('const CLASSIFIER_MODEL')],
+    // (v7.61) The effort ladder and its resolver live above MODEL_CASCADE, and CACHE_TTL sits
+    // beside CACHE_KEY_PREFIX — neither is inside the two spans above, so slicing them was the
+    // difference between testing the code and testing `null`.
+    [at("const REASONING_EFFORT = 'low';"), at('const MODEL_CASCADE = [')],
+    [at('// (v7.61) The retention hint'), at('// (v7.48) TTL CUT FROM')],
   ];
   spans.forEach(([a, b]) => vm.runInContext(proxySrc.slice(a, b), sandbox));
   // CACHE_KEY_PREFIX lives elsewhere; take it from the file rather than assuming it.
@@ -69,7 +78,11 @@ function workerApi() {
   vm.runInContext(proxySrc.slice(at('function promptCacheKey('), at('function logCacheHit(')), sandbox);
   return vm.runInContext(
     '({ key: promptCacheKey, normalize: normalizeContract, factFail: factContractFailure,'
-    + '  MIN: MIN_CONTENT_CHARS, CONTRACTS: RESPONSE_CONTRACTS })', sandbox);
+    + '  MIN: MIN_CONTENT_CHARS, CONTRACTS: RESPONSE_CONTRACTS,'
+    + '  effort: (typeof resolveEffort === \'function\' ? resolveEffort : null),'
+    + '  LADDER: (typeof EFFORT_LADDER !== \'undefined\' ? EFFORT_LADDER : null),'
+    + '  TIERS: (typeof TIER_EFFORTS !== \'undefined\' ? TIER_EFFORTS : null),'
+    + '  TTL: (typeof CACHE_TTL !== \'undefined\' ? CACHE_TTL : null) })', sandbox);
 }
 
 // ── The extension's observer, sliced and runnable ──────────────────────────────
@@ -485,6 +498,106 @@ pOne('the draft path is what an absent contract gets, so no existing caller chan
 
 pCheck('the extension still refuses to RENDER a SAFE_FALLBACK draft (v9.7.379/377 W4, untouched)',
   i => (i.src.match(/candidates\[0\]\._fallback/g) || []).length >= 3, true);
+
+// ── (v7.61) REASONING EFFORT — the third silent substitution this week ────────
+section('reasoning effort — a rejected value must be visible, not swapped in silence:');
+
+pOne('the ladder is the model\'s real set, not the old three',
+  () => W.LADDER, ['none', 'low', 'medium', 'high', 'xhigh', 'max']);
+
+pOne('THE BUG: the old validation collapsed every unlisted value to "low"',
+  () => {
+    // Reproduced, so the test is not vacuous. This is what shipped before v7.61.
+    const oldCheck = (v) => (v === 'low' || v === 'medium' || v === 'high') ? v : 'low';
+    return ['none', 'xhigh', 'max', 'garbage'].map(oldCheck);
+  }, ['low', 'low', 'low', 'low']);
+
+pOne('...and every one of those now resolves to itself on the primary tier',
+  () => ['none', 'xhigh', 'max'].map(e => W.effort('gpt-5.6-luna', e).effort),
+  ['none', 'xhigh', 'max']);
+
+pOne('an effort the tier cannot take degrades to its NEAREST supported value, not to a 400',
+  () => {
+    // A 400 on the fallback tier turns a recoverable primary failure into a SAFE_FALLBACK.
+    const r = W.effort('gpt-5.4-nano-2026-03-17', 'none');
+    return { effort: r.effort, explained: /nearest supported/.test(r.note) };
+  }, { effort: 'low', explained: true });
+
+pOne('...and a high effort the tier cannot take degrades downward the same way',
+  () => W.effort('gpt-5.4-nano-2026-03-17', 'max').effort, 'high');
+
+pOne('a non-reasoning tier omits the field entirely rather than sending a bad one',
+  () => {
+    const r = W.effort('gpt-4.1-nano', 'low');
+    return { effort: r.effort, explained: /takes no reasoning_effort/.test(r.note) };
+  }, { effort: null, explained: true });
+
+pOne('a genuinely unknown value falls back AND says so',
+  () => {
+    const r = W.effort('gpt-5.6-luna', 'ludicrous');
+    return { effort: r.effort, explained: /UNKNOWN effort/.test(r.note) };
+  }, { effort: 'low', explained: true });
+
+pOne('a supported effort on a supporting tier produces NO note — silence only when nothing changed',
+  () => W.effort('gpt-5.6-luna', 'low').note, '');
+
+pOne('every substitution is logged at the payload site',
+  () => /console\.log\(`\[EFFORT\] \$\{spec\.tier\} \$\{spec\.model\}: requested/.test(proxySrc), true);
+
+pOne('the request-level check no longer decides the effort — the tier does',
+  () => /const reqEffort = String\(gen\.reasoningEffort \|\| ''\)\.toLowerCase\(\) \|\| REASONING_EFFORT;/.test(proxySrc), true);
+
+pCheck('the extension asks for "none" on the probes, and only there',
+  i => {
+    const code = stripComments(i.src);
+    const decls = code.match(/reasoningEffort:\s*'([a-z]+)'/g) || [];
+    return { count: decls.length, values: decls.map(d => d.replace(/.*'([a-z]+)'.*/, '$1')) };
+  }, { count: 2, values: ['none', 'none'] });   // the Phase 3 probe and the v9.7.559 fallback observer
+
+// The proxy reads `body.generationConfig.reasoningEffort`, so the field must sit INSIDE that
+// object — not beside it. The 900-char lookback was too short once the explanatory comment landed
+// between the two; scoped to the probe payload by its own braces instead.
+// BOTH probe payloads must carry it inside generationConfig — the proxy reads
+// body.generationConfig.reasoningEffort, so beside the object is the same as absent. There are two
+// payloads: the Phase 3 probe and the superseded v9.7.559 observer that is still the fallback.
+pCheck('...and BOTH probe payloads carry it inside generationConfig, where the proxy reads it',
+  i => {
+    const hits = [];
+    let a = i.src.indexOf('generationConfig: { temperature: 0, maxOutputTokens: 300');
+    while (a > 0) {
+      const b = i.src.indexOf('responseContract:', a);
+      hits.push(b > a && /reasoningEffort: 'none' \}/.test(i.src.slice(a, b)));
+      a = i.src.indexOf('generationConfig: { temperature: 0, maxOutputTokens: 300', a + 10);
+    }
+    return hits;
+  }, [true, true]);
+
+pOne('the DRAFT default is untouched — this build changes the probes only',
+  () => /const REASONING_EFFORT = 'low';/.test(proxySrc), true);
+
+section('prompt cache — the deprecated retention field is gone:');
+
+pOne('prompt_cache_retention appears nowhere in the shipped proxy',
+  () => (stripComments(proxySrc).match(/prompt_cache_retention/g) || []).length, 0);
+
+pOne('the ttl is the value the 5.6 families document',
+  () => W.TTL, '30m');
+
+pOne('the primary tier MERGES ttl into its breakpoint options rather than overwriting mode',
+  () => /payload\.prompt_cache_options = Object\.assign\(\{\}, payload\.prompt_cache_options \|\| \{\}, \{ ttl: CACHE_TTL \}\);/.test(proxySrc), true);
+
+pOne('...so mode:explicit survives the swap',
+  () => {
+    const a = proxySrc.indexOf("payload.prompt_cache_options = { mode: 'explicit' };");
+    const b = proxySrc.indexOf('Object.assign({}, payload.prompt_cache_options', a);
+    return a > 0 && b > a;   // the merge runs AFTER mode is set
+  }, true);
+
+pOne('the older tiers get the current field too — v7.42 left them on the deprecated one',
+  () => /\} else \{\s*\n\s*payload\.prompt_cache_options = \{ ttl: CACHE_TTL \};/.test(proxySrc), true);
+
+pOne('the classifier call was swapped as well',
+  () => /prompt_cache_options:   \{ ttl: CACHE_TTL \},/.test(proxySrc), true);
 
 (async () => {
   for (const p of pending) await p();
