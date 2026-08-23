@@ -9,7 +9,7 @@ cd "$(dirname "$0")/.."
 DEV=builds/dev/popup.js
 COMM=builds/commercial/popup.js
 PROXY=${1:-worker/cloudflare-worker-v7.66.js}
-REPORTER=${2:-worker/leadpro-reporter-v1.19.js}
+REPORTER=${2:-worker/leadpro-reporter-v1.20.js}
 DASH=$(ls dashboard*.html dashboard/*.html 2>/dev/null | head -1)
 
 declare -a FAILED=()
@@ -60,6 +60,7 @@ echo "worker / reporter suites:"
 run worker-smoke.test.js             "$PROXY"
 run worker-aggregate.test.js         "$PROXY"
 run dashboard-explicit-down.test.js  "$PROXY"
+run cache-ceiling.test.js            "$REPORTER"
 run reporter-feedback.test.js        "$REPORTER"
 run reporter-leadlink.test.js        "$REPORTER"
 [ -n "${DASH:-}" ] && run dashboard-render.test.js "$DASH" "$PROXY"
