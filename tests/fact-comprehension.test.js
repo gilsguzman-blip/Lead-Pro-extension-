@@ -617,7 +617,7 @@ check('the row carries the Phase 3 fields the proxy v7.59 handler stores',
     return Object.keys(r).sort();
   }, ['authoritative', 'claimedNote', 'delta', 'detector', 'kind', 'notesRead', 'probeFailReason',
       'probeOk', 'quote', 'quoteVerified', 'regexFired', 'regexQuote', 'regexRan', 'sourceUsed',
-      'verifiedNote']);
+      'vacuous', 'verifiedNote']);
 
 check('sourceUsed is empty when no decision was reached — its absence is information',
   i => i.flush(ALL_USABLE, {}).rows.map(r => r.sourceUsed), ['', '', '']);
@@ -709,8 +709,53 @@ check('the detail line is CONSOLE ONLY — no quote text enters the persisted ro
     return Object.keys(row).sort().join(',') ===
       ['authoritative','claimedNote','delta','detector','kind','notesRead','probeFailReason',
        'probeOk','quote','quoteVerified','regexFired','regexQuote','regexRan','sourceUsed',
-       'verifiedNote'].sort().join(',');
+       'vacuous','verifiedNote'].sort().join(',');
   }, true);
+
+// ── (v9.7.574) NOTHING TO READ IS AN ANSWER, NOT A FAILURE ───────────────────
+// Malaka Phillips (Community Honda Lafayette, 8/23): 1 inbound / 7 outbound, every note either an
+// outbound text or a content-free call note ("hung up", "No"). ZERO-CUSTOMER-RESPONSE IS ONE OF THE
+// MOST COMMON LEAD STATES IN A BDC QUEUE, and on 8/23 it was 42 of 97 rows — all filed under
+// "Probe never answered", which reads as 42 defects. Not one was a defect.
+check('a lead with no customer text yields NO-CUSTOMER-TEXT, not a probe failure',
+  i => {
+    const v = Object.assign({}, ALL_USABLE, { 'day-lock': {
+      usable: false, vacuous: true, reason: 'the customer has never written anything on this lead',
+      notesRead: 0 } });
+    const r = i.flush(v, {});
+    const row = r.rows.filter(x => x.detector === 'day-lock')[0];
+    return { delta: row.delta, vacuous: row.vacuous, probeOk: row.probeOk };
+  }, { delta: 'NO-CUSTOMER-TEXT', vacuous: true, probeOk: false });
+
+check('a REAL probe failure still reads NO-COMPREHENSION-VERDICT — the names now mean different things',
+  i => {
+    const v = Object.assign({}, ALL_USABLE, { 'day-lock': {
+      usable: false, reason: 'probe timed out after 4500ms', notesRead: 2 } });
+    const row = i.flush(v, {}).rows.filter(x => x.detector === 'day-lock')[0];
+    return { delta: row.delta, vacuous: row.vacuous };
+  }, { delta: 'NO-COMPREHENSION-VERDICT', vacuous: false });
+
+check('each detector states what IT was missing — one generic string was wrong for two of three',
+  i => {
+    // verbal-commit reads CALL NOTES (an agent's record of what the customer said aloud), not
+    // customer-authored text. The old shared string blamed a missing customer note when the real
+    // cause was that every call note was content-free.
+    const labels = ['verbal-commit', 'day-lock', 'off-franchise'].map(d =>
+      i.read('LP_FACT_DETECTORS[' + JSON.stringify(d) + '].emptyLabel'));
+    return { distinct: new Set(labels).size >= 2, commitMentionsCallNotes: /call note/i.test(labels[0]) };
+  }, { distinct: true, commitMentionsCallNotes: true });
+
+checkAsync('the vacuous path spends NO api call — that is why it settles in 0ms',
+  i => i.probe('day-lock', [], 'unused').then(r => ({ calls: r.payloads.length, vacuous: !!r.result.vacuous })),
+  { calls: 0, vacuous: true });
+
+check('a vacuous row is still POSTED — the lead state has to be countable',
+  i => {
+    const v = { 'verbal-commit': { usable: false, vacuous: true, reason: 'x', notesRead: 0 },
+                'day-lock':      { usable: false, vacuous: true, reason: 'x', notesRead: 0 },
+                'off-franchise': { usable: false, vacuous: true, reason: 'x', notesRead: 0 } };
+    return i.flush(v, {}).rows.length;
+  }, 3);
 
 check('the flush is dispatched once in the generate path',
   i => (i.src.replace(/^[ \t]*\/\/.*$/gm, '').match(/_lpFlushFactTelemetry\(\)/g) || []).length, 1);

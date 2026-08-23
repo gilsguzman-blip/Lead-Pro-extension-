@@ -276,12 +276,11 @@ pending.push(async () => {
   // SAFE_FALLBACK the proxy returned instead is valid JSON that simply has no "kind" key.
   // (v9.7.566) Nine now: Phase 3 adds AGREE-FIRED (both readers found the fact) and
   // NO-COMPREHENSION-VERDICT (the probe produced nothing usable, so there was no comparison).
-  one('the accepted delta set is exactly the nine the observers emit',
+  one('the accepted delta set is exactly the ten the observers emit',
     () => (proxySrc.match(/const CC_DELTAS = \[([\s\S]*?)\];/) || [, ''])[1]
       .match(/'[A-Z-]+'/g).map(x => x.replace(/'/g, '')),
     ['AGREE-COMMITMENT', 'AGREE-NONE', 'DISAGREE-REGEX-ONLY', 'DISAGREE-COMPREHENSION-ONLY',
-     'QUOTE-FABRICATED', 'NO-REGEX-VERDICT', 'PROBE-FAILED', 'AGREE-FIRED',
-     'NO-COMPREHENSION-VERDICT']);
+     'QUOTE-FABRICATED', 'NO-REGEX-VERDICT', 'PROBE-FAILED', 'AGREE-FIRED', 'NO-COMPREHENSION-VERDICT', 'NO-CUSTOMER-TEXT']);
   one('every delta the extension can emit is accepted by the endpoint — no silent 400s',
     () => {
       const accepted = (proxySrc.match(/const CC_DELTAS = \[([\s\S]*?)\];/) || [, ''])[1]
@@ -363,7 +362,9 @@ pending.push(async () => {
     () => /const vd\s+= cd\.verifiedDeltas \|\| cd\.deltas;/.test(reporterSrc)
        && /const agree\s+= vd\['AGREE-COMMITMENT'\] \+ vd\['AGREE-NONE'\] \+ \(vd\['AGREE-FIRED'\] \|\| 0\);/.test(reporterSrc), true);
   one('a row without probeOk===true is counted and then skipped, not silently dropped',
-    () => /if \(e\.probeOk !== true\) \{ unverifiedProbe\+\+; continue; \}/.test(reporterSrc), true);
+    // (v1.19) The line now excludes vacuous rows, which also carry probeOk:false. Asserting the
+    // OLD text would have re-pinned the double-count this build exists to remove.
+    () => /if \(e\.probeOk !== true\) \{ if \(!_vac\) unverifiedProbe\+\+; continue; \}/.test(reporterSrc), true);
   one('comparable is COUNTED in the loop, not derived by subtracting overlapping exclusions',
     () => /if \(e\.delta !== 'NO-REGEX-VERDICT' && e\.delta !== 'PROBE-FAILED'\) comparable\+\+;/.test(reporterSrc)
        && !/const comparable = cd\.total - noRegex;/.test(reporterSrc), true);
@@ -419,7 +420,12 @@ pending.push(async () => {
       // three not-a-comparison deltas. Nothing may be unaccounted for.
       const unaccounted = accepted.filter(d =>
         d.indexOf('AGREE') !== 0 && disagree.indexOf(d) < 0 &&
-        ['NO-REGEX-VERDICT', 'PROBE-FAILED', 'NO-COMPREHENSION-VERDICT'].indexOf(d) < 0);
+        // (v1.19) NO-CUSTOMER-TEXT joins the not-a-comparison group. It is the FOURTH such delta:
+        // there was nothing to read, so no comparison happened. It is excluded from both rates for
+        // the same reason as the others, but reported under its own tile because it is a lead
+        // state rather than a defect.
+        ['NO-REGEX-VERDICT', 'PROBE-FAILED', 'NO-COMPREHENSION-VERDICT',
+         'NO-CUSTOMER-TEXT'].indexOf(d) < 0);
       return unaccounted;
     }, []);
   one('disagreements deep-link to the lead via the v1.12 helper',
@@ -489,6 +495,39 @@ pending.push(async () => {
   one('...and the check is not vacuous — the section really was found',
     () => commitSection(out.html).length > 400, true);
 });
+
+
+// ── (v1.19 / v7.66) NO-CUSTOMER-TEXT — the common lead state, counted once ───────────────────
+// 8/23: 42 of 97 rows were leads where the customer had never written anything. All 42 were filed
+// as "Probe never answered", which reads as 42 defects. Not one was. These pin the split, and
+// specifically the DOUBLE-COUNT that nearly shipped with it: a vacuous row also carries
+// probeOk:false, so without an explicit exclusion the same rows land in BOTH the red
+// unanswered-probe tile and the grey no-customer-text tile.
+one('the proxy persists the structural flag rather than making the reporter parse prose',
+  () => /vacuous:\s+cc\.vacuous === undefined \? undefined : !!cc\.vacuous/.test(proxySrc), true);
+
+one('the reporter registers the delta key — without it the loop drops every such row',
+  () => /'NO-CUSTOMER-TEXT':0/.test(reporterSrc), true);
+
+one('...and _vac accepts EITHER the flag or the delta, so it works across the version boundary',
+  () => {
+    const m = reporterSrc.match(/const _vac = ([^;]+);/);
+    return m ? { flag: /e\.vacuous === true/.test(m[1]), delta: /NO-CUSTOMER-TEXT/.test(m[1]) } : null;
+  }, { flag: true, delta: true });
+
+one('the unanswered-probe tile now says defect, and the new tile says it is not one',
+  () => ({ defect: /asked, no answer — a defect/.test(reporterSrc),
+           benign: /nothing to read — correct "none", excluded from both rates/.test(reporterSrc) }),
+  { defect: true, benign: true });
+
+one('the vacuous tile is grey, not red — nothing is wrong on those leads',
+  () => {
+    const i = reporterSrc.indexOf("tile('No customer text'");
+    return i > 0 && /#6b7280/.test(reporterSrc.slice(i, i + 260));
+  }, true);
+
+one('rows written before v9.7.574 carry neither marker and are NOT retroactively reclassified',
+  () => /cannot be reclassified after the fact and are not guessed at/.test(reporterSrc), true);
 
 (async () => {
   for (const p of pending) await p();
