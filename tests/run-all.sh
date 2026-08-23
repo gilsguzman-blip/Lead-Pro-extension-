@@ -8,7 +8,7 @@ cd "$(dirname "$0")/.."
 
 DEV=builds/dev/popup.js
 COMM=builds/commercial/popup.js
-PROXY=${1:-worker/cloudflare-worker-v7.62.js}
+PROXY=${1:-worker/cloudflare-worker-v7.63.js}
 REPORTER=${2:-worker/leadpro-reporter-v1.18.js}
 DASH=$(ls dashboard*.html dashboard/*.html 2>/dev/null | head -1)
 
@@ -53,6 +53,7 @@ run note-types.test.js         "$DEV" "$COMM" "$PROXY" "$REPORTER"
 # safe-fallback-contract asserts on the PROXY as well as the extension — it belongs here,
 # not in the extension-only loop, where it silently tested whatever its default pointed at.
 run safe-fallback-contract.test.js "$DEV" "$COMM" "$PROXY"
+run regen-effort.test.js          "$DEV" "$COMM" "$PROXY"
 
 echo
 echo "worker / reporter suites:"
