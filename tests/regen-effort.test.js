@@ -224,8 +224,23 @@ pOne('an escalated request gets a bigger primary slice than 12000ms',
     return { ms: Number(v), biggerThanSpec: Number(v) > 12000 };
   }, { ms: 18000, biggerThanSpec: true });
 
+// (v7.65) THIS ASSERTION SHIPPED THE OUTAGE. It used to match the line verbatim, INCLUDING the
+// identifier `reasoningEffort` — a name that does not exist in the tier loop's scope. The regex
+// confirmed the typo was present and went green while the worker threw a ReferenceError on every
+// request. A regex proves a string is in a file; it cannot prove the file runs. The runtime
+// behaviour now lives in worker-smoke.test.js, which loads the worker and calls its handler.
+// What stays here is the SHAPE — primary-only, escalation-only — with the variable name left out
+// deliberately, because pinning the name is what pinned the bug.
 pOne('...and it applies to the PRIMARY tier only, and only on an escalation',
-  () => /const _escalated = spec\.tier === 'primary' && isEscalation\(reasoningEffort\);/.test(proxySrc), true);
+  () => {
+    const m = proxySrc.match(/const _escalated = spec\.tier === 'primary' && isEscalation\((\w+)\);/);
+    if (!m) return '(shape not found)';
+    // The identifier must be one the tier loop actually declares — checked, not assumed.
+    const loop = proxySrc.slice(proxySrc.indexOf('for (let i = 0; i < MODEL_CASCADE.length; i++)') - 4000,
+                                proxySrc.indexOf('const _escalated'));
+    return new RegExp('(const|let|var)\\s+' + m[1] + '\\s*=').test(loop)
+      ? 'declared-in-scope' : 'UNDECLARED: ' + m[1];
+  }, 'declared-in-scope');
 
 pOne('the total budget is NOT raised — the trade is the emergency tier, deliberately',
   () => (proxySrc.match(/const TOTAL_BUDGET_MS\s*=\s*(\d+);/) || [])[1], '24000');
