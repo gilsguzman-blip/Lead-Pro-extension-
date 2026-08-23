@@ -1,35 +1,45 @@
 #!/usr/bin/env node
 'use strict';
 /**
- * regen-effort.test.js — v9.7.573 + proxy v7.63. REGEN ESCALATES THE DRAFT'S REASONING EFFORT.
+ * regen-effort.test.js — v9.7.575 + proxy v7.66. THE ESCALATION IS GONE; THE RAILS REMAIN.
  *
- * ── WHY A REGEN IS THE RIGHT TRIGGER, AND A DIFFICULTY SCORE IS NOT ───────────────────────
- * A regen is not an inference about difficulty. It is direct evidence: a human read the draft and
- * judged the first reading wrong. It is the only signal on this surface that is a human decision
- * rather than a heuristic — which is why it ships, and why a flag-count "lead difficulty score"
- * does not. That would be a heuristic standing in for judgment upstream of the model, the same
- * shape as every manufactured-directive bug this month, and its failures would be INVISIBLE:
- * an under-reasoned hard lead produces a slightly worse draft that an agent edits and sends,
- * which the feedback pipeline records as a success.
+ * ── WHAT THIS SUITE USED TO PIN, AND WHY IT CHANGED ───────────────────────────────────────
+ * v9.7.573 raised a regen's draft to reasoningEffort:'high', on the reasoning that a regen is the
+ * one signal on this surface that is a HUMAN DECISION rather than a heuristic — a person read the
+ * draft and judged the first read wrong. That reasoning still holds. The COST did not survive
+ * contact with real numbers.
  *
- * ── THE HISTORY THIS SUITE EXISTS TO PREVENT REPEATING ────────────────────────────────────
- * v9.7.219 removed a complexity reasoning router:
+ * MEASURED on this prompt shape (~62k chars) against gpt-5.6-luna:
+ *   'low'   ≈ 6.4s to a finished draft
+ *   'high'  13.9s / 14.4s / 15.1s / 17.1s successful, plus timeouts at the 18000ms ceiling
  *
- *   "Live logs showed medium reasoning blew through the entire cascade — PRIMARY timing out at
- *    10000ms, FALLBACK also timing out, leads landing on SAFE_FALLBACK after 23s."
+ * So the escalation roughly TRIPLED the wait on the one interaction where the agent is already
+ * unhappy, and 18000ms was not a comfortable ceiling — it sat in the middle of the tail, which is
+ * why raising the budget again was refused rather than repeated.
  *
- * So 'medium' is not an untried middle rung. It has been run on this exact task and it exhausted
- * all three tiers. But the root cause was not that medium is too slow for the primary tier — it
- * was that the elevated effort applied to EVERY tier, so the recovery tiers were reasoning hard
- * too and could not cover the hole the primary left.
+ * And no quality signal ever arrived to pay for it. Every escalated sample captured was a FORCED
+ * test rather than natural agent behaviour, so the feedback pipeline never produced a comparison.
+ * The operator's read is that Luna is good enough at 'low' and that medium/high make little
+ * difference to output quality here — consistent with the absence of any measured gain. Eleven
+ * extra seconds for an unmeasurable difference is the wrong trade, so the experiment is dropped.
  *
- * Proxy v7.63 makes that structurally unreachable: an effort ABOVE the baseline is primary-tier
- * only. A regen gets one high-effort attempt on the full primary budget; if it times out the
- * fallback answers at 'low' and the agent gets a real draft. A slow escalation now costs latency,
- * never a SAFE_FALLBACK. THAT is what this suite pins.
+ * The constants are REMOVED rather than switched off: a dormant flag invites someone to flip it
+ * without re-reading the numbers above.
  *
- * An effort AT OR BELOW the baseline — the probes' 'none' — must still apply to every tier,
- * because it makes the recovery tiers faster rather than slower. Asserted separately.
+ * ── WHAT THIS SUITE PINS NOW, AND IT IS THE IMPORTANT HALF ────────────────────────────────
+ * The PROXY RAILS STAY ARMED. v7.63's tier guard and v7.64's escalated budget are NOT experiment
+ * scaffolding — they protect ANY caller from re-creating the v9.7.219 failure:
+ *
+ *   "medium reasoning blew through the entire cascade — PRIMARY timing out at 10000ms, FALLBACK
+ *    also timing out, leads landing on SAFE_FALLBACK after 23s."
+ *
+ * That happened because the elevated effort applied to EVERY tier, so the recovery tiers were
+ * reasoning hard too and could not cover the hole the primary left. With nothing escalating today
+ * the rails simply go quiet — and a quiet rail is exactly the kind that rots unnoticed, so every
+ * one of them is still asserted here. If a future caller sends an above-baseline effort, it must
+ * still reach the primary tier ONLY.
+ *
+ * The probes' 'none' must still reach every tier, because it makes recovery FASTER, not slower.
  *
  * Sliced out of the SHIPPED files. Both builds must agree.
  */
@@ -61,7 +71,11 @@ const W = (() => {
   };
 })();
 
-const impls = BUILDS.map(f => ({ name: path.basename(path.dirname(f)), src: fs.readFileSync(f, 'utf8') }));
+// Comment lines removed. Assertions in this repo have repeatedly matched their OWN
+// explanatory prose — a scan for `reasoningEffort` hits the paragraph explaining why
+// reasoningEffort was removed. Scan CODE, never the commentary about it.
+const stripComments = (t) => t.replace(/^\s*(\/\/|\*|\/\*).*$/gm, '');
+const impls = BUILDS.map(f => ({ name: path.basename(path.dirname(f)), src: fs.readFileSync(f, 'utf8'), code: stripComments(fs.readFileSync(f, 'utf8')) }));
 
 let pass = 0, fail = 0;
 function report(name, results, want) {
@@ -83,42 +97,41 @@ function pOne(name, fn, want) {
   else { fail++; console.log('  FAIL ' + name + '\n        expected ' + JSON.stringify(want) + '\n        got      ' + got); }
 }
 
-console.log('\nv9.7.573 + v7.63 — a regen thinks harder, and only the primary tier does');
+console.log('\nv9.7.575 + v7.66 — the escalation is gone; the rails that made it safe remain');
 console.log('builds under test: ' + impls.map(i => i.name).join(', ') + '\n');
 
-// ── The extension side ────────────────────────────────────────────────────────
-console.log('the extension: the trigger is a human decision, not a guess');
+// ── The extension side: it must send NOTHING ──────────────────────────────────
+console.log('the extension: a regen is now byte-identical to a first-pass draft');
 
-check('the escalation ships ON, at "high"', i => ({
-  on:    /var LEADPRO_REGEN_ESCALATE = true;/.test(i.src),
-  level: (i.src.match(/var LEADPRO_REGEN_EFFORT\s*=\s*'([a-z]+)'/) || [])[1]
-}), { on: true, level: 'high' });
+check('the escalation constants are GONE, not merely switched off', i => ({
+  escalate: /var LEADPRO_REGEN_ESCALATE\s*=/.test(i.src),
+  effort:   /var LEADPRO_REGEN_EFFORT\s*=/.test(i.src)
+}), { escalate: false, effort: false });
 
-check('it is gated on _isRegenSession — the human signal, nothing else',
-  i => /if \(LEADPRO_REGEN_ESCALATE && _isRegenSession\) \{/.test(i.src), true);
+check('NOTHING sets reasoningEffort on the draft payload any more',
+  i => (i.code.match(/payload\.generationConfig\.reasoningEffort/g) || []).length, 0);
 
-check('the effort lands INSIDE the draft payload\'s generationConfig',
-  i => /payload\.generationConfig\.reasoningEffort = LEADPRO_REGEN_EFFORT;/.test(i.src), true);
-
-check('a NON-regen sends no effort field at all — the baseline path is untouched',
+check('the draft payload carries no effort field at all — the worker default governs',
   i => {
-    // The only assignment of reasoningEffort onto the draft payload must be inside the regen gate.
-    const gate = i.src.indexOf('if (LEADPRO_REGEN_ESCALATE && _isRegenSession) {');
-    const asg  = i.src.indexOf('payload.generationConfig.reasoningEffort');
-    return { inside: asg > gate, only: (i.src.match(/payload\.generationConfig\.reasoningEffort/g) || []).length };
-  }, { inside: true, only: 1 });
+    // The generationConfig literal the draft is built from must not mention the field.
+    const a = i.code.indexOf('maxOutputTokens:  2500,');
+    return a > 0 && /reasoningEffort/.test(i.code.slice(a - 400, a + 400));
+  }, false);
 
-check('the escalation is logged every time it happens',
-  i => /\[LP REGEN EFFORT\] regen detected — draft asks for reasoningEffort:/.test(i.src), true);
+check('the removal is DOCUMENTED with the numbers, so it is not re-litigated from scratch',
+  i => ({
+    cites:   /'high'\s+13\.9s, 14\.4s, 15\.1s, 17\.1s successful|13\.9s, 14\.4s, 15\.1s, 17\.1s/.test(i.src),
+    saysWhy: /LEADPRO_REGEN_ESCALATE and LEADPRO_REGEN_EFFORT are gone rather than left/.test(i.src)
+  }), { cites: true, saysWhy: true });
 
-check('...and a regen with the switch OFF says so rather than going silent',
-  i => /regen detected but LEADPRO_REGEN_ESCALATE is OFF/.test(i.src), true);
+check('the probes are UNTOUCHED — they still ask for none',
+  i => (i.code.match(/reasoningEffort: 'none'/g) || []).length, 2);
 
-check('the probes are NOT touched — they still ask for none',
-  i => (i.src.match(/reasoningEffort: 'none'/g) || []).length, 2);
+check('the probe payloads are the ONLY place the extension names an effort',
+  i => (i.code.match(/reasoningEffort:/g) || []).length, 2);
 
 // ── The proxy side: the v9.7.219 guard ────────────────────────────────────────
-console.log('\nthe proxy: an escalation reaches the primary tier and NO other');
+console.log('\nthe proxy rails — dormant now, and asserted still armed:');
 
 pOne('the baseline it escalates from is "low", set by the worker',
   () => W.BASE, 'low');
