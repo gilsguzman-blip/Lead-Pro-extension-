@@ -177,6 +177,45 @@ check('every angle also logs its own evidence line, so a bad match is visible',
     return /\[LP ARC ANGLE\] trade <- "trade"/.test(i.diag(s));
   }, true);
 
+// ── (v9.7.580) THE WIRING, NOT THE PIECES ────────────────────────────────────────────────
+// Both halves of this feature worked in isolation from the day they shipped — log140 shows
+// "[LP ARC STATE DIAG] ... rendered:3 fact(s)" — and the block STILL never reached a prompt,
+// because the WIRING threw twice in a row:
+//   v9.7.578  "m is not defined"                 — I referenced two fields that do not exist
+//   v9.7.579  "Assignment to constant variable"  — userPrompt was `const` and this appends to it
+// The second was invisible until the first was cleared. This suite passed 18/18 through both,
+// because every assertion in it exercised _lpBuildArcState and _lpRenderArcState directly and
+// nothing exercised the SITE THAT CALLS THEM. Same lesson as the v7.64 proxy crash and the v1.20
+// reporter orphan: prove it RUNS, not that the parts exist.
+console.log('\nthe wiring — the part that was broken while the pieces worked:');
+
+check('the prompt binding the block appends to is MUTABLE',
+  i => {
+    const at = i.src.indexOf('userPrompt += _arcBlock');
+    if (at < 0) return 'append site not found';
+    // Walk back to the declaration that governs it.
+    const decl = i.src.lastIndexOf('userPrompt = buildUserPrompt({', at);
+    if (decl < 0) return 'declaration not found';
+    const kw = i.src.slice(Math.max(0, decl - 12), decl).trim().split(/\s+/).pop();
+    return kw;
+  }, 'let');
+
+check('...and the OTHER userPrompt (voicemail) is untouched — it is appended to by nothing',
+  i => {
+    const vm2 = i.src.indexOf('userPrompt = buildUserPrompt(_vmPromptData)');
+    const kw = i.src.slice(Math.max(0, vm2 - 12), vm2).trim().split(/\s+/).pop();
+    return kw;
+  }, 'const');
+
+check('the append is guarded so an empty block never appends a bare header',
+  i => /if \(_arcBlock\) userPrompt \+= _arcBlock;/.test(i.code), true);
+
+check('the wiring reads fields that EXIST — not the two v9.7.578 invented',
+  i => ({
+    invented: /m\.inboundCount|m\.outboundCount/.test(i.code),
+    real:     /lastScrapedData\.consecutiveOutboundNoReply/.test(i.code)
+  }), { invented: false, real: true });
+
 console.log('\ncontainment:');
 
 check('the arc code sits OUTSIDE inlineScraper — the v9.7.455/228 scope trap',
