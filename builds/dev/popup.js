@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.576-dev (DEV. OFF-FRANCHISE IS ABOUT NEW CARS, AND THE PROBE DID NOT KNOW THAT. Extension only; proxy v7.66 and reporter v1.21 unchanged. THE INCIDENT: 8/24 produced exactly two DISAGREE-COMPREHENSION-ONLY rows and BOTH were FALSE POSITIVES where the regex was correctly silent -- the reverse of the Gladiator day. (1) lead 2049868669, Audi Lafayette: comprehension flagged 'Hyundai' on the quote 'Is your Used 2025 Hyundai Sonata SEL listed for $23,448.00 still available?' -- the customer asking about OUR listed unit at OUR price. (2) lead 2072414751, Honda Baytown: comprehension flagged 'BMW' when the lead's own VOI IS a 2024 BMW 4 Series M440i xDrive (Pre-Owned), confirmed in stock, Stock #TA035651A. Neither customer was shopping another franchise; both were asking about a car the store has on its lot. THE PRINCIPLE, and it is the operator's framing rather than mine: A FRANCHISE CONSTRAINT IS ABOUT NEW CARS. A Honda store cannot sell, order or dealer-trade a NEW BMW. It sells USED ones off its own lot constantly, mostly trades. So 'the customer named a make we do not franchise' was never the question -- 'the customer wants a NEW car we cannot source' is. THE REGEX READER HAS HAD THIS RIGHT SINCE IT SHIPPED: `if (_ofSaidNew || (_ofUnits && _ofMatch.length === 0))` -- fire only when they said NEW near the make, or when we hold zero units of it. The COMPREHENSION probe had none of it; its prompt asks the strictly broader 'did the customer ask about a different manufacturer?', which both customers truthfully had. The model was not misreading anything. It was answering a question that is not the one this detector is for -- the manufactured-directive class, one level up. A VOI-MAKE COMPARISON WOULD HAVE FIXED ONLY ONE OF THE TWO, and this is why the obvious cheap fix was rejected: it catches the BMW (VOI make matches) and sails straight past the Hyundai, whose lead carries NO VOI AT ALL -- [LP VOI DIAG] parsed:\"\" on every frame in log138. The gate has to be inventory-and-condition aware, not VOI-aware. Asserted in-suite so it is not proposed again. THE FIX, AND IT IS AN EXTRACTION RATHER THAN A NEW IMPLEMENTATION: the two conditions the regex already applied are lifted verbatim into _lpOffFranchiseGate(make, text, dealerId, cache) -- ONE definition, asserted exactly one. The regex path now CALLS it (its behaviour is unchanged; the same two tests it always passed still pass) and the comprehension path calls it from the detector's fired() predicate, so a probe answer is recorded verbatim but only COUNTS as fired when the gate agrees. That is the _lpCustomerAuthoredPart lesson: the correct logic already existed, so make the second reader consult it rather than write a copy that can drift. The probe PROMPT also states the rule now, so the model is asked the right question in the first place rather than merely corrected afterwards -- the deterministic gate remains the guarantee. Both readers log [LP OFF-FRANCHISE GATE] with the verdict AND the reason, so a suppression is never silent. INVENTORY UNKNOWN DOES NOT FIRE, deliberately: a failed valuefact fetch must not manufacture an off-franchise directive. That is the v9.7.483 posture and the safer side of the trade -- a missed catch costs a weaker message, a false catch tells a customer we cannot sell them a car we have on the lot. THREE FAULTS FOUND WHILE BUILDING IT, all mine and all caught by tests rather than review. (1) THE SCOPE TRAP AGAIN: the first version logged via _lpD, which is declared INSIDE inlineScraper and does not exist at module scope where the regex block runs -- a ReferenceError that would have killed the prompt build, the v9.7.455/228 trap and the same shape as the v7.64 proxy crash. Now console.log, and asserted. (2) THE GATE LANDED EIGHT LINES ABOVE THE SPAN the off-franchise suite extracts, so the regex path called an undefined function and the suite's own CONTROL test went silent -- relocated inside the span and the boundary is asserted. (3) THE HELPER REACHED FOR A GLOBAL IT DID NOT NAME: it read module-scope _lpValueFactCache, while the suite wraps the guard in a function declaring its OWN local one, so the gate saw no inventory and never fired -- and its try/catch turned that into a quiet fires:false that reads exactly like the feature working. The cache is now an ARGUMENT. Production was never affected by any of the three, but the third is a real design fault and the fix is strictly better. VERIFIED 61/61 in the off-franchise suite (17 new) plus all 36 suites green (1,252 assertions), dev===comm on every case. NON-VACUOUS: run against v9.7.575 the suite fails 17 ways. Both 8/24 leads are asserted by name to stop firing; a NEW off-brand ask is asserted to fire EVEN WHEN we hold used units of that make; the Gladiator shape (off-brand, zero units) still fires; unknown inventory does not; 'new' must sit near the make so 'I am new to the area' does not trigger it; chevy/vw/benz aliases resolve; the gate is asserted defined ONCE, called by BOTH readers, handed the cache, living outside inlineScraper, and logging through console.log rather than _lpD. WHAT THIS MIGHT BREAK, PLAINLY: the regex path's behaviour is unchanged -- same two conditions, now in a named function -- and its two existing tests prove it. The comprehension path gets STRICTER: it will fire less often, and the rows it stops firing on are the ones that were wrong. Every authoritative flag is still OFF, so no customer-facing message changes either way. Off-franchise remains the detector to flip LAST: it now has two documented false positives where the regex was right, and its failure mode is promising a customer something we cannot deliver. node --check clean on both builds; both manifests parse; the gate is outside inlineScraper, verified against the file's own marker. Builds on v9.7.575-dev.)
 // Lead Pro -- popup.js  v9.7.575-dev (DEV. THE REGEN REASONING ESCALATION IS REMOVED. LATENCY WINS. Extension only; proxy v7.66 and reporter v1.19 unchanged and NOT redeployed. WHAT IS GONE: v9.7.573 raised a regen's draft to reasoningEffort:'high'. The TRIGGER reasoning still holds -- a regen is the one signal on this surface that is a human decision rather than a heuristic, because a person read the draft and judged the first read wrong. The COST did not survive contact with real numbers. MEASURED, on this prompt shape (~62k chars) against gpt-5.6-luna: 'low' reaches a finished draft in about 6.4s; 'high' was observed at 13.9s, 14.4s, 15.1s and 17.1s SUCCESSFUL, plus timeouts at the 18000ms ceiling. The escalation therefore roughly TRIPLED the wait an agent feels on the one interaction where they are already unhappy, and 18000ms was never a comfortable ceiling -- a 17.1s success lands with under a second of headroom, which puts the budget in the MIDDLE of the tail rather than past it. That is why the answer was not to buy more budget again. AND NOTHING EVER ARRIVED TO PAY FOR IT. Every escalated sample captured was a FORCED test rather than natural agent behaviour, so the feedback pipeline never produced a quality comparison in either direction. The operator's read is that Luna is good enough at 'low' and that medium and high make little difference to output quality on this task -- which is consistent with the complete absence of any measured gain. Eleven extra seconds for a difference nobody can measure is the wrong trade, so the experiment is dropped rather than re-tuned to 'medium'. THE CONSTANTS ARE REMOVED, NOT SWITCHED OFF. LEADPRO_REGEN_ESCALATE and LEADPRO_REGEN_EFFORT are deleted along with the payload block. A dormant flag invites someone to flip it back without re-reading the numbers above; deleting it makes re-introduction a deliberate act. A regen now sends NO effort field at all -- byte-identical to a first-pass draft -- and takes the worker default of 'low'. The two PROBE payloads are untouched and still ask for 'none'. WHAT DELIBERATELY STAYS, and it is the important half: THE PROXY RAILS. v7.63's primary-tier-only guard and v7.64's escalated primary budget are NOT experiment scaffolding. They protect ANY caller from re-creating the v9.7.219 failure -- 'medium reasoning blew through the entire cascade, PRIMARY timing out at 10000ms, FALLBACK also timing out, leads landing on SAFE_FALLBACK after 23s' -- which happened because the elevated effort applied to EVERY tier, so the recovery tiers were reasoning hard too and could not cover the hole the primary left. With nothing escalating today those rails simply go quiet, and a quiet rail is exactly the kind that rots unnoticed, so every one is still asserted. The proxy is NOT redeployed for this build. VERIFIED 26/26 in the rebuilt regen-effort suite plus all 35 suites green (1,208 assertions), dev===comm on every case. The suite is asserted NON-VACUOUS: run against the v9.7.573 build it fails 5 ways, so a re-introduction cannot pass silently. Asserted: both constants absent; ZERO assignments of reasoningEffort onto the draft payload; the draft's generationConfig literal does not mention the field; the removal rationale carries the measured numbers so it is not re-litigated from scratch; the probes still ask for 'none' and are the ONLY place the extension names an effort at all; and separately, every proxy rail still resolves correctly -- an above-baseline effort still reaches the primary tier ONLY, no caller-named effort can slow any tier below primary, and 'none' still reaches every tier because it makes recovery faster rather than slower. THREE OF MY OWN TEST ERRORS, RECORDED BECAUSE THEY ARE THE SAME SHAPE. Two new assertions scanned raw source and matched THEIR OWN explanatory prose -- a scan for reasoningEffort hit the paragraph explaining why reasoningEffort was removed. Fixed with a shared stripComments helper rather than another one-off, since this file has now made that mistake three times. The third was worse and was in the VERIFICATION step: the first non-vacuity run pointed at a fixture named old573.js, which does not match the suite's /popup\.js$/ argument filter, so the suite exited on usage and printed zero failures -- and zero failures read as 'the test does not catch it'. A vacuous check of a vacuous check. Re-run from a correctly named path it fails 5 ways as intended. WHAT THIS MIGHT BREAK, PLAINLY: regens get FASTER and nothing else changes. Non-regen traffic was already byte-identical. No proxy or reporter change is needed and none should be deployed for this build. node --check clean on both builds; both manifests parse. Builds on v9.7.574-dev.)
 // Lead Pro -- popup.js  v9.7.574-dev (DEV. NOTHING TO READ IS AN ANSWER, NOT A FAILURE. Pairs with proxy v7.66 and reporter v1.19. THE REPORT WAS CALLING THE MOST COMMON LEAD STATE A DEFECT. On 8/23, 42 of 97 comprehension rows landed under the tile 'Probe never answered', which reads as 42 broken probe calls. NOT ONE was broken. Those are leads where the customer has NEVER WRITTEN ANYTHING -- Malaka Phillips (Community Honda Lafayette, 8/23) is the type case: 1 inbound / 7 outbound, every note either an outbound text or a content-free call note ('hung up', 'No'). Zero-customer-response is one of the most common states in a BDC queue, not an edge case. WHY IT WAS NEVER A CORRECTNESS BUG, stated plainly because it is the thing that matters: a customer who has never written anything CANNOT have named a day or mentioned an off-brand vehicle. The absence of input IS a determinate 'none', reached correctly and without spending an API call -- which is why those probes settle in 0ms. The regex finds nothing on these leads either, so no directive is fabricated, and an authoritative flag being ON would produce a BYTE-IDENTICAL message. That last point also answers the sampling worry: drawing the comprehension corpus only from customer-replied leads is not a bias, because those are the ONLY leads where flipping a flag can change anything. TWO REAL DEFECTS FIXED. (1) ONE HARDCODED REASON STRING FOR THREE DETECTORS WITH THREE DIFFERENT INPUTS. The abstention returned 'no customer-authored notes to read' for all of them -- and verbal-commit does not read customer-authored text AT ALL. It reads CALL NOTES, an agent's record of what the customer said aloud, which is the entire point of that detector. On Malaka it abstained because every call note was content-free, and the log blamed a missing customer note. Each detector now carries its own emptyLabel and states what IT was missing. (2) 'NOTHING TO READ' WAS ROUTED THROUGH THE SAME _fail() AS A TIMEOUT, A BAD JSON BODY OR A MISSING ENDPOINT, so a correct answer was indistinguishable from a broken call. A new vacuous marker separates them, a new NO-CUSTOMER-TEXT delta carries it to the proxy, and NO-COMPREHENSION-VERDICT now means what its name says: the probe WAS asked and did not answer, which is a defect worth chasing. IT STAYS OUT OF THE AGREEMENT RATE, deliberately. A row where there was nothing to comprehend is not a test of comprehension, and folding it in would inflate the rate with rows that tested nothing. It is now labelled truthfully instead of being filed next to real failures. The 83% agreement figure on the 8/23 report was already computed correctly; only the exclusion's NAME was wrong. PROXY v7.66 accepts the delta and persists a structural `vacuous` flag so the reporter never has to pattern-match reason prose. REPORTER v1.19 splits the single tile in two -- 'Probe never answered' stays RED and now reads 'asked, no answer -- a defect'; a new grey 'No customer text' tile reads 'nothing to read -- correct none, excluded from both rates'. A DOUBLE-COUNT CAUGHT BEFORE IT SHIPPED: a vacuous row also carries probeOk:false, so without an explicit exclusion the SAME 42 rows would have appeared in both the red tile and the grey one. The reporter now excludes them from unverifiedProbe, accepting EITHER the structural flag or the delta so it works across the version boundary. Rows written before v9.7.574 carry neither and are deliberately NOT reclassified after the fact -- they cannot be, and they are not guessed at. AN EXISTING ASSERTION CAUGHT MY GAP, which is the reporter v1.18 lesson repeating: 'every delta the proxy accepts is classified by the reporter as exactly one of agree / disagree / neither' failed with ['NO-CUSTOMER-TEXT'] because I added a delta without placing it. It is now the FOURTH not-a-comparison delta, named in the positive list rather than left to fall through. VERIFIED 89/89 in the Phase 3 suite (6 new) plus all 35 suites green (1,209 assertions), dev===comm on every case. Asserted: a vacuous lead yields NO-CUSTOMER-TEXT with vacuous:true; a REAL probe failure still yields NO-COMPREHENSION-VERDICT with vacuous:false, so the two names now mean different things; the three emptyLabels are distinct and verbal-commit's names call notes; the vacuous path makes ZERO api calls; a vacuous row is still POSTED so the lead state stays countable; and the reporter's double-count exclusion is pinned by its exact shape -- the OLD text is deliberately not asserted, because re-pinning it would have re-pinned the bug. WHAT THIS MIGHT BREAK, PLAINLY: nothing customer-facing, and no rate moves. The persisted row gains one boolean; both key-set assertions were updated on purpose rather than loosened. If the proxy is deployed WITHOUT the extension, no NO-CUSTOMER-TEXT rows are produced and the report behaves exactly as it does today. If the EXTENSION ships without the proxy, the new delta is rejected by the allow-list and those rows are dropped -- so DEPLOY THE PROXY FIRST. node --check clean on both builds, the proxy and the reporter; both manifests parse. Builds on v9.7.573-dev.)
 // Lead Pro -- popup.js  v9.7.573-dev (DEV. A REGEN THINKS HARDER, AND ONLY THE PRIMARY TIER DOES. Pairs with proxy v7.63; reporter v1.18 unchanged. THE TRIGGER: a regen is not a heuristic guess at difficulty -- it is DIRECT EVIDENCE that a human read the draft and judged the first reading wrong. It is the only signal on this surface that is a human decision rather than an inference, which is why it ships and a flag-count 'lead difficulty score' does not. That would be a heuristic standing in for judgment upstream of the model -- the same shape as every manufactured-directive bug this month -- and its failures would be INVISIBLE: an under-reasoned hard lead produces a slightly worse draft that an agent edits and sends, which the feedback pipeline records as a success. Note also that activeFlags is NOT the auto-detected situation set; it is the agent's manual chip set (trade, distance, credit, loyalty, stalled), so a flag-count tier would need a collection that does not exist yet and must be costed as a real build, not a freebie. PRIOR ART, AND IT NEARLY MADE THIS A BAD IDEA. v9.7.219 removed a complexity reasoning router because 'medium reasoning blew through the entire cascade -- PRIMARY timing out at 10000ms, FALLBACK also timing out, leads landing on SAFE_FALLBACK after 23s'. So 'medium' is not an untried middle rung: it has been run on this exact task and it exhausted all three tiers. But the root cause was NOT that medium is too slow for the primary tier -- it was that the elevated effort applied to EVERY tier, so the recovery tiers were reasoning hard too and could not cover the hole the primary left. An expensive draft became no draft at all. THE FIX THAT MAKES ESCALATION SURVIVABLE (proxy v7.63): an effort ABOVE the baseline is PRIMARY-TIER ONLY. A regen gets one high-effort attempt on the full primary budget; if it times out the fallback answers at 'low' and the agent still gets a real draft. The v9.7.219 failure mode is now structurally unreachable -- a slow escalation costs latency, never a SAFE_FALLBACK. An effort AT OR BELOW the baseline (the probes' 'none') still applies to every tier, because it makes the recovery tiers FASTER, not slower; asserted separately so the guard cannot swallow the probes. WHY 'high' AND NOT 'medium': this is a FIRST EXPERIMENT asking whether more reasoning helps LP's drafting task AT ALL, and regens are rare -- zero in log132's 8 generations -- so a one-rung change risks an effect too small to read against that sample. Maximum contrast answers the question cheapest: if 'high' shows nothing then 'medium' almost certainly shows nothing and the question is closed; if it helps, walk it DOWN to find the cheapest level that keeps the gain. This is explicitly NOT a claim that 'high' is the right steady state. A PREMISE WORTH CORRECTING, because it is easy to get backwards: 'medium' is not the model default. The GPT-5.4/5.6 family default is 'none', and LP's draft baseline is 'low' set by the WORKER (the popup sends no effort field for drafts). So this is a two-rung move from LP's real baseline, not a nudge to a default. WHAT WOULD MAKE THIS WRONG, STATED UP FRONT: every incident this month has been the model OVER-INFERRING -- a day-lock from a Yahoo header, a bereavement from 'is passing', an off-franchise from the letters inside 'Timeframe'. More reasoning on a task whose failures are hallucinated inference could plausibly make it WORSE. The experiment must be able to show that, so [LP REGEN EFFORT] logs the level on every regen and the outcome is readable in the existing feedback pipeline. Two constants control it: LEADPRO_REGEN_EFFORT sets the level and LEADPRO_REGEN_ESCALATE switches it off. A REAL DEFECT MY OWN SUITE CAUGHT, and it is the fourth of this shape: the first version of the v7.63 guard ran the escalation clamp BEFORE the 'tier takes no reasoning_effort' test, so the non-reasoning emergency tier (gpt-4.1-nano) would have been sent reasoning_effort:'low' -- reintroducing one layer up the exact bad-field-on-a-non-reasoning-model failure that v7.61 added TIER_EFFORTS to prevent. Order now fixed and commented; caught by a test, not by review. VERIFIED 19/19 in a new regen-effort suite plus all 34 suites green (1,172 assertions), dev===comm on every case. Asserted: the escalation is gated on _isRegenSession and nothing else; it is the ONLY assignment of reasoningEffort onto the draft payload, so a non-regen still sends no field; 'high' reaches the primary tier intact; that same 'high' does NOT reach fallback or emergency, and the note explains why and cites v9.7.219; NO effort a caller can name can slow any tier below primary (medium/high/xhigh/max all resolve to 'low' there); 'none' is NOT treated as an escalation and still reaches every tier; isEscalation is asserted to be a real comparison against the baseline rather than a hardcoded list; and the pre-v7.63 behaviour is REPRODUCED in-test to prove the guard is what changed it. WHAT THIS MIGHT BREAK, PLAINLY: only regens change, and only their primary-tier attempt. Worst case is a regen that takes the full primary budget, times out, and is answered by the fallback at 'low' -- slower than today, but a real draft rather than a placeholder. Non-regen traffic is byte-identical. DEPLOY THE PROXY FIRST -- against v7.62 or older there is no tier guard, so 'high' would reach the fallback tier and that is precisely the v9.7.219 configuration. node --check clean on both builds and the proxy; both manifests parse. Builds on v9.7.572-dev.)
@@ -1400,7 +1401,25 @@ var LP_FACT_DETECTORS = {
     flagAuth:    function () { return LEADPRO_OFFFRANCHISE_AUTHORITATIVE; },
     system: 'You extract one fact from a customer message and answer in JSON. You never guess and never paraphrase.',
     build: function (notes, kinds, opts) { return _lpBuildOffFranchiseProbe(notes, opts); },
-    fired: function (p) { return !!p.make; }
+    // (v9.7.576) THE SAME GATE THE REGEX APPLIES. Without this the probe answers a strictly
+    // broader question than the detector is for — "did they name another make?" instead of "do
+    // they want a NEW car we cannot source?" — and on 8/24 that produced two false positives on
+    // used cars sitting in the store's own inventory, both times where the regex was correctly
+    // silent. The probe's answer is still recorded verbatim; what changes is whether it counts as
+    // FIRED. opts carries the dealerId and the customer text the gate needs.
+    fired: function (p, opts) {
+      if (!p || !p.make) return false;
+      try {
+        if (typeof _lpOffFranchiseGate !== 'function') return !!p.make;
+        var g = _lpOffFranchiseGate(p.make, (opts && opts.gateText) || (p.quote || ''),
+                                    (opts && opts.dealerId) || '');
+        try {
+          console.log('[LP OFF-FRANCHISE GATE] make:' + p.make
+            + ' | ' + (g.fires ? 'FIRES' : 'suppressed') + ' — ' + g.reason + ' | reader:comprehension');
+        } catch (eL) {}
+        return !!g.fires;
+      } catch (e) { return !!p.make; }
+    }
   }
 };
 
@@ -1464,7 +1483,20 @@ function _lpBuildOffFranchiseProbe(notes, opts) {
     + '- THE CUSTOMER\'S OWN CAR IS NOT A REQUEST. A trade-in, a current vehicle or a car they '
     + 'already own is almost always a different make and is NOT them asking to buy one.\n'
     + '- A make the DEALERSHIP mentioned, in a quoted email or an agent note, is not the customer '
-    + 'asking about it.\n\n'
+    + 'asking about it.\n'
+    // (v9.7.576) THE QUESTION THIS DETECTOR IS ACTUALLY FOR. A franchise constraint is about NEW
+    // cars: this store cannot sell, order or dealer-trade a NEW car of another make. It can and
+    // does sell USED cars of every make off its own lot, mostly trades. Asking about one of those
+    // is an inventory question, not a competitor request — and on 8/24 the probe called two of
+    // them off-franchise while the regex was correctly silent. The deterministic gate in
+    // _lpOffFranchiseGate is the guarantee; this rule is here so the model is asked the right
+    // question in the first place rather than merely corrected afterwards.
+    + '- ASKING ABOUT A USED CAR OF ANOTHER MAKE IS NORMAL AND IS NOT WHAT THIS QUESTION MEANS. '
+    + 'A dealership stocks used cars of every manufacturer, mostly from trade-ins. A customer '
+    + 'asking whether a specific USED or PRE-OWNED vehicle is available — especially phrased as '
+    + '"your" car, with a listed price, or "still available" — is asking about a car this store '
+    + 'may already have on the lot. That is an inventory question. Answer null unless they are '
+    + 'asking for a NEW vehicle of the other make.\n\n'
     + 'MESSAGES:\n' + lines.join('\n') + '\n\n'
     + 'Respond with ONLY this JSON and nothing else: '
     + '{"make":"<the manufacturer name, or null>","note":<the message number, or null>,'
@@ -1580,7 +1612,9 @@ function _lpRunFactProbe(detId, notes, deps) {
           return { usable: false, reason: 'response carries no "' + answerKey + '" field — not a probe answer' };
         }
 
-        var fired = det.fired(parsed);
+        // (v9.7.576) opts reaches fired() so off-franchise can apply the same inventory+NEW gate
+        // the regex applies. The other two detectors ignore the argument.
+        var fired = det.fired(parsed, deps.opts || {});
         var quote = parsed.quote == null ? '' : String(parsed.quote);
         // RAIL 2. A firm answer with no literally verified quote is not usable, full stop. Note
         // the asymmetry and it is deliberate: a NEGATIVE answer needs no quote (there is nothing
@@ -1952,7 +1986,10 @@ function _lpBuildFactInputs(data, deps) {
     } catch (e) { brand = ''; }
     out[LP_FACT_IDS.OFFFRANCHISE] = {
       notes: ofText.trim() ? [ofText.trim().substring(0, 2000)] : [],
-      opts: { storeBrand: brand }
+      // (v9.7.576) dealerId keys the inventory cache; gateText is the SAME customer text the probe
+      // reads, so the "did they say NEW" test runs over the identical bytes both readers saw —
+      // the RAIL 5 principle, applied to the gate rather than only to the probe input.
+      opts: { storeBrand: brand, dealerId: String(data.dealerId || ''), gateText: ofText }
     };
   } catch (e) { out[LP_FACT_IDS.OFFFRANCHISE] = { notes: [], opts: {} }; }
 
@@ -3202,6 +3239,70 @@ function _lpComparablesWithUnits(leadVeh, units, soldStock, soldVin, cap){
 // inventory before saying anything.
 var _LP_STORE_BRAND = { '6189':'toyota', '6190':'kia', '6191':'honda', '24399':'honda', '21135':'audi' };
 var _LP_MAKE_ALIAS = { chevy:'chevrolet', vw:'volkswagen', benz:'mercedes', 'mercedes-benz':'mercedes' };
+// ── (v9.7.576) THE OFF-FRANCHISE GATE — ONE DEFINITION, USED BY BOTH READERS ────────────────
+// A franchise constraint is about NEW cars. A Honda store cannot sell, order or dealer-trade for a
+// NEW BMW. It can absolutely sell a USED one sitting on its own lot — used inventory routinely
+// spans every make, mostly from trades. So "the customer named a make we do not franchise" was
+// never the question; "the customer wants a NEW car we cannot source" is.
+//
+// The REGEX reader has had this right since it shipped:
+//     if (_ofSaidNew || (_ofUnits && _ofMatch.length === 0))
+// It fires only when the customer said NEW near the make, or when we hold zero units of it.
+//
+// The COMPREHENSION probe had none of it. Its prompt asks the strictly broader "did the customer
+// ask about a different manufacturer?", and on 8/24 that produced two false positives where the
+// regex was correctly silent — both used cars sitting in the store's own inventory:
+//   • lead 2049868669, Audi Lafayette — "Is your Used 2025 Hyundai Sonata SEL listed for
+//     $23,448.00 still available?"  (asking about OUR listed unit, at OUR price)
+//   • lead 2072414751, Honda Baytown — VOI is a 2024 BMW 4 Series M440i xDrive (Pre-Owned),
+//     confirmed in stock, Stock #TA035651A
+// Neither customer was shopping another franchise. Both were asking about a car we have.
+//
+// A VOI-MAKE COMPARISON WOULD NOT HAVE FIXED THIS. It catches the BMW (VOI make matches) and sails
+// past the Hyundai, whose lead carries NO VOI at all — [LP VOI DIAG] parsed:"" on every frame. The
+// gate has to be inventory-and-condition aware, not VOI-aware.
+//
+// Extracted rather than reimplemented, the _lpCustomerAuthoredPart lesson: the logic already
+// existed and was correct, so the fix is to make the second reader consult it, not to write a
+// second copy that can drift.
+// `cache` is passed in rather than reached for. The original inline code read the module-scope
+// _lpValueFactCache directly, and the off-franchise suite wraps the guard in a function that
+// declares its OWN local _lpValueFactCache — so a gate that reads the global sees no inventory in
+// that harness and silently never fires. Production was unaffected, but a helper whose real input
+// arrives through a global it does not name is untestable by construction, and the try/catch below
+// would have turned that into a quiet fires:false rather than an error. Take the argument.
+function _lpOffFranchiseGate(make, text, dealerId, cache) {
+  var out = { fires: false, saidNew: false, units: [], inventoryKnown: false, reason: '' };
+  try {
+    var mk = _lpNormMake(make);
+    if (!mk) { out.reason = 'no make'; return out; }
+    var _cache = cache;
+    if (!_cache) { try { _cache = _lpValueFactCache; } catch (e) { _cache = null; } }
+    var inv = null;
+    try { inv = _cache && _cache[String(dealerId || '')] && _cache[String(dealerId || '')].inv; } catch (e) { inv = null; }
+    var units = (inv && inv.units) || null;
+    out.inventoryKnown = !!units;
+    if (units) {
+      for (var i = 0; i < units.length; i++) {
+        if (_lpNormMake(units[i].make) === mk) out.units.push(units[i]);
+      }
+    }
+    var alias = mk === 'chevrolet' ? 'chevrolet|chevy'
+              : mk === 'volkswagen' ? 'volkswagen|vw'
+              : mk === 'mercedes' ? 'mercedes|benz' : mk;
+    out.saidNew = new RegExp('\\bnew\\b[^.!?]{0,25}\\b(?:' + alias + ')\\b', 'i').test(String(text || ''));
+    // FIRES when they asked for it NEW, or when inventory is known and holds none of that make.
+    // Inventory UNKNOWN is deliberately not a fire: a failed feed fetch must not manufacture an
+    // off-franchise directive, which is the v9.7.483 posture and the safer side of the trade.
+    out.fires = !!(out.saidNew || (units && out.units.length === 0));
+    out.reason = out.saidNew ? 'customer asked for it NEW'
+               : (!units ? 'inventory unknown — not firing'
+               : (out.units.length ? 'we hold ' + out.units.length + ' used ' + mk + ' unit(s) — not off-franchise'
+                                   : 'zero ' + mk + ' units in stock'));
+  } catch (e) { out.reason = 'gate threw: ' + (e && e.message); }
+  return out;
+}
+
 function _lpNormMake(m){
   var t = String(m || '').trim().toLowerCase().replace(/[^a-z\-]/g, '');
   return _LP_MAKE_ALIAS[t] || t;
@@ -4138,21 +4239,24 @@ function populateFromData(d) {
         break;
       }
       if (_ofHit) {
-        var _ofInv    = _lpValueFactCache[d.dealerId] && _lpValueFactCache[d.dealerId].inv;
-        var _ofUnits  = (_ofInv && _ofInv.units) || null;
-        var _ofMatch  = [];
-        if (_ofUnits) {
-          for (var _ui = 0; _ui < _ofUnits.length; _ui++) {
-            if (_lpNormMake(_ofUnits[_ui].make) === _ofHit.make) _ofMatch.push(_ofUnits[_ui]);
-          }
-        }
-        var _ofAlias  = _ofHit.make === 'chevrolet' ? 'chevrolet|chevy'
-                      : _ofHit.make === 'volkswagen' ? 'volkswagen|vw'
-                      : _ofHit.make === 'mercedes' ? 'mercedes|benz' : _ofHit.make;
-        var _ofSaidNew = new RegExp('\\bnew\\b[^.!?]{0,25}\\b(?:' + _ofAlias + ')\\b', 'i').test(_ofText);
+        // (v9.7.576) The inventory + NEW test now lives in _lpOffFranchiseGate, so the regex and
+        // the comprehension probe cannot drift apart. This block's behaviour is UNCHANGED — the
+        // gate is the same two conditions this code has always applied, lifted out verbatim.
+        var _ofGate   = _lpOffFranchiseGate(_ofHit.make, _ofText, d.dealerId, _lpValueFactCache);
+        var _ofUnits  = _ofGate.inventoryKnown ? _ofGate.units : null;
+        var _ofMatch  = _ofGate.units;
+        var _ofSaidNew = _ofGate.saidNew;
         var _ofBrandCap = _ofBrand.charAt(0).toUpperCase() + _ofBrand.slice(1);
         var _ofMakeCap  = _ofHit.make.charAt(0).toUpperCase() + _ofHit.make.slice(1);
-        if (_ofSaidNew || (_ofUnits && _ofMatch.length === 0)) {
+        // console.log, NOT _lpD: _lpD is declared INSIDE inlineScraper and does not exist at
+        // module scope. Calling it here throws a ReferenceError that kills the prompt build — the
+        // v9.7.455/228 scope trap, and the same shape as the v7.64 proxy crash.
+        try {
+          console.log('[LP OFF-FRANCHISE GATE] make:' + _ofHit.make + ' | store:' + _ofBrand
+            + ' | ' + (_ofGate.fires ? 'FIRES' : 'suppressed') + ' — ' + _ofGate.reason
+            + ' | reader:regex');
+        } catch (eG) {}
+        if (_ofGate.fires) {
           var _ofMsg = '🚧 OFF-FRANCHISE REQUEST — READ BEFORE PROMISING ANYTHING. The customer asked about a '
             + (_ofSaidNew ? 'NEW ' : '') + _ofHit.phrase.toUpperCase() + '. This store is a ' + _ofBrandCap
             + ' franchise: we CANNOT sell, order, locate, or dealer-trade for a new ' + _ofMakeCap

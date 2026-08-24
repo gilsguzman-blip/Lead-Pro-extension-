@@ -299,5 +299,115 @@ check('five calls with the same rejected string log exactly once',
 check('a call with clean text logs nothing at all',
   i => i.dedupeProbe('I want a Ram 1500', 5), 0);
 
+// ── (v9.7.576) THE GATE — A FRANCHISE CONSTRAINT IS ABOUT NEW CARS ─────────────────────────
+// 8/24 produced two DISAGREE-COMPREHENSION-ONLY rows and BOTH were false positives where the
+// regex was correctly silent. Both were USED cars sitting in the store's own inventory:
+//   • lead 2049868669, Audi Lafayette — "Is your Used 2025 Hyundai Sonata SEL listed for
+//     $23,448.00 still available?"  Asking about OUR listed unit, at OUR price.
+//   • lead 2072414751, Honda Baytown — VOI is a 2024 BMW 4 Series M440i xDrive (Pre-Owned),
+//     confirmed in stock, Stock #TA035651A.
+// A Honda store cannot sell a NEW BMW; it sells used ones off its own lot constantly.
+//
+// A VOI-MAKE COMPARISON WOULD HAVE FIXED ONLY ONE OF THEM. The Hyundai lead carries NO VOI at all
+// — [LP VOI DIAG] parsed:"" on every frame — so the gate must be inventory-and-condition aware.
+const _devSrc  = fs.readFileSync(BUILDS[0], 'utf8');
+const _devCode = _devSrc.replace(/^\s*(\/\/|\*|\/\*).*$/gm, '');
+
+const _gateBox = (() => {
+  const a  = _devSrc.indexOf('function _lpOffFranchiseGate');
+  const nb = _devSrc.indexOf('function _lpNormMake');
+  const nm = _devSrc.slice(nb, _devSrc.indexOf('\n}', nb) + 2);
+  // _LP_MAKE_ALIAS must be in scope: _lpNormMake reads it, and without it the gate's own
+  // try/catch swallows the ReferenceError into fires:false — a harness gap that reads
+  // exactly like the feature working.
+  const sb = { console: { log() {} }, String, RegExp, Object, Array, Math,
+               _LP_MAKE_ALIAS: { chevy:'chevrolet', vw:'volkswagen', benz:'mercedes', 'mercedes-benz':'mercedes' },
+               _lpValueFactCache: {} };
+  vm.createContext(sb);
+  vm.runInContext(nm + '\n' + _devSrc.slice(a, nb), sb);
+  return sb;
+})();
+function gate(make, text, units) {
+  _gateBox._lpValueFactCache = (units === null) ? {} : { '99': { inv: { units: units } } };
+  return vm.runInContext('_lpOffFranchiseGate', _gateBox)(make, text, '99', _gateBox._lpValueFactCache);
+}
+function one(name, fn, want) {
+  let got; try { got = JSON.stringify(fn()); } catch (e) { got = 'THREW: ' + e.message; }
+  if (got === JSON.stringify(want)) { pass++; console.log('  ok   ' + name); }
+  else { fail++; console.log('  FAIL ' + name + '\n        expected ' + JSON.stringify(want) + '\n        got      ' + got); }
+}
+
+const HONDA_LOT = [{ make: 'BMW', model: '4 Series', year: 2024, stock: 'TA035651A' },
+                   { make: 'Honda', model: 'Accord', year: 2025 }];
+const AUDI_LOT  = [{ make: 'Hyundai', model: 'Sonata', year: 2025 },
+                   { make: 'Audi', model: 'Q5', year: 2024 }];
+
+console.log("\nv9.7.576 — the gate, driven from 8/24's two false positives:");
+
+one('CASEY (8/24): a used BMW that is ON the Honda lot does NOT fire',
+  () => { const g = gate('BMW', 'Is the 2024 BMW 4 Series M440i xDrive still available?', HONDA_LOT);
+          return { fires: g.fires, units: g.units.length }; }, { fires: false, units: 1 });
+
+one('LOLITA (8/24): a used Hyundai ON the Audi lot does NOT fire — and that lead has NO VOI',
+  () => gate('Hyundai', 'Is your Used 2025 Hyundai Sonata SEL listed for $23,448.00 still available?',
+             AUDI_LOT).fires, false);
+
+one('THE CASE IT MUST STILL CATCH: a NEW off-brand ask fires even when we hold used ones',
+  () => { const g = gate('BMW', 'do you have a new BMW 4 Series?', HONDA_LOT);
+          return { fires: g.fires, saidNew: g.saidNew }; }, { fires: true, saidNew: true });
+
+one('the Gladiator shape still fires — an off-brand we hold NONE of',
+  () => { const g = gate('Jeep', 'do you have any Jeep Gladiators', HONDA_LOT);
+          return { fires: g.fires, why: /zero/.test(g.reason) }; }, { fires: true, why: true });
+
+one('UNKNOWN inventory does NOT fire — a failed feed must not manufacture a directive',
+  () => { const g = gate('BMW', 'is the BMW available', null);
+          return { fires: g.fires, known: g.inventoryKnown }; }, { fires: false, known: false });
+
+one('"new" must sit NEAR the make — a stray "new" elsewhere is not a new-car request',
+  () => gate('BMW', 'I am new to the area. Is the BMW 4 Series still available?', HONDA_LOT).fires, false);
+
+one('chevy/vw/benz aliases resolve, so "new Chevy" is caught as chevrolet',
+  () => gate('Chevrolet', 'looking for a new Chevy Tahoe', HONDA_LOT).saidNew, true);
+
+console.log('\nONE definition — the two readers cannot drift apart:');
+
+one('the gate is defined exactly once',
+  () => (_devCode.match(/function _lpOffFranchiseGate/g) || []).length, 1);
+
+one('the REGEX path calls it rather than keeping its own copy — and HANDS IT the cache',
+  () => /_lpOffFranchiseGate\(_ofHit\.make, _ofText, d\.dealerId, _lpValueFactCache\)/.test(_devCode), true);
+
+one('...and the old inline duplicate is gone',
+  () => /_ofSaidNew \|\| \(_ofUnits && _ofMatch\.length === 0\)/.test(_devCode), false);
+
+one('the COMPREHENSION path calls it too, from fired()',
+  () => /_lpOffFranchiseGate\(p\.make,/.test(_devCode), true);
+
+one('fired() actually receives opts — without them the gate has no dealerId and no text',
+  () => /det\.fired\(parsed, deps\.opts \|\| \{\}\)/.test(_devCode), true);
+
+one('the opts carry dealerId and the SAME customer text the probe read',
+  () => /dealerId: String\(data\.dealerId \|\| ''\), gateText: ofText/.test(_devCode), true);
+
+one('the gate lives OUTSIDE inlineScraper — the v9.7.455/228 scope trap',
+  () => {
+    const g = _devSrc.indexOf('\nfunction _lpOffFranchiseGate');
+    const st = _devSrc.search(/\n\s*function inlineScraper/);
+    return g > 0 && st > 0 && g < st;
+  }, true);
+
+one('the regex-side gate log uses console.log, not _lpD — _lpD is inlineScraper-only',
+  () => {
+    const i = _devCode.indexOf("[LP OFF-FRANCHISE GATE] make:' + _ofHit.make");
+    return i > 0 && /console\.log/.test(_devCode.slice(Math.max(0, i - 250), i));
+  }, true);
+
+one('both readers log their verdict AND the reason, so a suppression is never silent',
+  () => (_devCode.match(/reader:regex|reader:comprehension/g) || []).length, 2);
+
+one('the probe PROMPT states the rule too — the model is asked the right question, not just filtered',
+  () => /ASKING ABOUT A USED CAR OF ANOTHER MAKE IS NORMAL/.test(_devSrc), true);
+
 console.log('\n' + (fail ? 'FAILED' : 'PASSED') + ' — ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);
