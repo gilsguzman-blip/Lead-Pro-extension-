@@ -360,5 +360,63 @@ check('it depends on nothing outside itself — pure string work, no popup-scope
     return f('Thanks.\nSent from my iPhone').text;
   }, 'Thanks.');
 
+// ── (v9.7.579) FIDEL — A DAY HE ALREADY SPENT IS NOT A DAY HE IS AVAILABLE ─────────────────
+// Toyota Baytown, 8/24. His own inbound text, verbatim:
+//   "Hey Joseph yes I talked to my wife and we love the truck we actually stopped by Saturday
+//    around 8:30pm but it was too late I was able to show her which one"
+// He CAME on Saturday, after closing, showed his wife the truck, and now wants the numbers
+// finished. LP read "Saturday" and injected "Customer said Saturday is when they are available.
+// LOCK IN Saturday - do NOT offer any other day... Do NOT try to pull them in sooner." The model
+// obeyed exactly and offered Saturday the 29th — five days out, to a customer ready that day.
+// Same shape as Jeri's Yahoo header and Hayden's "Timeframe": a manufactured directive faithfully
+// honoured. The difference is that the words ARE his and the day IS a day. THE TENSE WAS WRONG,
+// and tense was never checked. Comprehension AGREED (AGREE-FIRED), so both readers carry the rule.
+const FIDEL = 'Hey Joseph yes I talked to my wife and we love the truck we actually stopped by '
+  + 'Saturday around 8:30pm but it was too late I was able to show her which one';
+
+console.log('\nv9.7.579 — a day already spent is not a day they are available:');
+
+check('FIDEL: his real message no longer locks a day',
+  i => day(i.run([{ text: FIDEL }])), '');
+
+check('...and produces no schedule constraint at all',
+  i => i.run([{ text: FIDEL }]).constraint, '');
+
+[['we stopped by Saturday'],
+ ['I came in Tuesday to look at it'],
+ ['we were there Friday but you were closed'],
+ ['I went by Monday afternoon'],
+ ['showed up Sunday and it was locked']].forEach(([txt]) => {
+  check('past visit suppressed: "' + txt + '"', i => day(i.run([{ text: txt }])), '');
+});
+
+// THE OTHER HALF, and it matters more: a genuine stated day must still lock.
+[['I can come Saturday', 'Saturday'],
+ ['Saturday works for me', 'Saturday'],
+ ['we will be there Tuesday', 'Tuesday'],
+].forEach(([txt, want]) => {
+  check('genuine availability still locks: "' + txt + '"', i => day(i.run([{ text: txt }])), want);
+});
+
+// A SEPARATE, PRE-EXISTING GAP, found while writing the above and verified against the build
+// BEFORE this guard shipped: "I am free Sunday if you are open" produces NO lock there either.
+// The base future-day regex has never recognised "I am free <day>" as availability. That is a
+// real miss and it is NOT caused by this change — recorded here so it is not later mistaken for
+// a regression from the past-visit guard, and so it can be picked up on its own terms.
+check('KNOWN PRE-EXISTING GAP (not this build): "I am free Sunday" has never locked',
+  i => day(i.run([{ text: 'I am free Sunday if you are open' }])), '');
+
+check('the suppression is LOGGED with the sentence that caused it',
+  i => /day-lock SUPPRESSED — the day is a COMPLETED VISIT/.test(i.src || fs.readFileSync(BUILDS[0], 'utf8')), true);
+
+check('KNOWN LIMIT, recorded not hidden: a past visit AND a future day in one message suppresses both',
+  i => {
+    // "stopped by Saturday ... can come Wednesday" — the guard is deliberately conservative and
+    // suppresses here. The cost is a missed lock on a rare compound message; the alternative is
+    // pushing a ready customer days out, which is what happened to Fidel. Under-firing is the
+    // safe side of THIS trade, and naming the limit is how it stays a choice rather than a bug.
+    return day(i.run([{ text: 'we stopped by Saturday but can come Wednesday instead' }]));
+  }, '');
+
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);
