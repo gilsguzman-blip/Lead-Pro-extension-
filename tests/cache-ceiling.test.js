@@ -161,5 +161,38 @@ check('9.8% of the total prompt is 40% of what was achievable — the same cache
 check('and the measured warm prefix rate was 84%, which is the number that says the prefix works',
   () => { const m = REAL.match(RE); return +m[4] >= 80; }, true);
 
+// ── (v1.21) THE DETECTOR TABLE WAS UNREADABLE, AND NOTHING SAID SO ──────────────────────────
+// 8/24 read day-lock 1 · off-franchise 2 · verbal-commit 374, against 8/23's 36 · 29 · 32. The
+// chain was traced end to end — extension row, sender payload, proxy clamp, reporter clamp all
+// preserve `detector` — so there is no defect. The likely cause is FLEET VERSION SKEW: a build
+// before v9.7.566 runs the old single-row observer and posts ONE verbal-commit row per
+// generation, while v9.7.566+ posts THREE. The report could not distinguish that from a
+// regression, because it never showed extensionVersion — which the proxy has stored since v7.55.
+console.log('\nthe detector table can now be read honestly:');
+
+check('rows filed under a detector by DEFAULT are counted separately from rows it produced',
+  () => /if \(!_known\) _b\.defaulted\+\+;/.test(code), true);
+
+check('the default itself is kept — a pre-v9.7.566 row really is verbal-commit by construction',
+  () => /const _det = _known \? e\.detector : 'verbal-commit';/.test(code), true);
+
+check('the Defaulted column is rendered, and amber when non-zero',
+  () => /'Defaulted'/.test(src) && /b\.defaulted \? '#fbbf24' : '#4b5563'/.test(src), true);
+
+check('extensionVersion is collected off the row the proxy already stores',
+  () => /String\(e\.extensionVersion \|\| ''\)/.test(code), true);
+
+check('a row with no version is labelled, not dropped',
+  () => /\|\| '\(not recorded\)'/.test(code), true);
+
+check('byVersion is threaded through to the renderer — not collected and discarded',
+  () => /byNoteType, byDetector, byVersion, disagreements/.test(code), true);
+
+check('the version table explains WHY a mixed fleet skews the detector table',
+  () => /Builds before v9\.7\.566 post ONE/.test(src), true);
+
+check('a defaulted row is tallied under its own label in the version table, not silently as verbal-commit',
+  () => /_known \? e\.detector : '\(defaulted\)'/.test(code), true);
+
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);
