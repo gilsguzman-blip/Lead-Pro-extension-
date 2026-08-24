@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.578 (Commercial. THE TAG IS GONE. LP READS THE ARC AND STATES WHAT IS TRUE; THE MODEL DECIDES THE MESSAGE. Extension only; proxy v7.66 and reporter v1.21 unchanged. WHAT v9.7.577 GOT WRONG, and it is worth naming because the fix is the opposite of the mistake: it computed which cadence TAG applied and fed '[LP: value]' to the model. That removed the agent's paste but KEPT THE TAG AS THE MECHANISM -- and the tag is the workaround, a one-word directive standing in for a situation nobody had described. Every serious incident this month was a layer manufacturing a directive and the model correctly obeying it: 'LOCK IN Monday' from a Yahoo timestamp, 'were you looking for a Ram?' from the letters inside 'Timeframe', a condolence from the words 'is passing'. Automating the tag would have automated exactly that shape. WHAT THIS DOES INSTEAD: a WHERE THIS RELATIONSHIP ACTUALLY STANDS block of OBSERVATIONS -- lead age, the inbound/outbound split, how long since the customer replied and how many unanswered sends since, where the 90-day schedule has arrived, WHICH ANGLES LP'S OWN PRIOR MESSAGES HAVE ALREADY SPENT, and which have not been raised at all. It contains no instruction and no imperative; a test asserts that. The system prompt already carries the judgement rules and is tuned -- this supplies the facts those rules operate on, which is precisely what the tag was standing in for. EVERY CLAIM CARRIES ITS EVIDENCE, and that is the safety property. An angle is never asserted as a judgement ('you used the trade angle') but as a quotation ('trade (08/12, your words: \"appraisal\")'). The model can therefore DISAGREE with a bad reading instead of inheriting it -- a label cannot be argued with, a quote can. Angles are matched by literal phrase presence in LP'S OWN OUTBOUND ONLY, never in customer text, so a customer asking about their trade can never register as us having raised it; asserted. THE 90-DAY TASK LIST KEEPS ITS JOB and loses the other one: it says WHEN to touch and on which channel, and its [LP: ...] annotations are ignored. The cadence position computed in v9.7.577 survives as ONE OBSERVED FACT ('the day-41 touch of the 90-day sequence') which says where the schedule arrived and does not say what to write. _lpRenderCadenceTouch is now a dead stub returning '', so tag injection cannot come back by accident; asserted. A REAL DEFECT THE SUITE CAUGHT: the price angle matched a bare dollar amount, so '$500 down' registered as BOTH payment and price -- every finance message would have reported a price angle it never used, and the model would have avoided a lever that was still available. A dollar sign cannot distinguish the two; the words can. Bare-amount matching removed. AND ONE TEST FAULT OF MINE, recorded because it reads exactly like the bug it was hunting: the no-imperatives assertion flagged the FACTUAL sentence 'the customer has never replied to anything on this lead' on the word 'never'. The block was clean; the test was wrong. It now matches verb-initial commands and modal instructions rather than adverbs. HONEST LIMIT, DISCLOSED IN THE BLOCK ITSELF: the v9.7.570 outboundSends carrier holds the 8 most recent sends, so an angle used earlier than those will not appear. Rather than implying the history is complete, the block says so in its own words when the cap is hit. Raising the cap doubles an already 16k-char payload and was not worth it for angles that are, by definition, stale. SHIPPED ON. LEADPRO_ARC_STATE is TRUE and this one DOES change the prompt, deliberately -- it is the feature. The failure mode is mild and visible: a wrong angle match makes the model avoid a lever that was still available, and because the evidence is printed beside it, both the model and the log can see the mistake. [LP ARC STATE DIAG] reports every count and both lists, and [LP ARC ANGLE] prints each angle with the exact words that produced it. VERIFIED 18/18 in a new arc-state suite plus all 38 suites green (1,303 assertions), dev===comm on every case. Asserted: angles carry date and verbatim evidence; the newest use of a repeated angle is the one named; customer text is never scanned; the rendered block contains no imperative; a never-replied lead is stated as fact not strategy; cadence position renders without any role word in it; the 8-send cap is disclosed; the tag renderer is a dead stub; and nothing injects a bare [LP: role] tag anywhere. WHAT THIS MIGHT BREAK, PLAINLY: the prompt grows by roughly six lines and the model now has an explicit inventory of spent angles, so drafts should repeat themselves less. If an angle regex over-matches, the visible cost is a lever the model leaves unused -- annoying, not dangerous, and the evidence string beside it makes the cause obvious from one log line. node --check clean on both builds; both manifests parse; the arc code is outside inlineScraper, asserted. Builds on v9.7.577.)
 // Lead Pro -- popup.js  v9.7.577 (Commercial. PHASE 1: THE 90-DAY CADENCE POSITION IS COMPUTED, LOGGED, AND NOT YET INJECTED. Extension only; proxy v7.66 and reporter v1.21 unchanged. WHAT IT DOES: works out where a lead sits in the 90-day BDC cadence from data LP already has -- lead age and its own prior outbound history -- and emits the SAME role tag an agent pastes by hand today. A CORRECTION I HAVE TO LEAD WITH, because I got it wrong mid-build and it changed the design. I first built this against LeadPro_90Day_LP_Commands.md, whose 16 touches carry long prose blocks, and reported that the brief's verification gate could not be satisfied because ZERO captured prompts contained a cadence command -- dismissing the five that WERE captured (['value'] x3, ['curiosity'] x2) as mere role tags. THOSE ARE THE CADENCE COMMANDS. The live VinSolutions task list pastes exactly [LP: value], [LP: curiosity] and [LP: soft] -- nothing longer. So verification data does exist, and the .md is a design document rather than the thing that runs. THE LIVE CADENCE ALSO DIFFERS FROM THE DOCUMENT, and the live one governs: 15 LP-commanded touches at days 4, 7, 8, 13, 15, 24, 28, 33, 41, 45, 53, 64, 68, 78, 82. The doc's day-2 touch carries no LP command in the real list, and day 33 is [LP: value] in the live cadence where the doc does not mark it VALUE. The table is transcribed from the live list, and the suite holds it against that transcription rather than against the code. WHY THE ROLE TAG IS THE RIGHT OUTPUT, and it made the build much smaller: the system prompt's TOUCH ROLE section already defines value, curiosity and soft, already says a tagged touch is honoured in FULL regardless of phase, and is already tuned. Auto-selection therefore authors NOTHING NEW -- it emits the three characters of intent the agent would have typed and every downstream behaviour is unchanged. Injecting the .md prose blocks instead would have introduced a second, competing set of instructions for the same slot. RECONCILIATION, AND ITS ASYMMETRY IS THE POINT. Day-count alone is wrong whenever a lead drifts, so prior-touch-count wins when both are readable: a lead that fell behind lands on its correct NEXT touch, and one that ran ahead is not double-counted. THE FIRST VERSION CAPPED THE DISAGREEMENT SYMMETRICALLY AT THREE TOUCHES AND ITS OWN TEST CAUGHT THAT AS WRONG -- the touches cluster early (days 4, 7, 8, 13, 15 is five in a fortnight), so a lead two weeks behind is four touches behind, and a symmetric cap refuses the single case the brief most wants handled. Skew in touch-index is not skew in days. Falling behind is now never refused; running more than two touches AHEAD of what the calendar allows is, because that is what an over-counting bug looks like -- a reply to a live customer counted as a scheduled touch. PHONE CALLS ARE NOT CADENCE TOUCHES. The count reads dated [AGENT] Outbound Text Message and Email entries off the transcript and excludes call entries, which would otherwise over-advance every lead the BDC actually dials. It reads the transcript rather than the v9.7.570 outboundSends carrier, which is capped at 8 notes for the delivery matcher and would silently under-count any lead past roughly day 15. SHIPPED ADDITIVE AND OFF. LEADPRO_CADENCE_AUTO is FALSE: the position is computed and logged on every generation and injected on none, which produces the comparison sample the brief's verification gate asks for, on live traffic, with no customer-facing change. When it is armed, a manual paste still wins -- a role tag present means the human has chosen -- while an agent CONTENT command ('Need POI, how much down') does NOT suppress it, because those occupy different slots. [LP CADENCE DIAG] FIRES ON EVERY GENERATION whatever happened, popup-side, reporting lead age, prior touch count, the selected touch, the confidence, THE REASONING (day-count match vs prior-touch reconciliation vs refusal), whether a manual paste overrode it, and whether anything was injected. Every silent-fact bug this cycle was found late because the diagnostic was missing or lived frame-side; this one ships with full visibility from day one. PHASE 2 IS NOT BUILT. The VALUE FACT slot is untouched and still awaits a human. Auto-sourcing it is a separate, higher-risk question and the brief asks for an investigation before any code -- delivered separately, not here. A test asserts no auto-value-fact machinery exists anywhere in this build. VERIFIED 32/32 in a new cadence suite plus all 37 suites green (1,284 assertions), dev===comm on every case. The table is asserted against an independent transcription of the LIVE cadence; only the three real roles ever appear; the seven [LP: value] days are asserted exactly; texts and emails count and phone calls do not; two sends the same day on the same channel count once; behind reconciles and implausibly-ahead refuses; before day 4, past day 90 and all-15-sent each select nothing; a role tag suppresses and a content command does not; and the diagnostic is asserted to report all seven fields including on the select-nothing path. WHAT THIS MIGHT BREAK, PLAINLY: nothing. With the flag off the only change is one log line per generation. node --check clean on both builds; both manifests parse; the cadence code is outside inlineScraper, asserted. Builds on v9.7.576.)
 // Lead Pro -- popup.js  v9.7.576 (Commercial. OFF-FRANCHISE IS ABOUT NEW CARS, AND THE PROBE DID NOT KNOW THAT. Extension only; proxy v7.66 and reporter v1.21 unchanged. THE INCIDENT: 8/24 produced exactly two DISAGREE-COMPREHENSION-ONLY rows and BOTH were FALSE POSITIVES where the regex was correctly silent -- the reverse of the Gladiator day. (1) lead 2049868669, Audi Lafayette: comprehension flagged 'Hyundai' on the quote 'Is your Used 2025 Hyundai Sonata SEL listed for $23,448.00 still available?' -- the customer asking about OUR listed unit at OUR price. (2) lead 2072414751, Honda Baytown: comprehension flagged 'BMW' when the lead's own VOI IS a 2024 BMW 4 Series M440i xDrive (Pre-Owned), confirmed in stock, Stock #TA035651A. Neither customer was shopping another franchise; both were asking about a car the store has on its lot. THE PRINCIPLE, and it is the operator's framing rather than mine: A FRANCHISE CONSTRAINT IS ABOUT NEW CARS. A Honda store cannot sell, order or dealer-trade a NEW BMW. It sells USED ones off its own lot constantly, mostly trades. So 'the customer named a make we do not franchise' was never the question -- 'the customer wants a NEW car we cannot source' is. THE REGEX READER HAS HAD THIS RIGHT SINCE IT SHIPPED: `if (_ofSaidNew || (_ofUnits && _ofMatch.length === 0))` -- fire only when they said NEW near the make, or when we hold zero units of it. The COMPREHENSION probe had none of it; its prompt asks the strictly broader 'did the customer ask about a different manufacturer?', which both customers truthfully had. The model was not misreading anything. It was answering a question that is not the one this detector is for -- the manufactured-directive class, one level up. A VOI-MAKE COMPARISON WOULD HAVE FIXED ONLY ONE OF THE TWO, and this is why the obvious cheap fix was rejected: it catches the BMW (VOI make matches) and sails straight past the Hyundai, whose lead carries NO VOI AT ALL -- [LP VOI DIAG] parsed:\"\" on every frame in log138. The gate has to be inventory-and-condition aware, not VOI-aware. Asserted in-suite so it is not proposed again. THE FIX, AND IT IS AN EXTRACTION RATHER THAN A NEW IMPLEMENTATION: the two conditions the regex already applied are lifted verbatim into _lpOffFranchiseGate(make, text, dealerId, cache) -- ONE definition, asserted exactly one. The regex path now CALLS it (its behaviour is unchanged; the same two tests it always passed still pass) and the comprehension path calls it from the detector's fired() predicate, so a probe answer is recorded verbatim but only COUNTS as fired when the gate agrees. That is the _lpCustomerAuthoredPart lesson: the correct logic already existed, so make the second reader consult it rather than write a copy that can drift. The probe PROMPT also states the rule now, so the model is asked the right question in the first place rather than merely corrected afterwards -- the deterministic gate remains the guarantee. Both readers log [LP OFF-FRANCHISE GATE] with the verdict AND the reason, so a suppression is never silent. INVENTORY UNKNOWN DOES NOT FIRE, deliberately: a failed valuefact fetch must not manufacture an off-franchise directive. That is the v9.7.483 posture and the safer side of the trade -- a missed catch costs a weaker message, a false catch tells a customer we cannot sell them a car we have on the lot. THREE FAULTS FOUND WHILE BUILDING IT, all mine and all caught by tests rather than review. (1) THE SCOPE TRAP AGAIN: the first version logged via _lpD, which is declared INSIDE inlineScraper and does not exist at module scope where the regex block runs -- a ReferenceError that would have killed the prompt build, the v9.7.455/228 trap and the same shape as the v7.64 proxy crash. Now console.log, and asserted. (2) THE GATE LANDED EIGHT LINES ABOVE THE SPAN the off-franchise suite extracts, so the regex path called an undefined function and the suite's own CONTROL test went silent -- relocated inside the span and the boundary is asserted. (3) THE HELPER REACHED FOR A GLOBAL IT DID NOT NAME: it read module-scope _lpValueFactCache, while the suite wraps the guard in a function declaring its OWN local one, so the gate saw no inventory and never fired -- and its try/catch turned that into a quiet fires:false that reads exactly like the feature working. The cache is now an ARGUMENT. Production was never affected by any of the three, but the third is a real design fault and the fix is strictly better. VERIFIED 61/61 in the off-franchise suite (17 new) plus all 36 suites green (1,252 assertions), dev===comm on every case. NON-VACUOUS: run against v9.7.575 the suite fails 17 ways. Both 8/24 leads are asserted by name to stop firing; a NEW off-brand ask is asserted to fire EVEN WHEN we hold used units of that make; the Gladiator shape (off-brand, zero units) still fires; unknown inventory does not; 'new' must sit near the make so 'I am new to the area' does not trigger it; chevy/vw/benz aliases resolve; the gate is asserted defined ONCE, called by BOTH readers, handed the cache, living outside inlineScraper, and logging through console.log rather than _lpD. WHAT THIS MIGHT BREAK, PLAINLY: the regex path's behaviour is unchanged -- same two conditions, now in a named function -- and its two existing tests prove it. The comprehension path gets STRICTER: it will fire less often, and the rows it stops firing on are the ones that were wrong. Every authoritative flag is still OFF, so no customer-facing message changes either way. Off-franchise remains the detector to flip LAST: it now has two documented false positives where the regex was right, and its failure mode is promising a customer something we cannot deliver. node --check clean on both builds; both manifests parse; the gate is outside inlineScraper, verified against the file's own marker. Builds on v9.7.575.)
 // Lead Pro -- popup.js  v9.7.575 (Commercial. THE REGEN REASONING ESCALATION IS REMOVED. LATENCY WINS. Extension only; proxy v7.66 and reporter v1.19 unchanged and NOT redeployed. WHAT IS GONE: v9.7.573 raised a regen's draft to reasoningEffort:'high'. The TRIGGER reasoning still holds -- a regen is the one signal on this surface that is a human decision rather than a heuristic, because a person read the draft and judged the first read wrong. The COST did not survive contact with real numbers. MEASURED, on this prompt shape (~62k chars) against gpt-5.6-luna: 'low' reaches a finished draft in about 6.4s; 'high' was observed at 13.9s, 14.4s, 15.1s and 17.1s SUCCESSFUL, plus timeouts at the 18000ms ceiling. The escalation therefore roughly TRIPLED the wait an agent feels on the one interaction where they are already unhappy, and 18000ms was never a comfortable ceiling -- a 17.1s success lands with under a second of headroom, which puts the budget in the MIDDLE of the tail rather than past it. That is why the answer was not to buy more budget again. AND NOTHING EVER ARRIVED TO PAY FOR IT. Every escalated sample captured was a FORCED test rather than natural agent behaviour, so the feedback pipeline never produced a quality comparison in either direction. The operator's read is that Luna is good enough at 'low' and that medium and high make little difference to output quality on this task -- which is consistent with the complete absence of any measured gain. Eleven extra seconds for a difference nobody can measure is the wrong trade, so the experiment is dropped rather than re-tuned to 'medium'. THE CONSTANTS ARE REMOVED, NOT SWITCHED OFF. LEADPRO_REGEN_ESCALATE and LEADPRO_REGEN_EFFORT are deleted along with the payload block. A dormant flag invites someone to flip it back without re-reading the numbers above; deleting it makes re-introduction a deliberate act. A regen now sends NO effort field at all -- byte-identical to a first-pass draft -- and takes the worker default of 'low'. The two PROBE payloads are untouched and still ask for 'none'. WHAT DELIBERATELY STAYS, and it is the important half: THE PROXY RAILS. v7.63's primary-tier-only guard and v7.64's escalated primary budget are NOT experiment scaffolding. They protect ANY caller from re-creating the v9.7.219 failure -- 'medium reasoning blew through the entire cascade, PRIMARY timing out at 10000ms, FALLBACK also timing out, leads landing on SAFE_FALLBACK after 23s' -- which happened because the elevated effort applied to EVERY tier, so the recovery tiers were reasoning hard too and could not cover the hole the primary left. With nothing escalating today those rails simply go quiet, and a quiet rail is exactly the kind that rots unnoticed, so every one is still asserted. The proxy is NOT redeployed for this build. VERIFIED 26/26 in the rebuilt regen-effort suite plus all 35 suites green (1,208 assertions), dev===comm on every case. The suite is asserted NON-VACUOUS: run against the v9.7.573 build it fails 5 ways, so a re-introduction cannot pass silently. Asserted: both constants absent; ZERO assignments of reasoningEffort onto the draft payload; the draft's generationConfig literal does not mention the field; the removal rationale carries the measured numbers so it is not re-litigated from scratch; the probes still ask for 'none' and are the ONLY place the extension names an effort at all; and separately, every proxy rail still resolves correctly -- an above-baseline effort still reaches the primary tier ONLY, no caller-named effort can slow any tier below primary, and 'none' still reaches every tier because it makes recovery faster rather than slower. THREE OF MY OWN TEST ERRORS, RECORDED BECAUSE THEY ARE THE SAME SHAPE. Two new assertions scanned raw source and matched THEIR OWN explanatory prose -- a scan for reasoningEffort hit the paragraph explaining why reasoningEffort was removed. Fixed with a shared stripComments helper rather than another one-off, since this file has now made that mistake three times. The third was worse and was in the VERIFICATION step: the first non-vacuity run pointed at a fixture named old573.js, which does not match the suite's /popup\.js$/ argument filter, so the suite exited on usage and printed zero failures -- and zero failures read as 'the test does not catch it'. A vacuous check of a vacuous check. Re-run from a correctly named path it fails 5 ways as intended. WHAT THIS MIGHT BREAK, PLAINLY: regens get FASTER and nothing else changes. Non-regen traffic was already byte-identical. No proxy or reporter change is needed and none should be deployed for this build. node --check clean on both builds; both manifests parse. Builds on v9.7.574.)
@@ -2262,6 +2263,145 @@ function _lpRunDeliveryMatch(draft, notes, opts) {
 // at the draft, not a verdict on it -- paraphrase that shares no keyword will read as a miss.
 // The SMS-vs-EMAIL DELTA is the signal worth watching; on Amber it is 2/3 vs 3/3, naming the
 // POI clause outright.
+// ── (v9.7.578) THE SITUATION READ — FACTS ABOUT THE ARC, NOT A LABEL FOR IT ──────────────────
+// v9.7.577 computed which cadence TAG applied and fed it to the model. That removed the agent's
+// paste but kept the tag as the mechanism, and the tag is the workaround: a one-word directive
+// standing in for a situation nobody had described. Every serious incident this month was a layer
+// manufacturing a directive — LOCK IN Monday, were you looking for a Ram, a condolence — and the
+// model correctly obeying it. Automating the tag would have automated that shape.
+//
+// THIS IS THE OPPOSITE. It states what is verifiably true about the relationship and lets the
+// model decide what the message needs to be. Every claim carries its own evidence: the date it
+// happened and the literal text it was read from, so the model can DISAGREE with a wrong reading
+// rather than inherit it. A label cannot be argued with; a quote can.
+//
+// The 90-day task list keeps its job — WHEN to touch and on which channel. It no longer says what
+// the message is for, and the [LP: ...] annotations in it are ignored.
+var LEADPRO_ARC_STATE = true;
+
+// The angles a BDC touch can spend. Detected by LITERAL PHRASE PRESENCE IN OUR OWN SENT TEXT —
+// never inferred from intent, never read out of customer messages. "You used the trade angle" is
+// a judgement; "your 08/12 email contains 'appraisal'" is a fact, and only the second is safe to
+// assert. The evidence string is carried so a wrong match is visible rather than authoritative.
+var LP_ARC_ANGLES = [
+  ['availability', /\b(?:in stock|on the lot|still (?:here|available)|we have (?:it|one|the)|just arrived|came in)\b/i],
+  // NO bare-dollar-amount match. '$500 down' is a PAYMENT example, and a dollar figure alone
+  // cannot distinguish the two — it registered every finance message as a price message too.
+  // The words are the evidence; an ambiguous symbol is not.
+  ['price',        /\b(?:price|priced|pricing|msrp|discount|marked down|sticker)\b/i],
+  ['payment',      /\b(?:payment|financing|finance|apr|per month|a month|money down|down payment|credit)\b/i],
+  ['trade',        /\b(?:trade|trade-in|appraisal|appraise|kbb|kelley|what your .{0,20}is worth)\b/i],
+  ['incentive',    /\b(?:incentive|rebate|special|program|offer ends|expires|cash back)\b/i],
+  ['appointment',  /\b(?:appointment|come in|stop by|swing by|what time|works for you|\d{1,2}:\d{2}\s?(?:am|pm))\b/i],
+  ['manager',      /\b(?:sales manager|general manager|gm |my manager|owner)\b/i],
+  ['stepback',     /\b(?:no pressure|step back|close out your file|if now is|not the right time|take you off)\b/i]
+];
+
+// What the relationship has already spent, newest first. Reads ONLY LP's own outbound.
+function _lpArcAnglesSpent(sends) {
+  var out = { spent: [], unused: [], read: 0, capped: false };
+  try {
+    var list = (sends || []).slice();
+    out.read = list.length;
+    out.capped = list.length >= 8;   // the v9.7.570 carrier caps at 8; say so rather than imply completeness
+    var seen = {};
+    for (var i = 0; i < list.length; i++) {
+      var body = String((list[i] && list[i].body) || '');
+      if (!body) continue;
+      for (var a = 0; a < LP_ARC_ANGLES.length; a++) {
+        var name = LP_ARC_ANGLES[a][0];
+        if (seen[name]) continue;                 // newest use is the one worth naming
+        var m = body.match(LP_ARC_ANGLES[a][1]);
+        if (!m) continue;
+        seen[name] = 1;
+        out.spent.push({ angle: name, ms: (list[i] && list[i].ms) || 0,
+                         evidence: String(m[0]).substring(0, 40) });
+      }
+    }
+    for (var b = 0; b < LP_ARC_ANGLES.length; b++) {
+      if (!seen[LP_ARC_ANGLES[b][0]]) out.unused.push(LP_ARC_ANGLES[b][0]);
+    }
+  } catch (e) {}
+  return out;
+}
+
+// Assemble the read. EVERY FIELD IS AN OBSERVATION. There is no instruction in this block and no
+// word that tells the model what to do — the system prompt already carries the judgement rules and
+// is tuned; this supplies the facts those rules operate on, which is exactly what the [LP: ...]
+// tag was standing in for.
+function _lpBuildArcState(d, opts) {
+  opts = opts || {};
+  var s = { lines: [], facts: {} };
+  try {
+    var age   = parseFloat((d && d.leadAgeDays) || 0) || 0;
+    var sends = (d && d.outboundSends) || [];
+    var ang   = _lpArcAnglesSpent(sends);
+    var inb   = parseFloat(opts.totalInbound) || 0;
+    var outb  = parseFloat(opts.totalOutbound) || 0;
+    var since = (opts.daysSinceReply === undefined || opts.daysSinceReply === null)
+                  ? null : parseFloat(opts.daysSinceReply);
+    var consec = parseFloat(opts.consecutiveOutbound) || 0;
+
+    s.facts = { age: age, inbound: inb, outbound: outb, daysSinceReply: since,
+                consecutiveOutbound: consec, spent: ang.spent, unused: ang.unused,
+                sendsRead: ang.read, capped: ang.capped, cadence: opts.cadence || null };
+
+    s.lines.push('Lead age: ' + age + ' days.');
+    if (inb || outb) s.lines.push('Exchange so far: ' + inb + ' inbound / ' + outb + ' outbound.');
+    if (since === null)   s.lines.push('The customer has never replied to anything on this lead.');
+    else if (consec > 0)  s.lines.push('Last customer reply was ' + since + ' days ago; '
+                            + consec + ' outbound since then with no answer.');
+    else                  s.lines.push('The customer replied ' + since + ' days ago and it is the newest message on the lead.');
+
+    if (opts.cadence && opts.cadence.day) {
+      // Position is a FACT, not an instruction. It says where the schedule has arrived; it does
+      // not say what to write, which is the whole difference from the tag it replaces.
+      s.lines.push('Scheduled position: the day-' + opts.cadence.day + ' touch of the 90-day sequence'
+        + (opts.cadence.confidence ? ' (' + opts.cadence.confidence + ')' : '') + '.');
+    }
+
+    if (ang.spent.length) {
+      var parts = ang.spent.map(function (x) {
+        var when = x.ms ? new Date(x.ms).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit' }) : '?';
+        return x.angle + ' (' + when + ', your words: "' + x.evidence + '")';
+      });
+      s.lines.push('Angles your own prior messages have already used — ' + parts.join('; ') + '.');
+    }
+    if (ang.unused.length) s.lines.push('Not raised with this customer yet: ' + ang.unused.join(', ') + '.');
+    if (ang.capped) s.lines.push('(Only the ' + ang.read + ' most recent outbound messages were read, '
+      + 'so an angle used earlier than those may not appear above.)');
+  } catch (e) { s.error = (e && e.message) || 'arc state threw'; }
+  return s;
+}
+
+function _lpRenderArcState(s) {
+  if (!s || !s.lines || !s.lines.length) return '';
+  return '\n\n━━━ WHERE THIS RELATIONSHIP ACTUALLY STANDS ━━━\n'
+    + 'Observed facts, each with the evidence it came from. Nothing here tells you what to write — '
+    + 'decide that from these facts and the rules above.\n'
+    + s.lines.map(function (l) { return '• ' + l; }).join('\n') + '\n';
+}
+
+function _lpArcStateDiag(s, log) {
+  var _l = log || function () { try { console.log.apply(console, arguments); } catch (e) {} };
+  try {
+    var f = (s && s.facts) || {};
+    _l('[LP ARC STATE DIAG] age:' + (f.age || 0) + 'd'
+      + ' | exchange:' + (f.inbound || 0) + 'in/' + (f.outbound || 0) + 'out'
+      + ' | sinceReply:' + (f.daysSinceReply === null ? 'never replied' : f.daysSinceReply + 'd')
+      + ' | consecutiveOutbound:' + (f.consecutiveOutbound || 0)
+      + ' | sends read:' + (f.sendsRead || 0) + (f.capped ? ' (CAPPED)' : '')
+      + ' | spent:' + ((f.spent || []).map(function (x) { return x.angle; }).join(',') || 'none')
+      + ' | unused:' + ((f.unused || []).join(',') || 'none')
+      + ' | cadence:' + (f.cadence && f.cadence.day ? 'day-' + f.cadence.day : 'none')
+      + ' | rendered:' + (s && s.lines ? s.lines.length : 0) + ' fact(s)');
+    (f.spent || []).forEach(function (x) {
+      _l('[LP ARC ANGLE] ' + x.angle + ' <- "' + x.evidence + '"'
+        + (x.ms ? ' (' + new Date(x.ms).toISOString().slice(0, 10) + ')' : ''));
+    });
+  } catch (e) {}
+}
+
 // ── (v9.7.577) 90-DAY CADENCE — AUTO-COMPUTED JOURNEY POSITION, INJECTION OFF ────────────────
 // The 90-day BDC process defines 16 numbered touches. Each supplies the ONE thing the model cannot
 // read off the conversation arc — where this touch sits in the volley choreography — and trusts it
@@ -2392,15 +2532,12 @@ function _lpComputeCadenceTouch(leadAgeDays, sent) {
   return out;
 }
 
-// THE INJECTED VALUE IS THE ROLE TAG THE AGENT WOULD HAVE PASTED — nothing more.
-// The VinSolutions cadence does not use the prose blocks; every LP-commanded task in it carries a
-// short tag: [LP: value], [LP: curiosity] or [LP: soft]. That machinery ALREADY EXISTS and is
-// already tuned — the system prompt's TOUCH ROLE section defines all three and says a tagged touch
-// is honoured in full regardless of phase. So auto-selection emits the same three characters of
-// intent an agent types, and every downstream behaviour is unchanged. Nothing new is authored here.
-function _lpRenderCadenceTouch(touch) {
-  return touch ? ('[LP: ' + touch.role + ']') : '';
-}
+// (v9.7.578) THE TAG RENDERER IS RETIRED. v9.7.577 emitted '[LP: value]' — the same one-word
+// directive an agent pastes. That automated the workaround instead of removing it. The computed
+// POSITION survives and is now one observed fact inside the situation read (_lpBuildArcState),
+// where it says where the schedule has arrived and does not say what to write. A stub returning ''
+// so nothing can re-enable tag injection by accident.
+function _lpRenderCadenceTouch() { return ''; }
 
 // The single entry point. Returns what to inject (or '') plus everything the diagnostic needs.
 // A MANUAL PASTE ALWAYS WINS. The brief ships this additive: when an agent has pasted a cadence
@@ -19412,27 +19549,33 @@ async function generateAll() {
       dealerId: lastScrapedData ? (lastScrapedData.dealerId || '') : '',
       leadAgeDays: lastScrapedData ? (lastScrapedData.leadAgeDays || 0) : 0
     });
-    // ── (v9.7.577) 90-DAY CADENCE — computed on every generation, injected only when armed ────
-    // Runs AFTER buildUserPrompt so the transcript it counts prior touches from is the same text
-    // the model will read. The diagnostic is unconditional; the injection is not.
+    // ── (v9.7.578) THE SITUATION READ — replaces the cadence tag entirely ──────────────────
+    // The 90-day task list still says WHEN to touch and on which channel; its [LP: ...] notes are
+    // ignored. What the message is FOR is decided by the model from the facts below.
     try {
       var _cad = _lpCadence({
         leadAgeDays:     lastScrapedData ? lastScrapedData.leadAgeDays : 0,
         agentLPCommands: lastScrapedData ? (lastScrapedData.agentLPCommands || []) : [],
         contextText:     userPrompt,
-        flagOn:          LEADPRO_CADENCE_AUTO
+        flagOn:          false            // tag injection is retired; position is a fact, not a directive
+      });
+      var _arc = _lpBuildArcState(lastScrapedData || {}, {
+        totalInbound:        (m && m.inboundCount)  || 0,
+        totalOutbound:       (m && m.outboundCount) || 0,
+        daysSinceReply:      (lastScrapedData && lastScrapedData.lastInboundAgeDays !== undefined)
+                               ? lastScrapedData.lastInboundAgeDays : null,
+        consecutiveOutbound: (lastScrapedData && lastScrapedData.consecutiveOutbound) || 0,
+        cadence:             (_cad && _cad.touch)
+                               ? { day: _cad.touch.day, confidence: _cad.compute && _cad.compute.confidence }
+                               : null
       });
       _lpCadenceDiag(_cad);
-      if (_cad.inject) {
-        // Rendered in the same voice and position an agent's own paste would occupy, so the model
-        // sees no difference between a computed touch and a hand-pasted one. It is journey
-        // position and nothing else — every live signal is still the model's to read.
-        userPrompt += '\n\n━━━ SCHEDULED TOUCH — JOURNEY POSITION ━━━\n' + _cad.inject
-          + '\n(Auto-selected from lead age and prior touch history. Everything else in this prompt '
-          + 'still governs — a live customer reply outranks the scheduled register.)\n';
-        console.log('[LP CADENCE DIAG] injected ' + _cad.inject + ' for the day-' + _cad.touch.day + ' touch');
+      _lpArcStateDiag(_arc);
+      if (LEADPRO_ARC_STATE) {
+        var _arcBlock = _lpRenderArcState(_arc);
+        if (_arcBlock) userPrompt += _arcBlock;
       }
-    } catch (eCad) { try { console.log('[LP CADENCE DIAG] threw, no touch injected: ' + (eCad && eCad.message)); } catch (e2) {} }
+    } catch (eArc) { try { console.log('[LP ARC STATE DIAG] threw, no facts added: ' + (eArc && eArc.message)); } catch (e2) {} }
 
     console.log('[Lead Pro] User prompt length:', userPrompt.length, '| scenario section:', userPrompt.substring(0, userPrompt.indexOf('━━━ LEAD ━━━')));
     // (v9.7.219) Complexity reasoning router REMOVED. Live logs showed medium reasoning

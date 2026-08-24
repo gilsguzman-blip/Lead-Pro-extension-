@@ -100,11 +100,11 @@ check('with the flag off a due touch is COMPUTED but NOT injected',
     return { selected: r.touch ? r.touch.day : null, injected: r.inject.length };
   }, { selected: 7, injected: 0 });
 
-check('...and arming the flag injects that same touch, unchanged',
+check('...and even with the flag armed nothing is injected — the tag path is retired',
   i => {
     const r = i.cadence({ leadAgeDays: 8, agentLPCommands: [], contextText: txn([['08/01','Text Message']]), flagOn: true });
     return { selected: r.touch.day, tag: r.inject };
-  }, { selected: 7, tag: '[LP: curiosity]' });
+  }, { selected: 7, tag: '' });
 
 // ── The document is the source of truth ───────────────────────────────────────
 console.log('\nthe 16 touches match the document, and the text is verbatim:');
@@ -112,9 +112,11 @@ console.log('\nthe 16 touches match the document, and the text is verbatim:');
 check('the 15 LP-commanded touches match the LIVE cadence — day, role and channel',
   i => i.read('LP_CADENCE_TOUCHES').map(t => [t.day, t.role, t.ch]), DOC);
 
-check('it emits the SAME role tag an agent pastes — no new authored content',
-  i => i.read('LP_CADENCE_TOUCHES').map(t => vmRender(i, t)),
-  DOC.map(d => '[LP: ' + d[1] + ']'));
+// (v9.7.578) The tag renderer is RETIRED. v9.7.577 emitted '[LP: value]' — the same one-word
+// directive an agent pastes — which automated the workaround rather than removing it. The computed
+// POSITION survives as one observed fact inside the situation read; the tag does not survive at all.
+check('the tag renderer is a dead stub — position is now a fact, not an injected directive',
+  i => i.read('LP_CADENCE_TOUCHES').map(t => vmRender(i, t)).join('') , '');
 
 check('only the three roles the cadence actually uses ever appear',
   i => Array.from(new Set(i.read('LP_CADENCE_TOUCHES').map(t => t.role))).sort(),
@@ -259,11 +261,17 @@ check('the cadence code sits OUTSIDE inlineScraper — the v9.7.455/228 scope tr
     return c > 0 && s > 0 && c < s;
   }, true);
 
-check('nothing is injected anywhere except behind the flag',
-  i => (i.code.match(/SCHEDULED TOUCH — JOURNEY POSITION/g) || []).length, 1);
+// (v9.7.578) These two used to pin the TAG-injection site. That site is gone — the block the
+// prompt now receives is the situation read (arc-state.test.js owns it), and the cadence position
+// enters it as one observed fact. Asserting the old site would re-pin the design this replaced.
+check('the tag-injection site is GONE — no journey-position directive is appended',
+  i => (i.code.match(/SCHEDULED TOUCH — JOURNEY POSITION/g) || []).length, 0);
 
-check('the injection site is guarded by _cad.inject, which is empty unless armed',
-  i => /if \(_cad\.inject\) \{/.test(i.code), true);
+check('the cadence is called with flagOn hard-wired false — it can only inform, never instruct',
+  i => /flagOn:\s*false\b/.test(i.code), true);
+
+check('...and its computed position reaches the situation read as a fact',
+  i => /cadence:\s*\(_cad && _cad\.touch\)/.test(i.code), true);
 
 check('Phase 2 is NOT built — no auto-sourcing of the VALUE FACT anywhere',
   i => /_lpAutoValueFact|autoValueFact|VALUE_FACT_SOURCE/.test(i.code), false);
