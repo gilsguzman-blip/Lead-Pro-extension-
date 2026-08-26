@@ -212,6 +212,96 @@ pending.push(() => post(draftBody(), primaryFails).then(r => {
           'the primary payload lost prompt_cache_options; caching is off on the tier that answers everything');
 }));
 
+// ── (v7.68) /commit-comprehension, POSTED FOR REAL AND CHECKED INTO KV ─────────────────────
+// v7.67 added a log line to make the detector default audible and passed it `requestId` — a const
+// declared 254 lines BELOW that handler, in a branch it returns before reaching. `const` hoists but
+// stays uninitialised, so EVERY POST threw
+//   ReferenceError: Cannot access 'requestId' before initialization
+// and 93 of 93 comprehension rows on 8/26 were lost. The report read "No comprehension verdicts
+// recorded for this date" while the extension was posting correctly the whole time.
+//
+// THAT IS THE SECOND TIME THIS WEEK. v7.64 was isEscalation(reasoningEffort) — a wrong name; this
+// was a declaration order. Both are "the identifier is not usable where it is used", and both
+// shipped past suites that confirmed the code was PRESENT. Presence is not scope.
+//
+// So this endpoint is now POSTED, not grepped: a real body through the real handler, with the KV
+// binding stubbed so the row can be read back. A TDZ throw cannot pass this.
+console.log('\n/commit-comprehension — posted for real, and the row read back out of KV:');
+
+function ccBody(over) {
+  return Object.assign({
+    type: 'commit-comprehension',
+    id: 'gen-smoke-1',
+    ts: new Date().toISOString(),
+    detector: 'day-lock',
+    authoritative: false,
+    sourceUsed: '',
+    delta: 'AGREE-NONE',
+    regexRan: true, regexFired: false, regexQuoteLen: 0,
+    compKind: 'none', probeOk: true, probeFailReason: '',
+    quoteVerified: false, claimedNote: null, verifiedNote: 0, notesRead: 2,
+    vacuous: false, extensionVersion: '9.7.582',
+    meta: { autoLeadId: '123', customerId: '456', dealerId: '21135', leadSource: 'x', store: 'y' }
+  }, over || {});
+}
+
+function postCC(body) {
+  const L = load(upstreamOK);
+  const kv = [];
+  const env = Object.assign({}, ENV, {
+    LEADPRO_LICENSES: { put: (k, v) => { kv.push({ k, v }); return Promise.resolve(); },
+                        get: () => Promise.resolve(null) }
+  });
+  return L.worker.fetch(
+    new Request('https://leadpro-proxy.test/commit-comprehension', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    }), env, CTX
+  ).then(res => ({ status: res.status, kv, logs: L.logs }),
+         err => ({ threw: (err && err.message) || String(err), kv, logs: L.logs }));
+}
+
+pending.push(() => postCC(ccBody()).then(r => {
+  if (r.threw) return bad('a real POST does not throw', 'threw: ' + r.threw);
+  if (r.status >= 500) return bad('a real POST does not 500',
+    'status ' + r.status + ' — this is the v7.67 TDZ, reproduced');
+  return ok('a real POST returns ' + r.status + ', not a 500');
+}));
+
+pending.push(() => postCC(ccBody()).then(r =>
+  r.kv.length === 1
+    ? ok('...and exactly one row reached KV')
+    : bad('...and exactly one row reached KV', r.kv.length + ' row(s) written')));
+
+pending.push(() => postCC(ccBody()).then(r => {
+  if (!r.kv.length) return bad('the stored row keeps the detector it was sent', 'nothing written');
+  let stored; try { stored = JSON.parse(r.kv[0].v); } catch (e) { return bad('the stored row parses', e.message); }
+  return stored.detector === 'day-lock'
+    ? ok('the stored row keeps the detector it was sent (day-lock, not defaulted)')
+    : bad('the stored row keeps the detector it was sent', 'stored as "' + stored.detector + '"');
+}));
+
+pending.push(() => postCC(ccBody({ detector: undefined })).then(r => {
+  if (!r.kv.length) return bad('a row with NO detector still stores, and says so', 'nothing written');
+  const said = r.logs.some(l => /detector DEFAULTED to verbal-commit/.test(l));
+  const stored = JSON.parse(r.kv[0].v);
+  return (stored.detector === 'verbal-commit' && said)
+    ? ok('a row with NO detector defaults to verbal-commit AND logs that it did')
+    : bad('a row with NO detector defaults AND logs it',
+          'stored=' + stored.detector + ' logged=' + said);
+}));
+
+pending.push(() => postCC(ccBody({ detector: 'not-a-detector' })).then(r => {
+  const said = r.logs.some(l => /unrecognised detector/.test(l));
+  return said ? ok('an UNRECOGNISED detector is logged distinctly from a missing one')
+              : bad('an unrecognised detector is logged distinctly', 'no such log line');
+}));
+
+pending.push(() => postCC(ccBody({ id: undefined })).then(r =>
+  r.status === 400
+    ? ok('a body missing its required id is still rejected with 400, not a crash')
+    : bad('a body missing its id is rejected with 400', 'status ' + r.status)));
+
 (async () => {
   for (const p of pending) { try { await p(); } catch (e) { bad('harness', e.message); } }
   console.log('\n' + pass + ' passed, ' + fail + ' failed');

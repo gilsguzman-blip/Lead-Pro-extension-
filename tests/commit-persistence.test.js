@@ -73,6 +73,11 @@ const impls = BUILDS.map(extract);
 const devSrc      = fs.readFileSync(BUILDS[0], 'utf8');
 const commSrc     = fs.readFileSync(BUILDS[1] || BUILDS[0], 'utf8');
 const proxySrc    = fs.readFileSync(PROXY, 'utf8');
+// Comment lines removed before any 'is this identifier used here' scan. The post-mortem prose
+// directly above such an assertion NAMES the identifier it is banning, so scanning raw source
+// finds the explanation and reports the bug as present. This suite has been bitten by
+// self-matching assertions before; strip first, scan second.
+const stripComments = (t) => t.replace(/^\s*(\/\/|\*|\/\*).*$/gm, '');
 const reporterSrc = fs.readFileSync(REPORTER, 'utf8');
 
 let pass = 0, fail = 0;
@@ -572,8 +577,29 @@ one('...and detector is one of them — the field whose absence caused this',
     return { dev: has(devSrc), commercial: has(commSrc) };
   }, { dev: true, commercial: true });
 
-one('the proxy NAMES its detector default instead of performing it in an expression',
-  () => /detector:\s+_ccDetector\(cc\.detector, requestId\)/.test(proxySrc), true);
+// (v7.68) THIS ASSERTION USED TO READ:
+//   /detector:\s+_ccDetector\(cc\.detector, requestId\)/.test(proxySrc)
+// `requestId` is declared ~254 lines BELOW this handler, in a branch it returns before reaching, so
+// every POST threw "Cannot access 'requestId' before initialization" and all 93 comprehension rows
+// on 8/26 were lost. The assertion went GREEN, because it pinned the broken call VERBATIM — the
+// identical mistake this suite already carries a v7.64 post-mortem about, made while writing the
+// test for it. A regex containing the buggy identifier can only ever confirm the bug is present.
+//
+// So the argument SPELLING is no longer pinned anywhere. What is pinned is the scope rule that was
+// actually violated, and the real coverage is worker-smoke.test.js, which POSTS to this endpoint
+// and reads the row back out of a stubbed KV — it fails against v7.67 and passes against v7.68.
+one('the proxy names its detector default rather than performing it inline',
+  () => /detector:\s+_ccDetector\(/.test(proxySrc), true);
+
+one('the handler does not reach for requestId — that name is declared BELOW it and is in its TDZ',
+  () => {
+    const a = proxySrc.indexOf("url.pathname.endsWith('/commit-comprehension')");
+    const decl = proxySrc.indexOf('const requestId  = crypto.randomUUID();');
+    if (a < 0 || decl < 0) return 'span not found';
+    if (decl < a) return 'requestId is now declared ABOVE the handler — re-read this assertion';
+    // The handler ends where the next route begins; bound the scan at the declaration either way.
+    return /\brequestId\b/.test(stripComments(proxySrc.slice(a, decl))) ? 'referenced' : 'clean';
+  }, 'clean');
 
 one('...and logs WHICH case it hit — no field at all, or an unrecognised one',
   () => ({
