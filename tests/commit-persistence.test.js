@@ -67,6 +67,11 @@ function extract(file) {
 }
 
 const impls = BUILDS.map(extract);
+// (v9.7.582) Both build sources, read whole. Every other harness here slices ONE span out of
+// BOTH files and asserts the spans agree — which is exactly why a field missing from a span
+// nobody compared survived for three weeks. These two exist to compare the FILES.
+const devSrc      = fs.readFileSync(BUILDS[0], 'utf8');
+const commSrc     = fs.readFileSync(BUILDS[1] || BUILDS[0], 'utf8');
 const proxySrc    = fs.readFileSync(PROXY, 'utf8');
 const reporterSrc = fs.readFileSync(REPORTER, 'utf8');
 
@@ -528,6 +533,57 @@ one('the vacuous tile is grey, not red — nothing is wrong on those leads',
 
 one('rows written before v9.7.574 carry neither marker and are NOT retroactively reclassified',
   () => /cannot be reclassified after the fact and are not guessed at/.test(reporterSrc), true);
+
+
+// ── (v9.7.582) THE TWO BUILDS MUST SEND THE SAME PAYLOAD, AND NOTHING CHECKED THAT ──────────
+// From v9.7.566 until v9.7.581 the COMMERCIAL build's _lpSendCommitComprehension omitted three
+// fields the dev build sent: detector, authoritative, sourceUsed. The mirror lost the hunk and no
+// assertion anywhere compared the two payloads — every suite sliced ONE span out of BOTH files and
+// asserted the spans agreed, which they did, because the missing keys were in a span nobody
+// compared.
+//
+// THE CONSEQUENCE WAS INVISIBLE BY DESIGN. A commercial row arrived with no detector; the proxy's
+// own fallback wrote 'verbal-commit' onto it BEFORE storage; the reporter then saw a legitimate
+// value and its "Defaulted" column correctly read 0. Two silent defaults in series with the
+// diagnostic below both. On the 8/25 report that put 806 commercial rows under verbal-commit and
+// left day-lock (8) and off-franchise (10) looking like fleet evidence when both came from a
+// single dev machine.
+//
+// This asserts the KEY SETS match. It is deliberately about keys and not values: a build that
+// stops sending a field is the failure mode, and a value difference would be a different bug.
+one('the two builds send the SAME payload keys on /commit-comprehension',
+  () => {
+    const keys = (src) => {
+      const i = src.indexOf("type:             'commit-comprehension'");
+      if (i < 0) return ['(payload not found)'];
+      const seg = src.slice(i, src.indexOf('meta:', i));
+      return Array.from(new Set(seg.match(/^\s{6}(\w+):/gm) || [])
+        .values()).map(x => x.trim().replace(':', '')).sort();
+    };
+    const d = keys(devSrc), c = keys(commSrc);
+    const onlyDev  = d.filter(k => c.indexOf(k) < 0);
+    const onlyComm = c.filter(k => d.indexOf(k) < 0);
+    return { onlyDev, onlyComm };
+  }, { onlyDev: [], onlyComm: [] });
+
+one('...and detector is one of them — the field whose absence caused this',
+  () => {
+    const has = (src) => /detector:\s+String\(result\.detector \|\| 'verbal-commit'\)/.test(src);
+    return { dev: has(devSrc), commercial: has(commSrc) };
+  }, { dev: true, commercial: true });
+
+one('the proxy NAMES its detector default instead of performing it in an expression',
+  () => /detector:\s+_ccDetector\(cc\.detector, requestId\)/.test(proxySrc), true);
+
+one('...and logs WHICH case it hit — no field at all, or an unrecognised one',
+  () => ({
+    logs:    /detector DEFAULTED to verbal-commit/.test(proxySrc),
+    noField: /NO detector field/.test(proxySrc),
+    saysBug: /a MODERN build doing this is a bug/.test(proxySrc)
+  }), { logs: true, noField: true, saysBug: true });
+
+one('the fallback still EXISTS — pre-v9.7.566 rows really are verbal-commit',
+  () => /return 'verbal-commit';/.test(proxySrc), true);
 
 (async () => {
   for (const p of pending) await p();
