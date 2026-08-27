@@ -268,5 +268,26 @@ check('...and Keisha\'s shape — replied today, 10 inbound — never says it',
 check('a genuinely dormant lead that HAS replied does not say it either',
   i => _never.test(_lines(i, { daysSinceReply: 45, totalInbound: 3 })), false);
 
+
+// (v9.7.587) HALF A FIX TO A CONTRADICTION IS A NEW CONTRADICTION. v9.7.586 passed totalInbound and
+// not totalOutbound. The render is gated on `if (inb || outb)`, so a zero-zero pair had been dropping
+// the line silently — supplying only one half made it render with a false zero. Keisha's rescan
+// showed "Exchange so far: 15 inbound / 0 outbound" beneath "15 inbound / 10 outbound".
+console.log('\nthe exchange line reports BOTH halves or stays quiet:');
+
+check('both halves known — the line reports them',
+  i => _lines(i, { daysSinceReply: 0, totalInbound: 15, totalOutbound: 10 })
+        .indexOf('Exchange so far: 15 inbound / 10 outbound.') >= 0, true);
+
+check('KEISHA\'S REGRESSION: inbound known, outbound absent — no zero is invented',
+  i => /0 outbound/.test(_lines(i, { daysSinceReply: 0, totalInbound: 15 })), false);
+
+check('neither known — the line stays absent entirely, as it always did',
+  i => /Exchange so far/.test(_lines(i, { daysSinceReply: 0 })), false);
+
+check('a genuine zero-outbound lead is still reportable when it is KNOWN',
+  i => _lines(i, { daysSinceReply: 2, totalInbound: 3, totalOutbound: 0 })
+        .indexOf('Exchange so far: 3 inbound / 0 outbound.') >= 0, true);
+
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);
