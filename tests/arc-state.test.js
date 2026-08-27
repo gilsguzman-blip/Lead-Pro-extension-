@@ -210,11 +210,20 @@ check('...and the OTHER userPrompt (voicemail) is untouched — it is appended t
 check('the append is guarded so an empty block never appends a bare header',
   i => /if \(_arcBlock\) userPrompt \+= _arcBlock;/.test(i.code), true);
 
-check('the wiring reads fields that EXIST — not the two v9.7.578 invented',
+// (v9.7.586) THIS ASSERTION PINNED THE BUG AS CORRECT. It required the call site to read
+// `lastScrapedData.consecutiveOutboundNoReply` — and that field, like lastInboundAgeDays beside it,
+// lives on data.relationshipSignals and is NEVER set on the merged scrape. So the assertion
+// confirmed the wiring was reading two fields that are always undefined, and stayed green for eight
+// builds while the block asserted "never replied" on every lead. v9.7.578 invented two field names;
+// the fix for that reached for two more that exist elsewhere. Reading a REAL name off the WRONG
+// OBJECT is the same defect wearing better clothes, and a source scan cannot tell them apart —
+// which is why the behavioural assertions below (unknown vs known-zero) are the ones that matter.
+check('the wiring reads fields off the object that actually carries them',
   i => ({
-    invented: /m\.inboundCount|m\.outboundCount/.test(i.code),
-    real:     /lastScrapedData\.consecutiveOutboundNoReply/.test(i.code)
-  }), { invented: false, real: true });
+    invented:  /m\.inboundCount|m\.outboundCount/.test(i.code),
+    wrongObj:  /lastScrapedData\.(?:consecutiveOutboundNoReply|lastInboundAgeDays)/.test(i.code),
+    rightObj:  /relationshipSignals/.test(i.code) && /_arcSig\.consecutiveOutboundNoReply/.test(i.code)
+  }), { invented: false, wrongObj: false, rightObj: true });
 
 console.log('\ncontainment:');
 
@@ -227,6 +236,37 @@ check('the arc code sits OUTSIDE inlineScraper — the v9.7.455/228 scope trap',
 
 check('the block is appended in exactly one place',
   i => (i.code.match(/WHERE THIS RELATIONSHIP ACTUALLY STANDS/g) || []).length, 1);
+
+
+// ── (v9.7.586) "NEVER REPLIED" WAS ASSERTED ON EVERY LEAD, INCLUDING ONES THAT HAD REPLIED ──
+// Keisha Burgess (lead 2074168344, 8/27) sent 10 inbound messages. The SAME prompt carried
+// "Customer replied today. Total exchange: 10 inbound / 8 outbound" from the relationship reading,
+// and "The customer has never replied to anything on this lead." from this block, 150 lines apart.
+//
+// TWO CAUSES, and the first is why it went unnoticed for eight builds. The call site read
+// lastScrapedData.lastInboundAgeDays; that field lives on data.relationshipSignals and is NEVER set
+// on the merged scrape, so daysSinceReply was null on EVERY generation since v9.7.578. The line then
+// fired on `since === null` alone — turning an unavailable field into a positive claim about the
+// customer. Andrea Pardon's prompt carried the same false line the day before and nobody caught it,
+// because for her it happened to be true.
+//
+// NULL IS UNKNOWN. The claim now needs positive evidence: a known inbound count of zero.
+console.log('\nunknown is not "never" — the line needs evidence, not an absent field:');
+
+const _lines = (i, o) => ((i.build({}, o) || {}).lines || []).join('\n');
+const _never = /never replied to anything on this lead/;
+
+check('a lead with a KNOWN zero inbound count still says it — the true case is preserved',
+  i => _never.test(_lines(i, { daysSinceReply: null, totalInbound: 0 })), true);
+
+check('a lead whose inbound count is UNKNOWN says nothing at all',
+  i => _never.test(_lines(i, { daysSinceReply: null })), false);
+
+check('...and Keisha\'s shape — replied today, 10 inbound — never says it',
+  i => _never.test(_lines(i, { daysSinceReply: 0, totalInbound: 10 })), false);
+
+check('a genuinely dormant lead that HAS replied does not say it either',
+  i => _never.test(_lines(i, { daysSinceReply: 45, totalInbound: 3 })), false);
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);

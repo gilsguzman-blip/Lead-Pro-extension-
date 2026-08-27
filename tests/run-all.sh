@@ -40,7 +40,7 @@ echo "extension suites (dev + commercial, both must agree):"
 for t in amp-banner arc-bound bereavement delivery-match arc-relevancy commit-comprehension crm-entry-walk \
          decline-attribution distance-zip feedback-copy feedback-flush fences-fallback \
          lp-command-coverage observer-wiring off-franchise pivot \
-         sched-attribution spouse-attribution fact-comprehension cadence arc-state stalled-phase edge-bypass value-fact-diag \
+         sched-attribution spouse-attribution fact-comprehension cadence arc-state stalled-phase edge-bypass value-fact-diag on-premise-authorship \
          scaffold-leak sold-scan splitframe-lead state-validity trade-attribution \
          trade-delivery verbal-commit; do
   [ -f "tests/$t.test.js" ] && run "$t.test.js" "$DEV" "$COMM"
