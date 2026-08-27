@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Lead Pro",
-  "version": "9.7.587",
+  "version": "9.7.588",
   "description": "AI-powered BDC response tool for Community Auto Group",
   "permissions": [
     "activeTab",
@@ -38,7 +38,7 @@
     "48": "icon128.png",
     "128": "icon128.png"
   },
-  "version_name": "9.7.587",
+  "version_name": "9.7.588",
   "background": {
     "service_worker": "background.js"
   }
