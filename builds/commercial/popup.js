@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.594 (Commercial. WE WERE QUOTING OUR OWN EMAILS BACK AS THE CUSTOMER'S TOPICS. Extension only; proxy v7.68 and reporter v1.21 unchanged. Found in the v9.7.593 rescan of Troy Noel (lead 2073356549, Community Honda Baytown, 8/27) -- a clean run that confirmed all six v9.7.593 fixes, with these two left over. THE RELATIONSHIP READING TOLD THE MODEL: 'Other vehicles or dealerships has come up 3 time(s): "Subject: Did you know Community Honda" / "Hi there Troy, It's Nyriel from Community Honda"' and 'Vehicle configuration has come up 2 time(s): "I notice your interest in the 2026 Honda Accord Hybrid"', then instructed: '"competitor" has been a recurring thread (3 mentions). If this topic has not been resolved, it may be the silent reason for any stall. Addressing it directly often unsticks the conversation.' EVERY QUOTED EXAMPLE IS OUR OWN OUTBOUND, and the same prompt says twice that Troy has never replied (0 inbound / 7 outbound). A lead with zero customer messages cannot have a customer raising competitors three times. Reproduced exactly against the shipped scan: the pre-fix build returns competitor:3, configuration:2 on the real 8/27 record, matching the delivered prompt's own numbers. TWO INDEPENDENT CAUSES, both fixed. (a) DIRECTION. The v9.7.81 scan counts 'both directions' by design, and the render then presents the result as 'categories the customer has come back to' while the interpretation tells the model to raise it with them. Half that design is still right -- an AGENT NOTE recording what a customer said ('wants to trade his 2018 Q5') is real evidence about the customer. A message WE composed and sent is not. The exclusion is therefore narrow: outbound texts and emails only, caught by title and by the 'Sent to:/Sent by:' body prefix. Call notes, general notes and every inbound message count exactly as before. (b) OUR OWN MARQUE. The competitor pattern lists every franchise brand, 'honda' included, so at Honda Baytown any note naming the store or the car scored a competitor mention -- and the same holds at Toyota, Kia and Audi Baytown/Lafayette for their own marques. Fixing (a) alone would leave a call note reading 'wants the Honda Accord' still scoring a competitor at a Honda store, so the render now checks the matched brand against the lead vehicle: a marque we do NOT sell on this lead, or an explicit cross-shop phrase, still counts. A STATED LIMIT rather than a hidden one: tm.mentions caps at 3 while tm.count does not, so the filter can only judge the captured examples -- if none is a real competitor the topic is dropped, and if some are the count is left alone rather than guessed downward. AND THE DIRECTIVE NEEDED ITS OWN FIX: the INTERPRETATION block scans topicMentions independently and never saw the filter, so the 'addressing it directly unsticks the conversation' line kept firing even once the listing above it was corrected. That is the line that reaches the model as an instruction, so it is guarded and asserted separately. Same shape as the tapback bug: a scan mistaking our text for the customer's, then handing the model a directive built on it. ALSO IN THIS BUILD -- THE LAST FIGURE STILL COUNTING CRM ROWS: 'Attempt density: sustained (14 notes)' while every other line in the same prompt said 7. Not cosmetic -- the system prompt attaches a whole strategy to the label ('sustained (8-14 prior notes): You have been working this lead. Do NOT recycle openers...'). Seven real outreaches is 'normal (3-7)'. _outreachN is hoisted above the density block so it and the directives below use ONE number; the v9.7.81 bucket boundaries are unchanged and asserted unchanged; the label now reads 'outreaches' because that is what it counts. WHAT THE v9.7.593 RESCAN CONFIRMED, unchanged here: close-out gone with [LP CLOSE-OUT FLOOR DIAG] ACTIVE at leadAgeDays:1; '1 call ... out of 7 outreach attempts' where v9.7.592 said '2 calls ... out of 11'; 'Exchange so far: 0 inbound / 7 outbound' with 'The customer has never replied to anything on this lead' and no null anywhere; and the body-phone guard's 'corrected hallucinated number' line ABSENT from the log entirely, where it fired twice the run before. VERIFIED 30/30 in a new own-words-topics suite plus all 50 suites green (1,619 assertions), dev===comm on every case. The suite EXECUTES the shipped scan against the real 8/27 fixture. NON-VACUOUS: 17 failures against v9.7.593, every assertion running, and the pre-fix run reproduces the delivered prompt's counts exactly. WHAT THIS MIGHT BREAK, PLAINLY: fewer recurring topics overall, and on some leads none -- a topic now needs the customer or an agent's note about them, not our own marketing copy. Density labels drop a bucket on leads whose CRM rows outnumber real outreaches, which is most of them. Both are the intended direction and both are diagnosable from the log. scraperVersion stays v9.7.51. Pairs: DEV v9.7.594-dev / COMMERCIAL v9.7.594. Builds on v9.7.593.)
 // Lead Pro -- popup.js  v9.7.593 (Commercial. A TWO-DAY-OLD LEAD IS NOT A CLOSE-OUT -- PLUS THE v9.7.592 FIX WAS A DEAD GUARD AND I WROTE IT. Extension only; proxy v7.68 and reporter v1.21 unchanged. All six findings come from ONE rescan of Troy Noel (lead 2073356549, Community Honda Baytown, 8/27) on v9.7.592. (1) THE DRAFT OFFERED TO CLOSE A LEAD THAT OPENED YESTERDAY: 'are you still considering the 2026 Honda Accord Hybrid Sport-L, or should I close this out for now?' _isStalled was false, so PHASE 5 never engaged -- this came from TONE, three individually-correct pressures summing to a wrong result: the situation brief suggested an 'easy-out', the anti-restate block said acknowledge the silence plainly, and the relationship reading said 'not a hot lead, soft re-engage'. No single input was wrong, so there was no single input to correct; hence an explicit FLOOR. Leads <= 7 days (the engagement-phase edge the system prompt already uses) now carry a block banning close-out framing by phrase AND by variation, stating that several outreaches in a few days is OUR cadence firing rather than a customer going cold. Acknowledging the quiet stays allowed; withdrawing does not. The floor sits INSIDE the exit/pause-gated section and that placement is asserted structurally -- a customer who asks to stop must always be able to stop. 'easy-out' is also removed from the hang-up override. New [LP CLOSE-OUT FLOOR DIAG]. (2) THE v9.7.592 INBOUND GUARD NEVER RAN -- A FOURTH DEAD GUARD, AND THE FIRST I ADDED RATHER THAN FOUND. It excluded the 'Lead received' note. That note carries NO data-direction and its title fails the /^(inbound|received)/ test, so it never reached the inbound branch at all. Running the SHIPPED tally against the 8/27 dump returns byte-identical output on v9.7.591 and v9.7.592. The row that actually produces the '1 inbound' and the 1.9-day reply clock is a LEAD LOG audit entry -- 'By: System | Sales Rep Changed From System to Samantha Lopez' -- which VinSolutions stamps data-direction='Inbound'. CRM bookkeeping is not a customer message in any direction; it is now excluded outright. The lead form keeps its v9.7.592 treatment and its empty-body test was ALSO wrong (the body opens 'By: System Lead received with no comments...', so an anchored match missed it, and the routing strip then ate the word 'Lead' before the boilerplate pattern could match -- both fixed, order included). (3) THE NULL REACHED THE MODEL. v9.7.592 made the reply clock null but left the render chain printing it unguarded, so Troy's prompt line 424 shipped 'Last customer reply was null days ago; 7 outbound since then with no answer.' -- a literal null AND a claimed reply on a lead with no customer text. Absence is now its own branch: it reports the outbound run, which is known, and says no dated reply is on file. (4) THE HANG-UP COUNT WAS STILL WRONG. v9.7.591 turned 11 into 2; the truth is 1. My own comment said 'one line per note in this blob' -- it is not. The context carries every note TWICE, under AGENT CONTEXT and again in the CONVERSATION TRANSCRIPT, differing only in prefix. Now deduped on the matched phrase to end of line, which is identical in both renderings. (5) THE ATTEMPTS FIGURE DOUBLE-COUNTED THE SAME WAY -- 'out of 11 outreach attempts' where the block seventeen lines below correctly said 7. Now sourced from relationshipSignals.totalOutboundCount. (6) ONE PROMPT, TWO PHONE NUMBERS. The system prompt said 'Your direct phone number is 281-837-3382. Use ONLY this number' while the LEAD block said 281-837-3381. The model obeyed the system prompt and the body-phone guard then logged it as a 'hallucinated number' and rewrote it -- twice on that generation. It was not hallucinating. The system prompt now starts from the same resolved signer the LEAD block uses; that line is BELOW the cache breakpoint so per-lead variation costs no cache hit. New [LP SYS PHONE DIAG] prints it beside [LP PROMPT PHONE] for comparison. NEW IN TESTING, and the reason (2) was caught: tests/fixtures/troy-2073356549-notes.json is extracted from the real 8/27 DOM dump -- every note's data-direction, type, body and date as the shipped selectors return them. It reproduces the shipped log EXACTLY on v9.7.591 (1 inbound, sinceReply 1.9d), which is what makes it evidence rather than a restatement of my own assumptions. A synthetic fixture is what let v9.7.592 pass 27 green assertions while changing nothing. VERIFIED: new close-out-floor suite 24/24, reply-vs-inquiry rewritten 25/25, anchor-authorship 42/42 (+5 dedupe), arc-state 39/39 (+9 null-render), all 49 suites green, dev===comm on every case. NON-VACUOUS: 40 failures across those four suites against v9.7.592, every assertion running. WHAT THIS MIGHT BREAK, PLAINLY: leads whose only inbound was a CRM audit row now read as never having replied, which is what they are -- relationship lines keyed to 'last replied' go quiet on them. And no lead under 8 days can be offered a close-out, including one where an agent might genuinely want to; the exit/pause paths remain the way a customer ends things. scraperVersion stays v9.7.51. Pairs: DEV v9.7.593-dev / COMMERCIAL v9.7.593. Builds on v9.7.592.)
 // Lead Pro -- popup.js  v9.7.592 (Commercial. A LEAD SUBMISSION IS NOT A REPLY, AND A CRM ROW IS NOT AN OUTREACH. Extension only; proxy v7.68 and reporter v1.21 unchanged and NOT redeployed. Both defects on Troy Noel (lead 2073356549, Community Honda Baytown, 8/27), both the manufactured-directive shape: a layer counts the wrong thing and the model faithfully obeys it. (1) THE LEAD FORM WAS COUNTED AS A CUSTOMER REPLY. Troy has never sent us anything -- zero inbound customer messages in the record. The delivered prompt carried, in three separate blocks: 'NO CUSTOMER REPLY YET' (line 234), 'Customer last replied 2 day(s) ago.' (line 255), and 'Last customer reply was 1.9 days ago; 7 outbound since then with no answer.' (line 427) -- while the log line for that same generation read hasCustomerReply:false. ONE note caused it: 'Lead received | By: System | Lead received with no comments.' The tally's isMessage test matches /received/, so the FORM was counted as an inbound message and its timestamp became lastInboundTs -> lastInboundAgeDays 1.9 -> 'last replied 1.9 days ago'. Confirmed against the 8/27 log: exchange:1in/7out | sinceReply:1.9d, beside hasCustomerReply:false. SPLIT RATHER THAN EXCLUDED, deliberately: a lead form CAN carry real customer words ('interested in the Accord, call me after 5') and dropping those outright would delete the only thing some customers ever say -- the same class of harm as the empty transcript v9.7.589 fixed. So the form counts toward the EXCHANGE when it has comments, and NEVER sets the reply clock. Every consumer of lastInboundAgeDays words it as 'replied', and an inquiry is not a reply no matter what it contains. Troy now reads 0 inbound / 7 outbound with the clock unset, so all three blocks agree; consecutiveOutboundNoReply is unchanged at 7. (2) SYSTEM ROWS WERE COUNTED AS OUTREACHES. Two directives reported data.totalNoteCount -- every CRM entry, Lead Logs and manager changes and System rows included. Troy's 14 entries contain 7 real outreaches, so the prompt said 'you have already sent 14+ messages' and 'customer has not replied to 14+ prior outreaches' while the arc block IN THE SAME PROMPT read '1 inbound / 7 outbound'. relationshipSignals.totalOutboundCount is the real tally and was already on data. THE GATES MOVE ONTO THE REAL NUMBER TOO, not just the wording: a threshold crossed only because system rows were counted fires a directive whose own text is then false, which is the defect rather than a side effect of it. STATED PLAINLY BECAUSE IT IS A BEHAVIOUR CHANGE: both directives now fire less often. On Troy, VARY YOUR ANGLE still fires (7 >= 5) and ONE-SIDED CONVERSATION no longer does (7 < 8) -- he was being told '14+' for 7. New [LP OUTREACH COUNT DIAG] prints the number, its source (outbound-count vs note-count-fallback) and both gate outcomes, so any suppression is countable instead of silent. VERIFIED 27/27 in a new reply-vs-inquiry suite plus all 48 suites green (1,553 assertions), dev===comm on every case. The suite EXECUTES the shipped tally loop against Troy's notes rebuilt from the 8/27 DOM dump. NON-VACUOUS: run against v9.7.591 it fails 17 ways and reproduces 1.9 EXACTLY, matching the shipped log -- the 10 that pass there are the behaviours asserted unchanged (a genuine customer reply still counts and still sets the clock, consecutive-outbound still stops at it, the outbound tally is untouched). Asserted both directions: a form with comments still counts toward the exchange but still does not start the reply clock; a form plus a later real reply keeps both. WHAT THIS MIGHT BREAK, PLAINLY: leads whose only inbound was the form now read as never having replied -- which is what they are -- so relationship lines keyed to 'last replied' go quiet on them and the one-sided directive fires on a smaller, truer number. That is the intended direction; the diag makes the difference visible. scraperVersion stays v9.7.51. Pairs: DEV v9.7.592-dev / COMMERCIAL v9.7.592. Builds on v9.7.591.)
 // Lead Pro -- popup.js  v9.7.591 (Commercial. TWO FABRICATIONS ON TROY NOEL'S LEAD, BOTH SHIPPED AS FACT. Lead 2073356549, Community Honda Baytown, 8/27, rescanned on v9.7.589. (1) THE HANG-UP COUNT. The close-override read "Customer has hung up on 11 calls. Phone is not working." Troy's record carries exactly ONE hang-up note -- 08/27 2:52 PM, "By: Kaylee Guzman | hung up during screening", logged by our own agent during dialer screening, not by the customer. The 11 was sbTotal: texts + calls + emails, every outreach attempt on the lead. sbHungUp was only ever a BOOLEAN (.test() -- did the phrase appear at all) and sbTotal was silently standing in for a count nobody computed. Worse, it scales with our own progress: the SAME lead read "6" on v9.7.585 and "11" on v9.7.589 because the v9.7.589 transcript fix handed the tally more text to count, so every future context improvement inflates the fabrication further. And "Phone is not working" was asserted flat, with nothing behind it -- a hang-up says somebody ended a call, never that the line is broken. FIX: _lpHangUpCount() counts the note lines that actually carry a hang-up phrase; sbHungUp is now derived from it (identical truth value); the override reports N hang-ups out of sbTotal attempts, and explicitly forbids telling the customer their phone is broken or stating why any call ended. The SITUATION BRIEF line got the same treatment. (2) THE OWNERSHIP CLAIM. "YOUR LAST SUBSTANTIVE MESSAGE TO THIS CUSTOMER" was titled that unconditionally, and on this lead it quoted Yvonne Ortega's 8/27 email while Kaylee Guzman was the signing agent -- 34 lines above the rule that says do not claim ownership of messages you did not send. Not an edge case: Troy's lead passed System -> Samantha Lopez -> Kaylee Guzman inside three minutes, so at Community rooftops the newest substantive outbound very often is not the signer's. VinSolutions already carries the author IN the note body ("By: <name>" on calls/emails/notes, "Sent by: <name>" on texts), so _lpOutboundAuthor() recovers it with no new scrape plumbing. When the author is not the signer the heading names them and a following line bans "my last message"/"I reached out"/"I sent you". _lpSameAgent() compares first+last token and returns TRUE when either side is unknown -- an unrecoverable author must not become a manufactured "someone else wrote this", which would be the same class of fabrication pointing the other way. New [LP ANCHOR AUTHOR DIAG] prints author, signer and the verdict. NOTE ON WHAT 589 ALREADY FIXED, unchanged here: the arc-state contradiction is gone ("1 inbound / 7 outbound" now agrees with itself) and the populated transcript let the model see "By: Nyriel Benton"/"By: Yvonne Ortega" and write "we've tried reaching you" rather than claiming the messages -- a fix by evidence, not by rule, which is why the mislabel still had to be fixed here. scraperVersion stays v9.7.51. Pairs: DEV v9.7.591-dev / COMMERCIAL v9.7.591.)
@@ -11396,7 +11397,36 @@ function tryExecuteScript(tab, statusEl, dot) {
         // (v9.7.81) TOPIC: recurring conversation threads — both directions count, but
         // dedupe so a single note can't count for the same topic twice. Detects category
         // by keyword; captures one short snippet per match.
-        if (body && body.length > 0) {
+        // (v9.7.594 -- OUR OWN MARKETING EMAIL IS NOT THE CUSTOMER RAISING A TOPIC) Troy Noel,
+        // lead 2073356549, 8/27. The relationship reading told the model:
+        //
+        //   Other vehicles or dealerships has come up 3 time(s):
+        //     "Subject: Did you know Community Honda" / "Hi there Troy, It's Nyriel from Community Honda"
+        //   "competitor" has been a recurring thread (3 mentions). If this topic has not been
+        //   resolved, it may be the silent reason for any stall. Addressing it directly often
+        //   unsticks the conversation.
+        //
+        // Both quoted examples are OUR OWN outbound emails, and the same prompt said twice that
+        // Troy has never replied. A lead with zero customer messages cannot have a customer raising
+        // competitors three times. The competitor pattern matches every franchise brand including
+        // "honda" -- so at Honda Baytown every outbound email naming the store scores a competitor
+        // mention, and the same holds at each of the other four rooftops for their own marque.
+        // Vehicle configuration was inflated the same way, by our own "I notice your interest in
+        // the 2026 Honda Accord Hybrid".
+        //
+        // The v9.7.81 comment said "both directions count" deliberately, and half of that is still
+        // right: an AGENT NOTE recording what a customer said ("wants to trade his 2018 Q5") is
+        // real evidence about the customer. What is not evidence is a message WE composed and sent
+        // them. So the exclusion is narrow -- outbound texts and emails only. Call notes, general
+        // notes and every inbound message still count exactly as before.
+        //
+        // This matters because the render presents these as "categories the customer has come back
+        // to" and the interpretation line tells the model to address the topic head-on. Reading our
+        // own words back as theirs is the same shape as the tapback bug: a scan mistaking our text
+        // for the customer's, then handing the model a directive built on it.
+        var _topicOurOwnSend = /outbound text message|email reply to prospect|email sent to prospect/i.test(title)
+                            || /^\s*(?:sent\s+to|sent\s+by)\s*:/i.test(String(body || ''));
+        if (body && body.length > 0 && !_topicOurOwnSend) {
           var topicPatterns = {
             trade:         /\b(trade.?in|trade.?value|appraisal|kbb|kelley blue book|payoff|my (current|old) (car|vehicle|truck|suv))\b/i,
             financing:     /\b(financ\w+|credit (app|application|score|union)|down ?payment|monthly payment|interest rate|apr|prequalif\w+|approval|loan|lease (offer|payment|term)|cosigner|co.?signer)\b/i,
@@ -15139,6 +15169,28 @@ function renderRelationshipReading(data) {
   // (v9.7.81) RECURRING TOPICS -- categories the customer has come back to 2+ times.
   // The model frequently misses these because they're spread across the transcript.
   var topicBits = [];
+  // (v9.7.594 -- THE STORE'S OWN MARQUE IS NOT A COMPETITOR) The competitor pattern lists every
+  // franchise brand, "honda" included, so at Honda Baytown any note naming the store or the car
+  // scored a competitor mention -- and the same holds at Toyota, Kia and Audi Baytown/Lafayette for
+  // their own marques. Excluding our outbound sends (see the scraper) removes the marketing-email
+  // case; this removes the rest, e.g. a call note reading "wants the Honda Accord" at a Honda store.
+  // A brand we do NOT sell on this lead, or an explicit cross-shop phrase, still counts.
+  // LIMIT, stated rather than hidden: tm.mentions caps at 3 while tm.count does not, so this can
+  // only judge the captured examples. If none of them is a real competitor the topic is dropped;
+  // if some are, the count is left alone rather than guessed downward.
+  var _lpTopicDropped = {};
+  var _lpLeadMarque = String((data && (data.vehicle || data.vehicleRaw)) || '').toLowerCase();
+  var _lpCrossShop  = /\b(other dealer\w*|another dealership|shopping around|comparing|cross.?shop)\b/i;
+  function _lpIsRealCompetitor(sentence) {
+    var t = String(sentence || '');
+    if (_lpCrossShop.test(t)) return true;
+    var hits = t.match(/\b(toyota|honda|ford|chevy|chevrolet|nissan|hyundai|kia|mazda|subaru|jeep|ram|gmc|dodge|buick|cadillac|lincoln|acura|infiniti|lexus|bmw|mercedes|audi|volkswagen|vw|tesla|volvo|porsche)\b/gi);
+    if (!hits) return false;
+    for (var h = 0; h < hits.length; h++) {
+      if (_lpLeadMarque.indexOf(hits[h].toLowerCase()) < 0) return true;
+    }
+    return false;
+  }
   if (s.hasRecurringTopic) {
     var topicLabels = {
       trade:         'Trade-in / trade value',
@@ -15150,8 +15202,18 @@ function renderRelationshipReading(data) {
     };
     for (var tk in s.topicMentions) {
       var tm = s.topicMentions[tk];
+      var _tmMentions = tm.mentions;
+      if (tk === 'competitor') {
+        _tmMentions = tm.mentions.filter(function(m){ return _lpIsRealCompetitor(m.sentence); });
+        if (!_tmMentions.length) {
+          _lpTopicDropped.competitor = true;
+          console.log('[LP TOPIC FILTER DIAG] competitor DROPPED — ' + tm.count
+            + ' raw mention(s), none naming a marque we do not sell on this lead');
+          continue;
+        }
+      }
       if (tm.count >= 2) {
-        var topicExamples = tm.mentions.slice(0,2).map(function(m){
+        var topicExamples = _tmMentions.slice(0,2).map(function(m){
           return '"' + m.sentence.replace(/"/g,"'").substring(0,100) + '"' + (m.date ? ' (' + m.date + ')' : '');
         });
         topicBits.push(topicLabels[tk] + ' has come up ' + tm.count + ' time(s): ' + topicExamples.join(' / '));
@@ -15240,6 +15302,10 @@ function renderRelationshipReading(data) {
     var topTopic = null;
     var topCount = 0;
     for (var tk2 in s.topicMentions) {
+      // (v9.7.594) Honour the same filter. This loop chooses the topic the model is told to
+      // raise with the customer; without this it kept naming a competitor thread that the
+      // section above had already established does not exist.
+      if (_lpTopicDropped[tk2]) continue;
       if (s.topicMentions[tk2].count > topCount) {
         topCount = s.topicMentions[tk2].count;
         topTopic = tk2;
@@ -18096,17 +18162,29 @@ function buildUserPrompt(data) {
         console.log('[Lead Pro] TOUCH POSITION: fresh-lead guard active - historical noteCount (' + _nc + ') suppressed for directive logic');
       }
 
+      // (v9.7.594 -- DENSITY COUNTED CRM ROWS TOO) The last figure in this family still reading
+      // data.totalNoteCount. Troy's prompt said "Attempt density: sustained (14 notes)" while every
+      // other line in it said 7 -- and the label is not cosmetic: the system prompt's ATTEMPT
+      // DENSITY section attaches a whole strategy to it ("sustained (8-14 prior notes): You have
+      // been working this lead. Do NOT recycle openers..."). Seven real outreaches is "normal
+      // (3-7)". The buckets keep their v9.7.81 boundaries; only the number fed into them changes,
+      // and the label now says "outreaches" because that is what it is now counting.
+      // Hoisted above the density block so both it and the directives below use one number.
+      var _rsOutN = data.relationshipSignals && data.relationshipSignals.totalOutboundCount;
+      var _outreachN = (typeof _rsOutN === 'number' && _rsOutN > 0) ? _rsOutN : _ncForDirectives;
+      var _outreachSrc = (typeof _rsOutN === 'number' && _rsOutN > 0) ? 'outbound-count' : 'note-count-fallback';
+
       var _attemptDensity;
       if (_freshLeadActive) {
         _attemptDensity = 'fresh inquiry (this lead just submitted; customer has prior history with us but the new inquiry is the current conversation)';
-      } else if (_nc >= 15) {
-        _attemptDensity = 'heavy (' + _nc + ' notes)';
-      } else if (_nc >= 8) {
-        _attemptDensity = 'sustained (' + _nc + ' notes)';
-      } else if (_nc >= 3) {
-        _attemptDensity = 'normal (' + _nc + ' notes)';
+      } else if (_outreachN >= 15) {
+        _attemptDensity = 'heavy (' + _outreachN + ' outreaches)';
+      } else if (_outreachN >= 8) {
+        _attemptDensity = 'sustained (' + _outreachN + ' outreaches)';
+      } else if (_outreachN >= 3) {
+        _attemptDensity = 'normal (' + _outreachN + ' outreaches)';
       } else {
-        _attemptDensity = 'light (' + _nc + ' notes)';
+        _attemptDensity = 'light (' + _outreachN + ' outreaches)';
       }
 
       // (v9.7.294) Touch role is now extracted + scrubbed from leadContext at the
@@ -18316,9 +18394,6 @@ function buildUserPrompt(data) {
       // in the same prompt read "1 inbound / 7 outbound". relationshipSignals.totalOutboundCount
       // is the real tally and is already carried on data; use it when it is available and fall
       // back to the note count only when it is not.
-      var _rsOutN = data.relationshipSignals && data.relationshipSignals.totalOutboundCount;
-      var _outreachN = (typeof _rsOutN === 'number' && _rsOutN > 0) ? _rsOutN : _ncForDirectives;
-      var _outreachSrc = (typeof _rsOutN === 'number' && _rsOutN > 0) ? 'outbound-count' : 'note-count-fallback';
       console.log('[LP OUTREACH COUNT DIAG] outreaches:' + _outreachN + ' | source:' + _outreachSrc
         + ' | noteCount:' + _ncForDirectives + ' | varyAngle:' + (_outreachN >= 5)
         + ' | oneSided:' + (!_hasReplyForDirectives && _outreachN >= 8));
