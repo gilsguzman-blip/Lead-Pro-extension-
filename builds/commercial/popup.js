@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.593 (Commercial. A TWO-DAY-OLD LEAD IS NOT A CLOSE-OUT -- PLUS THE v9.7.592 FIX WAS A DEAD GUARD AND I WROTE IT. Extension only; proxy v7.68 and reporter v1.21 unchanged. All six findings come from ONE rescan of Troy Noel (lead 2073356549, Community Honda Baytown, 8/27) on v9.7.592. (1) THE DRAFT OFFERED TO CLOSE A LEAD THAT OPENED YESTERDAY: 'are you still considering the 2026 Honda Accord Hybrid Sport-L, or should I close this out for now?' _isStalled was false, so PHASE 5 never engaged -- this came from TONE, three individually-correct pressures summing to a wrong result: the situation brief suggested an 'easy-out', the anti-restate block said acknowledge the silence plainly, and the relationship reading said 'not a hot lead, soft re-engage'. No single input was wrong, so there was no single input to correct; hence an explicit FLOOR. Leads <= 7 days (the engagement-phase edge the system prompt already uses) now carry a block banning close-out framing by phrase AND by variation, stating that several outreaches in a few days is OUR cadence firing rather than a customer going cold. Acknowledging the quiet stays allowed; withdrawing does not. The floor sits INSIDE the exit/pause-gated section and that placement is asserted structurally -- a customer who asks to stop must always be able to stop. 'easy-out' is also removed from the hang-up override. New [LP CLOSE-OUT FLOOR DIAG]. (2) THE v9.7.592 INBOUND GUARD NEVER RAN -- A FOURTH DEAD GUARD, AND THE FIRST I ADDED RATHER THAN FOUND. It excluded the 'Lead received' note. That note carries NO data-direction and its title fails the /^(inbound|received)/ test, so it never reached the inbound branch at all. Running the SHIPPED tally against the 8/27 dump returns byte-identical output on v9.7.591 and v9.7.592. The row that actually produces the '1 inbound' and the 1.9-day reply clock is a LEAD LOG audit entry -- 'By: System | Sales Rep Changed From System to Samantha Lopez' -- which VinSolutions stamps data-direction='Inbound'. CRM bookkeeping is not a customer message in any direction; it is now excluded outright. The lead form keeps its v9.7.592 treatment and its empty-body test was ALSO wrong (the body opens 'By: System Lead received with no comments...', so an anchored match missed it, and the routing strip then ate the word 'Lead' before the boilerplate pattern could match -- both fixed, order included). (3) THE NULL REACHED THE MODEL. v9.7.592 made the reply clock null but left the render chain printing it unguarded, so Troy's prompt line 424 shipped 'Last customer reply was null days ago; 7 outbound since then with no answer.' -- a literal null AND a claimed reply on a lead with no customer text. Absence is now its own branch: it reports the outbound run, which is known, and says no dated reply is on file. (4) THE HANG-UP COUNT WAS STILL WRONG. v9.7.591 turned 11 into 2; the truth is 1. My own comment said 'one line per note in this blob' -- it is not. The context carries every note TWICE, under AGENT CONTEXT and again in the CONVERSATION TRANSCRIPT, differing only in prefix. Now deduped on the matched phrase to end of line, which is identical in both renderings. (5) THE ATTEMPTS FIGURE DOUBLE-COUNTED THE SAME WAY -- 'out of 11 outreach attempts' where the block seventeen lines below correctly said 7. Now sourced from relationshipSignals.totalOutboundCount. (6) ONE PROMPT, TWO PHONE NUMBERS. The system prompt said 'Your direct phone number is 281-837-3382. Use ONLY this number' while the LEAD block said 281-837-3381. The model obeyed the system prompt and the body-phone guard then logged it as a 'hallucinated number' and rewrote it -- twice on that generation. It was not hallucinating. The system prompt now starts from the same resolved signer the LEAD block uses; that line is BELOW the cache breakpoint so per-lead variation costs no cache hit. New [LP SYS PHONE DIAG] prints it beside [LP PROMPT PHONE] for comparison. NEW IN TESTING, and the reason (2) was caught: tests/fixtures/troy-2073356549-notes.json is extracted from the real 8/27 DOM dump -- every note's data-direction, type, body and date as the shipped selectors return them. It reproduces the shipped log EXACTLY on v9.7.591 (1 inbound, sinceReply 1.9d), which is what makes it evidence rather than a restatement of my own assumptions. A synthetic fixture is what let v9.7.592 pass 27 green assertions while changing nothing. VERIFIED: new close-out-floor suite 24/24, reply-vs-inquiry rewritten 25/25, anchor-authorship 42/42 (+5 dedupe), arc-state 39/39 (+9 null-render), all 49 suites green, dev===comm on every case. NON-VACUOUS: 40 failures across those four suites against v9.7.592, every assertion running. WHAT THIS MIGHT BREAK, PLAINLY: leads whose only inbound was a CRM audit row now read as never having replied, which is what they are -- relationship lines keyed to 'last replied' go quiet on them. And no lead under 8 days can be offered a close-out, including one where an agent might genuinely want to; the exit/pause paths remain the way a customer ends things. scraperVersion stays v9.7.51. Pairs: DEV v9.7.593-dev / COMMERCIAL v9.7.593. Builds on v9.7.592.)
 // Lead Pro -- popup.js  v9.7.592 (Commercial. A LEAD SUBMISSION IS NOT A REPLY, AND A CRM ROW IS NOT AN OUTREACH. Extension only; proxy v7.68 and reporter v1.21 unchanged and NOT redeployed. Both defects on Troy Noel (lead 2073356549, Community Honda Baytown, 8/27), both the manufactured-directive shape: a layer counts the wrong thing and the model faithfully obeys it. (1) THE LEAD FORM WAS COUNTED AS A CUSTOMER REPLY. Troy has never sent us anything -- zero inbound customer messages in the record. The delivered prompt carried, in three separate blocks: 'NO CUSTOMER REPLY YET' (line 234), 'Customer last replied 2 day(s) ago.' (line 255), and 'Last customer reply was 1.9 days ago; 7 outbound since then with no answer.' (line 427) -- while the log line for that same generation read hasCustomerReply:false. ONE note caused it: 'Lead received | By: System | Lead received with no comments.' The tally's isMessage test matches /received/, so the FORM was counted as an inbound message and its timestamp became lastInboundTs -> lastInboundAgeDays 1.9 -> 'last replied 1.9 days ago'. Confirmed against the 8/27 log: exchange:1in/7out | sinceReply:1.9d, beside hasCustomerReply:false. SPLIT RATHER THAN EXCLUDED, deliberately: a lead form CAN carry real customer words ('interested in the Accord, call me after 5') and dropping those outright would delete the only thing some customers ever say -- the same class of harm as the empty transcript v9.7.589 fixed. So the form counts toward the EXCHANGE when it has comments, and NEVER sets the reply clock. Every consumer of lastInboundAgeDays words it as 'replied', and an inquiry is not a reply no matter what it contains. Troy now reads 0 inbound / 7 outbound with the clock unset, so all three blocks agree; consecutiveOutboundNoReply is unchanged at 7. (2) SYSTEM ROWS WERE COUNTED AS OUTREACHES. Two directives reported data.totalNoteCount -- every CRM entry, Lead Logs and manager changes and System rows included. Troy's 14 entries contain 7 real outreaches, so the prompt said 'you have already sent 14+ messages' and 'customer has not replied to 14+ prior outreaches' while the arc block IN THE SAME PROMPT read '1 inbound / 7 outbound'. relationshipSignals.totalOutboundCount is the real tally and was already on data. THE GATES MOVE ONTO THE REAL NUMBER TOO, not just the wording: a threshold crossed only because system rows were counted fires a directive whose own text is then false, which is the defect rather than a side effect of it. STATED PLAINLY BECAUSE IT IS A BEHAVIOUR CHANGE: both directives now fire less often. On Troy, VARY YOUR ANGLE still fires (7 >= 5) and ONE-SIDED CONVERSATION no longer does (7 < 8) -- he was being told '14+' for 7. New [LP OUTREACH COUNT DIAG] prints the number, its source (outbound-count vs note-count-fallback) and both gate outcomes, so any suppression is countable instead of silent. VERIFIED 27/27 in a new reply-vs-inquiry suite plus all 48 suites green (1,553 assertions), dev===comm on every case. The suite EXECUTES the shipped tally loop against Troy's notes rebuilt from the 8/27 DOM dump. NON-VACUOUS: run against v9.7.591 it fails 17 ways and reproduces 1.9 EXACTLY, matching the shipped log -- the 10 that pass there are the behaviours asserted unchanged (a genuine customer reply still counts and still sets the clock, consecutive-outbound still stops at it, the outbound tally is untouched). Asserted both directions: a form with comments still counts toward the exchange but still does not start the reply clock; a form plus a later real reply keeps both. WHAT THIS MIGHT BREAK, PLAINLY: leads whose only inbound was the form now read as never having replied -- which is what they are -- so relationship lines keyed to 'last replied' go quiet on them and the one-sided directive fires on a smaller, truer number. That is the intended direction; the diag makes the difference visible. scraperVersion stays v9.7.51. Pairs: DEV v9.7.592-dev / COMMERCIAL v9.7.592. Builds on v9.7.591.)
 // Lead Pro -- popup.js  v9.7.591 (Commercial. TWO FABRICATIONS ON TROY NOEL'S LEAD, BOTH SHIPPED AS FACT. Lead 2073356549, Community Honda Baytown, 8/27, rescanned on v9.7.589. (1) THE HANG-UP COUNT. The close-override read "Customer has hung up on 11 calls. Phone is not working." Troy's record carries exactly ONE hang-up note -- 08/27 2:52 PM, "By: Kaylee Guzman | hung up during screening", logged by our own agent during dialer screening, not by the customer. The 11 was sbTotal: texts + calls + emails, every outreach attempt on the lead. sbHungUp was only ever a BOOLEAN (.test() -- did the phrase appear at all) and sbTotal was silently standing in for a count nobody computed. Worse, it scales with our own progress: the SAME lead read "6" on v9.7.585 and "11" on v9.7.589 because the v9.7.589 transcript fix handed the tally more text to count, so every future context improvement inflates the fabrication further. And "Phone is not working" was asserted flat, with nothing behind it -- a hang-up says somebody ended a call, never that the line is broken. FIX: _lpHangUpCount() counts the note lines that actually carry a hang-up phrase; sbHungUp is now derived from it (identical truth value); the override reports N hang-ups out of sbTotal attempts, and explicitly forbids telling the customer their phone is broken or stating why any call ended. The SITUATION BRIEF line got the same treatment. (2) THE OWNERSHIP CLAIM. "YOUR LAST SUBSTANTIVE MESSAGE TO THIS CUSTOMER" was titled that unconditionally, and on this lead it quoted Yvonne Ortega's 8/27 email while Kaylee Guzman was the signing agent -- 34 lines above the rule that says do not claim ownership of messages you did not send. Not an edge case: Troy's lead passed System -> Samantha Lopez -> Kaylee Guzman inside three minutes, so at Community rooftops the newest substantive outbound very often is not the signer's. VinSolutions already carries the author IN the note body ("By: <name>" on calls/emails/notes, "Sent by: <name>" on texts), so _lpOutboundAuthor() recovers it with no new scrape plumbing. When the author is not the signer the heading names them and a following line bans "my last message"/"I reached out"/"I sent you". _lpSameAgent() compares first+last token and returns TRUE when either side is unknown -- an unrecoverable author must not become a manufactured "someone else wrote this", which would be the same class of fabrication pointing the other way. New [LP ANCHOR AUTHOR DIAG] prints author, signer and the verdict. NOTE ON WHAT 589 ALREADY FIXED, unchanged here: the arc-state contradiction is gone ("1 inbound / 7 outbound" now agrees with itself) and the populated transcript let the model see "By: Nyriel Benton"/"By: Yvonne Ortega" and write "we've tried reaching you" rather than claiming the messages -- a fix by evidence, not by rule, which is why the mislabel still had to be fixed here. scraperVersion stays v9.7.51. Pairs: DEV v9.7.591-dev / COMMERCIAL v9.7.591.)
 // Lead Pro -- popup.js  v9.7.590 (Commercial. THE TAPBACK GUARD COULD NEVER REACH THE TAPBACK. Extension only; proxy v7.68 and reporter v1.21 unchanged and NOT redeployed. WHEN A CUSTOMER TAPS 'LOVE' on an iPhone message, the SMS gateway delivers it as an INBOUND message from her whose body is OUR OWN TEXT, quoted back. She authored one word: the verb. Everything in the quotes is ours. THE BUG: the guard for this was anchored ^\s* — the reaction had to be the very first thing in the string. A real VinSolutions note never is. Verified against the 8/27 DOM dump rather than assumed: the content element opens with routing headers in their own <div>s, so innerText yields 'Received from: (832) 459-3726' / 'Received by: Rotaxlyn Hudson' / 'Loved “Great I got you down for 3pm on Saturday ...”' and the verb sits on line THREE. The guard read position zero, saw 'R', and gave up. It has therefore almost certainly never fired on live traffic since v9.7.567 — the third guard this week found waiting for a string shape production does not produce, after the v9.7.586 on-premise check (anchored past these same headers) and the value-fact resolver (waiting on a command nobody types). A guard that cannot match production is not distinguishable from no guard at all. WHAT IT COST, on Keisha Burgess (lead 2074168344, 8/27 3:48 PM): the scheduler read 'Saturday' out of OUR OWN sentence and logged 'day name IS customer-authored' with cutBy '(nothing cut)' and customerLen 259 === rawLen 259. Harmless there, because Saturday was genuinely her day from an earlier message. The general case is not harmless: a tapback is the LEAST specific reply a person can send and this made it the most specific. Text a customer 'How about Monday at 10?', have them tap Love, and LP would hard-lock a day and time they never chose — and the same applies to any price, vehicle or commitment we put in a message they merely react to. THE FIX: allow the CRM routing headers to precede the reaction, and require the verb at a LINE START. The line-start requirement is the half that matters as much as the headers: searching anywhere would make 'I loved “Top Gun”, anyway about the car' delete a real customer message, trading a false positive for a false negative — and silently emptying customer text is precisely the class v9.7.589 just fixed. Zero headers still matches, so the original bare-reaction shape is untouched. TWO FIXES NOW COMPOSE, worth stating because the outcome depends on both: with the reaction yielding no customer text, the v9.7.588 scan-depth change carries the scheduler PAST that note to the message where she actually wrote 'I'm still coming Saturday'. Before v9.7.588 the loop would have stopped there and found nothing at all. VERIFIED 22/22 in a new tapback-anchor suite plus all 46 suites green (1,489 assertions), dev===comm on every case. The suite EXECUTES the shipped helper against the note shape taken from the real dump. NON-VACUOUS: run against v9.7.589 it fails 13 ways, while the 9 that pass there are the false-positive guards and the bare-reaction shape — behaviours that were already correct and are asserted unchanged. Asserted: Keisha's real note is recognised as a reaction and leaves NOTHING customer-authored, so 'Saturday' is unreachable as something she wrote; the verb is still reported, because that IS her signal; all seven reaction verbs match behind headers, in both Received and Sent header shapes, with straight and smart quotes; a bare reaction with no headers is unchanged; 'I loved “Top Gun”' is NOT a reaction and that message survives intact; a mid-sentence verb is not a reaction; a verb with no quote is not a reaction; a reaction that follows real customer prose does not swallow the whole note; and the quoted-reply markers this helper already handled still cut correctly. ONE THING THIS CHANGES IN THE DATA: the day-lock observer has been recording DISAGREE-REGEX-ONLY on leads like this one, which reads as 'comprehension missed what the regex caught'. On this lead it was the reverse — comprehension correctly found no customer-authored day because there is none in reach, and the regex was reading our own words. Those counts should be re-read before comprehension is judged on them. WHAT THIS MIGHT BREAK, PLAINLY: a lead whose ONLY day/time evidence was a tapback will now find no constraint there and fall through to whatever the customer actually wrote, or to none. That is the intended direction — a constraint we cannot source is worse than no constraint — and the scan-depth change makes the fall-through land on real evidence rather than on nothing. node --check clean on both builds; both manifests parse; the helper is INSIDE inlineScraper alongside its callers. Builds on v9.7.589.)
@@ -2398,6 +2399,16 @@ function _lpBuildArcState(d, opts) {
     // the whole posture of this section ("Observed facts, each with the evidence it came from").
     if (since === null && inb === 0 && opts.totalInbound === 0) {
       s.lines.push('The customer has never replied to anything on this lead.');
+    }
+    // (v9.7.593) THE NULL REACHED THE MODEL. v9.7.592 made the reply clock null on leads with no
+    // real inbound, but left this chain printing `since` unguarded, so Troy's prompt shipped
+    // "Last customer reply was null days ago; 7 outbound since then with no answer." Two errors in
+    // one line: a literal null, and an assertion that a reply happened at all. Absence is now its
+    // own branch. It reports only what IS known -- the outbound run -- and says the date is not
+    // recorded rather than inventing one or implying a reply we cannot point to.
+    else if (since === null) {
+      if (consec > 0) s.lines.push(consec + ' outbound in a row with no answer. '
+                        + 'No dated customer reply is on file for this lead.');
     }
     else if (consec > 0)  s.lines.push('Last customer reply was ' + since + ' days ago; '
                             + consec + ' outbound since then with no answer.');
@@ -11298,9 +11309,34 @@ function tryExecuteScript(tab, statusEl, dot) {
           // the customer ever said. So the form counts toward the exchange when it has comments,
           // and NEVER sets the reply clock -- every consumer of lastInboundAgeDays words it as
           // "replied", and an inquiry is not a reply no matter what it contains.
-          var _isLeadSub = /^\s*lead\s+received\b/i.test(title);
-          if (resolvedDir === 'inbound' && _isLeadSub) {
-            if (body && !/^\s*lead received with no comments/i.test(bodyLower)) sig.totalInboundCount++;
+          // (v9.7.593) THE v9.7.592 GUARD WAS ANCHORED ON THE WRONG NOTE -- a fourth dead guard,
+          // and the first one I added rather than found. It tested for "Lead received", but that
+          // note carries NO data-direction and its title fails the /^(inbound|received)/ test, so
+          // it never reached this branch at all. Verified by running the shipped tally against the
+          // 8/27 DOM dump: identical output before and after v9.7.592. The row that actually
+          // produced Troy's "1 inbound" and his 1.9-day reply clock is a LEAD LOG audit entry --
+          // "By: System | Sales Rep Changed From System to Samantha Lopez" -- which VinSolutions
+          // stamps data-direction="Inbound". A CRM bookkeeping row is not a customer message in
+          // any direction. The lead form keeps its v9.7.592 treatment: it counts toward the
+          // exchange when it carries real customer words, and never starts the reply clock.
+          var _isAuditRow = /^\s*lead\s+log\b/i.test(title);
+          var _isLeadSub  = /^\s*lead\s+received\b/i.test(title);
+          if (resolvedDir === 'inbound' && _isAuditRow) {
+            /* system bookkeeping -- counts as nothing, in either direction */
+          } else if (resolvedDir === 'inbound' && _isLeadSub) {
+            // (v9.7.593) The body does not START with the boilerplate -- it opens with the routing
+            // line, "By: System Lead received with no comments. Customer ID: 1443131191 ...". An
+            // anchored test missed it. Strip the routing prefix, the boilerplate and the CRM id
+            // trailer, then require enough left over to be a real sentence from a person.
+            // Boilerplate FIRST: the routing strip consumes up to two tokens, and on
+            // "By: System Lead received with no comments" the second of those is the word "Lead"
+            // -- which then stopped the boilerplate pattern from matching at all. Order is the fix.
+            var _subWords = String(body || '')
+              .replace(/lead\s+received\s+with\s+no\s+comments\.?/i, '')
+              .replace(/\b(?:Customer|Lead|Dealer)\s*ID\s*:\s*\d+/gi, '')
+              .replace(/^\s*(?:By|Sent\s+by)\s*:\s*\S+(?:\s+\S+)?\s*/i, '')
+              .replace(/[|\s]+/g, ' ').trim();
+            if (_subWords.length >= 12) sig.totalInboundCount++;
           } else if (resolvedDir === 'inbound') {
             sig.totalInboundCount++;
             if (!sawInbound) {
@@ -13777,8 +13813,19 @@ function tryExecuteScript(tab, statusEl, dot) {
 // carry a hang-up phrase instead. One line per note in this blob, so this is a note count.
 function _lpHangUpCount(ctx) {
   var re = /hung up|hangs up|hung immediately|hung the phone/i;
-  var n = 0, lines = String(ctx || '').split(/\r?\n/);
-  for (var i = 0; i < lines.length; i++) if (re.test(lines[i])) n++;
+  var seen = {}, n = 0, lines = String(ctx || '').split(/\r?\n/);
+  for (var i = 0; i < lines.length; i++) {
+    var m = lines[i].match(re);
+    if (!m) continue;
+    // (v9.7.593) DEDUPE. v9.7.591 assumed one line per note in this blob. It is not: the context
+    // carries every note TWICE -- once under AGENT CONTEXT / CALL NOTE and again in the CONVERSATION
+    // TRANSCRIPT -- so Troy's single hang-up was counted as 2. The two renderings differ in their
+    // prefix ("hung up during screening" vs "By: Kaylee Guzman hung up during screening"), so the
+    // key is taken from the matched phrase to end of line, which is identical in both.
+    var key = lines[i].slice(m.index).toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+    if (!key || seen[key]) continue;
+    seen[key] = 1; n++;
+  }
   return n;
 }
 
@@ -14750,13 +14797,28 @@ function buildSystemPrompt(personaId) {
   var _sysPhone = '';
   var _sysCtxDealerId = (window._leadProResolvedContext && window._leadProResolvedContext.dealerId)
     || (lastScrapedData && lastScrapedData.dealerId) || '';
-  if (_sysCtxDealerId && window._leadProDealerData) {
+  // (v9.7.593) ONE PROMPT, TWO PHONE NUMBERS. The system prompt said "Your direct phone number is
+  // 281-837-3382. Use ONLY this number in ALL signatures" while the LEAD block 167 lines later said
+  // 281-837-3381. The model obeyed the system prompt, and the body-phone guard then logged it as a
+  // "hallucinated number" and rewrote it -- twice per generation on Troy's 8/27 run. It was not
+  // hallucinating; we handed it two answers and blamed it for picking the one we told it to use.
+  // The LEAD block's chain is the authority (signer -> directory -> store config), so the system
+  // prompt now starts from the same resolved signer instead of going straight to the store record.
+  // This line sits BELOW the cache breakpoint, so per-lead variation costs no prompt-cache hit.
+  if (window._leadProResolvedSigner && window._leadProResolvedSigner.phone) {
+    _sysPhone = window._leadProResolvedSigner.phone;
+  }
+  if (_sysCtxDealerId && window._leadProDealerData && !_sysPhone) {
     var _sysStore = (window._leadProDealerData.stores || []).find(function(s) {
       return String(s.crmDealerId) === String(_sysCtxDealerId) || String(s.id) === String(_sysCtxDealerId);
     });
     if (_sysStore && _sysStore.phone) _sysPhone = _sysStore.phone;
   }
   if (!_sysPhone) _sysPhone = (window._leadProResolvedContext && window._leadProResolvedContext.phone) || (_leadProProfile && _leadProProfile.phone) || '';
+  try { console.log('[LP SYS PHONE DIAG] used:' + (_sysPhone || '(none)')
+    + ' | signer:' + ((window._leadProResolvedSigner && window._leadProResolvedSigner.phone) || '(none)')
+    + ' | dealerId:' + (_sysCtxDealerId || '(none)')
+    + ' — must match [LP PROMPT PHONE] used: on the same generation'); } catch(e) {}
   return [
     // ── STATIC PREFIX (cache anchor — never changes across any call) ──────────
     '━━━ YOUR JOB ━━━',
@@ -17511,9 +17573,14 @@ function buildUserPrompt(data) {
     // "Phone is not working" -- a diagnosis of the customer's equipment that nothing in the record
     // supports. A hang-up means somebody ended a call; it does not tell you the line is broken, and
     // on Troy's lead the single hang-up note was logged by our OWN agent during dialer screening.
+    // (v9.7.593) sbTotal double-counts for the same reason the hang-up tally did -- every note
+    // appears in the blob twice. It read 11 where the arc block, seventeen lines below, correctly
+    // said 7. Use the real outbound tally and keep sbTotal only as a fallback.
+    var _coOutN = data.relationshipSignals && data.relationshipSignals.totalOutboundCount;
+    var sbAttempts = (typeof _coOutN === 'number' && _coOutN > 0) ? _coOutN : sbTotal;
     closeOverride = '📋 SITUATION: ' + sbHungUpN + ' call' + (sbHungUpN === 1 ? '' : 's')
-      + ' on this lead ended with a hang-up, out of ' + sbTotal + ' outreach attempt' + (sbTotal === 1 ? '' : 's')
-      + '. Calls are not landing. Try a completely different angle — curiosity, easy-out, or value shift. '
+      + ' on this lead ended with a hang-up, out of ' + sbAttempts + ' outreach attempt' + (sbAttempts === 1 ? '' : 's')
+      + '. Calls are not landing. Try a different channel or a different angle — curiosity or value shift. '
       + 'Do NOT tell the customer their phone is broken, and do not state why any call ended — the record does not say.';
   } else if (sbTotal >= 5 && sbContacted === 0 && !hasCustomerReply && (data.leadAgeDays || 0) >= 2) {
     // (v9.7.356) Gated on !hasCustomerReply — never assert "zero contact" when the arc shows a reply.
@@ -18274,6 +18341,38 @@ function buildUserPrompt(data) {
       if (_priorChoiceAsk) {
         ageBlock.push('STOP RE-ASKING THE SAME CHOICE:');
         ageBlock.push('A prior outbound message on this thread already asked the customer to pick between two options/vehicles/configurations and defer to a rep ("which one should X focus on," "what matters more to you," or any equivalent). That question — the underlying MOVE of asking them to state a preference or priority between these two specific vehicles — has already been asked. Do NOT ask it again in ANY form, including a rewording that avoids the exact prior phrase; if you catch yourself writing a question whose answer would be "the 4xe" or "the Willys" (or whichever two options are on file), stop and write something else instead. Make a concrete move: state plainly what IS actually confirmed in stock, ask a genuinely different question unrelated to this choice, or ask directly for a decision or appointment rather than deferring the same choice back to them again.');
+        ageBlock.push('');
+      }
+      // (v9.7.593 -- A TWO-DAY-OLD LEAD IS NOT A CLOSE-OUT) Live: Troy Noel, day 1, v9.7.592.
+      // The draft read "are you still considering the Accord Hybrid, or should I close this out
+      // for now?" -- offering to shut a lead that opened yesterday. Nothing INSTRUCTED that; it
+      // came from tone. Three pressures stacked in one prompt: the situation brief suggested an
+      // "easy-out", the anti-restate block said to acknowledge the silence plainly, and the
+      // relationship reading said "not a hot lead, soft re-engage". Each is individually correct
+      // and the sum reads like a closing file.
+      //
+      // Close-out is the PHASE 5 move and it is the last rung of a long ladder. On a lead this
+      // young there is no ladder yet -- seven outreaches over two days is our cadence firing, not
+      // a customer going quiet on us. A withdrawal offer here reads as the store giving up before
+      // the customer has had a working week to answer, and it hands them an easy no.
+      //
+      // The floor is 7 days, matching the engagement-phase boundary the system prompt already
+      // uses (first-touch 0-1, engagement 2-7, persistence 8+). It is a FLOOR, not a ceiling: an
+      // exit or pause signal from the customer still governs, because a customer who asks to stop
+      // must always be able to stop. This block sits inside the exit/pause-gated section, so those
+      // paths never reach it.
+      var _coAge = parseFloat(data.leadAgeDays);
+      if (!isNaN(_coAge) && _coAge <= 7) {
+        console.log('[LP CLOSE-OUT FLOOR DIAG] ACTIVE — leadAgeDays:' + _coAge
+          + ' | outreaches:' + _outreachN + ' | hasReply:' + _hasReplyForDirectives);
+        ageBlock.push('DO NOT OFFER TO CLOSE THIS LEAD OUT:');
+        ageBlock.push('This lead is ' + _coAge + ' day(s) old. Whatever the silence looks like, it is far too early '
+          + 'to offer to close the file, stop contact, or ask whether they are still interested as a way out. '
+          + 'Do NOT write "should I close this out", "I will stop reaching out", "I will take you off my list", '
+          + '"last time I will bother you", or any variation that hands them an exit. Several outreaches in a '
+          + 'few days is OUR cadence running, not the customer going cold — do not treat it as a dead lead. '
+          + 'Acknowledging that it has been quiet is fine; withdrawing is not. Move the conversation forward '
+          + 'with one specific, easy thing to respond to.');
         ageBlock.push('');
       }
       if (!_hasReplyForDirectives && _outreachN >= 8) {

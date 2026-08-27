@@ -141,6 +141,45 @@ check('two hang-up phrases on ONE line count once — it is one note',
 check('empty and null input do not throw or invent a count',
   i => [i.count(''), i.count(null), i.count(undefined)], [0, 0, 0]);
 
+// ── THE v9.7.591 COUNT WAS STILL WRONG, AND THE 592 RESCAN SHOWED IT ────────
+// v9.7.591 turned "11" into "2". The truth was 1. The comment on _lpHangUpCount said "one line
+// per note in this blob" — it is not. The context carries every note TWICE, once under
+// AGENT CONTEXT / CALL NOTE and again in the CONVERSATION TRANSCRIPT, and the two renderings
+// differ only in their prefix. Verbatim from the delivered 8/27 prompt, lines 342-344 and 362-363.
+console.log('\nthe same note appears twice in the context blob — it is still ONE hang-up:');
+
+const TROY_BOTH_SECTIONS = [
+  '[08/27/2026 2:52 PM] [CALL NOTE] Outbound phone call (No Contact)',
+  '  By: Kaylee Guzman',
+  '  hung up during screening',
+  '[08/25/2026 7:18 PM] [CALL NOTE] Outbound phone call (Machine)',
+  '  By: Nyriel Benton',
+  '  no answer.',
+  'CONVERSATION TRANSCRIPT (newest first — read the full thread before responding):',
+  '[08/27/2026 2:52 PM] [AGENT] Outbound phone call (No Contact)',
+  '  By: Kaylee Guzman hung up during screening'
+].join('\n');
+
+check('the note rendered in BOTH sections counts once, not twice',
+  i => i.count(TROY_BOTH_SECTIONS), 1);
+
+check('...which is what the v9.7.592 prompt got wrong when it said 2',
+  i => i.count(TROY_BOTH_SECTIONS) === 2, false);
+
+check('two DIFFERENT hang-up notes still count as two',
+  i => i.count('  By: Kaylee Guzman hung up during screening\n'
+             + '  By: Nyriel Benton hung up before I could speak'), 2);
+
+check('...and each of those two, echoed into a second section, still counts two',
+  i => i.count('  hung up during screening\n'
+             + '  hung up before I could speak\n'
+             + '  By: Kaylee Guzman hung up during screening\n'
+             + '  By: Nyriel Benton hung up before I could speak'), 2);
+
+check('a differing timestamp prefix does not defeat the dedupe',
+  i => i.count('[08/27/2026 2:52 PM] By: Kaylee Guzman hung up during screening\n'
+             + '[8/27 2:52p] Kaylee Guzman hung up during screening'), 1);
+
 // The boolean must keep its exact old truth value — sbHungUp gates the SITUATION BRIEF and the
 // close-override, and a changed truth value here would be a behaviour change nobody asked for.
 console.log('\nthe derived boolean is truth-identical to the .test() it replaced:');

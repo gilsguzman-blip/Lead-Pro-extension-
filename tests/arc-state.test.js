@@ -289,5 +289,65 @@ check('a genuine zero-outbound lead is still reportable when it is KNOWN',
   i => _lines(i, { daysSinceReply: 2, totalInbound: 3, totalOutbound: 0 })
         .indexOf('Exchange so far: 3 inbound / 0 outbound.') >= 0, true);
 
+
+// (v9.7.593) THE NULL REACHED THE MODEL. v9.7.592 made the reply clock null on leads with no real
+// inbound, but left this chain printing `since` unguarded. Troy Noel's delivered prompt, line 424:
+//
+//     "Last customer reply was null days ago; 7 outbound since then with no answer."
+//
+// Two errors in one line. A literal "null" handed to the model, and an assertion that a reply
+// happened at all on a lead where the customer has never written anything. The guard above only
+// covers the case where the inbound count is KNOWN ZERO; Troy's was 1 — a CRM audit row — so it
+// fell straight through to the consec branch.
+//
+// The rule: this block never prints an undated quantity, and never calls something a reply it
+// cannot date. Both halves are asserted, because fixing only the string would leave the claim.
+console.log('\nan unknown reply date never becomes a printed one:');
+
+const _hasNull = (i, o) => /\bnull\b/.test(_lines(i, o));
+
+check("TROY'S LINE: an unknown date with outbound behind it prints no null",
+  i => _hasNull(i, { daysSinceReply: null, totalInbound: 1, totalOutbound: 7, consecutiveOutbound: 7 }), false);
+
+check('...and does not claim a "last customer reply" it cannot date',
+  i => /[Ll]ast customer reply was/.test(
+        _lines(i, { daysSinceReply: null, totalInbound: 1, totalOutbound: 7, consecutiveOutbound: 7 })), false);
+
+check('...but DOES still report the outbound run, which is known',
+  i => /7 outbound in a row with no answer/.test(
+        _lines(i, { daysSinceReply: null, totalInbound: 1, totalOutbound: 7, consecutiveOutbound: 7 })), true);
+
+check('...and says plainly that no dated reply is on file',
+  i => /No dated customer reply is on file/.test(
+        _lines(i, { daysSinceReply: null, totalInbound: 1, totalOutbound: 7, consecutiveOutbound: 7 })), true);
+
+check('unknown date with NO outbound run says nothing rather than guessing',
+  i => {
+    const l = _lines(i, { daysSinceReply: null, totalInbound: 1, totalOutbound: 1, consecutiveOutbound: 0 });
+    return { nulls: /\bnull\b/.test(l), claimsReply: /[Ll]ast customer reply|customer replied/.test(l) };
+  }, { nulls: false, claimsReply: false });
+
+check('no null survives ANY combination of absent fields',
+  i => [{}, { totalInbound: 1 }, { consecutiveOutbound: 3 }, { totalInbound: 2, totalOutbound: 4 },
+        { daysSinceReply: null, consecutiveOutbound: 9 }].map(o => _hasNull(i, o)),
+  [false, false, false, false, false]);
+
+// The two KNOWN-date branches must be untouched — this fix is about absence only.
+console.log('\na known reply date is unchanged:');
+
+check('a dated reply with outbound behind it still reads exactly as before',
+  i => /Last customer reply was 1\.9 days ago; 7 outbound since then with no answer\./.test(
+        _lines(i, { daysSinceReply: 1.9, totalInbound: 2, totalOutbound: 7, consecutiveOutbound: 7 })), true);
+
+check('a dated reply that IS the newest message still reads as before',
+  i => /The customer replied 0 days ago and it is the newest message on the lead\./.test(
+        _lines(i, { daysSinceReply: 0, totalInbound: 5, totalOutbound: 5, consecutiveOutbound: 0 })), true);
+
+check('a KNOWN zero inbound still says "never replied" and nothing else',
+  i => {
+    const l = _lines(i, { daysSinceReply: null, totalInbound: 0, totalOutbound: 7, consecutiveOutbound: 7 });
+    return { never: _never.test(l), noRun: !/in a row with no answer/.test(l) };
+  }, { never: true, noRun: true });
+
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);
