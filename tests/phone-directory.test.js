@@ -50,15 +50,17 @@ function extract(file) {
   const dir = slice(src, 'const PHONE_DIR = {', '\n};', 'PHONE_DIR');
   const fb  = slice(src, 'var STORE_PHONE_FALLBACK = {', '\n};', 'STORE_PHONE_FALLBACK');
   const fn  = slice(src, 'function lookupPhone(agentName, store, dealerId) {', '\n}', 'lookupPhone');
+  const inD = slice(src, 'function _lpAgentInDirectory(agentName) {', '\n}', '_lpAgentInDirectory');
 
   const sb = { String, Object, console: { log() {} }, _lpD() {} };
   vm.createContext(sb);
-  vm.runInContext(map.text + '\n' + dir.text + '\n' + fb.text + '\n' + fn.text, sb);
+  vm.runInContext(map.text + '\n' + dir.text + '\n' + fb.text + '\n' + fn.text + '\n' + inD.text, sb);
 
   return {
     name: path.basename(path.dirname(file)),
     src,
     lookup: (who, store, did) => vm.runInContext('lookupPhone', sb)(who, store, did),
+    inDir:  who => vm.runInContext('_lpAgentInDirectory', sb)(who),
     dir:    () => vm.runInContext('PHONE_DIR', sb),
     fb:     () => vm.runInContext('STORE_PHONE_FALLBACK', sb)
   };
@@ -121,29 +123,32 @@ for (const who of Object.keys(SHEET)) {
   }), { '6189': bay, '6190': bay, '6191': bay, '24399': laf, '21135': audi });
 }
 
-// ── THE NAME VINSOLUTIONS ACTUALLY EMITS ─────────────────────────────────────
-// Three agents answer to two names each and BOTH names appear on live leads. The alias is not a
-// duplicate person; it is the same person under the name the CRM happens to carry. Deleting one
-// does not fail loudly — it silently drops that agent to the store general number.
-console.log('\nboth names of every double-named agent reach the same direct line:');
-for (const [crmName, sheetName] of [
-  ['veronica aguilar', 'veronica villanueva'],   // v9.7.469 live; deleted by 482; restored 601
-  ['patricia serna',   'patricia galvan'],
-  ['kimberly aguilar', 'jolette aguilar']
-]) {
-  check('  "' + crmName + '" === "' + sheetName + '" at every rooftop',
-    i => ['6189','6190','6191','24399','21135'].map(d =>
-          i.lookup(crmName, '', d) === i.lookup(sheetName, '', d)), [true,true,true,true,true]);
+// ── THE DIRECTORY IS EXACTLY WHAT GIL NAMED ──────────────────────────────────
+// (v9.7.602) Gil resolved all three double-named agents on 8/28 — "Jolette Aguilar is Kimberly
+// Aguilar, Patricia Galvan is Patricia Serna, Veronica Villanueva is Veronica Aguilar" — and named
+// the surviving key in each pair. The second name of each is removed, not aliased. Roslynn Kelley
+// removed too: she has left the BDC.
+console.log('\nthe four keys Gil removed are gone, and nothing else went with them:');
+check('the directory is exactly the 14 sheet agents + Gil + Samantha Gonzalez',
+  i => Object.keys(i.dir()).sort(),
+  [...Object.keys(SHEET), 'gil guzman', 'samantha gonzalez'].sort());
+for (const gone of ['kimberly aguilar', 'patricia serna', 'veronica aguilar', 'roslynn kelley']) {
+  check('  "' + gone + '" is no longer a key', i => Object.keys(i.dir()).includes(gone), false);
 }
 
-// The regression this build fixes, stated as the number a customer would have been given.
-console.log('\nv9.7.601 — the Veronica Aguilar regression, at the point it reached the customer:');
-check('"Veronica Aguilar" at Honda Baytown is her line, not the store switchboard',
-  i => i.lookup('Veronica Aguilar', 'Community Honda Baytown', '6191'), '281-837-3682');
-check('...and the CRM\'s own casing resolves too — the field is not lowercased upstream',
-  i => i.lookup('VERONICA AGUILAR', 'Community Honda Baytown', '6191'), '281-837-3682');
-check('...and with surrounding whitespace, as scraped',
-  i => i.lookup('  Veronica Aguilar  ', 'Community Honda Baytown', '6191'), '281-837-3682');
+// The surviving name of each pair must still resolve — removing the partner must not disturb it.
+console.log('\nthe surviving name of each pair still resolves to that person\'s line:');
+check('jolette aguilar at Honda Baytown',   i => i.lookup('Jolette Aguilar',    '', '6191'), '281-837-3627');
+check('patricia galvan at Honda Baytown',   i => i.lookup('Patricia Galvan',    '', '6191'), '281-837-3384');
+check('veronica villanueva at Honda Baytown', i => i.lookup('Veronica Villanueva','', '6191'), '281-837-3682');
+
+// Two different people who share a first name. This is why phoneFor()'s assignments matcher —
+// which binds on first name as a substring — must not be activated as written.
+console.log('\nthe two Samanthas are different people and must not collapse:');
+check('Samantha Lopez and Samantha Gonzalez resolve to different numbers everywhere',
+  i => ['6189','6190','6191','24399','21135']
+        .map(d => i.lookup('Samantha Lopez','',d) !== i.lookup('Samantha Gonzalez','',d)),
+  [true,true,true,true,true]);
 
 // ── NO STORE FALLBACK MAY BE A PERSON'S DIRECT LINE ──────────────────────────
 // This is the v9.7.469/474/481 defect stated as an invariant. It shipped three separate times.
@@ -162,24 +167,39 @@ check('an agent NOT in the directory falls to the store line, never to a person'
   ['281-837-3687','281-837-3687','281-837-3687','337-326-4484','337-252-0822']);
 
 // ── NO TWO AGENTS SHARE A NUMBER ─────────────────────────────────────────────
-// v9.7.482 found Tania signing with Rotaxlyn's line. Aliases legitimately share, so they are
-// collapsed to the person first; anything still colliding is two different humans on one number.
-console.log('\nno two DIFFERENT people share a direct dial — the v9.7.482 defect:');
-const ALIAS_OF = { 'veronica aguilar':'veronica villanueva', 'patricia serna':'patricia galvan',
-                   'kimberly aguilar':'jolette aguilar' };
+// v9.7.482 found Tania signing with Rotaxlyn's line. As of v9.7.602 there are no aliases left, so
+// this is now a flat one-number-one-person check with no collapsing step — any collision at all is
+// two different humans on one line.
+console.log('\nno two people share a direct dial — the v9.7.482 defect:');
 check('every direct dial belongs to exactly one person',
   i => {
     const d = i.dir(), owner = {}, dupes = [];
-    for (const k in d) {
-      const person = ALIAS_OF[k] || k;
-      for (const col in d[k]) {
-        const n = d[k][col];
-        if (owner[n] && owner[n] !== person) dupes.push(n + ' = ' + owner[n] + ' AND ' + person);
-        else owner[n] = person;
-      }
+    for (const k in d) for (const col in d[k]) {
+      const n = d[k][col];
+      if (owner[n] && owner[n] !== k) dupes.push(n + ' = ' + owner[n] + ' AND ' + k);
+      else owner[n] = k;
     }
     return dupes;
   }, []);
+
+// ── A MISS MUST BE VISIBLE ───────────────────────────────────────────────────
+// (v9.7.602) The reason every incident in this file went unnoticed until Gil read a number in a
+// delivered message: lookupPhone returns the store switchboard for an unknown agent, so the caller
+// sees a valid number and nothing reports that the lookup failed. _lpAgentInDirectory answers the
+// question lookupPhone cannot, and must agree with it on key normalization or the log lies.
+console.log('\nan agent the table does not hold is reported as a miss, not as a hit:');
+check('a known agent is in the directory, in any casing or padding',
+  i => [i.inDir('Kaylee Guzman'), i.inDir('KAYLEE GUZMAN'), i.inDir('  kaylee guzman  ')],
+  [true, true, true]);
+check('each of the four removed names now reports a MISS',
+  i => ['Kimberly Aguilar','Patricia Serna','Veronica Aguilar','Roslynn Kelley'].map(n => i.inDir(n)),
+  [false, false, false, false]);
+check('...even though lookupPhone still hands back a real-looking number for them',
+  i => ['Kimberly Aguilar','Patricia Serna','Veronica Aguilar','Roslynn Kelley']
+        .map(n => i.lookup(n, 'Community Honda Baytown', '6191')),
+  ['281-837-3687','281-837-3687','281-837-3687','281-837-3687']);
+check('an empty or missing agent name is not claimed as a directory hit',
+  i => [i.inDir(''), i.inDir(null), i.inDir(undefined)], [false, false, false]);
 
 // ── MOBILE NUMBERS ARE NOT STORED ────────────────────────────────────────────
 // Gil excluded them deliberately. They are personal cell numbers for 14 real people; this file
@@ -194,7 +214,13 @@ const HISTORICAL = {
   // Superseded by 337-443-4448. Never a mobile — a misfiled desk line.
   '337-446-2432': "Kristen Willis's old (incorrect) Honda Lafayette line, corrected in v9.7.482",
   // STORE_PHONE_FALLBACK's own "was" annotation. A former general store line, not a person's.
-  '337-235-9086': 'the previous Honda Lafayette store fallback, replaced in v9.7.482'
+  '337-235-9086': 'the previous Honda Lafayette store fallback, replaced in v9.7.482',
+  // (v9.7.602) Roslynn Kelley's Baytown desk line, named in the v9.7.482 header. She has left the
+  // BDC and her entry is removed from the table this build; this is the residue in the changelog,
+  // which is an append-only record. A dealership desk extension, not a personal or mobile number.
+  // Worth noting the tripwire found this by itself the moment her row was deleted — which is the
+  // whole point of scanning the file rather than the table.
+  '281-837-3626': "Roslynn Kelley's former Baytown desk line, recorded in the v9.7.482 header"
 };
 check('the file carries no number outside the live set and two documented historical values',
   i => {
