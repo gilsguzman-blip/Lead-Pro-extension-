@@ -97,6 +97,22 @@ function extract(file) {
   return {
     name: path.basename(path.dirname(file)),
     src, missing,
+    // (v9.7.599) The ladder is now EXECUTED, not just scanned. Every assertion below used to be a
+    // source-scan, and that is precisely why nobody noticed it read the wrong object for three
+    // builds: the shape was right, the binding was wrong, and a regex over source cannot tell the
+    // difference. It reads `lastScrapedData`, so the harness passes one in.
+    subject: (rawEmail, lead) => {
+      const a = src.indexOf('      // (v9.7.599) THE v9.7.596 LADDER READ THE WRONG OBJECT');
+      if (a < 0) throw new Error('NOT IN THIS BUILD: subject ladder');
+      const endMark = "        + ' name:' + (_fbFirst || '(none)') + ' store:' + (_fbStore || '(none)'));";
+      const b = src.indexOf(endMark, a);
+      if (b < 0) throw new Error('NOT IN THIS BUILD: subject ladder end');
+      const s2 = { String, RegExp, console: { log() {} } };
+      vm.createContext(s2);
+      vm.runInContext('function subj(rawEmail, lastScrapedData){ var fallbackSubject="", _fbRung="";\n'
+        + src.slice(a, b + endMark.length) + '\n return { subject: fallbackSubject, rung: _fbRung }; }', s2);
+      return vm.runInContext('subj', s2)(rawEmail, lead);
+    },
     source: r  => has('_lpCustomerFacingSource') ? vm.runInContext('_lpCustomerFacingSource', sb)(r) : need('_lpCustomerFacingSource'),
     owner:  ph => has('_lpPersonalNumberOwner')  ? vm.runInContext('_lpPersonalNumberOwner', sb)(ph) : need('_lpPersonalNumberOwner'),
     storeFallback: id => has('STORE_PHONE_FALLBACK') ? vm.runInContext('STORE_PHONE_FALLBACK', sb)[id] : need('STORE_PHONE_FALLBACK')
@@ -170,6 +186,68 @@ check('  no vehicle but a name -> name',
   () => rung('', 'Sarah', 'Community Honda Baytown', 'x'), 'name');
 check('  nothing but the body -> first-clause',
   () => rung('', '', '', 'Perfect, about 10 today works'), 'first-clause');
+
+// ── (1b) THE LADDER, EXECUTED ───────────────────────────────────────────────
+// (v9.7.599) Billy Broussard, Audi Lafayette, 8/28 — the delivered email read "Subject: Billy,".
+// The ladder had fallen to its first-clause rung and taken the GREETING, on a lead whose vehicle,
+// name and store were all known.
+//
+// Two defects, and the second is the one that matters. The strip only handled "Hi X," / "Hello X,"
+// — but this file's own EMAIL FORMAT RULES prescribe the bare-name form for a first touch, so the
+// commonest greeting was the one it missed. And underneath that: the ladder read `data`, which
+// inside generateAll() is `const data = await resp.json()` — the WORKER'S RESPONSE, carrying no
+// vehicle, name or store. All three upper rungs were empty on every generation since v9.7.596.
+//
+// Identical to the v9.7.502 defect in this file's own history: a scan reading a field that is
+// never assigned in that scope, silently returning empty forever. Every assertion covering this
+// ladder was a source-scan, which is why three builds went by without noticing: the shape was
+// right and the binding was wrong. These EXECUTE it.
+console.log('\nthe subject ladder, run against Billy\'s real email:');
+
+const BILLY_EMAIL = "Billy,\n\nI know it's been a little quiet on the 2025 Chevrolet Silverado 1500 Custom "
+  + "you asked about, but we do still have it here in Red Hot and available to look at.\n\nIs that still on your radar?";
+const BILLY_LEAD = { vehicle: '2025 Chevrolet Silverado 1500 Custom', name: 'Billy Broussard', store: 'Audi Lafayette' };
+
+check('his lead reaches the VEHICLE rung, not first-clause',
+  i => i.subject(BILLY_EMAIL, BILLY_LEAD).rung, 'vehicle');
+
+check('...so the subject names the truck',
+  i => i.subject(BILLY_EMAIL, BILLY_LEAD).subject, 'Chevrolet Silverado 1500 Custom — a question for you');
+
+check('the subject is never just his name',
+  i => /^Billy,?\s*$/i.test(i.subject(BILLY_EMAIL, BILLY_LEAD).subject), false);
+
+console.log('\neach rung is reachable — proving the object it reads is the real lead:');
+check('  vehicle known            -> vehicle',
+  i => i.subject(BILLY_EMAIL, BILLY_LEAD).rung, 'vehicle');
+check('  no vehicle, name known   -> name',
+  i => i.subject(BILLY_EMAIL, { name: 'Billy Broussard', store: 'Audi Lafayette' }).rung, 'name');
+check('  only the store known     -> store',
+  i => i.subject(BILLY_EMAIL, { store: 'Audi Lafayette' }).rung, 'store');
+check('  nothing known            -> first-clause',
+  i => i.subject(BILLY_EMAIL, {}).rung, 'first-clause');
+
+console.log('\ngreetings are stripped before the first clause is taken:');
+check('a BARE-NAME greeting is stripped — the form the format rules prescribe',
+  i => i.subject(BILLY_EMAIL, {}).subject.indexOf('Billy') === 0, false);
+check('...and the first real sentence is used instead',
+  i => /^I know it/.test(i.subject(BILLY_EMAIL, {}).subject), true);
+check('"Hi Sarah," is still stripped',
+  i => i.subject('Hi Sarah,\n\nThe Accord is ready whenever you are.', {}).subject,
+  'The Accord is ready whenever you are');
+check('a full-name greeting is stripped too',
+  i => /^Billy/.test(i.subject('Billy Broussard,\n\nThe truck is here.', {}).subject), false);
+check('an email that is ONLY a greeting falls through rather than shipping the name',
+  i => i.subject('Billy,\n', { name: 'Billy Broussard' }).rung, 'name');
+
+check('the ladder reads lastScrapedData, not the worker response',
+  i => /_fbLead\s*=\s*\(typeof lastScrapedData === 'object'/.test(strip(i.src)), true);
+
+check('...and `data.vehicle` is gone from it',
+  i => /var vName = data\.vehicle/.test(strip(i.src)), false);
+
+check('[LP SUBJECT FALLBACK DIAG] now prints what each rung SAW, so an empty read is visible',
+  i => /saw vehicle:[\s\S]{0,80}store:/.test(strip(i.src)), true);
 
 // ── (2) THE LEAD SOURCE ─────────────────────────────────────────────────────
 console.log('\nsources a customer would recognise are still named:');
