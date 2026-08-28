@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.596 (Commercial. THREE THINGS THAT REACHED A CUSTOMER ON 8/27, AND A TDZ I ALMOST SHIPPED FIXING THE THIRD. Extension only; proxy v7.68 and reporter v1.21 unchanged. All from the 8/27 feedback export (21 rated, 0 up). (1) WE WROTE THE SUBJECT OUR OWN PROMPT BANS. 'Subject: A quick note about your inquiry' shipped THREE times -- twice on KBB ICO trade lead 2058487787 and once on a 41-day Facebook lead. Not the model's phrasing: it was the final else of LP's own subject fallback, sitting under a comment that reads 'Never fall back to a generic phrase.' The same file bans that exact string BY NAME in its equity-scenario rules ('Never use "A quick note about your inquiry" -- they did not inquire') and it is a near-miss on the SUBJECT LINE RULES list ('Re: your inquiry', 'Quick question', 'I wanted to reach out'). It also asserts something we may not know -- 'your inquiry' tells a customer they inquired. Identifiable as the fallback rather than the model because the SAME lead produced 'Your CR-V appraisal today' on the generations where the model supplied a subject and the generic string on the ones where it did not. FIXED: the ladder now ends at the STORE (always known when a signature can be built) and below that at the email's own first clause -- specific by construction, drawn from the message's real content rather than invented. New [LP SUBJECT FALLBACK DIAG] names the rung. (2) A ROUTING LABEL SPOKEN TO A CUSTOMER. 'I saw your inquiry through Thirdparty Honda on the 2026 Honda Accord.' Rated down. That is a VinSolutions routing label, not a website. A BLANKET BAN WOULD BE WRONG and that is the difficulty: the same export carries 'thanks for reaching out on Facebook', which is true and reads well. The line is not internal-vs-external, it is whether the CUSTOMER would recognise the name as where they filled something in. So _lpCustomerFacingSource is a WHITELIST -- a blocklist would have to anticipate the next label the CRM invents ('Hds Chat-Text Leads - Gubagoo - Chat Gubagoo - M-Chat' is a real value from the same export), and this file has been bitten three builds running by enumerating shapes it happened to have seen. Anything unrecognised is simply not named. Wired at the two prompt lines that printed data.leadSource verbatim, PLUS a hard constraint covering the TRANSCRIPT path -- which is the likelier one on Jordyn's lead, since the label sits in the CRM notes and nothing told the model those words are ours. STATED HONESTLY: I could not prove the injection point without that lead's prompt, so both candidate paths are closed. (3) A PERSONAL EXTENSION SERVED AS A STORE LINE. The dealer-config panel serves 281-837-3382 as Honda Baytown's store phone. Run against the SHIPPED PHONE_DIR that number resolves to 'gil guzman' -- evidence from execution, not an inference from a comment. Nothing reaches it today (store config is third in precedence behind the resolved signer and the 45-entry directory) but it is live, and this exact shape caused v9.7.469 (Patricia Galvan's extension as Honda Baytown's fallback) and v9.7.486 (Gil's own line in the 6189 slot), both found only AFTER a wrong number had gone out. The config is chrome.storage.sync data edited in the admin panel, so code cannot correct it -- it now REFUSES it, substitutes the real store line, and logs [LP STORE PHONE GUARD] naming the owner, the dealer and the remedy. GIL STILL NEEDS TO CHANGE 3382 TO 3687 IN THE PANEL. AND THE TDZ I ALMOST SHIPPED: the first version of that guard read PHONE_DIR -- a `const` declared ~12,000 lines BELOW it -- behind a `typeof PHONE_DIR !== 'object'` check. `typeof` does NOT protect a const in its temporal dead zone; it throws, unlike `typeof` on an undeclared name. That is precisely the v7.67 outage shape that 500'd every request for a day. Caught by EXECUTING it rather than reasoning about it: calling before initialisation throws "Cannot access 'PHONE_DIR' before initialization". Now wrapped in try/catch, so a future reordering degrades to 'no owner found' instead of taking the generation down. Production was never at risk (the only call site runs long after init) -- it is the class that is removed. AND THE VACUOUS-RUN TRAP IS CLOSED IN THIS SUITE, after costing four wrong readings this week: a suite that throws on load prints NOTHING, and nothing reads exactly like 'catches nothing'. Rather than write another bespoke pre-fix harness, extraction failure is now a REPORTED FAILURE -- each accessor throws a labelled 'NOT IN THIS BUILD' error, a NOTE line lists what is absent, and check() catches per assertion. Run against v9.7.595 the suite now completes all 43 assertions with 37 failures instead of exiting silently. VERIFIED 43/43 in a new customer-facing-hygiene suite plus all 52 suites green (1,713 assertions), dev===comm on every case. The suite EXECUTES the shipped helpers, including _lpPersonalNumberOwner against the real PHONE_DIR -- which is how the 3382 ownership is proven rather than asserted. Every configured store fallback is checked and all five are free of personal numbers. WHAT THIS MIGHT BREAK, PLAINLY: an email whose source is an unrecognised label loses the 'thanks for reaching out on X' opener and must open on the vehicle or their question instead -- the intended trade. A store whose admin-panel phone matches any directory entry falls back to STORE_PHONE_FALLBACK, which is correct but changes the number on that store's messages until the panel is fixed. scraperVersion stays v9.7.51. Pairs: DEV v9.7.596-dev / COMMERCIAL v9.7.596. Builds on v9.7.595.)
 // Lead Pro -- popup.js  v9.7.595 (Commercial. FOUR GATES DECIDED WHEN A LEAD COULD BE OFFERED A CLOSE-OUT, AND THEY DISAGREED. Extension only; proxy v7.68 and reporter v1.21 unchanged. Gil, 8/27: 'The close out is a combo of days and lack of response.' THE FOUR, as they stood: isStalled (scraper) at age >= 2; the Director stall leg at age > 5 && !hasCustomerReply; the v9.7.593 close-out floor banning at age <= 7; and the PHASE 5 ladder at a touch count of 5 with NO AGE CHECK AT ALL. That last one is how Andrea Pardon reached a graceful close-out on a FOUR-DAY-OLD lead. v9.7.583 measured it and deliberately did not change it, writing that re-thresholding the fleet needed data first and that 'one day of that line makes the threshold decision data-driven instead of one-lead-driven'. THE 8/27 FEEDBACK EXPORT IS THAT DAY: 21 rated generations, 0 up, and 8 of 21 drafts offered to close the lead out. The two Gil flagged as wrong were 2 days and 9 days old; every one he accepted was 41, 60, 63, 63 or 68. So the boundary belongs in the gap the evidence shows -- above 9, at or below 41. ONE RESOLVER, FOUR CONSUMERS: _lpCloseOutEligible(d) returns a verdict and a human-readable reason. Customer asked to stop -> eligible at ANY age, checked FIRST, because a person who asks to be left alone is never made to wait for us to agree. Never replied -> age >= 21 AND >= 5 real outreaches. Replied then quiet -> >= 30 days since their last reply, because withdrawing on someone who actually engaged costs more than on someone who never did. BOTH HALVES ARE REQUIRED, which is the whole of Gil's rule: age alone is not silence (a 25-day lead touched twice has not been worked) and silence alone is not age (five touches in three days is our own cadence, which is exactly what produced Troy's day-1 close-out). Outreaches come from relationshipSignals.totalOutboundCount -- the real tally, not the CRM row count v9.7.594 removed from three other places. UNKNOWN IS NOT ELIGIBLE, and this INVERTS v9.7.593: the old floor skipped an unreadable age, so absence of evidence silently PERMITTED a withdrawal. A close-out is the one message that cannot be walked back; it now needs positive evidence rather than the mere absence of a reason to refuse. WHAT CHANGES, PLAINLY: the ban widens from 7 days to 21 for a never-replied lead, so leads aged 8-20 that used to be offered an exit no longer are -- that is most of the range where the two flagged cases sat. PHASE 5 stops one rung short when the lead has not earned it: PHASE 4 still pattern-interrupts and now explicitly refuses the exit offer, naming the reason so the agent can see the gate. Rungs 1-4 are otherwise untouched and asserted untouched. The Director stall mode no longer fires at 6 or 9 days; those leads route 'active'. New [LP CLOSE-OUT GATE DIAG] and [LP STALLED PHASE GATE DIAG]; the old [LP CLOSE-OUT FLOOR DIAG] name is retired and asserted gone so a stale grep cannot pass against a diag that no longer exists. TWO EXISTING ASSERTIONS WERE DELIBERATELY INVERTED, both recorded rather than quietly edited: stalled-phase pinned Andrea to the top rung (v9.7.583 wrote that deliberately, pending data), and close-out-floor pinned the hardcoded 7 and the skip-on-unknown-age. A third was replaced for being green about nothing: close-out-floor asserted a LOCAL `fires = age => age <= 7` helper that never touched shipped code and would have stayed green describing a deleted rule; it now drives the shipped resolver against the real leads. VERIFIED: new close-out-eligibility suite 42/42, stalled-phase 21/21 (harness now lifts the shipped resolver -- without it the slice threw '_lpCloseOutEligible is not defined' on every case, the same out-of-scope harness failure that suite's own header is a post-mortem for), close-out-floor 29/29 rewritten, all 51 suites green (1,628 assertions), dev===comm on every case. NON-VACUOUS, AND IT TOOK A THIRD PASS TO GET THERE: run directly against v9.7.594 the two new suites load-throw and print ZERO assertions, which reads exactly like 'catches nothing' -- the same vacuous-run trap hit twice before this week. The check therefore MODELS v9.7.594's four gates explicitly and evaluates them: 14 failures, and it reproduces which lead each old gate mishandled. scraperVersion stays v9.7.51. Pairs: DEV v9.7.595-dev / COMMERCIAL v9.7.595. Builds on v9.7.594.)
 // Lead Pro -- popup.js  v9.7.594 (Commercial. WE WERE QUOTING OUR OWN EMAILS BACK AS THE CUSTOMER'S TOPICS. Extension only; proxy v7.68 and reporter v1.21 unchanged. Found in the v9.7.593 rescan of Troy Noel (lead 2073356549, Community Honda Baytown, 8/27) -- a clean run that confirmed all six v9.7.593 fixes, with these two left over. THE RELATIONSHIP READING TOLD THE MODEL: 'Other vehicles or dealerships has come up 3 time(s): "Subject: Did you know Community Honda" / "Hi there Troy, It's Nyriel from Community Honda"' and 'Vehicle configuration has come up 2 time(s): "I notice your interest in the 2026 Honda Accord Hybrid"', then instructed: '"competitor" has been a recurring thread (3 mentions). If this topic has not been resolved, it may be the silent reason for any stall. Addressing it directly often unsticks the conversation.' EVERY QUOTED EXAMPLE IS OUR OWN OUTBOUND, and the same prompt says twice that Troy has never replied (0 inbound / 7 outbound). A lead with zero customer messages cannot have a customer raising competitors three times. Reproduced exactly against the shipped scan: the pre-fix build returns competitor:3, configuration:2 on the real 8/27 record, matching the delivered prompt's own numbers. TWO INDEPENDENT CAUSES, both fixed. (a) DIRECTION. The v9.7.81 scan counts 'both directions' by design, and the render then presents the result as 'categories the customer has come back to' while the interpretation tells the model to raise it with them. Half that design is still right -- an AGENT NOTE recording what a customer said ('wants to trade his 2018 Q5') is real evidence about the customer. A message WE composed and sent is not. The exclusion is therefore narrow: outbound texts and emails only, caught by title and by the 'Sent to:/Sent by:' body prefix. Call notes, general notes and every inbound message count exactly as before. (b) OUR OWN MARQUE. The competitor pattern lists every franchise brand, 'honda' included, so at Honda Baytown any note naming the store or the car scored a competitor mention -- and the same holds at Toyota, Kia and Audi Baytown/Lafayette for their own marques. Fixing (a) alone would leave a call note reading 'wants the Honda Accord' still scoring a competitor at a Honda store, so the render now checks the matched brand against the lead vehicle: a marque we do NOT sell on this lead, or an explicit cross-shop phrase, still counts. A STATED LIMIT rather than a hidden one: tm.mentions caps at 3 while tm.count does not, so the filter can only judge the captured examples -- if none is a real competitor the topic is dropped, and if some are the count is left alone rather than guessed downward. AND THE DIRECTIVE NEEDED ITS OWN FIX: the INTERPRETATION block scans topicMentions independently and never saw the filter, so the 'addressing it directly unsticks the conversation' line kept firing even once the listing above it was corrected. That is the line that reaches the model as an instruction, so it is guarded and asserted separately. Same shape as the tapback bug: a scan mistaking our text for the customer's, then handing the model a directive built on it. ALSO IN THIS BUILD -- THE LAST FIGURE STILL COUNTING CRM ROWS: 'Attempt density: sustained (14 notes)' while every other line in the same prompt said 7. Not cosmetic -- the system prompt attaches a whole strategy to the label ('sustained (8-14 prior notes): You have been working this lead. Do NOT recycle openers...'). Seven real outreaches is 'normal (3-7)'. _outreachN is hoisted above the density block so it and the directives below use ONE number; the v9.7.81 bucket boundaries are unchanged and asserted unchanged; the label now reads 'outreaches' because that is what it counts. WHAT THE v9.7.593 RESCAN CONFIRMED, unchanged here: close-out gone with [LP CLOSE-OUT FLOOR DIAG] ACTIVE at leadAgeDays:1; '1 call ... out of 7 outreach attempts' where v9.7.592 said '2 calls ... out of 11'; 'Exchange so far: 0 inbound / 7 outbound' with 'The customer has never replied to anything on this lead' and no null anywhere; and the body-phone guard's 'corrected hallucinated number' line ABSENT from the log entirely, where it fired twice the run before. VERIFIED 30/30 in a new own-words-topics suite plus all 50 suites green (1,619 assertions), dev===comm on every case. The suite EXECUTES the shipped scan against the real 8/27 fixture. NON-VACUOUS: 17 failures against v9.7.593, every assertion running, and the pre-fix run reproduces the delivered prompt's counts exactly. WHAT THIS MIGHT BREAK, PLAINLY: fewer recurring topics overall, and on some leads none -- a topic now needs the customer or an agent's note about them, not our own marketing copy. Density labels drop a bucket on leads whose CRM rows outnumber real outreaches, which is most of them. Both are the intended direction and both are diagnosable from the log. scraperVersion stays v9.7.51. Pairs: DEV v9.7.594-dev / COMMERCIAL v9.7.594. Builds on v9.7.593.)
 // Lead Pro -- popup.js  v9.7.593 (Commercial. A TWO-DAY-OLD LEAD IS NOT A CLOSE-OUT -- PLUS THE v9.7.592 FIX WAS A DEAD GUARD AND I WROTE IT. Extension only; proxy v7.68 and reporter v1.21 unchanged. All six findings come from ONE rescan of Troy Noel (lead 2073356549, Community Honda Baytown, 8/27) on v9.7.592. (1) THE DRAFT OFFERED TO CLOSE A LEAD THAT OPENED YESTERDAY: 'are you still considering the 2026 Honda Accord Hybrid Sport-L, or should I close this out for now?' _isStalled was false, so PHASE 5 never engaged -- this came from TONE, three individually-correct pressures summing to a wrong result: the situation brief suggested an 'easy-out', the anti-restate block said acknowledge the silence plainly, and the relationship reading said 'not a hot lead, soft re-engage'. No single input was wrong, so there was no single input to correct; hence an explicit FLOOR. Leads <= 7 days (the engagement-phase edge the system prompt already uses) now carry a block banning close-out framing by phrase AND by variation, stating that several outreaches in a few days is OUR cadence firing rather than a customer going cold. Acknowledging the quiet stays allowed; withdrawing does not. The floor sits INSIDE the exit/pause-gated section and that placement is asserted structurally -- a customer who asks to stop must always be able to stop. 'easy-out' is also removed from the hang-up override. New [LP CLOSE-OUT FLOOR DIAG]. (2) THE v9.7.592 INBOUND GUARD NEVER RAN -- A FOURTH DEAD GUARD, AND THE FIRST I ADDED RATHER THAN FOUND. It excluded the 'Lead received' note. That note carries NO data-direction and its title fails the /^(inbound|received)/ test, so it never reached the inbound branch at all. Running the SHIPPED tally against the 8/27 dump returns byte-identical output on v9.7.591 and v9.7.592. The row that actually produces the '1 inbound' and the 1.9-day reply clock is a LEAD LOG audit entry -- 'By: System | Sales Rep Changed From System to Samantha Lopez' -- which VinSolutions stamps data-direction='Inbound'. CRM bookkeeping is not a customer message in any direction; it is now excluded outright. The lead form keeps its v9.7.592 treatment and its empty-body test was ALSO wrong (the body opens 'By: System Lead received with no comments...', so an anchored match missed it, and the routing strip then ate the word 'Lead' before the boilerplate pattern could match -- both fixed, order included). (3) THE NULL REACHED THE MODEL. v9.7.592 made the reply clock null but left the render chain printing it unguarded, so Troy's prompt line 424 shipped 'Last customer reply was null days ago; 7 outbound since then with no answer.' -- a literal null AND a claimed reply on a lead with no customer text. Absence is now its own branch: it reports the outbound run, which is known, and says no dated reply is on file. (4) THE HANG-UP COUNT WAS STILL WRONG. v9.7.591 turned 11 into 2; the truth is 1. My own comment said 'one line per note in this blob' -- it is not. The context carries every note TWICE, under AGENT CONTEXT and again in the CONVERSATION TRANSCRIPT, differing only in prefix. Now deduped on the matched phrase to end of line, which is identical in both renderings. (5) THE ATTEMPTS FIGURE DOUBLE-COUNTED THE SAME WAY -- 'out of 11 outreach attempts' where the block seventeen lines below correctly said 7. Now sourced from relationshipSignals.totalOutboundCount. (6) ONE PROMPT, TWO PHONE NUMBERS. The system prompt said 'Your direct phone number is 281-837-3382. Use ONLY this number' while the LEAD block said 281-837-3381. The model obeyed the system prompt and the body-phone guard then logged it as a 'hallucinated number' and rewrote it -- twice on that generation. It was not hallucinating. The system prompt now starts from the same resolved signer the LEAD block uses; that line is BELOW the cache breakpoint so per-lead variation costs no cache hit. New [LP SYS PHONE DIAG] prints it beside [LP PROMPT PHONE] for comparison. NEW IN TESTING, and the reason (2) was caught: tests/fixtures/troy-2073356549-notes.json is extracted from the real 8/27 DOM dump -- every note's data-direction, type, body and date as the shipped selectors return them. It reproduces the shipped log EXACTLY on v9.7.591 (1 inbound, sinceReply 1.9d), which is what makes it evidence rather than a restatement of my own assumptions. A synthetic fixture is what let v9.7.592 pass 27 green assertions while changing nothing. VERIFIED: new close-out-floor suite 24/24, reply-vs-inquiry rewritten 25/25, anchor-authorship 42/42 (+5 dedupe), arc-state 39/39 (+9 null-render), all 49 suites green, dev===comm on every case. NON-VACUOUS: 40 failures across those four suites against v9.7.592, every assertion running. WHAT THIS MIGHT BREAK, PLAINLY: leads whose only inbound was a CRM audit row now read as never having replied, which is what they are -- relationship lines keyed to 'last replied' go quiet on them. And no lead under 8 days can be offered a close-out, including one where an agent might genuinely want to; the exit/pause paths remain the way a customer ends things. scraperVersion stays v9.7.51. Pairs: DEV v9.7.593-dev / COMMERCIAL v9.7.593. Builds on v9.7.592.)
@@ -2815,6 +2816,85 @@ function _lpExplicitDistanceReq(text){
 //
 // UNKNOWN IS NOT ELIGIBLE. If age or reply state cannot be read, the answer is no. A close-out
 // is the one message that cannot be walked back, so absence of evidence must not authorise it.
+// ── (v9.7.596) A STORE LINE MUST NOT BE SOMEBODY'S PERSONAL EXTENSION ────────────────────────
+// The dealer-config admin panel currently serves 281-837-3382 as Honda Baytown's store phone.
+// This file identifies that number by name: STORE_PHONE_FALLBACK's own comment records it as
+// "281-837-3382 (Gil Guzman's personal line)", removed from the 6189 slot in v9.7.487.
+//
+// Nothing reaches it today -- the store record is third in precedence behind the resolved signer
+// and the directory, and PHONE_DIR has 45 entries -- but it is live in the config, and this exact
+// shape has caused two real incidents already: v9.7.469 (Patricia Galvan's extension serving as
+// Honda Baytown's fallback, so any agent missing from the directory routed customers to her desk)
+// and v9.7.486 (Gil's own line in the 6189 slot). Both were found only after a customer-facing
+// message had already gone out with the wrong number.
+//
+// The config is chrome.storage.sync data edited in the admin panel, so this code cannot correct
+// it. What it CAN do is refuse to use it and say so loudly. A store phone that matches any
+// individual's directory entry is rejected in favour of the real store line, because a personal
+// extension is wrong for a store field by definition -- whoever it belongs to.
+function _lpPersonalNumberOwner(phone) {
+  var d = String(phone || '').replace(/\D/g, '');
+  if (d.length !== 10) return '';
+  // PHONE_DIR is a `const` declared ~12,000 lines BELOW this helper. At the only call site
+  // (generation time) it is long since initialised, but `typeof` does NOT protect a const in its
+  // temporal dead zone -- it throws, unlike `typeof` on an undeclared name. That is precisely the
+  // v7.67 outage shape, where a reference above its declaration 500'd every request for a day.
+  // Verified by execution rather than reasoning: calling this before the const initialises throws
+  // "Cannot access 'PHONE_DIR' before initialization". try/catch removes the class outright, so a
+  // future reordering degrades to "no owner found" instead of taking the generation down.
+  try {
+    if (!PHONE_DIR || typeof PHONE_DIR !== 'object') return '';
+    for (var name in PHONE_DIR) {
+      var rec = PHONE_DIR[name];
+      for (var k in rec) {
+        if (String(rec[k] || '').replace(/\D/g, '') === d) return name;
+      }
+    }
+  } catch (e) {
+    console.log('[LP STORE PHONE GUARD] directory unavailable (' + e.message + ') — cannot verify, allowing');
+    return '';
+  }
+  return '';
+}
+
+// ── (v9.7.596) A LEAD SOURCE IS NOT ALWAYS A PLACE THE CUSTOMER HAS HEARD OF ────────────────
+// 8/27, Jordyn Guzman, Honda Baytown: "I saw your inquiry through Thirdparty Honda on the 2026
+// Honda Accord." Rated down. "Thirdparty Honda" is a VinSolutions routing label -- it is not a
+// website, a brand, or anywhere the customer has ever been.
+//
+// A BLANKET BAN WOULD BE WRONG, and that is the whole difficulty. The same day's export also
+// carries "thanks for reaching out on Facebook", which reads perfectly and is true: Facebook is
+// somewhere the customer actually was. The distinction is not internal-vs-external, it is whether
+// the CUSTOMER would recognise the name as the place they filled something in.
+//
+// So this is a whitelist, deliberately, not a blocklist. A blocklist has to anticipate the next
+// vendor label the CRM invents -- "Hds Chat-Text Leads - Gubagoo - Chat Gubagoo - M-Chat" is a
+// real leadSource value from the same export -- and this file has been bitten three builds running
+// by enumerating the shapes it happened to have seen. Anything not recognised is simply not named.
+//
+// Returns the customer-facing name, or '' when the source must not be spoken aloud.
+var _LP_CUSTOMER_FACING_SOURCES = [
+  [/\bfacebook\b|\bfb marketplace\b/i,        'Facebook'],
+  [/\bcargurus\b/i,                            'CarGurus'],
+  [/\bautotrader\b/i,                          'Autotrader'],
+  [/\bcars\.com\b/i,                           'Cars.com'],
+  [/\btruecar\b/i,                             'TrueCar'],
+  [/\bcarfax\b/i,                              'the vehicle history listing'],
+  [/\bkbb\b|kelley blue book/i,                'Kelley Blue Book'],
+  [/\bedmunds\b/i,                             'Edmunds'],
+  [/\bcapital one\b/i,                         'Capital One'],
+  [/\bcostco\b/i,                              'the Costco Auto Program'],
+  [/\bwebsite\b|\bdealer site\b|\bdotcom\b/i,  'our website']
+];
+function _lpCustomerFacingSource(raw) {
+  var s = String(raw || '');
+  if (!s.trim()) return '';
+  for (var i = 0; i < _LP_CUSTOMER_FACING_SOURCES.length; i++) {
+    if (_LP_CUSTOMER_FACING_SOURCES[i][0].test(s)) return _LP_CUSTOMER_FACING_SOURCES[i][1];
+  }
+  return '';
+}
+
 function _lpCloseOutEligible(d) {
   d = d || {};
   var sig  = d.relationshipSignals || {};
@@ -15451,7 +15531,21 @@ function buildUserPrompt(data) {
     var _pds = (window._leadProDealerData.stores || []).find(function(s) {
       return String(s.crmDealerId) === String(data.dealerId) || String(s.id) === String(data.dealerId);
     });
-    if (_pds && _pds.phone) _promptStorePhone = _pds.phone;
+    if (_pds && _pds.phone) {
+      // (v9.7.596) Reject a store record holding somebody's personal extension. See
+      // _lpPersonalNumberOwner. The store line from STORE_PHONE_FALLBACK is used instead, and the
+      // mismatch is logged so the config can actually be corrected rather than silently worked around.
+      var _psOwner = _lpPersonalNumberOwner(_pds.phone);
+      if (_psOwner) {
+        var _psReal = (typeof STORE_PHONE_FALLBACK === 'object' && STORE_PHONE_FALLBACK[String(data.dealerId)]) || '';
+        console.log('[LP STORE PHONE GUARD] dealer-config store phone ' + _pds.phone + ' for dealerId '
+          + data.dealerId + ' is ' + _psOwner + "'s personal directory number — REFUSED. Using "
+          + (_psReal || '(no store fallback configured)') + ' instead. FIX THE ADMIN PANEL.');
+        _promptStorePhone = _psReal;
+      } else {
+        _promptStorePhone = _pds.phone;
+      }
+    }
   }
   const phone = _resolvedSignerPhone
     || lookupPhone(data.agent, data.store, data.dealerId)
@@ -18585,6 +18679,21 @@ function buildUserPrompt(data) {
     '- Voicemail: 20-30 seconds, natural speech, one clear ask.',
     '- NEVER fabricate vehicle specs, prices, inventory, or availability you cannot confirm.',
     '- CLARIFYING QUESTIONS must be logically sound. If the customer said "I need it by July," do NOT ask "what month in July" — July is one month. Ask something meaningful instead: "Are you looking to be driving it before the end of June, or do you have the full month?" Or ask what is actually unknown: which vehicle, what trim, what budget. A clarifying question that answers itself signals the model is not reading carefully.',
+    // (v9.7.596) The sanitiser covers the two prompt lines that printed data.leadSource verbatim,
+    // but the likelier path on Jordyn's lead is the TRANSCRIPT -- the routing label sits in the CRM
+    // notes, and nothing told the model those words are ours rather than the customer's. Stated as
+    // a constraint, with the recognised name supplied when there is one so the useful version of
+    // this sentence ("thanks for reaching out on Facebook") still gets written.
+    (_lpCustomerFacingSource(data.leadSource)
+      ? '- HOW THIS LEAD REACHED US: you may say the customer came through ' + _lpCustomerFacingSource(data.leadSource)
+        + ' — that is a place they will recognise. Do NOT use any other name for the source, including any '
+        + 'label you see in the CRM notes or lead history.'
+      : '- HOW THIS LEAD REACHED US: do NOT tell the customer where their inquiry came from. The source on this '
+        + 'lead is an internal routing label (names like "Thirdparty Honda", "Hds Chat-Text Leads", "Gubagoo - '
+        + 'M-Chat", "Lead Log") — CRM plumbing, not a website or a place the customer has been. Naming it reads '
+        + 'as a system talking, and on this lead it may not even be true. Open with the vehicle, their question, '
+        + 'or something specific from their file instead. This applies to any such label appearing anywhere in '
+        + 'the transcript or notes, not just to a field labelled "source".'),
     '- NEVER mention a specific vehicle model, trim, or name that does not appear in this prompt. If no vehicle of interest is listed on the lead, do NOT invent one. Ask what they are looking for instead.',
     '- TRADE-IN: Only discuss a trade if the customer raised one in their inbound messages OR one is listed in the LEAD section. A prior agent\'s boilerplate ("trade-in numbers," "we\'ll appraise your trade") does NOT count — ignore it. IMPORTANT: "Trade-in: (none entered)" in the LEAD section means none was logged in the system; it does NOT mean the customer has no trade and it does NOT override the customer\'s own words. If the customer mentioned a trade in their inbound messages (e.g. "trading in my 2018 Audi Q5"), that trade IS part of this conversation — acknowledge it directly and move it forward (offer to appraise it / get them a number), even when the LEAD field says none entered. Only stay off trade entirely when neither the customer nor the LEAD section has raised one. A down payment the customer mentions ("$3000 down," "put 3000 down," "approved with X down") is NOT a trade-in — never convert a stated down payment, a financing question, or a prior agent\'s "trade" boilerplate into a customer trade.',
     '- DO NOT introduce topics the customer has not engaged with simply because a prior agent message touched on them. Outbound agent text often includes generic offers ("trade numbers", "financing options", "incentives") that the customer never asked about. Anchor your message on what the CUSTOMER has actually said or what is explicitly listed in the LEAD section — not on what a prior agent volunteered.',
@@ -19141,7 +19250,7 @@ function buildUserPrompt(data) {
   if (_lpShowroomSrc) {
     lines.push(
       '',
-      '\ud83c\udfe2 SHOWROOM / FLOOR-UP LEAD (source: ' + data.leadSource + '):',
+      '\ud83c\udfe2 SHOWROOM / FLOOR-UP LEAD (source: ' + (_lpCustomerFacingSource(data.leadSource) || 'an internal routing label — do NOT name the source to the customer') + '):',
       'This customer was logged by the showroom floor — they have already been in the store or on the phone with our staff. Do NOT run internet-lead qualification (what are you shopping for / budget range / do you have a trade). Build on the in-person relationship that already exists: reference the visit or call, the salesperson named in the notes if one appears, and move that existing conversation one concrete step forward.'
       // (v9.7.439/437) CONFLICT FIX — live down (7/14, Samantha/Honda Lafayette): a Nextup lead with
       // no vehicle captured anywhere drew "What are you looking to get into, and do you have a
@@ -19173,7 +19282,7 @@ function buildUserPrompt(data) {
     if (data.vehicle && !_puVoiIsPlaceholder) _puBits.push('treat the Vehicle of Interest above as ALREADY ESTABLISHED from that call — do not re-ask what they’re shopping for');
     lines.push(
       '',
-      '📞 PHONE-UP LEAD (source: ' + data.leadSource + '):',
+      '📞 PHONE-UP LEAD (source: ' + (_lpCustomerFacingSource(data.leadSource) || 'an internal routing label — do NOT name the source to the customer') + '):',
       'This customer CALLED our store — a real conversation already happened, even though the CRM notes on phone-ups are often thin (sometimes just a disposition line). Do NOT frame this as a web form (never say "your request" or "you submitted"); say "when we spoke" or "your call" instead. Do NOT open with generic internet-lead qualification (what are you shopping for / budget range) if a vehicle or rep is already on file below.'
       + (_puBits.length ? ' Specifically: ' + _puBits.join('; ') + '.' : ' No rep or vehicle came through on this one — keep it natural: acknowledge it was a call, don’t claim details the notes don’t support.')
       + ' If the call notes below contain any real content beyond a bare disposition, reference it specifically — that is stronger than any generic line.'
@@ -21148,9 +21257,34 @@ async function generateAll() {
     } else if(rawEmail && !rawEmail.trim().startsWith('Subject:')) {
       var vName = data.vehicle ? data.vehicle.replace(/^\d{4}\s+/,'').replace(/\s+\(New\)|\s+\(Used\)/i,'').substring(0,40) : '';
       var _fbFirst = (data.name || '').trim().split(/\s+/)[0] || '';
-      // Never fall back to a generic phrase. Prefer the vehicle, then a name-anchored line.
-      var fallbackSubject = vName ? (vName + ' — a question for you')
-                          : (_fbFirst ? ('A quick note for you, ' + _fbFirst) : 'A quick note about your inquiry');
+      var _fbStore = String(data.store || '').trim();
+      // (v9.7.596) THE COMMENT ABOVE WAS RIGHT AND THE CODE BELOW IT WAS NOT. The final else emitted
+      // "A quick note about your inquiry" -- the exact string this file's own equity-scenario rule
+      // bans by name ("Never use 'A quick note about your inquiry' -- they did not inquire"), and a
+      // near-miss on the SUBJECT LINE RULES' banned list ("Re: your inquiry", "Quick question",
+      // "I wanted to reach out"). It shipped three times on 8/27, on leads where data.vehicle and
+      // data.name were both empty -- a KBB ICO trade lead with no vehicle of interest, twice, and a
+      // 41-day Facebook lead. The same lead produced "Your CR-V appraisal today" on the generations
+      // where the model supplied its own subject, which is how the fallback is identifiable.
+      //
+      // It also asserts something false: "your inquiry" tells a customer they inquired, on a lead
+      // where we may have no record that they did.
+      //
+      // The ladder now ends at the STORE, which is always known when a signature can be built, and
+      // below that at the first real clause of the email the model actually wrote -- specific by
+      // construction, because it is drawn from this message's own content rather than invented.
+      var fallbackSubject = '', _fbRung = '';
+      if (vName)            { fallbackSubject = vName + ' — a question for you';        _fbRung = 'vehicle'; }
+      else if (_fbFirst)    { fallbackSubject = 'A quick note for you, ' + _fbFirst;    _fbRung = 'name'; }
+      else if (_fbStore)    { fallbackSubject = 'A note from ' + _fbStore;              _fbRung = 'store'; }
+      else {
+        var _fbBody = String(rawEmail || '').replace(/^\s*(?:Hi|Hello|Hey)[^\n,]{0,30},?\s*/i, '')
+                        .split(/[.!?\n]/).map(function(x){ return x.trim(); }).filter(Boolean)[0] || '';
+        fallbackSubject = _fbBody ? _fbBody.substring(0, 48) : 'About your vehicle search';
+        _fbRung = _fbBody ? 'first-clause' : 'last-resort';
+      }
+      console.log('[LP SUBJECT FALLBACK DIAG] the model omitted a subject — built one from: ' + _fbRung
+        + ' | "' + fallbackSubject + '"');
       rawEmail = 'Subject: ' + fallbackSubject + '\n\n' + rawEmail;
     }
 
