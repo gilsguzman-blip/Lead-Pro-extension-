@@ -45,6 +45,10 @@ run() {
 }
 
 echo
+echo "build integrity (manifests + popup headers):"
+run build-integrity.test.js builds/dev builds/commercial
+
+echo
 echo "extension suites (dev + commercial, both must agree):"
 for t in amp-banner arc-bound bereavement delivery-match arc-relevancy commit-comprehension crm-entry-walk \
          decline-attribution distance-zip feedback-copy feedback-flush fences-fallback \
