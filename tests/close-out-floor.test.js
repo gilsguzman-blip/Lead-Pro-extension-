@@ -64,27 +64,67 @@ console.log('\nv9.7.593 — a two-day-old lead is not a close-out');
 console.log('builds under test: ' + impls.map(i => i.name).join(', ') + '\n');
 
 // ── THE GATE ────────────────────────────────────────────────────────────────
-console.log('the floor exists and is bounded by lead age:');
+console.log('the floor exists and asks the one eligibility rule:');
 
-check('the block is gated on leadAgeDays',
-  i => /var _coAge = parseFloat\(data\.leadAgeDays\);/.test(strip(i.src)), true);
+// (v9.7.595) THESE ASSERTIONS ARE DELIBERATELY REPLACED. v9.7.593 gated this block on a hardcoded
+// `_coAge <= 7`. That caught Troy's day-1 lead but left the 9-day case from the same day's export
+// uncovered, and disagreed with the three other close-out gates in the file (isStalled at 2, the
+// director leg at 5, PHASE 5 at a touch count with no age check at all). Gil's rule — "a combo of
+// days and lack of response" — is now one resolver that all four ask. The rule itself is covered
+// in close-out-eligibility.test.js; this suite covers the floor's wiring and its prompt text.
 
-check('the boundary is 7 days — the engagement-phase edge',
-  i => /if \(!isNaN\(_coAge\) && _coAge <= 7\)/.test(strip(i.src)), true);
+check('the block asks _lpCloseOutEligible rather than carrying its own threshold',
+  i => /var _coElig = _lpCloseOutEligible\(data\);/.test(strip(i.src)), true);
 
-check('an UNKNOWN age does not fire the floor — it is a guard, not a default',
-  i => /!isNaN\(_coAge\)/.test(strip(i.src)), true);
+check('...and the hardcoded 7-day boundary is gone',
+  i => /_coAge <= 7/.test(strip(i.src)), false);
 
-// The arithmetic of the gate itself, so the boundary is pinned rather than described.
-const fires = age => !isNaN(age) && age <= 7;
-console.log('\nwhat the gate does at each age:');
-check('  day 0 (submitted today)      -> floor ON',  () => fires(0), true);
-check('  day 1 (Troy)                 -> floor ON',  () => fires(1), true);
-check('  day 2                        -> floor ON',  () => fires(2), true);
-check('  day 7 (last engagement day)  -> floor ON',  () => fires(7), true);
-check('  day 8 (persistence begins)   -> floor OFF', () => fires(8), false);
-check('  day 45 (reactivation)        -> floor OFF', () => fires(45), false);
-check('  unknown age                  -> floor OFF', () => fires(NaN), false);
+check('the ban fires whenever the lead is NOT eligible',
+  i => /if \(!_coElig\.eligible\)/.test(strip(i.src)), true);
+
+// (v9.7.595) INVERTED FROM v9.7.593, and the inversion is the safer direction. The old floor
+// skipped an unknown age (`!isNaN(_coAge)`), so a lead whose age could not be read got NO ban —
+// absence of evidence silently permitted a withdrawal. The resolver returns not-eligible on any
+// unreadable field, so unknown now BLOCKS. A close-out cannot be walked back; it should require
+// positive evidence, not merely the absence of a reason to refuse.
+check('an UNKNOWN age now DOES fire the floor — unknown never authorises a withdrawal',
+  i => /!isNaN\(_coAge\)/.test(strip(i.src)), false);
+
+check('the floor states the reason in the prompt, so the agent can see the gate',
+  i => /not at a point where withdrawing is the right move/.test(strip(i.src)), true);
+
+check('[LP CLOSE-OUT GATE DIAG] reports the verdict, the reason and every input',
+  i => /\[LP CLOSE-OUT GATE DIAG\][\s\S]{0,260}sinceReply/.test(strip(i.src)), true);
+
+// (v9.7.595) The old block here asserted a LOCAL `fires = age => age <= 7` helper. It passed
+// without touching the shipped code, and once the rule changed it would have kept passing while
+// describing behaviour that no longer exists — a green test for a deleted feature. It now drives
+// the SHIPPED resolver against the exact leads that produced this build.
+const vm2 = require('vm');
+function shippedGate(src) {
+  const h = src.indexOf('function _lpCloseOutEligible(');
+  let d = 0, st = false, e = -1;
+  for (let i = h; i < src.length; i++) {
+    if (src[i] === '{') { d++; st = true; }
+    else if (src[i] === '}') { d--; if (st && d === 0) { e = i + 1; break; } }
+  }
+  const sb = { String, RegExp, parseFloat, isNaN };
+  vm2.createContext(sb);
+  vm2.runInContext(src.slice(h, e), sb);
+  return o => vm2.runInContext('_lpCloseOutEligible', sb)(o).eligible;
+}
+const never = (age, out) => ({ leadAgeDays: age, hasCustomerReply: false, convState: 'active-follow-up',
+  relationshipSignals: { totalOutboundCount: out, lastInboundAgeDays: null } });
+
+console.log('\nthe shipped gate, at the ages that produced this build (floor ON = not eligible):');
+check('  day 1, 7 outreaches  (Troy)      -> floor ON',  i => shippedGate(i.src)(never(1, 7)),  false);
+check('  day 2, 5 outreaches  (Jordyn)    -> floor ON',  i => shippedGate(i.src)(never(2, 5)),  false);
+check('  day 4, 5 outreaches  (Andrea)    -> floor ON',  i => shippedGate(i.src)(never(4, 5)),  false);
+check('  day 9, 6 outreaches  (Tania)     -> floor ON',  i => shippedGate(i.src)(never(9, 6)),  false);
+check('  day 21, 5 outreaches             -> floor OFF', i => shippedGate(i.src)(never(21, 5)), true);
+check('  day 41, 8 outreaches (accepted)  -> floor OFF', i => shippedGate(i.src)(never(41, 8)), true);
+check('  day 25 but only 2 outreaches     -> floor ON',  i => shippedGate(i.src)(never(25, 2)), false);
+check('  unknown age                      -> floor ON',  i => shippedGate(i.src)(never(undefined, 9)), false);
 
 // ── WHAT IT BANS ────────────────────────────────────────────────────────────
 console.log('\nit bans the specific phrasings the draft reached for:');
@@ -132,8 +172,19 @@ check('...and the section is still gated on the exit/pause signals',
 // ── THE DIAGNOSTIC ──────────────────────────────────────────────────────────
 console.log('\nthe floor is observable when it fires:');
 
-check('[LP CLOSE-OUT FLOOR DIAG] reports age, outreaches and reply state',
-  i => /\[LP CLOSE-OUT FLOOR DIAG\][\s\S]{0,200}hasReply/.test(strip(i.src)), true);
+// (v9.7.595) Renamed FLOOR -> GATE, because it is no longer a floor: it reports the verdict of a
+// shared rule rather than a one-sided age cut-off. The old name is asserted GONE so a stale
+// grep for it cannot quietly pass against a diag that no longer exists.
+check('the old [LP CLOSE-OUT FLOOR DIAG] name is retired',
+  i => /\[LP CLOSE-OUT FLOOR DIAG\]/.test(strip(i.src)), false);
+
+check('[LP CLOSE-OUT GATE DIAG] reports eligibility, reason, age, outreaches and reply state',
+  i => {
+    const m = strip(i.src).match(/\[LP CLOSE-OUT GATE DIAG\][\s\S]{0,300}/);
+    const t = m ? m[0] : '';
+    return { eligible: /eligible:/.test(t), reason: /reason/.test(t),
+             age: /age:/.test(t), outreaches: /outreaches:/.test(t), replied: /replied:/.test(t) };
+  }, { eligible: true, reason: true, age: true, outreaches: true, replied: true });
 
 // ── THE SITUATION BRIEF NO LONGER SUGGESTS AN EXIT ──────────────────────────
 console.log('\nthe hang-up brief no longer suggests an "easy-out":');

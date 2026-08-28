@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.595 (Commercial. FOUR GATES DECIDED WHEN A LEAD COULD BE OFFERED A CLOSE-OUT, AND THEY DISAGREED. Extension only; proxy v7.68 and reporter v1.21 unchanged. Gil, 8/27: 'The close out is a combo of days and lack of response.' THE FOUR, as they stood: isStalled (scraper) at age >= 2; the Director stall leg at age > 5 && !hasCustomerReply; the v9.7.593 close-out floor banning at age <= 7; and the PHASE 5 ladder at a touch count of 5 with NO AGE CHECK AT ALL. That last one is how Andrea Pardon reached a graceful close-out on a FOUR-DAY-OLD lead. v9.7.583 measured it and deliberately did not change it, writing that re-thresholding the fleet needed data first and that 'one day of that line makes the threshold decision data-driven instead of one-lead-driven'. THE 8/27 FEEDBACK EXPORT IS THAT DAY: 21 rated generations, 0 up, and 8 of 21 drafts offered to close the lead out. The two Gil flagged as wrong were 2 days and 9 days old; every one he accepted was 41, 60, 63, 63 or 68. So the boundary belongs in the gap the evidence shows -- above 9, at or below 41. ONE RESOLVER, FOUR CONSUMERS: _lpCloseOutEligible(d) returns a verdict and a human-readable reason. Customer asked to stop -> eligible at ANY age, checked FIRST, because a person who asks to be left alone is never made to wait for us to agree. Never replied -> age >= 21 AND >= 5 real outreaches. Replied then quiet -> >= 30 days since their last reply, because withdrawing on someone who actually engaged costs more than on someone who never did. BOTH HALVES ARE REQUIRED, which is the whole of Gil's rule: age alone is not silence (a 25-day lead touched twice has not been worked) and silence alone is not age (five touches in three days is our own cadence, which is exactly what produced Troy's day-1 close-out). Outreaches come from relationshipSignals.totalOutboundCount -- the real tally, not the CRM row count v9.7.594 removed from three other places. UNKNOWN IS NOT ELIGIBLE, and this INVERTS v9.7.593: the old floor skipped an unreadable age, so absence of evidence silently PERMITTED a withdrawal. A close-out is the one message that cannot be walked back; it now needs positive evidence rather than the mere absence of a reason to refuse. WHAT CHANGES, PLAINLY: the ban widens from 7 days to 21 for a never-replied lead, so leads aged 8-20 that used to be offered an exit no longer are -- that is most of the range where the two flagged cases sat. PHASE 5 stops one rung short when the lead has not earned it: PHASE 4 still pattern-interrupts and now explicitly refuses the exit offer, naming the reason so the agent can see the gate. Rungs 1-4 are otherwise untouched and asserted untouched. The Director stall mode no longer fires at 6 or 9 days; those leads route 'active'. New [LP CLOSE-OUT GATE DIAG] and [LP STALLED PHASE GATE DIAG]; the old [LP CLOSE-OUT FLOOR DIAG] name is retired and asserted gone so a stale grep cannot pass against a diag that no longer exists. TWO EXISTING ASSERTIONS WERE DELIBERATELY INVERTED, both recorded rather than quietly edited: stalled-phase pinned Andrea to the top rung (v9.7.583 wrote that deliberately, pending data), and close-out-floor pinned the hardcoded 7 and the skip-on-unknown-age. A third was replaced for being green about nothing: close-out-floor asserted a LOCAL `fires = age => age <= 7` helper that never touched shipped code and would have stayed green describing a deleted rule; it now drives the shipped resolver against the real leads. VERIFIED: new close-out-eligibility suite 42/42, stalled-phase 21/21 (harness now lifts the shipped resolver -- without it the slice threw '_lpCloseOutEligible is not defined' on every case, the same out-of-scope harness failure that suite's own header is a post-mortem for), close-out-floor 29/29 rewritten, all 51 suites green (1,628 assertions), dev===comm on every case. NON-VACUOUS, AND IT TOOK A THIRD PASS TO GET THERE: run directly against v9.7.594 the two new suites load-throw and print ZERO assertions, which reads exactly like 'catches nothing' -- the same vacuous-run trap hit twice before this week. The check therefore MODELS v9.7.594's four gates explicitly and evaluates them: 14 failures, and it reproduces which lead each old gate mishandled. scraperVersion stays v9.7.51. Pairs: DEV v9.7.595-dev / COMMERCIAL v9.7.595. Builds on v9.7.594.)
 // Lead Pro -- popup.js  v9.7.594 (Commercial. WE WERE QUOTING OUR OWN EMAILS BACK AS THE CUSTOMER'S TOPICS. Extension only; proxy v7.68 and reporter v1.21 unchanged. Found in the v9.7.593 rescan of Troy Noel (lead 2073356549, Community Honda Baytown, 8/27) -- a clean run that confirmed all six v9.7.593 fixes, with these two left over. THE RELATIONSHIP READING TOLD THE MODEL: 'Other vehicles or dealerships has come up 3 time(s): "Subject: Did you know Community Honda" / "Hi there Troy, It's Nyriel from Community Honda"' and 'Vehicle configuration has come up 2 time(s): "I notice your interest in the 2026 Honda Accord Hybrid"', then instructed: '"competitor" has been a recurring thread (3 mentions). If this topic has not been resolved, it may be the silent reason for any stall. Addressing it directly often unsticks the conversation.' EVERY QUOTED EXAMPLE IS OUR OWN OUTBOUND, and the same prompt says twice that Troy has never replied (0 inbound / 7 outbound). A lead with zero customer messages cannot have a customer raising competitors three times. Reproduced exactly against the shipped scan: the pre-fix build returns competitor:3, configuration:2 on the real 8/27 record, matching the delivered prompt's own numbers. TWO INDEPENDENT CAUSES, both fixed. (a) DIRECTION. The v9.7.81 scan counts 'both directions' by design, and the render then presents the result as 'categories the customer has come back to' while the interpretation tells the model to raise it with them. Half that design is still right -- an AGENT NOTE recording what a customer said ('wants to trade his 2018 Q5') is real evidence about the customer. A message WE composed and sent is not. The exclusion is therefore narrow: outbound texts and emails only, caught by title and by the 'Sent to:/Sent by:' body prefix. Call notes, general notes and every inbound message count exactly as before. (b) OUR OWN MARQUE. The competitor pattern lists every franchise brand, 'honda' included, so at Honda Baytown any note naming the store or the car scored a competitor mention -- and the same holds at Toyota, Kia and Audi Baytown/Lafayette for their own marques. Fixing (a) alone would leave a call note reading 'wants the Honda Accord' still scoring a competitor at a Honda store, so the render now checks the matched brand against the lead vehicle: a marque we do NOT sell on this lead, or an explicit cross-shop phrase, still counts. A STATED LIMIT rather than a hidden one: tm.mentions caps at 3 while tm.count does not, so the filter can only judge the captured examples -- if none is a real competitor the topic is dropped, and if some are the count is left alone rather than guessed downward. AND THE DIRECTIVE NEEDED ITS OWN FIX: the INTERPRETATION block scans topicMentions independently and never saw the filter, so the 'addressing it directly unsticks the conversation' line kept firing even once the listing above it was corrected. That is the line that reaches the model as an instruction, so it is guarded and asserted separately. Same shape as the tapback bug: a scan mistaking our text for the customer's, then handing the model a directive built on it. ALSO IN THIS BUILD -- THE LAST FIGURE STILL COUNTING CRM ROWS: 'Attempt density: sustained (14 notes)' while every other line in the same prompt said 7. Not cosmetic -- the system prompt attaches a whole strategy to the label ('sustained (8-14 prior notes): You have been working this lead. Do NOT recycle openers...'). Seven real outreaches is 'normal (3-7)'. _outreachN is hoisted above the density block so it and the directives below use ONE number; the v9.7.81 bucket boundaries are unchanged and asserted unchanged; the label now reads 'outreaches' because that is what it counts. WHAT THE v9.7.593 RESCAN CONFIRMED, unchanged here: close-out gone with [LP CLOSE-OUT FLOOR DIAG] ACTIVE at leadAgeDays:1; '1 call ... out of 7 outreach attempts' where v9.7.592 said '2 calls ... out of 11'; 'Exchange so far: 0 inbound / 7 outbound' with 'The customer has never replied to anything on this lead' and no null anywhere; and the body-phone guard's 'corrected hallucinated number' line ABSENT from the log entirely, where it fired twice the run before. VERIFIED 30/30 in a new own-words-topics suite plus all 50 suites green (1,619 assertions), dev===comm on every case. The suite EXECUTES the shipped scan against the real 8/27 fixture. NON-VACUOUS: 17 failures against v9.7.593, every assertion running, and the pre-fix run reproduces the delivered prompt's counts exactly. WHAT THIS MIGHT BREAK, PLAINLY: fewer recurring topics overall, and on some leads none -- a topic now needs the customer or an agent's note about them, not our own marketing copy. Density labels drop a bucket on leads whose CRM rows outnumber real outreaches, which is most of them. Both are the intended direction and both are diagnosable from the log. scraperVersion stays v9.7.51. Pairs: DEV v9.7.594-dev / COMMERCIAL v9.7.594. Builds on v9.7.593.)
 // Lead Pro -- popup.js  v9.7.593 (Commercial. A TWO-DAY-OLD LEAD IS NOT A CLOSE-OUT -- PLUS THE v9.7.592 FIX WAS A DEAD GUARD AND I WROTE IT. Extension only; proxy v7.68 and reporter v1.21 unchanged. All six findings come from ONE rescan of Troy Noel (lead 2073356549, Community Honda Baytown, 8/27) on v9.7.592. (1) THE DRAFT OFFERED TO CLOSE A LEAD THAT OPENED YESTERDAY: 'are you still considering the 2026 Honda Accord Hybrid Sport-L, or should I close this out for now?' _isStalled was false, so PHASE 5 never engaged -- this came from TONE, three individually-correct pressures summing to a wrong result: the situation brief suggested an 'easy-out', the anti-restate block said acknowledge the silence plainly, and the relationship reading said 'not a hot lead, soft re-engage'. No single input was wrong, so there was no single input to correct; hence an explicit FLOOR. Leads <= 7 days (the engagement-phase edge the system prompt already uses) now carry a block banning close-out framing by phrase AND by variation, stating that several outreaches in a few days is OUR cadence firing rather than a customer going cold. Acknowledging the quiet stays allowed; withdrawing does not. The floor sits INSIDE the exit/pause-gated section and that placement is asserted structurally -- a customer who asks to stop must always be able to stop. 'easy-out' is also removed from the hang-up override. New [LP CLOSE-OUT FLOOR DIAG]. (2) THE v9.7.592 INBOUND GUARD NEVER RAN -- A FOURTH DEAD GUARD, AND THE FIRST I ADDED RATHER THAN FOUND. It excluded the 'Lead received' note. That note carries NO data-direction and its title fails the /^(inbound|received)/ test, so it never reached the inbound branch at all. Running the SHIPPED tally against the 8/27 dump returns byte-identical output on v9.7.591 and v9.7.592. The row that actually produces the '1 inbound' and the 1.9-day reply clock is a LEAD LOG audit entry -- 'By: System | Sales Rep Changed From System to Samantha Lopez' -- which VinSolutions stamps data-direction='Inbound'. CRM bookkeeping is not a customer message in any direction; it is now excluded outright. The lead form keeps its v9.7.592 treatment and its empty-body test was ALSO wrong (the body opens 'By: System Lead received with no comments...', so an anchored match missed it, and the routing strip then ate the word 'Lead' before the boilerplate pattern could match -- both fixed, order included). (3) THE NULL REACHED THE MODEL. v9.7.592 made the reply clock null but left the render chain printing it unguarded, so Troy's prompt line 424 shipped 'Last customer reply was null days ago; 7 outbound since then with no answer.' -- a literal null AND a claimed reply on a lead with no customer text. Absence is now its own branch: it reports the outbound run, which is known, and says no dated reply is on file. (4) THE HANG-UP COUNT WAS STILL WRONG. v9.7.591 turned 11 into 2; the truth is 1. My own comment said 'one line per note in this blob' -- it is not. The context carries every note TWICE, under AGENT CONTEXT and again in the CONVERSATION TRANSCRIPT, differing only in prefix. Now deduped on the matched phrase to end of line, which is identical in both renderings. (5) THE ATTEMPTS FIGURE DOUBLE-COUNTED THE SAME WAY -- 'out of 11 outreach attempts' where the block seventeen lines below correctly said 7. Now sourced from relationshipSignals.totalOutboundCount. (6) ONE PROMPT, TWO PHONE NUMBERS. The system prompt said 'Your direct phone number is 281-837-3382. Use ONLY this number' while the LEAD block said 281-837-3381. The model obeyed the system prompt and the body-phone guard then logged it as a 'hallucinated number' and rewrote it -- twice on that generation. It was not hallucinating. The system prompt now starts from the same resolved signer the LEAD block uses; that line is BELOW the cache breakpoint so per-lead variation costs no cache hit. New [LP SYS PHONE DIAG] prints it beside [LP PROMPT PHONE] for comparison. NEW IN TESTING, and the reason (2) was caught: tests/fixtures/troy-2073356549-notes.json is extracted from the real 8/27 DOM dump -- every note's data-direction, type, body and date as the shipped selectors return them. It reproduces the shipped log EXACTLY on v9.7.591 (1 inbound, sinceReply 1.9d), which is what makes it evidence rather than a restatement of my own assumptions. A synthetic fixture is what let v9.7.592 pass 27 green assertions while changing nothing. VERIFIED: new close-out-floor suite 24/24, reply-vs-inquiry rewritten 25/25, anchor-authorship 42/42 (+5 dedupe), arc-state 39/39 (+9 null-render), all 49 suites green, dev===comm on every case. NON-VACUOUS: 40 failures across those four suites against v9.7.592, every assertion running. WHAT THIS MIGHT BREAK, PLAINLY: leads whose only inbound was a CRM audit row now read as never having replied, which is what they are -- relationship lines keyed to 'last replied' go quiet on them. And no lead under 8 days can be offered a close-out, including one where an agent might genuinely want to; the exit/pause paths remain the way a customer ends things. scraperVersion stays v9.7.51. Pairs: DEV v9.7.593-dev / COMMERCIAL v9.7.593. Builds on v9.7.592.)
 // Lead Pro -- popup.js  v9.7.592 (Commercial. A LEAD SUBMISSION IS NOT A REPLY, AND A CRM ROW IS NOT AN OUTREACH. Extension only; proxy v7.68 and reporter v1.21 unchanged and NOT redeployed. Both defects on Troy Noel (lead 2073356549, Community Honda Baytown, 8/27), both the manufactured-directive shape: a layer counts the wrong thing and the model faithfully obeys it. (1) THE LEAD FORM WAS COUNTED AS A CUSTOMER REPLY. Troy has never sent us anything -- zero inbound customer messages in the record. The delivered prompt carried, in three separate blocks: 'NO CUSTOMER REPLY YET' (line 234), 'Customer last replied 2 day(s) ago.' (line 255), and 'Last customer reply was 1.9 days ago; 7 outbound since then with no answer.' (line 427) -- while the log line for that same generation read hasCustomerReply:false. ONE note caused it: 'Lead received | By: System | Lead received with no comments.' The tally's isMessage test matches /received/, so the FORM was counted as an inbound message and its timestamp became lastInboundTs -> lastInboundAgeDays 1.9 -> 'last replied 1.9 days ago'. Confirmed against the 8/27 log: exchange:1in/7out | sinceReply:1.9d, beside hasCustomerReply:false. SPLIT RATHER THAN EXCLUDED, deliberately: a lead form CAN carry real customer words ('interested in the Accord, call me after 5') and dropping those outright would delete the only thing some customers ever say -- the same class of harm as the empty transcript v9.7.589 fixed. So the form counts toward the EXCHANGE when it has comments, and NEVER sets the reply clock. Every consumer of lastInboundAgeDays words it as 'replied', and an inquiry is not a reply no matter what it contains. Troy now reads 0 inbound / 7 outbound with the clock unset, so all three blocks agree; consecutiveOutboundNoReply is unchanged at 7. (2) SYSTEM ROWS WERE COUNTED AS OUTREACHES. Two directives reported data.totalNoteCount -- every CRM entry, Lead Logs and manager changes and System rows included. Troy's 14 entries contain 7 real outreaches, so the prompt said 'you have already sent 14+ messages' and 'customer has not replied to 14+ prior outreaches' while the arc block IN THE SAME PROMPT read '1 inbound / 7 outbound'. relationshipSignals.totalOutboundCount is the real tally and was already on data. THE GATES MOVE ONTO THE REAL NUMBER TOO, not just the wording: a threshold crossed only because system rows were counted fires a directive whose own text is then false, which is the defect rather than a side effect of it. STATED PLAINLY BECAUSE IT IS A BEHAVIOUR CHANGE: both directives now fire less often. On Troy, VARY YOUR ANGLE still fires (7 >= 5) and ONE-SIDED CONVERSATION no longer does (7 < 8) -- he was being told '14+' for 7. New [LP OUTREACH COUNT DIAG] prints the number, its source (outbound-count vs note-count-fallback) and both gate outcomes, so any suppression is countable instead of silent. VERIFIED 27/27 in a new reply-vs-inquiry suite plus all 48 suites green (1,553 assertions), dev===comm on every case. The suite EXECUTES the shipped tally loop against Troy's notes rebuilt from the 8/27 DOM dump. NON-VACUOUS: run against v9.7.591 it fails 17 ways and reproduces 1.9 EXACTLY, matching the shipped log -- the 10 that pass there are the behaviours asserted unchanged (a genuine customer reply still counts and still sets the clock, consecutive-outbound still stops at it, the outbound tally is untouched). Asserted both directions: a form with comments still counts toward the exchange but still does not start the reply clock; a form plus a later real reply keeps both. WHAT THIS MIGHT BREAK, PLAINLY: leads whose only inbound was the form now read as never having replied -- which is what they are -- so relationship lines keyed to 'last replied' go quiet on them and the one-sided directive fires on a smaller, truer number. That is the intended direction; the diag makes the difference visible. scraperVersion stays v9.7.51. Pairs: DEV v9.7.592-dev / COMMERCIAL v9.7.592. Builds on v9.7.591.)
@@ -2783,6 +2784,73 @@ function _lpExplicitDistanceReq(text){
 // — so one generation could carry a first-touch SITUATION and a stall-recovery voice example
 // simultaneously. Both consumers now call this; it reads the real flags
 // (_isStalled/_neverReplied, hasExitSignal/hasPauseSignal) and honors the LP-command override.
+// ── (v9.7.595) ONE RULE FOR WHEN A LEAD MAY BE OFFERED A CLOSE-OUT ────────────────────────
+// Gil, 8/27: "The close out is a combo of days and lack of response."
+//
+// Before this there were FOUR gates and they disagreed with each other:
+//   isStalled (scraper)        age >= 2
+//   director stall leg         age > 5 && !hasCustomerReply
+//   close-out floor (v9.7.593) bans close-out at age <= 7
+//   PHASE 5 ladder             touch count >= 5, NO age check at all
+//
+// That last one is how Andrea Pardon reached a graceful close-out on a FOUR-DAY-OLD lead;
+// v9.7.583 measured it and deliberately left it, saying re-thresholding needed data first.
+// The 8/27 feedback export is that data: 8 of 21 rated drafts offered to close the lead out,
+// and the two Gil flagged were 2 days and 9 days old. Every close-out he accepted was 41-68
+// days. The boundary therefore sits in the gap the evidence actually shows.
+//
+// BOTH HALVES ARE REQUIRED, which is the point of Gil's rule. Age alone is not silence -- a
+// 25-day lead we touched twice has not been worked. Silence alone is not age -- five touches in
+// three days is our own cadence firing, not a customer going cold.
+//
+//   customer asked to stop   -> eligible at ANY age. Their decision, never ours to delay.
+//   never replied            -> age >= 21 AND >= 5 real outreaches
+//   replied, then went quiet -> >= 30 days since their last reply
+//
+// 21 days sits inside the persistence phase (8-30) the system prompt already defines, past
+// every case flagged as wrong and short of every case accepted. 30 days for a customer who
+// actually engaged, because withdrawing on someone who talked to us costs more than on someone
+// who never did. Outreaches come from relationshipSignals.totalOutboundCount -- the real tally,
+// not the CRM row count that v9.7.594 removed from three other places.
+//
+// UNKNOWN IS NOT ELIGIBLE. If age or reply state cannot be read, the answer is no. A close-out
+// is the one message that cannot be walked back, so absence of evidence must not authorise it.
+function _lpCloseOutEligible(d) {
+  d = d || {};
+  var sig  = d.relationshipSignals || {};
+  var age  = parseFloat(d.leadAgeDays);
+  var outN = (typeof sig.totalOutboundCount === 'number') ? sig.totalOutboundCount : null;
+  var replied = !!d.hasCustomerReply;
+  var sinceReply = (sig.lastInboundAgeDays === undefined || sig.lastInboundAgeDays === null)
+                     ? null : parseFloat(sig.lastInboundAgeDays);
+
+  var out = { eligible: false, reason: '', age: isNaN(age) ? null : age,
+              outreaches: outN, replied: replied, sinceReply: sinceReply };
+
+  // The customer's own exit always wins, at any age. This must stay first: a person who asks to
+  // be left alone is never made to wait 21 days for us to agree.
+  if (d.hasExitSignal || d.hasPauseSignal
+      || (d.convState || '').toLowerCase() === 'exit' || (d.convState || '').toLowerCase() === 'pause') {
+    out.eligible = true; out.reason = 'customer signalled exit or pause'; return out;
+  }
+
+  if (isNaN(age)) { out.reason = 'lead age unknown — not eligible'; return out; }
+
+  if (replied) {
+    if (sinceReply === null) { out.reason = 'replied, but the reply date is unknown — not eligible'; return out; }
+    if (sinceReply >= 30) { out.eligible = true; out.reason = 'replied ' + sinceReply + 'd ago, quiet 30d+'; return out; }
+    out.reason = 'replied ' + sinceReply + 'd ago — under the 30d quiet window';
+    return out;
+  }
+
+  if (outN === null) { out.reason = 'outreach count unknown — not eligible'; return out; }
+  if (age >= 21 && outN >= 5) {
+    out.eligible = true; out.reason = 'never replied, ' + age + 'd old, ' + outN + ' outreaches'; return out;
+  }
+  out.reason = 'never replied, ' + age + 'd old with ' + outN + ' outreach(es) — needs 21d AND 5';
+  return out;
+}
+
 function _lpResolveDirectorMode(d) {
   d = d || {};
   var conv = (d.convState || '').toLowerCase();
@@ -2793,7 +2861,12 @@ function _lpResolveDirectorMode(d) {
   var isStall = conv === 'exit' || conv === 'pause'
     || !!d.hasExitSignal || !!d.hasPauseSignal
     || !!(d._isStalled && d._neverReplied)
-    || (age > 5 && !d.hasCustomerReply)
+    // (v9.7.595) WAS `age > 5 && !d.hasCustomerReply`. Six days of silence put a Director-persona
+    // lead into stall recovery, whose hint says "Pattern-break the silence with radical
+    // transparency... Give them a clean, easy out." On 8/27 that produced close-out offers on a
+    // 9-day and a 6-day lead. Stall recovery is the posture that OFFERS AN EXIT, so it now shares
+    // the one eligibility rule instead of carrying a threshold of its own.
+    || _lpCloseOutEligible(d).eligible
     || (!!d.hasCustomerReply && parseFloat(d.contactedAgeDays || 0) >= 21); // (v9.7.430/428) wentCold leg — replied-then-quiet >=21d, mirroring the persona resolver's own wentCold predicate. Without it the re_engagement branch below was unreachable for its actual target case (verified by probe on the v9.7.429 build): a replied-then-silent customer routed 'active' and drew momentum voice.
   if (isStall && d.agentLPCommands && d.agentLPCommands.length > 0) {
     var _lpt = d.agentLPCommands.join(' ').toLowerCase();
@@ -18436,13 +18509,19 @@ function buildUserPrompt(data) {
       // exit or pause signal from the customer still governs, because a customer who asks to stop
       // must always be able to stop. This block sits inside the exit/pause-gated section, so those
       // paths never reach it.
-      var _coAge = parseFloat(data.leadAgeDays);
-      if (!isNaN(_coAge) && _coAge <= 7) {
-        console.log('[LP CLOSE-OUT FLOOR DIAG] ACTIVE — leadAgeDays:' + _coAge
-          + ' | outreaches:' + _outreachN + ' | hasReply:' + _hasReplyForDirectives);
+      // (v9.7.595) The floor now asks the ONE rule instead of carrying its own number. v9.7.593 used
+      // a flat "age <= 7", which was the engagement-phase edge and caught Troy's day-1 lead -- but
+      // left the 9-day case from the same day's export uncovered, and disagreed with the three other
+      // close-out gates. Eligibility is age AND silence together, so the ban now widens to cover a
+      // never-replied lead until 21 days and 5 outreaches, and lifts the moment the customer
+      // themselves asks to stop.
+      var _coElig = _lpCloseOutEligible(data);
+      console.log('[LP CLOSE-OUT GATE DIAG] eligible:' + _coElig.eligible + ' | ' + _coElig.reason
+        + ' | age:' + _coElig.age + ' outreaches:' + _coElig.outreaches
+        + ' replied:' + _coElig.replied + ' sinceReply:' + _coElig.sinceReply);
+      if (!_coElig.eligible) {
         ageBlock.push('DO NOT OFFER TO CLOSE THIS LEAD OUT:');
-        ageBlock.push('This lead is ' + _coAge + ' day(s) old. Whatever the silence looks like, it is far too early '
-          + 'to offer to close the file, stop contact, or ask whether they are still interested as a way out. '
+        ageBlock.push('This lead is not at a point where withdrawing is the right move (' + _coElig.reason + '). '
           + 'Do NOT write "should I close this out", "I will stop reaching out", "I will take you off my list", '
           + '"last time I will bother you", or any variation that hands them an exit. Several outreaches in a '
           + 'few days is OUR cadence running, not the customer going cold — do not treat it as a dead lead. '
@@ -19246,8 +19325,26 @@ function buildUserPrompt(data) {
       //
       // The concession SPIRIT is kept: this is still the softest rung, still zero pressure, still an
       // easy out. What is removed is the assertion. The customer says where this stands; we do not.
+      // (v9.7.595) THE RUNG IS NOW CHECKED AGAINST THE CALENDAR. v9.7.583 documented that this
+      // ladder is chosen by a raw string count with nothing checking it against lead age -- Andrea
+      // Pardon reached this rung on a FOUR-DAY-OLD lead -- and deliberately REPORTED rather than
+      // changed it, because re-thresholding the fleet needed measurement first. The 8/27 feedback
+      // export supplied it. Phase 5 is the only rung that offers to withdraw, so it now answers to
+      // the same eligibility rule as the other three gates. When the lead is not there yet the
+      // ladder stops one rung short: PHASE 4 still pattern-interrupts, it just does not offer an exit.
+      var _p5Elig = _lpCloseOutEligible(data);
+      console.log('[LP STALLED PHASE GATE DIAG] rung 5 requested | eligible:' + _p5Elig.eligible
+        + ' | ' + _p5Elig.reason + ' | touches:' + stalledTouches);
+      if (!_p5Elig.eligible) {
+        stalledPhase = 'PHASE 4 -- PATTERN INTERRUPT';
+        stalledApproach = 'Break the pattern. Do something different from every prior message -- a genuinely new '
+          + 'piece of information, a smaller ask, or one specific detail from THIS customer\'s file you have not '
+          + 'used. Do NOT offer to close the file, stop contact, or ask whether to keep it open: this lead has not '
+          + 'earned that yet (' + _p5Elig.reason + ').';
+      } else {
       stalledPhase = 'PHASE 5 -- GRACEFUL CLOSE-OUT';
       stalledApproach = 'This is the last rung: concede gracefully and make it easy to say stop. Acknowledge the silence plainly, then ask ONE question that lets THEM say where this stands -- e.g. "I have not heard back, so I will stop filling your inbox. Want me to keep your file open, or close it out?" ASSERT NOTHING about what they did or why they went quiet: never say or imply they already bought, found something, went with someone else, changed their mind, or got busy. You cannot see any of that, and stating it as fact is the failure this phase is most prone to. Do NOT name a vehicle, a dealership, or an outcome the customer has not stated themselves. Short, warm, no pitch, no appointment, no second ask.';
+      }
     }
     // (v9.7.583) THE RUNG IS CHOSEN BY A RAW STRING COUNT, AND NOTHING CHECKS IT AGAINST THE CALENDAR.
     // stalledTouches is literally how many times 'Outbound Text Message' and 'Email reply to prospect'
@@ -19256,7 +19353,14 @@ function buildUserPrompt(data) {
     // implies day-13 but the lead is only 4d old ... no touch is safer than the wrong one' -- while this
     // ladder consumed the count without question and escalated to its most presumptuous rung.
     //
-    // This is REPORTED, NOT ACTED ON. Re-thresholding the ladder changes messaging for every stalled
+    // (v9.7.595) THIS DEFERRAL IS NOW RESOLVED — see the gate above. The paragraph below is kept
+    // because it records WHY the change waited, and the answer ("one day of that line makes the
+    // threshold decision data-driven") is exactly what happened: the 8/27 feedback export showed 8
+    // of 21 rated drafts offering a close-out, with the two wrong ones at 2 and 9 days and every
+    // accepted one at 41-68. Rung 5 is now gated on _lpCloseOutEligible; rungs 1-4 are untouched.
+    // Read the following as history, not as current behaviour.
+    //
+    // Re-thresholding the ladder changes messaging for every stalled
     // lead in the fleet (280 signals on 8/26 alone) with no measurement behind it, and this codebase's
     // repeated lesson is not to ship a behavioural change it cannot verify. One day of this line makes
     // the disagreement countable; the threshold decision can then be made on data instead of on one lead.

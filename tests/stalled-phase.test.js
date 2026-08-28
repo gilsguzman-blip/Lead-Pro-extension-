@@ -75,13 +75,27 @@ function extract(file) {
   // above the counter, and a slice that began below it ran with ctx_stalled undefined — the same
   // out-of-scope class this fix is a post-mortem for, reproduced in its own harness.
   // Wrap it with exactly those so the SHIPPED bytes run.
+  // (v9.7.595) The ladder now asks _lpCloseOutEligible before it may reach rung 5, so the SHIPPED
+  // resolver is lifted in alongside the block and a `data` object is passed. Without this the
+  // slice throws "_lpCloseOutEligible is not defined" on every case — which is exactly the
+  // out-of-scope harness failure this suite's own header is a post-mortem for, hit a second time.
+  const eh = src.indexOf('function _lpCloseOutEligible(');
+  if (eh < 0) throw new Error('_lpCloseOutEligible not found in ' + file);
+  let ed = 0, estarted = false, eend = -1;
+  for (let i = eh; i < src.length; i++) {
+    if (src[i] === '{') { ed++; estarted = true; }
+    else if (src[i] === '}') { ed--; if (estarted && ed === 0) { eend = i + 1; break; } }
+  }
+  const resolver = src.slice(eh, eend);
+
   const fn = new vm.Script(
-    '(function(ctx_raw, ageDays_final){\n var lines = []; var logs = [];\n' +
+    '(function(ctx_raw, ageDays_final, data){\n var lines = []; var logs = [];\n' +
     'var console = { log: function(){ logs.push(Array.prototype.join.call(arguments, " ")); } };\n' +
+    resolver + '\n' +
     block +
     '\nreturn { phase: stalledPhase, approach: stalledApproach, touches: stalledTouches,' +
     ' lines: lines, logs: logs }; })'
-  ).runInNewContext({});
+  ).runInNewContext({ String: String, RegExp: RegExp, parseFloat: parseFloat, isNaN: isNaN });
   return { name: path.basename(path.dirname(file)), run: fn, code: stripComments(src) };
 }
 
@@ -105,8 +119,23 @@ const ctx = n => Array.from({ length: n }, (_, k) =>
   k % 2 ? '[08/2' + (2 + (k % 6)) + '/2026 8:26 AM] Email reply to prospect\n  body'
         : '[08/2' + (2 + (k % 6)) + '/2026 8:26 AM] Outbound Text Message\n  body').join('\n');
 
-// Andrea's real shape: 5 unanswered touches (3 texts, 2 emails), lead 4 days old.
+// (v9.7.595) The ladder now consults _lpCloseOutEligible before rung 5, so every case needs the
+// `data` the resolver reads. Two shapes are used below and the difference between them IS the
+// change this build made.
+//
+//   ANDREA_DATA — her real shape: 4 days old, 5 outreaches, never replied. NOT eligible.
+//   ELIGIBLE_DATA — 40 days, 8 outreaches, never replied. Eligible.
+//
+// v9.7.583 wrote an assertion pinning Andrea to the top rung, saying the trigger was deliberately
+// left alone until there was data. There is now data (the 8/27 feedback export), Gil set the rule
+// ("a combo of days and lack of response"), and that assertion is deliberately inverted below.
+// The Phase 5 WORDING assertions from v9.7.583 are all still here and still matter — they simply
+// need a lead that has actually earned the rung in order to reach it.
 const ANDREA = ctx(5), ANDREA_AGE = 4;
+const ANDREA_DATA = { leadAgeDays: 4, hasCustomerReply: false, convState: 'active-follow-up',
+                      relationshipSignals: { totalOutboundCount: 5, lastInboundAgeDays: null } };
+const ELIGIBLE_DATA = { leadAgeDays: 40, hasCustomerReply: false, convState: 'active-follow-up',
+                        relationshipSignals: { totalOutboundCount: 8, lastInboundAgeDays: null } };
 
 console.log('\nv9.7.583 — the stalled ladder concedes without asserting');
 console.log('builds under test: ' + impls.map(i => i.name).join(', ') + '\n');
@@ -114,24 +143,39 @@ console.log('builds under test: ' + impls.map(i => i.name).join(', ') + '\n');
 // ── The rung Andrea landed on ─────────────────────────────────────────────────
 console.log("Andrea's exact shape — 5 unanswered touches on a 4-day-old lead:");
 
-check('she still lands on the top rung — the TRIGGER is unchanged, only the instruction is',
-  i => i.run(ANDREA, ANDREA_AGE).touches, 5);
+check('the touch count still reads 5 — the COUNTER is unchanged',
+  i => i.run(ANDREA, ANDREA_AGE, ANDREA_DATA).touches, 5);
 
-check('the rung is no longer named ASSUMPTION CLOSE — the name is pushed into the prompt verbatim',
-  i => i.run(ANDREA, ANDREA_AGE).phase, 'PHASE 5 -- GRACEFUL CLOSE-OUT');
+// (v9.7.595) THIS ASSERTION IS DELIBERATELY INVERTED. v9.7.583 pinned Andrea to the top rung and
+// said so explicitly: the trigger was left alone because re-thresholding the fleet needed data
+// first. The 8/27 feedback export supplied it — 8 of 21 rated drafts offered a close-out, the two
+// wrong ones at 2 and 9 days — and Gil set the rule. Four days with five touches is our cadence
+// running, not a customer gone cold, so the ladder now stops one rung short.
+check('she NO LONGER reaches the close-out rung — 4 days is our cadence, not her silence',
+  i => i.run(ANDREA, ANDREA_AGE, ANDREA_DATA).phase, 'PHASE 4 -- PATTERN INTERRUPT');
+
+check('...and that rung explicitly refuses to offer the exit',
+  i => /Do NOT offer to close the file, stop contact, or ask whether to keep it open/
+        .test(i.run(ANDREA, ANDREA_AGE, ANDREA_DATA).approach), true);
+
+check('...while naming why, so the agent can see the gate rather than guess',
+  i => /never replied, 4d old with 5 outreach/.test(i.run(ANDREA, ANDREA_AGE, ANDREA_DATA).approach), true);
+
+check('a lead that HAS earned it still reaches the close-out rung',
+  i => i.run(ctx(5), 40, ELIGIBLE_DATA).phase, 'PHASE 5 -- GRACEFUL CLOSE-OUT');
 
 check('the directive no longer tells the model to assume they moved on',
-  i => /assume they moved on|guessing you found something/i.test(i.run(ANDREA, ANDREA_AGE).approach), false);
+  i => /assume they moved on|guessing you found something/i.test(i.run(ctx(5), 40, ELIGIBLE_DATA).approach), false);
 
 check('...and it names the failure it is prone to, so the rule sits where the risk is',
   i => {
-    const a = i.run(ANDREA, ANDREA_AGE).approach;
+    const a = i.run(ctx(5), 40, ELIGIBLE_DATA).approach;
     return { assertsNothing: /ASSERT NOTHING/.test(a), noVehicle: /Do NOT name a vehicle/.test(a) };
   }, { assertsNothing: true, noVehicle: true });
 
 check('it still CONCEDES — the softest rung is still soft, this is not a re-pitch',
   i => {
-    const a = i.run(ANDREA, ANDREA_AGE).approach;
+    const a = i.run(ctx(5), 40, ELIGIBLE_DATA).approach;
     return { concedes: /concede|stop filling your inbox|close it out/i.test(a),
              noPitch:  /no pitch/i.test(a),
              oneAsk:   /ONE question/.test(a) };
@@ -159,7 +203,7 @@ check('NO rung — 0 through 20 touches — instructs an assumption about what t
   i => {
     const hits = [];
     for (let n = 0; n <= 20; n++) {
-      const r = i.run(ctx(n), 10);
+      const r = i.run(ctx(n), 40, ELIGIBLE_DATA);
       const appr = stripProhibitions(r.approach);
       const body = stripProhibitions(r.lines.join(' '));
       if (BANNED.test(appr) || BANNED.test(body)) hits.push(n + ':' + r.phase);
@@ -170,7 +214,7 @@ check('NO rung — 0 through 20 touches — instructs an assumption about what t
 check('...and no rung name contains the word ASSUMPTION',
   i => {
     const names = new Set();
-    for (let n = 0; n <= 20; n++) names.add(i.run(ctx(n), 10).phase);
+    for (let n = 0; n <= 20; n++) names.add(i.run(ctx(n), 40, ELIGIBLE_DATA).phase);
     return Array.from(names).filter(p => /ASSUMPTION/i.test(p));
   }, []);
 
@@ -178,17 +222,17 @@ check('...and no rung name contains the word ASSUMPTION',
 console.log('\nrungs 1-4 are UNCHANGED — one rung was wrong, not the ladder:');
 
 check('the five rungs are still the five rungs, in order',
-  i => [0, 2, 3, 4, 9].map(n => i.run(ctx(n), 10).phase),
+  i => [0, 2, 3, 4, 9].map(n => i.run(ctx(n), 40, ELIGIBLE_DATA).phase),
   ['PHASE 1 -- VALUE / OPTIONS', 'PHASE 2 -- MICRO QUESTION', 'PHASE 3 -- TIMING CHECK',
    'PHASE 4 -- PATTERN INTERRUPT', 'PHASE 5 -- GRACEFUL CLOSE-OUT']);
 
 check('phase 4 still offers the pattern interrupt verbatim',
-  i => i.run(ctx(4), 10).approach,
+  i => i.run(ctx(4), 40, ELIGIBLE_DATA).approach,
   'Break the script. Try: "Quick one -- did you already pick something up or still weighing options?"'
   + ' or "Should I keep this on my radar or close it out?"');
 
 check('the boundary is still 4→5 at the fifth touch, not moved',
-  i => [i.run(ctx(4), 10).phase.slice(0, 7), i.run(ctx(5), 10).phase.slice(0, 7)],
+  i => [i.run(ctx(4), 40, ELIGIBLE_DATA).phase.slice(0, 7), i.run(ctx(5), 40, ELIGIBLE_DATA).phase.slice(0, 7)],
   ['PHASE 4', 'PHASE 5']);
 
 // ── The block's other lines still ship ────────────────────────────────────────
@@ -196,11 +240,21 @@ console.log('\nthe surrounding block is intact:');
 
 check('the phase name and touch count still reach the prompt',
   i => {
-    const L = i.run(ANDREA, ANDREA_AGE).lines.join('\n');
+    const L = i.run(ctx(5), 40, ELIGIBLE_DATA).lines.join('\n');
     return { name: /STALLED LEAD RE-ENGAGEMENT -- PHASE 5 -- GRACEFUL CLOSE-OUT/.test(L),
              count: /has not responded to 5 message\(s\)/.test(L),
              noAppt: /DO NOT offer appointment times/.test(L) };
   }, { name: true, count: true, noAppt: true });
+
+// (v9.7.595) The gated case reaches the prompt the same way — the rung changed, the plumbing did
+// not. Asserted so a future gate that silently emitted nothing would be caught.
+check('...and a GATED lead reaches it too, carrying PHASE 4 instead',
+  i => {
+    const L = i.run(ANDREA, ANDREA_AGE, ANDREA_DATA).lines.join('\n');
+    return { name: /STALLED LEAD RE-ENGAGEMENT -- PHASE 4 -- PATTERN INTERRUPT/.test(L),
+             count: /has not responded to 5 message\(s\)/.test(L),
+             noPhase5: !/GRACEFUL CLOSE-OUT/.test(L) };
+  }, { name: true, count: true, noPhase5: true });
 
 // ── The young-lead diagnostic: reports, does not act ──────────────────────────
 console.log('\nthe young-lead disagreement is REPORTED and changes nothing:');
