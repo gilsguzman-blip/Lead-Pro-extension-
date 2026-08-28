@@ -108,6 +108,22 @@ function extract(file) {
     name: path.basename(path.dirname(file)),
     src,
     summarise: c => vm.runInContext('summarise', sb)(c).join(' '),
+    // (v9.7.600) The stock claim was covered by SOURCE SCANS only. That is precisely the coverage
+    // that let the v9.7.596 subject ladder read the wrong object for three builds: the shape was
+    // right, the binding was wrong, and no regex over source can tell those apart. Executed now.
+    stockClaim: d => {
+      const a2 = src.indexOf('  if (d.stockNum) {');
+      if (a2 < 0) throw new Error('NOT IN THIS BUILD: stock claim');
+      const marker = "      + ' inTransit:'";
+      const m2 = src.indexOf(marker, a2);
+      if (m2 < 0) throw new Error('NOT IN THIS BUILD: stock claim diag');
+      const b2 = src.indexOf('  }\n', m2) + 4;
+      const s2 = { String, console: { log() {} } };
+      vm.createContext(s2);
+      vm.runInContext('function stockClaim(d){ var vehicleExtras=[];\n' + src.slice(a2, b2)
+        + '\n return vehicleExtras.join(" "); }', s2);
+      return vm.runInContext('stockClaim', s2)(d);
+    },
     applyConfig: stores => vm.runInContext('applyConfig', sb)({ stores: stores }),
     fallback: id => vm.runInContext('STORE_PHONE_FALLBACK', sb)[id],
     builtin: id => vm.runInContext('_LP_BUILTIN_STORE_PHONE', sb)[id]
@@ -231,6 +247,33 @@ check('  a unit with a pending sale -> NOT confirmed',
   () => confirmed({ stockNum: 'X1', vehiclePendingSale: true }), false);
 check('  one an agent already said we do not have -> NOT confirmed',
   () => confirmed({ stockNum: 'X1', agentSaidNotAvail: true }), false);
+
+// ── (2b) THE STOCK CLAIM, EXECUTED ──────────────────────────────────────────
+// (v9.7.600) Added during the pre-publish sweep. This block was asserted only by source scan,
+// the same coverage that hid the subject-ladder binding bug for three builds. Running it is the
+// only way to prove `d` is the lead rather than some other object in scope.
+console.log('\nthe stock claim, run against real signals:');
+
+check("Amber's sold Sentra is NOT called confirmed in stock",
+  i => /confirmed in stock/.test(i.stockClaim({ stockNum: 'P4804', vehicle: '2024 Nissan Sentra SV', inventoryWarning: true })), false);
+
+check('...and it tells the model plainly not to claim the car is here',
+  i => /Do NOT tell the customer it is here/.test(
+        i.stockClaim({ stockNum: 'P4804', vehicle: '2024 Nissan Sentra SV', inventoryWarning: true })), true);
+
+check('a healthy unit IS still called confirmed in stock',
+  i => /— confirmed in stock/.test(
+        i.stockClaim({ stockNum: 'TA047502', vehicle: '2026 Honda Accord Hybrid Sport-L' })), true);
+
+check('every suppressing signal is honoured, not just inventoryWarning',
+  i => ['inventoryWarning', 'vehiclePendingSale', 'isInTransit'].map(flag => {
+        const d = { stockNum: 'X1', vehicle: '2026 Civic' }; d[flag] = true;
+        return /— confirmed in stock/.test(i.stockClaim(d));
+      }), [false, false, false]);
+
+check('the block reads a real lead object — the vehicle name reaches the output',
+  i => /2024 Nissan Sentra SV/.test(
+        i.stockClaim({ stockNum: 'P4804', vehicle: '2024 Nissan Sentra SV', inventoryWarning: true })), true);
 
 // ── (3) THE STORE-PHONE GUARD ───────────────────────────────────────────────
 // This is the part v9.7.596 got wrong, so it is driven end to end: poison the config the way the
