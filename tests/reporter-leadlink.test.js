@@ -1,5 +1,10 @@
 #!/usr/bin/env node
 'use strict';
+// (v9.7.597) Registered BEFORE anything can throw. A suite that dies during module
+// evaluation prints nothing, and nothing reads exactly like 'asserted nothing wrong'.
+// See tests/lib/fatal-guard.js.
+require('./lib/fatal-guard.js')('reporter-leadlink.test.js');
+
 /**
  * reporter-leadlink.test.js — regression tests for the Rejected Sessions LEAD column (reporter v1.12).
  *
@@ -24,7 +29,7 @@ const src = fs.readFileSync(FILE, 'utf8');
 
 function cut(from, to, what) {
   const a = src.indexOf(from), b = src.indexOf(to, a + 1);
-  if (a < 0 || b < 0 || b <= a) { console.error('could not locate ' + what); process.exit(2); }
+  if (a < 0 || b < 0 || b <= a) { require('./lib/fatal-guard.js').bail('reporter-leadlink.test.js', 'could not locate ' + what); }
   return src.slice(a, b);
 }
 

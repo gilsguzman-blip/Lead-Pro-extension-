@@ -1,5 +1,10 @@
 #!/usr/bin/env node
 'use strict';
+// (v9.7.597) Registered BEFORE anything can throw. A suite that dies during module
+// evaluation prints nothing, and nothing reads exactly like 'asserted nothing wrong'.
+// See tests/lib/fatal-guard.js.
+require('./lib/fatal-guard.js')('reporter-feedback.test.js');
+
 /**
  * reporter-feedback.test.js — regression tests for the "EXPLICIT 👍" tile (reporter v1.8).
  *
@@ -22,7 +27,7 @@ const src = fs.readFileSync(FILE, 'utf8');
 const START = "        const ratings  = { up:0";
 const END   = "      }\n    } else {";
 const a = src.indexOf(START), b = src.indexOf(END);
-if (a < 0 || b < 0) { console.error('could not locate the aggregation block'); process.exit(2); }
+if (a < 0 || b < 0) { require('./lib/fatal-guard.js').bail('reporter-feedback.test.js', 'could not locate the aggregation block'); }
 const BLOCK = src.slice(a, b);
 
 const ctx = {};

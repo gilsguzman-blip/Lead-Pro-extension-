@@ -1,3 +1,8 @@
+// (v9.7.597) Registered BEFORE anything can throw. A suite that dies during module
+// evaluation prints nothing, and nothing reads exactly like 'asserted nothing wrong'.
+// See tests/lib/fatal-guard.js.
+require('./lib/fatal-guard.js')('trade-attribution.test.js');
+
 const fs=require('fs'),vm=require('vm');
 function lineWith(src,n){const h=src.split('\n').filter(l=>l.indexOf(n)>=0);if(h.length!==1)throw new Error('need 1, got '+h.length+' for '+n);return h[0];}
 function block(src,a,b){const i=src.indexOf(a),j=src.indexOf(b);return src.slice(i,j);}

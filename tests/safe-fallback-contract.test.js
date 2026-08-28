@@ -1,5 +1,10 @@
 #!/usr/bin/env node
 'use strict';
+// (v9.7.597) Registered BEFORE anything can throw. A suite that dies during module
+// evaluation prints nothing, and nothing reads exactly like 'asserted nothing wrong'.
+// See tests/lib/fatal-guard.js.
+require('./lib/fatal-guard.js')('safe-fallback-contract.test.js');
+
 /**
  * safe-fallback-contract.test.js — v9.7.564 / proxy v7.58 / reporter v1.16.
  *
@@ -49,8 +54,7 @@ const BUILDS = args.filter(a => /popup\.js$/.test(a));
 // itself. The proxy is now required and its absence is a loud failure.
 const PROXY  = args.find(a => /cloudflare-worker/.test(a));
 if (!BUILDS.length || !PROXY) {
-  console.error('usage: safe-fallback-contract.test.js <popup.js...> <cloudflare-worker.js>');
-  process.exit(2);
+  console.error('usage: safe-fallback-contract.test.js <popup.js...> <cloudflare-worker.js>'); process.exit(2);
 }
 const proxySrc = fs.readFileSync(path.resolve(PROXY), 'utf8');
 const FIX = p => fs.readFileSync(path.join(__dirname, 'fixtures', p), 'utf8');

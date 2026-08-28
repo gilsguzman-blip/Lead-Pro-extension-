@@ -1,5 +1,10 @@
 #!/usr/bin/env node
 'use strict';
+// (v9.7.597) Registered BEFORE anything can throw. A suite that dies during module
+// evaluation prints nothing, and nothing reads exactly like 'asserted nothing wrong'.
+// See tests/lib/fatal-guard.js.
+require('./lib/fatal-guard.js')('regen-effort.test.js');
+
 /**
  * regen-effort.test.js — v9.7.575 + proxy v7.66. THE ESCALATION IS GONE; THE RAILS REMAIN.
  *
@@ -51,8 +56,7 @@ const args   = process.argv.slice(2);
 const BUILDS = args.filter(a => /popup\.js$/.test(a));
 const PROXY  = args.find(a => /cloudflare-worker/.test(a));
 if (!BUILDS.length || !PROXY) {
-  console.error('usage: regen-effort.test.js <popup.js> [popup.js...] <cloudflare-worker.js>');
-  process.exit(2);
+  console.error('usage: regen-effort.test.js <popup.js> [popup.js...] <cloudflare-worker.js>'); process.exit(2);
 }
 
 const proxySrc = fs.readFileSync(PROXY, 'utf8');

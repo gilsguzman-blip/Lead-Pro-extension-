@@ -1,5 +1,10 @@
 #!/usr/bin/env node
 'use strict';
+// (v9.7.597) Registered BEFORE anything can throw. A suite that dies during module
+// evaluation prints nothing, and nothing reads exactly like 'asserted nothing wrong'.
+// See tests/lib/fatal-guard.js.
+require('./lib/fatal-guard.js')('dashboard-explicit-down.test.js');
+
 /**
  * dashboard-explicit-down.test.js — the 8/15 contract for any renderer of the "EXPLICIT 👎" tile.
  *
@@ -32,7 +37,7 @@ const src = fs.readFileSync(FILE, 'utf8');
 // Slice the shipped aggregate() by brace-walking from its declaration.
 const decl = 'function aggregate(entries) {';
 const i = src.indexOf(decl);
-if (i < 0) { console.error('could not locate aggregate() in ' + FILE); process.exit(2); }
+if (i < 0) { require('./lib/fatal-guard.js').bail('dashboard-explicit-down.test.js', 'could not locate aggregate() in ' + FILE); }
 let depth = 0, j = src.indexOf('{', i);
 for (; j < src.length; j++) {
   if (src[j] === '{') depth++;
@@ -43,7 +48,7 @@ vm.createContext(ctx);
 // aggregate() calls the four bucket helpers defined just above it — load them verbatim first.
 const hStart = src.indexOf('function _newBucket() {');
 const hEnd = src.indexOf('\n}', src.indexOf('function _decorateBuckets(map) {')) + 2;
-if (hStart < 0 || hEnd < 2) { console.error('could not locate the bucket helpers in ' + FILE); process.exit(2); }
+if (hStart < 0 || hEnd < 2) { require('./lib/fatal-guard.js').bail('dashboard-explicit-down.test.js', 'could not locate the bucket helpers in ' + FILE); }
 vm.runInContext(src.slice(hStart, hEnd), ctx);
 vm.runInContext('var aggregate = ' + src.slice(i, j + 1).replace(/^function aggregate/, 'function'), ctx);
 const aggregate = vm.runInContext('aggregate', ctx);

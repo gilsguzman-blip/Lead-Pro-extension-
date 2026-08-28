@@ -1,5 +1,10 @@
 #!/usr/bin/env node
 'use strict';
+// (v9.7.597) Registered BEFORE anything can throw. A suite that dies during module
+// evaluation prints nothing, and nothing reads exactly like 'asserted nothing wrong'.
+// See tests/lib/fatal-guard.js.
+require('./lib/fatal-guard.js')('arc-state.test.js');
+
 /**
  * arc-state.test.js — v9.7.578. FACTS ABOUT THE ARC, NOT A LABEL FOR IT.
  *

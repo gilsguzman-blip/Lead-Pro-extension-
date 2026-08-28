@@ -1,5 +1,10 @@
 #!/usr/bin/env node
 'use strict';
+// (v9.7.597) Registered BEFORE anything can throw. A suite that dies during module
+// evaluation prints nothing, and nothing reads exactly like 'asserted nothing wrong'.
+// See tests/lib/fatal-guard.js.
+require('./lib/fatal-guard.js')('note-types.test.js');
+
 /**
  * note-types.test.js — v9.7.560 / proxy v7.56 / reporter v1.14.
  *
@@ -43,8 +48,7 @@ const BUILDS   = args.filter(a => /popup\.js$/.test(a));
 const PROXY    = args.find(a => /cloudflare-worker/.test(a));
 const REPORTER = args.find(a => /leadpro-reporter/.test(a));
 if (!BUILDS.length || !PROXY || !REPORTER) {
-  console.error('usage: note-types.test.js <popup.js...> <cloudflare-worker.js> <leadpro-reporter.js>');
-  process.exit(2);
+  console.error('usage: note-types.test.js <popup.js...> <cloudflare-worker.js> <leadpro-reporter.js>'); process.exit(2);
 }
 
 const FIX = p => fs.readFileSync(path.join(__dirname, 'fixtures', p), 'utf8');

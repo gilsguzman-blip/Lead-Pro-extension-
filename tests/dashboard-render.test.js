@@ -1,5 +1,10 @@
 #!/usr/bin/env node
 'use strict';
+// (v9.7.597) Registered BEFORE anything can throw. A suite that dies during module
+// evaluation prints nothing, and nothing reads exactly like 'asserted nothing wrong'.
+// See tests/lib/fatal-guard.js.
+require('./lib/fatal-guard.js')('dashboard-render.test.js');
+
 /**
  * dashboard-render.test.js — end-to-end for the dashboard's 👍/👎 readers (dashboard v1.2).
  *
@@ -24,8 +29,7 @@ const vm = require('vm');
 
 const [HTML, WORKER] = process.argv.slice(2);
 if (!HTML || !WORKER) {
-  console.error('usage: dashboard-render.test.js <dashboard.html> <proxy-worker.js>');
-  process.exit(2);
+  console.error('usage: dashboard-render.test.js <dashboard.html> <proxy-worker.js>'); process.exit(2);
 }
 
 // ── the dashboard's readers, verbatim out of the page ────────────────────────────────────
@@ -36,7 +40,7 @@ for (const name of ['explicitDownOf', 'implicitDownOf', 'explicitUpOf', 'implici
                     'engagedOf', 'shippedRateOf', 'firstTryRateOf']) {
   const decl = 'function ' + name;
   const i = html.indexOf(decl);
-  if (i < 0) { console.error('could not locate ' + name + ' in ' + HTML); process.exit(2); }
+  if (i < 0) { require('./lib/fatal-guard.js').bail('dashboard-render.test.js', 'could not locate ' + name + ' in ' + HTML); }
   let depth = 0, j = html.indexOf('{', i);
   for (; j < html.length; j++) {
     if (html[j] === '{') depth++;
@@ -62,7 +66,7 @@ vm.createContext(wctx);
   const hStart = wsrc.indexOf('function _newBucket() {');
   const hEnd = wsrc.indexOf('\n}', wsrc.indexOf('function _decorateBuckets(map) {')) + 2;
   const i = wsrc.indexOf('function aggregate(entries) {');
-  if (hStart < 0 || i < 0) { console.error('could not locate aggregate() in ' + WORKER); process.exit(2); }
+  if (hStart < 0 || i < 0) { require('./lib/fatal-guard.js').bail('dashboard-render.test.js', 'could not locate aggregate() in ' + WORKER); }
   let depth = 0, j = wsrc.indexOf('{', i);
   for (; j < wsrc.length; j++) {
     if (wsrc[j] === '{') depth++;
