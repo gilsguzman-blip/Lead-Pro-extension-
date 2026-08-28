@@ -26,7 +26,16 @@ run() {
   f=$(grep -c '^  FAIL ' <<<"$out")
   TOTAL_PASS=$((TOTAL_PASS + p))
   TOTAL_FAIL=$((TOTAL_FAIL + f))
-  if [ $rc -ne 0 ] || [ "$f" -ne 0 ]; then
+  # (v9.7.597) A SUITE THAT PRINTS NOTHING IS NOT A PASSING SUITE. A non-zero rc already caught
+  # the common case, but a suite that exits 0 having asserted nothing — a bad slice that matched
+  # empty, a guard that returned early, an argument list it silently ignored — was scored as green
+  # and added 0 to the totals. That is the same misreading that cost four wrong non-vacuity results
+  # this week, in the place where it would be least visible.
+  if [ $((p + f)) -eq 0 ]; then
+    FAILED+=("$name")
+    printf '  FAIL  %-36s   NO ASSERTIONS RAN (rc=%d) — suite did not execute\n' "$name" "$rc"
+    head -12 <<<"$out" | sed 's/^/        /'
+  elif [ $rc -ne 0 ] || [ "$f" -ne 0 ]; then
     FAILED+=("$name")
     printf '  FAIL  %-36s %3d ok  %3d failed\n' "$name" "$p" "$f"
     grep -A3 '^  FAIL ' <<<"$out" | head -40

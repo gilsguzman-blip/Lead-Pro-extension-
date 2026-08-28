@@ -42,7 +42,9 @@ function extract(file) {
   return fn.runInNewContext({ console: { log: function(){} } });
 }
 
-const impls = BUILDS.map(f => ({ name: path.basename(path.dirname(f)) + '/' + path.basename(f), run: extract(f) }));
+// (v9.7.597) Guarded like the rest — see tests/lib/guarded-impls.js.
+const guardedImpls = require('./lib/guarded-impls.js');
+const impls = guardedImpls(BUILDS, f => ({ name: path.basename(path.dirname(f)) + '/' + path.basename(f), run: extract(f) }));
 
 let pass = 0, fail = 0;
 function test(name, data, expect) {

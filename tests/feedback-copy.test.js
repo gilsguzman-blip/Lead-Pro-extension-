@@ -108,7 +108,11 @@ function build(file) {
   };
 }
 
-const impls = BUILDS.map(build);
+// (v9.7.597) Extraction failure is a REPORTED failure, not a fatal one — see
+// tests/lib/guarded-impls.js. Pointed at a build that predates the code under test,
+// this suite now runs every assertion and fails loudly instead of printing nothing.
+const guardedImpls = require('./lib/guarded-impls.js');
+const impls = guardedImpls(BUILDS, build);
 let pass = 0, fail = 0;
 function eq(name, script, want) {
   const results = impls.map(i => { try { return JSON.stringify(i.run(script)); } catch (e) { return 'THREW: ' + e.message; } });

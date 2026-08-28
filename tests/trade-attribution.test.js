@@ -1,7 +1,15 @@
 const fs=require('fs'),vm=require('vm');
 function lineWith(src,n){const h=src.split('\n').filter(l=>l.indexOf(n)>=0);if(h.length!==1)throw new Error('need 1, got '+h.length+' for '+n);return h[0];}
 function block(src,a,b){const i=src.indexOf(a),j=src.indexOf(b);return src.slice(i,j);}
-const impls=['builds/dev/popup.js','builds/commercial/popup.js'].map(f=>{
+// (v9.7.597) THIS SUITE IGNORED ITS OWN ARGUMENTS. The build paths were hardcoded, so it read
+// builds/dev and builds/commercial no matter what was passed on the command line — including
+// during a non-vacuity check, where it dutifully re-tested the FIXED build and reported green.
+// Measured directly: pointed at a stub file containing nothing, it still returned 10 passes.
+// It now takes the paths it is given, like every other suite, and falls back to the two builds
+// only when invoked with no arguments at all.
+const BUILDS=process.argv.slice(2).filter(a=>/popup\.js$/.test(a));
+const TARGETS=BUILDS.length?BUILDS:['builds/dev/popup.js','builds/commercial/popup.js'];
+function buildImpl(f){
   const src=fs.readFileSync(f,'utf8');
   const ctx={console:{log(){}}};vm.createContext(ctx);
   const fn=vm.runInContext('(function(){'
@@ -14,7 +22,9 @@ const impls=['builds/dev/popup.js','builds/commercial/popup.js'].map(f=>{
     + block(src,'        var _ddCustSpoke =','        // DISTANCE / REMOTE buyer')
     + ' return _ddTradeM?_ddTradeM[0]:null; }; })()',ctx);
   return {name:f.split('/')[1],fn};
-});
+}
+const guardedImpls = require('./lib/guarded-impls.js');
+const impls = guardedImpls(TARGETS, buildImpl);
 let pass=0,fail=0;
 function t(name,data,expect){
   const r=impls.map(i=>{try{return JSON.stringify(i.fn(data));}catch(e){return 'THREW: '+e.message;}});
