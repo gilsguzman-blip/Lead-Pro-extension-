@@ -265,8 +265,17 @@ check('[LP STORE PHONE GUARD] names the owner, the dealer and the remedy',
     return all.some(t => /_psOwner/.test(t) && /dealerId/.test(t) && /FIX THE ADMIN PANEL/.test(t));
   }, true);
 
-check('...and the other occurrence is the degrade notice, not a second refusal',
-  i => strip(i.src).split('[LP STORE PHONE GUARD]').length - 1, 2);
+// (v9.7.597) WAS 2, NOW 3, AND THE THIRD IS THE POINT. v9.7.596 had a refusal at the prompt site
+// plus the catch-block degrade notice. v9.7.597 adds a third at the dealer-config WRITE, which is
+// where the fix actually belongs: the prompt-site guard only protected one reader, while
+// lookupPhone() reads the same table for any agent missing from PHONE_DIR. Refusing the write
+// covers every reader. Counted rather than left open-ended so a fourth appearing unannounced is
+// a failure to look at, not a silent drift.
+check('there are exactly three guard sites: the write, the prompt, and the degrade notice',
+  i => strip(i.src).split('[LP STORE PHONE GUARD]').length - 1, 3);
+
+check('...and the WRITE-site one refuses before the table is ever poisoned',
+  i => /NOT WRITTEN\. Keeping the/.test(strip(i.src)), true);
 
 // The TDZ that the first version of this guard actually had.
 console.log('\nthe directory read cannot take a generation down:');
