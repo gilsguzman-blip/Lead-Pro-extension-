@@ -192,9 +192,14 @@ console.log('builds under test: ' + impls.map(i => i.name).join(', ') + '\n');
 // ── Defaults ───────────────────────────────────────────────────────────────────
 console.log('the flags, and the evidence that set them:');
 
-check('all three AUTHORITATIVE flags ship OFF',
+// (v9.7.608) These shipped OFF from v9.7.566 with the stated condition "flip one only once its own
+// disagreement series says something." The series now says it for all three — off-franchise 0
+// disagreements across three real-volume days, day-lock 29/30 + 18/18 + 76/77, verbal-commit's one
+// investigated cluster resolved in comprehension's favour, and zero fabricated quotes anywhere.
+// The rollback path each flag provides is exercised by tests/authoritative-phase.test.js.
+check('all three AUTHORITATIVE flags ship ON — the phase this programme was built for',
   i => [i.read('LEADPRO_VERBALCOMMIT_AUTHORITATIVE'), i.read('LEADPRO_DAYLOCK_AUTHORITATIVE'),
-        i.read('LEADPRO_OFFFRANCHISE_AUTHORITATIVE')], [false, false, false]);
+        i.read('LEADPRO_OFFFRANCHISE_AUTHORITATIVE')], [true, true, true]);
 
 check('all three OBSERVER flags ship ON — the data has to start accumulating',
   i => [i.read('LEADPRO_VERBALCOMMIT_COMPREHENSION'), i.read('LEADPRO_DAYLOCK_COMPREHENSION'),
@@ -331,11 +336,16 @@ checkAsync('JERI: with the flag ON, a "no day" verdict REMOVES the fabricated LO
     return { hasLockIn: /LOCK IN/.test(r.out.text), hasFence: /⟦/.test(r.out.text), applied: r.out.applied };
   }, { hasLockIn: false, hasFence: false, applied: ['day-lock:REMOVE'] });
 
-checkAsync('JERI: with the flag OFF — today\'s default — the directive is KEPT untouched',
+// (v9.7.608) This used to rely on the shipped default being OFF. The default is now ON, so the
+// flag is set explicitly — which makes it a test of the ROLLBACK rather than of a default, and that
+// is the more valuable assertion: pulling day-lock's switch must restore the regex directive
+// byte-for-byte, on the exact Jeri fixture the phase was built to fix.
+checkAsync('JERI: with day-lock\'s kill switch pulled, the regex directive is KEPT untouched',
   async i => {
     const f = i.fences();
     const ctx = f.open + 'day-lock⟧\nLOCK IN Monday\n' + f.close + 'day-lock⟧';
-    const r = i.override(ctx, { 'day-lock': { usable: true, fired: false, kind: null, notesRead: 1 } });
+    const r = i.override(ctx, { 'day-lock': { usable: true, fired: false, kind: null, notesRead: 1 } },
+      { LEADPRO_DAYLOCK_AUTHORITATIVE: false });
     return { hasLockIn: /LOCK IN/.test(r.out.text), hasFence: /⟦/.test(r.out.text), applied: r.out.applied };
   }, { hasLockIn: true, hasFence: false, applied: ['day-lock:KEEP'] });
 
@@ -385,8 +395,15 @@ check('the log names the detector, so three lines per generation stay separable'
         new RegExp('\\[LP FACT DIAG\\] ' + d).test(i.decide(d, undefined, { fired: false, value: '' }).logs.join('\n'))),
   [true, true, true]);
 
-check('the log states whether the detector is authoritative or observer-only',
-  i => /authoritative:OFF \(observer only\)/.test(i.decide('day-lock', undefined, { fired: false, value: '' }).logs.join('\n')), true);
+// (v9.7.608) Both labels are asserted now rather than only the shipped default, so neither can rot
+// the way the OFF label just did when the default changed underneath it.
+check('the log states the detector is authoritative when it is',
+  i => /authoritative:ON/.test(i.decide('day-lock', undefined, { fired: false, value: '' }).logs.join('\n')), true);
+
+check('...and says observer-only when the kill switch is pulled',
+  i => /authoritative:OFF \(observer only\)/.test(
+        i.decide('day-lock', undefined, { fired: false, value: '' },
+                 { LEADPRO_DAYLOCK_AUTHORITATIVE: false }).logs.join('\n')), true);
 
 check('a disagreement is labelled as such, and an unusable probe is not called agreement',
   i => [
