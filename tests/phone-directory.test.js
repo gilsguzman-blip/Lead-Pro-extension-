@@ -129,12 +129,30 @@ for (const who of Object.keys(SHEET)) {
 // the surviving key in each pair. The second name of each is removed, not aliased. Roslynn Kelley
 // removed too: she has left the BDC.
 console.log('\nthe four keys Gil removed are gone, and nothing else went with them:');
-check('the directory is exactly the 14 sheet agents + Gil + Samantha Gonzalez',
+check('the directory is the 14 sheet agents + Gil + Samantha Gonzalez + the Aguilar alias',
   i => Object.keys(i.dir()).sort(),
-  [...Object.keys(SHEET), 'gil guzman', 'samantha gonzalez'].sort());
-for (const gone of ['kimberly aguilar', 'patricia serna', 'veronica aguilar', 'roslynn kelley']) {
-  check('  "' + gone + '" is no longer a key', i => Object.keys(i.dir()).includes(gone), false);
+  [...Object.keys(SHEET), 'gil guzman', 'samantha gonzalez', 'veronica aguilar'].sort());
+// (v9.7.607) Three of the four stay removed. The 8/31 export shows VinSolutions emitting the names
+// that were KEPT — "Patricia Galvan" 7 leads, "Jolette Aguilar" 1 — and neither removed variant at
+// all, so those removals cost nothing and are asserted to hold.
+for (const gone of ['kimberly aguilar', 'patricia serna', 'roslynn kelley']) {
+  check('  "' + gone + '" is still gone — not emitted by the CRM, so nothing to resolve',
+    i => Object.keys(i.dir()).includes(gone), false);
 }
+
+// (v9.7.607) THE ONE THAT CAME BACK, AND WHY. 8/31: "Veronica Aguilar" on 7 leads across three
+// rooftops, "Veronica Villanueva" on none. Without this key all seven signed a store switchboard.
+console.log('\nthe name VinSolutions actually emits for Veronica resolves to HER line:');
+check('"Veronica Aguilar" at Honda Lafayette is her direct line, not 337-326-4484',
+  i => i.lookup('Veronica Aguilar', '', '24399'), '337-205-8335');
+check('...at Kia Baytown, not the 281-837-3687 switchboard',
+  i => i.lookup('Veronica Aguilar', '', '6190'), '281-837-3682');
+check('...at Honda Baytown too',
+  i => i.lookup('Veronica Aguilar', '', '6191'), '281-837-3682');
+check('...and both her names still agree at every rooftop',
+  i => ['6189','6190','6191','24399','21135'].map(d =>
+        i.lookup('Veronica Aguilar','',d) === i.lookup('Veronica Villanueva','',d)),
+  [true,true,true,true,true]);
 
 // The surviving name of each pair must still resolve — removing the partner must not disturb it.
 console.log('\nthe surviving name of each pair still resolves to that person\'s line:');
@@ -170,17 +188,27 @@ check('an agent NOT in the directory falls to the store line, never to a person'
 // v9.7.482 found Tania signing with Rotaxlyn's line. As of v9.7.602 there are no aliases left, so
 // this is now a flat one-number-one-person check with no collapsing step — any collision at all is
 // two different humans on one line.
-console.log('\nno two people share a direct dial — the v9.7.482 defect:');
+// One alias exists again as of v9.7.607, so the collapsing step is back: an alias SHARING its
+// person's numbers is the definition of an alias and must not read as a collision. Anything still
+// colliding after collapsing is two different humans on one number — the v9.7.482 defect.
+const ALIAS_OF = { 'veronica aguilar': 'veronica villanueva' };
+console.log('\nno two DIFFERENT people share a direct dial — the v9.7.482 defect:');
 check('every direct dial belongs to exactly one person',
   i => {
     const d = i.dir(), owner = {}, dupes = [];
-    for (const k in d) for (const col in d[k]) {
-      const n = d[k][col];
-      if (owner[n] && owner[n] !== k) dupes.push(n + ' = ' + owner[n] + ' AND ' + k);
-      else owner[n] = k;
+    for (const k in d) {
+      const person = ALIAS_OF[k] || k;
+      for (const col in d[k]) {
+        const n = d[k][col];
+        if (owner[n] && owner[n] !== person) dupes.push(n + ' = ' + owner[n] + ' AND ' + person);
+        else owner[n] = person;
+      }
     }
     return dupes;
   }, []);
+check('...and the alias shares numbers with the person it aliases, nobody else',
+  i => { const d = i.dir();
+         return JSON.stringify(d['veronica aguilar']) === JSON.stringify(d['veronica villanueva']); }, true);
 
 // ── A MISS MUST BE VISIBLE ───────────────────────────────────────────────────
 // (v9.7.602) The reason every incident in this file went unnoticed until Gil read a number in a
@@ -191,13 +219,15 @@ console.log('\nan agent the table does not hold is reported as a miss, not as a 
 check('a known agent is in the directory, in any casing or padding',
   i => [i.inDir('Kaylee Guzman'), i.inDir('KAYLEE GUZMAN'), i.inDir('  kaylee guzman  ')],
   [true, true, true]);
-check('each of the four removed names now reports a MISS',
-  i => ['Kimberly Aguilar','Patricia Serna','Veronica Aguilar','Roslynn Kelley'].map(n => i.inDir(n)),
-  [false, false, false, false]);
+check('each still-removed name reports a MISS',
+  i => ['Kimberly Aguilar','Patricia Serna','Roslynn Kelley'].map(n => i.inDir(n)),
+  [false, false, false]);
 check('...even though lookupPhone still hands back a real-looking number for them',
-  i => ['Kimberly Aguilar','Patricia Serna','Veronica Aguilar','Roslynn Kelley']
+  i => ['Kimberly Aguilar','Patricia Serna','Roslynn Kelley']
         .map(n => i.lookup(n, 'Community Honda Baytown', '6191')),
-  ['281-837-3687','281-837-3687','281-837-3687','281-837-3687']);
+  ['281-837-3687','281-837-3687','281-837-3687']);
+check('Veronica Aguilar is NOT a miss any more — that is the v9.7.607 fix',
+  i => i.inDir('Veronica Aguilar'), true);
 check('an empty or missing agent name is not claimed as a directory hit',
   i => [i.inDir(''), i.inDir(null), i.inDir(undefined)], [false, false, false]);
 
