@@ -383,9 +383,17 @@ pending.push(async () => {
     // (v1.19) The line now excludes vacuous rows, which also carry probeOk:false. Asserting the
     // OLD text would have re-pinned the double-count this build exists to remove.
     () => /if \(e\.probeOk !== true\) \{ if \(!_vac\) unverifiedProbe\+\+; continue; \}/.test(reporterSrc), true);
+  // (v1.22) This used to pin the EXACT one-line form `if (...) comparable++;`. Reporter v1.22
+  // expanded that guard into a block so the per-lead tally could share it, and the assertion
+  // failed on a formatting change while the property it protects was untouched. It now tests the
+  // property: the increment happens INSIDE the same two-delta guard, and the subtraction form is
+  // absent. An assertion pinned to whitespace fails the next honest edit and teaches nothing.
   one('comparable is COUNTED in the loop, not derived by subtracting overlapping exclusions',
-    () => /if \(e\.delta !== 'NO-REGEX-VERDICT' && e\.delta !== 'PROBE-FAILED'\) comparable\+\+;/.test(reporterSrc)
-       && !/const comparable = cd\.total - noRegex;/.test(reporterSrc), true);
+    () => {
+      const m = reporterSrc.match(/if \(e\.delta !== 'NO-REGEX-VERDICT' && e\.delta !== 'PROBE-FAILED'\)([\s\S]{0,80})/);
+      return !!m && /comparable\+\+;/.test(m[1])
+          && !/const comparable = cd\.total - noRegex;/.test(reporterSrc);
+    }, true);
   one('zero comparable rows renders an explanation instead of a rate over nothing',
     () => /No usable comprehension verdicts for this date/.test(reporterSrc), true);
 
