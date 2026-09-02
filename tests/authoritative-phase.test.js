@@ -139,9 +139,25 @@ check('...carrying the regex text it overruled, so the check needs no other sour
 // ── 3. THE OTHER OUTCOMES ARE NAMED DISTINCTLY ─────────────────────────────
 console.log('\nevery authoritative outcome is named, so day-one review is a grep:');
 
-check('comprehension finding one the regex missed reads ADDED',
+// (v9.7.609) THIS ASSERTION WAS MISLEADING AS FIRST WRITTEN and is corrected rather than deleted.
+// It drove _lpFactDecide with { fired: false } and concluded that comprehension "finding one the
+// regex missed reads ADDED". The function does behave that way — but NOTHING IN PRODUCTION CAN
+// HAND IT THAT INPUT. Both call sites require the regex to have fired first: _lpApplyFactOverrides
+// returns early with no fence (and passes { fired: true } hardcoded), and the verbal-commit site is
+// inside `if (dayCommitPre)`. So the ADDED branch is correct code on an unreachable path, and the
+// original assertion implied a shipped capability that does not exist. It now says so.
+check('the ADDED branch is correct — but the label is documented as UNREACHABLE as wired',
   i => { const c = ctx(i); c.decide('day-lock', compFired('Saturday', 'I can come Saturday', 2), { fired: false, value: '' });
          return /outcome:ADDED/.test(c.logs.join(' ')); }, true);
+
+check('...and the build says so at the call site, so the next reader is not misled',
+  i => /outcome:ADDED is unreachable in production as wired/.test(i.src), true);
+
+check('the uncovered case is instead named on every occurrence by [LP FACT UNCOVERED]',
+  i => [/\[LP FACT UNCOVERED\]/.test(i.src),
+        /THE UNCOVERED HALF OF PHASE 4/.test(i.src),
+        // fired only on the delta that IS the uncovered case, not on every row
+        /delta === 'DISAGREE-COMPREHENSION-ONLY'/.test(i.src)], [true, true, true]);
 
 check('a verified quote replacing the regex match reads QUOTE-REPLACED',
   i => { const c = ctx(i); c.decide('verbal-commit', compFired('firm', 'I will be there Tuesday', 1),
