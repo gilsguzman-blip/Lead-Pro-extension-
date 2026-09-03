@@ -54,9 +54,13 @@ function run(impl, lines, voiColor) {
   const sb = {
     String, Date, Array, RegExp,
     concernScanLines: lines,
-    // The slice necessarily includes the neighbouring trim detector, which reads this. Supplied so
-    // the colour code under test runs; the trim line is not what this suite asserts on.
+    // The slice necessarily includes two neighbours — the trim detector (reads allTranscriptText)
+    // and, from v9.7.614, the friction directive (reads _fricQuote/_fricState). Both are supplied
+    // inert so the colour code under test runs; neither is what this suite asserts on. Supplying
+    // them beats narrowing the slice, which would stop the extracted region matching the shipped
+    // file — the property that makes these suites worth anything.
     allTranscriptText: lines.join(' '),
+    _fricQuote: '', _fricState: '',
     customerConcerns: [],
     color: voiColor,
     _lpD: (...x) => logs.push(x.join(' '))
