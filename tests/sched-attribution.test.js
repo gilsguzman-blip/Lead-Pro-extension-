@@ -357,8 +357,16 @@ check('...and so is every call to it',
     const end   = lines.findIndex(l => l === '  } // end inlineScraper') + 1;
     const calls = [];
     lines.forEach((l, n) => { if (/_lpCustomerAuthoredPart\(/.test(l) && !/^\s*(\/\/|\*)/.test(l)) calls.push(n + 1); });
-    return { calls: calls.length, allInside: calls.every(c => c > start && c < end) };
-  }, { calls: 3, allInside: true });   // 1 definition + 2 call sites
+    // (v9.7.615) WAS PINNED TO calls: 3. The invariant this protects is that EVERY call sits
+    // inside inlineScraper — a call from popup scope is a ReferenceError that kills the whole
+    // scrape. The COUNT is not the invariant, and pinning it meant the suite failed the moment a
+    // legitimate fourth caller arrived (_lpCustomerSaid, which exists precisely so the concern
+    // detectors reuse this helper instead of reimplementing it). A test that fails on every honest
+    // new caller trains people to edit the number, which is how a real regression gets waved
+    // through. It now asserts the property, plus that at least the definition and one caller exist
+    // so the check cannot pass vacuously on a build where the helper vanished.
+    return { atLeastOneCaller: calls.length >= 2, allInside: calls.every(c => c > start && c < end) };
+  }, { atLeastOneCaller: true, allInside: true });
 
 check('it depends on nothing outside itself — pure string work, no popup-scope symbol',
   i => {
