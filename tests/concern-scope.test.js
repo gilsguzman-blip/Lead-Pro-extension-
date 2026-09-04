@@ -83,16 +83,27 @@ function run(impl, lines) {
     // The real tapback / quoted-reply guard is defined far outside this slice. Supplied with the
     // shape the shipped helper expects — text plus cut metadata — and made to actually strip a
     // tapback, so the echo case is exercised rather than assumed away.
+    // (v9.7.616) MIRRORS THE SHIPPED REGEX CHARACTER FOR CHARACTER — see popup.js
+    // _lpCustomerAuthoredPart. The v9.7.615 version of this stub also accepted "👍 to" and
+    // "thumbs-up to", which the real guard does NOT, so it was a stub more generous than
+    // production: it could pass an assertion that the shipped code would fail. Copied verbatim
+    // instead, which is also what exposed the dead anchor v9.7.616 fixes.
     _lpCustomerAuthoredPart: (raw) => {
-      const m = String(raw).match(/\b(?:Loved|Liked|Laughed at|Emphasized|Questioned|thumbs-up to|👍 to)\s+[“"]/i);
-      return m ? { text: String(raw).slice(0, m.index), cutBy: 'tapback', cutAt: m.index }
+      const m = String(raw).match(
+        /^(?:[ \t]*(?:Received\s+(?:from|by)|Sent\s+(?:to|by))[ \t]*:[^\n]*\r?\n)*[ \t]*(Loved|Liked|Disliked|Laughed at|Emphasi[sz]ed|Questioned)\s+["“”']/i);
+      return m ? { text: '', cutBy: 'iMessage Tapback reaction (' + m[1] + ')', cutAt: m[0].length - m[1].length }
                : { text: String(raw), cutBy: '', cutAt: -1 };
     },
     _lpD: (...x) => logs.push(x.join(' '))
   };
   vm.createContext(sb);
   vm.runInContext(impl.code, sb);
-  return { concerns: vm.runInContext('customerConcerns', sb), logs };
+  // (v9.7.616) The scoping helper's OWN output, so the tapback assertions below test the property
+  // — what text survives as customer-authored — instead of whether some diagnostic happened to
+  // print a substring. A test pinned to log wording fails on an innocent logging change and
+  // passes through a real regression; this project has fixed that shape twice already.
+  return { concerns: vm.runInContext('customerConcerns', sb), logs,
+           said: vm.runInContext('_lpCustomerSaid()', sb) };
 }
 const has = (r, re) => r.concerns.some(c => re.test(c));
 
@@ -123,7 +134,11 @@ const AGENT_NEXTMONTH = "[07/28/2026 5:37 PM] [AGENT] We're expecting one in the
 // The OTD sheet he pasted back on 8/27, trimmed to the line that matched. No first-person anywhere.
 const SHEET    = '[08/27/2026 6:27 PM] [CUSTOMER] MSRP 37,535 Price Discount -$3,800.00 Community Value Price $31,985.00 Sales & VIT Tax $2,154.17 Community Repeat Customer^ -$250.00 Community Trade-In-Assistance+ -$500.00 Drive Out with all Incentives $35,142.17';
 // The 7/28 version, sent back as an iMessage tapback on our own outbound.
-const TAPBACK  = '[07/28/2026 6:18 PM] [CUSTOMER] Received from: (727) 244-3456\n  👍 to “MSRP 37,535 Community Trade-In-Assistance+ -$500.00 Drive Out with all Incentives $35,142.17”';
+// A reaction in the form the shipped guard actually recognises, with the CRM routing header
+// v9.7.590 widened the anchor to allow.
+const TAPBACK  = '[07/28/2026 6:18 PM] [CUSTOMER] Received from: (727) 244-3456\n  Liked “MSRP 37,535 Community Trade-In-Assistance+ -$500.00 Drive Out with all Incentives $35,142.17”';
+// The same reaction as a bare emoji — see the KNOWN GAP assertions below.
+const EMOJI_TAPBACK = '[07/28/2026 6:18 PM] [CUSTOMER] Received from: (727) 244-3456\n  👍 to “MSRP 37,535 Community Trade-In-Assistance+ -$500.00 Drive Out with all Incentives $35,142.17”';
 
 console.log('\nv9.7.615 — a concern must be current, and must be the customer\'s own');
 console.log('builds under test: ' + impls.map(i => i.name).join(', '));
@@ -181,8 +196,26 @@ check('the diagnostic names the reason',
 check('...and reports customerStatedTrade:false',
   i => /customerStatedTrade:false/.test(run(i, [SHEET]).logs.join(' ')), true);
 
-check('the same sheet sent back as a TAPBACK does not fire it either',
+// (v9.7.616) THIS ASSERTION USED TO PASS FOR THE WRONG REASON, and only the faithful stub above
+// showed it. The v9.7.615 stub stripped a "👍 to" reaction that the shipped guard does not
+// recognise at all, so the tapback branch looked like what protected this line. It was not: the
+// first-person requirement was, because a price sheet contains no "I"/"my"/"we". Both cases are
+// asserted separately now, so a regression in either one is attributable.
+check('a real iMessage reaction over the sheet does not fire it — the tapback guard cuts it',
   i => has(run(i, [TAPBACK]), TRADE_RE), false);
+
+check('...and the guard genuinely REACHES it now: the reaction leaves no customer-authored text',
+  i => run(i, [TAPBACK]).said.length, 0);
+
+// A KNOWN GAP, RECORDED RATHER THAN QUIETLY WIDENED — the v9.7.615 "trading" lesson. The shipped
+// verb list is (Loved|Liked|Disliked|Laughed at|Emphasi[sz]ed|Questioned); an Android/RCS-style
+// bare-emoji reaction is not in it, and I have no real capture of one to justify adding it.
+// This line is suppressed anyway, by the first-person gate — which is the point: two independent
+// protections, and only one of them covers this shape.
+check('KNOWN GAP: a bare-emoji reaction is NOT recognised as a tapback (still suppressed, by first-person)',
+  i => has(run(i, [EMOJI_TAPBACK]), TRADE_RE), false);
+check('KNOWN GAP: ...and its text DOES survive the scoping helper, unlike a named reaction',
+  i => run(i, [EMOJI_TAPBACK]).said.length, 1);
 
 check('an AGENT quoting the sheet does not fire it',
   i => has(run(i, ['[08/27/2026 6:13 PM] [AGENT] Community Trade-In-Assistance+ -$500.00']), TRADE_RE), false);

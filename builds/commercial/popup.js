@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.616 (Commercial. A CRM SWAPPED THE CAR AND LEAD PRO LOCKED THE PROMPT AROUND IT. Extension only; proxy v7.69 and reporter v1.22 unchanged and NOT redeployed. FOUR DEFECTS, ONE ROOT CAUSE: A LEAD'S OWN FACTS AND THE WHOLE CUSTOMER RECORD ARE NOT THE SAME THING. Both leads Gil pulled on 9/4 at Community Kia Baytown, and the ticket that started it -- 'Kia incentive upload accepted but not reflected downstream' -- turned out to be NO BUG AT ALL: 110 lines uploaded, 110 in KV model-for-model, 110 loaded in the extension (log164 line 22). The suppression was correct on Tricia Green three times over (CPO VOI, and a 2023 lead year against a blob that is entirely 2026/2027, leaving 0 of 110 after the year filter). Chasing that produced everything below. (1) THE VOI SUBSTITUTION LOCK -- the serious one, customer-facing, and it shipped. Sharon Pierre (lead 2078254326) inquired on a 2026 Kia SORENTO LX FWD; her PageData says so in typed fields. At 05:02 UTC -- 12:02 AM Central, the exact minute of the CRM's own 'Primary vehicle changed from 2026 Kia Sorento LX FWD to 2026 Kia Sportage EX' note -- CreatedByUserID -189 (negative = an automated actor) repinned the lead to a SPORTAGE EX. She has never written a word to us; she did not ask for the swap. LP then told the model 'Vehicle: 2026 Kia Sportage EX <- THIS IS THE VEHICLE FOR THIS LEAD. Do not substitute or reference other vehicles.' THE WORD 'SORENTO' APPEARS ZERO TIMES IN THAT 32,673-CHARACTER PROMPT AND ZERO TIMES IN THE LOG. v9.7.480/475 graduated VehiclesOfInterest[] as an authoritative COUNT and stopped there, so the second vehicle was invisible -- and LP did not merely fail to mention it, it instructed the model not to. The existing [LP VOI CONFLICT DIAG] could never catch this: it compares only YEAR and CONDITION parsed from notes, logging {"hasConflict":false,"voiYear":"2026","voiCond":null,"noteYear":null,"noteCond":null} -- a comparison with nothing on the other side -- and has never compared MODEL. FIX: read the array as content, compare model families (model only: 'Sportage EX' vs 'Sportage LX' is one conversation, 'Sportage' vs 'Sorento' is two), and when two are present REPLACE the do-not-substitute lock with the instruction the prompt already contains in its AGENT CONTEXT block -- name both distinctly, ask ONE direct question, assert neither. LP DOES NOT PICK THE OTHER CAR: which one Sharon wants is exactly what nobody here knows, and picking is what caused this. The automated-actor sentence is emitted only when the record carries it. (2) 26 OUTREACHES ON A 13-HOUR-OLD LEAD. Counted off her dump: 7 real touches since creation plus 19 mass-marketing blasts sent 8/26/2023 through 4/21/2025 ('RED TAG SALE', 'Monster Price MELTDOWN'), years before the lead existed. That number drove FOUR directives at once -- heavy density, ONE-SIDED CONVERSATION, VARY YOUR ANGLE and the close-out arithmetic -- so a brand-new lead was written as a fatigued ghost. EXTENDS v9.7.592 rather than correcting it: that build moved these off the CRM note count onto the real outbound tally, which was right and did not go far enough, because the tally still spans the whole CUSTOMER record. New lead-bounded count keyed on PageData Lead.LeadCreatedUTC. On Sharon: VARY YOUR ANGLE still fires (7 >= 5), ONE-SIDED no longer does (7 < 8). (3) THE BUDGET NEITHER CUSTOMER STATED. BUDGET-STATED FRAMING (v9.7.315) told the model 'Customer has stated a specific budget, payment, or OTD target ... lead with their stated number as the goal' on BOTH leads -- to two people who have never written a word. Its flag tested the whole assembled arc: on Tricia it matched TrueCar's own listing field, verbatim 'OFFER SHOWN: $25,815'; on Sharon it matched our own blasts, 'as low as $20,074 MPR', six times. Neither is a customer statement and neither leaves a number to lead with. Same class as v9.7.613/614/615 and it takes the same cure -- the SHIPPED _lpCustomerSaid(), moved to where that helper already lives rather than a third implementation at module scope. THE MONEY PATTERN IS UNCHANGED CHARACTER FOR CHARACTER; only whose words it reads changed, asserted ten ways. (4) 'FIRST EXPOSURE' AFTER SEVEN MESSAGES. STORE INCENTIVE suppressed on Sharon -- a NEW 2026 Sportage EX -- hiding two current programs (4.99% APR for 48-84 mos, $750 Customer Cash) on a unit sitting 126 days where the prompt has ALREADY banned every scarcity line, leaving the message no lever at all. The v9.7.296 rule is right as stated; it is keyed on convState, which stays 'first-touch' all day on a lead created today however many times we have written -- the log says so itself: 'fresh-today lead, no customer reply -> first-touch (was about to be active-follow-up on 31 notes)'. New prior_outreach override beside the existing asked/generic/in_transit ones, threshold 3 because the system prompt's own density bands already call 0-2 light and 3-7 active. It reads the LEAD-BOUNDED count, which is why (2) and (4) ship together: years-old blast marketing must never be what unlocks an incentive, asserted by name. A DEAD GUARD I SHIPPED IN v9.7.615, FOUND WHILE TESTING THIS BUILD. _lpCustomerAuthoredPart anchors its tapback pattern at ^, allowing only CRM routing headers before the reaction verb. Its two original callers hand it a raw note BODY, so it works for them. The caller I added in v9.7.615 hands it a transcript LINE, which always opens '[07/28/2026 5:37 PM] [CUSTOMER] ' -- so the verb was never at a line start and the reaction branch could not fire ONCE. Identical shape to the v9.7.590 miss it was built to fix. Now strips the line's own date/tag prefix first. AND A TEST THAT PASSED FOR THE WRONG REASON, which is how the above was found: the v9.7.615 stub for that guard also accepted '👍 to', which the SHIPPED verb list (Loved|Liked|Disliked|Laughed at|Emphasi[sz]ed|Questioned) does not -- a stub more generous than production, able to pass an assertion the real code would fail. Copied verbatim now. The emoji shape is recorded as a KNOWN GAP rather than quietly widened (the v9.7.615 'trading' precedent), and both protections are asserted separately so a regression in either is attributable. THE ORDERING TRAP, CAUGHT BEFORE IT SHIPPED: the first draft put the outreach number on a window global at the prompt-builder site and read it at the incentive gate -- which runs in populateFromData, ~13,500 lines and one whole phase EARLIER, so the guard read undefined every time and could never fire. That is the v9.7.561 dead-guard shape and the v9.7.422 ordering trap in one. It is now _lpOutreachOnThisLead(), one definition both callers invoke. TWO NEW SUITES, 79 assertions, driving the SHIPPED code against the real captures: voi-family (31) and lead-boundary (48), the latter pinning TZ=America/Chicago because PageData emits a zone-less ISO stamp that V8 would otherwise read as local -- the 'Z' is the whole fix and is asserted three ways. NON-VACUITY PROVED: against v9.7.615 voi-family fails 31/31 and lead-boundary 48/48, and concern-scope fails the new dead-guard assertion by name. reply-vs-inquiry and own-words-topics extract the same tally loop and were supplied the boundary neighbour rather than having their slices narrowed away from the shipped file. WHAT THIS MIGHT BREAK, PLAINLY: leads with a second vehicle of interest in a different model family now get a question instead of a confident pitch -- correct, but customer-visible and new. Fatigue directives go quiet on fresh leads carrying old marketing history. Incentives appear on same-day leads we have already worked 3+ times. Every one of those fails closed when its evidence is missing: no creation stamp leaves the lead count null and the gate exactly as it was, and blast marketing alone cannot unlock an incentive. VERIFIED: 68 suites green (2,172 assertions, +79), dev===comm on every case. node --check clean on both builds; both manifests parse; version AND version_name both bumped. scraperVersion stays v9.7.51. Builds on v9.7.615.)
 // Lead Pro -- popup.js  v9.7.615 (Commercial. TWO CONCERNS THAT FIRED ON TEXT THE CUSTOMER NEVER MEANT. Extension only; proxy v7.69 and reporter v1.22 unchanged. Both on Pranav Patel (Community Honda Baytown, lead 2055655871) -- the same lead behind v9.7.612, .613 and .614, and the same shape all three fixed: a detector matching words in a blob without asking whether they are current, or the customer's own. A CORRECTION TO MY OWN REPORT FIRST, because I stated the cause twice and was wrong both times. I said TIMING HESITATION fired on his month-stale 8/01 vacation note. IT DID NOT. That note says "I will contact you guys back in Aug 3rd week" and the pattern has no "contact back" shape -- it never matched. Searching the shipped prompt for every match of the timing pattern finds exactly three, and NOT ONE IS A CUSTOMER HESITATION: an AGENT line, "We're expecting one in the river blue next month", and two lines of the prompt's OWN SCAFFOLD ("If they are not ready -- respect it" and a rule in the time-context block). Elsa telling him a river-blue car arrives next month became "Customer indicated they are not ready yet." So the defect was the customer-authored half, not the recency half. The recency rule still ships and is still correct; it simply was not what was wrong here, and the suite now tests the real trigger instead of my assumption. TRADE-IN CONCERN, on a lead whose Trade-in Info reads "(none entered)", told the model "This is THE hook -- lead with it in BOTH the SMS and email." It matched "Community Trade-In-Assistance+ -$500.00" -- a LINE ITEM in the dealership's own OTD sheet, which Elsa sent him on 7/28 and which he PASTED BACK on 8/27 while negotiating. Our own words, returned to us, read as his statement about a car he does not own. Of every false directive found this week this is the most damaging: it does not add noise, it commands BOTH messages to lead with something that does not exist. ONE SHARED HELPER, NOT A THIRD IMPLEMENTATION. v9.7.613 and .614 each needed the same two things inline -- read only what the customer wrote, and know when. _lpCustomerSaid() now does it once and both detectors call it, and it routes through the EXISTING _lpCustomerAuthoredPart tapback / quoted-reply guard, whose own comment already says "the quoted part is OUR OWN PRIOR OUTBOUND, echoed back by the customer's phone". That reuse also covers the 7/28 version of the same sheet, which he returned as a literal iMessage tapback. TWO GATES ON TRADE, because the failure has two halves. Customer-authored only kills the tapback. And for the 8/27 PLAIN PASTE, which no echo-guard can see, the message must contain a FIRST-PERSON reference: someone discussing their own trade always uses one -- "my trade", "I still owe", "what is my payoff" -- while a price sheet, a rebate footer and a fee table never do. That is deliberately GRAMMAR rather than a blocklist of document phrases, because the next pasted document will not be a price sheet. TIMING KEEPS THE v9.7.612 SUPERSESSION RULE, unchanged in spirit: a hesitation the customer has spoken past is spent, and it fails closed the same way -- an undated one cannot be proven stale and still fires. NEW SUITE concern-scope.test.js, 27 assertions, EXECUTING both shipped detectors. Every false-fire is driven from Pranav's real lines including the pasted sheet and the tapback. The TRUE-fire case for each is asserted beside it -- five real customer trade phrasings, a genuine hesitation firing alone and as the latest message, an agent message NOT ageing it out -- because over-suppression is the actual risk here, exactly as it was for the engine-off gate. The two fixes are asserted independent of each other. NON-VACUITY PROVED against v9.7.614, which fails the suite by name. A PRE-EXISTING GAP FOUND AND DELIBERATELY LEFT: _tradeRx requires the literal string "trade", and "trading" is t-r-a-d-i-n-g, so "I am trading in my Q5" has NEVER matched it on any build. That is UNDER-detection, the opposite of what this build was asked to fix, and widening a pattern carries a different risk profile than narrowing one. Asserted as current behaviour so it is recorded rather than mistaken for a regression from here. TWO HARNESS FAULTS, both mine, both fixed rather than worked around. (1) My first end-marker for the trade slice did not exist in the file; indexOf returned -1 and the slice ran to END OF FILE, swallowing half the build -- 24 assertions failed with "window is not defined", which reads like a code fault and was not. (2) sched-attribution.test.js pinned the number of _lpCustomerAuthoredPart call sites to exactly 3, so the legitimate fourth caller -- the shared helper that exists precisely to stop reimplementation -- failed it. The invariant is that every call sits INSIDE inlineScraper, never the count; a test that fails on every honest new caller trains people to edit the number, which is how a real regression gets waved through. De-pinned to the property and mutation-checked: moving a call to module scope still fails it. VERIFIED: 66 suites green (2,089 assertions, +27), dev===comm on every case with both new blocks byte-compared between builds. node --check clean on both builds; both manifests parse. scraperVersion stays v9.7.51. Pairs: DEV v9.7.615-dev / COMMERCIAL v9.7.615. Builds on v9.7.614.)
 // Lead Pro -- popup.js  v9.7.614 (Commercial. A WASTED TRIP THE FRUSTRATION DETECTOR COULD NOT SEE — AND WHAT THE MESSAGE SHOULD DO ABOUT IT. Extension only; proxy v7.69 and reporter v1.22 unchanged. LIVE, 9/3, Pranav Patel (Community Honda Baytown, lead 2055655871). On 8/28 he wrote "Nope. I need to know that you have to car and OTD price is $35k. 2026 CR-V Sport. Meteorite Gray.....I have already drove all the way there and there was No car to see or drive or make a deal on." The relationship layer reported frustration:false. WHY IT MISSED, AND IT IS THE POINT. The existing scan is a list of EMOTION WORDS -- frustrated, annoyed, disappointed, upset, fed up, ridiculous, unprofessional, "leave me alone". Pranav used none of them. He described a FACT. In a BDC thread the worst friction is almost always DESCRIBED rather than EMOTED: a wasted trip, a morning off work, a second drive for a car that was not there. "I drove out and there was no car" is a far stronger signal than "I am frustrated" and carries no frustration vocabulary at all. The detector was looking for the feeling and the customer reported the event. ONLY FRICTION WE CAUSED. A customer no-show is theirs and is already counted separately as priorNoShows -- Pranav has one of those too, on 8/28, and it is DOWNSTREAM of this one: he had stopped believing the car was there. Conflating them would have us apologising for his absence while ignoring our own. Asserted: an agent describing the same events does not fire it, and a customer apologising for missing an appointment does not either. AND IT IS READ IN CONTEXT, WHICH IS THE HALF GIL ASKED FOR. A friction flag that always says "apologise" would repeat the exact failure that put EIGHT equal-weight concerns on this lead -- price, timing, colour, trim, trade, financing, feature uncertainty -- under a header that says "lead with these". That is a list, not a priority. So the conversation STATE is computed and the directive changes with it. FRESH: the complaint is their latest message -- own it, answer exactly what they asked, no pitch, no time, no subject change. CARRIED: they have already moved past it and come back with something new -- acknowledge in ONE clause, never re-apologise at length for something they stopped raising, then REMOVE THE RISK OF A REPEAT before asking anything, confirming the specific vehicle and number FIRST because asking them in on a promise is precisely what failed last time. SILENT: nothing from them since while we kept writing -- treat the silence as the friction, it is likelier we lost their trust than that they got busy, and ask for NOTHING. PRANAV IS CARRIED, and that is the state Gil's own GEM read correctly by hand before any of this was built: it acknowledged the frustration in one clause, went straight at the white car and the number, and asked for a conditional commitment instead of a visit. The directive now tells the model to do that reasoning rather than hoping it arrives at it. UNSHIFTED TO THE FRONT AND STATED AS OUTRANKING, because knowing the fact and leading with it are different things, and the flattening is what made the difference on this lead. NEW SUITE friction-state.test.js, 30 assertions, EXECUTING the shipped detector on Pranav's real lines. All three states are asserted with their distinct wording, including that CARRIED's language does not leak into FRESH. Four cases assert what must NOT fire. Five more cover the other real shapes of described lost time -- came in and nothing to see, went and you did not have it, took the morning off, waited two hours, wasted my time. NON-VACUITY PROVED against v9.7.613, which fails the suite by name. ONE HARNESS CONSEQUENCE, fixed rather than worked around: inserting this directive between the colour detector and the colour directive put it inside the region color-ask.test.js slices, and that suite failed 35/35 with "_fricQuote is not defined". The colour code was correct and its sandbox was incomplete. Supplied the neighbours inert rather than narrowing the slice -- a narrower slice would stop the extracted region matching the shipped file, which is the property that makes these suites worth anything. Same call as the trim-detector variable the day before. WHAT IS NOT DONE, so the next build is not mistaken about it: the remaining concern detectors still scan the whole transcript and still over-fire. On this lead TIMING HESITATION fires off a month-stale vacation line, and TRADE-IN CONCERN -- "This is THE hook, lead with it in BOTH the SMS and email" -- fires on a customer with no trade, matching "Trade-In-Assistance" inside a price sheet he pasted back to us. Both are the blob-scanning class v9.7.613 fixed for colour, and neither is touched here. VERIFIED: 65 suites green (2,063 assertions, +30), dev===comm on every case with the new block byte-compared between builds. node --check clean on both builds; both manifests parse. scraperVersion stays v9.7.51. Pairs: DEV v9.7.614-dev / COMMERCIAL v9.7.614. Builds on v9.7.613.)
 // Lead Pro -- popup.js  v9.7.613 (Commercial. THE COLOUR THE CUSTOMER ASKED FOR NOW BEATS THE ONE ON THE LEAD. Extension only; proxy v7.69 and reporter v1.22 unchanged. LIVE, 9/3, Pranav Patel (Community Honda Baytown, lead 2055655871). The VOI panel carries a 2026 CR-V Hybrid Sport in METEORITE GRAY, stock TE026441, and the CRM itself flags that unit "no longer in your active inventory". On 9/02 he wrote "Elsa I am looking for 2026 white CRV Sport trim at 35k" and then "OTD 35K". The prompt carried BOTH facts and they pulled opposite ways: the VOI block states a colour as fact and forbids substitution -- "Vehicle: 2026 Honda CR-V Hybrid Sport, Do not substitute or reference other vehicles" plus "Color: Meteorite Gray Metallic" -- while the customer's side was a soft "COLOR PREFERENCE: Customer mentioned white. Match this in your message or acknowledge availability honestly." The hard directive won, the message stayed anchored to a dead grey unit, and with nowhere to go it backed away entirely. Gil: "It has to feed into the White. That's the right patch to take." TWO DEFECTS IN THE OLD DETECTOR, both real and both fixed. (1) IT SCANNED THE WHOLE TRANSCRIPT, AGENT MESSAGES INCLUDED, so it could report a colour WE said as the customer's ask -- and on this very lead our own "we currently only have the 2026 CR-V EX in black" sits in that blob. It now reads customerOnlyText, which already existed two lines above for exactly this purpose and which the spouse-detector fix (v9.7.581) added after the same class of false fact. (2) IT TOOK THE FIRST MATCH IN A JOINED BLOB, which is the oldest or the newest depending on an ordering nothing here guarantees. It now picks the LATEST-DATED customer mention using the [MM/DD/YYYY] stamp those lines already carry -- assumption-free, the same discipline as v9.7.612's pause supersession. On Pranav's thread the old path could have returned our black or his own older grey; the new one returns white. THE DIRECTIVE, WHEN THE STATED COLOUR DIFFERS FROM THE VOI's. The customer's colour is named as the target and the VOI colour as history -- "the unit they ORIGINALLY inquired about, it is NOT what they are asking for now". It then does the thing the old soft wording could not: it RELEASES the substitution lock explicitly, because a colour change on the SAME model is not a different vehicle and the model reading it the other way is precisely what produced this draft. It forbids presenting the old unit as the answer, forbids asking them to reconsider it, forbids letting its dead status end the conversation, and requires saying plainly that a white one is being checked rather than falling back. The MODEL lock is untouched -- this authorises a colour swap, never a different vehicle. NOT ESCALATED WHEN NOTHING IS WRONG: if the stated colour matches the VOI, or the lead has no VOI colour, the original plain COLOR PREFERENCE line ships byte-identical. New [LP COLOR ASK DIAG] reports the stated colour, the VOI colour and the verdict on every lead. NEW SUITE color-ask.test.js, 35 assertions, EXECUTING the shipped detector on Pranav's real lines. His case is asserted clause by clause. Both old defects get their own section: an agent-only colour yields NO customer ask at all, and the latest mention wins whether the input arrives newest-first, oldest-first, or with undated lines mixed in. The matching case is asserted UNCHANGED, because shouting at the model on a lead where nothing is wrong is the risk this change introduces. And all twelve colour words are asserted still detected -- this build changes WHOSE colour is read and WHICH mention wins, never what counts as a colour. NON-VACUITY PROVED against v9.7.612, which fails the suite by name. ONE HARNESS NOTE, recorded because it read like a code fault and was not: the first run failed 35/35 with "allTranscriptText is not defined". The slice necessarily includes the neighbouring TRIM detector, which reads that variable; the colour code was correct and the sandbox was incomplete. Supplied rather than narrowing the slice, so the extracted region still matches the shipped file. THIS CLOSES THE VOI-ANCHORING QUESTION FOR COLOUR ONLY. Roshni Khan's 9/1 lead is the same family in a different shape -- she said SUVs are too big, which is a rejection of the vehicle CLASS rather than a colour swap -- and is NOT addressed here. Trim is adjacent and equally untouched: on Pranav the trim MATCHED (he asked for Sport, the VOI is Sport), so this case gives no evidence about it and none is invented. VERIFIED: 64 suites green (2,033 assertions, +35), dev===comm on every case with the new block byte-compared between builds. node --check clean on both builds; both manifests parse. scraperVersion stays v9.7.51. Pairs: DEV v9.7.613-dev / COMMERCIAL v9.7.613. Builds on v9.7.612.)
@@ -3689,6 +3690,43 @@ function _lpPrefetchValueFacts(dealerId) {
 // shipping. Also closing the same class preemptively for two other Honda trim names confirmed
 // shared across multiple models (Elite: Pilot/Odyssey; TrailSport: Ridgeline/Passport/Pilot/
 // CR-V) — no live incident yet for these two, flagged here so a future one is a quick diagnosis.
+// (v9.7.616) HOW MANY TIMES HAVE WE WRITTEN ON *THIS* LEAD — ONE DEFINITION, TWO CALLERS.
+// The prompt builder needs it for VARY YOUR ANGLE / ONE-SIDED / close-out, and the STORE INCENTIVE
+// first-touch gate needs the same number ~13,500 lines earlier. The first draft of this build put
+// the answer on a window global at the prompt-builder site and read it at the gate — which runs in
+// populateFromData, BEFORE the prompt is ever built, so the guard read `undefined` on every
+// generation and could never fire. That is the v9.7.561 dead-guard shape and the v9.7.422 ordering
+// trap in one, caught here rather than in production, and the reason this is a function both call
+// instead of a value one sets and the other hopes for.
+// The ladder: lead-bounded outbound (v9.7.616) → whole-record outbound (v9.7.592) → note count.
+function _lpOutreachOnThisLead(data, noteCountFallback) {
+  var sig = (data && data.relationshipSignals) || {};
+  if (typeof sig.leadOutboundCount === 'number') return { n: sig.leadOutboundCount, src: 'lead-bounded-outbound' };
+  if (typeof sig.totalOutboundCount === 'number' && sig.totalOutboundCount > 0) return { n: sig.totalOutboundCount, src: 'outbound-count' };
+  return { n: noteCountFallback || 0, src: 'note-count-fallback' };
+}
+// (v9.7.616) DOES THE LEAD'S PINNED VEHICLE AGREE WITH THE CUSTOMER'S OWN VEHICLE OF INTEREST?
+// Compares the typed VehiclesOfInterest[] records against the vehicle text that ships to the model.
+// It answers ONE question -- is there a second model family on this lead -- and deliberately does
+// NOT rank them. Which car the customer actually wants is exactly what nobody here knows: that is
+// the customer's to say, and v9.7.616 exists because LP picked one and then forbade the other.
+// Model-only, never trim or year: "Sportage EX" vs "Sportage LX" is one conversation, "Sportage"
+// vs "Sorento" is two. Fails closed to [] on any bad input -- silence is today's behaviour.
+function _lpVoiFamilyMismatch(leadVehText, voiList) {
+  var out = [];
+  try {
+    var hay = String(leadVehText || '').toLowerCase();
+    if (!hay || !voiList || !voiList.length) return out;
+    voiList.forEach(function (v) {
+      var m = String((v && v.model) || '').toLowerCase().trim();
+      if (!m) return;
+      // Word-boundary so a nameplate is never matched inside a longer token.
+      var rx = new RegExp('\\b' + m.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'i');
+      if (!rx.test(hay)) out.push(v);
+    });
+  } catch (e) { return []; }
+  return out;
+}
 var _LP_STOP = (function(){ var s = {};
   ['sedan','hatchback','coupe','sport','hybrid','awd','fwd','rwd','suv','ev','le','lx','ex','exl','ex-l','touring','premium','plus','line','gt','gtline','base','limited','sx','wind','light','long','range','cash','customer','bonus','new','used','car','truck','van','prestige','quattro','tron','etron','sportback','gas',
    'rtl','elite','trailsport',
@@ -4389,8 +4427,19 @@ function populateFromData(d) {
   } catch (e) {}
   console.log('[Lead Pro] populateFromData — notes:', d.totalNoteCount, '| brief:', d.conversationBrief ? d.conversationBrief.substring(0,100) : 'NONE', '| convState:', d.convState, '| engagement:', d.engagementStrength || 'n/a'); // (v9.7.478/473) engagement visibility — the CRM ENGAGEMENT RATING prompt line sits past the 300-char context excerpt, so logs couldn't confirm it was flowing
   try {
+    // (v9.7.616) The scraper now answers this from CUSTOMER-AUTHORED lines only (see
+    // [LP BUDGET SCOPE DIAG] and the _lpCustomerSaid call site). The blob test below is the
+    // pre-616 behaviour and survives ONLY for a scrape that predates the field — it is what read
+    // TrueCar's "OFFER SHOWN: $25,815" and our own blast marketing as a customer's stated budget.
     var _arc = (d.conversationBrief || '') + ' ' + (d.history || '');
-    window._leadProMentionsCashOrOffer = /\bcash\b|\boffer\b|\$\s?\d|\bOTD\b|out the door/i.test(_arc);
+    if (typeof d.custSaidMoney === 'boolean') {
+      window._leadProMentionsCashOrOffer = d.custSaidMoney;
+      console.log('[LP BUDGET SCOPE] customer-authored verdict:' + d.custSaidMoney
+        + ' | whole-arc test would have said:' + /\bcash\b|\boffer\b|\$\s?\d|\bOTD\b|out the door/i.test(_arc));
+    } else {
+      window._leadProMentionsCashOrOffer = /\bcash\b|\boffer\b|\$\s?\d|\bOTD\b|out the door/i.test(_arc);
+      console.log('[LP BUDGET SCOPE] no customer-authored verdict on this scrape — falling back to the whole-arc test');
+    }
   } catch(e){}
 
   // CROSS-LEAD CONTAMINATION GUARD (v9.7.45):
@@ -5660,6 +5709,26 @@ function populateFromData(d) {
     // natural, consistent extension of that existing framing, not a new invented behavior.
     if (_incFirstTouch && d.isInTransit) {
       _incFirstTouch = false; _incFirstTouchReason = 'in_transit';
+    }
+    // (v9.7.616) "FIRST EXPOSURE" AFTER SEVEN MESSAGES IS NOT FIRST EXPOSURE. The v9.7.296 rule is
+    // Gil's and is right as stated -- incentives belong in follow-up, not on a brand-new lead's
+    // first exposure -- but it is keyed on convState, which stays 'first-touch' all day on a lead
+    // created today no matter how many times we have written. Sharon Pierre, 9/4: a NEW 2026 Kia
+    // Sportage EX, 7 real touches, and the log says so in the same breath -- "convState: fresh-today
+    // lead, no customer reply -> first-touch (was about to be active-follow-up on 31 notes)". Two
+    // live Kia programs were suppressed on her, 4.99% APR for 48-84 mos and $750 Customer Cash,
+    // both current, on a unit sitting 126 days where the prompt has ALREADY banned every scarcity
+    // line. That leaves the message with no lever at all, which is the opposite of what the rule
+    // is for. Threshold is 3 because the system prompt's own density bands call 0-2 "light /
+    // fresh territory" and 3-7 "normal / active conversation" -- this reads the same boundary the
+    // rest of the prompt already reads. Uses the LEAD-BOUNDED count (Fix 2): years-old blast
+    // marketing must never be what unlocks an incentive, which is precisely why the two fixes
+    // ship together. Fails closed -- an unresolved count leaves the gate exactly as it was.
+    var _incOutreach = _lpOutreachOnThisLead(d, d.totalNoteCount || 0);
+    if (_incFirstTouch && _incOutreach.src === 'lead-bounded-outbound' && _incOutreach.n >= 3) {
+      _incFirstTouch = false; _incFirstTouchReason = 'prior_outreach';
+      try { console.log('[LP INCENTIVE DIAG] first-touch override — ' + _incOutreach.n
+        + ' outreach(es) already sent ON THIS LEAD, so this is follow-up, not first exposure'); } catch (e) {}
     }
     // (v9.7.241) Used-VOI gate: store incentives are new-car programs (lease/APR/cash on current MY).
     // Don't surface them on a used/CPO vehicle of interest — they don't apply to the used unit the
@@ -7289,6 +7358,32 @@ function tryExecuteScript(tab, statusEl, dot) {
     // condition enum so no equality check downstream changes; surfaced separately here as a fact).
     var _pdTradeCt = (_pdHoist && _pdHoist.Trades && _pdHoist.Trades.length) || 0;
     var _pdVoiCt   = (_pdHoist && _pdHoist.VehiclesOfInterest && _pdHoist.VehiclesOfInterest.length) || 0;
+    // (v9.7.616) THE ARRAY WAS COUNTED AND NEVER READ. Sharon Pierre (lead 2078254326, Kia
+    // Baytown, 9/4) inquired on a 2026 Kia Sorento LX FWD. VehiclesOfInterest[0] says so in typed
+    // fields -- YearName 2026 / Make Kia / Model Sorento / ModelTrim "LX FWD" -- while LeadVehicle
+    // is a 2026 Kia Sportage EX, repinned at 05:02 UTC by CreatedByUserID -189 (a negative id is
+    // an automated actor, not a person), the same minute as the CRM's own "Primary vehicle changed
+    // from 2026 Kia Sorento LX FWD to 2026 Kia Sportage EX" note. The word "Sorento" appeared ZERO
+    // times in the 32,673-char prompt: only the count reached the popup, so the second vehicle was
+    // invisible and the Sportage shipped with a do-not-substitute lock around it. Same typed shape
+    // v9.7.480/475 already proved on Trades[]; this reads it instead of measuring it.
+    var _pdVoiList = [];
+    try {
+      ((_pdHoist && _pdHoist.VehiclesOfInterest) || []).forEach(function (v) {
+        if (!v) return;
+        var _vd = [v.YearName, v.Make, v.Model, v.ModelTrim].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+        if (!_vd) return;
+        _pdVoiList.push({
+          desc:  _vd.slice(0, 80),
+          model: String(v.Model || '').trim().slice(0, 40),
+          year:  v.YearName != null ? String(v.YearName) : '',
+          cond:  ({ N: 'New', U: 'Pre-Owned', C: 'Pre-Owned' })[v.InventoryType] || '',
+          // A negative CreatedByUserID is VinSolutions' marker for a system/automated actor. Kept
+          // as evidence for the directive, never as a reason to pick a winner.
+          bySystem: (typeof v.CreatedByUserID === 'number' && v.CreatedByUserID < 0)
+        });
+      });
+    } catch (_eVoiL) { _pdVoiList = []; }
     var _pdHasLeadVehicle = !!(_pdH_V.VIN || _pdH_V.Make || _pdH_V.Model);
     var _pdTradeDesc = '';
     try {
@@ -11204,13 +11299,49 @@ function tryExecuteScript(tab, statusEl, dot) {
             if (s.indexOf('[CUSTOMER]') === -1) return;
             var dm = s.match(/^\[(\d{1,2}\/\d{1,2}\/\d{2,4}[^\]]*)\]/);
             var ms = dm ? new Date(dm[1]).getTime() : 0;
-            var t = s;
-            try { var cp = _lpCustomerAuthoredPart(s); if (cp && typeof cp.text === 'string') t = cp.text; } catch (eC) {}
+            // (v9.7.616) A DEAD GUARD I SHIPPED IN v9.7.615, found while testing this build and
+            // fixed here. _lpCustomerAuthoredPart anchors its tapback pattern at ^, allowing only
+            // CRM routing headers ("Received from: ...") ahead of the reaction verb — v9.7.590
+            // widened it to exactly that and no further. Its other two callers hand it a raw note
+            // BODY, so it works for them. This caller hands it a transcript LINE, which always
+            // opens "[07/28/2026 5:37 PM] [CUSTOMER] ", so the verb was never at a line start and
+            // the reaction branch could not fire once. Same shape as the v9.7.590 miss it was
+            // built to fix, and as every other guard in this file that could not reach production
+            // input. Strip the line's own date/tag prefix and the guard reaches its text.
+            var _bare = s.replace(/^\[[^\]]*\]\s*\[[^\]]*\]\s*/, '');
+            var t = _bare;
+            try { var cp = _lpCustomerAuthoredPart(_bare); if (cp && typeof cp.text === 'string') t = cp.text; } catch (eC) {}
             if (t) out.push({ text: t, ms: (ms > 0 ? ms : 0) });
           });
         } catch (eS) {}
         return out;
       }
+
+      // ── (v9.7.616) THE BUDGET THE CUSTOMER NEVER STATED ────────────────────────────────────────
+      // BUDGET-STATED FRAMING (v9.7.315) tells the model "Customer has stated a specific budget,
+      // payment, or OTD target ... lead with their stated number as the goal." Its flag was set at
+      // module scope by testing the WHOLE assembled arc, so on 9/4 it fired on two customers who
+      // have never written a word to us, from two different sources of our own text:
+      //   Tricia Green  -- TrueCar's own listing field, verbatim: "OFFER SHOWN: $25,815"
+      //   Sharon Pierre -- our own 2024 blast marketing, "as low as $20,074 MPR", x6
+      // Neither is a customer statement, and "lead with their stated number" has no number to lead
+      // with. Same class as v9.7.613/614/615, so it takes the same cure: the SHIPPED
+      // _lpCustomerSaid() above, which already routes through the tapback/quoted-reply guard, so
+      // a price sheet the customer thumbs-up'd back to us is excluded too. The pattern itself is
+      // unchanged character for character -- this changes only WHOSE words it reads.
+      var _lpCustSaidMoney = false;
+      try {
+        var _moneyRx = /\bcash\b|\boffer\b|\$\s?\d|\bOTD\b|out the door/i;
+        var _moneyHit = null;
+        _lpCustomerSaid().forEach(function (o) {
+          if (!_moneyHit && o && _moneyRx.test(o.text)) _moneyHit = o.text;
+        });
+        _lpCustSaidMoney = !!_moneyHit;
+        _lpD('[LP BUDGET SCOPE DIAG] customerSaidMoney:' + _lpCustSaidMoney
+          + ' | customerLines:' + _lpCustomerSaid().length
+          + (_moneyHit ? ' | hit:"' + String(_moneyHit).replace(/\s+/g, ' ').slice(0, 90) + '"'
+                       : ' | no customer-authored money mention'));
+      } catch (eBm) { _lpCustSaidMoney = false; }
 
       // ── (v9.7.615) TIMING HESITATION MUST STILL BE TRUE ─────────────────────────────────────────
       // LIVE, 9/3, Pranav Patel. It fired on his 8/01 "We are about to go on vacation, so I will
@@ -12046,6 +12177,15 @@ function tryExecuteScript(tab, statusEl, dot) {
         lastInboundAgeDays: null,
         totalInboundCount: 0,
         totalOutboundCount: 0,
+        // (v9.7.616) OUTBOUND SENT ON *THIS LEAD*, not everything ever sent to this phone number.
+        // Extends v9.7.592, which stopped counting CRM system rows as outreaches but still counted
+        // the whole customer record. Sharon Pierre read "26 outreaches" on a lead 13 hours old:
+        // 7 real touches since creation plus 19 mass-marketing blasts running 8/26/2023 -> 4/21/2025
+        // ("RED TAG SALE", "Monster Price MELTDOWN", each with its own STOP footer). That number
+        // drove four directives at once -- heavy density, ONE-SIDED CONVERSATION, VARY YOUR ANGLE
+        // and the close-out arithmetic -- so a brand-new lead was written as a fatigued ghost.
+        // null until a lead-creation stamp proves the boundary; consumers fall back to the total.
+        leadOutboundCount: null,
         // Friction
         priorAppointmentsTotal: 0,
         priorNoShows: 0,
@@ -12080,6 +12220,19 @@ function tryExecuteScript(tab, statusEl, dot) {
       };
 
       if (!noteEls || !noteEls.length) return sig;
+
+      // (v9.7.616) THE LEAD BOUNDARY. PageData's Lead.LeadCreatedUTC is an ISO stamp with no zone
+      // suffix -- V8 reads a bare "2026-09-04T01:46:00" as LOCAL time, which on a Central machine
+      // silently shifts the boundary five hours and would have quietly dropped this lead's own
+      // first touches. The 'Z' is what makes it UTC, and it is the whole fix.
+      var _lpLeadCreatedMs = null;
+      try {
+        if (_pdCreatedH) {
+          var _lcRaw = String(_pdCreatedH).trim();
+          var _lcMs = new Date(/[Zz]|[+-]\d{2}:?\d{2}$/.test(_lcRaw) ? _lcRaw : _lcRaw + 'Z').getTime();
+          if (!isNaN(_lcMs) && _lcMs > 0) { _lpLeadCreatedMs = _lcMs; sig.leadOutboundCount = 0; }
+        }
+      } catch (_eLc) { _lpLeadCreatedMs = null; }
 
       // Helper: parse VinSolutions date strings like "05/09/2026 12:27 PM"
       function parseNoteDate(s){
@@ -12176,6 +12329,16 @@ function tryExecuteScript(tab, statusEl, dot) {
             }
           } else if (resolvedDir === 'outbound') {
             sig.totalOutboundCount++;
+            // (v9.7.616) A message we sent before this lead existed is not outreach ON this lead.
+            // _lpLeadCreatedMs is null when no creation stamp resolved, and the whole lead-bounded
+            // tally stays null in that case rather than guessing -- an unbounded count is today's
+            // behaviour and is merely wrong, an unbounded count reported AS bounded is a lie.
+            if (_lpLeadCreatedMs) {
+              var _noteMs = parseNoteDate(dateStr);
+              // The auto-welcome/opt-in text lands in the same minute as creation, so the boundary
+              // carries five minutes of grace rather than dropping this lead's own first touch.
+              if (_noteMs && _noteMs >= (_lpLeadCreatedMs - 300000)) sig.leadOutboundCount++;
+            }
             if (!sawInbound) sig.consecutiveOutboundNoReply++;
           }
         }
@@ -12482,7 +12645,13 @@ function tryExecuteScript(tab, statusEl, dot) {
       customerDeclinedAlternative, customerDeclinedAlternativeText,
       email: (isMaskedEmail ? '' : buyerEmail),
       emailRaw: buyerEmail, // (v9.7.459 fix) unmasked email preserved for consumers (Appointment Invite tab) that need the actual on-record address even when it's a marketplace relay — AI generation paths still read the masked `email` field above so the "ask for direct email" directive is unaffected.
-      isInTransit, hasApptSet, apptDetails, isSoldDelivered, hasMissedAppt, customerRepliedReschedule: customerRepliedRescheduleFlag, apptTimeline, freshestApptEventDays: (_minApptEventDays === Infinity ? null : _minApptEventDays), hasMissedCallBackPromise, missedCallBackDetail, vrCreditApp, vrPaymentSelected, vrTradeIn, vrCompleted, vrDroppedOff, vrDroppedOffPage, vrMonthlyPayment, vrDownPayment, vrCreditScore, vrAPR, vrTerm, vrLender, noVehicleAtAll, agentLPCommands, contactRecoveryPhone, contactRecoveryEmail, isMaskedEmail, isSRPVehicle, isVelocityResponse, isLandline, engagementStrength, hasBereavementSignal, leadIntakeReq: _leadIntakeReq, onPremise: _onPremise, recordCorrected: _crAnnotated, newerLead: (typeof _newerLead !== 'undefined' ? _newerLead : null), selfClaims: _selfClaims, isHotLead: _pdHot, daysOnLot: _pdDaysOnLot, leadTypeName: _pdLeadTypeH, _pdStatus: _pdStatusH, _rgxInventoryWarning, _pdInventoryWarning, _pdDiag, pdPresent: !!_pdHoist, pdTradeCount: _pdTradeCt, pdVoiCount: _pdVoiCt, pdHasLeadVehicle: _pdHasLeadVehicle, isCertifiedUnit,
+      isInTransit, hasApptSet, apptDetails, isSoldDelivered, hasMissedAppt, customerRepliedReschedule: customerRepliedRescheduleFlag, apptTimeline, freshestApptEventDays: (_minApptEventDays === Infinity ? null : _minApptEventDays), hasMissedCallBackPromise, missedCallBackDetail, vrCreditApp, vrPaymentSelected, vrTradeIn, vrCompleted, vrDroppedOff, vrDroppedOffPage, vrMonthlyPayment, vrDownPayment, vrCreditScore, vrAPR, vrTerm, vrLender, noVehicleAtAll, agentLPCommands, contactRecoveryPhone, contactRecoveryEmail, isMaskedEmail, isSRPVehicle, isVelocityResponse, isLandline, engagementStrength, hasBereavementSignal, leadIntakeReq: _leadIntakeReq, onPremise: _onPremise, recordCorrected: _crAnnotated, newerLead: (typeof _newerLead !== 'undefined' ? _newerLead : null), selfClaims: _selfClaims, isHotLead: _pdHot, daysOnLot: _pdDaysOnLot, leadTypeName: _pdLeadTypeH, _pdStatus: _pdStatusH, _rgxInventoryWarning, _pdInventoryWarning, _pdDiag, pdPresent: !!_pdHoist, pdTradeCount: _pdTradeCt, pdVoiCount: _pdVoiCt, pdVoiList: _pdVoiList, pdHasLeadVehicle: _pdHasLeadVehicle, isCertifiedUnit,
+      // (v9.7.616) `null` means the concern block never ran, which is NOT the same as "the customer
+      // said nothing about money" -- the module-scope reader must fall back rather than assert.
+      custSaidMoney: (typeof _lpCustSaidMoney === 'boolean' ? _lpCustSaidMoney : null),
+      // (v9.7.616) outbound dated on/after this lead's own creation. null = no creation stamp.
+      leadOutboundCount: (relationshipSignals && typeof relationshipSignals.leadOutboundCount === 'number')
+                           ? relationshipSignals.leadOutboundCount : null,
       isShowroomFollowUp, showroomDetails, showroomVisitToday, inboundPreVisit: _inboundPreVisit, deletedShowroomVisit, deletedShowroomDate,
       pastVisitNotes,
       hasConfirmedVisit,
@@ -19088,8 +19257,16 @@ function buildUserPrompt(data) {
       // and the label now says "outreaches" because that is what it is now counting.
       // Hoisted above the density block so both it and the directives below use one number.
       var _rsOutN = data.relationshipSignals && data.relationshipSignals.totalOutboundCount;
-      var _outreachN = (typeof _rsOutN === 'number' && _rsOutN > 0) ? _rsOutN : _ncForDirectives;
-      var _outreachSrc = (typeof _rsOutN === 'number' && _rsOutN > 0) ? 'outbound-count' : 'note-count-fallback';
+      // (v9.7.616) LEAD-BOUNDED FIRST. v9.7.592 moved these directives off the CRM note count and
+      // onto the real outbound tally, which was the right direction and not far enough: that tally
+      // still spans the whole CUSTOMER record. Sharon Pierre's 26 are 7 touches on this 13-hour-old
+      // lead plus 19 mass-marketing blasts sent between 8/26/2023 and 4/21/2025, years before the
+      // lead existed. Prefer the lead-bounded count whenever the scraper could establish a
+      // boundary; fall back through v9.7.592's tally to the note count exactly as before when it
+      // could not. Same ladder, one truer rung on top.
+      var _rsLeadOutN = data.relationshipSignals && data.relationshipSignals.leadOutboundCount;
+      var _outreachRes = _lpOutreachOnThisLead(data, _ncForDirectives);
+      var _outreachN = _outreachRes.n, _outreachSrc = _outreachRes.src;
 
       var _attemptDensity;
       if (_freshLeadActive) {
@@ -19313,7 +19490,11 @@ function buildUserPrompt(data) {
       // back to the note count only when it is not.
       console.log('[LP OUTREACH COUNT DIAG] outreaches:' + _outreachN + ' | source:' + _outreachSrc
         + ' | noteCount:' + _ncForDirectives + ' | varyAngle:' + (_outreachN >= 5)
-        + ' | oneSided:' + (!_hasReplyForDirectives && _outreachN >= 8));
+        + ' | oneSided:' + (!_hasReplyForDirectives && _outreachN >= 8)
+        + ' | wholeRecordOutbound:' + (typeof _rsOutN === 'number' ? _rsOutN : 'n/a')
+        + (typeof _rsLeadOutN === 'number' && typeof _rsOutN === 'number' && _rsOutN > _rsLeadOutN
+            ? '  ← ' + (_rsOutN - _rsLeadOutN) + ' outbound predate this lead and no longer count as outreach on it'
+            : ''));
       // The gates move onto the real number too, deliberately. A threshold crossed only because
       // system rows were counted fires a directive whose own text is then false -- which is the
       // failure being fixed, not a separate one. Both fire less often now.
@@ -20099,6 +20280,18 @@ function buildUserPrompt(data) {
       '\ud83d\udd12 SENSITIVE FINANCE RULE: The notes contain the customer\u2019s credit standing and/or equity position. NEVER state a credit score or tier number, and NEVER state a negative-equity or payoff dollar amount, in any customer-facing message — in writing these read as exposure, not help. Refer to them only generally ("your credit situation", "the equity position"). Specific figures are for in-person or phone conversations only.'
     );
   }
+  // (v9.7.616) See _lpVoiFamilyMismatch. Computed here, one line above its only consumer, so the
+  // do-not-substitute lock below and the two-vehicle directive that replaces it read as the single
+  // either/or they are. An empty result is the overwhelmingly common case and changes nothing.
+  var _voiMis = _lpVoiFamilyMismatch(data.vehicle, data.pdVoiList);
+  try {
+    console.log('[LP VOI FAMILY DIAG] pinned:"' + String(data.vehicle || '(none)') + '"'
+      + ' | voiRecords:' + ((data.pdVoiList && data.pdVoiList.length) || 0)
+      + ' | mismatched:' + _voiMis.length
+      + (_voiMis.length ? ' → ' + _voiMis.map(function(v){ return v.desc + (v.bySystem ? ' [set by system]' : ' [set by a user]'); }).join(' ; ')
+                          + '  ← LP NO LONGER PICKS ONE; the prompt asks the customer'
+                        : ' — pinned vehicle and vehicle(s) of interest agree, prompt unchanged'));
+  } catch (_eVfd) {}
   lines.push(
     'Customer:   ' + (data.name || '(unknown — do not say Hi there)'),
     data.email ? 'Email:      ' + data.email + '  ← customer email already on file. Do NOT ask for their email address.' : '',
@@ -20132,7 +20325,16 @@ function buildUserPrompt(data) {
       ? (sc.aiBSIsCrossBrand
           ? 'Customer browsing interest: ' + (data.vehicle || '(not specified)') + '  ← This is the cross-brand vehicle they have been shopping online. Refer to the SITUATION MATRIX above for play guidance — naming it is appropriate when doing the honest pivot (PLAY A).'
           : 'Customer browsing interest: ' + (data.vehicle || '(not specified)') + '  ← This is what they have been shopping online — not necessarily what is on our lot today. Reference the model naturally if it fits, but never claim a specific unit, color, trim, or stock is available without confirmation.')
-      : data.vehicle
+      : (data.vehicle && _voiMis.length)
+        ? 'Vehicle:    ' + data.vehicle + '  ← THIS IS THE VEHICLE CURRENTLY PINNED TO THE LEAD, AND IT IS NOT THE ONLY ONE ON FILE.\n'
+          + '⚠ TWO DIFFERENT VEHICLES ARE ON THIS LEAD AND NOBODY HAS ASKED THE CUSTOMER WHICH ONE. The CRM also carries '
+          + _voiMis.map(function(v){ return '"' + v.desc + '"' + (v.cond ? ' (' + v.cond + ')' : ''); }).join(' and ')
+          + ' as a vehicle of interest'
+          + (_voiMis.some(function(v){ return v.bySystem; })
+              ? ', and the record shows the change was made by an automated process rather than by a person — the customer never asked for the swap.'
+              : '.')
+          + ' Do NOT assert either one as the settled answer, and do NOT quietly write as though the pinned vehicle is what they asked for. Name BOTH distinctly in ONE direct question and let the customer tell you which — for example "are you looking at the ' + data.vehicle + ', or the ' + _voiMis[0].desc + '?" This applies identically to the SMS, the email AND the voicemail: a format being short is never a reason to drop the distinction. Everything else in this prompt that names the pinned vehicle alone is describing the CRM record, not a customer decision.'
+        : data.vehicle
         ? 'Vehicle:    ' + data.vehicle + '  ← THIS IS THE VEHICLE FOR THIS LEAD. Do not substitute or reference other vehicles from the conversation history.'
         : 'Vehicle:    (none specified) ← NO VEHICLE IS ATTACHED TO THIS LEAD. Do NOT reference or name any vehicle from the conversation history — those belong to prior leads or conversations. Do not mention Telluride, Crown, Optima, or any other vehicle unless it is listed here.',
   );

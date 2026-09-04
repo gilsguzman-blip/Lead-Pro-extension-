@@ -82,7 +82,13 @@ function extract(file) {
   vm.createContext(sb);
   vm.runInContext(
     'function _tally(noteEls, nowMs) {\n' +
-    '  var sig = { totalInboundCount: 0, totalOutboundCount: 0, consecutiveOutboundNoReply: 0, lastInboundAgeDays: null };\n' +
+    '  var sig = { totalInboundCount: 0, totalOutboundCount: 0, consecutiveOutboundNoReply: 0, lastInboundAgeDays: null, leadOutboundCount: null };\n' +
+    // (v9.7.616) The shipped outbound branch now also consults the lead-creation boundary,
+    // which is computed above this slice. Supplied here as null — the fail-closed state, so
+    // the lead-bounded tally stays out of the way — rather than narrowing the slice away from
+    // the shipped code, which is the whole value of extracting it. lead-boundary.test.js owns
+    // the assertions about what a real boundary does.
+    '  var _lpLeadCreatedMs = null;\n' +
     '  function parseNoteDate(s){ var t = new Date(s).getTime(); return t > 0 ? t : null; }\n' +
     body +
     '  if (lastInboundTs) sig.lastInboundAgeDays = Math.round((nowMs - lastInboundTs) / 86400000 * 10) / 10;\n' +

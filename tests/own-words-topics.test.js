@@ -93,6 +93,11 @@ function extract(file) {
     '      configuration:{count:0,mentions:[]}, distance:{count:0,mentions:[]},\n' +
     '      useCase:{count:0,mentions:[]}, competitor:{count:0,mentions:[]} } };\n' +
     '  function parseNoteDate(s){ var t = new Date(s).getTime(); return t > 0 ? t : null; }\n' +
+    // (v9.7.616) The shipped outbound branch now also consults the lead-creation boundary,
+    // which is computed above this slice. Supplied as null — the fail-closed state — rather
+    // than narrowing the slice away from the shipped code. lead-boundary.test.js owns the
+    // assertions about what a real boundary does.
+    '  var _lpLeadCreatedMs = null; sig.leadOutboundCount = null;\n' +
     body +
     '  return sig;\n' +
     '}', sb);
