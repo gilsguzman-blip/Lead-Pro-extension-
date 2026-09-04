@@ -104,6 +104,13 @@ function note(t, cls){ $('msg').innerHTML = t ? '<div class="note ' + (cls||'') 
 
 function baseOf(v){ return String(v||'').trim().replace(/\\/valuefact\\/?$/,'').replace(/\\/+$/,''); }
 
+// Format "now" directly in America/Chicago. en-CA gives YYYY-MM-DD natively. Never round-trip
+// through UTC to get a local date — see the note at the one call site.
+function centralToday(){
+  return new Intl.DateTimeFormat('en-CA', { timeZone:'America/Chicago',
+    year:'numeric', month:'2-digit', day:'2-digit' }).format(new Date());
+}
+
 async function readStore(base, did, name){
   try{
     const r = await fetch(base + '/valuefact?dealer=' + encodeURIComponent(did));
@@ -134,7 +141,10 @@ function render(rows){
     if(r.state === 'lapsed') return '<span class="stale">0 — all lapsed</span>';
     return '<span class="good">' + r.live + '</span>';
   };
-  const today = new Date().toISOString().slice(0,10);
+  // centralToday(), NOT new Date().toISOString() — .toISOString() always converts to UTC first, so
+  // after ~7 PM Central "today" is already tomorrow and the afternoon's own upload renders stale.
+  // The dashboard was fixed for exactly this in v1.0 (Gil caught it rolling over at 7:55 PM).
+  const today = centralToday();
   const body = rows.map(function(r){
     const stale = r.generated && r.generated < today;
     return '<tr>'

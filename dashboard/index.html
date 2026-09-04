@@ -5,6 +5,39 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LeadPro Dashboard — Community Auto Group</title>
 <!--
+  v1.4 — WHAT LEAD PRO IS HOLDING. This page had ZERO references to incentives or valuefact, and
+  neither did anything else: the Data Tool's summary table is a receipt for the file you just
+  dropped (incResult is replaced on every Normalize and nothing merges across runs), so a Kia-only
+  upload never appears beside four stores parsed in a different run. On 9/4 "is the Kia incentive
+  upload actually in Lead Pro?" cost a full day. It was — 110 lines uploaded, 110 in KV model for
+  model, 110 loaded by the extension, and both Sportage programs reached a real customer's draft.
+  Nothing was broken; nothing could answer the question.
+
+  This panel reads GET /valuefact back, once per rooftop, and separates the four states an operator
+  actually acts on — from outside the proxy these were indistinguishable, which is the whole reason
+  it took a day:
+      nothing published     → the store is missing entirely, re-publish
+      published, all lapsed → expiry did its job and the sheet is stale, re-publish
+      published and live    → nothing to do
+      unreachable           → a network problem, not a data problem
+  And one more: on a proxy older than v7.70 the stored count is UNKNOWN, rendered as such rather
+  than as zero. "We don't know" and "there are none" are the two states this panel exists to keep
+  apart, and collapsing them is what the 9/4 survey did.
+
+  NO NEW CREDENTIAL. GET /valuefact is unauthenticated and returns incentive lines only, never
+  contact data, so this panel does NOT append the director key and must never be changed to. It is
+  a pure read; nothing here can write to KV.
+
+  IT LOADS INDEPENDENTLY of the feedback range fetch and renders above it, so it still answers its
+  question when /feedback/* is erroring or the director key has rotated — the failure mode where
+  someone most needs to ask what is published.
+
+  readStore() is copied VERBATIM from tools/leadpro-live-check.js and tests/live-check.test.js runs
+  both copies against the same fixtures and asserts they agree, so the two cannot drift.
+
+  REQUIRES PROXY v7.70 for `generated` and `storedCount`; against v7.69 the Published column says
+  "proxy older than v7.70" rather than looking like missing data.
+
   v1.2 — EXPLICIT/IMPLICIT SPLIT. Every tile and column labelled 👍/👎 was rendering `ratings.up`
   and `ratings.down`, which cannot carry the distinction: the extension's _lpFeedbackDeriveRating
   returns 'up' for BOTH an explicit thumbs-up and a copied-as-is draft, and (since v9.7.540) 'down'
@@ -308,6 +341,119 @@ async function fetchRange(from, to) {
   return res.json();
 }
 
+// ── (v1.4) WHAT LEAD PRO IS HOLDING ──────────────────────────────────────────────────────
+// Keep in step with the Data Tool's store <select>. A sixth rooftop is one line here.
+const VF_STORES = [
+  ['6189',  'Toyota Baytown'],
+  ['6190',  'Kia Baytown'],
+  ['6191',  'Honda Baytown'],
+  ['24399', 'Honda Lafayette'],
+  ['21135', 'Audi Lafayette'],
+];
+
+// VERBATIM from tools/leadpro-live-check.js. tests/live-check.test.js lifts BOTH copies and runs
+// them against the same fixtures, asserting identical results — if one is edited and the other is
+// not, that suite fails. No director key: /valuefact is unauthenticated and returns lines only.
+async function readStore(base, did, name){
+  try{
+    const r = await fetch(base + '/valuefact?dealer=' + encodeURIComponent(did));
+    if(!r.ok) return { did, name, state:'error', detail:'HTTP ' + r.status };
+    const j = await r.json();
+    const vf = j && j.valuefact;
+    if(!vf) return { did, name, state:'empty' };
+    const inc = Array.isArray(vf.incentives) ? vf.incentives : [];
+    const models = {};
+    inc.forEach(function(x){ const m = (x && x.model) || '(unnamed)'; models[m] = (models[m]||0)+1; });
+    return {
+      did, name,
+      state: inc.length ? 'live' : 'lapsed',
+      live: inc.length,
+      // storedCount arrives from v7.70. null on an older proxy — reported as unknown, not as 0,
+      // because "we don't know" and "there are none" are the two states this panel exists to separate.
+      stored: (typeof vf.storedCount === 'number') ? vf.storedCount : null,
+      generated: vf.generated || null,
+      models
+    };
+  }catch(e){ return { did, name, state:'error', detail:String((e && e.message) || e) }; }
+}
+
+function LiveIncentives() {
+  const [rows, setRows] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  const load = useCallback(async () => {
+    setBusy(true);
+    const out = [];
+    for (const s of VF_STORES) out.push(await readStore(PROXY, s[0], s[1]));
+    setRows(out); setBusy(false);
+  }, []);
+  useEffect(() => { load(); }, []);
+
+  // centralToday, NOT new Date().toISOString() — the same UTC round-trip that had this page
+  // rolling over to "tomorrow" at 7:55 PM Central would call the afternoon's own upload stale.
+  const today = centralToday(0);
+
+  const liveCell = (r) =>
+    r.state === 'error'  ? h('span', { style:{color:'#f87171'} }, 'unreachable')  :
+    r.state === 'empty'  ? h('span', { style:{color:'#f87171'} }, 'nothing published') :
+    r.state === 'lapsed' ? h('span', { style:{color:'#fbbf24'} }, '0 — all lapsed') :
+                           h('span', { style:{color:'#34d399',fontWeight:600} }, r.live);
+
+  const verdict = () => {
+    if (!rows) return null;
+    const errs   = rows.filter(r => r.state === 'error').length;
+    const empty  = rows.filter(r => r.state === 'empty').length;
+    const lapsed = rows.filter(r => r.state === 'lapsed').length;
+    if (errs)   return [errs + ' rooftop(s) unreachable — a network problem, not a data problem.', '#f87171'];
+    if (empty)  return [empty + ' rooftop(s) have NOTHING published to Lead Pro.', '#f87171'];
+    if (lapsed) return [lapsed + ' rooftop(s) published but every line has lapsed — re-publish those.', '#fbbf24'];
+    return ['All ' + rows.length + ' rooftops published and live.', '#34d399'];
+  };
+  const v = verdict();
+
+  return h('div', { className: 'card fade-up fade-up-1', style:{marginBottom:20} },
+    h('div', { className:'section-title', style:{display:'flex',justifyContent:'space-between',alignItems:'center'} },
+      h('span', null, "What Lead Pro is holding right now"),
+      h('button', { className:'refresh-btn', onClick: load, disabled: busy, title:'Re-read the proxy' }, '↻')
+    ),
+    busy && !rows && h('div', { style:{fontSize:12,color:'#4b5563'} }, 'Reading the proxy…'),
+    rows && h(Fragment, null,
+      v && h('div', { style:{fontSize:11,color:v[1],marginBottom:12,fontFamily:'IBM Plex Mono,monospace'} }, v[0]),
+      h('table', { className:'tbl' },
+        h('thead', null, h('tr', null,
+          h('th', null, 'Store'),
+          h('th', { className:'right' }, 'Dealer'),
+          h('th', { className:'right' }, 'Live lines'),
+          h('th', { className:'right' }, 'Stored'),
+          h('th', null, 'Published'),
+          h('th', null, 'Models')
+        )),
+        h('tbody', null, rows.map(r => {
+          const stale = r.generated && r.generated < today;
+          return h('tr', { key:r.did },
+            h('td', null, r.name),
+            h('td', { className:'right mono', style:{color:'#4b5563'} }, r.did),
+            h('td', { className:'right mono' }, liveCell(r)),
+            // Unknown is not zero. An older proxy sends no storedCount at all.
+            h('td', { className:'right mono', style:{color: r.stored == null ? '#4b5563' : '#94a3b8'} },
+              r.stored == null ? DASH : r.stored),
+            h('td', { className:'mono', style:{fontSize:11,color: r.generated ? (stale ? '#fbbf24' : '#34d399') : '#fbbf24'} },
+              r.generated || DASH + ' proxy older than v7.70'),
+            h('td', { style:{fontSize:11,color:'#4b5563'} },
+              r.models && Object.keys(r.models).length
+                ? Object.keys(r.models).map(m => m + ':' + r.models[m]).join(' · ')
+                : (r.detail || DASH))
+          );
+        }))
+      ),
+      h('div', { className:'disclosure', style:{margin:'12px 0 0'} },
+        'Read back from the proxy — not from the last file uploaded. No director key: /valuefact is ',
+        'unauthenticated and returns incentive lines only, never contact data. This panel cannot write.'
+      )
+    )
+  );
+}
+
 // ── Tooltip ──
 function CT({ active, payload, label }) {
   if (!active || !payload?.length) return null;
@@ -441,6 +587,11 @@ function App() {
         ts && h('div', { className: 'refresh-time' }, 'Updated ' + ts.toLocaleTimeString())
       )
     ),
+
+    // (v1.4) OUTSIDE the `data && !loading` block on purpose. This panel answers a different
+    // question from a different endpoint, and it must still answer it when /feedback/* is erroring
+    // or the director key has rotated — the exact moment someone needs to ask what is published.
+    h(LiveIncentives),
 
     loading && h('div', { style: { textAlign:'center', padding:60, color:'#4b5563', fontSize:13 }, className:'loading-pulse' }, 'Loading feedback data…'),
     error && h('div', { className: 'error-box' }, 'Error: ' + error),
