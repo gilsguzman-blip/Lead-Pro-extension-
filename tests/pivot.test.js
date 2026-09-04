@@ -196,5 +196,79 @@ test('supersede note moved TOWARD the detected model — not suppressed', {
   context: '[NOTE] By: System Primary vehicle changed from 2015 Honda Accord to 2019 Kia Telluride.\n[CUSTOMER] still want the Telluride\n',
 }, sisterBrand);
 
+
+// ── (v9.7.622) THE TRADE IS NOT A PIVOT ────────────────────────────────────────
+// LIVE INCIDENT: Sydnie Moon (Audi Lafayette, lead 2075798859, 9/4). VOI a 2025 Nissan Armada
+// SL, in stock. TRADE a 2023 Honda CR-V Hybrid. Five days of live negotiation — $800 payment
+// target, $22,029 payoff, an appraisal in flight — and her last message, 0.1 days old, was
+// "Email please. I have limited service currently but I do have WiFi". The delivered draft
+// closed the deal out: "Since you're now focused on the 2023 Honda CR-V Hybrid... Audi
+// Lafayette doesn't carry Honda inventory... happy to stay in touch if your plans return to
+// the Armada."
+//
+// The model obeyed what it was handed. The prompt carried BOTH "CROSS-BRAND PIVOT: Customer is
+// now interested in a Cr-v (Honda)" and "TRADE-IN: 2023 Honda CR-V Hybrid" — the contradiction
+// shipped unresolved and the more emphatic block won. A vehicle the customer is DISPOSING OF
+// can never make a cross-brand refusal correct.
+//
+// Note where the candidate came from: her reply quotes the agent's own subject line, "Re:Your
+// CR-V appraisal and Armada numbers". The body says nothing about a CR-V. That subject-line
+// pollution is a separate, wider defect — recorded here, not fixed by this guard.
+console.log('\na vehicle the customer already HAS is not a pivot:');
+
+const SYDNIE_CTX =
+  '[09/04/2026] [CUSTOMER] Subject: Re:Your CR-V appraisal and Armada numbers By: Kristen Willis '
+  + 'Email please. I have limited service currently but I do have WiFi\n'
+  + '[09/03/2026] [CUSTOMER] I am not opposed to filling one out, just would prefer it not be ran several times\n'
+  + '[09/02/2026] [CUSTOMER] No more than the $800 range, which I know is more than likely not possible for the vehicle\n';
+
+test('Sydnie — the CR-V is her TRADE, not a car she moved to', {
+  vehicle: '2025 Nissan Armada SL',
+  store: 'Audi Lafayette',
+  stockNum: '05242A',
+  convState: 'negative-reply',
+  hasCustomerReply: true,
+  hasOutbound: true,
+  tradeDescription: '2023 Honda CR-V Hybrid',
+  lastInboundMsg: 'Subject: Re:Your CR-V appraisal and Armada numbers By: Kristen Willis Email please. I have limited service currently but I do have WiFi',
+  context: SYDNIE_CTX,
+}, none);
+
+// The v9.7.552 shape, from the other direction: a vehicle read out of service history.
+test('a currently-owned vehicle is not a pivot either', {
+  vehicle: '2021 Kia Telluride EX',
+  store: 'Community Honda Baytown',
+  convState: 'engagement',
+  hasCustomerReply: true,
+  hasOutbound: true,
+  ownedVehicle: '2015 Toyota Highlander',
+  lastInboundMsg: 'still thinking about it',
+  context: '[08/18/2026] [CUSTOMER] my Highlander has been good to me but I am ready for something bigger\n',
+}, none);
+
+test('"(none entered)" is not a trade and vetoes nothing', {
+  vehicle: '2025 Nissan Armada SL',
+  store: 'Audi Lafayette',
+  convState: 'engagement',
+  hasCustomerReply: true,
+  hasOutbound: true,
+  tradeDescription: '(none entered)',
+  lastInboundMsg: 'actually I want to look at a Cr-v',
+  context: '[09/04/2026] [CUSTOMER] actually I want to look at a Cr-v instead\n',
+}, crossBrand);
+
+// MUST STILL FIRE — the guard must not become a blanket off-switch. Same customer, same trade,
+// but she names a DIFFERENT Honda. That is a real pivot and the refusal is the right answer.
+test('a genuine pivot to a model that is NOT the trade still fires', {
+  vehicle: '2025 Nissan Armada SL',
+  store: 'Audi Lafayette',
+  convState: 'engagement',
+  hasCustomerReply: true,
+  hasOutbound: true,
+  tradeDescription: '2023 Honda CR-V Hybrid',
+  lastInboundMsg: 'do you have a Pilot instead',
+  context: '[09/04/2026] [CUSTOMER] do you have a Pilot instead\n',
+}, crossBrand);
+
 console.log('\n' + (fail ? 'FAILED' : 'PASSED') + ' — ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);
