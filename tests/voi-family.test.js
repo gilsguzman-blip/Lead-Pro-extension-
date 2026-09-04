@@ -70,7 +70,11 @@ function extract(file) {
   // (so source-scan assertions still work), which would make a pre-fix run report
   // "window is not defined" instead of naming what was absent. A distinct key gets the
   // labelled 'NOT IN THIS BUILD' error the non-vacuity check is supposed to print.
-  return { name: path.basename(path.dirname(file)), src, helper, line };
+  // The gate that decides whether the question fires at all — lifted whole, because from v9.7.619
+  // it is the behaviour, not the directive text.
+  const gate = slice(src, '  var _voiMisRaw = _lpVoiFamilyMismatch(data.vehicle, data.pdVoiList);',
+                          '  } catch (_eVfd) {}', 'voi gate');
+  return { name: path.basename(path.dirname(file)), src, helper, line, gate };
 }
 
 function mismatch(impl, leadVeh, voiList) {
@@ -81,13 +85,18 @@ function mismatch(impl, leadVeh, voiList) {
   return vm.runInContext('_lpVoiFamilyMismatch(LV, VL)', sb);
 }
 
-function vehLine(impl, leadVeh, voiList) {
-  const sb = { String, RegExp, Array, Object };
+// (v9.7.619) `arc` is the conversation text. The two-vehicle question is now gated on the other
+// nameplate actually appearing there, so every call must say what the conversation contained —
+// which is the whole behaviour under test.
+function vehLine(impl, leadVeh, voiList, arc) {
+  const sb = { String, RegExp, Array, Object, console: { log(){} } };
   vm.createContext(sb);
   vm.runInContext(impl.helper, sb);
-  sb.data = { vehicle: leadVeh };
-  sb.LV = leadVeh; sb.VL = voiList;
-  vm.runInContext('var _voiMis = _lpVoiFamilyMismatch(LV, VL);', sb);
+  // The shipped gate reads data.pdVoiList and data.context — hand it the real shape, not a
+  // convenient one, or the suite tests a path production never takes.
+  sb.data = { vehicle: leadVeh, pdVoiList: voiList, context: arc || '',
+              conversationBrief: '', lastInboundMsg: '' };
+  vm.runInContext(impl.gate, sb);
   vm.runInContext(impl.line, sb);
   return vm.runInContext('VEHLINE', sb);
 }
@@ -114,6 +123,10 @@ const SORENTO  = { desc: '2026 Kia Sorento LX FWD', model: 'Sorento', year: '202
 // The same VOI as a human would have entered it — used to prove the automated-actor sentence is
 // evidence-driven and not boilerplate welded to the directive.
 const SORENTO_BY_PERSON = Object.assign({}, SORENTO, { bySystem: false });
+// (v9.7.619) A conversation in which the Sorento genuinely came up — the only condition under
+// which the question is allowed to fire.
+const RAISED = '[09/04/2026 10:12 AM] [CUSTOMER] actually I was looking at the Sorento';
+const NOT_RAISED = '[09/04/2026 9:20 AM] [AGENT] Good morning Ms Sharon please confirm you are getting my message on the Kia Sportage';
 
 console.log('\nv9.7.616 — two vehicles on a lead is a question, not a verdict');
 console.log('builds under test: ' + impls.map(i => i.name).join(', '));
@@ -127,44 +140,44 @@ check('the Sorento is detected as a second model family',
   i => mismatch(i, SPORTAGE, [SORENTO]).map(v => v.desc), ['2026 Kia Sorento LX FWD']);
 
 check('the do-not-substitute lock is GONE from the vehicle line',
-  i => /Do not substitute or reference other vehicles/.test(vehLine(i, SPORTAGE, [SORENTO])), false);
+  i => /Do not substitute or reference other vehicles/.test(vehLine(i, SPORTAGE, [SORENTO], RAISED)), false);
 
 check('...and the pinned car is described as pinned, not as what she asked for',
-  i => /THIS IS THE VEHICLE CURRENTLY PINNED TO THE LEAD/.test(vehLine(i, SPORTAGE, [SORENTO])), true);
+  i => /THIS IS THE VEHICLE CURRENTLY PINNED TO THE LEAD/.test(vehLine(i, SPORTAGE, [SORENTO], RAISED)), true);
 
 check('BOTH vehicles are named in the directive',
-  i => { const t = vehLine(i, SPORTAGE, [SORENTO]);
+  i => { const t = vehLine(i, SPORTAGE, [SORENTO], RAISED);
          return /2026 Kia Sportage EX/.test(t) && /2026 Kia Sorento LX FWD/.test(t); }, true);
 
 check('the model is told to ask ONE direct question rather than choose',
   i => /Name BOTH distinctly in ONE direct question and let the customer tell you which/
-        .test(vehLine(i, SPORTAGE, [SORENTO])), true);
+        .test(vehLine(i, SPORTAGE, [SORENTO], RAISED)), true);
 
 check('...and is explicitly forbidden from settling it itself',
-  i => /Do NOT assert either one as the settled answer/.test(vehLine(i, SPORTAGE, [SORENTO])), true);
+  i => /Do NOT assert either one as the settled answer/.test(vehLine(i, SPORTAGE, [SORENTO], RAISED)), true);
 
 check('the automated swap is stated as evidence, since the record carries it',
   i => /the change was made by an automated process rather than by a person/
-        .test(vehLine(i, SPORTAGE, [SORENTO])), true);
+        .test(vehLine(i, SPORTAGE, [SORENTO], RAISED)), true);
 
 check('...and is NOT claimed when a person made the change',
-  i => /automated process/.test(vehLine(i, SPORTAGE, [SORENTO_BY_PERSON])), false);
+  i => /automated process/.test(vehLine(i, SPORTAGE, [SORENTO_BY_PERSON], RAISED)), false);
 
 check('...though a human-set second vehicle still raises the question',
-  i => /TWO DIFFERENT VEHICLES ARE ON THIS LEAD/.test(vehLine(i, SPORTAGE, [SORENTO_BY_PERSON])), true);
+  i => /TWO DIFFERENT VEHICLES ARE ON THIS LEAD/.test(vehLine(i, SPORTAGE, [SORENTO_BY_PERSON], RAISED)), true);
 
 check('the worked example names the real pair, not a placeholder',
   i => /are you looking at the 2026 Kia Sportage EX, or the 2026 Kia Sorento LX FWD\?/
-        .test(vehLine(i, SPORTAGE, [SORENTO])), true);
+        .test(vehLine(i, SPORTAGE, [SORENTO], RAISED)), true);
 
 check('every format is bound by it — a short SMS is not an excuse to drop one car',
-  i => /applies identically to the SMS, the email AND the voicemail/.test(vehLine(i, SPORTAGE, [SORENTO])), true);
+  i => /applies identically to the SMS, the email AND the voicemail/.test(vehLine(i, SPORTAGE, [SORENTO], RAISED)), true);
 
 check('the rest of the prompt is reframed as the CRM record, not a customer decision',
-  i => /describing the CRM record, not a customer decision/.test(vehLine(i, SPORTAGE, [SORENTO])), true);
+  i => /describing the CRM record, not a customer decision/.test(vehLine(i, SPORTAGE, [SORENTO], RAISED)), true);
 
 check('the condition is carried through when the record has one',
-  i => /"2026 Kia Sorento LX FWD" \(New\)/.test(vehLine(i, SPORTAGE, [SORENTO])), true);
+  i => /"2026 Kia Sorento LX FWD" \(New\)/.test(vehLine(i, SPORTAGE, [SORENTO], RAISED)), true);
 
 // ── THE ORDINARY LEAD MUST BE UNTOUCHED ─────────────────────────────────────
 // This is the whole risk of the build: an over-eager comparator would put a confusing
@@ -281,6 +294,55 @@ check('...sourced from the scrape, defaulting to null rather than undefined',
 
 check('the scraper still emits it on its return object, so both ends exist',
   i => /pdVoiList: _pdVoiList/.test(i.src), true);
+
+// ── (v9.7.619) THE PRIMARY VOI GOVERNS UNLESS THE OTHER CAR CAME UP IN THE CONVERSATION ────
+// Gil's rule, and it corrects the default v9.7.616 shipped rather than refining it. Asking the
+// question off the CRM list alone produced a WORSE message on Sharon than the bug did: the whole
+// SMS became "are you looking at the 2026 Kia Sportage EX or the 2026 Kia Sorento LX FWD? Reply
+// Sportage or Sorento." — an interrogation, as the first thing a customer who has never spoken to
+// us receives, and it discarded the availability and both live Sportage programs already in the
+// prompt. The record also reads the other way from how I read it: the Sorento row was CREATED at
+// the moment of the swap, so that list is the lead's history, not a competing ask.
+console.log('\nSHARON, THE REAL CASE — CRM-only second vehicle, never mentioned to anyone:');
+
+check('the question does NOT fire when the Sorento appears only in the CRM',
+  i => /TWO DIFFERENT VEHICLES ARE ON THIS LEAD/.test(vehLine(i, SPORTAGE, [SORENTO], NOT_RAISED)), false);
+
+check('...the pinned vehicle keeps its ordinary line, byte for byte',
+  i => vehLine(i, SPORTAGE, [SORENTO], NOT_RAISED), PLAIN);
+
+check('...so the Sorento is never named to a customer who never mentioned it',
+  i => /Sorento/.test(vehLine(i, SPORTAGE, [SORENTO], NOT_RAISED)), false);
+
+check('an empty conversation cannot raise anything',
+  i => vehLine(i, SPORTAGE, [SORENTO], ''), PLAIN);
+
+check('our own outbound naming only the Sportage does not raise the Sorento',
+  i => vehLine(i, SPORTAGE, [SORENTO],
+        '[AGENT] please confirm you are getting my message on the Kia Sportage'), PLAIN);
+
+console.log('\n...but when the customer DOES raise it, the question still fires:');
+
+check('a customer naming the other model fires it',
+  i => /TWO DIFFERENT VEHICLES ARE ON THIS LEAD/.test(
+        vehLine(i, SPORTAGE, [SORENTO], '[CUSTOMER] actually I was looking at the Sorento')), true);
+
+check('an AGENT NOTE recording what the customer wants fires it too — same evidence the prompt already trusts',
+  i => /TWO DIFFERENT VEHICLES ARE ON THIS LEAD/.test(
+        vehLine(i, SPORTAGE, [SORENTO], '[NOTE] By: Robert Staten — called, she wants the Sorento not the Sportage')), true);
+
+check('the nameplate must match as a word, not inside another one',
+  i => /TWO DIFFERENT VEHICLES ARE ON THIS LEAD/.test(
+        vehLine(i, SPORTAGE, [SORENTO], '[CUSTOMER] I saw a Sorentoish thing online')), false);
+
+check('the diagnostic distinguishes "other family exists" from "raised in conversation"',
+  i => { const logs = []; const sb = { String, RegExp, Array, Object, console: { log: m => logs.push(m) } };
+         vm.createContext(sb); vm.runInContext(i.helper, sb);
+         sb.data = { vehicle: SPORTAGE, pdVoiList: [SORENTO], context: NOT_RAISED,
+                     conversationBrief: '', lastInboundMsg: '' };
+         vm.runInContext(i.gate, sb);
+         return /otherFamilies:1 \| raisedInConversation:0/.test(logs.join(' '))
+             && /CRM-ONLY, never raised in the conversation/.test(logs.join(' ')); }, true);
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);
