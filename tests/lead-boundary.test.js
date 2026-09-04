@@ -306,5 +306,40 @@ for (const [label, text] of [['cash', 'I can pay cash'], ['offer', 'what is your
     i => money(i, ['[09/04/2026 9:30 AM] [AGENT] ' + text]).said, false);
 }
 
+// ── THE FRAME MERGE — THE OTHER HALF v9.7.616 SHIPPED BROKEN ────────────────
+// The money detector was correct and its verdict never arrived. v9.7.616 emitted it as a BOOLEAN,
+// and frames collapse through `if (!m[k] && d[k]) m[k] = d[k];` — so `false`, the answer on every
+// lead where the customer never mentioned money, was dropped as falsy. That is precisely the case
+// the fix exists for, so it would have appeared to work only where the answer was already yes.
+// Live proof on Sharon's 11:52 grab: "[LP BUDGET SCOPE] no customer-authored verdict on this
+// scrape — falling back to the whole-arc test", and the phantom budget directive shipped again.
+console.log('\nthe frame merge — a "no" must survive it, or the fix only ever works one way:');
+
+const MERGE_ONE = (frames, k) => {
+  const m = {};
+  frames.forEach(d => { if (!m[k] && d[k]) m[k] = d[k]; });
+  return m[k];
+};
+
+check('the scraper emits a TRI-STATE STRING, never a boolean',
+  i => /custSaidMoney: \(noteEls && noteEls\.length && typeof _lpCustSaidMoney === 'boolean'\)/.test(i.src)
+    && /\? \(_lpCustSaidMoney \? 'yes' : 'no'\) : null/.test(i.src), true);
+
+check("SHARON: a 'no' from the frame with notes survives the merge behind two shells",
+  i => MERGE_ONE([{ custSaidMoney: null }, { custSaidMoney: null }, { custSaidMoney: 'no' }], 'custSaidMoney'), 'no');
+check("...and a 'yes' survives just as well",
+  i => MERGE_ONE([{ custSaidMoney: null }, { custSaidMoney: 'yes' }], 'custSaidMoney'), 'yes');
+check('a shell frame (no notes to read) yields rather than voting',
+  i => MERGE_ONE([{ custSaidMoney: null }, { custSaidMoney: 'no' }], 'custSaidMoney'), 'no');
+check('no frame could judge → undefined, and the reader falls back rather than asserting',
+  i => MERGE_ONE([{ custSaidMoney: null }, { custSaidMoney: null }], 'custSaidMoney'), undefined);
+// The v9.7.616 bug as an assertion, so nobody "simplifies" the strings back to booleans.
+check('a BOOLEAN false would have been dropped by that merge — what v9.7.616 shipped',
+  i => MERGE_ONE([{ custSaidMoney: false }], 'custSaidMoney'), undefined);
+
+check('the reader accepts both verdicts and only those',
+  i => { const m = i.src.match(/if \(d\.custSaidMoney === 'yes' \|\| d\.custSaidMoney === 'no'\) \{/);
+         return !!m; }, true);
+
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);

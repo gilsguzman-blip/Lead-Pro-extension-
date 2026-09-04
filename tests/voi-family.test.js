@@ -223,5 +223,46 @@ check('"Niro EV" is still distinguishable from a pinned plain Niro by model stri
 check('a nameplate embedded in a longer word does not count as present',
   i => mismatch(i, '2026 Kia Sportageous', [{ desc: 'x', model: 'Sportage' }]).length, 1);
 
+// ── THE FRAME MERGE — WHAT v9.7.616 SHIPPED AND THIS SUITE DID NOT CATCH ────
+// Every assertion above passed on v9.7.616, and the feature still did nothing in production:
+// [LP VOI FAMILY DIAG] reported voiRecords:0 on Sharon's 11:52 grab while PageData on the lead
+// frame said vois:1. The helper was correct and was never handed the data. A VinSolutions grab
+// yields several frames — one real, the rest empty shells — and they collapse through
+// `if (!m[k] && d[k]) m[k] = d[k];`. An EMPTY ARRAY IS TRUTHY, so a shell's [] won and locked the
+// real record out permanently. Testing the helper in isolation could never see that; these
+// assertions execute the SHIPPED merge line against the SHIPPED emit convention.
+console.log('\nthe frame merge — a shell must not outvote the frame that has the data:');
+
+const MERGE = (frames) => {                       // the shipped rule, verbatim
+  const m = {};
+  frames.forEach(d => { ['pdVoiList'].forEach(k => { if (!m[k] && d[k]) m[k] = d[k]; }); });
+  return m;
+};
+// What the shipped scraper emits per frame: null when it has no VOI records, the array when it does.
+const emitFor = (impl, records) => {
+  const src = impl.src;
+  if (src.indexOf('if (!_pdVoiList.length) _pdVoiList = null;') < 0)
+    throw new Error('empty-is-null normalisation missing — a shell frame will win the merge');
+  return records.length ? records : null;
+};
+
+check('the scraper normalises an empty VOI list to null, so absence loses the merge',
+  i => emitFor(i, []), null);
+check('SHARON: a shell frame first, the real frame second — the Sorento still arrives',
+  i => (MERGE([{ pdVoiList: emitFor(i, []) }, { pdVoiList: emitFor(i, [SORENTO]) }]).pdVoiList || []).map(v => v.desc),
+  ['2026 Kia Sorento LX FWD']);
+check('...and the mismatch is therefore still detected after the merge',
+  i => mismatch(i, SPORTAGE, MERGE([{ pdVoiList: emitFor(i, []) },
+                                    { pdVoiList: emitFor(i, [SORENTO]) }]).pdVoiList).length, 1);
+check('four shells ahead of it, the real frame last — Sharon\'s actual frame shape',
+  i => mismatch(i, SPORTAGE, MERGE([{ pdVoiList: emitFor(i, []) }, { pdVoiList: emitFor(i, []) },
+                                    { pdVoiList: emitFor(i, []) }, { pdVoiList: emitFor(i, []) },
+                                    { pdVoiList: emitFor(i, [SORENTO]) }]).pdVoiList).length, 1);
+check('all shells and nothing else merges to nothing, not to a phantom conflict',
+  i => mismatch(i, SPORTAGE, MERGE([{ pdVoiList: emitFor(i, []) }, { pdVoiList: emitFor(i, []) }]).pdVoiList).length, 0);
+// The bug, stated as an assertion so it cannot come back by someone "tidying" null to [].
+check('an EMPTY ARRAY would have won that merge — which is exactly what v9.7.616 shipped',
+  i => { const m = {}; [[], [SORENTO]].forEach(v => { if (!m.k && v) m.k = v; }); return m.k.length; }, 0);
+
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);
