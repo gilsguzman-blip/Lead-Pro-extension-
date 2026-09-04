@@ -146,10 +146,16 @@ for (const file of BUILDS) {
 
   console.log('\nthe precedence rule sits between them:');
   const joined = out.join('\n');
-  check('the rule is present', /THE CONVERSATION ABOVE IS THE RECORD/.test(joined), true);
-  check('...below the transcript', joined.indexOf('CONTEXT & HISTORY') < joined.indexOf('THE CONVERSATION ABOVE IS THE RECORD'), true);
+  // (v9.7.628) Reworded: the section above carries the customer's messages AND derived lines, so
+  // the rule names the MESSAGES rather than claiming the whole block is the record.
+  check('the rule is present', /THE CUSTOMER'S OWN MESSAGES ARE THE RECORD/.test(joined), true);
+  check('...and it does not claim the whole block is the record',
+    /THE CONVERSATION ABOVE IS THE RECORD/.test(joined), false);
+  check('...it says a derived line can sit above the line too',
+    /above this line or below it/.test(joined), true);
+  check('...below the transcript', joined.indexOf('CONTEXT & HISTORY') < joined.indexOf('ARE THE RECORD'), true);
   check('...and above the derived directives',
-    joined.indexOf('THE CONVERSATION ABOVE IS THE RECORD') < joined.indexOf('CROSS-BRAND PIVOT'), true);
+    joined.indexOf('ARE THE RECORD') < joined.indexOf('CROSS-BRAND PIVOT'), true);
   check('it says the messages win', /THE MESSAGES WIN/.test(joined), true);
   // The distinction that keeps this from disarming the facts the model genuinely cannot see.
   check('...for readings about the CUSTOMER', /what they want, what they said, what they are/.test(joined), true);
