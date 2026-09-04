@@ -49,7 +49,7 @@ function extract(file) {
   return { name: path.basename(path.dirname(file)), src, code: src.slice(a, b + endMark.length) };
 }
 
-function run(impl, lines, voiColor) {
+function run(impl, lines, voiColor, leadVin) {
   const logs = [];
   const sb = {
     String, Date, Array, RegExp,
@@ -63,12 +63,15 @@ function run(impl, lines, voiColor) {
     _fricQuote: '', _fricState: '',
     customerConcerns: [],
     color: voiColor,
+    // (v9.7.625) the trade-answer guard compares a customer-typed VIN against the LEAD's vin.
+    vin: leadVin || '',
     _lpD: (...x) => logs.push(x.join(' '))
   };
   vm.createContext(sb);
   vm.runInContext(impl.code, sb);
   return { concerns: vm.runInContext('customerConcerns', sb), logs,
            stated: vm.runInContext('_statedColor', sb),
+           tradeSkip: vm.runInContext('_colorTradeSkip', sb),
            mismatch: vm.runInContext('_colorMismatch', sb) };
 }
 const joined = r => r.concerns.join('\n');
@@ -184,6 +187,57 @@ for (const c of ['white','black','silver','gray','grey','blue','red','green','br
   check('  "' + c + '" is still detected',
     i => run(i, ['[09/02/2026 1:00 PM] [CUSTOMER] I want ' + c], 'Nonesuch').stated.toLowerCase(), c);
 }
+
+
+// ── (v9.7.625) A COLOUR STATED ABOUT THE TRADE IS NOT A COLOUR REQUEST ────────
+// LIVE: Sydnie Moon (Audi Lafayette, 2075798859, 9/4). On 8/31 the agent asked, verbatim:
+// "Regarding your trade in, please let me know the VIN, mileage, interior / exterior color and if
+// the vehicle is a smoker or non." She answered "2HKRS5H5XPH711605 86k black interior and exterior
+// non smoker" — describing her 2023 CR-V Hybrid, the car she is trading IN.
+//
+// The detector read "black" as her ask, and the prompt shipped: "THE CUSTOMER HAS MOVED OFF THE
+// UNIT ON THE LEAD: they asked for BLACK ... never fall back to the Aspen White Tricoat unit as
+// the offer" — instructing the model to abandon the Armada she is actively negotiating.
+//
+// IT WAS MASKED, NOT ABSENT. Her notes also carried the echoed subject "Re:The Aspen White Armada
+// SL", so the detector matched "White" and agreed with the VOI by accident. v9.7.623 removed that
+// echo — correctly — and the real reading underneath was wrong. Same family as the v9.7.622
+// trade-vs-pivot confusion: a car they are DISPOSING OF does not describe what they want to buy.
+console.log('\na colour stated about the TRADE is not a colour request:');
+
+const SYDNIE_TRADE = '[08/31/2026 12:07 PM] [CUSTOMER] 2HKRS5H5XPH711605 86k black interior and exterior non smoker';
+const ARMADA_VIN   = 'JN8AY3BA5S9001345';
+
+check('Sydnie — no colour is read off her trade answer',
+  i => run(i, [SYDNIE_TRADE], 'Aspen White Tricoat', ARMADA_VIN).stated, '');
+check('...and it says WHY it was skipped',
+  i => /VIN that is not the lead vehicle/.test(run(i, [SYDNIE_TRADE], 'Aspen White Tricoat', ARMADA_VIN).tradeSkip), true);
+check('...so no colour mismatch is declared',
+  i => run(i, [SYDNIE_TRADE], 'Aspen White Tricoat', ARMADA_VIN).mismatch, false);
+// The directive that shipped is the thing that must not come back.
+check('...and the "MOVED OFF THE UNIT" directive does not ship',
+  i => /MOVED OFF THE UNIT/.test(joined(run(i, [SYDNIE_TRADE], 'Aspen White Tricoat', ARMADA_VIN))), false);
+
+// Each signal alone, so a shape missing one still resolves correctly.
+check('smoker/non-smoker alone marks an appraisal answer',
+  i => run(i, ['[08/31/2026 12:07 PM] [CUSTOMER] black interior and exterior non smoker'], 'Aspen White Tricoat', ARMADA_VIN).stated, '');
+check('a customer-typed VIN alone marks it',
+  i => run(i, ['[08/31/2026 12:07 PM] [CUSTOMER] 2HKRS5H5XPH711605 it is black'], 'Aspen White Tricoat', ARMADA_VIN).stated, '');
+// The one case where a VIN is NOT the trade: they quoted our own unit back at us.
+check('the LEAD vehicle\'s own VIN is not a trade signal',
+  i => run(i, ['[09/02/2026 1:00 PM] [CUSTOMER] is ' + ARMADA_VIN + ' available in black'], 'Aspen White Tricoat', ARMADA_VIN).stated.toLowerCase(), 'black');
+
+// MUST STILL FIRE — the guard must not become a blanket off-switch on colour.
+console.log('\na genuine colour ask is untouched:');
+check('Pranav still asks for white',
+  i => run(i, ['[09/02/2026 9:00 AM] [CUSTOMER] Elsa I am looking for 2026 white CRV Sport trim at 35k'], 'Meteorite Gray Metallic').stated.toLowerCase(), 'white');
+check('...and still mismatches the VOI colour',
+  i => run(i, ['[09/02/2026 9:00 AM] [CUSTOMER] Elsa I am looking for 2026 white CRV Sport trim at 35k'], 'Meteorite Gray Metallic').mismatch, true);
+check('a colour ask in a thread that ALSO has a trade line still reads',
+  i => run(i, [
+    '[09/02/2026 9:00 AM] [CUSTOMER] do you have that one in white',
+    SYDNIE_TRADE
+  ], 'Meteorite Gray Metallic', ARMADA_VIN).stated.toLowerCase(), 'white');
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);
