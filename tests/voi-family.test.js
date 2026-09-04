@@ -264,5 +264,23 @@ check('all shells and nothing else merges to nothing, not to a phantom conflict'
 check('an EMPTY ARRAY would have won that merge — which is exactly what v9.7.616 shipped',
   i => { const m = {}; [[], [SORENTO]].forEach(v => { if (!m.k && v) m.k = v; }); return m.k.length; }, 0);
 
+// ── IS IT WIRED? THE QUESTION NEITHER v9.7.616 NOR v9.7.617 ASKED ──────────
+// buildUserPrompt does not receive the merged scrape — it receives a HAND-BUILT OBJECT LITERAL.
+// v9.7.616 added pdVoiList to the scraper's return and read data.pdVoiList in the prompt builder,
+// and nothing joined them, so voiRecords:0 shipped twice while the scraper produced the Sorento
+// record correctly all along. Every assertion above passed through both of those builds.
+console.log('\nthe field must actually reach the prompt builder:');
+
+check('pdVoiList is passed into the buildUserPrompt object literal',
+  i => { const call = i.src.indexOf('buildUserPrompt({');
+         const wire = i.src.indexOf('pdVoiList:                 lastScrapedData');
+         return call > 0 && wire > call; }, true);
+
+check('...sourced from the scrape, defaulting to null rather than undefined',
+  i => /pdVoiList:\s*lastScrapedData \? \(lastScrapedData\.pdVoiList \|\| null\) : null/.test(i.src), true);
+
+check('the scraper still emits it on its return object, so both ends exist',
+  i => /pdVoiList: _pdVoiList/.test(i.src), true);
+
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);

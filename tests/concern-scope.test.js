@@ -61,8 +61,14 @@ function slice(src, a, b, what) {
 
 function extract(file) {
   const src = fs.readFileSync(file, 'utf8');
-  // The shared helper plus the timing detector.
-  const timing = slice(src, '      function _lpCustomerSaid() {',
+  // (v9.7.618) THE HELPER AND THE DETECTORS ARE NO LONGER ADJACENT, and that separation is the
+  // point of this build: _lpCustomerSaid was hoisted ABOVE the `convState !== 'first-touch'` gate
+  // so it can read a first-touch lead, while the TIMING/TRADE directives stayed behind the gate.
+  // Lifted as two slices and concatenated, which keeps both regions byte-identical to the shipped
+  // file — narrowing either one would stop this suite testing what actually runs.
+  const said   = slice(src, '    function _lpCustomerSaid() {',
+                            '      return out;\n    }', 'scoping helper');
+  const timing = said + '\n' + slice(src, '      var _timingRx = ',
                             "not a pressure tactic.');\n      }", 'timing block');
   // The trade detector, lifted separately — it lives ~170 lines further down.
   // The directive ends with an example opener, not with the check-in sentence — an earlier version

@@ -69,7 +69,7 @@ function extract(file) {
                               'sig.leadOutboundCount++;\n            }', 'lead-bounded increment');
   const ladder   = slice(src, 'function _lpOutreachOnThisLead(data, noteCountFallback) {',
                               "return { n: noteCountFallback || 0, src: 'note-count-fallback' };\n}", 'ladder');
-  const money    = slice(src, '      function _lpCustomerSaid() {',
+  const money    = slice(src, '    function _lpCustomerSaid() {',
                               'catch (eBm) { _lpCustSaidMoney = false; }', 'money detector');
   const gate     = slice(src, '    var _incOutreach = _lpOutreachOnThisLead(d, d.totalNoteCount || 0);',
                               "outreach(es) already sent ON THIS LEAD, so this is follow-up, not first exposure'); } catch (e) {}\n    }",
@@ -340,6 +340,39 @@ check('a BOOLEAN false would have been dropped by that merge — what v9.7.616 s
 check('the reader accepts both verdicts and only those',
   i => { const m = i.src.match(/if \(d\.custSaidMoney === 'yes' \|\| d\.custSaidMoney === 'no'\) \{/);
          return !!m; }, true);
+
+// ── IS IT REACHABLE? THE OTHER QUESTION NEITHER BUILD ASKED ────────────────
+// The money detector was correct, was wired, and still never ran: v9.7.616 put it inside the
+// concern region, which sits under `if(convState !== 'first-touch')`. Sharon and Tricia are BOTH
+// first-touch, so the two leads it was built for are exactly the two it could not reach — and its
+// absence read as "no customer-authored verdict", which fell back to the whole-arc test the fix
+// exists to replace. Proven by probing the shipped scraper against Sharon's real DOM under jsdom.
+console.log('\nthe detector must be reachable on the leads it was built for:');
+
+const posOf = (src, needle) => src.indexOf(needle);
+
+check('the customer-authored money scan runs BEFORE the first-touch gate, not inside it',
+  i => { const gate  = posOf(i.src, "if(convState !== 'first-touch'){");
+         const money = posOf(i.src, 'var _lpCustSaidMoney = false;');
+         return gate > 0 && money > 0 && money < gate; }, true);
+
+check('...and so does the helper it depends on',
+  i => { const gate = posOf(i.src, "if(convState !== 'first-touch'){");
+         const said = posOf(i.src, 'function _lpCustomerSaid() {');
+         return gate > 0 && said > 0 && said < gate; }, true);
+
+check('...and the line list it reads, so the helper is not scanning an empty array',
+  i => { const gate = posOf(i.src, "if(convState !== 'first-touch'){");
+         const csl  = posOf(i.src, 'concernScanLines = recentTranscriptLines.filter(');
+         return gate > 0 && csl > 0 && csl < gate; }, true);
+
+check('the helper is defined exactly once — the hoist moved it, it did not clone it',
+  i => (i.src.match(/function _lpCustomerSaid\(\) \{/g) || []).length, 1);
+
+check('the concern DIRECTIVES stay behind the gate — no new prompt text on a first-touch lead',
+  i => { const gate = posOf(i.src, "if(convState !== 'first-touch'){");
+         const cc   = posOf(i.src, 'var customerConcerns = [];');
+         return cc > gate; }, true);
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);

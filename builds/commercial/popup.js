@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.618 (Commercial. I DIAGNOSED THE FRAME MERGE TWICE AND IT WAS NEVER THE FRAME MERGE. Extension only; proxy v7.69 and reporter v1.22 unchanged. v9.7.616 shipped four fixes; two never reached the prompt. v9.7.617 blamed the first-truthy-wins frame merge and shipped two more fixes for it; log166 shows BOTH still dead. The merge was innocent both times. This build stops guessing: the SHIPPED inlineScraper was lifted whole and EXECUTED against Sharon Pierre's real VinSolutions DOM dump under jsdom, with probes inserted at chosen lines. That took minutes and settled in one run what two builds of inference got wrong. CAUSE 1 -- NOT WIRED. buildUserPrompt does not receive the merged scrape; it receives a HAND-BUILT OBJECT LITERAL, ~50 explicit fields. v9.7.616 added pdVoiList to the scraper's return and read data.pdVoiList in the prompt builder, and NOTHING JOINED THE TWO. Run against the real DOM the scraper produces the Sorento record perfectly -- pdVoiList:[{desc:'2026 Kia Sorento LX FWD',model:'Sorento',bySystem:true}] -- and the prompt builder was reading undefined the whole time, which is why [LP VOI FAMILY DIAG] said voiRecords:0 through two builds. One line of wiring. CAUSE 2 -- NOT REACHABLE. The customer-authored money scan sat inside the concern region, which sits inside `if(convState !== 'first-touch')`. Probes prove it: a probe in the concern block never fires, a probe at the scraper's return does, and custSaidMoney comes back null. SHARON AND TRICIA ARE BOTH FIRST-TOUCH, so the two leads the budget fix was built for are precisely the two it could never reach -- and its silence read as 'no verdict', which fell back to the whole-arc test the fix exists to replace, shipping the phantom budget a THIRD time. v9.7.551's own header already recorded this gate in writing; I read that header this week and still put the fix behind it. ONLY THE SCAN IS HOISTED above the gate -- cutoffMs, recentTranscriptLines, concernScanLines, _lpCustomerSaid and the money verdict. Every DIRECTIVE the gate guards stays behind it, asserted, so no new prompt text appears on a first-touch lead. A GAP I INTRODUCED MID-FIX AND CAUGHT WITH THE SAME HARNESS: the first hoist left a STUB _lpCustomerSaid returning [] ahead of the real definition, so the money verdict was structurally 'no' on every first-touch lead -- correct for Sharon by luck, wrong for any first-touch lead whose form carried real words. The harness showed customerLines:0; after moving the real construction it shows customerLines:1. That is the difference between a fix and the appearance of one, and only execution against real input could tell them apart. VERIFIED AGAINST THE REAL DOM, not a fixture: pdVoiList carries the Sorento, custSaidMoney is 'no', and [LP BUDGET SCOPE DIAG] fires with customerLines:1. THE TESTS NOW ASK THE TWO QUESTIONS THAT WOULD HAVE CAUGHT ALL FOUR MISSES. IS IT WIRED -- pdVoiList must appear in the buildUserPrompt literal, after the call site, sourced from the scrape. IS IT REACHABLE -- the money scan, the helper and the line list it reads must ALL sit before the first-touch gate, the helper must exist exactly once (a hoist that clones is a drift generator), and customerConcerns must stay after the gate so the directives did not leak forward. Every one of these is a source-position assertion rather than a behavioural one, deliberately: behaviour was never what was broken. THE DUMP IS NOT COMMITTED and never will be -- it carries a real customer's name, phone, email and street address, and the v9.7.489 posture is that contact data never leaves the CRM. The harness lives outside the repo and is pointed at a dump when one exists. VERIFIED: 68 suites green (2,193 assertions, +8), dev===comm. NON-VACUITY: against v9.7.617 the wiring assertions fail 2 by name and the reachability assertions 3 by name. concern-scope updated -- its slice spanned the helper AND the timing detector, which the hoist separated; it now lifts both regions and concatenates rather than narrowing either. node --check clean on both builds; both manifests parse; version AND version_name both bumped. scraperVersion stays v9.7.51. Builds on v9.7.617.)
 // Lead Pro -- popup.js  v9.7.617 (Commercial. THREE OF THE FOUR v9.7.616 FIXES REACHED THE PROMPT; TWO DIED IN THE FRAME MERGE. Extension only; proxy v7.69 and reporter v1.22 unchanged. PROVEN ON SHARON PIERRE'S 11:52 AM RE-SCAN (log165, lead 2078254326, build 9.7.616-dev), which is the only reason this is known. WHAT WORKED, EXACTLY AS INTENDED: [LP OUTREACH COUNT DIAG] outreaches:7 | source:lead-bounded-outbound | wholeRecordOutbound:26 <- 19 outbound predate this lead -- the hand count off her dump, to the message. Density fell from 'heavy (26)' to 'normal (7)' and the ONE-SIDED CONVERSATION block is gone from the prompt entirely. And [LP INCENTIVE DIAG] first-touch override -- 7 outreach(es) already sent ON THIS LEAD, so this is follow-up, not first exposure / gate passed -- 2 line(s) injected: Sportage, Sportage. Her draft now leads with 4.99% APR and $750 customer cash, the two programs v9.7.615 suppressed on a unit sitting 126 days where every scarcity line is already banned. WHAT DID NOT, AND THE CAUSE IS ONE LINE: the frame merge is first-truthy-wins -- `if (!m[k] && d[k]) m[k] = d[k];`. A VinSolutions grab yields one real frame and several EMPTY SHELLS, and v9.7.516's own header already spells this out word for word: 'Absence of data is not conflict... those are EMPTY SHELLS'. I added two new top-level fields without checking how they collapse, and both lost. (A) pdVoiList emitted [] from every shell. AN EMPTY ARRAY IS TRUTHY, so shell frame 5903 won and permanently locked out frame 5904's real record -- [LP VOI FAMILY DIAG] reported voiRecords:0 while PageData on that same frame said vois:1 and _pdCreatedH from the SAME hoist worked fine, which is what proves the data was there and the merge dropped it. pdVoiCount never had the bug only because 0 is falsy and shells lose by accident. Now emits null so absence loses ON PURPOSE. (B) custSaidMoney emitted a BOOLEAN. `false` -- the verdict on every lead where the customer never mentioned money, which is the entire point of the fix -- is falsy and was dropped. [LP BUDGET SCOPE] logged 'no customer-authored verdict on this scrape' and fell back to the whole-arc test, so the phantom budget directive shipped to Sharon a second time. It would have appeared to work ONLY on leads where the answer was already yes. Now a tri-state string: 'yes'/'no' both carry, null (a frame with no notes to read) yields. (C) A FOURTH CONSUMER I MISSED. v9.7.616 moved VARY YOUR ANGLE and ONE-SIDED onto the lead-bounded count and left _lpCloseOutEligible reading the whole customer record, so her prompt carried '7 outreach attempts' in one block and '0d old with 26 outreach(es)' in another -- two numbers for one fact, which is the disagreement v9.7.595 built that single resolver to END. Moved onto the same ladder, with the same fallback, so behaviour is unchanged wherever no boundary resolves. THE LESSON, AND IT IS ABOUT THE TESTS RATHER THAN THE CODE: all 79 v9.7.616 assertions passed, both builds agreed, non-vacuity was proved -- and two of four fixes did nothing in production. Every assertion tested a helper in ISOLATION, handed its input directly. Not one tested whether the shipped code ever RECEIVES that input. That is the v9.7.561 lesson (a correct function wired to nothing) reached by a new route: correct function, correct wiring, data destroyed in transit. 13 new assertions now execute the SHIPPED merge rule against the SHIPPED emit convention, including Sharon's real frame shape (four shells then the real frame), and both v9.7.616 bugs are pinned as assertions -- an empty array wins that merge, a boolean false loses it -- so neither can return via someone tidying null back to []. VERIFIED: 68 suites green (2,185 assertions, +13), dev===comm. NON-VACUITY: against v9.7.616 the new merge assertions fail by name. node --check clean on both builds; both manifests parse; version AND version_name both bumped. scraperVersion stays v9.7.51. Builds on v9.7.616.)
 // Lead Pro -- popup.js  v9.7.616 (Commercial. A CRM SWAPPED THE CAR AND LEAD PRO LOCKED THE PROMPT AROUND IT. Extension only; proxy v7.69 and reporter v1.22 unchanged and NOT redeployed. FOUR DEFECTS, ONE ROOT CAUSE: A LEAD'S OWN FACTS AND THE WHOLE CUSTOMER RECORD ARE NOT THE SAME THING. Both leads Gil pulled on 9/4 at Community Kia Baytown, and the ticket that started it -- 'Kia incentive upload accepted but not reflected downstream' -- turned out to be NO BUG AT ALL: 110 lines uploaded, 110 in KV model-for-model, 110 loaded in the extension (log164 line 22). The suppression was correct on Tricia Green three times over (CPO VOI, and a 2023 lead year against a blob that is entirely 2026/2027, leaving 0 of 110 after the year filter). Chasing that produced everything below. (1) THE VOI SUBSTITUTION LOCK -- the serious one, customer-facing, and it shipped. Sharon Pierre (lead 2078254326) inquired on a 2026 Kia SORENTO LX FWD; her PageData says so in typed fields. At 05:02 UTC -- 12:02 AM Central, the exact minute of the CRM's own 'Primary vehicle changed from 2026 Kia Sorento LX FWD to 2026 Kia Sportage EX' note -- CreatedByUserID -189 (negative = an automated actor) repinned the lead to a SPORTAGE EX. She has never written a word to us; she did not ask for the swap. LP then told the model 'Vehicle: 2026 Kia Sportage EX <- THIS IS THE VEHICLE FOR THIS LEAD. Do not substitute or reference other vehicles.' THE WORD 'SORENTO' APPEARS ZERO TIMES IN THAT 32,673-CHARACTER PROMPT AND ZERO TIMES IN THE LOG. v9.7.480/475 graduated VehiclesOfInterest[] as an authoritative COUNT and stopped there, so the second vehicle was invisible -- and LP did not merely fail to mention it, it instructed the model not to. The existing [LP VOI CONFLICT DIAG] could never catch this: it compares only YEAR and CONDITION parsed from notes, logging {"hasConflict":false,"voiYear":"2026","voiCond":null,"noteYear":null,"noteCond":null} -- a comparison with nothing on the other side -- and has never compared MODEL. FIX: read the array as content, compare model families (model only: 'Sportage EX' vs 'Sportage LX' is one conversation, 'Sportage' vs 'Sorento' is two), and when two are present REPLACE the do-not-substitute lock with the instruction the prompt already contains in its AGENT CONTEXT block -- name both distinctly, ask ONE direct question, assert neither. LP DOES NOT PICK THE OTHER CAR: which one Sharon wants is exactly what nobody here knows, and picking is what caused this. The automated-actor sentence is emitted only when the record carries it. (2) 26 OUTREACHES ON A 13-HOUR-OLD LEAD. Counted off her dump: 7 real touches since creation plus 19 mass-marketing blasts sent 8/26/2023 through 4/21/2025 ('RED TAG SALE', 'Monster Price MELTDOWN'), years before the lead existed. That number drove FOUR directives at once -- heavy density, ONE-SIDED CONVERSATION, VARY YOUR ANGLE and the close-out arithmetic -- so a brand-new lead was written as a fatigued ghost. EXTENDS v9.7.592 rather than correcting it: that build moved these off the CRM note count onto the real outbound tally, which was right and did not go far enough, because the tally still spans the whole CUSTOMER record. New lead-bounded count keyed on PageData Lead.LeadCreatedUTC. On Sharon: VARY YOUR ANGLE still fires (7 >= 5), ONE-SIDED no longer does (7 < 8). (3) THE BUDGET NEITHER CUSTOMER STATED. BUDGET-STATED FRAMING (v9.7.315) told the model 'Customer has stated a specific budget, payment, or OTD target ... lead with their stated number as the goal' on BOTH leads -- to two people who have never written a word. Its flag tested the whole assembled arc: on Tricia it matched TrueCar's own listing field, verbatim 'OFFER SHOWN: $25,815'; on Sharon it matched our own blasts, 'as low as $20,074 MPR', six times. Neither is a customer statement and neither leaves a number to lead with. Same class as v9.7.613/614/615 and it takes the same cure -- the SHIPPED _lpCustomerSaid(), moved to where that helper already lives rather than a third implementation at module scope. THE MONEY PATTERN IS UNCHANGED CHARACTER FOR CHARACTER; only whose words it reads changed, asserted ten ways. (4) 'FIRST EXPOSURE' AFTER SEVEN MESSAGES. STORE INCENTIVE suppressed on Sharon -- a NEW 2026 Sportage EX -- hiding two current programs (4.99% APR for 48-84 mos, $750 Customer Cash) on a unit sitting 126 days where the prompt has ALREADY banned every scarcity line, leaving the message no lever at all. The v9.7.296 rule is right as stated; it is keyed on convState, which stays 'first-touch' all day on a lead created today however many times we have written -- the log says so itself: 'fresh-today lead, no customer reply -> first-touch (was about to be active-follow-up on 31 notes)'. New prior_outreach override beside the existing asked/generic/in_transit ones, threshold 3 because the system prompt's own density bands already call 0-2 light and 3-7 active. It reads the LEAD-BOUNDED count, which is why (2) and (4) ship together: years-old blast marketing must never be what unlocks an incentive, asserted by name. A DEAD GUARD I SHIPPED IN v9.7.615, FOUND WHILE TESTING THIS BUILD. _lpCustomerAuthoredPart anchors its tapback pattern at ^, allowing only CRM routing headers before the reaction verb. Its two original callers hand it a raw note BODY, so it works for them. The caller I added in v9.7.615 hands it a transcript LINE, which always opens '[07/28/2026 5:37 PM] [CUSTOMER] ' -- so the verb was never at a line start and the reaction branch could not fire ONCE. Identical shape to the v9.7.590 miss it was built to fix. Now strips the line's own date/tag prefix first. AND A TEST THAT PASSED FOR THE WRONG REASON, which is how the above was found: the v9.7.615 stub for that guard also accepted '👍 to', which the SHIPPED verb list (Loved|Liked|Disliked|Laughed at|Emphasi[sz]ed|Questioned) does not -- a stub more generous than production, able to pass an assertion the real code would fail. Copied verbatim now. The emoji shape is recorded as a KNOWN GAP rather than quietly widened (the v9.7.615 'trading' precedent), and both protections are asserted separately so a regression in either is attributable. THE ORDERING TRAP, CAUGHT BEFORE IT SHIPPED: the first draft put the outreach number on a window global at the prompt-builder site and read it at the incentive gate -- which runs in populateFromData, ~13,500 lines and one whole phase EARLIER, so the guard read undefined every time and could never fire. That is the v9.7.561 dead-guard shape and the v9.7.422 ordering trap in one. It is now _lpOutreachOnThisLead(), one definition both callers invoke. TWO NEW SUITES, 79 assertions, driving the SHIPPED code against the real captures: voi-family (31) and lead-boundary (48), the latter pinning TZ=America/Chicago because PageData emits a zone-less ISO stamp that V8 would otherwise read as local -- the 'Z' is the whole fix and is asserted three ways. NON-VACUITY PROVED: against v9.7.615 voi-family fails 31/31 and lead-boundary 48/48, and concern-scope fails the new dead-guard assertion by name. reply-vs-inquiry and own-words-topics extract the same tally loop and were supplied the boundary neighbour rather than having their slices narrowed away from the shipped file. WHAT THIS MIGHT BREAK, PLAINLY: leads with a second vehicle of interest in a different model family now get a question instead of a confident pitch -- correct, but customer-visible and new. Fatigue directives go quiet on fresh leads carrying old marketing history. Incentives appear on same-day leads we have already worked 3+ times. Every one of those fails closed when its evidence is missing: no creation stamp leaves the lead count null and the gate exactly as it was, and blast marketing alone cannot unlock an incentive. VERIFIED: 68 suites green (2,172 assertions, +79), dev===comm on every case. node --check clean on both builds; both manifests parse; version AND version_name both bumped. scraperVersion stays v9.7.51. Builds on v9.7.615.)
 // Lead Pro -- popup.js  v9.7.615 (Commercial. TWO CONCERNS THAT FIRED ON TEXT THE CUSTOMER NEVER MEANT. Extension only; proxy v7.69 and reporter v1.22 unchanged. Both on Pranav Patel (Community Honda Baytown, lead 2055655871) -- the same lead behind v9.7.612, .613 and .614, and the same shape all three fixed: a detector matching words in a blob without asking whether they are current, or the customer's own. A CORRECTION TO MY OWN REPORT FIRST, because I stated the cause twice and was wrong both times. I said TIMING HESITATION fired on his month-stale 8/01 vacation note. IT DID NOT. That note says "I will contact you guys back in Aug 3rd week" and the pattern has no "contact back" shape -- it never matched. Searching the shipped prompt for every match of the timing pattern finds exactly three, and NOT ONE IS A CUSTOMER HESITATION: an AGENT line, "We're expecting one in the river blue next month", and two lines of the prompt's OWN SCAFFOLD ("If they are not ready -- respect it" and a rule in the time-context block). Elsa telling him a river-blue car arrives next month became "Customer indicated they are not ready yet." So the defect was the customer-authored half, not the recency half. The recency rule still ships and is still correct; it simply was not what was wrong here, and the suite now tests the real trigger instead of my assumption. TRADE-IN CONCERN, on a lead whose Trade-in Info reads "(none entered)", told the model "This is THE hook -- lead with it in BOTH the SMS and email." It matched "Community Trade-In-Assistance+ -$500.00" -- a LINE ITEM in the dealership's own OTD sheet, which Elsa sent him on 7/28 and which he PASTED BACK on 8/27 while negotiating. Our own words, returned to us, read as his statement about a car he does not own. Of every false directive found this week this is the most damaging: it does not add noise, it commands BOTH messages to lead with something that does not exist. ONE SHARED HELPER, NOT A THIRD IMPLEMENTATION. v9.7.613 and .614 each needed the same two things inline -- read only what the customer wrote, and know when. _lpCustomerSaid() now does it once and both detectors call it, and it routes through the EXISTING _lpCustomerAuthoredPart tapback / quoted-reply guard, whose own comment already says "the quoted part is OUR OWN PRIOR OUTBOUND, echoed back by the customer's phone". That reuse also covers the 7/28 version of the same sheet, which he returned as a literal iMessage tapback. TWO GATES ON TRADE, because the failure has two halves. Customer-authored only kills the tapback. And for the 8/27 PLAIN PASTE, which no echo-guard can see, the message must contain a FIRST-PERSON reference: someone discussing their own trade always uses one -- "my trade", "I still owe", "what is my payoff" -- while a price sheet, a rebate footer and a fee table never do. That is deliberately GRAMMAR rather than a blocklist of document phrases, because the next pasted document will not be a price sheet. TIMING KEEPS THE v9.7.612 SUPERSESSION RULE, unchanged in spirit: a hesitation the customer has spoken past is spent, and it fails closed the same way -- an undated one cannot be proven stale and still fires. NEW SUITE concern-scope.test.js, 27 assertions, EXECUTING both shipped detectors. Every false-fire is driven from Pranav's real lines including the pasted sheet and the tapback. The TRUE-fire case for each is asserted beside it -- five real customer trade phrasings, a genuine hesitation firing alone and as the latest message, an agent message NOT ageing it out -- because over-suppression is the actual risk here, exactly as it was for the engine-off gate. The two fixes are asserted independent of each other. NON-VACUITY PROVED against v9.7.614, which fails the suite by name. A PRE-EXISTING GAP FOUND AND DELIBERATELY LEFT: _tradeRx requires the literal string "trade", and "trading" is t-r-a-d-i-n-g, so "I am trading in my Q5" has NEVER matched it on any build. That is UNDER-detection, the opposite of what this build was asked to fix, and widening a pattern carries a different risk profile than narrowing one. Asserted as current behaviour so it is recorded rather than mistaken for a regression from here. TWO HARNESS FAULTS, both mine, both fixed rather than worked around. (1) My first end-marker for the trade slice did not exist in the file; indexOf returned -1 and the slice ran to END OF FILE, swallowing half the build -- 24 assertions failed with "window is not defined", which reads like a code fault and was not. (2) sched-attribution.test.js pinned the number of _lpCustomerAuthoredPart call sites to exactly 3, so the legitimate fourth caller -- the shared helper that exists precisely to stop reimplementation -- failed it. The invariant is that every call sits INSIDE inlineScraper, never the count; a test that fails on every honest new caller trains people to edit the number, which is how a real regression gets waved through. De-pinned to the property and mutation-checked: moving a call to module scope still fails it. VERIFIED: 66 suites green (2,089 assertions, +27), dev===comm on every case with both new blocks byte-compared between builds. node --check clean on both builds; both manifests parse. scraperVersion stays v9.7.51. Pairs: DEV v9.7.615-dev / COMMERCIAL v9.7.615. Builds on v9.7.614.)
@@ -11085,6 +11086,77 @@ function tryExecuteScript(tab, statusEl, dot) {
     }
 
 
+    // ── (v9.7.618) THE CONCERN SCAN MUST BE READABLE ON A FIRST-TOUCH LEAD ────────────────────
+    // PROVEN by executing the SHIPPED scraper against Sharon Pierre's real DOM dump under jsdom:
+    // a probe inside the concern block never fires, a probe at the return does, and custSaidMoney
+    // comes back null. The cause is the gate on the line below -- the whole concern region sits
+    // inside `if(convState !== 'first-touch')`, which v9.7.551's own header already recorded ("that
+    // block is emitted ONLY when convState !== 'first-touch'"). Sharon and Tricia are BOTH
+    // first-touch, so the two leads the v9.7.616 budget fix was built for are precisely the two it
+    // could never reach. I called this a frame-merge failure in v9.7.617 and was wrong; the merge
+    // was never involved. ONLY THE CUSTOMER-AUTHORED SCAN IS HOISTED -- every directive the gate
+    // guards stays inside it, so no new prompt text appears on a first-touch lead.
+    var cutoffMs = Date.now() - (180 * 24 * 60 * 60 * 1000); // 180 days
+    var recentTranscriptLines = transcript.filter(function(line){
+      var dateMatch = line.match(/^\[(\d{1,2}\/\d{1,2}\/\d{2,4}[^\]]*)\]/);
+      if(!dateMatch) return true; // keep if no date parseable
+      var lineMs = new Date(dateMatch[1]).getTime();
+      return lineMs > 0 ? lineMs >= cutoffMs : true;
+    });
+    var concernScanLines = recentTranscriptLines.filter(function(line){
+      var isSystemNote = /\[NOTE\].*(?:lead received|email auto response|lead log|system|tradepending|kbb|kelley|market report|value-to-dealer|market size|landing page|plugin\.tradepending|automated response|we are not open)/i.test(line);
+      return !isSystemNote;
+    });
+    function _lpCustomerSaid() {
+      var out = [];
+      try {
+        concernScanLines.forEach(function (line) {
+          var s = String(line);
+          if (s.indexOf('[CUSTOMER]') === -1) return;
+          var dm = s.match(/^\[(\d{1,2}\/\d{1,2}\/\d{2,4}[^\]]*)\]/);
+          var ms = dm ? new Date(dm[1]).getTime() : 0;
+          // (v9.7.616) A DEAD GUARD I SHIPPED IN v9.7.615, found while testing this build and
+          // fixed here. _lpCustomerAuthoredPart anchors its tapback pattern at ^, allowing only
+          // CRM routing headers ("Received from: ...") ahead of the reaction verb — v9.7.590
+          // widened it to exactly that and no further. Its other two callers hand it a raw note
+          // BODY, so it works for them. This caller hands it a transcript LINE, which always
+          // opens "[07/28/2026 5:37 PM] [CUSTOMER] ", so the verb was never at a line start and
+          // the reaction branch could not fire once. Same shape as the v9.7.590 miss it was
+          // built to fix, and as every other guard in this file that could not reach production
+          // input. Strip the line's own date/tag prefix and the guard reaches its text.
+          var _bare = s.replace(/^\[[^\]]*\]\s*\[[^\]]*\]\s*/, '');
+          var t = _bare;
+          try { var cp = _lpCustomerAuthoredPart(_bare); if (cp && typeof cp.text === 'string') t = cp.text; } catch (eC) {}
+          if (t) out.push({ text: t, ms: (ms > 0 ? ms : 0) });
+        });
+      } catch (eS) {}
+      return out;
+    }
+    // ── (v9.7.616) THE BUDGET THE CUSTOMER NEVER STATED ────────────────────────────────────────
+    // BUDGET-STATED FRAMING (v9.7.315) tells the model "Customer has stated a specific budget,
+    // payment, or OTD target ... lead with their stated number as the goal." Its flag was set at
+    // module scope by testing the WHOLE assembled arc, so on 9/4 it fired on two customers who
+    // have never written a word to us, from two different sources of our own text:
+    //   Tricia Green  -- TrueCar's own listing field, verbatim: "OFFER SHOWN: $25,815"
+    //   Sharon Pierre -- our own 2024 blast marketing, "as low as $20,074 MPR", x6
+    // Neither is a customer statement, and "lead with their stated number" has no number to lead
+    // with. Same class as v9.7.613/614/615, so it takes the same cure: the SHIPPED
+    // _lpCustomerSaid() above, which already routes through the tapback/quoted-reply guard, so
+    // a price sheet the customer thumbs-up'd back to us is excluded too. The pattern itself is
+    // unchanged character for character -- this changes only WHOSE words it reads.
+    var _lpCustSaidMoney = false;
+    try {
+      var _moneyRx = /\bcash\b|\boffer\b|\$\s?\d|\bOTD\b|out the door/i;
+      var _moneyHit = null;
+      _lpCustomerSaid().forEach(function (o) {
+        if (!_moneyHit && o && _moneyRx.test(o.text)) _moneyHit = o.text;
+      });
+      _lpCustSaidMoney = !!_moneyHit;
+      _lpD('[LP BUDGET SCOPE DIAG] customerSaidMoney:' + _lpCustSaidMoney
+        + ' | customerLines:' + _lpCustomerSaid().length
+        + (_moneyHit ? ' | hit:"' + String(_moneyHit).replace(/\s+/g, ' ').slice(0, 90) + '"'
+                     : ' | no customer-authored money mention'));
+    } catch (eBm) { _lpCustSaidMoney = false; }
     if(convState !== 'first-touch'){
       // (v9.7.62) Detect STOP-as-first-touch subcase: customer's ONLY inbound is "STOP"
       // (or similar opt-out keyword) with no prior real conversation.
@@ -11251,21 +11323,10 @@ function tryExecuteScript(tab, statusEl, dot) {
       // Scans RECENT transcript only (last 180 days) for friction signals.
       // Old notes (mass marketing texts, ancient history) should not drive current messaging.
       var customerConcerns = [];
-      var cutoffMs = Date.now() - (180 * 24 * 60 * 60 * 1000); // 180 days
-      var recentTranscriptLines = transcript.filter(function(line){
-        var dateMatch = line.match(/^\[(\d{1,2}\/\d{1,2}\/\d{2,4}[^\]]*)\]/);
-        if(!dateMatch) return true; // keep if no date parseable
-        var lineMs = new Date(dateMatch[1]).getTime();
-        return lineMs > 0 ? lineMs >= cutoffMs : true;
-      });
       // CRITICAL: Exclude system notes, lead received data dumps, auto-responses, and
       // TradePending/KBB valuation text from concern scanning - these contain vehicle
       // market data with prices, "sold" comparables, and other text that falsely triggers
       // credit, trade, price, and shift worker detectors
-      var concernScanLines = recentTranscriptLines.filter(function(line){
-        var isSystemNote = /\[NOTE\].*(?:lead received|email auto response|lead log|system|tradepending|kbb|kelley|market report|value-to-dealer|market size|landing page|plugin\.tradepending|automated response|we are not open)/i.test(line);
-        return !isSystemNote;
-      });
       // ── (v9.7.581) LEAD-SOURCE METADATA IS NOT SOMETHING ANYONE SAID ──────────────────────
       // PETER GORDON (Audi Lafayette, lead 2068934775, 8/25). Source: "Audi Partner Lead - Audi
       // Partner Lead (Internet)". The spouse detector below tested a BARE \bpartner\b against this
@@ -11314,57 +11375,7 @@ function tryExecuteScript(tab, statusEl, dot) {
       // PRIOR OUTBOUND, echoed back by the customer's phone" — rather than reimplementing that idea
       // a third time, which is exactly what the brief asked for and what this file keeps getting
       // wrong (five separate scope fixes this month, all the same shape).
-      function _lpCustomerSaid() {
-        var out = [];
-        try {
-          concernScanLines.forEach(function (line) {
-            var s = String(line);
-            if (s.indexOf('[CUSTOMER]') === -1) return;
-            var dm = s.match(/^\[(\d{1,2}\/\d{1,2}\/\d{2,4}[^\]]*)\]/);
-            var ms = dm ? new Date(dm[1]).getTime() : 0;
-            // (v9.7.616) A DEAD GUARD I SHIPPED IN v9.7.615, found while testing this build and
-            // fixed here. _lpCustomerAuthoredPart anchors its tapback pattern at ^, allowing only
-            // CRM routing headers ("Received from: ...") ahead of the reaction verb — v9.7.590
-            // widened it to exactly that and no further. Its other two callers hand it a raw note
-            // BODY, so it works for them. This caller hands it a transcript LINE, which always
-            // opens "[07/28/2026 5:37 PM] [CUSTOMER] ", so the verb was never at a line start and
-            // the reaction branch could not fire once. Same shape as the v9.7.590 miss it was
-            // built to fix, and as every other guard in this file that could not reach production
-            // input. Strip the line's own date/tag prefix and the guard reaches its text.
-            var _bare = s.replace(/^\[[^\]]*\]\s*\[[^\]]*\]\s*/, '');
-            var t = _bare;
-            try { var cp = _lpCustomerAuthoredPart(_bare); if (cp && typeof cp.text === 'string') t = cp.text; } catch (eC) {}
-            if (t) out.push({ text: t, ms: (ms > 0 ? ms : 0) });
-          });
-        } catch (eS) {}
-        return out;
-      }
 
-      // ── (v9.7.616) THE BUDGET THE CUSTOMER NEVER STATED ────────────────────────────────────────
-      // BUDGET-STATED FRAMING (v9.7.315) tells the model "Customer has stated a specific budget,
-      // payment, or OTD target ... lead with their stated number as the goal." Its flag was set at
-      // module scope by testing the WHOLE assembled arc, so on 9/4 it fired on two customers who
-      // have never written a word to us, from two different sources of our own text:
-      //   Tricia Green  -- TrueCar's own listing field, verbatim: "OFFER SHOWN: $25,815"
-      //   Sharon Pierre -- our own 2024 blast marketing, "as low as $20,074 MPR", x6
-      // Neither is a customer statement, and "lead with their stated number" has no number to lead
-      // with. Same class as v9.7.613/614/615, so it takes the same cure: the SHIPPED
-      // _lpCustomerSaid() above, which already routes through the tapback/quoted-reply guard, so
-      // a price sheet the customer thumbs-up'd back to us is excluded too. The pattern itself is
-      // unchanged character for character -- this changes only WHOSE words it reads.
-      var _lpCustSaidMoney = false;
-      try {
-        var _moneyRx = /\bcash\b|\boffer\b|\$\s?\d|\bOTD\b|out the door/i;
-        var _moneyHit = null;
-        _lpCustomerSaid().forEach(function (o) {
-          if (!_moneyHit && o && _moneyRx.test(o.text)) _moneyHit = o.text;
-        });
-        _lpCustSaidMoney = !!_moneyHit;
-        _lpD('[LP BUDGET SCOPE DIAG] customerSaidMoney:' + _lpCustSaidMoney
-          + ' | customerLines:' + _lpCustomerSaid().length
-          + (_moneyHit ? ' | hit:"' + String(_moneyHit).replace(/\s+/g, ' ').slice(0, 90) + '"'
-                       : ' | no customer-authored money mention'));
-      } catch (eBm) { _lpCustSaidMoney = false; }
 
       // ── (v9.7.615) TIMING HESITATION MUST STILL BE TRUE ─────────────────────────────────────────
       // LIVE, 9/3, Pranav Patel. It fired on his 8/01 "We are about to go on vacation, so I will
@@ -21377,6 +21388,13 @@ async function generateAll() {
       lastOutboundMsg:           lastScrapedData ? (lastScrapedData.lastOutboundMsg || '') : '',
       lastSubstantiveOutboundMsg: lastScrapedData ? (lastScrapedData.lastSubstantiveOutboundMsg || '') : '',
       conversationBrief:         lastScrapedData ? (lastScrapedData.conversationBrief || '') : '',
+      // (v9.7.618) buildUserPrompt receives a HAND-BUILT OBJECT LITERAL, not the merged scrape.
+      // v9.7.616 added pdVoiList to the scraper's return and read data.pdVoiList in the prompt
+      // builder, and NOTHING CONNECTED THE TWO -- so [LP VOI FAMILY DIAG] reported voiRecords:0
+      // while the scraper, executed against Sharon's real DOM, produced the Sorento record
+      // correctly. The frame merge was never the problem; this line is the entire wiring, and its
+      // absence is why two builds of "fixes" changed nothing.
+      pdVoiList:                 lastScrapedData ? (lastScrapedData.pdVoiList || null) : null,
       equityAmount:              lastScrapedData ? (lastScrapedData.equityAmount || '') : '',
       equityVehicle:             lastScrapedData ? (lastScrapedData.equityVehicle || '') : '',
       ownedVehicle:              lastScrapedData ? (lastScrapedData.ownedVehicle || '') : '',
