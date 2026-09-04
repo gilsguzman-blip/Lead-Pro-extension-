@@ -24,6 +24,18 @@
   than as zero. "We don't know" and "there are none" are the two states this panel exists to keep
   apart, and collapsing them is what the 9/4 survey did.
 
+  v1.5 — QUOTABLE, BECAUSE THE PROXY AND THE EXTENSION DISAGREE ABOUT WHAT "LIVE" MEANS. The two
+  expiry rules are deliberately opposite, and v1.4 reported only one of them:
+      GET /valuefact          drops a line when `expires` is present AND past -> an UNDATED line PASSES
+      _lpExpiryFilterIncentives  drops a line unless `expires` is a valid ISO date >= today
+                              -> an UNDATED line is DISCARDED, matching the Data Tool's own publish
+                                 rule, whose UI calls expiry "the kill-switch"
+  So a store can read "39 live" off the proxy and inject ZERO incentive lines into a real prompt.
+  A panel that reported only the proxy's number would hide the exact failure it was built to
+  surface — and on 9/4 it did: both Honda rooftops read 39 live while their publish date was a
+  month old. Quotable applies the EXTENSION's rule, so the column says what a customer can
+  actually be told, and a store holding undated lines gets its own state and its own red.
+
   NO NEW CREDENTIAL. GET /valuefact is unauthenticated and returns incentive lines only, never
   contact data, so this panel does NOT append the director key and must never be changed to. It is
   a pure read; nothing here can write to KV.
@@ -354,7 +366,7 @@ const VF_STORES = [
 // VERBATIM from tools/leadpro-live-check.js. tests/live-check.test.js lifts BOTH copies and runs
 // them against the same fixtures, asserting identical results — if one is edited and the other is
 // not, that suite fails. No director key: /valuefact is unauthenticated and returns lines only.
-async function readStore(base, did, name){
+async function readStore(base, did, name, today){
   try{
     const r = await fetch(base + '/valuefact?dealer=' + encodeURIComponent(did));
     if(!r.ok) return { did, name, state:'error', detail:'HTTP ' + r.status };
@@ -364,12 +376,27 @@ async function readStore(base, did, name){
     const inc = Array.isArray(vf.incentives) ? vf.incentives : [];
     const models = {};
     inc.forEach(function(x){ const m = (x && x.model) || '(unnamed)'; models[m] = (models[m]||0)+1; });
+    // QUOTABLE APPLIES THE EXTENSION'S RULE, NOT THE WORKER'S — and they disagree on purpose.
+    // GET /valuefact drops a line only when `expires` is present AND past, so an UNDATED line
+    // passes. _lpExpiryFilterIncentives does the opposite: a missing or malformed expires is
+    // dropped, matching the Data Tool's own publish rule ("expiry is the kill-switch"). A store
+    // can therefore read "39 live" off the worker and inject ZERO lines into a real prompt.
+    // Reporting only the worker's count is how this panel would hide the exact failure it exists
+    // to surface, so it reports both and says which is which.
+    let quotable = 0;
+    inc.forEach(function(x){
+      const e = (x && x.expires != null) ? String(x.expires).trim() : '';
+      if(/^\d{4}-\d{2}-\d{2}$/.test(e) && e >= today) quotable++;
+    });
     return {
       did, name,
-      state: inc.length ? 'live' : 'lapsed',
+      // 'undated' is its own state: the worker serves these, the extension discards them, and the
+      // store quotes nothing. It looks identical to a healthy store from the proxy alone.
+      state: !inc.length ? 'lapsed' : (quotable ? 'live' : 'undated'),
       live: inc.length,
+      quotable: quotable,
       // storedCount arrives from v7.70. null on an older proxy — reported as unknown, not as 0,
-      // because "we don't know" and "there are none" are the two states this panel exists to separate.
+      // because "we don't know" and "there are none" are the two states this page exists to separate.
       stored: (typeof vf.storedCount === 'number') ? vf.storedCount : null,
       generated: vf.generated || null,
       models
@@ -384,7 +411,8 @@ function LiveIncentives() {
   const load = useCallback(async () => {
     setBusy(true);
     const out = [];
-    for (const s of VF_STORES) out.push(await readStore(PROXY, s[0], s[1]));
+    const today = centralToday(0);
+    for (const s of VF_STORES) out.push(await readStore(PROXY, s[0], s[1], today));
     setRows(out); setBusy(false);
   }, []);
   useEffect(() => { load(); }, []);
@@ -394,20 +422,29 @@ function LiveIncentives() {
   const today = centralToday(0);
 
   const liveCell = (r) =>
-    r.state === 'error'  ? h('span', { style:{color:'#f87171'} }, 'unreachable')  :
-    r.state === 'empty'  ? h('span', { style:{color:'#f87171'} }, 'nothing published') :
-    r.state === 'lapsed' ? h('span', { style:{color:'#fbbf24'} }, '0 — all lapsed') :
-                           h('span', { style:{color:'#34d399',fontWeight:600} }, r.live);
+    r.state === 'error'   ? h('span', { style:{color:'#f87171'} }, 'unreachable')  :
+    r.state === 'empty'   ? h('span', { style:{color:'#f87171'} }, 'nothing published') :
+    r.state === 'lapsed'  ? h('span', { style:{color:'#fbbf24'} }, '0 — all lapsed') :
+    r.state === 'undated' ? h('span', { style:{color:'#f87171'} }, r.live + ' — none dated') :
+                            h('span', { style:{color:'#34d399',fontWeight:600} }, r.live);
+  // What actually reaches a customer. Red when the store holds lines and quotes none of them.
+  const quotableCell = (r) =>
+    (r.state === 'error' || r.state === 'empty')
+      ? h('span', { style:{color:'#4b5563'} }, DASH)
+      : h('span', { style:{color: r.quotable ? '#34d399' : '#f87171', fontWeight:600} }, r.quotable || 0);
 
   const verdict = () => {
     if (!rows) return null;
     const errs   = rows.filter(r => r.state === 'error').length;
     const empty  = rows.filter(r => r.state === 'empty').length;
     const lapsed = rows.filter(r => r.state === 'lapsed').length;
-    if (errs)   return [errs + ' rooftop(s) unreachable — a network problem, not a data problem.', '#f87171'];
-    if (empty)  return [empty + ' rooftop(s) have NOTHING published to Lead Pro.', '#f87171'];
-    if (lapsed) return [lapsed + ' rooftop(s) published but every line has lapsed — re-publish those.', '#fbbf24'];
-    return ['All ' + rows.length + ' rooftops published and live.', '#34d399'];
+    const undated = rows.filter(r => r.state === 'undated').length;
+    if (errs)    return [errs + ' rooftop(s) unreachable — a network problem, not a data problem.', '#f87171'];
+    if (empty)   return [empty + ' rooftop(s) have NOTHING published to Lead Pro.', '#f87171'];
+    if (undated) return [undated + ' rooftop(s) hold lines with NO expiry date. The proxy serves them; the '
+                       + 'extension discards every one, so those stores quote nothing.', '#f87171'];
+    if (lapsed)  return [lapsed + ' rooftop(s) published but every line has lapsed — re-publish those.', '#fbbf24'];
+    return ['All ' + rows.length + ' rooftops published and quotable.', '#34d399'];
   };
   const v = verdict();
 
@@ -424,6 +461,7 @@ function LiveIncentives() {
           h('th', null, 'Store'),
           h('th', { className:'right' }, 'Dealer'),
           h('th', { className:'right' }, 'Live lines'),
+          h('th', { className:'right', title:"Passes the extension's stricter rule — what a customer can actually be told" }, 'Quotable'),
           h('th', { className:'right' }, 'Stored'),
           h('th', null, 'Published'),
           h('th', null, 'Models')
@@ -434,6 +472,7 @@ function LiveIncentives() {
             h('td', null, r.name),
             h('td', { className:'right mono', style:{color:'#4b5563'} }, r.did),
             h('td', { className:'right mono' }, liveCell(r)),
+            h('td', { className:'right mono' }, quotableCell(r)),
             // Unknown is not zero. An older proxy sends no storedCount at all.
             h('td', { className:'right mono', style:{color: r.stored == null ? '#4b5563' : '#94a3b8'} },
               r.stored == null ? DASH : r.stored),

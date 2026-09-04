@@ -47,6 +47,19 @@ const DASH_PATH = process.argv.slice(2).find(a => /\.html$/.test(a)) ||
 const toolSrc = fs.readFileSync(TOOL_PATH, 'utf8');
 const dashSrc = fs.readFileSync(DASH_PATH, 'utf8');
 
+// THE TOOL'S PAGE LIVES INSIDE A TEMPLATE LITERAL, so its raw source is NOT what a browser runs:
+// `\d` in the file is `\\d` on disk. Lifting the raw text meant testing a regex that can never
+// match — the suite would have passed a page whose expiry check was dead. Evaluate the literal so
+// every assertion below reads the page EXACTLY as it is served.
+const PAGE_SRC = (() => {
+  const i = toolSrc.indexOf('const PAGE = `');
+  const j = toolSrc.indexOf('`;\n\nfunction html()');
+  if (i < 0 || j < 0) require('./lib/fatal-guard.js').bail('live-check.test.js', 'PAGE template not found');
+  const sb = {}; vm.createContext(sb);
+  vm.runInContext(toolSrc.slice(i, j + 1) + ';', sb);
+  return vm.runInContext('PAGE', sb);
+})();
+
 let pass = 0, fail = 0;
 function check(name, got, want) {
   const g = JSON.stringify(got), w = JSON.stringify(want);
@@ -56,7 +69,7 @@ function check(name, got, want) {
 
 // ── Lift the SHIPPED classifier out of each surface ──────────────────────────
 function liftReadStore(src, whence) {
-  const a = src.indexOf('async function readStore(base, did, name){');
+  const a = src.indexOf('async function readStore(base, did, name, today){');
   const b = src.indexOf('\n}', src.indexOf("  }catch(e){ return { did, name, state:'error'", a));
   if (a < 0 || b < 0) {
     require('./lib/fatal-guard.js').bail('live-check.test.js', 'readStore not found in ' + whence);
@@ -64,13 +77,14 @@ function liftReadStore(src, whence) {
   return src.slice(a, b + 2);
 }
 const READ = {
-  tool: liftReadStore(toolSrc, TOOL_PATH),
+  tool: liftReadStore(PAGE_SRC, TOOL_PATH + ' (rendered)'),
   dash: liftReadStore(dashSrc, DASH_PATH),
 };
 
+const TODAY = '2026-09-04';
 function runStore(which, response) {
   const sb = {
-    JSON, Array, Object, String, encodeURIComponent,
+    JSON, Array, Object, String, RegExp, encodeURIComponent,
     fetch: async () => {
       if (response.throws) throw new Error(response.throws);
       if (!response.ok) return { ok: false, status: response.status };
@@ -79,20 +93,31 @@ function runStore(which, response) {
   };
   vm.createContext(sb);
   vm.runInContext(READ[which], sb);
-  return vm.runInContext("readStore('https://p.example', '6190', 'Kia Baytown')", sb);
+  return vm.runInContext("readStore('https://p.example', '6190', 'Kia Baytown', '" + TODAY + "')", sb);
 }
 
 // The real response shapes, v7.70 and older.
 const LIVE   = { ok: true, body: { ok: true, valuefact: { store: 'Kia Baytown', count: 2, storedCount: 110,
-                   generated: '2026-09-04', incentives: [{ model: 'Sportage' }, { model: 'Sportage' }] } } };
+                   generated: '2026-09-04', incentives: [{ model: 'Sportage', expires: '2026-09-30' },
+                                                         { model: 'Sportage', expires: '2026-09-30' }] } } };
+// THE HONDA SHAPE, 9/4. The proxy serves these — it only drops a line whose `expires` is present
+// AND past — while _lpExpiryFilterIncentives discards every one of them. "39 live, 0 quotable."
+const UNDATED = { ok: true, body: { ok: true, valuefact: { store: 'Honda Baytown', count: 2, storedCount: 39,
+                   generated: '2026-08-05', incentives: [{ model: 'Accord' }, { model: 'CR-V', expires: '' }] } } };
+// Half the sheet dated, half not — the store still quotes, but not what it appears to hold.
+const PARTIAL = { ok: true, body: { ok: true, valuefact: { store: 'Honda Baytown', count: 2, storedCount: 39,
+                   generated: '2026-08-05', incentives: [{ model: 'Accord', expires: '2026-09-30' },
+                                                         { model: 'CR-V', expires: 'soon' }] } } };
 const LAPSED = { ok: true, body: { ok: true, valuefact: { store: 'Kia Baytown', count: 0, storedCount: 110,
                    generated: '2026-08-01', incentives: [] } } };
 const EMPTY  = { ok: true, body: { ok: true, valuefact: null } };
+// pre-v7.70: no generated/storedCount. Dated, so this fixture isolates the PROXY VERSION and does
+// not also trip the undated rule — one fixture, one concern.
 const OLD    = { ok: true, body: { ok: true, valuefact: { store: 'Kia Baytown', count: 1,
-                   incentives: [{ model: 'Sportage' }] } } };          // pre-v7.70: no generated/storedCount
+                   incentives: [{ model: 'Sportage', expires: '2026-09-30' }] } } };
 const DOWN   = { ok: false, status: 503 };
 const THREW  = { throws: 'Failed to fetch' };
-const FIXTURES = { LIVE, LAPSED, EMPTY, OLD, DOWN, THREW };
+const FIXTURES = { LIVE, LAPSED, EMPTY, OLD, DOWN, THREW, UNDATED, PARTIAL };
 
 (async () => {
 console.log('\nleadpro live check — the states an operator acts on');
@@ -133,6 +158,36 @@ const threw = await runStore('tool', THREW);
 check('a thrown fetch classifies as error too', threw.state, 'error');
 check('...and never reports lines it did not read', threw.live, undefined);
 
+// ── THE PROXY AND THE EXTENSION DISAGREE ABOUT "LIVE" ────────────────────────
+// GET /valuefact drops a line only when `expires` is present AND past, so an UNDATED line passes.
+// _lpExpiryFilterIncentives drops it, matching the Data Tool's publish rule. A panel reporting only
+// the proxy's count would show a healthy store that quotes nothing — which is what both Honda
+// rooftops looked like on 9/4, at 39 live with a month-old publish date.
+console.log('\nundated lines: the proxy serves them, the extension discards them:');
+const und = await runStore('tool', UNDATED);
+check('a store of undated lines is NOT called live', und.state, 'undated');
+check('...the proxy still reports them as live lines', und.live, 2);
+check('...but nothing is quotable', und.quotable, 0);
+check('...and that is a different state from lapsed', und.state === lapsed.state, false);
+check('...and from empty', und.state === empty.state, false);
+
+console.log('\na half-dated sheet quotes only the dated half:');
+const part = await runStore('tool', PARTIAL);
+check('the store still counts as live', part.state, 'live');
+check('...the proxy reports both lines', part.live, 2);
+check('...only the validly dated one is quotable', part.quotable, 1);
+check('a malformed date is not quotable ("soon" sorts above a real date)',
+  part.quotable < part.live, true);
+
+console.log('\nan expires ON today still counts — the boundary, both ways:');
+const onToday = await runStore('tool', { ok: true, body: { ok: true, valuefact: { store:'X', count:1,
+  storedCount:1, generated:'2026-09-04', incentives:[{ model:'A', expires:'2026-09-04' }] } } });
+check('expiring today is quotable', onToday.quotable, 1);
+const yest = await runStore('tool', { ok: true, body: { ok: true, valuefact: { store:'X', count:1,
+  storedCount:1, generated:'2026-09-04', incentives:[{ model:'A', expires:'2026-09-03' }] } } });
+check('expired yesterday is not', yest.quotable, 0);
+check('...and the store reads undated/none-quotable rather than healthy', yest.state, 'undated');
+
 // ── THE TWO COPIES MAY NOT DRIFT ─────────────────────────────────────────────
 // The dashboard carries its own readStore so it can be deployed as one index file. That is a
 // duplicate, and duplicates drift. Every fixture above, through both copies, compared whole.
@@ -161,16 +216,19 @@ for (const which of ['tool', 'dash']) {
   check(which + ' readStore reaches for no credential',
     /DIRECTOR_KEY|licenseKey|X-LP-Key|key=|Authorization/.test(READ[which]), false);
 }
-check('...and readStore takes no key parameter', /readStore\(base, did, name\)/.test(dashSrc), true);
+check('...and readStore takes no key parameter', /readStore\(base, did, name, today\)/.test(dashSrc), true);
 
 // Scoped to the PAGE template, not the whole file — the worker's own `export default { fetch }`
 // handler is a second match and counting it made this assertion wrong rather than the code.
-const PAGE_SRC = toolSrc.slice(toolSrc.indexOf('const PAGE = `'), toolSrc.indexOf('`;\n\nfunction html()'));
 check('the page issues exactly one network call',
   (PAGE_SRC.match(/fetch\(/g) || []).length, 1);
 check('...and it is the valuefact GET',
   /fetch\(base \+ '\/valuefact\?dealer=' \+ encodeURIComponent\(did\)\)/.test(PAGE_SRC), true);
 check('nothing in it can POST', /method:\s*'POST'/.test(toolSrc), false);
+// Guards the harness, not the page: if the template literal stops being evaluated, the lifted
+// regexes silently go dead and every expiry assertion above passes vacuously.
+check('the harness reads the RENDERED page, not the escaped source',
+  PAGE_SRC.indexOf('\\\\d{4}') === -1 && PAGE_SRC.indexOf('\\d{4}') > -1, true);
 check('the dashboard panel cannot POST to the proxy either',
   /valuefact[\s\S]{0,200}method:\s*'POST'/.test(dashSrc), false);
 

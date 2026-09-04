@@ -111,7 +111,7 @@ function centralToday(){
     year:'numeric', month:'2-digit', day:'2-digit' }).format(new Date());
 }
 
-async function readStore(base, did, name){
+async function readStore(base, did, name, today){
   try{
     const r = await fetch(base + '/valuefact?dealer=' + encodeURIComponent(did));
     if(!r.ok) return { did, name, state:'error', detail:'HTTP ' + r.status };
@@ -121,10 +121,25 @@ async function readStore(base, did, name){
     const inc = Array.isArray(vf.incentives) ? vf.incentives : [];
     const models = {};
     inc.forEach(function(x){ const m = (x && x.model) || '(unnamed)'; models[m] = (models[m]||0)+1; });
+    // QUOTABLE APPLIES THE EXTENSION'S RULE, NOT THE WORKER'S — and they disagree on purpose.
+    // GET /valuefact drops a line only when \`expires\` is present AND past, so an UNDATED line
+    // passes. _lpExpiryFilterIncentives does the opposite: a missing or malformed expires is
+    // dropped, matching the Data Tool's own publish rule ("expiry is the kill-switch"). A store
+    // can therefore read "39 live" off the worker and inject ZERO lines into a real prompt.
+    // Reporting only the worker's count is how this page would hide the exact failure it exists
+    // to surface, so it reports both and says which is which.
+    let quotable = 0;
+    inc.forEach(function(x){
+      const e = (x && x.expires != null) ? String(x.expires).trim() : '';
+      if(/^\\d{4}-\\d{2}-\\d{2}$/.test(e) && e >= today) quotable++;
+    });
     return {
       did, name,
-      state: inc.length ? 'live' : 'lapsed',
+      // 'undated' is its own state: the worker serves these, the extension discards them, and the
+      // store quotes nothing. It looks identical to a healthy store from the proxy alone.
+      state: !inc.length ? 'lapsed' : (quotable ? 'live' : 'undated'),
       live: inc.length,
+      quotable: quotable,
       // storedCount arrives from v7.70. null on an older proxy — reported as unknown, not as 0,
       // because "we don't know" and "there are none" are the two states this page exists to separate.
       stored: (typeof vf.storedCount === 'number') ? vf.storedCount : null,
@@ -139,7 +154,13 @@ function render(rows){
     if(r.state === 'error') return '<span class="bad">unreachable</span>';
     if(r.state === 'empty') return '<span class="bad">nothing published</span>';
     if(r.state === 'lapsed') return '<span class="stale">0 — all lapsed</span>';
+    if(r.state === 'undated') return '<span class="bad">' + r.live + ' — none dated</span>';
     return '<span class="good">' + r.live + '</span>';
+  };
+  // What actually reaches a customer. Red when the store holds lines but quotes none of them.
+  const qcell = r => {
+    if(r.state === 'error' || r.state === 'empty') return '<span class="mut">—</span>';
+    return '<span class="' + (r.quotable ? 'good' : 'bad') + '">' + (r.quotable || 0) + '</span>';
   };
   // centralToday(), NOT new Date().toISOString() — .toISOString() always converts to UTC first, so
   // after ~7 PM Central "today" is already tomorrow and the afternoon's own upload renders stale.
@@ -151,6 +172,7 @@ function render(rows){
       + '<td class="store">' + r.name + '</td>'
       + '<td class="did">' + r.did + '</td>'
       + '<td class="num">' + cell(r) + '</td>'
+      + '<td class="num">' + qcell(r) + '</td>'
       + '<td class="num">' + (r.stored == null ? '<span class="mut">—</span>' : r.stored) + '</td>'
       + '<td>' + (r.generated
           ? '<span class="' + (stale ? 'stale' : 'good') + '">' + r.generated + '</span>'
@@ -162,6 +184,7 @@ function render(rows){
   }).join('');
   $('out').innerHTML =
     '<table><thead><tr><th>Store</th><th>Dealer ID</th><th style="text-align:right">Live lines</th>'
+    + '<th style="text-align:right" title="Passes the extension\'s stricter rule — what a customer can actually be told">Quotable</th>'
     + '<th style="text-align:right">Stored</th><th>Published</th><th>Models</th></tr></thead>'
     + '<tbody>' + body + '</tbody></table>';
 }
@@ -171,17 +194,21 @@ async function run(){
   if(!base){ note('Endpoint is empty.', 'bad'); return; }
   $('go').disabled = true; note('Checking ' + STORES.length + ' rooftops…');
   const rows = [];
-  for(const s of STORES) rows.push(await readStore(base, s[0], s[1]));
+  const today = centralToday();
+  for(const s of STORES) rows.push(await readStore(base, s[0], s[1], today));
   render(rows);
   const empty  = rows.filter(function(r){ return r.state === 'empty';  }).length;
   const lapsed = rows.filter(function(r){ return r.state === 'lapsed'; }).length;
   const errs   = rows.filter(function(r){ return r.state === 'error';  }).length;
   // Three states, deliberately named separately — before v7.70 they were indistinguishable from
   // outside, which is the whole reason "is Kia in there?" took a day to answer.
-  if(errs)        note(errs + ' rooftop(s) unreachable — check the endpoint.', 'bad');
-  else if(empty)  note(empty + ' rooftop(s) have NOTHING published to Lead Pro.', 'bad');
-  else if(lapsed) note(lapsed + ' rooftop(s) published but every line has lapsed — re-publish those.', 'warn');
-  else            note('All ' + rows.length + ' rooftops published and live.', 'ok');
+  const undated = rows.filter(function(r){ return r.state === 'undated'; }).length;
+  if(errs)         note(errs + ' rooftop(s) unreachable — check the endpoint.', 'bad');
+  else if(empty)   note(empty + ' rooftop(s) have NOTHING published to Lead Pro.', 'bad');
+  else if(undated) note(undated + ' rooftop(s) hold lines with NO expiry date. The proxy serves them; the '
+                      + 'extension discards every one, so those stores quote nothing. Re-publish with dates.', 'bad');
+  else if(lapsed)  note(lapsed + ' rooftop(s) published but every line has lapsed — re-publish those.', 'warn');
+  else             note('All ' + rows.length + ' rooftops published and quotable.', 'ok');
   $('go').disabled = false;
 }
 
