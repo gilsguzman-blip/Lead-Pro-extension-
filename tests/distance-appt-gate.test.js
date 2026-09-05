@@ -66,6 +66,12 @@ function build(impl, data, opts) {
     data: data,
     lines: [],
     _inStateFar: !!opts.inStateFar,
+    // (v9.7.631) The block gained a SECOND gate — the sold-unit fact arbitration — declared
+    // above this slice and read inside it. Supplied here as an explicit input, the same way
+    // _inStateFar and distanceContext already are. It defaults to FALSE, which is the state
+    // every pre-existing case in this suite is in, so none of them changed meaning. The two
+    // gates are orthogonal and the case at the end of this file pins that they stay so.
+    _dbSoldUnit: !!opts.soldUnit,
     distanceContext: opts.distanceContext || '',
     _hasCustomerReplied: opts.replied === undefined ? undefined : () => !!opts.replied,
     console: { log: (...x) => logs.push(x.join(' ')) }
@@ -192,6 +198,33 @@ check('the OTD block still closes with two appointment times',
   i => /\(5\) Close with two specific appointment times\./.test(i.src), true);
 check('...and still says to close again with a time on pushback',
   i => /then close again with a time/.test(i.src), true);
+
+// ── (v9.7.631) THE TWO GATES ARE INDEPENDENT ────────────────────────────────
+// This block now carries two of them — the v9.7.611 appointment gate and the v9.7.631 sold-unit
+// fact arbitration — and they modify overlapping lines. Two gates on one block is how a build
+// accidentally makes one imply the other, so all four combinations are pinned here rather than
+// left to be discovered. The suite that owns the sold gate (fact-arbitration) covers its wording;
+// what is asserted here is only that neither gate moves the other.
+console.log('\nthe appointment gate and the sold gate do not interfere:');
+const fresh = { leadAgeDays: 0, _isStalled: false, _neverReplied: false };
+const stale = { leadAgeDays: 45, _isStalled: true, _neverReplied: true };
+check('sold does not switch the appointment engine off',
+  i => /apptEngineOff:false/.test(build(i, fresh, { soldUnit: true }).logs.join(' ')), true);
+check('...and not-sold does not switch it on',
+  i => /apptEngineOff:true/.test(build(i, stale, { soldUnit: false }).logs.join(' ')), true);
+check('an appointment-off lead with an available unit still promises it is ready',
+  i => /I will have everything ready when you arrive/.test(text(build(i, stale, { soldUnit: false }))), true);
+check('...and a sold unit drops that promise even when the engine is ON',
+  i => /I will have everything ready when you arrive/.test(text(build(i, fresh, { soldUnit: true }))), false);
+check('both gates at once: no appointment ask AND no availability promise',
+  i => {
+    const t = text(build(i, stale, { soldUnit: true }));
+    return /Do NOT close with an appointment ask/.test(t)
+        && !/I will have everything ready when you arrive/.test(t)
+        && /anchored on a CONFIRMED alternative/.test(t);
+  }, true);
+check('...and the justification survives both, which is the point of each split',
+  i => /REQUIRED in EVERY format/.test(text(build(i, stale, { soldUnit: true }))), true);
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);
