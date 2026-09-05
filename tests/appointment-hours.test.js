@@ -212,7 +212,16 @@ for (const file of BUILDS) {
   check('  ...it is now reached only when tomorrow is genuinely open',
     /_lpNextOpenLabel === 'tomorrow'\s*\n?\s*\? ' lead with a today time, or today plus tomorrow\.'/.test(code), true);
   check('  ...and a closed tomorrow names the open day instead',
-    /TOMORROW IS CLOSED — if you offer a second option at all it must be ' \+ _lpNextOpenLabel/.test(code), true);
+    /Only if the conversation genuinely has to move off today does a later day come in, and that day is ' \+ _lpNextOpenLabel/.test(code), true);
+  // (v9.7.643) THE PROPERTY GIL'S QUESTION EXPOSED. The slot engine returns TWO TODAY slots all
+  // Saturday morning; v9.7.642 told the model any second option had to be Monday, contradicting
+  // them and inviting the today+Monday pairing he asked about. This line owns "soonest first" and
+  // "never a closed day" — it does not own what is available, and must defer to the block that
+  // does. The v9.7.631 ownership rule, applied to a directive I wrote myself.
+  check('  ...and it defers to the block that owns availability',
+    /the SUGGESTED APPOINTMENT TIMES below already reflect what is genuinely available/.test(code), true);
+  check('  ...rather than prescribing what the second option must be',
+    /if you offer a second option at all it must be/.test(code), false);
   // EXECUTED, not matched. A source-position assertion says the branch exists; only running it
   // says the branch still decides anything. Disabling the condition leaves every text match green,
   // which is the vacuous shape this repo has shipped before.
@@ -232,11 +241,15 @@ for (const file of BUILDS) {
   check('a CLOSED tomorrow does not',
     /today plus tomorrow/.test(soonestFor('Monday 9/7')), false);
   check('  ...it names the open day it resolved to',
-    /must be Monday 9\/7/.test(soonestFor('Monday 9/7')), true);
+    /that day is Monday 9\/7/.test(soonestFor('Monday 9/7')), true);
+  check('  ...only as the move-off-today fallback, not as the second option',
+    /Only if the conversation genuinely has to move off today/.test(soonestFor('Monday 9/7')), true);
+  check('  ...and it points at the suggested times rather than replacing them',
+    /follow them rather than substituting a day of your own/.test(soonestFor('Monday 9/7')), true);
   check('  ...and says outright that tomorrow is closed',
     /TOMORROW IS CLOSED/.test(soonestFor('Monday 9/7')), true);
   check('  ...and forbids the relative words the closed-day rule also forbids',
-    /never "tomorrow" and never "this weekend"/.test(soonestFor('Monday 9/7')), true);
+    /never offer it and never name it, including as "tomorrow" or "this weekend"/.test(soonestFor('Monday 9/7')), true);
   check('an unresolvable calendar offers no second day at all',
     soonestFor(''), ' lead with a today time.');
 
