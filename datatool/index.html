@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lead Pro · Data Tool</title>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com/">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=IBM+Plex+Sans:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#0c1726; --navy2:#10203a; --panel:#13243d; --line:#22324d;
+    --gold:#e0a82e; --gold-dim:#9a7a2c; --green:#33b06a; --red:#e0584e;
+    --ink:#eaf0f8; --mut:#8ba0bd; --mut2:#5f7da0;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:
+      radial-gradient(900px 500px at 85% -10%, rgba(224,168,46,.10), transparent 60%),
+      radial-gradient(700px 500px at -5% 110%, rgba(51,176,106,.08), transparent 55%),
+      var(--navy);
+    color:var(--ink);font-family:'IBM Plex Sans',sans-serif;-webkit-font-smoothing:antialiased;
+    min-height:100vh;padding:34px 20px 60px;}
+  .wrap{max-width:1000px;margin:0 auto}
+  header{display:flex;align-items:center;gap:14px;margin-bottom:20px}
+  .shield{width:34px;height:38px;flex:0 0 auto;filter:drop-shadow(0 2px 6px rgba(0,0,0,.5))}
+  h1{font-size:21px;font-weight:700;letter-spacing:-.01em;margin:0;line-height:1}
+  h1 .sub{display:block;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500;
+    color:var(--gold);letter-spacing:.18em;text-transform:uppercase;margin-top:5px}
+
+  .tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:24px}
+  .tab{background:none;border:none;color:var(--mut);font-family:'IBM Plex Sans',sans-serif;font-size:14px;
+    font-weight:600;padding:11px 18px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:.15s}
+  .tab:hover{color:var(--ink)}
+  .tab.active{color:var(--gold);border-bottom-color:var(--gold)}
+  .tab .badge{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--mut2);font-weight:500;margin-left:7px}
+  .panel{display:none} .panel.active{display:block;animation:rise .35s ease}
+  @keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  .lede{color:var(--mut);font-size:13.5px;line-height:1.55;margin:0 0 22px;max-width:700px}
+  .lede b{color:var(--ink);font-weight:600}
+
+  .drop{display:block;border:1.5px dashed var(--line);border-radius:14px;background:linear-gradient(180deg,var(--navy2),rgba(16,32,58,.4));
+    padding:38px 28px;text-align:center;cursor:pointer;transition:.18s}
+  .drop:hover{border-color:var(--gold-dim);background:var(--navy2)}
+  .drop.over{border-color:var(--gold);box-shadow:inset 0 0 0 1px var(--gold),0 0 40px rgba(224,168,46,.12)}
+  .drop .big{font-size:16px;font-weight:600;margin:6px 0 6px}
+  .drop .small{font-size:12.5px;color:var(--mut)}
+  .drop .small code{font-family:'IBM Plex Mono',monospace;color:var(--gold);font-size:11.5px}
+  input[type=file]{display:none}
+  .files{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;justify-content:center}
+  .chip{font-family:'IBM Plex Mono',monospace;font-size:11.5px;background:var(--panel);border:1px solid var(--line);
+    border-radius:7px;padding:6px 10px;color:var(--mut);display:flex;gap:8px;align-items:center}
+  .chip b{color:var(--ink);font-weight:500}
+  .chip .pool{color:var(--gold);text-transform:uppercase;font-size:10px;letter-spacing:.08em}
+
+  .actions{display:flex;gap:12px;margin-top:18px;flex-wrap:wrap}
+  button.act{font-family:'IBM Plex Sans',sans-serif;font-size:13.5px;font-weight:600;border:none;border-radius:9px;
+    padding:11px 18px;cursor:pointer;transition:.15s}
+  .b-go{background:var(--gold);color:#241803} .b-go:hover{filter:brightness(1.08)}
+  .b-go:disabled{opacity:.4;cursor:not-allowed;filter:none}
+  .b-dl{background:transparent;color:var(--ink);border:1px solid var(--line)}
+  .b-dl:hover{border-color:var(--mut)} .b-dl:disabled{opacity:.35;cursor:not-allowed}
+
+  .summary{margin-top:26px;display:none} .summary.show{display:block;animation:rise .4s ease}
+  .statline{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;min-width:100px}
+  .stat .n{font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:600;line-height:1}
+  .stat .n.g{color:var(--gold)} .stat .n.gr{color:var(--green)} .stat .n.r{color:var(--red)}
+  .stat .l{font-size:10.5px;color:var(--mut);text-transform:uppercase;letter-spacing:.1em;margin-top:7px}
+
+  table{width:100%;border-collapse:collapse;font-size:13px;background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line)}
+  th{font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--mut);font-weight:600;background:var(--navy2)}
+  tbody tr:last-child td{border-bottom:none}
+  td.num{font-family:'IBM Plex Mono',monospace;text-align:right}
+  .store{font-weight:600}
+  .cond{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--mut)}
+  .cond .nw{color:var(--green)} .cond .cp{color:var(--gold)}
+
+  .note{display:flex;gap:10px;align-items:flex-start;margin-top:18px;font-size:12.5px;color:var(--mut);
+    background:rgba(51,176,106,.07);border:1px solid rgba(51,176,106,.25);border-radius:9px;padding:12px 14px;line-height:1.5}
+  .note svg{flex:0 0 auto;margin-top:1px} .note b{color:var(--green)}
+  .note.warn{background:rgba(224,168,46,.08);border-color:rgba(224,168,46,.35)} .note.warn b{color:var(--gold)}
+  .note.err{background:rgba(224,88,78,.1);border-color:rgba(224,88,78,.4);color:#f3b4af} .note.err b{color:var(--red)}
+
+  details{margin-top:18px;border:1px solid var(--line);border-radius:10px;background:var(--panel);overflow:hidden}
+  summary{padding:12px 16px;cursor:pointer;font-size:13px;font-weight:600;color:var(--mut);user-select:none}
+  summary:hover{color:var(--ink)}
+  .send-body{padding:0 16px 16px;display:flex;flex-direction:column;gap:10px}
+  .send-body label{font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.08em}
+  .send-body input{background:var(--navy);border:1px solid var(--line);border-radius:7px;padding:9px 11px;color:var(--ink);
+    font-family:'IBM Plex Mono',monospace;font-size:12.5px;width:100%}
+  .send-body input:focus{outline:none;border-color:var(--gold-dim)}
+  .send-body .hint{font-size:11.5px;color:var(--mut2);line-height:1.5}
+  .subtoggle{display:flex;gap:6px;margin-bottom:16px}
+  .subtab{background:var(--panel);border:1px solid var(--line);color:var(--mut);font-family:'IBM Plex Sans',sans-serif;
+    font-size:12.5px;font-weight:600;padding:8px 14px;border-radius:8px;cursor:pointer;transition:.15s}
+  .subtab:hover{color:var(--ink)}
+  .subtab.active{color:#241803;background:var(--gold);border-color:var(--gold)}
+  .submode{display:none} .submode.active{display:block}
+  .field-row{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:16px}
+  .field{flex:1;min-width:200px}
+  .field label{display:block;font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+  .field select,.field input[type=date]{width:100%;background:var(--navy);border:1px solid var(--line);border-radius:8px;
+    padding:10px 11px;color:var(--ink);font-family:'IBM Plex Mono',monospace;font-size:12.5px}
+  .field select:focus,.field input:focus{outline:none;border-color:var(--gold-dim)}
+  .field .fhint{font-size:11px;color:var(--mut2);margin-top:5px;line-height:1.4}
+  footer{margin-top:30px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#3f526e;text-align:center;letter-spacing:.08em}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <svg class="shield" viewBox="0 0 34 38"><path d="M17 1 32 6v13c0 9-6.5 15-15 18C9.5 34 2 28 2 19V6z" fill="#10203a" stroke="#e0a82e" stroke-width="1.5"></path><path d="M17 9v20" stroke="#33b06a" stroke-width="2" stroke-linecap="round"></path><path d="M11 15h12M11 21h12" stroke="#e0a82e" stroke-width="1.6" stroke-linecap="round"></path></svg>
+    <h1>Data Tool<span class="sub">Lead Pro · Community Auto Group</span></h1>
+  </header>
+
+  <div class="tabs">
+    <button class="tab" data-tab="inv">Inventory<span class="badge">vAuto · daily</span></button>
+    <button class="tab active" data-tab="inc">Incentives<span class="badge">by model · monthly</span></button>
+  </div>
+
+  <!-- ============ INVENTORY ============ -->
+  <div class="panel" id="panel-inv">
+    <p class="lede">Drop your two vAuto Merchandising exports (new + used). Parsed <b>here in your browser</b> — the file never leaves your machine. Filters to the five Community stores, strips every confidential column (cost, markup, book, appraisal, trade), tags new/CPO/used, and builds the clean per-store inventory.</p>
+    <label class="drop" id="inv-drop">
+      <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#e0a82e" stroke-width="1.4"><path d="M12 16V4m0 0L7 9m5-5 5 5" stroke-linecap="round" stroke-linejoin="round"></path><path d="M4 17v2a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-2" stroke-linecap="round"></path></svg>
+      <p class="big">Drop vAuto .xls files here</p>
+      <p class="small">or click · expects <code>Merch_w_Gap…xls</code> · drop both (new + used)</p>
+      <input type="file" id="inv-file" accept=".xls,.xlsx" multiple="">
+      <div class="files" id="inv-filelist"></div>
+    </label>
+    <div class="actions">
+      <button class="act b-go" id="inv-go" disabled="">Normalize</button>
+      <button class="act b-dl" id="inv-dl" disabled="">Download JSON</button>
+    </div>
+    <div id="inv-msg"></div>
+    <div class="summary" id="inv-summary">
+      <div class="statline" id="inv-statline"></div>
+      <table><thead><tr><th>Store</th><th>Dealer ID</th><th style="text-align:right">Units</th><th style="text-align:right">Priced</th><th>New / CPO / Used</th></tr></thead><tbody id="inv-rows"></tbody></table>
+      <div class="note"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#33b06a" stroke-width="1.6"><path d="M12 2 4 5v6c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V5z" stroke-linejoin="round"></path><path d="m9 12 2 2 4-4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+        <span><b>Confidential data stayed on your machine.</b> Only customer-safe fields are written — stock, VIN, vehicle, class, body, color, odometer, days-on-lot, price. Cost, markup, water, book, appraised value, and trade numbers were read and discarded.</span></div>
+    </div>
+    <details>
+      <summary>Send to Lead Pro</summary>
+      <div class="send-body">
+        <div><label>Worker endpoint</label><input id="inv-ep" value="https://leadpro-proxy.gilsguzman.workers.dev/inventory"></div>
+        <div><label>License key</label><input id="inv-lk" class="lk" placeholder="paste license key" type="password"></div>
+        <button class="act b-go" id="inv-post" style="align-self:flex-start">Upload to worker</button>
+        <p class="hint">Stores the snapshot in Lead Pro. Daily flow: drop files → Normalize → Upload.</p>
+      </div>
+    </details>
+  </div>
+
+  <!-- ============ INCENTIVES ============ -->
+  <div class="panel active" id="panel-inc">
+    <p class="lede">Two ways in: drop a finished incentives sheet, or drop a saved manufacturer offers page and let it get parsed into the same shape. Parsed <b>here in your browser</b> either way. Each row needs a valid future <code>expires</code> date — that's the safety kill-switch: anything blank or past its date is dropped, never sent.</p>
+
+    <div class="subtoggle">
+      <button class="subtab" data-sub="sheet">Spreadsheet</button>
+      <button class="subtab active" data-sub="page">Manufacturer webpage</button>
+    </div>
+
+    <div class="submode" id="submode-sheet">
+      <label class="drop" id="inc-drop">
+        <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#e0a82e" stroke-width="1.4"><path d="M12 16V4m0 0L7 9m5-5 5 5" stroke-linecap="round" stroke-linejoin="round"></path><path d="M4 17v2a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-2" stroke-linecap="round"></path></svg>
+        <p class="big">Drop the incentives .xlsx here</p>
+        <p class="small">or click · columns <code>dealer_id · category(=model) · line · expires</code></p>
+        <input type="file" id="inc-file" accept=".xls,.xlsx">
+        <div class="files" id="inc-filelist"><span class="chip"><b>Audi AUG26.html</b> · 107 total rows staged (spreadsheet + webpage uploads)</span></div>
+      </label>
+    </div>
+
+    <div class="submode active" id="submode-page">
+      <div class="field-row">
+        <div class="field">
+          <label>Manufacturer &amp; store</label>
+          <select id="inc-page-store">
+            <option value="">Choose a store…</option>
+            <option value="Honda|6191">Honda — Baytown (6191)</option>
+            <option value="Honda|24399">Honda — Lafayette (24399)</option>
+            <option value="Kia|6190">Kia — Baytown (6190)</option>
+            <option value="Toyota|6189">Toyota — Baytown (6189)</option>
+            <option value="Audi|21135">Audi — Lafayette (21135)</option>
+          </select>
+          <div class="fhint">Determines the model list used to read the page, and which dealer_id the rows are tagged with.</div>
+        </div>
+        <div class="field">
+          <label>Valid through (only used if the page has no date)</label>
+          <input type="date" id="inc-page-expires">
+          <div class="fhint">Toyota's page carries a real date per offer — this is only a fallback. Honda's page has none at all, so this is required for Honda.</div>
+        </div>
+      </div>
+      <label class="drop" id="inc-page-drop">
+        <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#e0a82e" stroke-width="1.4"><path d="M12 16V4m0 0L7 9m5-5 5 5" stroke-linecap="round" stroke-linejoin="round"></path><path d="M4 17v2a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-2" stroke-linecap="round"></path></svg>
+        <p class="big">Drop the saved offers page here (.html)</p>
+        <p class="small">Right-click the real offers page → Save As → <code>Webpage, Complete</code>, then drop the .html file here</p>
+        <input type="file" id="inc-page-file" accept=".html,.htm">
+        <div class="files" id="inc-page-filelist"><span class="chip"><b>Audi AUG26.html</b> · 15 offers extracted for Audi (21135)</span></div>
+      </label>
+      <div id="inc-page-msg"><div class="note warn"><span>2 exact duplicate offer(s) collapsed into one (the same model-wide fact repeated across multiple trims).</span></div></div>
+    </div>
+
+    <div class="actions">
+      <button class="act b-go" id="inc-go">Normalize</button>
+      <button class="act b-dl" id="inc-dl">Download JSON</button>
+    </div>
+    <div id="inc-msg"><div class="note "><span>Uploaded to Lead Pro ✓</span></div></div>
+    <div class="summary show" id="inc-summary">
+      <div class="statline" id="inc-statline"><div class="stat"><div class="n">107</div><div class="l">Rows read</div></div><div class="stat"><div class="n gr">107</div><div class="l">Lines kept</div></div><div class="stat"><div class="n ">0</div><div class="l">Dropped (expiry)</div></div><div class="stat"><div class="n">0</div><div class="l">Other dealers</div></div><div class="stat"><div class="n g">4</div><div class="l">Stores</div></div></div>
+      <table><thead><tr><th>Store</th><th>Dealer ID</th><th style="text-align:right">Incentive lines</th><th style="text-align:right">Models</th><th>Earliest expiry</th></tr></thead><tbody id="inc-rows"><tr><td class="store">Toyota Baytown</td><td class="cond">6189</td><td class="num">14</td><td class="num">6</td><td class="cond">2026-08-31</td></tr><tr><td class="store">Honda Baytown</td><td class="cond">6191</td><td class="num">39</td><td class="num">14</td><td class="cond">2026-09-08</td></tr><tr><td class="store">Audi Lafayette</td><td class="cond">21135</td><td class="num">15</td><td class="num">11</td><td class="cond">2026-08-31</td></tr><tr><td class="store">Honda Lafayette</td><td class="cond">24399</td><td class="num">39</td><td class="num">14</td><td class="cond">2026-09-08</td></tr></tbody></table>
+      <div class="note warn" id="inc-warn" style="display:none"></div>
+      <div class="note"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#33b06a" stroke-width="1.6"><path d="M12 2 4 5v6c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V5z" stroke-linejoin="round"></path><path d="M12 8v5M12 16.5v.5" stroke-linecap="round"></path></svg>
+        <span><b>Expiry is the kill-switch — enforced twice.</b> Nothing without a real, future <code>expires</code> date is published from here. From extension <b>v9.7.530-dev / v9.7.528</b> onward Lead Pro also re-checks the date at send time and drops any line that expired after it was published, so the message simply goes out with no incentive rather than a stale one. Lines kept here are matched to a lead's model at send time. <b>On extension builds older than that, expiry was only ever checked at publish time</b> — those builds keep quoting whatever is in this sheet, so re-publish before dates lapse.</span></div>
+    </div>
+    <details open="">
+      <summary>Send to Lead Pro (optional — for when the upload endpoint is live)</summary>
+      <div class="send-body">
+        <div><label>Worker endpoint</label><input id="inc-ep" value="https://leadpro-proxy.gilsguzman.workers.dev/valuefact"></div>
+        <div><label>License key</label><input id="inc-lk" class="lk" placeholder="paste license key" type="password"></div>
+        <button class="act b-go" id="inc-post" style="align-self:flex-start">Upload to worker</button>
+        <p class="hint">Until the upload endpoint exists, use <b>Download JSON</b>. Once it's live, monthly becomes: open page → Incentives tab → drop sheet → Upload.</p>
+      </div>
+    </details>
+  </div>
+
+  <footer>LEAD PRO DATA TOOL · PARSES LOCALLY · NO DATA LEAVES THE BROWSER</footer>
+</div>
+
+<script>
+const CUR_YEAR=new Date().getFullYear();
+const TODAY=new Date().toISOString().slice(0,10);
+const DEALER_MAP={"Community Toyota TX":["6189","Toyota Baytown"],"Community Kia TX":["6190","Kia Baytown"],"Community Honda TX":["6191","Honda Baytown"],"Community Honda of Lafayette":["24399","Honda Lafayette"],"Audi Lafayette":["21135","Audi Lafayette"]};
+const ID2LABEL={"6189":"Toyota Baytown","6190":"Kia Baytown","6191":"Honda Baytown","24399":"Honda Lafayette","21135":"Audi Lafayette"};
+const INV_SAFE=["stock","vin","vehicle","year","make","model","condition","certified","class","body","color","odometer","daysOnLot","price"];
+
+const $=id=>document.getElementById(id);
+const num=v=>{if(v==null||v==='')return null;const f=Number(v);return isNaN(f)?null:f;};
+const int=v=>{const f=num(v);return f===null?null:Math.round(f);};
+const str=v=>{if(v==null)return null;const s=String(v).trim();return(!s||s.toLowerCase()==='nan')?null:s;};
+function get(row,key){if(key in row)return row[key];const w=key.toLowerCase().replace(/\s+/g,' ');for(const k in row)if(k.toLowerCase().replace(/\s+/g,' ')===w)return row[k];return undefined;}
+function toISO(v){ if(v==null||v==='')return null;
+  if(typeof v==='number'){return new Date(Date.UTC(1899,11,30)+Math.round(v)*86400000).toISOString().slice(0,10);}
+  if(v instanceof Date){return new Date(Date.UTC(v.getFullYear(),v.getMonth(),v.getDate())).toISOString().slice(0,10);}
+  const s=String(v).trim();let m;
+  if(m=s.match(/^(\d{4})-(\d{2})-(\d{2})/))return m[0].slice(0,10);
+  if(m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/))return `${m[3]}-${String(m[1]).padStart(2,'0')}-${String(m[2]).padStart(2,'0')}`;
+  return null;
+}
+function msg(el,html,kind){ if(!html){$(el).innerHTML='';return;}
+  const icon = kind==='err'?'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e0584e" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.5" stroke-linecap="round"/></svg>':'';
+  $(el).innerHTML=`<div class="note ${kind==='err'?'err':kind==='warn'?'warn':''}">${icon}<span>${html}</span></div>`;
+}
+function readSheet(file,sheetPref){return file.arrayBuffer().then(buf=>{const wb=XLSX.read(buf,{type:'array'});
+  const sn = (sheetPref&&wb.SheetNames.includes(sheetPref))?sheetPref:wb.SheetNames[0];
+  return XLSX.utils.sheet_to_json(wb.Sheets[sn],{defval:null});});}
+function dropWire(dropId,inputId,handler){const d=$(dropId),inp=$(inputId);
+  ['dragenter','dragover'].forEach(e=>d.addEventListener(e,ev=>{ev.preventDefault();d.classList.add('over');}));
+  ['dragleave','drop'].forEach(e=>d.addEventListener(e,ev=>{ev.preventDefault();d.classList.remove('over');}));
+  d.addEventListener('drop',ev=>handler(ev.dataTransfer.files));
+  inp.addEventListener('change',ev=>handler(ev.target.files));
+}
+
+/* ============ INCENTIVE PAGE PARSER (ported from the tested TS pipeline) ============
+   Pure functions, no DOM dependency except extractVisibleText (which uses the
+   browser's native DOMParser — no library needed). Ported 1:1 from
+   normalize.ts / textChunker.ts / lineBuilder.ts, including every fix found
+   against real dealership data today:
+     - buildLine trusts classifyOffer's category as the primary signal
+       instead of "whichever field happened to parse" (was misbuilding lease
+       lines as cash).
+     - parseLease tolerates "$449/ mo" with a space (confirmed real
+       toyota.com formatting).
+     - detectExpiration excludes "APR 24-60" from ever being misread as
+       "April 24" (confirmed real fabrication bug against Honda's page).
+     - Honda-specific: chunking keeps every occurrence of a model name
+       instead of collapsing to "the longest" (was discarding Finance offers
+       in favor of Lease offers for the same model), requires "See All
+       Offers" as a real-offer marker (excludes MSRP/nav text), and treats
+       "All Vehicles" as a chunk boundary (prevents dealer-wide offer text
+       bleeding into the previous real model's chunk).
+*/
+
+const IP_STOP = (function () {
+  const s = {};
+  ['the','a','an','for','with','and','or','of','on','in','to','is','are','new','used','fwd','awd','rwd','4wd','sedan','suv','truck','coupe','hatchback','sport','sport utility','crew','cab','2wd'].forEach(w => s[w] = 1);
+  return s;
+})();
+
+function ipStripNoise(text) {
+  if (!text) return '';
+  let t = String(text);
+  t = t.replace(/[¹²³⁴⁵⁶⁷⁸⁹⁰*†‡§]/g, '');
+  [/\bDAS\b/g, /\bOffer Details\b/gi, /\bView Details\b/gi, /\bSee dealer for details\b/gi,
+   /\bSee your dealer\b/gi, /\bTerms apply\b/gi, /\bNot all buyers will qualify\b/gi,
+   /\bMSRP\s+starts?\s+from\s+\$[\d,]+/gi, /\bstarting\s+(?:at|from)\s+\$[\d,]+/gi,
+   // REAL BUG FOUND (Kia page, confirmed): Audi writes "MSRP starts from $X" (MSRP-word-first);
+   // Kia writes "$X starting MSRP" — the exact REVERSE word order, never matched by the pattern
+   // above, so a K5's real $27,490 starting MSRP sailed through as if it were a genuine customer-
+   // cash offer and reached a live customer message. Catches both "$X starting MSRP" and "$X MSRP".
+   /\$[\d,]+\s+(?:starting\s+)?MSRP\b/gi,
+   // REAL BUG FOUND (Toyota page, confirmed): a third price phrase with NO "MSRP" keyword —
+   // Toyota's model-comparison grid shows "$X as shown" (fully-configured price) right before
+   // each model name; since a model's chunk starts at its own name and extends forward, the
+   // NEXT model's "as shown" price was bleeding into the CURRENT model's chunk — RAV4 quoted
+   // $49,475 "Customer Cash," which is actually RAV4 Plug-in Hybrid's as-shown price. 49
+   // occurrences on the real page, covering nearly the whole lineup.
+   /\$[\d,]+\s+as\s+shown\b/gi,
+   // REAL BUG FOUND (Toyota page, confirmed): a FOURTH price phrase, in a completely separate
+   // section of the same page — "starting MSRP $X" (MSRP-before-dollar, no "from", different
+   // word order from all three patterns above). 10 occurrences, e.g. "Corolla starting MSRP
+   // $23,125" — this is what was still leaking through as "Corolla — $23,125 Customer Cash"
+   // even after the other two Toyota-specific fixes.
+   /\bstarting\s+MSRP\s+\$[\d,]+/gi]
+    .forEach(rx => { t = t.replace(rx, ''); });
+  return t.replace(/\s{2,}/g, ' ').trim();
+}
+
+function ipStandardizeLeasePhrasing(text) {
+  if (!text) return '';
+  let t = text;
+  t = t.replace(/(\$[\d,]+\/mo)\s+for\s+(\d+)\s*mo(?:s|nths)?/gi, '$1 $2 mos');
+  t = t.replace(/(\$[\d,]+)\s+due\s+at\s+signing/gi, '$1');
+  return t;
+}
+
+function ipParseCash(text) {
+  const t = ipStripNoise(text || '');
+  // REAL BUG FOUND (Toyota page, confirmed): the real offer section writes "$ 5,000" — a space
+  // between the dollar sign and the digits — silently dropping genuine Tundra Customer Cash
+  // offers entirely (not mislabeled, just missed).
+  // REAL BUG FOUND (Kia page, confirmed): a chunk can contain a real lease payment followed by a
+  // separate, amount-less "Additional Offer" mention (e.g. "Military Program" with no dollar
+  // figure of its own). With no lookahead, this regex grabbed the PRECEDING lease payment as if
+  // it were that offer's cash amount — Telluride's real $469/month lease became a fabricated
+  // "$469 Military Appreciation Cash" line with no basis in the real page. The negative
+  // lookahead rejects any figure immediately followed by "/mo" or "/month" — unambiguously a
+  // lease payment already claimed elsewhere, never cash.
+  // Fixed: a single match() with a trailing negative lookahead let greedy digit-matching BACK
+  // OFF from the full number to dodge the lookahead — "$469/month" matched as "$46" instead of
+  // being rejected. Fixed via matchAll (each figure fully matched, no lookahead to dodge), then
+  // taking the first one NOT immediately followed by "/mo" or "/month".
+  const candidates = [...t.matchAll(/\$\s*([\d,]+(?:\.\d{2})?)/g)];
+  // A "Due at Signing" figure is part of the SAME lease deal, not a standalone cash offer —
+  // confirmed real bug: after correctly excluding the "/mo" lease payment, this fell through to
+  // grab the "$3,999 Due at Signing" figure from that same lease line instead, still fabricating
+  // a Military-cash amount that doesn't exist on the real page. Excluded here too, alongside the
+  // "/mo" check — a chunk where the ONLY dollar figures are lease-payment and due-at-signing
+  // amounts correctly has no cash fact at all, and no row should be built for it.
+  const m = candidates.find(c => {
+    const after = t.slice(c.index + c[0].length, c.index + c[0].length + 20);
+    return !/^\s*\/\s*mo/.test(after) && !/^\s*due\s+at\s+signing/i.test(after);
+  });
+  if (!m) return { raw: t, amount: null };
+  const amount = parseFloat(m[1].replace(/,/g, ''));
+  return { raw: '$' + m[1], amount: isNaN(amount) ? null : amount };
+}
+
+function ipParseFinance(text) {
+  const t = ipStripNoise(text || '');
+  const aprM = t.match(/(\d{1,2}(?:\.\d+)?)\s*%\s*APR/i); // capped 1-2 digits — can't absorb a glued 4-digit year
+  const apr = aprM ? aprM[1] + '%' : null;
+  const rangeM = t.match(/(\d+)\s*(?:-|to)\s*(\d+)\s*mo(?:s|nths)?/i);
+  const singleM = !rangeM ? t.match(/(\d+)\s*mo(?:s|nths)?/i) : null;
+  let termLow = null, termHigh = null, termLabel = null;
+  if (rangeM) { termLow = parseInt(rangeM[1], 10); termHigh = parseInt(rangeM[2], 10); termLabel = termLow + '-' + termHigh + ' mos'; }
+  else if (singleM) { termLow = termHigh = parseInt(singleM[1], 10); termLabel = termLow + ' mos'; }
+  return { apr, termLow, termHigh, termLabel };
+}
+
+function ipParseLease(text) {
+  const t = ipStandardizeLeasePhrasing(ipStripNoise(text || ''));
+  // Three real phrasings confirmed: "$449/ mo" (Toyota comparison-grid), "$ 469 / mo" (Toyota
+  // real-offer section — space after the $ too, and before the slash), and "$539 Monthly
+  // payment" (Audi, no slash at all).
+  const payM = t.match(/\$\s*([\d,]+)\s*\/\s*mo/) || t.match(/\$\s*([\d,]+)\s*(?:\*\s*)?Monthly\s*payment/i);
+  const payment = payM ? '$' + payM[1] + '/mo' : null;
+  const moM = t.match(/\/mo\s+(\d+)\s*mos\b/i) || t.match(/(\d+)\s*mo(?:s|nths)?\b/i);
+  const months = moM ? parseInt(moM[1], 10) : null;
+  let dueAtSigning = null;
+  if (payment) {
+    const allDollars = t.match(/\$[\d,]+/g) || [];
+    const nonPayment = allDollars.filter(d => !payment.startsWith(d));
+    if (nonPayment.length) dueAtSigning = nonPayment[0];
+  }
+  return { payment, months, dueAtSigning };
+}
+
+const IP_MONTHS = { jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12 };
+function ipPad2(n) { return n < 10 ? '0' + n : String(n); }
+
+function ipDetectExpiration(text, referenceYear) {
+  const t = ipStripNoise(text || '');
+  const refYear = referenceYear || new Date().getUTCFullYear();
+
+  let m = t.match(/\b(\d{1,2})\/(\d{1,2})\/(\d{2,4})\b/);
+  if (m) {
+    let [, mo, da, yr] = m;
+    let year = parseInt(yr, 10);
+    if (yr.length === 2) year += year >= 70 ? 1900 : 2000;
+    const month = parseInt(mo, 10), day = parseInt(da, 10);
+    if (month >= 1 && month <= 12 && day >= 1 && day <= 31) return `${year}-${ipPad2(month)}-${ipPad2(day)}`;
+  }
+
+  // Excludes "APR 24-60" (finance term range) from being misread as
+  // "April 24" — confirmed real fabrication bug found against Honda's page.
+  // Iterates ALL month-name matches (not just the first) and returns the
+  // first with a genuinely valid day — confirmed real bug via Audi's page:
+  // a non-global match() stopped at "APR 72" (mistaking "Apr" for the
+  // month, day=72 invalid) and gave up before reaching the real date later.
+  const monthRx = /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+(\d{1,2})(?:st|nd|rd|th)?,?\s*(\d{4})?\b(?!\s*-\s*\d)/gi;
+  let monthM;
+  while ((monthM = monthRx.exec(t))) {
+    const mon = IP_MONTHS[monthM[1].toLowerCase()];
+    const day = parseInt(monthM[2], 10);
+    const year = monthM[3] ? parseInt(monthM[3], 10) : refYear;
+    if (mon && day >= 1 && day <= 31) return `${year}-${ipPad2(mon)}-${ipPad2(day)}`;
+  }
+  return null;
+}
+
+const IP_CATEGORY_RULES = [
+  ['Military', /\bmilitary\b/i],
+  ['College', /\b(college|recent\s*grad(uate)?|student)\b/i],
+  ['Owner Loyalty', /\b(owner\s*loyalty|loyalty\s*cash)\b/i],
+  ['Loyalty', /\bloyalty\b/i],
+  ['Competitive Bonus', /\b(conquest|competitive\s*(bonus|lease|owner))\b/i],
+  ['Dealer Cash', /\bdealer\s*cash\b/i],
+  ['APR Bonus Cash', /\bAPR\s*bonus\s*cash\b/i],
+  ['APR Subvention', /\b(apr|financ\w*)\b.*%|%\s*apr/i],
+  // REAL BUG FOUND (Kia page, confirmed): the trailing \b here was added for the wrong regex —
+  // it correctly stops "Mo" matching as a prefix of "Monthly" in the MONTHS-COUNT-EXTRACTION
+  // regex (where digit-grabbing from an adjacent number is the real risk), but classification
+  // only needs to detect "does this smell like a lease," where over-matching is harmless and
+  // under-matching is real harm. With the boundary here, "$309/month" (a completely standard,
+  // real lease phrasing) failed to classify as Lease at all and fell through to generic Cash,
+  // mislabeling a real lease payment as "Customer Cash" on a live Kia page. Removed the trailing
+  // \b from just this classifier rule; the months-extraction regex elsewhere keeps its guard.
+  ['Lease', /\/\s*mo|\blease\b/i],
+  ['Cash', /\bcash\b|\$[\d,]+\s*(customer\s*)?cash\b/i],
+];
+function ipClassifyOffer(text) {
+  const t = ipStripNoise(text || '');
+  for (const [cat, rx] of IP_CATEGORY_RULES) if (rx.test(t)) return cat;
+  return 'Unclassified';
+}
+
+function ipChunkByModelNames(fullText, models) {
+  if (!fullText) return [];
+  const sorted = [...models].sort((a, b) => b.length - a.length);
+  const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const pattern = new RegExp(`\\b(${sorted.map(esc).join('|')})\\b`, 'gi');
+  const marks = [];
+  let m;
+  while ((m = pattern.exec(fullText))) marks.push({ index: m.index, model: m[1] });
+  if (!marks.length) return [];
+  const chunks = [];
+  for (let i = 0; i < marks.length; i++) {
+    const start = marks[i].index;
+    const end = i + 1 < marks.length ? marks[i + 1].index : Math.min(fullText.length, start + 600);
+    const boundedEnd = Math.min(end, start + 600);
+    // (year capture) Real pages carry the model year as visible text immediately BEFORE the
+    // model name ("2025 Tundra", "2026 K5 LXS FWD") -- confirmed via Toyota's AND Kia's real
+    // pages. Toyota runs TWO model years of the same nameplate live simultaneously (2025 Tundra:
+    // 0.99% APR / $5,000 Cash vs 2026 Tundra: 2.99% APR / $1,000 Cash), previously merged into
+    // one undifferentiated "Tundra" bucket with the year silently discarded. A chunk starts
+    // exactly AT the model match, so the year token sitting just before it was being sliced off
+    // before any parsing happened -- the data was never lost on the page, just discarded one
+    // function into the pipeline. Looks back a short fixed window (12 chars comfortably covers
+    // "20XX " plus incidental whitespace) for a 20\d\d token.
+    const yearLookback = fullText.slice(Math.max(0, start - 12), start);
+    let yearM = yearLookback.match(/(20\d{2})\s*$/);
+    // (year capture, forward fallback) Confirmed against a real Honda page: Honda's layout puts
+    // the year AFTER the model name and offer-type label, not before it -- e.g. "Accord Sedan
+    // See All Offers Finance 2026 4.49% APR 24-60 mos". The backward lookback above can never
+    // see that, since it only looks at text preceding the model match. Rather than branch on
+    // manufacturer, fall back to a forward scan of this chunk's own text for a year immediately
+    // following "Finance"/"Lease" (the offer-type label that reliably precedes the year on
+    // Honda's page) -- only tried when the backward lookback found nothing, so Toyota/Kia's
+    // already-correct backward match is never overridden.
+    if (!yearM) {
+      const chunkText = fullText.slice(start, boundedEnd);
+      const forwardM = chunkText.match(/\b(?:Finance|Lease)\s+(20\d{2})\b/);
+      if (forwardM) yearM = forwardM;
+    }
+    // Genuinely absent or ambiguous (e.g. two different years both nearby, neither pattern
+    // matching) yields no year rather than a guess -- consumers treat a missing year as
+    // year-agnostic, never as a hard mismatch, so this stays a pure addition with no risk of
+    // new false negatives.
+    chunks.push({ model: marks[i].model, year: yearM ? yearM[1] : null, text: fullText.slice(start, boundedEnd) });
+  }
+  return chunks;
+}
+
+// Audi-specific: unlike Honda (where the model name repeats before each
+// distinct offer type), Audi's model code appears once in a section header
+// ("Q7 2 offers available") and then AGAIN inside each nested offer's own
+// body text ("Build Your Audi 2026 Audi Q7 45 TFSI..."). Proximity-based
+// chunking on model-name occurrences alone produces inconsistent, wrongly-
+// bounded chunks on this structure (confirmed directly against a real
+// page). The reliable real-offer boundary here is "Lease Offer" / "Finance
+// Offer", which starts every genuine per-trim offer exactly once — so this
+// splits on THAT instead, then reads the model code from within each
+// already-correctly-isolated block, sidestepping the ambiguity entirely.
+function ipChunkAudiOffers(fullText, models) {
+  const markerRx = /(Lease Offer|Finance Offer)/g;
+  const starts = [];
+  let m;
+  while ((m = markerRx.exec(fullText))) starts.push(m.index);
+  if (!starts.length) return [];
+
+  const sorted = [...models].sort((a, b) => b.length - a.length);
+  const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const modelPattern = new RegExp(`\\b(${sorted.map(esc).join('|')})\\b`, 'i');
+
+  const chunks = [];
+  for (let i = 0; i < starts.length; i++) {
+    const start = starts[i];
+    const end = i + 1 < starts.length ? starts[i + 1] : Math.min(fullText.length, start + 500);
+    const bounded = Math.min(end, start + 500);
+    let blockText = fullText.slice(start, bounded);
+    const closeIdx = blockText.search(/Contact dealer/i);
+    if (closeIdx !== -1) blockText = blockText.slice(0, closeIdx + 'Contact dealer'.length);
+    if (!/Offer ends/i.test(blockText)) continue;
+    const modelM = blockText.match(modelPattern);
+    if (!modelM) continue;
+    // (year capture, mirrors ipChunkByModelNames) Confirmed against a real Audi page: the year
+    // does sit immediately before the model code as expected ("2026 Audi Q7 45 TFSI..."), but
+    // with the literal word "Audi" between the year and the model -- "Build Your Audi 2026 Audi
+    // Q7...". The plain "(20\d{2})\s*$" lookback anchors on whitespace-only right before the
+    // model match, so that intervening "Audi" broke it on every real offer, not just a
+    // precautionary multi-year case. Try the plain pattern first (in case a future page layout
+    // drops the "Audi" token), then fall back to a pattern that tolerates it.
+    const yLookback = blockText.slice(Math.max(0, modelM.index - 12), modelM.index);
+    let yM = yLookback.match(/(20\d{2})\s*$/);
+    if (!yM) yM = yLookback.match(/(20\d{2})\s+Audi\s*$/i);
+    chunks.push({ model: modelM[1], year: yM ? yM[1] : null, text: blockText });
+  }
+  return chunks;
+}
+
+const MAX_LINE_LEN = 120;
+function ipTruncate(s) { return s.length <= MAX_LINE_LEN ? s : s.slice(0, MAX_LINE_LEN - 1).trimEnd() + '…'; }
+
+// Trusts classifyOffer's category as the primary signal — NOT "whichever
+// field happened to parse." Confirmed real bug: a lease line's /mo figure
+// was getting grabbed by parseCash and mislabeled "Customer Cash".
+function ipBuildLine(model, category, cash, finance, lease) {
+  if (!model) return null;
+  const cashLabel = () => ({
+    Military: 'Military Appreciation Cash', College: 'College Grad Cash',
+    'Owner Loyalty': 'Owner Loyalty Cash', Loyalty: 'Loyalty Cash',
+    'Competitive Bonus': 'Conquest Cash', 'Dealer Cash': 'Dealer Cash',
+  }[category] || 'Customer Cash');
+
+  const isLease = category === 'Lease';
+  const isFinance = category === 'APR Subvention' || category === 'APR Bonus Cash';
+  const isCash = ['Cash','Military','College','Owner Loyalty','Loyalty','Competitive Bonus','Dealer Cash'].includes(category);
+
+  if (isLease && lease && (lease.payment || lease.months)) {
+    const parts = [model, '—'];
+    if (lease.payment) parts.push(lease.payment);
+    if (lease.months) parts.push(lease.months + ' mo lease');
+    if (lease.dueAtSigning) parts.push('(' + lease.dueAtSigning + ' due at signing)');
+    return ipTruncate(parts.join(' '));
+  }
+  if (isFinance && finance && finance.apr) {
+    const term = finance.termLabel ? ' for ' + finance.termLabel : '';
+    return ipTruncate(model + ' — ' + finance.apr + ' APR' + term);
+  }
+  if (isCash && cash && cash.amount != null) {
+    return ipTruncate(model + ' — ' + cash.raw + ' ' + cashLabel());
+  }
+  if (cash && cash.amount != null) return ipTruncate(model + ' — ' + cash.raw + ' ' + cashLabel());
+  if (lease && (lease.payment || lease.months)) {
+    const parts = [model, '—'];
+    if (lease.payment) parts.push(lease.payment);
+    if (lease.months) parts.push(lease.months + ' mo lease');
+    if (lease.dueAtSigning) parts.push('(' + lease.dueAtSigning + ' due at signing)');
+    return ipTruncate(parts.join(' '));
+  }
+  if (finance && finance.apr) {
+    const term = finance.termLabel ? ' for ' + finance.termLabel : '';
+    return ipTruncate(model + ' — ' + finance.apr + ' APR' + term);
+  }
+  return null;
+}
+
+// Browser-native HTML -> visible text. Deliberately does NOT use
+// .innerText — a DOMParser-created document is DETACHED from the page (no
+// layout), and .innerText's whitespace behavior depends on real layout
+// info a detached document doesn't have. Confirmed real bug: this produced
+// glued-together text ("Finance20264.49% APR") on a real uploaded page,
+// fabricating a corrupted APR value. Walking every text node directly and
+// joining with an explicit space is layout-independent and can never glue
+// two elements' text together.
+function ipExtractVisibleText(html) {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  doc.querySelectorAll('script, style, noscript').forEach(el => el.remove());
+  // Whole-block exclusion, not text-pattern matching: the "Disclaimer(s)" footer module
+  // (id="disclaimers-module-msrp" on Toyota's page) is a delivery/destination-fee schedule
+  // that lists EVERY model in the lineup by category next to a dollar figure -- e.g. "$1,745
+  // for Small Pickup (Tacoma, Tacoma HV)" and "$1,655 for BEV SUV (bZ, bZ Woodland, C-HR)".
+  // Since chunking works by "grab text following a model-name match," this entire disclaimer
+  // paragraph gets walked into as if it were real per-model offer content, fabricating a
+  // "C-HR -- $1,745 Customer Cash" line (real number, wrong vehicle, wrong fact type -- it's
+  // a delivery fee for a DIFFERENT model). Confirmed live against a real July 2026 Toyota page;
+  // none of the four existing MSRP/as-shown text-pattern strips catch this, because the noise
+  // here isn't a short adjacent phrase -- it's the surrounding structural element. Removed at
+  // the DOM level, before text extraction, rather than chasing this as a fifth regex: any
+  // future disclaimer id matching this prefix is excluded the same way, regardless of exact
+  // wording/phrasing changes OEMs make to the sentence itself.
+  doc.querySelectorAll('[id^="disclaimers-module"]').forEach(el => el.remove());
+  if (!doc.body) return '';
+  const parts = [];
+  const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT);
+  let node;
+  while ((node = walker.nextNode())) {
+    const t = node.textContent;
+    if (t && t.trim()) parts.push(t.trim());
+  }
+  return parts.join(' ').replace(/\s+/g, ' ').trim();
+}
+
+const IP_MODEL_LISTS = {
+  Honda: ['HR-V','CR-V Hybrid','CR-V','Prologue','Pilot','Passport','CR-V e:FCEV','Civic Sedan Hybrid','Civic Sedan',
+    'Accord Hybrid','Accord','Civic Si Sedan','Civic Hatchback Hybrid','Civic Hatchback','Prelude','Civic Type R',
+    'Ridgeline','Odyssey','All Vehicles'],
+  Kia: ['Telluride','Sportage','Sorento','Seltos','Soul','Carnival','K5','K4','Forte','Stinger','EV9','EV6','EV4','Niro EV','Niro'],
+  Toyota: ['Corolla Cross','Corolla Hatchback','Corolla','Camry','Toyota Crown','Prius Plug-in Hybrid','Prius','Tacoma',
+    'Tundra','RAV4 Plug-in Hybrid','RAV4','Highlander','Grand Highlander','4Runner','Sequoia','Venza','Sienna','bZ',
+    'GR86','GR Corolla','GR Supra','Land Cruiser','C-HR','Mirai'],
+  Audi: ['Q3','Q4 e-tron','Q5','Q6 e-tron','Q7','Q8 e-tron','Q8','A3','A4','A5','A6','A7','A8',
+    'S3','S4','S5','S6','S7','S8','SQ5','SQ7','SQ8','RS3','RS5','RS6','RS7','RS Q8','e-tron GT','TT','R8'],
+};
+
+// (proposed) parseToyotaSSRStateOffers — reads window.__SSR_STATE__ directly instead of
+// scanning visible DOM text. WHY: Toyota's page renders its "offers by type" list via
+// client-side JS reading this SAME embedded JSON, and confirmed live (Toyota_AUG26.html,
+// 8/5) that whichever cards happen to be hydrated into static HTML at save-time is
+// incomplete/inconsistent -- Highlander's real 5.99% APR/60mo card was present in the
+// visible DOM, Grand Highlander's real 4.99% APR/48mo + $469/mo 36mo lease was NOT, despite
+// being fully present in this exact JSON the whole time. ipExtractVisibleText deliberately
+// strips <script> tags (correct default -- script content isn't customer-facing text), so
+// the DOM-based chunker structurally can never see this. Reading the JSON directly sidesteps
+// the whole class of "which cards rendered before this got saved" fragility -- immune to
+// lazy-load/virtualization timing, permanently, for every model, not just this month's gap.
+// The JSON's cash/lease dollar fields are bare digit strings ("5000", "3999") -- every
+// existing line in this file's output uses comma-grouped dollar amounts ("$5,000"), so
+// building lines directly from the JSON needs the same formatting to stay consistent with
+// what an agent already expects to see.
+function ipCommaNum(numStr) {
+  const s = String(numStr);
+  return s.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+function parseToyotaSSRStateOffers(html, dealerId, manualExpiresOverride) {
+  const scriptMatch = html.match(/window\.__SSR_STATE__\s*=\s*(\{.*?\});?\s*<\/script>/s);
+  if (!scriptMatch) return null; // not present -- caller falls back to DOM chunking
+
+  let parsed;
+  try {
+    // Real gotcha confirmed against the live file: the blob contains literal JS `undefined`
+    // tokens (e.g. "imagery":undefined) from React SSR serialization -- valid JS object
+    // literal, NOT valid JSON. A plain JSON.parse throws on every real Toyota page.
+    const jsonText = scriptMatch[1].replace(/:undefined/g, ':null');
+    parsed = JSON.parse(jsonText);
+  } catch (e) {
+    return null; // malformed/shape changed -- caller falls back to DOM chunking, never throws
+  }
+
+  // The offersByType module is a flat, deduplicated list of every real offer on the page --
+  // exactly the ground truth the DOM chunker was trying to reconstruct by proximity-scanning
+  // model names. Walk the whole parsed tree defensively rather than hardcoding an exact path
+  // (component nesting is exactly the kind of structure that breaks silently on a future
+  // redesign) -- find the first array anywhere containing objects shaped like a real offer
+  // (a "type" of apr/cash/lease/multiVehicle alongside a "series" array).
+  const offers = [];
+  (function walk(node) {
+    if (Array.isArray(node)) {
+      if (node.length && node.every(x => x && typeof x === 'object' && x.type && x.series)) {
+        offers.push(...node);
+        return; // found the offersByType array itself -- no need to also walk into it via
+                // the per-vehicle featuredVehicles copies, which would just duplicate rows
+      }
+      node.forEach(walk);
+    } else if (node && typeof node === 'object') {
+      Object.values(node).forEach(walk);
+    }
+  })(parsed);
+  if (!offers.length) return null;
+
+  const rows = [];
+  const warnings = [];
+  const seenRows = new Set();
+  let missingDateCount = 0, duplicateCount = 0, skippedMultiVehicle = 0, skippedNoSeries = 0;
+
+  for (const offer of offers) {
+    // multiVehicle offers (Military, College, etc.) apply broadly across many/all models at
+    // once, not to one specific vehicle -- same reasoning the existing DOM path already uses
+    // to drop Military by name (Gil's explicit call: not worth chasing attribution edge
+    // cases for a discount rarely used). Generalized here to the whole shape rather than one
+    // named category, since "applies to many series" is the actual disqualifying property,
+    // not the specific label on any one instance of it.
+    if (offer.type === 'multiVehicle') { skippedMultiVehicle++; continue; }
+    if (!Array.isArray(offer.series) || offer.series.length !== 1) { skippedNoSeries++; continue; }
+
+    const s = offer.series[0];
+    const model = Array.isArray(s.name) ? s.name[0] : s.name;
+    const year = s.year || null;
+    if (!model) continue;
+
+    let line = null;
+    if (offer.type === 'apr' && offer.apr && offer.apr.rate) {
+      const term = offer.apr.duration ? ' for ' + offer.apr.duration + ' mos' : '';
+      line = model + ' — ' + offer.apr.rate + '% APR' + term;
+    } else if (offer.type === 'cash' && offer.cash && offer.cash.cashAmount) {
+      const label = offer.cash.label || 'Customer Cash';
+      line = model + ' — $' + ipCommaNum(offer.cash.cashAmount) + ' ' + label;
+    } else if (offer.type === 'lease' && offer.lease && offer.lease.monthlyPayment) {
+      const parts = [model, '—', '$' + ipCommaNum(offer.lease.monthlyPayment) + '/mo'];
+      if (offer.lease.duration) parts.push(offer.lease.duration + ' mo lease');
+      if (offer.lease.dueAtSigning) parts.push('($' + ipCommaNum(offer.lease.dueAtSigning) + ' due at signing)');
+      line = parts.join(' ');
+    }
+    if (!line) continue;
+    line = ipTruncate(line);
+
+    let expires = null;
+    if (offer.endDate && offer.endDate.fullYear && offer.endDate.month && offer.endDate.day) {
+      expires = offer.endDate.fullYear + '-' + ipPad2(parseInt(offer.endDate.month, 10)) + '-' + ipPad2(parseInt(offer.endDate.day, 10));
+    }
+    if (!expires) {
+      if (!manualExpiresOverride) { missingDateCount++; continue; }
+      expires = manualExpiresOverride;
+    }
+    const today = new Date().toISOString().slice(0, 10);
+    if (expires < today) continue; // never publish an already-expired fact
+
+    const dupeKey = model + '|' + (year || '') + '|' + line + '|' + expires;
+    if (seenRows.has(dupeKey)) { duplicateCount++; continue; }
+    seenRows.add(dupeKey);
+
+    rows.push({ dealer_id: dealerId, category: model, year, line, expires });
+  }
+
+  if (duplicateCount) warnings.push(`${duplicateCount} exact duplicate offer(s) collapsed into one (the same model-wide fact repeated across multiple trims).`);
+  if (missingDateCount) warnings.push(`${missingDateCount} offer(s) had no date on the page and no manual "valid through" date was supplied — dropped rather than published without a real expiry.`);
+  if (skippedMultiVehicle) warnings.push(`${skippedMultiVehicle} multi-model offer(s) (Military/College/etc.) skipped — not attributable to one specific vehicle.`);
+
+  return { rows, warnings, totalChunks: offers.length, source: 'ssr-state' };
+}
+
+
+// Main entry point. Returns rows already shaped for the Incentives tab's
+// existing incRows format: {dealer_id, category (=model string), line,
+// expires}. No 6-per-store cap — every valid, non-expired, concretely-
+// parsed offer is kept; the popup's own per-lead model-matching decides
+// which 1-2 are relevant to any given generation.
+function parseManufacturerPage(html, manufacturer, dealerId, manualExpiresOverride) {
+  const models = IP_MODEL_LISTS[manufacturer];
+  if (!models) throw new Error('No model list for manufacturer: ' + manufacturer);
+  // (SSR-STATE PARSER, Toyota only) Live incident, Grand Highlander (8/5): the DOM chunker
+  // correctly found every place "Grand Highlander" appears in rendered text, but NONE of
+  // those occurrences carried the real offer (4.99% APR/48mo, $469/mo 36mo lease) -- that
+  // fact lives ONLY inside window.__SSR_STATE__, which ipExtractVisibleText strips before
+  // scanning (script content is correctly excluded from customer-facing text by default).
+  // Confirmed this isn't a one-model gap: the DOM path was only ever surfacing ~6 of the
+  // ~25+ models with real live offers on Toyota's page (whichever cards happened to be
+  // client-side-rendered into static HTML at save time) -- the JSON is the actual complete,
+  // structured ground truth Toyota's own page renders FROM. Tried first, and only for
+  // Toyota; returns null (not throws) on anything unexpected -- absent blob, changed shape,
+  // parse failure -- so a future Toyota redesign falls straight through to the DOM chunker
+  // below exactly as it always has, never a hard failure either direction.
+  if (manufacturer === 'Toyota') {
+    const ssrResult = parseToyotaSSRStateOffers(html, dealerId, manualExpiresOverride);
+    if (ssrResult) return ssrResult;
+  }
+
+  const fullText = ipExtractVisibleText(html);
+  if (fullText.length < 500) {
+    throw new Error(`Extracted visible text was suspiciously short (${fullText.length} chars) — check this is the real rendered offers page, not a login/error page or an incomplete save.`);
+  }
+
+  let chunks;
+  if (manufacturer === 'Audi') {
+    chunks = ipChunkAudiOffers(fullText, models);
+  } else {
+    chunks = ipChunkByModelNames(fullText, models);
+    if (manufacturer === 'Honda') {
+      // Honda repeats each model once per DISTINCT offer type (Finance, then
+      // a separate Lease, sometimes Special Program) — every occurrence is
+      // kept, not deduped to "the longest." "See All Offers" gates out MSRP/
+      // nav text (confirmed real false-positive risk). "All Vehicles" chunks
+      // are dropped — no single vehicle to attach a clean line to.
+      chunks = chunks.filter(c => c.model !== 'All Vehicles' && /See All Offers/i.test(c.text));
+    }
+  }
+
+  const rows = [];
+  const warnings = [];
+  let missingDateCount = 0;
+  let duplicateCount = 0;
+  // Real Kia page confirmed this: a model-wide fact (e.g. Sorento's "$3,000
+  // Customer Cash") appears identically in EVERY trim's own chunk, since the
+  // cash/APR figure is shared across trims while only the lease price
+  // varies. Genuine, correct data each time -- just redundant as separate
+  // rows. Tracks exact (model, line, expires) triples seen so far and skips
+  // an identical repeat; two DIFFERENT lease prices for the same model
+  // still both survive, since their line text differs.
+  const seenRows = new Set();
+
+  for (const chunk of chunks) {
+    const cash = ipParseCash(chunk.text);
+    const finance = ipParseFinance(chunk.text);
+    const lease = ipParseLease(chunk.text);
+    const category = ipClassifyOffer(chunk.text);
+    // (Gil's own call) Military-category offers are excluded entirely rather than continuing to
+    // chase precise number-extraction edge cases for a discount his team rarely uses anyway.
+    // These offers are also often listed with NO dollar figure of their own on real pages (a
+    // real, confirmed case: Kia's "Military Program" mention had none at all), making them the
+    // single riskiest category for a nearby unrelated number (a lease payment, a due-at-signing
+    // amount) to get misattributed as the offer's own value. Skipping the category outright is
+    // simpler and safer than continuing to add exclusions for every new adjacent-number pattern.
+    if (category === 'Military') continue;
+    const hasFact = cash.amount != null || finance.apr || lease.payment;
+    if (!hasFact) continue;
+
+    let expires = ipDetectExpiration(chunk.text);
+    if (!expires) {
+      if (!manualExpiresOverride) { missingDateCount++; continue; }
+      expires = manualExpiresOverride;
+    }
+    const today = new Date().toISOString().slice(0, 10);
+    if (expires < today) continue; // never publish an already-expired fact
+
+    const line = ipBuildLine(chunk.model, category, cash, finance, lease);
+    if (!line) continue;
+
+    // (year capture) chunk.year included in the dedup key -- two DIFFERENT model years that
+    // happen to produce identical line text (rare, but not impossible) must not collapse into
+    // one row and silently drop a genuine year-specific fact.
+    const dupeKey = chunk.model + '|' + (chunk.year || '') + '|' + line + '|' + expires;
+    if (seenRows.has(dupeKey)) { duplicateCount++; continue; }
+    seenRows.add(dupeKey);
+
+    rows.push({ dealer_id: dealerId, category: chunk.model, year: chunk.year || null, line, expires });
+  }
+  if (duplicateCount) {
+    warnings.push(`${duplicateCount} exact duplicate offer(s) collapsed into one (the same model-wide fact repeated across multiple trims).`);
+  }
+
+  if (missingDateCount) {
+    warnings.push(`${missingDateCount} offer(s) had no date on the page and no manual "valid through" date was supplied — dropped rather than published without a real expiry.`);
+  }
+
+  return { rows, warnings, totalChunks: chunks.length };
+}
+
+/* ---------- tabs ---------- */
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active'); $('panel-'+t.dataset.tab).classList.add('active');
+}));
+
+document.querySelectorAll('.subtab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('.subtab').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.submode').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active'); $('submode-'+t.dataset.sub).classList.add('active');
+}));
+
+/* ============ INVENTORY ============ */
+let invLoaded=[], invResult=null;
+function invDetectPool(rows){let cert=0,n=0,ys=[];for(const r of rows){const c=str(get(r,'Certified'));if(c!=null){n++;if(c.toLowerCase()==='yes')cert++;}const v=str(get(r,'Vehicle'));if(v){const m=v.match(/^(\d{4})/);if(m)ys.push(+m[1]);}}ys.sort((a,b)=>a-b);const med=ys.length?ys[Math.floor(ys.length/2)]:CUR_YEAR;return(med>=CUR_YEAR&&(n?cert/n:0)<0.05)?'new':'used';}
+function parseVehicle(s){const t=(s||'').split(/\s+/).filter(Boolean);let y=null,mk=null,md=null,rest=t;if(t.length&&/^\d{4}$/.test(t[0])){y=+t[0];rest=t.slice(1);}if(rest.length){mk=rest[0];md=rest.slice(1).join(' ')||null;}return[y,mk,md];}
+dropWire('inv-drop','inv-file',async fileObjs=>{ msg('inv-msg','');
+  for(const f of fileObjs){ if(!/\.xlsx?$/i.test(f.name)){msg('inv-msg','Skipped <b>'+f.name+'</b> — not an .xls/.xlsx.','err');continue;}
+    try{const rows=await readSheet(f);const pool=invDetectPool(rows);invLoaded=invLoaded.filter(x=>x.name!==f.name);invLoaded.push({name:f.name,rows,pool});}
+    catch(e){msg('inv-msg','Could not read <b>'+f.name+'</b>: '+e.message,'err');}}
+  $('inv-filelist').innerHTML=invLoaded.map(f=>`<span class="chip"><b>${f.name.replace(/^Merch_w_Gap.*?Group_/,'…')}</b> · ${f.rows.length} rows · <span class="pool">${f.pool}</span></span>`).join('');
+  $('inv-go').disabled=invLoaded.length===0;
+});
+$('inv-go').addEventListener('click',()=>{ try{
+  const stores={},stats={rows:0,kept:0,other:0,deleted:0};
+  for(const f of invLoaded){stats.rows+=f.rows.length;
+    for(const r of f.rows){const dealer=str(get(r,'Dealer Name'));if(!dealer||!(dealer in DEALER_MAP)){stats.other++;continue;}
+      if(str(get(r,'Deleted Date'))){stats.deleted++;continue;}
+      const vin=str(get(r,'VIN')),stock=str(get(r,'Stock #'));if(!vin&&!stock)continue;
+      const certified=String(get(r,'Certified')||'').trim().toLowerCase()==='yes';const condition=(f.pool==='used'&&certified)?'cpo':f.pool;
+      const veh=str(get(r,'Vehicle'));const[year,make,model]=parseVehicle(veh);let price=int(get(r,'Price'));if(price===null)price=int(get(r,'AskingPrice'));
+      const unit={stock,vin,vehicle:veh,year,make,model,condition,certified,class:str(get(r,'Class')),body:str(get(r,'Body')),color:str(get(r,'Color')),odometer:int(get(r,'Odometer')),daysOnLot:int(get(r,'Age')),price};
+      const[did,label]=DEALER_MAP[dealer];(stores[did]=stores[did]||{store:label,units:{}}).units[vin||stock]=unit;stats.kept++;}}
+  for(const did in stores)for(const k in Object.values(stores[did].units)[0]||{})if(!INV_SAFE.includes(k))throw new Error('non-safe field leaked: '+k);
+  const out={generated:TODAY,type:'inventory',source:'vAuto Merchandising export (browser)',storeUnitCounts:{},stores:{}};
+  for(const did in stores){const units=Object.values(stores[did].units);const priced=units.filter(u=>u.price!==null).length;const cond={};units.forEach(u=>cond[u.condition]=(cond[u.condition]||0)+1);
+    out.stores[did]={store:stores[did].store,count:units.length,units};out.storeUnitCounts[did]={store:stores[did].store,units:units.length,priced,conditions:cond};}
+  invResult=out;
+  const total=Object.values(out.stores).reduce((a,s)=>a+s.count,0);
+  $('inv-statline').innerHTML=`<div class="stat"><div class="n">${stats.rows}</div><div class="l">Rows read</div></div><div class="stat"><div class="n gr">${total}</div><div class="l">Units kept</div></div><div class="stat"><div class="n">${stats.other}</div><div class="l">Other rooftops</div></div><div class="stat"><div class="n">${stats.deleted}</div><div class="l">Deleted/sold</div></div><div class="stat"><div class="n g">${Object.keys(out.stores).length}</div><div class="l">Stores</div></div>`;
+  $('inv-rows').innerHTML=Object.entries(out.stores).map(([did,s])=>{const c=out.storeUnitCounts[did].conditions;return `<tr><td class="store">${s.store}</td><td class="cond">${did}</td><td class="num">${s.count}</td><td class="num">${out.storeUnitCounts[did].priced}</td><td class="cond"><span class="nw">${c.new||0} new</span> · <span class="cp">${c.cpo||0} cpo</span> · ${c.used||0} used</td></tr>`;}).join('');
+  $('inv-summary').classList.add('show'); $('inv-dl').disabled=false;
+  }catch(e){msg('inv-msg','Normalize failed: '+e.message,'err');}});
+$('inv-dl').addEventListener('click',()=>download(invResult,'inventory_normalized_'));
+$('inv-post').addEventListener('click',async()=>{ if(!invResult){msg('inv-msg','Normalize first.','err');return;}
+  const ep=$('inv-ep').value.trim(),lk=$('inv-lk').value.trim();
+  if(!ep||!lk){msg('inv-msg','Enter the license key (endpoint is prefilled), or just Download JSON.','err');return;}
+  msg('inv-msg','Uploading…');
+  try{const r=await fetch(ep,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({licenseKey:lk,inventory:invResult})});
+    let j={};try{j=await r.json();}catch{}
+    msg('inv-msg',r.ok?('Uploaded to Lead Pro ✓ — stored '+Object.keys(j.stored||{}).length+' stores.'):('Upload failed — HTTP '+r.status+(j.error?' · '+j.error:'')),r.ok?'ok':'err');}
+  catch(e){msg('inv-msg','Upload error: '+e.message,'err');}});
+
+/* keep the license key in sync across both tabs (enter once) */
+document.querySelectorAll('input.lk').forEach(inp=>inp.addEventListener('input',()=>{
+  document.querySelectorAll('input.lk').forEach(o=>{if(o!==inp)o.value=inp.value;});
+}));
+
+/* ============ INCENTIVES ============ */
+let incRows=null, incResult=null, incFileName='';
+dropWire('inc-drop','inc-file',async fileObjs=>{ msg('inc-msg','');
+  const f=fileObjs[0]; if(!f)return; if(!/\.xlsx?$/i.test(f.name)){msg('inc-msg','Not an .xls/.xlsx file.','err');return;}
+  try{incRows=await readSheet(f,'ValueFacts');incFileName=f.name;
+    $('inc-filelist').innerHTML=`<span class="chip"><b>${f.name}</b> · ${incRows.length} rows</span>`;$('inc-go').disabled=false;}
+  catch(e){msg('inc-msg','Could not read file: '+e.message,'err');}
+});
+
+/* ---- manufacturer webpage upload (parses a saved HTML page instead of a spreadsheet) ---- */
+dropWire('inc-page-drop','inc-page-file',async fileObjs=>{ msg('inc-page-msg','');
+  const f=fileObjs[0]; if(!f)return;
+  if(!/\.html?$/i.test(f.name)){msg('inc-page-msg','Not an .html/.htm file.','err');return;}
+  const sel=$('inc-page-store').value;
+  if(!sel){msg('inc-page-msg','Choose the manufacturer &amp; store first.','err');return;}
+  const [manufacturer,dealerId]=sel.split('|');
+  const manualExpires=$('inc-page-expires').value||null;
+  try{
+    const html=await f.text();
+    const {rows,warnings,totalChunks}=parseManufacturerPage(html,manufacturer,dealerId,manualExpires);
+    if(!rows.length){
+      msg('inc-page-msg',`Parsed ${totalChunks} offer block(s) on the page but kept 0 rows. ${warnings.join(' ')||'Try setting a "Valid through" date if this manufacturer\'s page has no date of its own.'}`,'err');
+      $('inc-page-filelist').innerHTML='';
+      return;
+    }
+    // Merge into incRows in the SAME shape the xlsx path produces, so every
+    // downstream step (Normalize, stats, table, Download JSON, Send to Lead
+    // Pro) runs completely unchanged. Re-parsing the same store replaces its
+    // rows rather than duplicating them.
+    const kept=(incRows||[]).filter(r=>!(str(get(r,'dealer_id'))===dealerId));
+    incRows=kept.concat(rows);
+    incFileName=f.name;
+    $('inc-page-filelist').innerHTML=`<span class="chip"><b>${f.name}</b> · ${rows.length} offers extracted for ${manufacturer} (${dealerId})</span>`;
+    $('inc-filelist').innerHTML=`<span class="chip"><b>${incFileName}</b> · ${incRows.length} total rows staged (spreadsheet + webpage uploads)</span>`;
+    msg('inc-page-msg',warnings.length?warnings.join(' '):`${rows.length} offers extracted — click Normalize below.`, warnings.length?'warn':'');
+    $('inc-go').disabled=false;
+  }catch(e){msg('inc-page-msg','Could not parse page: '+e.message,'err');}
+});
+$('inc-go').addEventListener('click',()=>{ try{
+  if(!incRows){return;}
+  const stores={},stats={rows:incRows.length,kept:0,foreign:0,noModelLine:0,missingExp:0,expired:0};
+  for(const r of incRows){
+    const did=str(get(r,'dealer_id'));const model=str(get(r,'category'));const yr=str(get(r,'year'));const line=str(get(r,'line'));const exp=toISO(get(r,'expires'));
+    if(!did||!(did in ID2LABEL)){stats.foreign++;continue;}
+    if(!model||!line){stats.noModelLine++;continue;}
+    if(!exp){stats.missingExp++;continue;}
+    if(exp<TODAY){stats.expired++;continue;}
+    (stores[did]=stores[did]||{store:ID2LABEL[did],incentives:[]}).incentives.push(yr?{model,year:yr,line,expires:exp}:{model,line,expires:exp});
+    stats.kept++;
+  }
+  const out={generated:TODAY,type:'incentives',source:'incentives sheet (browser)',storeCounts:{},stores:{}};
+  for(const did in stores){const items=stores[did].incentives;const models=new Set(items.map(i=>i.model));const earliest=items.map(i=>i.expires).sort()[0];
+    out.stores[did]={store:stores[did].store,count:items.length,incentives:items};
+    out.storeCounts[did]={store:stores[did].store,lines:items.length,models:models.size,earliestExpiry:earliest};}
+  incResult=out;
+  const totalLines=Object.values(out.stores).reduce((a,s)=>a+s.count,0);
+  const dropped=stats.missingExp+stats.expired;
+  $('inc-statline').innerHTML=`<div class="stat"><div class="n">${stats.rows}</div><div class="l">Rows read</div></div><div class="stat"><div class="n gr">${totalLines}</div><div class="l">Lines kept</div></div><div class="stat"><div class="n ${dropped?'r':''}">${dropped}</div><div class="l">Dropped (expiry)</div></div><div class="stat"><div class="n">${stats.foreign}</div><div class="l">Other dealers</div></div><div class="stat"><div class="n g">${Object.keys(out.stores).length}</div><div class="l">Stores</div></div>`;
+  $('inc-rows').innerHTML=Object.entries(out.stores).map(([did,s])=>`<tr><td class="store">${s.store}</td><td class="cond">${did}</td><td class="num">${s.count}</td><td class="num">${out.storeCounts[did].models}</td><td class="cond">${out.storeCounts[did].earliestExpiry||'—'}</td></tr>`).join('')||'<tr><td colspan="5" style="color:var(--mut)">No lines kept — see the expiry note below.</td></tr>';
+  const warn=$('inc-warn');
+  if(dropped){warn.style.display='flex';warn.innerHTML=`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e0a82e" stroke-width="1.6"><path d="M12 3 2 20h20z" stroke-linejoin="round"/><path d="M12 9v5M12 17v.5" stroke-linecap="round"/></svg><span><b>${dropped} line${dropped>1?'s':''} dropped</b> — ${stats.missingExp} missing an <code>expires</code> date, ${stats.expired} already past. Fill the <code>expires</code> column on those rows (YYYY-MM-DD, a future date) and re-drop the sheet. Nothing without a valid future expiry is ever sent.</span>`;}
+  else warn.style.display='none';
+  $('inc-summary').classList.add('show'); $('inc-dl').disabled=false;
+  }catch(e){msg('inc-msg','Normalize failed: '+e.message,'err');}});
+$('inc-dl').addEventListener('click',()=>download(incResult,'incentives_normalized_'));
+$('inc-post').addEventListener('click',async()=>{ if(!incResult){msg('inc-msg','Normalize first.','err');return;}
+  const ep=$('inc-ep').value.trim(),lk=$('inc-lk').value.trim();
+  if(!ep||!lk){msg('inc-msg','Enter endpoint + license key, or just Download JSON.','err');return;}
+  try{const r=await fetch(ep,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({licenseKey:lk,valuefacts:incResult})});
+    msg('inc-msg',r.ok?'Uploaded to Lead Pro ✓':'Upload failed — HTTP '+r.status+' (endpoint may not exist yet).',r.ok?'ok':'err');}
+  catch(e){msg('inc-msg','Upload error: '+e.message+' (endpoint not live yet?).','err');}});
+
+/* ---------- shared download ---------- */
+function download(result,prefix){ if(!result)return;
+  const blob=new Blob([JSON.stringify(result,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=prefix+result.generated+'.json';a.click();URL.revokeObjectURL(a.href);
+}
+</script>
+</body>
+</html>
