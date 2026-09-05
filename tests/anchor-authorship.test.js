@@ -60,7 +60,13 @@ function extract(file) {
   const src = fs.readFileSync(file, 'utf8');
   const sb = { String, RegExp };
   vm.createContext(sb);
-  for (const name of ['_lpHangUpCount', '_lpOutboundAuthor', '_lpSameAgent']) {
+  // (v9.7.639) _lpIsBotAuthor closes over a module-scope regex. The loop below lifts function
+  // declarations only, so without this the helper loads fine and throws ReferenceError the moment
+  // it is CALLED — a suite that passes until the first assertion that matters.
+  const bre = src.match(/^var _LP_BOT_AUTHOR_RE = .*$/m);
+  if (!bre) throw new Error('_LP_BOT_AUTHOR_RE not found in ' + file);
+  vm.runInContext(bre[0], sb);
+  for (const name of ['_lpHangUpCount', '_lpAuthorRaw', '_lpIsBotAuthor', '_lpOutboundAuthor', '_lpSameAgent']) {
     const h = src.indexOf('function ' + name + '(');
     if (h < 0) throw new Error(name + ' not found in ' + file);
     let d = 0, started = false, end = -1;
@@ -75,7 +81,9 @@ function extract(file) {
     src,
     count:  t => vm.runInContext('_lpHangUpCount', sb)(t),
     author: (t, signer) => vm.runInContext('_lpOutboundAuthor', sb)(t, signer),
-    same:   (a, b) => vm.runInContext('_lpSameAgent', sb)(a, b)
+    same:   (a, b) => vm.runInContext('_lpSameAgent', sb)(a, b),
+    raw:    t => vm.runInContext('_lpAuthorRaw', sb)(t),
+    isBot:  t => vm.runInContext('_lpIsBotAuthor', sb)(t)
   };
 }
 
@@ -297,6 +305,88 @@ check('a foreign author gets an explicit do-not-claim-it instruction',
 
 check('[LP ANCHOR AUTHOR DIAG] reports author, signer and verdict',
   i => /\[LP ANCHOR AUTHOR DIAG\][\s\S]{0,220}attributed to signer/.test(stripComments(i.src)), true);
+
+// ── (v9.7.639) THE STORE'S AUTOMATED ASSISTANT IS NOT A COLLEAGUE ─────────────────────────
+// Angelique Morgan (Community Honda Baytown, 9/5): lead created, assigned and emailed inside the
+// same minute by "Vinessa Virtual Assistant Community Honda". LP framed that as a colleague's
+// message — "You may reference it as something the team or the store sent".
+//
+// Gil named the signal: "Her messaging read virtual assistant so that's the key LP needs to pick
+// up on when scanning." It is a SHAPE, not a name. Matching "Vinessa" is the enumeration trap
+// (v9.7.552/553/554/555/638) — the bot gets renamed and the detector goes quiet with no sign.
+console.log('\nthe automated assistant is detected by shape, not by name:');
+const VINESSA_SMS   = 'Sent to: (210) 885-8585\nSent by: Vinessa Virtual Assistant Community Honda\nWelcome to Community Honda. Reply YES to receive text messages.';
+const VINESSA_EMAIL = 'Subject: Your 2023 Chevrolet Traverse Awaits\nBy: Vinessa Virtual Assistant Community Honda\nHi Angelique, I am Vinessa, the Internet Sales Coordinator at Community Honda.';
+check('Angelique\'s text is bot-authored',  i => i.isBot(VINESSA_SMS), true);
+check('Angelique\'s email is bot-authored', i => i.isBot(VINESSA_EMAIL), true);
+
+// THE TRUNCATION IS WHY THIS IS TESTED ON THE RAW STRING. _lpOutboundAuthor keeps the two tokens a
+// CRM user name has, so the signal survives in "Vinessa Virtual" only by luck — and is destroyed
+// outright in the other two orderings below.
+console.log('\n  ...on the RAW author, because the two-token name would destroy the signal:');
+check('"Vinessa Virtual Assistant Community Honda" truncates to a name that keeps it by luck',
+  i => i.author(VINESSA_SMS, 'Noelia Diaz'), 'Vinessa Virtual');
+const NAME_LAST = 'Sent by: Community Honda Virtual Assistant\nhello';
+check('  "Community Honda Virtual Assistant" truncates to "Community Honda"...',
+  i => i.author(NAME_LAST, 'Noelia Diaz'), 'Community Honda');
+check('  ...which carries no signal at all, yet it is still detected',
+  i => [/virtual|assistant/i.test(i.author(NAME_LAST, 'Noelia Diaz')), i.isBot(NAME_LAST)], [false, true]);
+const AI_FIRST = 'Sent by: Sarah AI Assistant\nhello';
+check('  "Sarah AI Assistant" truncates to "Sarah AI" and is still detected',
+  i => [i.author(AI_FIRST, 'Noelia Diaz'), i.isBot(AI_FIRST)], ['Sarah AI', true]);
+
+console.log('\n  ...and the next vendor\'s bot is caught with no list to update:');
+for (const [s, label] of [['Sent by: Digital Concierge\nhi', 'Digital Concierge'],
+                          ['By: Automated Agent\nhi', 'Automated Agent'],
+                          ['Sent by: AutoResponder\nhi', 'AutoResponder'],
+                          ['By: Dealer Chatbot\nhi', 'Dealer Chatbot'],
+                          ['Sent by: Robo Advisor\nhi', 'Robo Advisor']])
+  check('    ' + label, i => i.isBot(s), true);
+
+// A REAL PERSON MUST NEVER BE CALLED A BOT. This is the direction that would do damage: telling
+// the model a colleague's message was a machine invites it to disown something a customer was
+// really sent.
+console.log('\na real person is never mistaken for the assistant:');
+for (const [s, label] of [['Sent by: Noelia Diaz\nHi Angelique, I pulled the Traverse file', 'Noelia Diaz'],
+                          ['By: Kaylee Guzman\nchecking in on your Pilot', 'Kaylee Guzman'],
+                          ['Sent by: Yvonne Ortega\nthe numbers you asked for', 'Yvonne Ortega'],
+                          ['By: Halie Bott\nfollowing up', 'Halie Bott — "Bott" must not match \\bbot\\b'],
+                          ['Sent by: Abbot Reyes\nhello', 'Abbot Reyes — nor "Abbot"']])
+  check('  ' + label, i => i.isBot(s), false);
+check('a message with no author line is not a bot',
+  i => [i.raw('no author line here'), i.isBot('no author line here')], ['', false]);
+
+console.log('\nthe prompt says what it actually was:');
+check('the heading names the automated assistant, not a person',
+  i => /THE LAST MESSAGE ON THIS LEAD CAME FROM THE STORE\\'S AUTOMATED ASSISTANT, NOT FROM A PERSON/.test(stripComments(i.src)), true);
+// (v9.7.639) These two phrases span string-concatenation boundaries in the source, so they exist
+// in the DELIVERED prompt but not in any single line of the file. Matching the raw source would
+// fail on text that is demonstrably shipping — the prose-match hazard this repo has hit seven
+// times since v9.7.563, pointing the other way. Concatenations are joined before matching.
+const joined = i => stripComments(i.src).replace(/'\s*\n\s*\+\s*'/g, '');
+// The apostrophe survives the join as a backslash escape (colleague\\'s), so the fragment matched
+// deliberately stops short of it rather than trying to model the escaping.
+check('  ...and does not call it something the team sent',
+  i => /It is NOT a colleague/.test(joined(i)), true);
+check('  ...the colleague wording is still there for a real human author',
+  i => /You did not send that message/.test(stripComments(i.src)), true);
+check('the generic ask is named as already spent',
+  i => /HAS ALREADY SPENT WHATEVER MOVES IT USED/.test(stripComments(i.src)), true);
+check('  ...and the agent is told they are the first real person',
+  i => /YOU ARE THE FIRST REAL PERSON TO WRITE TO THIS CUSTOMER/.test(joined(i)), true);
+// "Acknowledge the silence" is nonsense when the silence is a template that fired hours ago. On
+// Wendy Love's 9/4 lead the bot emailed at 10:51 PM and that instruction reached the model at
+// 11:33 PM — forty-two minutes of "silence" it was told to name out loud.
+check('a fresh bot-touched lead is told NOT to acknowledge a gap',
+  i => /That is not silence to remark on/.test(stripComments(i.src)), true);
+check('  ...gated on the lead being fresh, so a genuinely stale bot lead keeps the old wording',
+  i => /\(_asBot && _asFresh\)/.test(stripComments(i.src)), true);
+check('the bot verdict is computed from the shared detector, not hardcoded',
+  i => /var _asBot    = _lpIsBotAuthor\(data\.lastSubstantiveOutboundMsg\);/.test(stripComments(i.src)), true);
+check('a bot can never be resolved to the signing agent',
+  i => /if \(_asBot\) _asMine = false;/.test(stripComments(i.src)), true);
+check('[LP ANCHOR AUTHOR DIAG] now reports the raw author and the bot verdict',
+  i => /\[LP ANCHOR AUTHOR DIAG\][\s\S]{0,320}\| bot:/.test(stripComments(i.src)), true);
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);

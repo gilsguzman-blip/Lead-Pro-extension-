@@ -79,6 +79,18 @@ const QUESTIONS = [
     consumers: ['_lpSourceAckPhrase(_ls)', '_lpSourceAckPhrase(data.leadSource)']
   },
   {
+    question: 'where is the author line in a note',
+    owner: 'function _lpAuthorRaw(',
+    incident: 'v9.7.639 — a second consumer appeared (the bot test), and this is the extraction being factored out AT that moment instead of eight days after the copy drifts',
+    consumers: ['var rest = _lpAuthorRaw(msg);', '_LP_BOT_AUTHOR_RE.test(_lpAuthorRaw(msg))']
+  },
+  {
+    question: 'did a machine write this message rather than a person',
+    owner: 'function _lpIsBotAuthor(',
+    incident: 'v9.7.639 Angelique Morgan — the store\'s AI auto-responder touched the lead 0 minutes after creation and LP framed it as a colleague\'s message',
+    consumers: ['_lpIsBotAuthor(data.lastSubstantiveOutboundMsg)']
+  },
+  {
     question: 'where does the bounded conversation transcript begin and end',
     owner: 'function _lpBoundedTranscript(',
     incident: 'v9.7.629 / v9.7.630 (the arc digest and the fence disagreed about the region)',

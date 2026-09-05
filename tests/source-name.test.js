@@ -276,6 +276,36 @@ for (const file of BUILDS) {
   check('an unknown shape falls back rather than throwing',
     B.phrase('Facebook') && typeof B.phrase('Facebook').ex1, 'string');
 
+  // ── (v9.7.639) THE PERKS SITE SHE USED, NOT THE PLUMBING BEHIND IT ─────────
+  // Angelique Morgan (Community Honda Baytown, 9/5, 2023 Chevrolet Traverse). Source
+  // "Truecar/Perkspot (Internet)"; the lead-received note says "***Employee Shopping via Employer
+  // Perks Site***". She went to her EMPLOYER'S benefits portal. TrueCar powers it, but she never
+  // visited TrueCar and may not know the name — so "I saw your TrueCar request come through" names
+  // a brand that is a stranger to her. Same failure the rated-down "Thirdparty Honda" message was
+  // really about: telling the customer something about themselves that is not how they lived it.
+  console.log('\nan employer perks lead is not a TrueCar lead:');
+  check('Angelique\'s source resolves to the perks site',
+    B.resolve('Truecar/Perkspot (Internet)'), "your employer's perks site");
+  check('  ...and reads as a place she recognises',
+    B.phrase('Truecar/Perkspot (Internet)').ex1,
+    "Thanks for starting this on your employer's perks site...");
+  check('  ...with no doubled determiner in either frame',
+    /\b(?:your|the|our|a|an)\s+(?:your|the|our|a|an)\b/i.test(
+      B.phrase('Truecar/Perkspot (Internet)').ex1 + '  ' + B.phrase('Truecar/Perkspot (Internet)').ex2), false);
+  check('a bare Perkspot source resolves the same way',
+    B.resolve('Perkspot'), "your employer's perks site");
+  check('the note\'s own wording resolves too, if it ever reaches the field',
+    B.resolve('Employee Shopping via Employer Perks Site'), "your employer's perks site");
+  // ORDERING IS THE FIX. The perks entry sits AHEAD of the truecar entry, which would otherwise
+  // swallow it on the "Truecar/" prefix — that is precisely why it resolved wrongly.
+  console.log('\n  ...and every other TrueCar variant is untouched:');
+  for (const s of ['Truecar/Truecar', 'Truecar/Extended Network', 'Truecar/Sams Club',
+                   'Truecar/Truecar For Intuit Credit Karma Members',
+                   'Truecar/Truecar For Drivers On Uber'])
+    check('    still TrueCar: ' + JSON.stringify(s.slice(0, 40)), B.resolve(s), 'TrueCar');
+  check('the perks entry is ordered ahead of the truecar entry',
+    code.indexOf('perkspot') < code.indexOf("[/\\btruecar\\b/i"), true);
+
   console.log('\nit never throws:');
   check('empty', B.resolve(''), '');
   check('null', B.resolve(null), '');
