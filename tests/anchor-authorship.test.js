@@ -370,6 +370,33 @@ check('  ...and does not call it something the team sent',
   i => /It is NOT a colleague/.test(joined(i)), true);
 check('  ...the colleague wording is still there for a real human author',
   i => /You did not send that message/.test(stripComments(i.src)), true);
+// ── (v9.7.640) THE DIRECTIVE MUST NOT ASSUME A UNIT THAT ISN'T THERE ─────────────────────
+// My own v9.7.639, found on its second live day: in log181 the bot block fired on 6 of 6 grabs
+// and TWO carried pinned:"(none)". Richie Robinson's prompt said "NO VEHICLE IS ATTACHED TO THIS
+// LEAD. Do NOT reference or name any vehicle" forty lines under "one specific, checkable fact
+// about THIS unit".
+console.log('\nthe "what to spend this touch on" line branches on whether a vehicle exists:');
+check('it is gated on data.vehicle — the same test the LEAD block uses',
+  i => /ageBlock\.push\(data\.vehicle\s*\n?\s*\?/.test(stripComments(i.src)), true);
+check('the no-vehicle branch says so outright',
+  i => /THERE IS NO VEHICLE ON THIS LEAD/.test(joined(i)), true);
+check('  ...and forbids inventing one to fill the gap',
+  i => /you must not invent one to fill the gap/.test(joined(i)), true);
+check('  ...and names the question as the destination, not a fallback',
+  i => /not a fallback, the actual destination/.test(joined(i)), true);
+check('the with-vehicle branch no longer says "THIS unit"',
+  i => /checkable fact about THIS unit/.test(joined(i)), false);
+check('  ...it points at the vehicle on the lead instead',
+  i => /checkable fact about the vehicle on this lead/.test(joined(i)), true);
+// The opening sentence asserted what the bot's message contained. Vinessa's email to Richie named
+// no vehicle and asked for a CALL, not a test drive. The message is quoted three lines above it.
+check('the spent-moves line no longer describes what the bot said',
+  i => /In practice it names the vehicle and asks for a test drive/.test(joined(i)), false);
+check('  ...it points at the quote instead',
+  i => /Read what it actually said above/.test(joined(i)), true);
+check('both branches still forbid the come-in ask',
+  i => (joined(i).match(/not "when can you come in"/g) || []).length, 2);
+
 check('the generic ask is named as already spent',
   i => /HAS ALREADY SPENT WHATEVER MOVES IT USED/.test(stripComments(i.src)), true);
 check('  ...and the agent is told they are the first real person',
