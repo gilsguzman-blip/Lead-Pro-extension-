@@ -258,9 +258,30 @@ for (const [raw, want] of [
   ['Kbb Ico Kelley Blue Book', 'Kelley Blue Book'],
   ['Autotrader.com', 'Autotrader'],
   ['TrueCar', 'TrueCar'],
-  ['Capital One', 'Capital One']
+  ['Capital One', 'Capital One'],
+  // (v9.7.635) MOVED UP FROM THE "not named" LIST BELOW, deliberately and not to make a test pass.
+  // Gil, on the 9/5 Rebekah Fontenot lead: "the Gubagoo digital wasn't identified as a Click & Go".
+  // The distinction this section draws is LABEL vs RECOGNISABLE NAME, and Click & Go is the second
+  // kind — it is Honda's own online buying tool, the thing the customer actually clicked, and the
+  // Click & Go scenario branch has always said it out loud to customers ("I saw you started your
+  // deal online through Click & Go"). The resolver's whole contract is "given a raw routing label,
+  // return a name the customer would recognise, or nothing", so this is the resolver working.
+  // The hygiene property is unchanged and is asserted directly below: the RAW label still never
+  // reaches the customer. Chat sources stay in the "not named" list — see the entry there.
+  ['Gubagoo Virtual Retailing', 'Click & Go'],
+  ['Hds Dr Lead - Gubagoo - Drs Digital Retailing', 'Click & Go']
 ]) {
   check('  "' + raw + '" -> ' + want, i => i.source(raw), want);
+}
+
+// The property this section exists to protect, asserted on its own terms rather than implied by
+// the mapping: whatever the resolver returns, it is never the raw CRM string and never the vendor.
+console.log('\n...but the resolved name is never the raw label or the vendor:');
+for (const raw of ['Hds Dr Lead - Gubagoo - Drs Digital Retailing', 'Gubagoo Virtual Retailing',
+                   'Kbb Ico Kelley Blue Book', 'Cargurus Area Boost']) {
+  check('  "' + raw.slice(0, 40) + '" -> not the label itself', i => i.source(raw) === raw, false);
+  check('  ...and carries no vendor/jargon word',
+    i => /gubagoo|virtual retail|digital retail|dynamic credit|\bhds\b|\bdrs\b/i.test(i.source(raw)), false);
 }
 
 console.log('\ninternal routing labels are NOT named:');
@@ -268,7 +289,8 @@ console.log('\ninternal routing labels are NOT named:');
 for (const raw of [
   'Thirdparty Honda',
   'Hds Chat-Text Leads - Gubagoo - Chat Gubagoo - M-Chat',
-  'Gubagoo Virtual Retailing',
+  // (v9.7.635) 'Gubagoo Virtual Retailing' moved to the RECOGNISED list above — it is the
+  // digital-retailing product (Click & Go), not a chat/plumbing label. The chat variants stay here.
   'Lead Log',
   'Autosoft',
   'Phone Up',
