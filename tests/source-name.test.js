@@ -72,6 +72,9 @@ function load(file) {
 
 for (const file of BUILDS) {
   const B = load(file);
+  // (v9.7.636) Hoisted: several assertions below measure source POSITION, and every one of them
+  // must run against comment-stripped code — this file's headers quote its own directives.
+  const code = B.src.split('\n').filter(l => !/^\s*\/\//.test(l)).join('\n');
   console.log('\n' + path.relative(process.cwd(), file) + ' — one name, or no name at all');
 
   // ── REBEKAH'S LEAD ─────────────────────────────────────────────────────────
@@ -86,10 +89,19 @@ for (const file of BUILDS) {
 
   // ── THE OVER-REACH THAT MUST NOT HAPPEN ────────────────────────────────────
   // Found by running the first draft against every real source in the captured logs.
+  // (v9.7.636) The ASSERTION IS THE INTENT, not the old value. Under v9.7.635 these resolved to
+  // '' because chat was suppressed entirely; under v9.7.636 they are acknowledged as what they
+  // actually are. What must never change is that a CHAT customer is not told they used Click & Go
+  // — a tool they never opened. That is what this block has always been about, and it is now
+  // asserted directly instead of via a suppression that happened to imply it.
   console.log('\nchat is NOT Click & Go — it is a different product the customer never opened:');
   for (const s of ['Gubagoo - M-Chat', 'Gubagoo Chat', 'Hds Chat-Text Leads',
-                   'Gubagoo - SMS', 'Gubagoo Chat-Text', 'Gubagoo M-Chat Digital Retailing'])
-    check('  suppressed: ' + JSON.stringify(s), B.resolve(s), '');
+                   'Gubagoo Chat-Text', 'Gubagoo M-Chat Digital Retailing'])
+    check('  not Click & Go: ' + JSON.stringify(s), B.resolve(s) === 'Click & Go', false);
+  check('  ...an SMS lead is named as a text, not an online form',
+    B.resolve('Gubagoo - SMS'), 'your text to us');
+  check('  ...and a chat/DR hybrid label still reads as chat',
+    B.resolve('Gubagoo M-Chat Digital Retailing'), 'your chat with us');
   check('the exclusion matches the classifier\'s own chat test',
     /isGubagooChat = \/chat\|\\bsms\\b\/i\.test\(ls\)/.test(B.src), true);
 
@@ -108,10 +120,47 @@ for (const file of BUILDS) {
     ['Dealer Website',                                 'our website'],
   ]) check('  ' + JSON.stringify(s.slice(0, 34)), B.resolve(s), want);
 
-  console.log('\n...and every routing label still has none:');
-  for (const s of ['Thirdparty Honda - ', 'Lead Log', 'Kmf Luv Program',
-                   'Kia Digital - 3rd Party Lead', 'Toyota.Com-Payment Estimator', 'Ai Buying Signal'])
-    check('  suppressed: ' + JSON.stringify(s.trim().slice(0, 34)), B.resolve(s), '');
+  // ── (v9.7.636) EVERY WEB SOURCE GETS AN ACKNOWLEDGMENT ─────────────────────────────────────
+  // Gil, on v9.7.635: "losing the sources is not acceptable, that acknowledgment builds trust
+  // with the customer. that's why it was built that way." He is right and my v9.7.635 read the
+  // problem too narrowly: the answer to "this source has no customer-facing name" is to GIVE it
+  // one. Silence and the raw CRM label were never the only two options.
+  console.log('\nweb sources we cannot name specifically are still acknowledged:');
+  for (const s of ['Thirdparty Honda - ', 'Audi Partner Lead - Used/Cpo', 'Kia Digital - 3rd Party Lead',
+                   'Dealer E-Process - General Sales', 'Digital Advertising-Google',
+                   'Some Label The CRM Invents Next'])
+    check('  ' + JSON.stringify(s.trim().slice(0, 36)), B.resolve(s), 'your online inquiry');
+
+  console.log('\n...a chat lead is acknowledged as a chat:');
+  for (const s of ['Gubagoo - Chat Form', 'Hds Chat-Text Leads - Gubagoo - Chat', 'Gubagoo - Chat - Resq'])
+    check('  ' + JSON.stringify(s.slice(0, 36)), B.resolve(s), 'your chat with us');
+
+  console.log('\n...and the specific names that were missing are back:');
+  check('  Toyota.Com-Payment Estimator', B.resolve('Toyota.Com-Payment Estimator'), 'Toyota.com');
+  check('  Kia.com', B.resolve('Kia.com'), 'Kia.com');
+  check('  Cap One Mailer — the abbreviation never matched before',
+    B.resolve('Cap One Mailer'), 'Capital One');
+
+  // ── THE GUARD ON THE CATCH-ALL, AND IT IS THE POINT OF IT ──────────────────────────────────
+  // "Thanks for your online inquiry" said to a walk-in is FALSE, and saying something untrue
+  // about the customer is what the rated-down "Thirdparty Honda" message actually did wrong — the
+  // label was the symptom. Anyone who never filled in a form stays silent.
+  console.log('\nbut a customer who never inquired online is never told they did:');
+  for (const s of ['Walk In', 'Walk In - Drive By', 'Showroom', 'Service Dept', 'Phone Up',
+                   'Repeat Customer', 'Identitymax', 'Amp - Buying Signals', 'AMP - Request Help',
+                   'Event-Sports', 'Lead Log', 'Autosoft', 'Kmf Luv Program'])
+    check('  silent: ' + JSON.stringify(s.slice(0, 34)), B.resolve(s), '');
+  check('the fence is a named constant, not an inline regex',
+    /var _LP_NON_WEB_ORIGIN = \//.test(code), true);
+  check('...consulted before the catch-all returns',
+    /if \(_LP_NON_WEB_ORIGIN\.test\(s\)\) return '';\n  return 'your online inquiry';/.test(code), true);
+
+  // (v9.7.635's "every routing label still has none" block was REMOVED here, not weakened: four
+  // of its six entries asserted exactly the silence Gil rejected — "Thirdparty Honda",
+  // "Kia Digital", "Toyota.Com-Payment Estimator" now carry names, and the two that genuinely
+  // never inquired online are covered by the fuller list above.)
+  check('Ai Buying Signal is still silent — a marketing record, not an inquiry',
+    B.resolve('Ai Buying Signal'), '');
 
   // ── NO RESOLVED NAME MAY CONTAIN A FORBIDDEN WORD ──────────────────────────
   // The trap this build could most easily have walked into: trading one contradiction for another.
@@ -124,7 +173,6 @@ for (const file of BUILDS) {
 
   // ── THE ACKNOWLEDGMENT BLOCK READS THE RESOLVER ────────────────────────────
   console.log('\nthe acknowledgment block no longer keeps its own list:');
-  const code = B.src.split('\n').filter(l => !/^\s*\/\//.test(l)).join('\n');
   check('the private _ackable regex is gone', /var _ackable = \//.test(code), false);
   check('...replaced by the shared resolver',
     /var _ackName = \(typeof _lpCustomerFacingSource === 'function'\) \? _lpCustomerFacingSource\(_ls\) : '';/.test(code), true);

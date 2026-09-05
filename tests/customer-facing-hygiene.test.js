@@ -83,9 +83,16 @@ function extract(file) {
   };
   const safeBlock = (kw, name) => { try { return block(src, kw, name); } catch (e) { return null; } };
 
+  // (v9.7.636) Slice to the START OF THE FUNCTION, not to the first '];'. The resolver gained a
+  // companion — _LP_NON_WEB_ORIGIN, the fence that keeps "your online inquiry" away from walk-ins
+  // — which sits between the table and the function, so the old cut left it out and every call
+  // threw ReferenceError. Fourth build running where factoring a helper out of a lifted region
+  // broke a suite that lifts it (v9.7.630, .631, .634, here); anchoring on the consumer instead
+  // of on the table's punctuation is what stops it recurring here.
   const th = src.indexOf('var _LP_CUSTOMER_FACING_SOURCES');
+  const tf = src.indexOf('function _lpCustomerFacingSource', th);
   tryRun('_LP_CUSTOMER_FACING_SOURCES',
-         th < 0 ? null : src.slice(th, src.indexOf('];', th) + 2));
+         (th < 0 || tf < 0) ? null : src.slice(th, tf));
   tryRun('_lpCustomerFacingSource', safeBlock('function', '_lpCustomerFacingSource(raw)'));
   // PHONE_DIR must be initialised BEFORE the helper runs — see the TDZ note in the helper itself.
   tryRun('PHONE_DIR',            (b => b === null ? null : b + ';')(safeBlock('const', 'PHONE_DIR')));
@@ -284,18 +291,50 @@ for (const raw of ['Hds Dr Lead - Gubagoo - Drs Digital Retailing', 'Gubagoo Vir
     i => /gubagoo|virtual retail|digital retail|dynamic credit|\bhds\b|\bdrs\b/i.test(i.source(raw)), false);
 }
 
-console.log('\ninternal routing labels are NOT named:');
+// (v9.7.636) THE LIST SPLIT IN TWO, because "not a recognisable brand" and "not an online
+// inquiry" turned out to be different questions. Gil, on v9.7.635: "losing the sources is not
+// acceptable, that acknowledgment builds trust with the customer. that's why it was built that
+// way." A web-sourced lead we cannot name specifically now gets "your online inquiry" — true,
+// never a CRM label, and it keeps the trust the block exists for. What must STAY silent is anyone
+// who never filled in a form: telling a walk-in "thanks for your online inquiry" is false, and
+// saying something untrue about the customer is what the rated-down "Thirdparty Honda" message
+// actually did wrong — the label was the symptom, the falsehood was the defect.
+console.log('\nweb-sourced labels are acknowledged generically, never by their raw name:');
 
 for (const raw of [
   'Thirdparty Honda',
+  'Audi Partner Lead - Audi Partner Lead',
+  'Kia Digital - 3rd Party Lead',
+  'Dealer E-Process - General Sales',
+  'Digital Advertising-Google'
+]) {
+  check('  "' + raw.slice(0, 42) + '" -> your online inquiry', i => i.source(raw), 'your online inquiry');
+  check('  ...never the raw label', i => i.source(raw) === raw, false);
+}
+
+console.log('\n...and a chat lead is acknowledged as a chat, not as Click & Go:');
+for (const raw of [
   'Hds Chat-Text Leads - Gubagoo - Chat Gubagoo - M-Chat',
-  // (v9.7.635) 'Gubagoo Virtual Retailing' moved to the RECOGNISED list above — it is the
-  // digital-retailing product (Click & Go), not a chat/plumbing label. The chat variants stay here.
+  'Gubagoo - Chat Form',
+  'Gubagoo - Chat - Resq'
+]) {
+  check('  "' + raw.slice(0, 42) + '"', i => i.source(raw), 'your chat with us');
+}
+
+console.log('\nbut anyone who never inquired online stays silent:');
+
+for (const raw of [
   'Lead Log',
   'Autosoft',
   'Phone Up',
   'Showroom',
-  'Audi Partner Lead - Audi Partner Lead'
+  'Walk In',
+  'Walk In - Drive By',
+  'Service Dept',
+  'Repeat Customer',
+  'Identitymax',
+  'Amp - Buying Signals',
+  'Event-Sports'
 ]) {
   check('  "' + raw.slice(0, 42) + '"', i => i.source(raw), '');
 }
