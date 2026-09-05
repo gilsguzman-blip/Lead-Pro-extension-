@@ -55,6 +55,17 @@ function load(file) {
     _lpNormVehicleStr: x => String(x || ''),
     _LP_MAKE_RX: /\b(ford|kia|toyota|honda|audi|nissan|chevrolet|gmc|jeep|ram|hyundai)\b/gi };
   vm.createContext(sb);
+  // (v9.7.641) The scan now drops entries we sent ourselves. _lpIsOurOwnSend is LIFTED FROM THE
+  // SHIPPED FILE rather than stubbed — a stand-in would let the real predicate rot while this
+  // suite stayed green, the trap v9.7.588 recorded.
+  const oa = src.indexOf('function _lpIsOurOwnSend(');
+  if (oa < 0) require('./lib/fatal-guard.js').bail('variant-token.test.js', '_lpIsOurOwnSend not in ' + file);
+  let d0 = 0, st0 = false, oe = -1;
+  for (let i = oa; i < src.length; i++) {
+    if (src[i] === '{') { d0++; st0 = true; }
+    else if (src[i] === '}') { d0--; if (st0 && d0 === 0) { oe = i + 1; break; } }
+  }
+  vm.runInContext(src.slice(oa, oe), sb);
   return { src, run: (voi, famKey, brief) => {
     sb.d = { vehicle: voi, conversationBrief: brief, context: '' };
     sb._voiFamKey = famKey;
@@ -100,6 +111,62 @@ for (const file of BUILDS) {
   check('no family key', B.run('2018 Ford Expedition Platinum', '', 'anything'), '');
   check('the guard is in the shipped source',
     /!_LP_NOT_A_TRIM\[_vmTok\]/.test(B.src), true);
+  // ── (v9.7.641) OUR OWN BOT'S SUBJECT LINE IS NOT A CUSTOMER REQUEST ───────────────────────────
+  // Madison Leggion (Audi Lafayette, 9/5, 2021 Ford Mustang GT Fastback). Her prompt carried
+  //   VEHICLE VARIANT MISMATCH: the customer's own words (read the arc) ask about a different
+  //   configuration — "awaits" — of this same model
+  // on a lead whose own facts section reads "0 inbound / 2 outbound" and "The customer has never
+  // replied to anything on this lead". The token came from the auto-responder's SUBJECT LINE,
+  // "Your 2021 Ford Mustang Awaits at Audi Lafayette" — our marketing copy, quoted back as hers.
+  //
+  // Measured over all 231 variant scans in the captures: 38 fired, the v9.7.628 word blocklist stops
+  // 13, and 23 still shipped — 18 of them on words that are not trims at all ("read" x4, "black",
+  // "https", "search", "options", "listed", "configuration", and "robert", a person's name). The
+  // blocklist is the enumeration axis; authorship is the right one.
+  const MADISON = '[09/05/2026 6:51 AM] [AGENT] Email reply to prospect\n'
+    + '  Subject: Your 2021 Ford Mustang Awaits at Audi Lafayette By: Vinessa Virtual Assistant Audi Lafayette '
+    + 'Hi Madison, I am Vinessa. We have a stunning 2021 Ford Mustang in our inventory\n'
+    + '[09/05/2026 6:51 AM] [AGENT] Outbound Text Message\n  Reply YES to receive text messages.\n';
+  console.log('\nthe auto-responder\'s own copy is not the customer asking:');
+  check('Madison — "awaits" no longer ships as a configuration',
+    B.run('2021 Ford Mustang GT Fastback', 'ford|mustang', MADISON), '');
+  check('  ...and a REAL trim in our own subject line is dropped too, not just a junk word',
+    B.run('2026 Honda Pilot Elite', 'honda|pilot',
+      '[09/05/2026] [AGENT] Email reply to prospect\n  Subject: Your 2026 Honda Pilot Touring Awaits\n'), '');
+  check('  ...an outbound TEXT of ours is dropped as well',
+    B.run('2026 Honda Pilot Elite', 'honda|pilot',
+      '[09/05/2026] [AGENT] Outbound Text Message\n  the 2026 Honda Pilot Touring is a great choice\n'), '');
+
+  // ── THE CASE THIS DETECTOR WAS BUILT FOR MUST STILL FIRE ──────────────────────────────────────
+  // Gary Hudson (v9.7.505): the variant sits in AUSTIN LEONARD'S OWN NOTE — "Looking for a 2023 jeep
+  // wrangler 4xe" — not in a customer-tagged message. Filtering to [CUSTOMER] lines would have
+  // silently broken the feature's founding incident, which is exactly why the filter is
+  // our-own-send and not customer-tags. This is the control that pins that decision.
+  console.log('\n  ...but an agent NOTE about the customer still counts (v9.7.505, Gary Hudson):');
+  check('the 4xe in Austin Leonard\'s note still fires',
+    B.run('2025 Jeep Wrangler Willys', 'jeep|wrangler',
+      '[07/28/2026] [NOTE] Phone Note\n  Looking for a 2023 jeep wrangler 4xe, wants to know about the plug in\n'), '4xe');
+  check('  ...and so does the customer saying it herself',
+    B.run('2025 Jeep Wrangler Willys', 'jeep|wrangler',
+      '[07/28/2026] [CUSTOMER] Inbound Text Message\n  I want a 2023 jeep wrangler 4xe not the willys\n'), '4xe');
+  check('  ...a real note outranks our own copy in the same brief',
+    B.run('2025 Jeep Wrangler Willys', 'jeep|wrangler',
+      '[09/05/2026] [AGENT] Email reply to prospect\n  Subject: Your 2025 Jeep Wrangler Awaits today\n'
+      + '[07/28/2026] [NOTE] Phone Note\n  Looking for a 2023 jeep wrangler 4xe\n'), '4xe');
+
+  // THE ENTRY, NOT THE LINE. The first draft of this fix tested each line on its own, which dropped
+  // the "[AGENT] Email reply to prospect" header and KEPT the indented body underneath it — which is
+  // where the subject line, and therefore "awaits", actually lives. Executing the shipped scan on
+  // Madison's real transcript still returned "awaits", which is how it was caught before shipping.
+  console.log('\n  ...and a dropped entry takes its body lines with it:');
+  check('the header alone is not what carries the token',
+    /Subject: Your 2021 Ford Mustang Awaits/.test(MADISON), true);
+  check('  ...so the body under a dropped header is dropped too',
+    B.run('2021 Ford Mustang GT Fastback', 'ford|mustang', MADISON), '');
+  check('  ...while a body under a KEPT header survives',
+    B.run('2025 Jeep Wrangler Willys', 'jeep|wrangler',
+      '[07/28/2026] [NOTE] Phone Note\n  Looking for a 2023 jeep wrangler 4xe\n'), '4xe');
+
 }
 
 if (BUILDS.length > 1) {

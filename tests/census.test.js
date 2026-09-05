@@ -63,8 +63,17 @@ const QUESTIONS = [
   {
     question: 'is this text a message WE composed and sent them',
     owner: 'function _lpIsOurOwnSend(',
-    incident: 'v9.7.594 Troy Noel (our emails as his topics) / v9.7.638 Rebecca Caplan (our "budget range" as her price concern)',
-    consumers: ['!_lpIsOurOwnSend(line)', '_lpIsOurOwnSend(title)']
+    incident: 'v9.7.594 Troy Noel (our emails as his topics) / v9.7.638 Rebecca Caplan (our "budget range" as her price concern) / v9.7.641 Madison Leggion (our bot\'s subject line as her requested configuration)',
+    consumers: ['!_lpIsOurOwnSend(line)', '_lpIsOurOwnSend(title)', '_vmInOurs = _lpIsOurOwnSend(l)'],
+    // (v9.7.641) THE ONE DELIBERATE EXCEPTION, AND IT IS ENFORCED HARDER THAN THE RULE.
+    // inlineScraper is serialised and injected into VinSolutions frames: only its own body
+    // travels, so a popup helper called from inside it throws ReferenceError and aborts the whole
+    // scrape (v9.7.450, six builds lost). Any text predicate needed on BOTH sides of that boundary
+    // must therefore exist twice. The answer is not to pretend otherwise but to make drift
+    // impossible: two copies, asserted byte-identical below. This is the shape described to Gil on
+    // Saturday as the honest handling of the scope split.
+    copies: 2,
+    identicalReason: 'the scraper is serialised into page frames and cannot call popup scope (v9.7.450)'
   },
   {
     question: 'is this line a CRM routing header rather than speech',
@@ -109,7 +118,26 @@ for (const file of BUILDS) {
     console.log('\n  Q: ' + q.question);
     console.log('     (' + q.incident + ')');
     const owners = (code.split(q.owner).length - 1);
-    check('    exactly one implementation', owners, 1);
+    const want = q.copies || 1;
+    check('    exactly ' + (want === 1 ? 'one implementation' : want + ' implementations ('
+      + q.identicalReason + ')'), owners, want);
+    // Where a second copy is deliberate, drift between them is the whole risk — so the bodies are
+    // compared character for character. A copy that is allowed to exist is not a copy that is
+    // allowed to diverge.
+    if (want > 1) {
+      const bodies = [];
+      let at = -1;
+      while ((at = code.indexOf(q.owner, at + 1)) >= 0) {
+        let d = 0, started = false, end = -1;
+        for (let i = at; i < code.length; i++) {
+          if (code[i] === '{') { d++; started = true; }
+          else if (code[i] === '}') { d--; if (started && d === 0) { end = i + 1; break; } }
+        }
+        bodies.push(code.slice(at, end).replace(/^[ \t]+/gm, ''));
+      }
+      check('    ...and every copy is byte-identical', bodies.every(b => b === bodies[0]), true);
+      check('    ...checked ' + bodies.length + ' copies', bodies.length, want);
+    }
     for (const c of q.consumers) {
       check('    consumer delegates: ' + JSON.stringify(c.slice(0, 52)), code.indexOf(c) >= 0, true);
     }

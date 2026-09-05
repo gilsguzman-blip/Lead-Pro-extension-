@@ -88,12 +88,20 @@ function extract(file) {
   // being counted as a competitor mention). They are LIFTED FROM THE SHIPPED FILE, not stubbed —
   // a hand-written stand-in would let the real predicates rot while this suite stayed green, which
   // is exactly the trap v9.7.588 recorded.
+  // (v9.7.641) BRACE-MATCHED, not indentation-matched. _lpIsOurOwnSend now exists twice by
+  // design — once at module scope for the popup-side variant scan, once inside inlineScraper,
+  // asserted byte-identical by census.test.js. The old slice looked for "\n    }" and so ran past
+  // the end of whichever copy it found first, producing "Unexpected end of input". Counting braces
+  // works whatever the indentation and whichever copy is found.
   function lift(name) {
     const at = src.indexOf('function ' + name + '(');
     if (at < 0) throw new Error(name + ' not found in ' + file + ' — THE SUITE DID NOT LOAD');
-    const close = src.indexOf('\n    }', at);
-    if (close < 0) throw new Error(name + ' has no close in ' + file);
-    return src.slice(at, close + 6);
+    let d = 0, started = false;
+    for (let i = at; i < src.length; i++) {
+      if (src[i] === '{') { d++; started = true; }
+      else if (src[i] === '}') { d--; if (started && d === 0) return src.slice(at, i + 1); }
+    }
+    throw new Error(name + ' has no close in ' + file);
   }
   const shared = lift('_lpIsOurOwnSend') + '\n' + lift('_lpIsRoutingLine') + '\n';
 
