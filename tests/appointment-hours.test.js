@@ -158,6 +158,148 @@ for (const file of BUILDS) {
     /isClosed \? _rawEarliest :/.test(code), true);
 }
 
+// ── (v9.7.642) THE SECOND OPTION MUST BE A DAY WE ARE OPEN ────────────────────────────────────
+// Chukwuma Emezie (Community Honda Baytown, 9/5, 9:05 AM Saturday). His prompt carried
+//   STORE STATUS RIGHT NOW: OPEN ... lead with a today time, or today plus tomorrow.
+// twenty lines under "TOMORROW = Sunday 9/6 (CLOSED)" and ten lines above "CLOSED DAYS ARE NEVER
+// OFFERED ... NOT as a relative word ('tomorrow')". The string was hardcoded; its own comment
+// claimed it was "stated positively so it cannot fight the closed-day rule above", and it fought
+// it. 4 of 57 open-hours grabs across four separate captures, and deterministic rather than
+// occasional — every rooftop closes Sunday, so it fires on every Saturday the store is open.
+//
+// Executed against the SHIPPED calendar block, whose _dayIsClosed already owns this question and
+// stamps (CLOSED) on the reference three lines up. Resolving it anywhere else would be a second
+// reading of STORE_HOURS.
+function nextOpen(file, iso, dealerId) {
+  const src = fs.readFileSync(file, 'utf8');
+  const sa = src.indexOf('const STORE_HOURS = {');
+  const sh = src.slice(sa, src.indexOf('\n};', sa) + 3);
+  const a = src.indexOf('        var _cal_now = new Date(new Date().toLocaleString');
+  const b = src.indexOf('        _cal_lines.forEach(function(l){ ageBlock.push(l); });');
+  if (sa < 0 || a < 0 || b < 0) bail('calendar block not found in ' + file + ' — THE SUITE DID NOT LOAD');
+  const Real = Date;
+  const sb = { console: { log() {} }, window: {} };
+  sb.Date = class extends Real {
+    constructor(...x) { if (!x.length) super(iso); else super(...x); }
+    static now() { return new Real(iso).getTime(); }
+  };
+  vm.createContext(sb);
+  vm.runInContext(sh, sb);
+  vm.runInContext('var data={dealerId:' + JSON.stringify(dealerId) + '}; var ageBlock=[]; var _lpNextOpenLabel="";\n'
+    + src.slice(a, b), sb);
+  return vm.runInContext('_lpNextOpenLabel', sb);
+}
+
+for (const file of BUILDS) {
+  console.log('\n' + path.relative(process.cwd(), file) + ' — the day after today, when today is Saturday');
+  const ROOFTOPS = [['Honda Baytown', '6191'], ['Toyota Baytown', '6189'], ['Kia Baytown', '6190'],
+                    ['Honda Lafayette', '24399'], ['Audi Lafayette', '21135']];
+  console.log('\nSaturday 9/5 — every rooftop is closed Sunday:');
+  for (const [name, id] of ROOFTOPS)
+    check('  ' + name + ' resolves past the closed Sunday',
+      nextOpen(file, '2026-09-05T10:00:00-05:00', id), 'Monday 9/7');
+  console.log('\n  ...and on a day whose tomorrow IS open, nothing changes:');
+  for (const [name, id] of ROOFTOPS)
+    check('  ' + name + ' on a Friday still says tomorrow',
+      nextOpen(file, '2026-09-04T10:00:00-05:00', id), 'tomorrow');
+  check('  a Monday also still says tomorrow',
+    nextOpen(file, '2026-09-07T10:00:00-05:00', '6191'), 'tomorrow');
+
+  console.log('\nthe status line reads the resolved label, not a hardcoded word:');
+  const code = fs.readFileSync(file, 'utf8').split('\n').filter(l => !/^\s*\/\//.test(l)).join('\n');
+  check('the hardcoded "today plus tomorrow" is gone from the unconditional path',
+    /so today is the default: lead with a today time, or today plus tomorrow\./.test(code), false);
+  check('  ...it is now reached only when tomorrow is genuinely open',
+    /_lpNextOpenLabel === 'tomorrow'\s*\n?\s*\? ' lead with a today time, or today plus tomorrow\.'/.test(code), true);
+  check('  ...and a closed tomorrow names the open day instead',
+    /TOMORROW IS CLOSED — if you offer a second option at all it must be ' \+ _lpNextOpenLabel/.test(code), true);
+  // EXECUTED, not matched. A source-position assertion says the branch exists; only running it
+  // says the branch still decides anything. Disabling the condition leaves every text match green,
+  // which is the vacuous shape this repo has shipped before.
+  const soonestFor = (label) => {
+    const src = fs.readFileSync(file, 'utf8');
+    const a = src.indexOf("                  var _soonest = _lpNextOpenLabel === 'tomorrow'");
+    if (a < 0) bail('the soonest-first branch is not where this suite expects it in ' + file);
+    const b = src.indexOf("_statusLine = 'STORE STATUS RIGHT NOW: OPEN.", a);
+    const sb = { };
+    vm.createContext(sb);
+    vm.runInContext('var _lpNextOpenLabel = ' + JSON.stringify(label) + ';\n' + src.slice(a, b), sb);
+    return vm.runInContext('_soonest', sb);
+  };
+  console.log('\n  ...and running the branch, not just matching it:');
+  check('an OPEN tomorrow still offers today plus tomorrow',
+    /today plus tomorrow/.test(soonestFor('tomorrow')), true);
+  check('a CLOSED tomorrow does not',
+    /today plus tomorrow/.test(soonestFor('Monday 9/7')), false);
+  check('  ...it names the open day it resolved to',
+    /must be Monday 9\/7/.test(soonestFor('Monday 9/7')), true);
+  check('  ...and says outright that tomorrow is closed',
+    /TOMORROW IS CLOSED/.test(soonestFor('Monday 9/7')), true);
+  check('  ...and forbids the relative words the closed-day rule also forbids',
+    /never "tomorrow" and never "this weekend"/.test(soonestFor('Monday 9/7')), true);
+  check('an unresolvable calendar offers no second day at all',
+    soonestFor(''), ' lead with a today time.');
+
+  check('the label is declared outside the try, so a calendar failure cannot leave it undefined',
+    /var _lpNextOpenLabel = '';\n\s*try \{/.test(code), true);
+  check('  ...and an empty label drops the second option rather than guessing',
+    /: ' lead with a today time\.'\)/.test(code), true);
+  check('it reuses _dayIsClosed rather than re-reading STORE_HOURS',
+    /if \(!_dayIsClosed\(_noD\)\) \{/.test(code), true);
+}
+
+// ── (v9.7.642) THEY CANNOT HAVE REPLIED IF WE NEVER WROTE ─────────────────────────────────────
+// Same capture, same lead. Chukwuma's prompt carried "LIVE CONVERSATION: Customer replied within
+// the last few hours ... references exactly what the customer said" while its own facts section
+// read "Exchange so far: 1 inbound / 0 outbound", "light (0 outreaches)", "Phase: first-touch",
+// and the CONTEXT & HISTORY section carried no transcript at all. isLiveConversation is true when
+// any inbound note in the top three is under 8 hours old, and on a fresh lead the lead-received
+// note ITSELF is inbound — so it fires on every same-day first-touch grab. The heat reading is
+// right; "replied" is not, and telling the model to quote words that are nowhere in the prompt is
+// how invented quotes happen (v9.7.428, v9.7.552, v9.7.641).
+for (const file of BUILDS) {
+  const code = fs.readFileSync(file, 'utf8').split('\n').filter(l => !/^\s*\/\//.test(l)).join('\n');
+  const joined = code.replace(/'\s*\n\s*\+\s*'/g, '');
+  console.log('\n' + path.relative(process.cwd(), file) + ' — replied vs inquired');
+  check('the live-conversation block branches on prior outbound',
+    /if \(d\.isLiveConversation\) vehicleExtras\.push\(d\.hasOutbound/.test(code), true);
+  check('  ...the replied wording survives for a lead we HAVE written to',
+    /LIVE CONVERSATION: Customer replied within the last few hours/.test(joined), true);
+  check('  ...and a first inquiry gets its own wording instead',
+    /FRESH INQUIRY — CAME IN WITHIN THE LAST FEW HOURS/.test(joined), true);
+  check('the fresh branch says plainly that they have not replied',
+    /They have NOT replied to anything/.test(joined), true);
+  check('  ...and forbids quoting words that are not in the prompt',
+    /no message of theirs to quote/.test(joined), true);
+  check('  ...so "references exactly what the customer said" is not in the fresh branch',
+    joined.split('FRESH INQUIRY')[1].split("');")[0].indexOf('references exactly what the customer said'), -1);
+  // EXECUTED, same reason as the soonest-first branch above.
+  const liveFor = (hasOutbound) => {
+    const src = fs.readFileSync(file, 'utf8');
+    const a = src.indexOf('  if (d.isLiveConversation) vehicleExtras.push(d.hasOutbound');
+    if (a < 0) bail('the live-conversation branch is not where this suite expects it in ' + file);
+    const b = src.indexOf("\n", src.indexOf("getting them in soon is the goal.');", a));
+    const sb = { vehicleExtras: [], d: { isLiveConversation: true, hasOutbound: hasOutbound } };
+    vm.createContext(sb);
+    vm.runInContext(src.slice(a, b), sb);
+    return sb.vehicleExtras[0] || '';
+  };
+  console.log('\n  ...and running that branch too:');
+  check('a lead we HAVE written to still reads "replied"',
+    /Customer replied within the last few hours/.test(liveFor(true)), true);
+  check('a lead we have NOT written to does not',
+    /Customer replied within the last few hours/.test(liveFor(false)), false);
+  check('  ...it reads as a fresh inquiry instead',
+    /FRESH INQUIRY/.test(liveFor(false)), true);
+  check('  ...and never asks the model to quote words it has not been given',
+    /references exactly what the customer said/.test(liveFor(false)), false);
+  check('  ...while the lead we wrote to still may reference what they said',
+    /references exactly what the customer said/.test(liveFor(true)), true);
+
+  check('both branches still treat it as hot',
+    (joined.match(/This is a HOT lead/g) || []).length, 2);
+}
+
 if (BUILDS.length > 1) {
   console.log('\nboth builds compute the same slots:');
   const region = f => {
