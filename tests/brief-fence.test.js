@@ -171,12 +171,20 @@ for (const file of BUILDS) {
   // ── EMPTY FENCES ARE NEVER MANUFACTURED ────────────────────────────────────
   console.log('\na lead with no thread keeps its honest "no marker" state:');
   B.logs.length = 0;
-  const none = B.invariant('AGENT CONTEXT — READ THIS FIRST. ...', '', 'first-touch', 0);
+  // (v9.7.633) The note count is now part of the shape. A lead with NOTES but no thread is a
+  // finding and stays audible; a frame with NEITHER scraped nothing and is silent. This case
+  // carries notes:6 so it exercises the finding, not the noise — before v9.7.633 it passed
+  // notes:0, which is now (correctly) the silent shape.
+  const none = B.invariant('AGENT CONTEXT — READ THIS FIRST. ...', '', 'first-touch', 6);
   check('no fences invented', none.indexOf('CONVERSATION TRANSCRIPT (') , -1);
   check('the brief is otherwise untouched', none, 'AGENT CONTEXT — READ THIS FIRST. ...');
-  check('whitespace is not a transcript', B.invariant('x', '   \n  \n', 'first-touch', 0), 'x');
+  check('whitespace is not a transcript', B.invariant('x', '   \n  \n', 'first-touch', 6), 'x');
   check('...and the log says which of the two it is',
     /NO TRANSCRIPT BODY to bound/.test(B.logs.join('|')), true);
+  // ...and the frame that never held a lead says nothing at all — see diag-honesty.
+  B.logs.length = 0;
+  check('a frame that scraped nothing is silent (v9.7.633)',
+    B.invariant('', '', 'first-touch', 0) === '' && B.logs.length === 0, true);
   check('an empty brief with a thread still gets one, with no leading blank lines',
     B.invariant('', THREAD, 'first-touch', 5).indexOf(MARKER), 0);
 
