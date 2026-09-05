@@ -356,8 +356,11 @@ check('both ask the sanitiser instead',
 check('a hard constraint covers the transcript path too — the likelier one on this lead',
   i => /HOW THIS LEAD REACHED US: do NOT tell the customer where their inquiry came from/.test(strip(i.src)), true);
 
+// (v9.7.637) Repointed to the phrase resolver, which walks the same table and additionally
+// supplies the sentence shape. The property is unchanged: the constraint's name comes from the
+// shared resolver, never from data.leadSource.
 check('...and it still permits the recognised name when there is one',
-  i => /you may say the customer came through ' \+ _lpCustomerFacingSource/.test(strip(i.src)), true);
+  i => /you may say the customer came through ' \+ _lpSourceAckPhrase\(data\.leadSource\)\.name/.test(strip(i.src)), true);
 
 // ── (3) THE STORE PHONE ─────────────────────────────────────────────────────
 // This runs against the SHIPPED directory. If someone's number changes, this changes with it.

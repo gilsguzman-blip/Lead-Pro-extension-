@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.637-dev (Dev. A MACHINE FIELD WAS QUOTED TO THE MODEL AS THE CUSTOMER'S OWN SENTENCE, AND THE MODEL SAID IT BACK TO HER; AND THE NAMES I ADDED IN v9.7.636 DID NOT FIT THE SENTENCES AROUND THEM. Both from log179, two grabs. (1) THE ONE GIL HAD NOT DECIDED ON WENT OUT ANYWAY. Rebekah Fontenot (Community Honda Lafayette, 2026 Pilot Elite, 9/4). Her delivered email: "I saw your Click & Go request for the 2024 Honda Pilot Touring with 38,750 miles. The online estimate shows about $3,200 in negative equity, but I don't want you relying on an estimate alone". Nobody built negative-equity surfacing -- v9.7.636's own header records it as deliberately NOT built, pending Gil's call. The prompt asked for it. Her entire "inquiry" was this, verbatim, and she typed none of it: TradeInVehicleComment=Net trade-in: $-3200, trade-in value: $36800, remaining balance: $40000.00; -- rendered under the header "CUSTOMER'S INQUIRY -- the customer's own words when they submitted this lead. This is what they actually asked for; address it directly". The Click & Go tool wrote those fields. The model did exactly as instructed. MEASURED: 1 of 456 captured drafts names negative equity to a customer, and 7 of 218 inbound-message rows are a TradeInVehicleComment= field passed off as customer words -- the other six are positive equity, which is why nobody noticed. TWO THINGS WERE WRONG AND ONLY ONE IS A STRATEGY QUESTION, which is the whole point of how this is fixed. Quoting a machine field as her sentence is false whatever we decide about equity: she did not write it and has never raised the subject with us. That is the defect. Whether to deliberately SURFACE negative equity is a separate call, still Gil's, and would be an added directive rather than a change to this one. FIX: a SHAPE test, not a field-name blocklist (the v9.7.555 rule -- this file has been bitten by enumerating observed shapes in v9.7.552, .553 and .554, and a shape test rejects the next tool's blob whatever its fields are called). _lpIsToolFieldBlob requires an opening Identifier= and then either a trailing semicolon or a second key; one key alone is not enough, because a person could plausibly type "Trade=my 2019 Durango". It is rejected from the inquiry slot exactly as Ownership-and-Service rows (v9.7.302), Dealertrack routing links (v9.7.313) and TrueCar portal banners (v9.7.430) already are at that same site. THE FIGURES DO NOT VANISH, and that mattered: her trade is real, and the VR deal block carries only "Customer dropped off before completing deal" (the gap v9.7.635 recorded). They are re-emitted under a header naming the tool as the author, marked as the tool's UNVERIFIED estimate, with quoting them back to the customer forbidden. THAT RULE IS NOT NEW: the system prompt already says final trade numbers are built at the visit, and the OTD/PAYMENT DISCIPLINE block says it harder about price. The model broke it because the "her own words, address it directly" framing outranked it. This restores the existing rule; it does not invent a policy. ONE FIX CLOSES _lpCustomerText TOO -- data.lastInboundMsg falls back to the inquiry slot, so the five scans v9.7.555 named never see the blob either, with no second definition anywhere. (2) THE NAMES DID NOT FIT THE FRAME. v9.7.636 gave five families names that are not proper nouns while the acknowledgment block built its examples by concatenation onto a frame that assumed one: 'I saw your ' + name + ' request come through'. What shipped, in 81 of 209 acknowledged prompt builds across log173-log179 (39%): "I saw your your online inquiry request come through", "I saw your our website request come through", "I saw your your chat with us request come through". Also "that is a place they will recognise", said of "your online inquiry", which is not a place. THE MODEL REPAIRED EVERY ONE -- 0 of 456 drafts carry a doubled determiner, and Wendy Love's shipped as "I saw your online inquiry for the 2027 Honda CR-V" -- so no customer saw it. That is luck, not design: the example sentence is the thing teaching the phrasing. FIX: every table row now carries its grammatical shape (brand / place / owned) beside its name, and _LP_ACK_FRAMES holds the two example sentences and the constraint tail for each. _lpSourceAckPhrase walks the table once and returns name + shape + frames; _lpCustomerFacingSource delegates to it and its signature and return type are unchanged, because five callers and two suites depend on them. Shape lives WITH the name so the two cannot drift -- the v9.7.631 principle for the third time, after v9.7.629, .630, .634 and .635 were each undone by two hand-maintained definitions of one question. COVERAGE IS UNCHANGED: still 209 of 246 acknowledged, still 37 silent. This build changes only how the sentence reads. A DEFECT IN MY OWN SUITE, FOUND BY THE NON-VACUITY RUN AND WORTH RECORDING: neutering the predicate into a plausible WRONG implementation (count Label: value pairs -- the v9.7.555 metadata heuristic applied to the wrong problem) failed nothing in the "real customer messages are never eaten" block, because none of my ten fixtures could be eaten by it. The block was proving nothing. Added the case v9.7.555's own header names as the hazard -- a customer whose genuine message is terse and label-shaped, "Trade: 2019 Durango. Timeframe: 2 weeks." -- and that neuter now fails it. VERIFIED: new tool-field-data suite, 126 assertions across both builds, EXECUTING the shipped predicate AND the shipped gate lifted off the extraction path, against Rebekah's real string and the six other real blobs. The gate is proven by BEHAVIOUR, not by matching its own text: disabling it (`if (false && ...)`) leaves every source-position assertion green, which is the vacuous shape this repo has shipped before. source-name extended to 248 across both builds, running every name through its own frames. 87 suites green (3,684 assertions, +232 on v9.7.636), dev===comm. NON-VACUITY, FIVE NEUTERS, EACH ATTRIBUTABLE: forcing the brand frame on every shape -- restoring exactly the bug -- fails 8 by name; stashing the blob without clearing the inquiry slot fails 6, including all three behavioural ones; deleting the re-emission block fails 2; disabling the gate trips the load guard; the colon-label misimplementation fails 5 across both directions. AND A MIRROR THAT BROKE THE FILE AND WAS CAUGHT BEFORE COMMIT: my first commercial mirror bounded one of three regions wrongly (it caught 87 unchanged characters instead of the gate) and its insertion left commercial unparseable. node --check caught it, commercial was restored from the last commit, and the mirror was redone as five individually-anchored edits each asserted to apply exactly once, with DEALER_ID_MAP's occurrence count checked before writing. Same failure mode as v9.7.636's 283-line deletion, one build later, caught the same way. WHAT THIS MIGHT BREAK, PLAINLY: a lead whose only inbound content is a tool field blob now has an EMPTY inquiry slot, so first-touch framing takes over where the blob used to fill it -- correct, but it is a real change on those 7-in-218 leads. And the model no longer quotes tool-supplied trade figures at all, which on a POSITIVE-equity lead removes a number it previously volunteered; that is the same unverified-estimate rule applied evenly, and surfacing either direction deliberately remains Gil's call. STILL OPEN: the System callmeasurement URL row in the arc (v9.7.562), scenarioRules rendering twice per prompt, and Isaac's 25 outreaches after a STOP. node --check clean on both builds; both manifests parse; version AND version_name both bumped. scraperVersion stays v9.7.51. Extension only; proxy v7.70 and reporter v1.22 unchanged and NOT redeployed. Builds on v9.7.636.)
 // Lead Pro -- popup.js  v9.7.636-dev (Dev. THE SOURCE ACKNOWLEDGMENT COMES BACK, WITH NAMES INSTEAD OF SILENCE. THIS CORRECTS MY OWN v9.7.635. Gil: "losing the sources is not acceptable, that acknowledgment builds trust with the customer. that's why it was built that way." He is right. His ask was "identify the Gubagoo digital as a Click & Go"; I also made four other source families go silent, which was never the ask, and I read the problem too narrowly. The answer to "this source has no customer-facing name" is to GIVE it one. Silence and the raw CRM label were never the only two options. A CORRECTION TO THE NUMBER I GAVE HIM FIRST, because he was about to act on it: I said 226 grabs lost their acknowledgment. Wrong. Most of that set never matched the OLD _ackable regex either — Identitymax, Repeat Customer, Kia Digital, Tradepending, Cap One Mailer, Walk In, Showroom, Phone Up have been silent all along. The real regressions from v9.7.635 were four families, about 71 grabs: the Gubagoo CHAT variants (42, matched on "gubagoo"), Audi Partner Lead (15, on "audi"), Thirdparty Honda (12, on "honda") and Toyota.Com-Payment Estimator (2, on "toyota.com"). WHAT SHIPPED, and it is broader than a revert. Every source now resolves through ONE table: the digital-retailing family to "Click & Go", chat to "your chat with us", SMS to "your text to us", Toyota.com / Kia.com / Honda.com / Audi.com to themselves, "Cap One Mailer" to "Capital One" (the abbreviation never matched /\bcapital one\b/ and had been silent for 14 grabs), and — Gil's call when asked — anything else web-sourced to "your online inquiry". That last one is the catch-all a whitelist alone could never have, and it closes the hole v9.7.596 named in its own header: a list "would have to anticipate the next label the CRM invents". Coverage across the 577 grabs in log173-log178 goes from 351 acknowledged to 492. THE FENCE ON THE CATCH-ALL IS THE POINT OF IT, and it is the part I would defend hardest. "Thanks for your online inquiry" said to a WALK-IN is false. So is saying it to a showroom up, a phone up, a service customer, a repeat buyer, or an Identitymax/AMP marketing record — none of those people filled in a form. _LP_NON_WEB_ORIGIN fences them out and they stay silent. THAT IS ALSO THE REAL LESSON OF THE RATED-DOWN MESSAGE: "I saw your inquiry through Thirdparty Honda on the 2026 Honda Accord" (8/27 export) was not bad because it named a source — it was bad because it told the customer something untrue about themselves. The label was the symptom; the falsehood was the defect. Fixing the label while keeping the falsehood would have missed it. 85 grabs stay silent and every one of them should. A GAP THE SUITE FOUND MID-BUILD: a bare "Gubagoo - SMS" fell through to "your online inquiry" — but they texted us, they did not fill in a form. Same small falsehood in a different costume. Now "your text to us". I ASKED RATHER THAN GUESSED on the one that mattered. "Thirdparty Honda" and "Audi Partner Lead" are the two sources where I could not tell what the customer actually saw, and Thirdparty Honda is precisely the source behind the rated-down message — guessing a brand there would have re-created that incident in a new costume. Gil chose the generic-but-warm option, which is also the one that cannot be wrong. TWO SUITES UPDATED, BOTH IN THE OPEN AND NEITHER WEAKENED. customer-facing-hygiene's "internal routing labels are NOT named" list split in two, because "not a recognisable brand" and "not an online inquiry" turned out to be different questions: web labels move to a group asserting they resolve generically and NEVER to the raw string, and a new group pins that anyone who never inquired online stays silent. source-name's v9.7.635 chat block asserted suppression; it now asserts the INTENT that block always had — a chat customer is never told they used Click & Go — which survives the behaviour change intact. Four of the six entries in its "every routing label still has none" block asserted exactly the silence Gil rejected, so that block was removed and replaced by the fuller, correct one. AND A DESTRUCTIVE EDIT I MADE AND CAUGHT, which is the thing worth recording. My first mirror to commercial used an ad-hoc span whose close marker matched far past the region: it deleted 283 LINES, taking DEALER_ID_MAP with it, and seven suites failed with 181 assertions. Restored from the last commit and re-done with a mirror that asserts BOTH ends before writing — the span must contain exactly one resolver, must not contain DEALER_ID_MAP / PHONE_DIR / STORE_PHONE_FALLBACK, and the file's size delta must equal the region delta or it refuses. The clean result is 40 insertions, 2 deletions. A mirror that can silently delete a table is worse than no mirror, and the guard is now part of the script rather than part of my attention. VERIFIED: source-name extended to 142 assertions, executing the SHIPPED resolver over every distinct lead source in log173-log178 — 46 real strings, not invented ones. 83 suites green (3,452 assertions, +63 on top of v9.7.635), dev===comm. NON-VACUITY, ATTRIBUTABLE THREE WAYS INCLUDING THE FALSEHOOD DIRECTION: removing the catch-all — restoring exactly the v9.7.635 silence Gil rejected — fails 7 by name; removing the non-web fence, so a walk-in is told they inquired online, fails exactly the 13 silence assertions; removing the chat entry fails exactly its 4. WHAT THIS MIGHT BREAK, PLAINLY: many more leads now carry a source acknowledgment than before v9.7.635 — 492 of 577 captured grabs versus 351 under the old regex — so an opening line that used to appear on a minority of leads now appears on most. That is what Gil asked for and it is the trust-building line the block was built for, but it is a real change in how most messages open and wants a before/after batch. The raw CRM label reaches the prompt from this block on zero leads, which is the one property that must not regress. NOT BUILT, DELIBERATELY: Gil said "I don't know if we want to acknowledge the negative" about the -$3,200 net trade on Rebekah Fontenot's lead. That stays untouched and unflagged until he decides — it is a sales-strategy call, not a defect. STILL OPEN: the System callmeasurement URL row in the arc (v9.7.562), scenarioRules rendering twice per prompt, and Isaac's 25 outreaches after a STOP. node --check clean on both builds; both manifests parse; version AND version_name both bumped. scraperVersion stays v9.7.51. Extension only; proxy v7.70 and reporter v1.22 unchanged and NOT redeployed. Builds on v9.7.635.)
 // Lead Pro -- popup.js  v9.7.635-dev (Dev. THREE OF OUR OWN DIRECTIVES DISAGREED ABOUT WHAT TO CALL A LEAD SOURCE, AND ONE OF THEM HANDED THE MODEL THE RAW CRM LABEL AS THE WORDS TO USE. Gil, on the 9/5 Rebekah Fontenot lead (Community Honda Lafayette, 2026 Pilot Elite, lead source "Hds Dr Lead - Gubagoo - Drs Digital Retailing"): "the Gubagoo digital wasn't identified as a Click & Go". Correct, and the consequence was worse than a missing label. Her delivered prompt carried all three of these at once. SOURCE ACKNOWLEDGMENT: 'This lead came in through: Hds Dr Lead - Gubagoo - Drs Digital Retailing. Naturally reference where the inquiry originated ... e.g. "Thanks for your inquiry on Hds Dr Lead - Gubagoo - Drs Digital Retailing..."'. HARD CONSTRAINT: "do NOT tell the customer where their inquiry came from. The source on this lead is an internal routing label ... CRM plumbing". CLICK & GO BRANCH: "Never say Gubagoo, virtual retailing platform, digital retailing". The first tells the model to say a string the third forbids word for word, while the second says not to name the source at all. WHAT I CHECKED FIRST, AND IT WAS NOT THE BUG: the Click & Go scenario DID fire. Executed against log177/178's real values, isClickAndGo computes TRUE for this source -- isGubagooChat false, the source matcher true on four separate terms, the stale gate false on a 0-day lead -- and the delivered prompt says "TASK: Click & Go lead with PRIOR OUTREACH already made". The twelve vr* deal fields are wired end to end, scraper to return to prompt-builder literal, with no v9.7.618-style break. The classification was right the whole time; the naming was not. CAUSE: TWO SEPARATE DEFINITIONS OF "IS THIS SOURCE CUSTOMER-FACING". The acknowledgment block carried its OWN _ackable regex, which matched gubagoo. _lpCustomerFacingSource -- the table the HARD CONSTRAINT consults -- had no entry for the source at all and returned ''. One list said yes, the other said no, and both wrote into the same prompt. This is the fourth build in eight days undone by two hand-maintained definitions of one question (v9.7.629 the fence marker, v9.7.630 the bounded region, v9.7.634 the routing header, here the source name). FIXED THE WAY v9.7.631 FIXED THE LAST PAIR: the directive whose JOB is to determine the fact owns it. _lpCustomerFacingSource is now the single definition; the acknowledgment block reads it instead of guessing; where it has no name the acknowledgment stays SILENT rather than contradicting the constraint. And the raw label never reaches the prompt from that block again -- the old line pasted data.leadSource in THREE times and then, after both example sentences had already used it, added a parenthetical hoping the model would paraphrase. This codebase has proven three times (v9.7.496, v9.7.504, v9.7.507) that a correction sitting after the thing it corrects loses to the thing it corrects. Only the resolved name goes in now. CLICK & GO IS A REAL NAME AND BELONGS IN THE TABLE. It is Honda's own online buying tool -- the thing this customer actually clicked -- and the scenario branch has always said it out loud to customers ("I saw you started your deal online through Click & Go"). The forbidden list names the VENDOR and the industry jargon (Gubagoo, virtual retailing, digital retailing), never the product, so this resolves the collision instead of trading one violation for another. Asserted: no name the resolver can return contains a forbidden word, across thirteen sources. THE OVER-REACH I INTRODUCED AND CAUGHT BY RUNNING IT AGAINST EVERY REAL SOURCE FIRST: a naive /gubagoo/ mapped "Gubagoo - M-Chat" to Click & Go as well. M-Chat is Gubagoo's CHAT product, not the buying tool, so that tells a chat customer they used something they never opened -- and "Gubagoo - M-Chat" is named in the HARD CONSTRAINT's own list of labels that must not be spoken, so the naive version would have re-created this exact contradiction one source over. classifyScenario already draws the line (isGubagooChat = /chat|\bsms\b/i, and Click & Go is gated on !isGubagooChat); the same distinction is drawn in the table so the two cannot disagree. Written as an assertion pair: a digital-retailing term must be present AND no chat/sms term anywhere in the string. Six chat shapes asserted suppressed. ONE EXISTING ASSERTION CHANGED, DELIBERATELY AND NOT TO GO GREEN. customer-facing-hygiene listed "Gubagoo Virtual Retailing" among labels that must NOT be named. That section's distinction is LABEL vs RECOGNISABLE NAME, and this is the second kind, so the entry moved up to the recognised list with the reasoning recorded at both ends. The property the section actually protects is unchanged and is now asserted DIRECTLY rather than implied by the mapping: whatever the resolver returns is never the raw CRM string and never carries a vendor or jargon word, checked on four sources. Nothing was weakened; a decision encoded in a test was revisited in the open. NEW [LP SOURCE ACK DIAG] on every lead, naming the raw source, the resolved name or NONE, and which way the block went. The Click & Go path had no diagnostic at all before today -- twelve deal fields, six opening variants, a deal-context block, and nothing logging whether any of it fired, which is exactly why this took a prompt capture to find rather than a log line. VERIFIED: new source-name suite, 96 assertions, EXECUTING the shipped resolver over every distinct lead source in log173-log178 rather than over invented strings. 83 suites green (3,389 assertions, +105), dev===comm, commercial mirrored by verbatim copy from dev. NON-VACUITY, ATTRIBUTABLE THREE WAYS INCLUDING THE OVER-REACH DIRECTION: removing the Click & Go mapping -- the reported bug, restored -- fails 7 by name; dropping the chat exclusion fails exactly the 5 chat-suppression assertions; putting the raw label back in the emitted line fails 1. WHAT THIS MIGHT BREAK, PLAINLY: leads whose source has no recognisable name now get NO source acknowledgment where they previously got one built on the raw label -- "Thirdparty Honda", "Kia Digital - 3rd Party Lead", "Toyota.Com-Payment Estimator", "Kmf Luv Program", "Lead Log" all go silent. That is the correct direction (the HARD CONSTRAINT was already telling the model not to name them, so the prompt simply stops arguing with itself) but it removes an opening line those leads used to have, and the model now has to open on the vehicle or the customer's question instead. Click & Go leads gain a name they never had. Both are customer-visible and want a before/after batch. STILL OPEN, and worth its own look now that the naming is settled: the VR DEAL DATA block surfaces only "Customer dropped off before completing deal" while the raw note on Rebekah's lead carries the whole picture -- 2024 Honda Pilot Touring, 38,750 miles, financed, KBB $35,300-$38,300, trade value $36,800, loan payoff $40,000, NET TRADE MINUS $3,200. The customer is $3,200 upside down and the deal block never says so; the numbers reach the model only as raw blob text inside the inquiry quote. Also unchanged: the System callmeasurement URL row in the arc (v9.7.562), scenarioRules rendering twice, and Isaac's 25 outreaches after a STOP. node --check clean on both builds; both manifests parse; version AND version_name both bumped. scraperVersion stays v9.7.51. Extension only; proxy v7.70 and reporter v1.22 unchanged and NOT redeployed. Builds on v9.7.634.)
 // Lead Pro -- popup.js  v9.7.634-dev (Dev. THE CRM SMS ROUTING HEADER WAS BEING READ AS SPEECH, AND IT WAS EATING A COMMITMENT QUOTE. MEASURED FIRST: 1,795 routing headers across 68 prompt captures -- roughly 26 per prompt, in exactly one phone format. They reach the model INSIDE the customer's and the agent's own quoted words: "[CUSTOMER] Inbound Text Message / Received from: (832) 724-6322 Received by: Tania Gonzalez STOP". Four characters of message, fifty-five of metadata, attributed to the customer. WHERE IT ACTUALLY HURT, which is what moved this from cosmetic to worth building. The SELF-CONSISTENCY block quotes our own prior outbound at a 120-CHARACTER CAP under the heading "these are commitments on the record". Carlos (Community Kia Baytown, 2026 Kia K5 GT-Line, 9/5), verbatim from the delivered prompt: WE SAID IT SOLD: "Sent to: (346) 579-4102 Sent by: Jocelyne Martinez Carlos that car has sold, but I have another white one premium pkg wi". One hundred and twenty of one hundred and twenty characters, truncated, and fifty-one of the survivors are routing metadata. The block exists to stop us contradicting what we told a customer, and it severed the half that says what we offered him INSTEAD of the sold car. A CORRECTION TO WHAT I TOLD GIL BEFORE BUILDING THIS: I said the header caused the truncation. It did not, on its own. Stripping the metadata alone still left the quote ending at "premium p", because these claim patterns carry their OWN {0,40} and {0,50} tails -- a second, tighter bound underneath the 120-char slice that nobody needed. TWO causes, and I had named one. Both are fixed: the tails widen to 90 so the 120-character slice is the single stated bound, and [^.!?] still stops at the end of the sentence so nothing runs on. Carlos before: 120/120, truncated, no offer. After: 86/120, complete -- "Carlos that car has sold, but I have another white one premium pkg with black interior". WHOLE-LINE, AND THAT WAS DECIDED BY THE DOM RATHER THAN GUESSED. VinSolutions renders the header in its own child elements -- <div class="legacy-notes-and-history-item-extra-buttons">Sent to: (727) 244-3456</div><div>Sent by: Elsa McHaney</div>Hi this is Elsa with Community Honda... -- verified in a real dump, so innerText yields two clean lines ahead of the body and the strip needs no guesswork. That matters more than it sounds: FLATTENED, "Jocelyne Martinez Carlos that car has sold" has no recoverable boundary between the agent's surname and the message, and a greedy strip there would delete THE CUSTOMER'S OWN NAME from his message. The flattened form is therefore deliberately left alone, asserted. The element is literally an "extra-buttons" div -- UI chrome, never content. v9.7.623 IS NOT REOPENED. It decided outbound keeps its subject ("it is legitimately ours") and that still holds: inbound routes through _lpStripNoteMeta (routing + By: + Subject: Re:), outbound through the new _lpStripRouting (routing only). One definition of "this line is routing metadata" -- _lpIsRoutingLine -- with two entry points, and the note-meta suite now asserts the RULE behaviourally (inbound loses its subject, outbound keeps it) rather than pinning the wiring expression, so a future rewiring that preserves the rule passes and one that breaks it cannot. STRIPPED BEFORE THE MATCH, NOT AFTER IT, and that ordering is load-bearing. The claim patterns open with [^.!?]{0,70}, and [^.!?] MATCHES NEWLINES, so the match reaches back across both header lines and swallows them. Stripping the MATCH would have been luck: that 70-character window can begin mid-line, leaving a fragment like "nt to: (346) 579-4102" that no start-anchored pattern can recognise. Stripping the CONTENT once covers all three claim types exactly. PII, NOT JUST NOISE. The customer's phone number appeared 54 times in Carlos's prompt, inside text presented as things that were said -- and once inside a quote labelled a commitment. Same class as the stock-number rule this codebase already enforces: an internal identifier sitting in text the model may paraphrase. VERIFIED: new routing-header suite, 87 assertions, EXECUTING the shipped classifier and the shipped claim matcher against Carlos's real note in the DOM's own line shape. The false-positive traps are the point of it -- a customer really can write "Sent to: my wife for approval, she said go ahead" or "Received from: the bank, my approval came through", and all six such shapes are asserted to survive untouched. 82 suites green (3,284 assertions, +91), dev===comm, commercial mirrored by verbatim copy. NON-VACUITY, ATTRIBUTABLE THREE WAYS INCLUDING THE DANGEROUS DIRECTION: disabling the classifier fails 8 by name; REMOVING THE LENGTH BOUND so it over-strips fails exactly the 4 customer-sentence assertions; and removing the strip-before-match fails 2. A REAL GAP THAT THIRD NEUTER FOUND IN MY OWN SUITE, and it is the -1 trap this codebase keeps paying for: the ordering assertion was written as indexOf(A) < indexOf(B), and indexOf returns -1 when A is ABSENT, so -1 < anything is TRUE -- the suite went 42/42 GREEN with the strip deleted. Existence is asserted separately now. That is exactly what a neuter is for, and it is the second time this week a source-position assertion passed vacuously. AND A SIXTH PROSE-MATCH: an assertion checked that the helpers sit inside inlineScraper by searching for "} // end inlineScraper" -- a string several build headers QUOTE, so it found a comment at the top of the file. v9.7.563, .631, .632, .633 twice, and here. In a file whose headers quote its own code, every source-position assertion strips comments first. No exceptions from here on. THIRD BUILD RUNNING WHERE FACTORING A HELPER OUT OF A LIFTED REGION BROKE A SUITE THAT LIFTS IT -- v9.7.630 (arc-bound, brief-fence), v9.7.631 (distance-appt-gate), and note-meta here. The suites catch it every time, which is the system working, but it is now a predictable consequence of any extraction and worth checking for deliberately rather than discovering. WHAT THIS MIGHT BREAK, PLAINLY: transcript entries and self-consistency quotes change shape on every lead -- the metadata is gone and the claim quotes are longer. A detector tuned to text that happened to include the header would see different input; the note-meta, quote-chain, verbal-commit and sold-scan suites all still pass, but that is coverage, not proof. The strip only ever removes whole lines from the FIRST THREE of a note, so nothing past the header can be touched, and the flattened form is untouched entirely. Reversible: one classifier, two call sites. STILL OPEN: the System callmeasurement URL row in the arc (v9.7.562), scenarioRules rendering twice per prompt, and Isaac's 25 outreaches after a STOP -- a decision rather than a build. node --check clean on both builds; both manifests parse; version AND version_name both bumped. scraperVersion stays v9.7.51. Extension only; proxy v7.70 and reporter v1.22 unchanged and NOT redeployed. Builds on v9.7.633.)
@@ -3004,17 +3005,37 @@ function _lpPersonalNumberOwner(phone) {
 // by enumerating the shapes it happened to have seen. Anything not recognised is simply not named.
 //
 // Returns the customer-facing name, or '' when the source must not be spoken aloud.
+// ── (v9.7.637) EVERY ROW CARRIES ITS GRAMMATICAL SHAPE ──────────────────────────────────────
+// The third element is not decoration. v9.7.636 gave five families names that are not proper
+// nouns — "our website", "your online inquiry", "your chat with us", "your text to us", "the
+// Costco Auto Program" — and the acknowledgment block below builds its example sentences by
+// concatenation onto a frame that assumed a bare brand: 'I saw your ' + name + ' request came
+// through'. Run over the real sources in log173-log179 that shipped, in 81 of 209 acknowledged
+// prompt builds (39%):
+//     "I saw your your online inquiry request come through..."
+//     "I saw your our website request come through..."
+//     "I saw your your chat with us request come through..."
+// The model silently repaired every one of them — 0 of 456 captured drafts carry a doubled
+// determiner — so no customer saw it. That is luck, not design: the example sentence is the
+// thing teaching the phrasing, and it was malformed on two of every five acknowledged leads.
+// SHAPE LIVES WITH THE NAME so the two cannot drift, which is the v9.7.631 principle applied a
+// third time. Writing a sentence per row would drift the moment somebody adds a source; deriving
+// the shape from the name at the call site would be the same second definition that caused
+// v9.7.629, .630, .634 and .635. Three shapes, and the frames for each are in _LP_ACK_FRAMES:
+//   'brand' — a bare proper noun.        "on Facebook"      / "your Facebook request"
+//   'place' — carries its own article.   "on our website"   / "the request you sent through it"
+//   'owned' — already carries "your".    "thanks for your online inquiry" / "I saw it come through"
 var _LP_CUSTOMER_FACING_SOURCES = [
-  [/\bfacebook\b|\bfb marketplace\b/i,        'Facebook'],
-  [/\bcargurus\b/i,                            'CarGurus'],
-  [/\bautotrader\b/i,                          'Autotrader'],
-  [/\bcars\.com\b/i,                           'Cars.com'],
-  [/\btruecar\b/i,                             'TrueCar'],
-  [/\bcarfax\b/i,                              'the vehicle history listing'],
-  [/\bkbb\b|kelley blue book/i,                'Kelley Blue Book'],
-  [/\bedmunds\b/i,                             'Edmunds'],
-  [/\bcapital one\b/i,                         'Capital One'],
-  [/\bcostco\b/i,                              'the Costco Auto Program'],
+  [/\bfacebook\b|\bfb marketplace\b/i,        'Facebook',                  'brand'],
+  [/\bcargurus\b/i,                            'CarGurus',                 'brand'],
+  [/\bautotrader\b/i,                          'Autotrader',               'brand'],
+  [/\bcars\.com\b/i,                           'Cars.com',                 'brand'],
+  [/\btruecar\b/i,                             'TrueCar',                  'brand'],
+  [/\bcarfax\b/i,                              'the vehicle history listing', 'place'],
+  [/\bkbb\b|kelley blue book/i,                'Kelley Blue Book',         'brand'],
+  [/\bedmunds\b/i,                             'Edmunds',                  'brand'],
+  [/\bcapital one\b/i,                         'Capital One',              'brand'],
+  [/\bcostco\b/i,                              'the Costco Auto Program',  'place'],
   // ── (v9.7.635) THE ONE THE CUSTOMER ACTUALLY USED, AND IT HAD NO NAME ─────────────────────
   // Gil, on the 9/5 Rebekah Fontenot lead (Community Honda Lafayette, 2026 Pilot Elite): "the
   // Gubagoo digital wasn't identified as a Click & Go". Correct, and the consequence was worse
@@ -3043,25 +3064,25 @@ var _LP_CUSTOMER_FACING_SOURCES = [
   // (isGubagooChat = /chat|\bsms\b/i) and Click & Go is gated on !isGubagooChat; the same
   // distinction is drawn here so the two cannot disagree. Written as an assertion pair — a
   // digital-retailing term must be present AND no chat/sms term anywhere in the string.
-  [/^(?=[\s\S]*(?:\bgubagoo\b|\bhds ?dr\b|\bdrs\b|click ?(?:&|and) ?go|digital retail|virtual retail))(?![\s\S]*(?:\bchat\b|\bsms\b|m-?chat))/i, 'Click & Go'],
-  [/\bwebsite\b|\bdealer site\b|\bdotcom\b/i,  'our website'],
+  [/^(?=[\s\S]*(?:\bgubagoo\b|\bhds ?dr\b|\bdrs\b|click ?(?:&|and) ?go|digital retail|virtual retail))(?![\s\S]*(?:\bchat\b|\bsms\b|m-?chat))/i, 'Click & Go', 'brand'],
+  [/\bwebsite\b|\bdealer site\b|\bdotcom\b/i,  'our website',              'place'],
   // ── (v9.7.636) NAMES FOR THE ONES THAT HAD NONE ──────────────────────────────────────────
   // Gil, on v9.7.635: "losing the sources is not acceptable, that acknowledgment builds trust
   // with the customer. that's why it was built that way." He is right, and my v9.7.635 read the
   // problem too narrowly — the answer to "this source has no customer-facing name" is to GIVE it
   // one, not to go quiet. Silence and the raw CRM label were never the only two options.
-  [/gubagoo.*chat|chat.*gubagoo|\bm-?chat\b|chat.?text|\bchat\b/i, 'your chat with us'],
+  [/gubagoo.*chat|chat.*gubagoo|\bm-?chat\b|chat.?text|\bchat\b/i, 'your chat with us', 'owned'],
   // A text is not an online form either — "thanks for your online inquiry" to someone who texted
   // us is the same small falsehood in a different costume. Caught by the suite when a bare
   // "Gubagoo - SMS" fell through to the catch-all.
-  [/\bsms\b|\btext lead\b/i,                   'your text to us'],
-  [/\btoyota\.com\b/i,                         'Toyota.com'],
-  [/\bhonda\.com\b/i,                          'Honda.com'],
-  [/\bkia\.com\b/i,                            'Kia.com'],
-  [/\baudi\.com\b/i,                           'Audi.com'],
+  [/\bsms\b|\btext lead\b/i,                   'your text to us',          'owned'],
+  [/\btoyota\.com\b/i,                         'Toyota.com',               'brand'],
+  [/\bhonda\.com\b/i,                          'Honda.com',                'brand'],
+  [/\bkia\.com\b/i,                            'Kia.com',                  'brand'],
+  [/\baudi\.com\b/i,                           'Audi.com',                 'brand'],
   // "Cap One Mailer" never matched /\bcapital one\b/ — 14 grabs in the captured logs, silent the
   // whole time for want of an abbreviation.
-  [/\bcap(?:ital)? ?one\b/i,                   'Capital One']
+  [/\bcap(?:ital)? ?one\b/i,                   'Capital One',              'brand']
 ];
 
 // ── (v9.7.636) THE CATCH-ALL, AND THE ONE THING IT MUST NOT DO ──────────────────────────────
@@ -3080,17 +3101,59 @@ var _LP_CUSTOMER_FACING_SOURCES = [
 // something about themselves that is not true. So the catch-all is fenced by origin, and where
 // the origin is not a web form it stays silent — fails safe, exactly as before.
 var _LP_NON_WEB_ORIGIN = /walk.?in|showroom|drive.?by|phone.?up|\bservice\b|repeat customer|lead log|identitymax|buying signal|\bamp\b|event-|autosoft|xtime|\bcdk\b|\bkmf\b|\bkfa\b|\bafs\b|\bluv\b|loyalty|off.?lease|maturity|lease.?end/i;
-function _lpCustomerFacingSource(raw) {
-  var s = String(raw || '');
-  if (!s.trim()) return '';
-  for (var i = 0; i < _LP_CUSTOMER_FACING_SOURCES.length; i++) {
-    if (_LP_CUSTOMER_FACING_SOURCES[i][0].test(s)) return _LP_CUSTOMER_FACING_SOURCES[i][1];
+// ── (v9.7.637) THE SENTENCE FRAMES, ONE SET PER SHAPE ────────────────────────────────────────
+// Two example sentences and one clause tail per shape. `ex1`/`ex2` are the examples the
+// acknowledgment block shows the model; `tail` finishes the HARD CONSTRAINT's sentence, which
+// had its own hardcoded "— that is a place they will recognise" and was equally wrong about
+// "your online inquiry" (not a place, and not one they would call that).
+var _LP_ACK_FRAMES = {
+  brand: {
+    ex1: function (n) { return 'Thanks for starting this on ' + n + '...'; },
+    ex2: function (n) { return 'I saw your ' + n + ' request come through...'; },
+    tail: 'that is a place they will recognise'
+  },
+  place: {
+    ex1: function (n) { return 'Thanks for starting this on ' + n + '...'; },
+    ex2: function (n) { return 'I saw the request you sent through ' + n + '...'; },
+    tail: 'that is a place they will recognise'
+  },
+  owned: {
+    // Already carries "your", so it takes the possessive slot itself rather than sitting behind
+    // another determiner. "Thanks for your online inquiry" / "I saw your chat with us come
+    // through" — never "your your", never "on your chat with us".
+    ex1: function (n) { return 'Thanks for ' + n + '...'; },
+    ex2: function (n) { return 'I saw ' + n + ' come through...'; },
+    tail: 'that is how they reached us and they will recognise it'
   }
-  // (v9.7.636) No specific name, but it still came through a form. Acknowledge it generically
-  // rather than going silent — see the fence above for why in-person and phone origins do not
-  // reach this line.
-  if (_LP_NON_WEB_ORIGIN.test(s)) return '';
-  return 'your online inquiry';
+};
+// ONE WALK OF THE TABLE, and _lpCustomerFacingSource delegates to it. Its own signature and
+// return type are unchanged (a name, or '' for silence) because five callers and two suites
+// depend on them; everything that needs the shape asks for it here instead of re-deriving it.
+function _lpSourceAckPhrase(raw) {
+  var s = String(raw || '');
+  if (!s.trim()) return null;
+  var name = '', shape = '';
+  for (var i = 0; i < _LP_CUSTOMER_FACING_SOURCES.length; i++) {
+    if (_LP_CUSTOMER_FACING_SOURCES[i][0].test(s)) {
+      name = _LP_CUSTOMER_FACING_SOURCES[i][1];
+      shape = _LP_CUSTOMER_FACING_SOURCES[i][2] || 'brand';
+      break;
+    }
+  }
+  if (!name) {
+    // (v9.7.636) No specific name, but it still came through a form. Acknowledge it generically
+    // rather than going silent — see the fence above for why in-person and phone origins do not
+    // reach this line.
+    if (_LP_NON_WEB_ORIGIN.test(s)) return null;
+    name = 'your online inquiry';
+    shape = 'owned';
+  }
+  var f = _LP_ACK_FRAMES[shape] || _LP_ACK_FRAMES.brand;
+  return { name: name, shape: shape, ex1: f.ex1(name), ex2: f.ex2(name), tail: f.tail };
+}
+function _lpCustomerFacingSource(raw) {
+  var p = _lpSourceAckPhrase(raw);
+  return p ? p.name : '';
 }
 
 function _lpCloseOutEligible(d) {
@@ -7851,6 +7914,39 @@ function tryExecuteScript(tab, statusEl, dot) {
     }
     const TEXT=(document.body?document.body.innerText||document.body.textContent||'':'').substring(0,12000);
     var leadReceivedCustomerQuestion='';
+    // ── (v9.7.637) WHAT THE TOOL WROTE, KEPT APART FROM WHAT THE CUSTOMER WROTE ────────────────
+    // Rebekah Fontenot (Community Honda Lafayette, 2026 Pilot Elite, 9/4, log179). Her whole
+    // "inquiry" was this, verbatim, and she typed none of it:
+    //   TradeInVehicleComment=Net trade-in: $-3200, trade-in value: $36800, remaining balance: $40000.00;
+    // The Click & Go tool wrote those fields. It reached the prompt under the header "CUSTOMER'S
+    // INQUIRY — the customer's own words when they submitted this lead. This is what they actually
+    // asked for; address it directly", and the model did exactly as instructed: "The online
+    // estimate shows about $3,200 in negative equity". That is 1 of 456 captured drafts, and it is
+    // the one number Gil had explicitly not decided whether to say out loud.
+    //
+    // TWO SEPARATE THINGS WERE WRONG AND ONLY ONE IS A STRATEGY QUESTION. Quoting a machine field
+    // as her sentence is false regardless of what we decide about negative equity — she did not
+    // say it, and she has never raised her equity with us. Rejecting it from the inquiry slot is
+    // the same treatment this site already gives Ownership-and-Service rows (v9.7.302), Dealertrack
+    // routing links (v9.7.313) and TrueCar portal banners (v9.7.430), for the same reason.
+    // BUT THE FIGURES MUST NOT SIMPLY VANISH: her trade is real and genuinely relevant, and the VR
+    // DEAL BLOCK surfaces only "Customer dropped off before completing deal" (v9.7.635 recorded
+    // that gap). So they are stashed here and re-emitted below under a header that says what they
+    // are — tool output, unverified, not to be quoted — which is the store's existing rule for
+    // trade and payment numbers, not a new one.
+    var _lpToolFieldData='';
+    // SHAPE, NOT FIELD NAME. A "TradeInVehicleComment" blocklist is enumeration, and this file has
+    // been bitten by enumerating the shapes it happened to have seen more times than by anything
+    // else (v9.7.552/553/554, and v9.7.555 wrote the rule down: a shape test rejects the NEXT
+    // tool's blob too, whatever its fields are called). Two signals in that same pattern, and the
+    // opener is required for both: no customer sentence begins "Identifier=".
+    function _lpIsToolFieldBlob(s) {
+      var t = String(s || '').trim();
+      if (!t) return false;
+      if (!/^[A-Za-z][A-Za-z0-9_]{2,}=/.test(t)) return false;
+      if (/;\s*$/.test(t)) return true;                                  // closes as a field list
+      return (t.match(/\b[A-Za-z][A-Za-z0-9_]{2,}=/g) || []).length >= 2; // or carries a second key
+    }
     var lastInboundMsg='';  // (v9.7.248) single declaration; only the inbound-note loop below populates it. No pre-loop last-message extraction.
     var firstLeadReceivedSeen=false;
     // (v9.7.492/487) Customer requirements stated in the LEAD-RECEIVED note. See the capture
@@ -9918,6 +10014,13 @@ function tryExecuteScript(tab, statusEl, dot) {
             .replace(/\b\S*%2f(?:leads?|crm)%2f\S*/gi, '')       // url-encoded routing path fragment
             .replace(/\s{2,}/g, ' ')
             .trim();
+          // (v9.7.637) TOOL FIELDS ARE NOT AN INQUIRY. Stash before rejecting so the figures
+          // survive as background — see the _lpToolFieldData declaration for Rebekah's case and
+          // for why they come back under a different header rather than disappearing.
+          if (extractedCustQ && _lpIsToolFieldBlob(extractedCustQ)) {
+            _lpToolFieldData = extractedCustQ;
+            extractedCustQ = '';
+          }
           // Reject if what remains is pure system boilerplate or has no real sentence
           if (!extractedCustQ
               || /^lead received with no comments/i.test(extractedCustQ)
@@ -11972,6 +12075,33 @@ function tryExecuteScript(tab, statusEl, dot) {
     if (leadReceivedCustomerQuestion && (!conversationBrief || conversationBrief.indexOf(leadReceivedCustomerQuestion) === -1)) {
       var custInquiryBlock = 'CUSTOMER\'S INQUIRY — the customer\'s own words when they submitted this lead. This is what they actually asked for; address it directly:\n"' + leadReceivedCustomerQuestion + '"';
       conversationBrief = conversationBrief ? custInquiryBlock + '\n\n' + conversationBrief : custInquiryBlock;
+    }
+
+    // ── (v9.7.637) THE TOOL'S FIGURES, LABELLED AS THE TOOL'S ─────────────────────────────────
+    // Rejected from the inquiry slot above because the customer did not write them. They still
+    // reach the model, because the trade is real and the VR deal block does not carry the numbers
+    // — but under a header that says whose they are and what they are worth.
+    //
+    // THE DO-NOT-QUOTE RULE HERE IS NOT NEW AND IS NOT A STRATEGY CALL. The system prompt already
+    // says final trade numbers are built at the visit, and the OTD/PAYMENT DISCIPLINE block says
+    // the same thing about price in stronger words. The model broke that rule on Rebekah's lead
+    // because the header above told it these were her words and to address them directly, which
+    // outranked it. Restoring the rule is what this does; whether to deliberately SURFACE negative
+    // equity to a customer is a separate decision, still Gil's, and would be an added directive
+    // rather than a change to this one.
+    if (_lpToolFieldData) {
+      var toolDataBlock = 'TOOL-SUPPLIED DEAL DATA — NOT THE CUSTOMER\'S WORDS. The online tool wrote these '
+        + 'fields when the customer used it. The customer did not type them, has not quoted them to us, and '
+        + 'has not raised the subject:\n"' + _lpToolFieldData + '"\n'
+        + 'These are the TOOL\'S UNVERIFIED ESTIMATE, not figures this store has confirmed. Do NOT quote them '
+        + 'back to the customer, do NOT state them as fact, and do NOT build the message around them — the '
+        + 'rule that real trade and payment numbers are produced in person applies to these exactly as it '
+        + 'applies to price. Use them only as background for what the customer is working with, and move the '
+        + 'conversation toward a real appraisal.';
+      conversationBrief = conversationBrief ? toolDataBlock + '\n\n' + conversationBrief : toolDataBlock;
+      _lpD('[LP TOOL DATA DIAG] tool field blob REFUSED as the customer\'s inquiry and re-emitted as unverified '
+        + 'tool data — ' + _lpToolFieldData.length + ' chars | opens:' + JSON.stringify(_lpToolFieldData.slice(0, 40))
+        + ' | the "address it directly" framing no longer applies to it');
     }
 
 
@@ -20665,10 +20795,14 @@ function buildUserPrompt(data) {
     // parenthetical hoping the model would paraphrase. This codebase has proven three times
     // (v9.7.496, v9.7.504, v9.7.507) that a correction sitting after the thing it corrects loses
     // to the thing it corrects. Only the resolved name goes in now.
-    var _ackName = (typeof _lpCustomerFacingSource === 'function') ? _lpCustomerFacingSource(_ls) : '';
+    // (v9.7.637) The phrase resolver returns the name AND the sentence frames that fit it — see
+    // _LP_ACK_FRAMES for why the frames cannot be hardcoded here any more.
+    var _ackP = (typeof _lpSourceAckPhrase === 'function') ? _lpSourceAckPhrase(_ls) : null;
+    var _ackName = _ackP ? _ackP.name : '';
     try {
       console.log('[LP SOURCE ACK DIAG] leadSource:' + JSON.stringify(_ls)
         + ' | customer-facing name:' + (_ackName ? JSON.stringify(_ackName) : 'NONE')
+        + (_ackP ? ' | shape:' + _ackP.shape + ' | example shown:' + JSON.stringify(_ackP.ex2) : '')
         + (_ackName ? ' — acknowledgment emitted with the resolved name; the raw label is never sent'
                     : ' — no recognisable name, acknowledgment SUPPRESSED so it cannot contradict the'
                       + ' "do not name the source" constraint'));
@@ -20696,8 +20830,8 @@ function buildUserPrompt(data) {
     ageBlock.push('━━━ SOURCE ACKNOWLEDGMENT ━━━');
     // (v9.7.635) The RESOLVED name only — _ls never reaches the prompt from here.
     ageBlock.push('This lead came in through ' + _ackName + '. Reference it naturally in your opening so the '
-      + 'customer knows you have their context — e.g. "Thanks for starting this on ' + _ackName + '..." or '
-      + '"I saw your ' + _ackName + ' request come through...". Keep it light and natural, ONE mention, woven '
+      + 'customer knows you have their context — e.g. "' + _ackP.ex1 + '" or '
+      + '"' + _ackP.ex2 + '". Keep it light and natural, ONE mention, woven '
       + 'into the opening line — do NOT make it the focus, do NOT list it mechanically, and do NOT repeat it '
       + 'identically in both the SMS and the email. Use exactly this name and no other: never a CRM routing '
       + 'label, a vendor name, or anything you see in the notes or lead history.');
@@ -20997,9 +21131,11 @@ function buildUserPrompt(data) {
     // notes, and nothing told the model those words are ours rather than the customer's. Stated as
     // a constraint, with the recognised name supplied when there is one so the useful version of
     // this sentence ("thanks for reaching out on Facebook") still gets written.
-    (_lpCustomerFacingSource(data.leadSource)
-      ? '- HOW THIS LEAD REACHED US: you may say the customer came through ' + _lpCustomerFacingSource(data.leadSource)
-        + ' — that is a place they will recognise. Do NOT use any other name for the source, including any '
+    // (v9.7.637) The tail is supplied by the shape too — "that is a place they will recognise" is
+    // false of "your online inquiry", which is not a place and is not what they would call it.
+    (_lpSourceAckPhrase(data.leadSource)
+      ? '- HOW THIS LEAD REACHED US: you may say the customer came through ' + _lpSourceAckPhrase(data.leadSource).name
+        + ' — ' + _lpSourceAckPhrase(data.leadSource).tail + '. Do NOT use any other name for the source, including any '
         + 'label you see in the CRM notes or lead history.'
       : '- HOW THIS LEAD REACHED US: do NOT tell the customer where their inquiry came from. The source on this '
         + 'lead is an internal routing label (names like "Thirdparty Honda", "Hds Chat-Text Leads", "Gubagoo - '

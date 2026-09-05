@@ -66,8 +66,20 @@ function load(file) {
   if (a < 0 || b < 0) bail('resolver not in ' + file);
   const sb = { String };
   vm.createContext(sb);
-  vm.runInContext(src.slice(a, b + 2), sb);
-  return { src, resolve: vm.runInContext('_lpCustomerFacingSource', sb) };
+  const region = src.slice(a, b + 2);
+  vm.runInContext(region, sb);
+  // (v9.7.637) The table rows are read as SOURCE so "every row carries a shape" is a statement
+  // about the file, not about whichever rows a fixture happens to exercise.
+  const rows = region
+    .slice(region.indexOf('['), region.indexOf('\n];'))
+    .split('\n')
+    .filter(l => /^\s*\[\/.*\],?\s*$/.test(l) || /^\s*\[\/.*\]\s*$/.test(l));
+  return {
+    src, region, rows,
+    resolve: vm.runInContext('_lpCustomerFacingSource', sb),
+    phrase:  vm.runInContext('_lpSourceAckPhrase', sb),
+    frames:  vm.runInContext('_LP_ACK_FRAMES', sb)
+  };
 }
 
 for (const file of BUILDS) {
@@ -152,8 +164,11 @@ for (const file of BUILDS) {
     check('  silent: ' + JSON.stringify(s.slice(0, 34)), B.resolve(s), '');
   check('the fence is a named constant, not an inline regex',
     /var _LP_NON_WEB_ORIGIN = \//.test(code), true);
-  check('...consulted before the catch-all returns',
-    /if \(_LP_NON_WEB_ORIGIN\.test\(s\)\) return '';\n  return 'your online inquiry';/.test(code), true);
+  // (v9.7.637) Repointed — the catch-all moved into _lpSourceAckPhrase when the shape joined the
+  // name. The PROPERTY is unchanged and is what this asserts: the non-web fence runs BEFORE the
+  // generic name is assigned, so a walk-in can never fall through to "your online inquiry".
+  check('...consulted before the catch-all assigns a name',
+    /if \(_LP_NON_WEB_ORIGIN\.test\(s\)\) return null;\n    name = 'your online inquiry';/.test(code), true);
 
   // (v9.7.635's "every routing label still has none" block was REMOVED here, not weakened: four
   // of its six entries asserted exactly the silence Gil rejected — "Thirdparty Honda",
@@ -174,8 +189,12 @@ for (const file of BUILDS) {
   // ── THE ACKNOWLEDGMENT BLOCK READS THE RESOLVER ────────────────────────────
   console.log('\nthe acknowledgment block no longer keeps its own list:');
   check('the private _ackable regex is gone', /var _ackable = \//.test(code), false);
+  // (v9.7.637) Repointed to the phrase resolver, which walks the same table once and returns the
+  // name AND the frames that fit it. Still one definition — that is the property under test.
   check('...replaced by the shared resolver',
-    /var _ackName = \(typeof _lpCustomerFacingSource === 'function'\) \? _lpCustomerFacingSource\(_ls\) : '';/.test(code), true);
+    /var _ackP = \(typeof _lpSourceAckPhrase === 'function'\) \? _lpSourceAckPhrase\(_ls\) : null;/.test(code), true);
+  check('...and the name still comes from it, not from a second list',
+    /var _ackName = _ackP \? _ackP\.name : '';/.test(code), true);
   check('...and it returns early when there is no name', /if \(!_ackName\) return;/.test(code), true);
   check('the raw lead source is never pushed into the prompt from this block',
     /ageBlock\.push\('This lead came in through: ' \+ _ls/.test(code), false);
@@ -189,8 +208,8 @@ for (const file of BUILDS) {
 
   // ── THE THREE DIRECTIVES NOW AGREE ─────────────────────────────────────────
   console.log('\nthe HARD CONSTRAINT reads the same resolver, so the pair cannot disagree:');
-  check('the constraint is driven by _lpCustomerFacingSource',
-    /_lpCustomerFacingSource\(data\.leadSource\)\s*\?\s*'- HOW THIS LEAD REACHED US: you may say the customer came through '/.test(code), true);
+  check('the constraint is driven by the shared resolver',
+    /_lpSourceAckPhrase\(data\.leadSource\)\s*\?\s*'- HOW THIS LEAD REACHED US: you may say the customer came through '/.test(code), true);
   check('...and falls to "do not name it" only when there is no name',
     /'- HOW THIS LEAD REACHED US: do NOT tell the customer where their inquiry came from\./.test(code), true);
   // ON CODE, NOT ON PROSE. This build's own header quotes both "Never say Gubagoo, virtual
@@ -205,10 +224,64 @@ for (const file of BUILDS) {
   check('the scenario branch already says Click & Go to the customer',
     /I saw you started your deal online through Click & Go/.test(code), true);
 
+  // ── (v9.7.637) THE EXAMPLE SENTENCES MUST BE SENTENCES ─────────────────────
+  // v9.7.636 gave five families names that are not proper nouns and left the frame assuming one,
+  // so the acknowledgment block shipped "I saw your your online inquiry request come through" in
+  // 81 of 209 acknowledged prompt builds across log173-log179. This asserts the OUTPUT, not the
+  // table: every name the resolver can return, run through its own frames, must be grammatical.
+  console.log('\nevery name produces a sentence, not a doubled determiner:');
+  const DOUBLED = /\b(?:your|the|our|a|an)\s+(?:your|the|our|a|an)\b/i;
+  const ALL_NAMES = new Map();          // name -> {phrase, source}
+  for (const s of ALL) { const p = B.phrase(s); if (p && !ALL_NAMES.has(p.name)) ALL_NAMES.set(p.name, { p, s }); }
+  check('the resolver produced names to check', ALL_NAMES.size >= 10, true);
+  for (const [nm, { p }] of ALL_NAMES) {
+    check('  ' + JSON.stringify(nm) + ' — no doubled determiner in either example',
+      DOUBLED.test(p.ex1 + '   ' + p.ex2), false);
+    check('  ' + JSON.stringify(nm) + ' — both examples contain the name verbatim',
+      p.ex1.indexOf(nm) !== -1 && p.ex2.indexOf(nm) !== -1, true);
+    check('  ' + JSON.stringify(nm) + ' — the constraint tail is not empty',
+      !!(p.tail && p.tail.length > 8), true);
+  }
+  // The three shapes, pinned to the names the incident was about.
+  console.log('\nthe shape is the one the name actually needs:');
+  check('a bare brand takes the possessive frame',
+    B.phrase('Cargurus').ex2, 'I saw your CarGurus request come through...');
+  check('a name carrying its own article does not',
+    B.phrase('Dealers WebSite').ex2, 'I saw the request you sent through our website...');
+  check('a name already carrying "your" takes the possessive slot itself',
+    B.phrase('Thirdparty Honda -').ex2, 'I saw your online inquiry come through...');
+  check('  ...and its opener does not put "on" in front of a possessive',
+    B.phrase('Thirdparty Honda -').ex1, 'Thanks for your online inquiry...');
+  check('the chat name reads as a chat, not a form',
+    B.phrase('Hds Chat-Text Leads - Gubagoo - Chat Gubagoo - Chat').ex2,
+    'I saw your chat with us come through...');
+  check('Click & Go keeps the brand frame it always had',
+    B.phrase('Hds Dr Lead - Gubagoo - Drs Digital Retailing').ex2,
+    'I saw your Click & Go request come through...');
+  // The HARD CONSTRAINT's tail was hardcoded to "that is a place they will recognise" and was
+  // equally wrong about a possessive name. It comes from the shape now.
+  check('"a place they will recognise" is not said of a non-place',
+    B.phrase('Thirdparty Honda -').tail === 'that is a place they will recognise', false);
+  check('...but it is still said of a real one', B.phrase('Facebook').tail, 'that is a place they will recognise');
+
+  console.log('\nthe shape travels with the name, so the two cannot drift:');
+  check('every table row carries a shape',
+    B.rows.every(r => /,\s*'(?:brand|place|owned)'\s*\]/.test(r)), true);
+  check('  ...checked ' + B.rows.length + ' rows', B.rows.length >= 15, true);
+  check('the frames are a named table, not inline strings',
+    /var _LP_ACK_FRAMES = \{/.test(code), true);
+  check('every shape used by a row has a frame',
+    [...new Set(B.rows.map(r => (r.match(/'(brand|place|owned)'\s*\]/) || [])[1]).filter(Boolean))]
+      .every(sh => B.frames[sh] && B.frames[sh].tail), true);
+  check('an unknown shape falls back rather than throwing',
+    B.phrase('Facebook') && typeof B.phrase('Facebook').ex1, 'string');
+
   console.log('\nit never throws:');
   check('empty', B.resolve(''), '');
   check('null', B.resolve(null), '');
   check('whitespace', B.resolve('   '), '');
+  check('the phrase resolver is null-safe too', B.phrase(null), null);
+  check('  ...and silent for a non-web origin', B.phrase('Walk In'), null);
 }
 
 if (BUILDS.length > 1) {
@@ -223,8 +296,8 @@ if (BUILDS.length > 1) {
     region(BUILDS[0], 'var _LP_CUSTOMER_FACING_SOURCES = [', 'function _lpCustomerFacingSource')
     === region(BUILDS[1], 'var _LP_CUSTOMER_FACING_SOURCES = [', 'function _lpCustomerFacingSource'), true);
   check('the acknowledgment block is identical',
-    region(BUILDS[0], 'var _ackName = (typeof _lpCustomerFacingSource', "notes or lead history.');")
-    === region(BUILDS[1], 'var _ackName = (typeof _lpCustomerFacingSource', "notes or lead history.');"), true);
+    region(BUILDS[0], 'var _ackP = (typeof _lpSourceAckPhrase', "notes or lead history.');")
+    === region(BUILDS[1], 'var _ackP = (typeof _lpSourceAckPhrase', "notes or lead history.');"), true);
 }
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
