@@ -64,8 +64,17 @@ function load(file) {
   const b = src.indexOf('    function sanitize(str) {', a);
   const sb = { String, RegExp };
   vm.createContext(sb);
+  // (v9.7.634) _lpStripNoteMeta now calls module-scope _lpIsRoutingLine, so lifting the function
+  // alone leaves a ReferenceError. Lift the helper too — the harness must run what production
+  // runs. Third build in a row where factoring a helper out of a lifted region broke a suite that
+  // lifts it (v9.7.630 arc-bound/brief-fence, v9.7.631 distance-appt-gate, here). The suites
+  // catching it every time is the system working; it is still worth checking for on any extraction.
+  const ha = src.indexOf('    function _lpIsRoutingLine(line) {');
+  if (ha < 0) throw new Error('_lpIsRoutingLine not in ' + file);
+  vm.runInContext(src.slice(ha, a), sb);
   vm.runInContext(src.slice(a, b), sb);
-  return { src, strip: vm.runInContext('_lpStripNoteMeta', sb) };
+  return { src, strip: vm.runInContext('_lpStripNoteMeta', sb),
+           stripRouting: vm.runInContext('_lpStripRouting', sb) };
 }
 
 // Sydnie's note, in the shape VinSolutions renders it — innerText keeps the per-div line breaks.
@@ -120,10 +129,20 @@ for (const file of BUILDS) {
     /lastInboundMsg = sanitize\(_lpStripNoteMeta\(iiContent\)\)/.test(B.src), true);
   check('...including the burst-message prepend',
     /sanitize\(_lpStripNoteMeta\(nextContent\)\)/.test(B.src), true);
+  // (v9.7.634) Outbound is no longer left untouched — it now goes through _lpStripRouting, which
+  // removes the CRM's "Sent to: <phone> / Sent by: <agent>" header while KEEPING the subject.
+  // v9.7.623's decision is unchanged and is what these two now assert: inbound loses its subject,
+  // outbound keeps it. The wiring expression moved; the rule did not.
   check('the transcript entry is stripped for INBOUND notes',
-    /var _annotatedContent = \(dir === 'inbound'\) \? _lpStripNoteMeta\(content\) : content;/.test(B.src), true);
-  check('...and NOT for outbound — our own subject is real arc',
-    /_lpStripNoteMeta\(content\) : content/.test(B.src), true);
+    /var _annotatedContent = \(dir === 'inbound'\) \? _lpStripNoteMeta\(content\) : _lpStripRouting\(content\);/.test(B.src), true);
+  // Asserted on BEHAVIOUR rather than on the expression, so a future rewiring that preserves the
+  // rule still passes and one that breaks it cannot.
+  const _subj = 'Sent to: (346) 579-4102\nSent by: Elsa McHaney\nSubject: Re:Your Pilot inquiry\nHi there';
+  check('...and outbound keeps its subject — our own subject is real arc',
+    /Subject: Re:Your Pilot inquiry/.test(B.stripRouting ? B.stripRouting(_subj) : ''), true);
+  check('...while inbound still loses it', /Subject:/.test(B.strip(_subj)), false);
+  check('...and outbound loses the routing header either way',
+    /579-4102/.test(B.stripRouting ? B.stripRouting(_subj) : 'x'), false);
   check('no raw sanitize(iiContent) assignment remains',
     /lastInboundMsg = sanitize\(iiContent\)/.test(B.src), false);
 
