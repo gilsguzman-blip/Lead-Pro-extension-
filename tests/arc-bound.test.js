@@ -39,6 +39,15 @@ function build(file) {
     '(function(sorted, _aid){\n' + src.slice(a0, a1) + '\nreturn _sfActivePanelEmpty; })', ctx);
 
   // ── B: the transcript-fence bounding, verbatim from the shipped block ──
+  // (v9.7.630) The extraction moved to module-scope _lpBoundedTranscript, which the block now
+  // CALLS. Lift it in too, or the block throws a ReferenceError that its own `catch (eTs)`
+  // swallows into the full-context fallback — every assertion below then fails for a reason that
+  // has nothing to do with the code under test. Production has the helper in scope; the harness
+  // must run what production runs.
+  const h0 = src.indexOf('function _lpBoundedTranscript(ctx) {');
+  const h1 = src.indexOf('\n}', h0);
+  if (h0 < 0 || h1 < 0) throw new Error('could not locate _lpBoundedTranscript in ' + file);
+  vm.runInContext(src.slice(h0, h1 + 2), ctx);
   const b0 = src.indexOf("    var _ctxRaw = data.context || '';");
   // (v9.7.557) Anchor on the declaration itself rather than its initialiser — ctxEntries moved
   // onto the shared _lpWalkCrmEntries, and the old anchor named the initialiser it replaced.

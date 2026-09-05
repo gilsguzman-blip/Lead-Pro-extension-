@@ -165,14 +165,21 @@ if (!extractErr) {
   // ── THE META BLOB ──────────────────────────────────────────────────────────
   // The exact sequence from 9/4: a four-store batch, then a Kia-only upload.
   console.log('\nthe meta blob stops forgetting the stores it is not carrying:');
+  // (v9.7.630) `generated` SITS INSIDE `valuefacts`, NOT BESIDE IT. The worker reads
+  // `payload.generated` where `payload = body.valuefacts`, and the Data Tool posts
+  // `{licenseKey, valuefacts: {generated: TODAY, type, stores}}` (datatool/index.html:968, 986).
+  // This fixture had `generated` at the body's top level — a shape nothing sends — so the worker
+  // fell through to `new Date()` and the assertion below compared today's date against a
+  // hardcoded '2026-09-04'. It passed on 9/4 for exactly that reason and failed on 9/5, which is
+  // the only way anyone was ever going to notice. The worker was correct throughout.
   const kv2 = makeKV({});
-  await doPost(kv2, { licenseKey: 'k', generated: '2026-09-04', valuefacts: { stores: {
+  await doPost(kv2, { licenseKey: 'k', valuefacts: { generated: '2026-09-04', stores: {
     '6189': { store: 'Toyota Baytown',   count: 1, incentives: [{ line: 'a' }] },
     '6191': { store: 'Honda Baytown',    count: 1, incentives: [{ line: 'b' }] },
     '21135':{ store: 'Audi Lafayette',   count: 1, incentives: [{ line: 'c' }] },
     '24399':{ store: 'Honda Lafayette',  count: 1, incentives: [{ line: 'd' }] }
   } } });
-  await doPost(kv2, { licenseKey: 'k', generated: '2026-09-04', valuefacts: { stores: {
+  await doPost(kv2, { licenseKey: 'k', valuefacts: { generated: '2026-09-04', stores: {
     '6190': { store: 'Kia Baytown', count: 3, incentives: KIA('2026-09-04','2026-09-30').incentives }
   } } });
 
@@ -183,6 +190,24 @@ if (!extractErr) {
   check('...and the four from the earlier batch survived it', meta.stores['6189'].store, 'Toyota Baytown');
   check('each store carries its own publish date', meta.stores['6190'].generated, '2026-09-04');
   check('each store carries its own timestamp', typeof meta.stores['6189'].updatedAt, 'number');
+  // (v9.7.630) The date must come from the PAYLOAD, never from the clock — pinned with a date
+  // that cannot coincide with today, so this can never again pass by calendar accident.
+  const kvDate = makeKV({});
+  await doPost(kvDate, { licenseKey: 'k', valuefacts: { generated: '2019-01-02', stores: {
+    '6190': { store: 'Kia Baytown', count: 1, incentives: [{ line: 'x' }] }
+  } } });
+  const metaDate = JSON.parse(kvDate.store['valuefact:meta']);
+  check('the publish date is the uploaded one, not the server clock',
+    metaDate.stores['6190'].generated, '2019-01-02');
+  check('...and it reaches the per-dealer blob too',
+    JSON.parse(kvDate.store['valuefact:6190']).generated, '2019-01-02');
+  // The fallback is still correct behaviour when the upload genuinely omits it.
+  const kvNoDate = makeKV({});
+  await doPost(kvNoDate, { licenseKey: 'k', valuefacts: { stores: {
+    '6190': { store: 'Kia Baytown', count: 1, incentives: [{ line: 'x' }] }
+  } } });
+  check('an upload with no date falls back to today, in ISO form',
+    /^\d{4}-\d{2}-\d{2}$/.test(JSON.parse(kvNoDate.store['valuefact:meta']).stores['6190'].generated), true);
 
   // The behaviour that was never broken, asserted so a future meta change cannot quietly break it.
   console.log('\nper-dealer data was never the problem, and still is not:');

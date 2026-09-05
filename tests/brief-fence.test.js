@@ -91,7 +91,14 @@ function load(file) {
     'function _invariant(conversationBrief, recentHistory, convState, totalNoteCount){\n'
     + invSrc + ' }\n return conversationBrief; }', sb);
 
-  // (4) the SHIPPED arc-bound extractor — the consumer this whole build exists to feed
+  // (4) the SHIPPED arc-bound extractor — the consumer this whole build exists to feed.
+  // (v9.7.630) It now calls module-scope _lpBoundedTranscript, so that has to be in scope here
+  // too. Without it the block throws and its own `catch (eTs)` turns the throw into the
+  // full-context fallback — a silent wrong answer rather than a loud one.
+  const bt0 = src.indexOf('function _lpBoundedTranscript(ctx) {');
+  const bt1 = src.indexOf('\n}', bt0);
+  if (bt0 < 0 || bt1 < 0) bail('_lpBoundedTranscript not in ' + file);
+  vm.runInContext(src.slice(bt0, bt1 + 2), sb);
   const arcSrc = cut(src, file, 'arc-bound extractor',
     "    var _ctxRaw = data.context || '';", '} catch (eTs) { ctx_full = _ctxRaw; }');
   if (arcSrc.indexOf('ARC-BOUND DIAG') < 0) bail('arc slice missing the diagnostic in ' + file);

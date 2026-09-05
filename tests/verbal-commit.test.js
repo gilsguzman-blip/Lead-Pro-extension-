@@ -57,7 +57,7 @@ function extract(file) {
   if (ha < 0 || hb < 0 || hb <= ha) throw new Error('could not locate LP_SCAFFOLD_LINE_RE in ' + file);
 
   const a = src.indexOf('  if (hasCallNoteContent && !data.isShowroomFollowUp) {');
-  const b = src.indexOf('  if (data.conversationBrief && (data.convState !== ');
+  const b = src.indexOf('  // ── (v9.7.630) THE ARC DIGEST IS ADMITTED ON EVIDENCE');
   if (a < 0 || b < 0 || b <= a) throw new Error('could not locate the verbal-commit block in ' + file);
 
   // (v9.7.557) The block now calls the shared _lpWalkCrmEntries, so the walker has to be in

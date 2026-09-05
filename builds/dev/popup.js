@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.630-dev (Dev. THE ARC DIGEST IS NOW ADMITTED ON EVIDENCE INSTEAD OF ON A LABEL, AND THE FLAG THAT WAS DECIDING IT MEANT NOTHING. A CORRECTION TO WHAT I TOLD GIL AT THE END OF v9.7.629, FIRST, BECAUSE IT WAS WRONG AND HE ACTED ON IT: I said the chronological SPINE never gets built on a first-touch lead. It does. _lpBuildArcSpine is gated on `data.context` and LEADPRO_ARC_SPINE alone -- no convState anywhere near it -- so the spine has always rendered for first-touch leads. What the gate at buildUserPrompt actually withholds is the CONVERSATION ARC DIGEST, a different and larger thing: the exchange narrative, the internal-agent-notes preamble, the open-question callout, the no-reply-yet block, eight response rules and the relationship reading, injected at the very top of the prompt ahead of SCENARIO. The build is the one that was needed; the sentence describing it named the wrong component. MEASURED PER GRAB THIS TIME, NOT PER DIAGNOSTIC ROW -- and that changes the number I gave. log173 has six grabs; five entered the digest block and ONE was refused outright: Bobby Terrazas (Toyota Baytown, 2018 Ford Expedition, convState first-touch, 6 CRM notes, hasRealOutbound:true). No [LP ARC-BOUND DIAG] row, no RelReading row anywhere in his grab. What it cost him is recorded in his own log line: [LP VARIANT-MISMATCH DIAG] ctxLen:346. Three hundred and forty-six characters of context on a lead an agent had already texted AND emailed that morning. In v9.7.629 I wrote "three of the four demoted leads passed that gate on hasCallNoteContent alone"; the true refusal count is 1 of 6, and the corrected figure is the one to trust. THE ADMITTING FLAG WAS MEANINGLESS. hasCallNoteContent is /\[CALL NOTE\]/i.test(data.context) -- and [CALL NOTE] is written in exactly ONE place in the entire codebase, the AGENT CONTEXT block, when an agent has typed a non-boilerplate phone note. The raw transcript tags its entries [CUSTOMER], [AGENT] or [NOTE] and never [CALL NOTE] at all. So the question this gate was really asking was "did somebody happen to write a phone note", which has no relationship whatsoever to whether a conversation exists. Three leads passed on it, one did not, and nothing about the difference was meaningful. CHECKED RATHER THAN ASSUMED, because v9.7.629 changed what data.context carries and I could easily have moved this flag by accident: the newly fenced transcript contains no [CALL NOTE] string, so v9.7.629 did not widen hasCallNoteContent. Traced through every transcript.push site to confirm it. THE NEW TERM. A lead is admitted when its BOUNDED transcript region -- the one v9.7.629 guarantees -- carries at least one [CUSTOMER], [AGENT] or [CALL NOTE] entry. Bounded is the whole point: scanning the full context finds Lead Pro's own directives and reads them back as the record, which is the entire v9.7.552 lesson and the reason Jeffrey Best was told his in-stock car had sold. The three tags are deliberately the SAME three the digest's own entry walk recognises, so the gate cannot admit a lead the consumer then finds nothing in. STRICTLY ADDITIVE: every lead that entered before still enters, on the same terms, with its prompt unchanged. ONE DEFINITION OF THE BOUNDARY. The fence extraction that has lived inside buildUserPrompt since v9.7.544 moved to module-scope _lpBoundedTranscript(), because the gate and the consumer now both need to find the region and two hand-maintained copies of a boundary rule is a drift generator. It was LIFTED, not rewritten, and the equality is proved by execution rather than by reading: old and new run side by side over eleven fence shapes -- no marker, marker with no fence, empty body (the Keisha shape), an unterminated region, a body containing its own --- lines, a stray --- rule before the marker, whitespace-only, null, and two regions in one context. Identical on all eleven. THE RECORD IS ADMITTED; THE FOLLOW-UP FRAMING IS NOT. This is the part that would have been a regression if I had simply opened the gate. The digest carries one branch that tells the model it is writing a FOLLOW-UP -- "write a DIFFERENT follow-up: new angle", "should feel like a different person picked up the thread". On Bobby that is precisely the James Bellard message v9.7.399 built the fresh-today rule to stop: his first outbound had gone out TWELVE MINUTES before the grab. Bobby is the same shape, outreach sent that morning on a lead created that morning. So the exchange lines go in and NO CUSTOMER REPLY YET stays behind the original label test. The relationship reading is suppressed on newly-admitted leads for the same reason with a different precedent: it renders fatigue, no-show and frustration history, and v9.7.616 is the build where a 13-hour-old lead was written as a fatigued ghost. Third build in a row drawing the same line -- the record moves, the conclusions drawn from it stay put. Conservative on purpose and revisitable once there is live data. AND NO DIRECTIVES WITH NO RECORD UNDER THEM. If a newly-admitted lead's tagged entries all die in the entry walk -- entirely scaffold, or nothing past the header -- the digest is suppressed outright rather than shipping a preamble and eight rules with an empty space where the conversation should be. That noise case is the reason the old gate looked defensible, and it is closed by evidence rather than by label. Leads the OLD gate admitted are untouched by this test. A DIAGNOSTIC THAT WOULD HAVE MISREPORTED THE SUPPRESSION: RelReading's else-branch prints "simple lead, no friction or fatigue", which on a suppressed lead would be an inference the build knows to be untested. Guarded, and the suppression prints its own line -- "it did not run" and "it ran and found nothing" are different evidence, the v9.7.563 lesson, in the exact diagnostic that would otherwise have buried it. FOUR EXISTING SUITES BROKE, AND EVERY ONE WAS THE HARNESS RATHER THAN THE BUILD -- but two of them broke in a way worth recording. arc-bound and brief-fence lift the fence-bounding block and run it in a bare sandbox; once that block CALLS a module-scope helper, the lifted copy throws a ReferenceError which the shipped `catch (eTs)` swallows into the full-context fallback. A hard failure arriving as a silent wrong answer. Both harnesses now lift the helper too, so they run what production runs. verbal-commit and note-types anchored a slice on the literal text of the gate line I rewrote; both repointed at a stable comment header. Nothing was weakened to make anything pass. AND A TEST THAT HAD BEEN PASSING BY CALENDAR ACCIDENT, found because the date rolled to 9/5 mid-build. valuefact-freshness posted `generated` at the body's TOP LEVEL and asserted the stored date was 2026-09-04. The worker reads payload.generated where payload = body.valuefacts, and the Data Tool posts {licenseKey, valuefacts:{generated, type, stores}} (datatool/index.html:968,986) -- so the fixture was a shape nothing sends, the worker fell through to new Date(), and the assertion compared today against a hardcoded today. It passed on 9/4 for that reason alone. THE WORKER WAS CORRECT THROUGHOUT and is unchanged; the fixture now matches the real upload, and two new assertions pin the date to a 2019 value that cannot coincide with any clock, plus one that keeps the no-date fallback honest. VERIFIED: 78 suites green (2,940 assertions, +101 -- 98 in the new arc-admit suite plus 3 in valuefact-freshness), dev===comm, and parity re-checked region by region on all five changed blocks rather than on the file as a whole. NON-VACUITY, ATTRIBUTABLE THREE WAYS by neutering each guard in THIS build: reverting the gate to the label test fails 3 assertions by name; removing the follow-up-framing suppression fails exactly 1; pointing the exchange counter at the whole context instead of the bounded region -- the v9.7.552 error, deliberately re-created -- fails exactly 4. TWO DEFECTS IN MY OWN TEST, BOTH FOUND BY RUNNING THOSE NEUTERS AND BOTH WORTH THE RECORD. (1) The admission wrapper assigned `_entered` without declaring it, so it became a sandbox global that SURVIVED between calls and made every lead after the first report entered:true -- a stale global read as a current verdict, the exact v9.7.563 shape, in the harness this time. The refusal cases caught it. (2) The follow-up-framing slice was anchored on the very line the neuter edits, so a neutered build reported "could not find the code it tests" instead of a named failure -- an unattributable result, which this repo's own fatal-guard says is not evidence either way. Re-anchored on a comment header. WHAT THIS MIGHT BREAK, PLAINLY: leads the old gate refused now receive the arc digest at the top of their prompt -- the internal-agent-notes preamble, their own exchange narrative and eight response rules. On log173's evidence that is roughly one grab in six, and on those leads the model currently has almost nothing to work with. It is new customer-facing text and it needs a before/after batch on live traffic, which unit assertions cannot supply. The two suppressions mean a newly-admitted lead gets strictly less than a follow-up lead would, by design. STILL OPEN, unchanged: the derived-vs-derived contradiction (VEHICLE STATUS: SOLD alongside the distance-buyer block's "encourage the soonest workable time") -- the v9.7.627 precedence rule arbitrates derived-vs-messages, not derived-vs-derived, and Bobby's own lead carries authoritativeMarker:true, so he is a live instance of it. scenarioRules still renders twice per prompt. The digest-suppression guard is asserted by source position rather than by execution, which is proportionate for a one-line condition but is weaker than the rest of the suite and is recorded as such. node --check clean on both builds; both manifests parse; version AND version_name both bumped. scraperVersion stays v9.7.51. Extension only; proxy v7.70 and reporter v1.22 unchanged and NOT redeployed. Builds on v9.7.629.)
 // Lead Pro -- popup.js  v9.7.629-dev (Dev. EVERY PATH NOW EMITS ONE BOUNDED TRANSCRIPT REGION, AND HALF THE PROMPTS WE SHIP STOP FALLING BACK. v9.7.552 named this in its own header five weeks ago and deferred it: "the fences are still not emitted on first-touch and Gubagoo leads at all. Reconciling the brief builder so every path emits one bounded transcript region is the correct end state and would retire the fallback entirely." This is that build. MEASURED ON log173 -- six grabs, 9/4, five rooftops, on v9.7.628, counted rather than estimated: [LP ARC-BOUND DIAG] 3 of 5 rows "arc NOT bounded to the transcript -- no CONVERSATION TRANSCRIPT marker in the context at all"; [LP SOLD SCAN DIAG] 4 of 6 rows "scanScope:full-context, scaffold stripped (fences not found)"; [LP PIVOT SCOPE DIAG] 4 of 6 rows "transcriptFences:NOT found". THE FALLBACK WAS NOT AN EDGE CASE. IT WAS THE MAJORITY PATH, and on one of those rows it was doing real work: the Kia EV6 lead logged proseMatchInFullCtx:true with SCAFFOLD MATCH SUPPRESSED, the suppressed text being our own directive "if the newest thing we told them was that the vehicle sold, you may not now write as though it is available." The v9.7.552 scaffold strip was the only thing standing between a live buyer and the Jeffrey Best incident happening a third time. That is not a safety margin worth keeping. AND NOT ONE OF THOSE FOUR LEADS IS A REAL FIRST TOUCH. The log says so in its own words, four times: "fresh-today lead, no customer reply -> first-touch (was about to be active-follow-up on 14 notes)", and 12, and 13, and 6. The v9.7.399 fresh-today rule is CORRECT and is not touched here -- a lead created today with no reply is a first outreach, not a stalled follow-up, and writing "I know it has been quiet" over an opening burst sent 12 minutes ago is the bug it exists to prevent. THE DEFECT IS THAT ONE FLAG WAS ANSWERING TWO UNRELATED QUESTIONS. What TONE should this message take, and DOES THE CUSTOMER'S THREAD REACH THE MODEL AT ALL. The second question has nothing to do with convState, and answering it with the first deleted a 14-note conversation out of a prompt while every consumer that looks for the marker quietly scanned Lead Pro's own directives instead. Gil, on 9/4: "why is the model not able to read the entire arc rather than pieces? That is my biggest hang up, not giving the model all the info so it can do its job." v9.7.627 hoisted the conversation above the derived directives; on half these leads there was no fenced conversation to hoist. THE FIX, IN THREE PARTS. (1) ONE DEFINITION. The fenced region is built by _lpFencedTranscript() instead of a concatenation typed out at the emitting site. The marker text is load-bearing for four separate consumers and two hand-maintained copies of it is a drift generator -- the v9.7.589 lesson, where three byte-identical filters carried one bug three times. (2) THE INVARIANT, OUTSIDE THE GATE. After the brief builder, either conversationBrief carries a bounded region or there was no transcript body to bound. Never a thread that exists and is not fenced. Placed at the brief-builder depth, after the convState block closes, and it tests for the MARKER rather than for convState, so where the gated branch already emitted a region this is a no-op. (3) THE CHAT LEAD IS CARRIED ONCE. recentHistory already contains the [GUBAGOO CHAT] lines, so emitting the region everywhere would have printed a chat lead's own conversation twice -- the v9.7.544 duplicate-entry problem, arriving through the front door. When every chat line is provably inside the fenced body the old unfenced block becomes a pointer to it; when it is NOT -- a cutoff dropped them, an entry was reshaped -- the verbatim block is kept exactly as v9.7.628 wrote it, because losing the chat is far worse than printing it twice. Fails safe, never open, asserted in both directions. ONLY THE RAW RECORD MOVED. Every directive the gate guards -- stateLabel, the CRM entry count, keySignal, the commitment block, the concern block -- stays inside it, the same discipline v9.7.618 used when it hoisted the money scan, and asserted the same way: by SOURCE POSITION, because position is what broke. No new derived text appears on a first-touch lead. The customer's own words do. EMPTY FENCES ARE STILL NEVER MANUFACTURED. "Fences present, body empty" and "no fences at all" are DIFFERENT failures, and v9.7.589 lost three investigation passes to a diagnostic that conflated them (Keisha Burgess: the fences were there and the cutoff filter had deleted every line inside them). A lead with genuinely no thread keeps its honest "no marker" state and the diagnostic stays truthful. VERIFIED BY EXECUTION, NOT INSPECTION. New brief-fence suite, 109 assertions, runs the SHIPPED builder, the SHIPPED Gubagoo branch, the SHIPPED invariant block AND the SHIPPED arc-bound extractor this build exists to feed -- so the claim is not "the region is emitted" but "the consumer that failed on 9/4 now succeeds": the same first-touch brief returns the fallback line log173 printed three times before the fix and "arc built from the transcript fences" after it. THE NON-FIRST-TOUCH PROMPT DOES NOT CHANGE BY ONE CHARACTER, and that is proved rather than asserted -- v9.7.628's gated assignment and this build's were both lifted and EXECUTED on five shared inputs, including the empty-everything Keisha shape, a body containing its own --- lines, and em-dash/curly-quote text. Identical on all five. NON-VACUITY, ATTRIBUTABLE THREE WAYS, by neutering each guard in THIS build rather than pointing the suite at an older one (an absent-code result is not evidence about the code, as this repo's own fatal-guard says): disabling the invariant append fails 14 assertions by name and leaves the directive-position, no-op and empty-body checks passing; forcing the chat dedup OFF fails exactly the 4 dedup assertions; forcing it ON fails exactly the 4 fail-safe assertions. A TEST DEFECT THE NEUTER FOUND, which is the whole reason to run one: an assertion read .indexOf off the invariant's return value directly, so with the guard disabled the TEST threw instead of failing -- a suite that reports "did not load" where it should report a named failure. String()-wrapped now, and the assertion is about the shipped code tolerating a null brief, which is what it always should have said. WHAT THIS MIGHT BREAK, PLAINLY: first-touch prompts get longer and now contain the raw CRM thread, which on a genuine first touch is the lead-received note plus the agent's own opening burst. That is a real change to text the model reads on a large share of daily leads and it is customer-visible. It is also the correct direction -- the SCENARIO block still says first touch, the v9.7.628 precedence rule still names the customer's MESSAGES as the record rather than the whole block, and a lead with no thread is untouched. It needs a before/after batch on live traffic, which unit assertions cannot supply. NOT FIXED HERE, FLAGGED AND REAL, AND IT IS THE OTHER HALF OF THIS SAME HOLE: the arc builder's own entry gate at popup.js still reads `data.convState !== 'first-touch' || hasCallNoteContent`, so a first-touch lead with no call-note content never builds the chronological spine even now that its transcript is bounded. Three of the four demoted leads in log173 passed that gate on hasCallNoteContent alone -- by luck, not design. Widening it turns on a large block of DERIVED text for first-touch leads, which is exactly the blast radius v9.7.618 kept behind the gate deliberately, so it gets its own build and its own before/after. It could not have been done before this one: there was nothing bounded to build the spine from. ALSO UNCHANGED: the derived-vs-derived contradiction (VEHICLE STATUS: SOLD alongside the distance-buyer block's "encourage the soonest workable time") -- the v9.7.627 precedence rule arbitrates derived-vs-messages, not derived-vs-derived. scenarioRules still renders twice per prompt. VERIFIED: 77 suites green (2,839 assertions, +109), dev===comm. node --check clean on both builds; both manifests parse; version AND version_name both bumped. scraperVersion stays v9.7.51. Extension only; proxy v7.70 and reporter v1.22 unchanged and NOT redeployed. Builds on v9.7.628.)
 // Lead Pro -- popup.js  v9.7.628-dev (Dev. A DIRECTIVE BUILT ON THE WORD "AND", AND A PRECEDENCE RULE THAT MISLABELLED OUR OWN INFERENCES. Both found in log173, six grabs across five rooftops on v9.7.627. (1) THE VARIANT TOKEN. Bobby Terrazas (Toyota Baytown, 9/4) submitted "I'm interested in this 2018 Ford Expedition and I'd like to know if it's still available". The detector matches "<make> <model> <token>" and took the token verbatim, so the prompt shipped: 'VEHICLE VARIANT MISMATCH: the customer's own words ask about a different configuration -- "and" -- of this same model ... These are NOT the same vehicle and are NOT automatically interchangeable.' A directive built on an English conjunction, telling the model two vehicles exist when one does. v9.7.597 FOUND THIS AND DEFERRED IT IN ITS OWN HEADER -- "the variant token is the English word 'is' ... It produces a directive built on nothing. Left for its own build rather than folded in unmeasured." Today's capture IS that measurement: 2 of 6 leads fired it, both on function words ("and" on a Ford Expedition and again on a Kia EV6). Same bare-token class as v9.7.555 ("ram" inside "Timeframe") and v9.7.597's inverted chat summary; the only guard was length > 1, which "and" and "is" both clear. FIXED with a function-word blocklist, and -- the v9.7.537 lesson -- rejecting a candidate does NOT end the scan, so a real trim sitting behind a function word is still reached, asserted. (2) MY OWN v9.7.627 RULE WAS WRONG IN ITS FIRST LINE. It read "THE CONVERSATION ABOVE IS THE RECORD ... everything below this line is DERIVED", but data.context carries BOTH the customer's messages and roughly ten flagged lines we derive by scanning them -- VEHICLE STATUS: SOLD, the SOLD -> INCENTIVE PIVOT, VARIANT MISMATCH, MASKED EMAIL, NO PHONE. Hoisting that block moved our inferences above the line and labelled them as the record, which is the exact error the rule exists to prevent. Reworded to name the MESSAGES rather than a position: the section carries the customer's actual messages AND flagged lines, the messages are the record, and every derived line -- above the line or below it -- is a reading that can be wrong. NEW variant-token suite (39 assertions) executing the SHIPPED extractor on both production shapes; arc-first updated for the rewording and now asserts the old claim is gone. NON-VACUOUS: neutering the blocklist fails 13. STILL OPEN, MEASURED HERE: 3 of 6 grabs logged "arc NOT bounded to the transcript -- no CONVERSATION TRANSCRIPT marker in the context at all", so on half these leads there is no fenced transcript to hoist. That is the remaining half of Gil's question and it needs its own build. Extension only; proxy v7.70 and reporter v1.22 unchanged.)
 // Lead Pro -- popup.js  v9.7.618-dev (Dev. I DIAGNOSED THE FRAME MERGE TWICE AND IT WAS NEVER THE FRAME MERGE. Extension only; proxy v7.69 and reporter v1.22 unchanged. v9.7.616 shipped four fixes; two never reached the prompt. v9.7.617 blamed the first-truthy-wins frame merge and shipped two more fixes for it; log166 shows BOTH still dead. The merge was innocent both times. This build stops guessing: the SHIPPED inlineScraper was lifted whole and EXECUTED against Sharon Pierre's real VinSolutions DOM dump under jsdom, with probes inserted at chosen lines. That took minutes and settled in one run what two builds of inference got wrong. CAUSE 1 -- NOT WIRED. buildUserPrompt does not receive the merged scrape; it receives a HAND-BUILT OBJECT LITERAL, ~50 explicit fields. v9.7.616 added pdVoiList to the scraper's return and read data.pdVoiList in the prompt builder, and NOTHING JOINED THE TWO. Run against the real DOM the scraper produces the Sorento record perfectly -- pdVoiList:[{desc:'2026 Kia Sorento LX FWD',model:'Sorento',bySystem:true}] -- and the prompt builder was reading undefined the whole time, which is why [LP VOI FAMILY DIAG] said voiRecords:0 through two builds. One line of wiring. CAUSE 2 -- NOT REACHABLE. The customer-authored money scan sat inside the concern region, which sits inside `if(convState !== 'first-touch')`. Probes prove it: a probe in the concern block never fires, a probe at the scraper's return does, and custSaidMoney comes back null. SHARON AND TRICIA ARE BOTH FIRST-TOUCH, so the two leads the budget fix was built for are precisely the two it could never reach -- and its silence read as 'no verdict', which fell back to the whole-arc test the fix exists to replace, shipping the phantom budget a THIRD time. v9.7.551's own header already recorded this gate in writing; I read that header this week and still put the fix behind it. ONLY THE SCAN IS HOISTED above the gate -- cutoffMs, recentTranscriptLines, concernScanLines, _lpCustomerSaid and the money verdict. Every DIRECTIVE the gate guards stays behind it, asserted, so no new prompt text appears on a first-touch lead. A GAP I INTRODUCED MID-FIX AND CAUGHT WITH THE SAME HARNESS: the first hoist left a STUB _lpCustomerSaid returning [] ahead of the real definition, so the money verdict was structurally 'no' on every first-touch lead -- correct for Sharon by luck, wrong for any first-touch lead whose form carried real words. The harness showed customerLines:0; after moving the real construction it shows customerLines:1. That is the difference between a fix and the appearance of one, and only execution against real input could tell them apart. VERIFIED AGAINST THE REAL DOM, not a fixture: pdVoiList carries the Sorento, custSaidMoney is 'no', and [LP BUDGET SCOPE DIAG] fires with customerLines:1. THE TESTS NOW ASK THE TWO QUESTIONS THAT WOULD HAVE CAUGHT ALL FOUR MISSES. IS IT WIRED -- pdVoiList must appear in the buildUserPrompt literal, after the call site, sourced from the scrape. IS IT REACHABLE -- the money scan, the helper and the line list it reads must ALL sit before the first-touch gate, the helper must exist exactly once (a hoist that clones is a drift generator), and customerConcerns must stay after the gate so the directives did not leak forward. Every one of these is a source-position assertion rather than a behavioural one, deliberately: behaviour was never what was broken. THE DUMP IS NOT COMMITTED and never will be -- it carries a real customer's name, phone, email and street address, and the v9.7.489 posture is that contact data never leaves the CRM. The harness lives outside the repo and is pointed at a dump when one exists. VERIFIED: 68 suites green (2,193 assertions, +8), dev===comm. NON-VACUITY: against v9.7.617 the wiring assertions fail 2 by name and the reachability assertions 3 by name. concern-scope updated -- its slice spanned the helper AND the timing detector, which the hoist separated; it now lifts both regions and concatenates rather than narrowing either. node --check clean on both builds; both manifests parse; version AND version_name both bumped. scraperVersion stays v9.7.51. Builds on v9.7.617.)
@@ -421,6 +422,41 @@ let leadConvState     = 'first-touch'; // tracks conversation state for classify
 // spine above the full transcript so it reads in narrative order. Flag-gated for A/B; derived from
 // data.context only -- no scraper/merge/historyFields change.
 var LEADPRO_ARC_SPINE = true;
+
+// ── (v9.7.630) WHERE THE CONVERSATION IS, AS ONE FUNCTION ────────────────────────────────────
+// v9.7.629 made every path emit one bounded CONVERSATION TRANSCRIPT region. Two places now need
+// to FIND that region: the arc digest, which reads it as the record, and the digest's own entry
+// gate, which needs to know whether a conversation exists before deciding to run. Written once
+// rather than twice for the reason v9.7.629 gave and v9.7.589 proved: two hand-maintained copies
+// of a boundary rule is a drift generator, and this one is the boundary that separates the
+// customer's words from Lead Pro's own directives.
+// Returns the bounded body, or '' when there is no region — the caller decides what '' means.
+// The extraction is character-for-character the one that shipped inside buildUserPrompt since
+// v9.7.544; it was lifted here, not rewritten, and the equality is proven by execution.
+function _lpBoundedTranscript(ctx) {
+  var s = String(ctx || '');
+  var mk = s.indexOf('CONVERSATION TRANSCRIPT (');
+  if (mk < 0) return '';
+  var open = s.indexOf('---', mk);
+  if (open < 0) return '';
+  var close = s.indexOf('\n---', open + 3);
+  return (close > open ? s.slice(open + 3, close) : s.slice(open + 3)).trim();
+}
+
+// (v9.7.630) Does the bounded region contain a real exchange? Deliberately the SAME three tags
+// the digest's own entry walk recognises ([CUSTOMER], [AGENT], [CALL NOTE]) — a gate that admits
+// leads the consumer then finds nothing in is a gate that emits directives with no record under
+// them, which is the noise this build exists to avoid. Counting rather than testing so the
+// diagnostic can say how much conversation was being withheld.
+function _lpCountArcExchanges(ctx) {
+  var body = _lpBoundedTranscript(ctx);
+  if (!body) return 0;
+  var n = 0;
+  body.split('\n').forEach(function (l) {
+    if (/\[(?:CUSTOMER|AGENT|CALL NOTE)\]/i.test(l)) n++;
+  });
+  return n;
+}
 
 function _lpBuildArcSpine(ctx) {
   if (!ctx) return '';
@@ -19086,7 +19122,44 @@ function buildUserPrompt(data) {
         + ' (walk capped at ' + _VC_PER_TYPE + ' per type)');
     }
   }
-  if (data.conversationBrief && (data.convState !== 'first-touch' || hasCallNoteContent)) {
+  // ── (v9.7.630) THE ARC DIGEST IS ADMITTED ON EVIDENCE, NOT ON A LABEL ────────────────────────
+  // MEASURED on log173, per grab rather than per diagnostic row: six grabs, five entered this
+  // block, ONE was refused outright — Bobby Terrazas (Toyota Baytown, 2018 Ford Expedition,
+  // convState first-touch, 6 CRM notes, hasRealOutbound:true). His [LP VARIANT-MISMATCH DIAG]
+  // line records what that cost: ctxLen:346. Three hundred and forty-six characters of context
+  // on a lead the agent had already written to that morning.
+  //
+  // AND THE OTHER THREE DEMOTED LEADS GOT IN BY ACCIDENT. hasCallNoteContent tests data.context
+  // for the literal '[CALL NOTE]', a tag written ONLY by the AGENT CONTEXT block — never by the
+  // transcript, whose entries are tagged [CUSTOMER]/[AGENT]/[NOTE]. So the question this gate
+  // actually asked was "did an agent happen to type a non-boilerplate phone note", which is
+  // unrelated to whether a conversation exists. Three leads passed on it and one did not, and
+  // nothing about the difference was meaningful.
+  // (Checked while building this, since v9.7.629 changed what data.context carries: the newly
+  // fenced transcript does NOT contain '[CALL NOTE]', so v9.7.629 did not move this flag.)
+  //
+  // THE NEW TERM ASKS THE REAL QUESTION — is there a conversation to analyse — of the BOUNDED
+  // region v9.7.629 guarantees, never of the whole context. That distinction is the entire
+  // v9.7.552 lesson: scanning the full context finds Lead Pro's own directives and reads them
+  // back as the record.
+  //
+  // STRICTLY ADDITIVE. Every lead that entered before still enters, on the same terms, and its
+  // prompt is unchanged. Only leads the old gate refused are affected.
+  var _arcExchangeCt = 0;
+  try { _arcExchangeCt = _lpCountArcExchanges(data.context); } catch (eAx) { _arcExchangeCt = 0; }
+  var _arcAdmitOld = (data.convState !== 'first-touch' || hasCallNoteContent);
+  // Leads admitted ONLY by the new term. Tracked by name because what they may receive is
+  // deliberately narrower than what the old gate's leads receive — see the two suppressions below.
+  var _arcNewlyAdmitted = !_arcAdmitOld && _arcExchangeCt > 0;
+  if (data.conversationBrief && !_arcAdmitOld) {
+    console.log('[LP ARC ADMIT DIAG] the old gate would have REFUSED this lead — convState:'
+      + data.convState + ' hasCallNoteContent:' + hasCallNoteContent
+      + ' | exchanges in the bounded transcript: ' + _arcExchangeCt
+      + (_arcNewlyAdmitted
+          ? ' — ADMITTED on the record; follow-up framing and the relationship reading stay suppressed'
+          : ' — still refused, there is no conversation to analyse'));
+  }
+  if (data.conversationBrief && (_arcAdmitOld || _arcNewlyAdmitted)) {
     // Extract the most recent customer message
     const lastInbound = data.lastInboundMsg || '';
     // Extract the most recent agent message
@@ -19119,19 +19192,17 @@ function buildUserPrompt(data) {
     var _ctxRaw = data.context || '';
     var ctx_full = _ctxRaw;
     try {
+      // (v9.7.630) The extraction moved to module-scope _lpBoundedTranscript so the entry gate
+      // above can ask the same question with the same answer. Behaviour is unchanged — the two
+      // were executed side by side across the fence shapes that occur in production, including
+      // an unterminated region and a body containing its own --- lines.
       var _tsMk = _ctxRaw.indexOf('CONVERSATION TRANSCRIPT (');
-      if (_tsMk >= 0) {
-        var _tsOpen = _ctxRaw.indexOf('---', _tsMk);
-        if (_tsOpen >= 0) {
-          var _tsClose = _ctxRaw.indexOf('\n---', _tsOpen + 3);
-          var _tsBody = (_tsClose > _tsOpen ? _ctxRaw.slice(_tsOpen + 3, _tsClose) : _ctxRaw.slice(_tsOpen + 3)).trim();
-          if (_tsBody) {
-            ctx_full = _tsBody;
-            console.log('[LP ARC-BOUND DIAG] arc built from the transcript fences — ' + _tsBody.length
-              + ' of ' + _ctxRaw.length + ' context chars; ' + (_ctxRaw.length - _tsBody.length)
-              + ' chars of header, notes and scaffold excluded before the split');
-          }
-        }
+      var _tsBody = _lpBoundedTranscript(_ctxRaw);
+      if (_tsBody) {
+        ctx_full = _tsBody;
+        console.log('[LP ARC-BOUND DIAG] arc built from the transcript fences — ' + _tsBody.length
+          + ' of ' + _ctxRaw.length + ' context chars; ' + (_ctxRaw.length - _tsBody.length)
+          + ' chars of header, notes and scaffold excluded before the split');
       }
       // (v9.7.589) SAY WHICH FAILURE IT IS. This used to print "fences NOT found" whenever ctx_full
       // was unchanged — which is an INFERENCE, not an observation, and it was wrong on the lead that
@@ -19348,7 +19419,22 @@ function buildUserPrompt(data) {
       digestLines.push('');
     }
     // Add no-reply-yet warning when agent sent outreach but customer hasn't replied
-    var noReplyYet = custCount === 0 && agentCount > 0;
+    // ── (v9.7.630) THE RECORD IS ADMITTED; THIS FRAMING IS NOT ────────────────────────────────
+    // This is the one branch in the digest that tells the model it is writing a FOLLOW-UP —
+    // "write a DIFFERENT follow-up: new angle", "should feel like a different person picked up
+    // the thread". On a newly-admitted lead that is precisely the James Bellard message v9.7.399
+    // built the fresh-today rule to stop: his first outbound had gone out TWELVE MINUTES before
+    // the grab. Bobby Terrazas is the same shape — outreach sent that morning on a lead created
+    // that morning. Admitting his conversation is right; telling the model to vary its angle off
+    // a twenty-minute-old opening is the bug, arriving through a door I opened.
+    // So the exchange lines go in and this stays behind the original label test. Third build in a
+    // row drawing the same line: the record moves, the conclusions drawn from it stay put.
+    var noReplyYet = custCount === 0 && agentCount > 0 && !_arcNewlyAdmitted;
+    if (custCount === 0 && agentCount > 0 && _arcNewlyAdmitted) {
+      console.log('[LP ARC ADMIT DIAG] NO CUSTOMER REPLY YET suppressed — this lead was admitted '
+        + 'on its record, and its first outreach is same-day. The agent messages are shown; the '
+        + '"write a different follow-up" framing is not (v9.7.399, James Bellard).');
+    }
     if (noReplyYet) {
       digestLines.push('NO CUSTOMER REPLY YET: The agent already sent the messages above. Customer has not responded.');
       digestLines.push('- Do NOT repeat questions or content already sent.');
@@ -19369,18 +19455,44 @@ function buildUserPrompt(data) {
     digestLines.push('8. HONOR THE CUSTOMER\'S STATED POSITION: Read the full conversation to understand what the customer has told you — their preferences, restrictions, and boundaries. Any preference or restriction the customer has stated is still in effect unless they explicitly walked it back themselves. A prior agent offering an alternative does not reset what the customer said. Do not push options, vehicles, or approaches the customer has already declined or excluded — even if a previous agent suggested them. The customer\'s stated position governs what you write, not the thread the agent was on.');
     digestLines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
+    // (v9.7.630) A NEWLY-ADMITTED LEAD WITH NOTHING TO SHOW GETS NOTHING. If the bounded region
+    // held tagged entries but every one of them was dropped by the walk above — entirely
+    // scaffold, or no content past the header — then the digest is a preamble and eight rules
+    // with no conversation under them. That is the noise case, and it is the reason the old gate
+    // looked defensible. Leads the OLD gate admitted are untouched by this test: they get exactly
+    // what they got in v9.7.629, empty exchange list or not.
+    if (_arcNewlyAdmitted && exchangeLines.length === 0 && !recentCust) {
+      console.log('[LP ARC ADMIT DIAG] digest SUPPRESSED — ' + _arcExchangeCt + ' tagged entr'
+        + (_arcExchangeCt === 1 ? 'y' : 'ies') + ' in the bounded transcript, but none survived '
+        + 'the entry walk (scaffold or header-only). Emitting directives with no record under '
+        + 'them is the noise this gate exists to prevent.');
+    } else {
     conversationAnalysis = digestLines.filter(Boolean).join('\n');
 
     // (v9.7.54) Append RELATIONSHIP READING after the arc digest. The
     // renderer returns '' for simple/clean leads so we don't add noise to
     // hot fresh leads. Logged so we can verify firing on the leads we expect.
-    var _relReading = renderRelationshipReading(data);
+    // (v9.7.630) Not on a newly-admitted lead. This renders fatigue, no-show and frustration
+    // history — derived readings about a RELATIONSHIP, which a lead created today with no
+    // customer reply does not have one of. v9.7.616 is the precedent: a 13-hour-old lead was
+    // written as a fatigued ghost because years-old blast marketing fed a density count.
+    // Conservative on purpose, and revisitable once there is live data on these leads.
+    var _relReading = _arcNewlyAdmitted ? '' : renderRelationshipReading(data);
+    if (_arcNewlyAdmitted) {
+      console.log('[LP ARC ADMIT DIAG] relationship reading suppressed — newly-admitted lead, '
+        + 'no relationship history to read (v9.7.616)');
+    }
     if (_relReading) {
       conversationAnalysis += '\n' + _relReading;
       var _rs = data.relationshipSignals || {};
       console.log('[Lead Pro] RelReading FIRED — fatigue:', _rs.channelFatigue, '| noShow:', _rs.hasNoShowHistory, '| frustration:', _rs.hasFrustrationHistory, '| pricing:', _rs.hasPricingFriction, '| lastInboundAge:', _rs.lastInboundAgeDays, '| consecutiveOutbound:', _rs.consecutiveOutboundNoReply);
-    } else {
+    } else if (!_arcNewlyAdmitted) {
+      // (v9.7.630) Guarded so a suppressed reading is not reported as "simple lead, no friction",
+      // which would be an inference this build knows to be untested. The suppression prints its
+      // own line above. "It did not run" and "it ran and found nothing" are different evidence —
+      // the v9.7.563 lesson, in the diagnostic that would otherwise have hidden it.
       console.log('[Lead Pro] RelReading skipped — simple lead, no friction or fatigue');
+    }
     }
   }
 

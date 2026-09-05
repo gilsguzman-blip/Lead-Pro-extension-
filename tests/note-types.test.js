@@ -77,7 +77,7 @@ function extract(file) {
 
   // The verbal-commit block, as shipped.
   const va = at('  if (hasCallNoteContent && !data.isShowroomFollowUp) {');
-  const vb = at('  if (data.conversationBrief && (data.convState !== ');
+  const vb = at('  // ── (v9.7.630) THE ARC DIGEST IS ADMITTED ON EVIDENCE');
   const detect = vm.runInContext(
     '(function(data, hasCallNoteContent){ var hasVerbalCommitment=false, conversationAnalysis="";\n'
     + src.slice(va, vb) + '\n return { fired: hasVerbalCommitment }; })', sandbox);
