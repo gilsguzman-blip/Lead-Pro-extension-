@@ -124,8 +124,15 @@ check('the matched string and its context are logged, so a bad match is auditabl
 check('the bare-noun alternative is GONE from the shipped test',
   i => /\\b\(wife\|husband\|spouse\|partner\)\\b\|run it by/.test(i.code), false);
 
+// (v9.7.638) Repointed: the scan text is now built from _lpConcernLines, which is concernScanLines
+// with our own outbound sends removed (the `over.*budget` incident — our word "budget" completed a
+// match that started in the customer's "over the phone"). The property this asserts is unchanged
+// and is the one that matters: _lpSrcNoise is stripped as the scan text is BUILT, so no consumer
+// can ever see the lead-source string, rather than each consumer having to remember to strip it.
 check('lead-source noise is stripped BEFORE the scan text is built, not after',
-  i => /concernScanLines\.join\(' '\)\.replace\(_lpSrcNoise, ' '\)/.test(i.code), true);
+  i => /_lpConcernLines\.join\(' '\)\.replace\(_lpSrcNoise, ' '\)/.test(i.code), true);
+check('...and the scan text excludes messages we composed and sent',
+  i => /var _lpConcernLines = concernScanLines\.filter\(function \(line\) \{ return !_lpIsOurOwnSend\(line\); \}\);/.test(i.code), true);
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);

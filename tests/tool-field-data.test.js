@@ -148,6 +148,57 @@ for (const file of BUILDS) {
   check('  ...and a wholly unfamiliar one',
     B.isBlob('WidgetPayload_v2=alpha; beta; gamma;'), true);
 
+  // ── (v9.7.638) THE SECOND SHAPE, AND THE SECOND PATH ───────────────────────
+  // v9.7.637 shipped saying "the gate is deliberately conservative ... if a real tool ever emits
+  // that shape it will slip through". It did, the next morning, through a rescue with its own
+  // separate strip chain. Rebecca Caplan's lead submission, presented under the strongest
+  // attribution language in the file — "verbatim from their lead submission — treat as their own
+  // words, and as the most reliable statement of intent on this lead".
+  const REBECCA = 'By: System CUSTOMER INSIGHTS- ; CustomerComment : Preferred Contact Method*: Text '
+    + 'Honda Dealercode: 208543 Vehicle Prices: Price: 17510 Dealer Doc Fee: 225 Final Price: 17735 '
+    + 'Price: 17735 Honda Source Id: 90508';
+  console.log('\nRebecca\'s lead — the colon-shaped field list:');
+  check('recognised as tool output', B.isBlob(REBECCA), true);
+  check('  ...and it carried dealer prices into a prompt that forbids quoting a total',
+    /Final Price: 17735/.test(REBECCA), true);
+  check('the field list alone is enough, without the System stamp',
+    B.isBlob('Honda Dealercode: 208543 Vehicle Prices: Price: 17510 Dealer Doc Fee: 225'), true);
+  check('the System stamp alone is enough, without three fields',
+    B.isBlob('By: System lead received'), true);
+  check('CUSTOMER INSIGHTS is a system marker wherever it sits',
+    B.isBlob('something something CUSTOMER INSIGHTS- ; more'), true);
+
+  // THE RULE IS PUNCTUATION, NOT A FIELD-NAME LIST. Enumerating "Dealercode|Source Id|Doc Fee" is
+  // the trap this file keeps falling into (v9.7.552/553/554/555). Prose has sentences; a record
+  // does not. These two cases are what stop the rule from eating a terse human message, and
+  // v9.7.555's own header named the first one as the hazard.
+  console.log('\nthree colon pairs is a record only when the sentences are missing:');
+  check('a terse but PUNCTUATED customer message is kept',
+    B.isBlob('Trade: 2019 Durango. Timeframe: 2 weeks. Budget: 400 a month'), false);
+  check('  ...and so is a three-pair one with periods',
+    B.isBlob('Budget: 400 a month. Down: 3000. Looking at: CR-V or Pilot'), false);
+  check('two unpunctuated pairs are not yet a record',
+    B.isBlob('Color: silver Trim: EX-L'), false);
+  check('  ...but three are', B.isBlob('Color: silver Trim: EX-L Mileage: 40000'), true);
+  check('the next vendor\'s colon fields are caught with no list to update',
+    B.isBlob('Widget Campaign Id: 44 Session Ref: aa91 Visitor Score: 8'), true);
+
+  console.log('\nthe leadIntakeReq rescue is routed through the SAME predicate:');
+  check('it consults the shared gate rather than a third strip chain',
+    /if \(_lpIsToolFieldBlob\(_lir\)\) \{/.test(code), true);
+  check('  ...and refuses BEFORE the substance gate can accept it',
+    code.indexOf('if (_lpIsToolFieldBlob(_lir)) {') < code.indexOf('} else if (_lir.length >= 40'), true);
+  check('  ...the substance gate is now the else branch, not the first test',
+    /\} else if \(_lir\.length >= 40/.test(code), true);
+  check('the refusal is logged with what was refused',
+    /\[LP INTAKE REQ DIAG\] REFUSED/.test(B.src), true);
+  // The word that let it through: "Price:" is on the concrete-intent list the substance gate uses
+  // to prove a human wrote something specific. A machine field list containing "Price" cleared it.
+  check('the substance gate still lists "price" — it was doing what it was told',
+    /trade\|lease\|finance\|payment\|quote\|price\|/.test(code), true);
+  check('there is still exactly one definition of the predicate',
+    (B.src.match(/function _lpIsToolFieldBlob\(/g) || []).length, 1);
+
   console.log('\nit never throws:');
   check('empty', B.isBlob(''), false);
   check('null', B.isBlob(null), false);

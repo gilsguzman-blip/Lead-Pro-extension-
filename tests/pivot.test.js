@@ -270,5 +270,68 @@ test('a genuine pivot to a model that is NOT the trade still fires', {
   context: '[09/04/2026] [CUSTOMER] do you have a Pilot instead\n',
 }, crossBrand);
 
+// ── (v9.7.638) POSSESSION STATED IN PROSE, NOT ONLY IN A CRM FIELD ─────────────
+// Rebecca Caplan (Community Honda Baytown, 9/5). Her prompt carried "VEHICLE PIVOT DETECTED:
+// Customer is now asking about a Odyssey ... Address the Odyssey questions directly." She asked no
+// Odyssey questions — it is the van on her driveway, and the sentence naming it is a COMPLIMENT
+// about how we sold it to her. What she actually wants is three messages up: a used small SUV
+// under 75,000 miles.
+//
+// Guard (2) already had the concept and already had the right words for it — "a vehicle they are
+// disposing of, not one they are shopping for" — but read data.tradeDescription and
+// data.ownedVehicle, both CRM FIELDS. Rebecca's lead has neither filled in, because she said it in
+// a text message. Stating ownership in prose is the ordinary case; the structured field is rare.
+console.log('\nownership stated in the customer\'s own words:');
+test('Rebecca — "I drive a honda odyssey we bought from you" is not a pivot', {
+  vehicle: '2020 Volkswagen Tiguan',
+  store: 'Community Honda Baytown',
+  convState: 'active-follow-up',
+  hasCustomerReply: true,
+  hasOutbound: true,
+  lastInboundMsg: 'Perfect thanks. I drive a honda odyssey we bought from you quick and easy found it over the phone and came and bought it same day. Thats the experience i am looking for. That CRV probably has more miles than i want but i will look at it.',
+  context: '[09/04/2026] [CUSTOMER] Perfect thanks. I drive a honda odyssey we bought from you quick and easy found it over the phone and came and bought it same day. Thats the experience i am looking for. That CRV probably has more miles than i want but i will look at it.\n',
+}, none);
+
+test('"my Odyssey has 90k miles on it" — direct possession', {
+  vehicle: '2020 Volkswagen Tiguan', store: 'Community Honda Baytown', convState: 'engagement',
+  hasCustomerReply: true, hasOutbound: true,
+  lastInboundMsg: 'my Odyssey has 90k miles on it now',
+  context: '[09/04/2026] [CUSTOMER] my Odyssey has 90k miles on it now\n',
+}, none);
+
+test('"we own a Pilot already" — possession, not interest', {
+  vehicle: '2026 Toyota Camry', store: 'Community Toyota Lafayette', convState: 'engagement',
+  hasCustomerReply: true, hasOutbound: true,
+  lastInboundMsg: 'we own a Pilot already so we know the brand',
+  context: '[09/04/2026] [CUSTOMER] we own a Pilot already so we know the brand\n',
+}, none);
+
+// ── THE CONTROLS, AND THEY ARE THE POINT ───────────────────────────────────────
+// The first draft of this guard suppressed the Accord fixture above ("my wife wants an Accord")
+// via a loose `my ... Accord`. That is DESIRE, not possession, and suppressing it would re-create
+// the Billups incident (v9.7.537) this guard family exists to prevent. Both discriminators that
+// were added in response are pinned here, so a future widening cannot quietly undo them.
+console.log('\n  ...and wanting one is still a pivot:');
+test('CONTROL "my wife wants an Accord" — an article means somebody wants one', {
+  vehicle: '2026 Toyota Camry', store: 'Community Toyota Lafayette', convState: 'engagement',
+  hasCustomerReply: true, hasOutbound: true,
+  lastInboundMsg: 'actually my wife wants an Accord instead, do you have any',
+  context: '[CUSTOMER] actually my wife wants an Accord instead, do you have any\n',
+}, crossBrand);
+
+test('CONTROL "we have been looking at the Accord" — have BEEN is not have', {
+  vehicle: '2026 Toyota Camry', store: 'Community Toyota Lafayette', convState: 'engagement',
+  hasCustomerReply: true, hasOutbound: true,
+  lastInboundMsg: 'we have been looking at the Accord all week',
+  context: '[CUSTOMER] we have been looking at the Accord all week\n',
+}, crossBrand);
+
+test('CONTROL possession of one model does not suppress a pivot to another', {
+  vehicle: '2026 Toyota Camry', store: 'Community Toyota Lafayette', convState: 'engagement',
+  hasCustomerReply: true, hasOutbound: true,
+  lastInboundMsg: 'I drive a Corolla now. Do you have an Accord',
+  context: '[CUSTOMER] I drive a Corolla now. Do you have an Accord\n',
+}, crossBrand);
+
 console.log('\n' + (fail ? 'FAILED' : 'PASSED') + ' — ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);

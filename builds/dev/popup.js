@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.638-dev (Dev. FIVE DEFECTS FROM ONE CAPTURE, AND THE FIRST SUITE THAT CAN SEE WHY THEY KEEP RECURRING. Gil, reading log180: "Everytime we've built we've found yet another problem. What can we do about that? We're bleeding to death." The honest answer is in the dating: these are 15 to 150+ builds old, and every one was found by READING A PROMPT rather than by a customer complaint. We are not creating them at the rate we are finding them. But they are also not five unrelated bugs -- they are TWO families, and this build makes the first family visible to the build system. (1) THE APPOINTMENT ENGINE OFFERED TIMES THE STORE IS CLOSED. Rebecca Caplan (Community Honda Baytown, 9/5), prompt captured 12:45 AM: "SUGGESTED APPOINTMENT TIMES: Option: 2:45 AM today / Option: 3:30 AM today" under the line "These are valid open in-hours slots", while the same prompt said "STORE STATUS RIGHT NOW: NOT YET OPEN today. Opens at 9 AM." The gate read `!isClosed && earliest <= sameDayCutoffMins && earliest + 45 <= closeMins` -- the store must not have CLOSED, and nothing about it having OPENED. openMins was computed forty lines up and used by nothing. Executing the shipped calculator across the clock: EVERY grab from 00:00 to 06:59 produced a pre-open pair, 7 of 24 hours, at every rooftop. The evening half was always correct. This is the one an agent could actually have sent. The clamp goes on earliestSlot, because findSameDayPair() walks from there, and it exempts closed days so openMins===null cannot become Math.max(x, null)===0 and quietly open a Sunday. (2) THE SAME DEFECT AS v9.7.637, IN A SECOND PATH, ONE DAY LATER -- and v9.7.637's own header predicted it: "the gate is deliberately conservative ... if a real tool emits that shape it will slip through". Rebecca's lead submission reached the model under the strongest attribution language in the file -- "verbatim from their lead submission, treat as their own words, and as the most reliable statement of intent on this lead" -- reading "By: System CUSTOMER INSIGHTS- ; CustomerComment : Preferred Contact Method*: Text Honda Dealercode: 208543 Vehicle Prices: Price: 17510 Dealer Doc Fee: 225 Final Price: 17735 ...". Not one word is hers, and it carries two dealer PRICES into a prompt whose OTD discipline forbids quoting a total, to a customer whose live thread is about pricing. d.leadIntakeReq (v9.7.492, 146 builds old) has its own strip chain, and v9.7.637 hardened only the other one. AND THE SUBSTANCE GATE IS WHAT ADMITTED IT: it requires a concrete-intent word to prove a human wrote something specific, and "Price:" is on that list. The gate was doing exactly what it was told. Fixed by routing it through the SHARED predicate, widened to a second shape -- and the widening rule is PUNCTUATION, not a field-name list, because enumerating field names is the trap this file fell into in v9.7.552, .553, .554 and .555: three or more "Label: value" pairs with no . ? or ! between the first and the last is a record, while "Trade: 2019 Durango. Timeframe: 2 weeks." keeps its periods and is kept. (3) "I DRIVE A HONDA ODYSSEY" WAS READ AS A PIVOT. Rebecca's prompt: "VEHICLE PIVOT DETECTED: Customer is now asking about a Odyssey ... Address the Odyssey questions directly." She asked no Odyssey questions -- it is the van on her driveway, and the sentence naming it is a COMPLIMENT about how we sold it to her ("quick and easy, found it over the phone, bought it same day. Thats the experience i am looking for"). What she wants is three messages up: a used small SUV under 75,000 miles. The guard already had the concept and the right words for it -- v9.7.537/622's "a vehicle they are disposing of, not one they are shopping for" -- but read data.tradeDescription and data.ownedVehicle, both CRM FIELDS, and her lead has neither because she said it in a text. Stating ownership in prose is the ordinary case; the structured field is the rare one. MY FIRST DRAFT OF THIS GUARD SUPPRESSED A REAL PIVOT and the existing pivot suite caught it before it shipped: a loose `my ... Accord` ate "actually my wife wants an Accord instead", which is DESIRE, and suppressing it would have re-created the Billups incident (v9.7.537) the guard family exists to prevent. Two discriminators came out of that failure and both are pinned as controls: an ARTICLE between "my" and the model means somebody WANTS one, and "we have BEEN looking" is not "we have". A second draft then crossed a transcript tag -- "an Accord [CUSTOMER] I drive a Corolla" -- so that clause is bounded by a positive character class that cannot span the seam. (4) AN UNBOUNDED WILDCARD MATCHED 600 CHARACTERS ACROSS FOUR MESSAGES AND TWO SPEAKERS. "PRICE/PAYMENT CONCERN: Customer raised price or payment as an issue" on a customer who never raised price; the draft opened "Confirm your $75k max" and asked "is your max budget $75,000 (not miles)?" of a woman shopping a used small SUV who had written "I want a used car around 50,000 no more than 75,000" meaning MILES and confirmed it two messages later. A CORRECTION TO WHAT I FIRST TOLD GIL: I said the miles-versus-price misreading caused it. It did not. `over.*budget`, unbounded on both sides and run against the whole transcript joined into one string, matched from HER "over the phone" to OUR "in your budget range". `payment.*too` and `price.*concern` carried the identical hazard; all three are now sentence-bounded, the same treatment v9.7.634 gave the claim patterns and v9.7.555 gave the make alternation. The word that completed the match is ours, which v9.7.594 already settled is not evidence about the customer -- that rule simply never reached this scanner. TWO FALSE NEGATIVES FOUND BY WRITING THE TEST, not by a report, and fixed in the same line: `can.t afford` is a single-character wildcard, so it matched "can't" and "cant" but never "cannot"; `what.s the price` never matched "what is the price". Both are unmistakable price language and both were being missed. That is the only sensitivity INCREASE in this build. (5) THE CRM ROUTING HEADER WAS THE TOPIC. "Other vehicles or dealerships has come up 7 time(s): 'Received by: Vinessa Virtual Assistant Community Honda'", then the directive "'competitor' has been a recurring thread (7 mentions) ... Addressing it directly often unsticks the conversation." All seven are the CRM's own inbound routing header. TWO independent causes, both fixed and both sufficient alone: v9.7.634 already taught this file what a routing header looks like but this scan reads the note body BEFORE that strip, and v9.7.594's marque comparison used the LEAD VEHICLE alone -- correct whenever the lead vehicle is the house brand and wrong exactly when it is not. Rebecca's lead vehicle is a 2020 Volkswagen Tiguan at COMMUNITY HONDA BAYTOWN, so "honda", including inside our own store name, read as a rival marque. Baytown and Lafayette retail off-brand pre-owned on every lot, so that is the normal case there. THE CENSUS SUITE, AND IT IS THE REAL DELIVERABLE. Seven of the last nine defects are ONE QUESTION ANSWERED IN N PLACES: where the transcript begins (v9.7.629), what the bounded region is (v9.7.630), what a routing header is (v9.7.634, and again here), what we may call a source (v9.7.635), whether text is the customer's words (v9.7.637, and a THIRD answer found here), whether text is something we sent (here, two answers). Nothing in the build could see that shape -- only a human reading a delivered prompt. census.test.js now names each question that has already cost a live incident, asserts exactly ONE implementation exists, asserts the known consumers delegate rather than carrying a private copy, and names the three private re-answers that each shipped and were removed. A future engineer who solves one of these a second time gets a red build naming the question instead of an incident eight days later. It also pins the no-unbounded-wildcard rule for the joined-transcript detectors. It CANNOT catch the second family -- a derived line contradicting the customer's own words needs runtime text, which is what the per-detector suites do -- but it stops the duplication that keeps re-opening that family in a path the last fix did not reach. VERIFIED: three new suites -- appointment-hours (43, executing the shipped calculator at every hour of the day at all five rooftops on an open day and a closed one), price-concern (49, executing the shipped regex and the shipped our-own-send predicate against Rebecca's real thread), census (43). tool-field-data extended to 158, pivot to 20, own-words-topics to 39. 90 suites green (3,867 assertions, +181), dev===comm. NON-VACUITY, SEVEN NEUTERS, EACH ATTRIBUTABLE: removing the open-clamp fails 11 by name; taking leadIntakeReq off the shared predicate fails its wiring assertion; dropping the colon shape fails 3; removing the prose-possession guard fails 4 including a control; un-bounding `over.*budget` fails 5; putting the routing header back fails 2; and adding a SECOND private answer to an owned question fails the census by name. A MIRROR THAT CORRUPTED THE FILE AND WAS CAUGHT BEFORE COMMIT, third build running and a new mechanism each time: this one used String.replace with replacement text containing a literal `$&`, which JavaScript expanded as a match reference and mangled a regex escape. node --check caught it, commercial was restored from HEAD, and the mirror now uses the function form of replace so no `$` sequence in the payload can ever be interpreted. WHAT THIS MIGHT BREAK, PLAINLY: leads whose only intake content is a machine field list now get an EMPTY 'what the customer asked for' block and fall back to normal framing; the price-concern flag fires on fewer leads (it should -- it was firing on text we wrote) and on two spellings more; a customer who genuinely says 'I drive an X' and then asks about that same X loses the pivot directive, which is the deliberate trade, visible in [LP PIVOT GUARD]; and same-day appointment slots on a small-hours grab now start at open rather than two hours after the grab. STILL OPEN: the System callmeasurement URL row in the arc (v9.7.562), scenarioRules rendering twice per prompt, and Isaac's 25 outreaches after a STOP. node --check clean on both builds; both manifests parse; version AND version_name both bumped. scraperVersion stays v9.7.51. Extension only; proxy v7.70 and reporter v1.22 unchanged and NOT redeployed. Builds on v9.7.637.)
 // Lead Pro -- popup.js  v9.7.637-dev (Dev. A MACHINE FIELD WAS QUOTED TO THE MODEL AS THE CUSTOMER'S OWN SENTENCE, AND THE MODEL SAID IT BACK TO HER; AND THE NAMES I ADDED IN v9.7.636 DID NOT FIT THE SENTENCES AROUND THEM. Both from log179, two grabs. (1) THE ONE GIL HAD NOT DECIDED ON WENT OUT ANYWAY. Rebekah Fontenot (Community Honda Lafayette, 2026 Pilot Elite, 9/4). Her delivered email: "I saw your Click & Go request for the 2024 Honda Pilot Touring with 38,750 miles. The online estimate shows about $3,200 in negative equity, but I don't want you relying on an estimate alone". Nobody built negative-equity surfacing -- v9.7.636's own header records it as deliberately NOT built, pending Gil's call. The prompt asked for it. Her entire "inquiry" was this, verbatim, and she typed none of it: TradeInVehicleComment=Net trade-in: $-3200, trade-in value: $36800, remaining balance: $40000.00; -- rendered under the header "CUSTOMER'S INQUIRY -- the customer's own words when they submitted this lead. This is what they actually asked for; address it directly". The Click & Go tool wrote those fields. The model did exactly as instructed. MEASURED: 1 of 456 captured drafts names negative equity to a customer, and 7 of 218 inbound-message rows are a TradeInVehicleComment= field passed off as customer words -- the other six are positive equity, which is why nobody noticed. TWO THINGS WERE WRONG AND ONLY ONE IS A STRATEGY QUESTION, which is the whole point of how this is fixed. Quoting a machine field as her sentence is false whatever we decide about equity: she did not write it and has never raised the subject with us. That is the defect. Whether to deliberately SURFACE negative equity is a separate call, still Gil's, and would be an added directive rather than a change to this one. FIX: a SHAPE test, not a field-name blocklist (the v9.7.555 rule -- this file has been bitten by enumerating observed shapes in v9.7.552, .553 and .554, and a shape test rejects the next tool's blob whatever its fields are called). _lpIsToolFieldBlob requires an opening Identifier= and then either a trailing semicolon or a second key; one key alone is not enough, because a person could plausibly type "Trade=my 2019 Durango". It is rejected from the inquiry slot exactly as Ownership-and-Service rows (v9.7.302), Dealertrack routing links (v9.7.313) and TrueCar portal banners (v9.7.430) already are at that same site. THE FIGURES DO NOT VANISH, and that mattered: her trade is real, and the VR deal block carries only "Customer dropped off before completing deal" (the gap v9.7.635 recorded). They are re-emitted under a header naming the tool as the author, marked as the tool's UNVERIFIED estimate, with quoting them back to the customer forbidden. THAT RULE IS NOT NEW: the system prompt already says final trade numbers are built at the visit, and the OTD/PAYMENT DISCIPLINE block says it harder about price. The model broke it because the "her own words, address it directly" framing outranked it. This restores the existing rule; it does not invent a policy. ONE FIX CLOSES _lpCustomerText TOO -- data.lastInboundMsg falls back to the inquiry slot, so the five scans v9.7.555 named never see the blob either, with no second definition anywhere. (2) THE NAMES DID NOT FIT THE FRAME. v9.7.636 gave five families names that are not proper nouns while the acknowledgment block built its examples by concatenation onto a frame that assumed one: 'I saw your ' + name + ' request come through'. What shipped, in 81 of 209 acknowledged prompt builds across log173-log179 (39%): "I saw your your online inquiry request come through", "I saw your our website request come through", "I saw your your chat with us request come through". Also "that is a place they will recognise", said of "your online inquiry", which is not a place. THE MODEL REPAIRED EVERY ONE -- 0 of 456 drafts carry a doubled determiner, and Wendy Love's shipped as "I saw your online inquiry for the 2027 Honda CR-V" -- so no customer saw it. That is luck, not design: the example sentence is the thing teaching the phrasing. FIX: every table row now carries its grammatical shape (brand / place / owned) beside its name, and _LP_ACK_FRAMES holds the two example sentences and the constraint tail for each. _lpSourceAckPhrase walks the table once and returns name + shape + frames; _lpCustomerFacingSource delegates to it and its signature and return type are unchanged, because five callers and two suites depend on them. Shape lives WITH the name so the two cannot drift -- the v9.7.631 principle for the third time, after v9.7.629, .630, .634 and .635 were each undone by two hand-maintained definitions of one question. COVERAGE IS UNCHANGED: still 209 of 246 acknowledged, still 37 silent. This build changes only how the sentence reads. A DEFECT IN MY OWN SUITE, FOUND BY THE NON-VACUITY RUN AND WORTH RECORDING: neutering the predicate into a plausible WRONG implementation (count Label: value pairs -- the v9.7.555 metadata heuristic applied to the wrong problem) failed nothing in the "real customer messages are never eaten" block, because none of my ten fixtures could be eaten by it. The block was proving nothing. Added the case v9.7.555's own header names as the hazard -- a customer whose genuine message is terse and label-shaped, "Trade: 2019 Durango. Timeframe: 2 weeks." -- and that neuter now fails it. VERIFIED: new tool-field-data suite, 126 assertions across both builds, EXECUTING the shipped predicate AND the shipped gate lifted off the extraction path, against Rebekah's real string and the six other real blobs. The gate is proven by BEHAVIOUR, not by matching its own text: disabling it (`if (false && ...)`) leaves every source-position assertion green, which is the vacuous shape this repo has shipped before. source-name extended to 248 across both builds, running every name through its own frames. 87 suites green (3,684 assertions, +232 on v9.7.636), dev===comm. NON-VACUITY, FIVE NEUTERS, EACH ATTRIBUTABLE: forcing the brand frame on every shape -- restoring exactly the bug -- fails 8 by name; stashing the blob without clearing the inquiry slot fails 6, including all three behavioural ones; deleting the re-emission block fails 2; disabling the gate trips the load guard; the colon-label misimplementation fails 5 across both directions. AND A MIRROR THAT BROKE THE FILE AND WAS CAUGHT BEFORE COMMIT: my first commercial mirror bounded one of three regions wrongly (it caught 87 unchanged characters instead of the gate) and its insertion left commercial unparseable. node --check caught it, commercial was restored from the last commit, and the mirror was redone as five individually-anchored edits each asserted to apply exactly once, with DEALER_ID_MAP's occurrence count checked before writing. Same failure mode as v9.7.636's 283-line deletion, one build later, caught the same way. WHAT THIS MIGHT BREAK, PLAINLY: a lead whose only inbound content is a tool field blob now has an EMPTY inquiry slot, so first-touch framing takes over where the blob used to fill it -- correct, but it is a real change on those 7-in-218 leads. And the model no longer quotes tool-supplied trade figures at all, which on a POSITIVE-equity lead removes a number it previously volunteered; that is the same unverified-estimate rule applied evenly, and surfacing either direction deliberately remains Gil's call. STILL OPEN: the System callmeasurement URL row in the arc (v9.7.562), scenarioRules rendering twice per prompt, and Isaac's 25 outreaches after a STOP. node --check clean on both builds; both manifests parse; version AND version_name both bumped. scraperVersion stays v9.7.51. Extension only; proxy v7.70 and reporter v1.22 unchanged and NOT redeployed. Builds on v9.7.636.)
 // Lead Pro -- popup.js  v9.7.636-dev (Dev. THE SOURCE ACKNOWLEDGMENT COMES BACK, WITH NAMES INSTEAD OF SILENCE. THIS CORRECTS MY OWN v9.7.635. Gil: "losing the sources is not acceptable, that acknowledgment builds trust with the customer. that's why it was built that way." He is right. His ask was "identify the Gubagoo digital as a Click & Go"; I also made four other source families go silent, which was never the ask, and I read the problem too narrowly. The answer to "this source has no customer-facing name" is to GIVE it one. Silence and the raw CRM label were never the only two options. A CORRECTION TO THE NUMBER I GAVE HIM FIRST, because he was about to act on it: I said 226 grabs lost their acknowledgment. Wrong. Most of that set never matched the OLD _ackable regex either — Identitymax, Repeat Customer, Kia Digital, Tradepending, Cap One Mailer, Walk In, Showroom, Phone Up have been silent all along. The real regressions from v9.7.635 were four families, about 71 grabs: the Gubagoo CHAT variants (42, matched on "gubagoo"), Audi Partner Lead (15, on "audi"), Thirdparty Honda (12, on "honda") and Toyota.Com-Payment Estimator (2, on "toyota.com"). WHAT SHIPPED, and it is broader than a revert. Every source now resolves through ONE table: the digital-retailing family to "Click & Go", chat to "your chat with us", SMS to "your text to us", Toyota.com / Kia.com / Honda.com / Audi.com to themselves, "Cap One Mailer" to "Capital One" (the abbreviation never matched /\bcapital one\b/ and had been silent for 14 grabs), and — Gil's call when asked — anything else web-sourced to "your online inquiry". That last one is the catch-all a whitelist alone could never have, and it closes the hole v9.7.596 named in its own header: a list "would have to anticipate the next label the CRM invents". Coverage across the 577 grabs in log173-log178 goes from 351 acknowledged to 492. THE FENCE ON THE CATCH-ALL IS THE POINT OF IT, and it is the part I would defend hardest. "Thanks for your online inquiry" said to a WALK-IN is false. So is saying it to a showroom up, a phone up, a service customer, a repeat buyer, or an Identitymax/AMP marketing record — none of those people filled in a form. _LP_NON_WEB_ORIGIN fences them out and they stay silent. THAT IS ALSO THE REAL LESSON OF THE RATED-DOWN MESSAGE: "I saw your inquiry through Thirdparty Honda on the 2026 Honda Accord" (8/27 export) was not bad because it named a source — it was bad because it told the customer something untrue about themselves. The label was the symptom; the falsehood was the defect. Fixing the label while keeping the falsehood would have missed it. 85 grabs stay silent and every one of them should. A GAP THE SUITE FOUND MID-BUILD: a bare "Gubagoo - SMS" fell through to "your online inquiry" — but they texted us, they did not fill in a form. Same small falsehood in a different costume. Now "your text to us". I ASKED RATHER THAN GUESSED on the one that mattered. "Thirdparty Honda" and "Audi Partner Lead" are the two sources where I could not tell what the customer actually saw, and Thirdparty Honda is precisely the source behind the rated-down message — guessing a brand there would have re-created that incident in a new costume. Gil chose the generic-but-warm option, which is also the one that cannot be wrong. TWO SUITES UPDATED, BOTH IN THE OPEN AND NEITHER WEAKENED. customer-facing-hygiene's "internal routing labels are NOT named" list split in two, because "not a recognisable brand" and "not an online inquiry" turned out to be different questions: web labels move to a group asserting they resolve generically and NEVER to the raw string, and a new group pins that anyone who never inquired online stays silent. source-name's v9.7.635 chat block asserted suppression; it now asserts the INTENT that block always had — a chat customer is never told they used Click & Go — which survives the behaviour change intact. Four of the six entries in its "every routing label still has none" block asserted exactly the silence Gil rejected, so that block was removed and replaced by the fuller, correct one. AND A DESTRUCTIVE EDIT I MADE AND CAUGHT, which is the thing worth recording. My first mirror to commercial used an ad-hoc span whose close marker matched far past the region: it deleted 283 LINES, taking DEALER_ID_MAP with it, and seven suites failed with 181 assertions. Restored from the last commit and re-done with a mirror that asserts BOTH ends before writing — the span must contain exactly one resolver, must not contain DEALER_ID_MAP / PHONE_DIR / STORE_PHONE_FALLBACK, and the file's size delta must equal the region delta or it refuses. The clean result is 40 insertions, 2 deletions. A mirror that can silently delete a table is worse than no mirror, and the guard is now part of the script rather than part of my attention. VERIFIED: source-name extended to 142 assertions, executing the SHIPPED resolver over every distinct lead source in log173-log178 — 46 real strings, not invented ones. 83 suites green (3,452 assertions, +63 on top of v9.7.635), dev===comm. NON-VACUITY, ATTRIBUTABLE THREE WAYS INCLUDING THE FALSEHOOD DIRECTION: removing the catch-all — restoring exactly the v9.7.635 silence Gil rejected — fails 7 by name; removing the non-web fence, so a walk-in is told they inquired online, fails exactly the 13 silence assertions; removing the chat entry fails exactly its 4. WHAT THIS MIGHT BREAK, PLAINLY: many more leads now carry a source acknowledgment than before v9.7.635 — 492 of 577 captured grabs versus 351 under the old regex — so an opening line that used to appear on a minority of leads now appears on most. That is what Gil asked for and it is the trust-building line the block was built for, but it is a real change in how most messages open and wants a before/after batch. The raw CRM label reaches the prompt from this block on zero leads, which is the one property that must not regress. NOT BUILT, DELIBERATELY: Gil said "I don't know if we want to acknowledge the negative" about the -$3,200 net trade on Rebekah Fontenot's lead. That stays untouched and unflagged until he decides — it is a sales-strategy call, not a defect. STILL OPEN: the System callmeasurement URL row in the arc (v9.7.562), scenarioRules rendering twice per prompt, and Isaac's 25 outreaches after a STOP. node --check clean on both builds; both manifests parse; version AND version_name both bumped. scraperVersion stays v9.7.51. Extension only; proxy v7.70 and reporter v1.22 unchanged and NOT redeployed. Builds on v9.7.635.)
 // Lead Pro -- popup.js  v9.7.635-dev (Dev. THREE OF OUR OWN DIRECTIVES DISAGREED ABOUT WHAT TO CALL A LEAD SOURCE, AND ONE OF THEM HANDED THE MODEL THE RAW CRM LABEL AS THE WORDS TO USE. Gil, on the 9/5 Rebekah Fontenot lead (Community Honda Lafayette, 2026 Pilot Elite, lead source "Hds Dr Lead - Gubagoo - Drs Digital Retailing"): "the Gubagoo digital wasn't identified as a Click & Go". Correct, and the consequence was worse than a missing label. Her delivered prompt carried all three of these at once. SOURCE ACKNOWLEDGMENT: 'This lead came in through: Hds Dr Lead - Gubagoo - Drs Digital Retailing. Naturally reference where the inquiry originated ... e.g. "Thanks for your inquiry on Hds Dr Lead - Gubagoo - Drs Digital Retailing..."'. HARD CONSTRAINT: "do NOT tell the customer where their inquiry came from. The source on this lead is an internal routing label ... CRM plumbing". CLICK & GO BRANCH: "Never say Gubagoo, virtual retailing platform, digital retailing". The first tells the model to say a string the third forbids word for word, while the second says not to name the source at all. WHAT I CHECKED FIRST, AND IT WAS NOT THE BUG: the Click & Go scenario DID fire. Executed against log177/178's real values, isClickAndGo computes TRUE for this source -- isGubagooChat false, the source matcher true on four separate terms, the stale gate false on a 0-day lead -- and the delivered prompt says "TASK: Click & Go lead with PRIOR OUTREACH already made". The twelve vr* deal fields are wired end to end, scraper to return to prompt-builder literal, with no v9.7.618-style break. The classification was right the whole time; the naming was not. CAUSE: TWO SEPARATE DEFINITIONS OF "IS THIS SOURCE CUSTOMER-FACING". The acknowledgment block carried its OWN _ackable regex, which matched gubagoo. _lpCustomerFacingSource -- the table the HARD CONSTRAINT consults -- had no entry for the source at all and returned ''. One list said yes, the other said no, and both wrote into the same prompt. This is the fourth build in eight days undone by two hand-maintained definitions of one question (v9.7.629 the fence marker, v9.7.630 the bounded region, v9.7.634 the routing header, here the source name). FIXED THE WAY v9.7.631 FIXED THE LAST PAIR: the directive whose JOB is to determine the fact owns it. _lpCustomerFacingSource is now the single definition; the acknowledgment block reads it instead of guessing; where it has no name the acknowledgment stays SILENT rather than contradicting the constraint. And the raw label never reaches the prompt from that block again -- the old line pasted data.leadSource in THREE times and then, after both example sentences had already used it, added a parenthetical hoping the model would paraphrase. This codebase has proven three times (v9.7.496, v9.7.504, v9.7.507) that a correction sitting after the thing it corrects loses to the thing it corrects. Only the resolved name goes in now. CLICK & GO IS A REAL NAME AND BELONGS IN THE TABLE. It is Honda's own online buying tool -- the thing this customer actually clicked -- and the scenario branch has always said it out loud to customers ("I saw you started your deal online through Click & Go"). The forbidden list names the VENDOR and the industry jargon (Gubagoo, virtual retailing, digital retailing), never the product, so this resolves the collision instead of trading one violation for another. Asserted: no name the resolver can return contains a forbidden word, across thirteen sources. THE OVER-REACH I INTRODUCED AND CAUGHT BY RUNNING IT AGAINST EVERY REAL SOURCE FIRST: a naive /gubagoo/ mapped "Gubagoo - M-Chat" to Click & Go as well. M-Chat is Gubagoo's CHAT product, not the buying tool, so that tells a chat customer they used something they never opened -- and "Gubagoo - M-Chat" is named in the HARD CONSTRAINT's own list of labels that must not be spoken, so the naive version would have re-created this exact contradiction one source over. classifyScenario already draws the line (isGubagooChat = /chat|\bsms\b/i, and Click & Go is gated on !isGubagooChat); the same distinction is drawn in the table so the two cannot disagree. Written as an assertion pair: a digital-retailing term must be present AND no chat/sms term anywhere in the string. Six chat shapes asserted suppressed. ONE EXISTING ASSERTION CHANGED, DELIBERATELY AND NOT TO GO GREEN. customer-facing-hygiene listed "Gubagoo Virtual Retailing" among labels that must NOT be named. That section's distinction is LABEL vs RECOGNISABLE NAME, and this is the second kind, so the entry moved up to the recognised list with the reasoning recorded at both ends. The property the section actually protects is unchanged and is now asserted DIRECTLY rather than implied by the mapping: whatever the resolver returns is never the raw CRM string and never carries a vendor or jargon word, checked on four sources. Nothing was weakened; a decision encoded in a test was revisited in the open. NEW [LP SOURCE ACK DIAG] on every lead, naming the raw source, the resolved name or NONE, and which way the block went. The Click & Go path had no diagnostic at all before today -- twelve deal fields, six opening variants, a deal-context block, and nothing logging whether any of it fired, which is exactly why this took a prompt capture to find rather than a log line. VERIFIED: new source-name suite, 96 assertions, EXECUTING the shipped resolver over every distinct lead source in log173-log178 rather than over invented strings. 83 suites green (3,389 assertions, +105), dev===comm, commercial mirrored by verbatim copy from dev. NON-VACUITY, ATTRIBUTABLE THREE WAYS INCLUDING THE OVER-REACH DIRECTION: removing the Click & Go mapping -- the reported bug, restored -- fails 7 by name; dropping the chat exclusion fails exactly the 5 chat-suppression assertions; putting the raw label back in the emitted line fails 1. WHAT THIS MIGHT BREAK, PLAINLY: leads whose source has no recognisable name now get NO source acknowledgment where they previously got one built on the raw label -- "Thirdparty Honda", "Kia Digital - 3rd Party Lead", "Toyota.Com-Payment Estimator", "Kmf Luv Program", "Lead Log" all go silent. That is the correct direction (the HARD CONSTRAINT was already telling the model not to name them, so the prompt simply stops arguing with itself) but it removes an opening line those leads used to have, and the model now has to open on the vehicle or the customer's question instead. Click & Go leads gain a name they never had. Both are customer-visible and want a before/after batch. STILL OPEN, and worth its own look now that the naming is settled: the VR DEAL DATA block surfaces only "Customer dropped off before completing deal" while the raw note on Rebekah's lead carries the whole picture -- 2024 Honda Pilot Touring, 38,750 miles, financed, KBB $35,300-$38,300, trade value $36,800, loan payoff $40,000, NET TRADE MINUS $3,200. The customer is $3,200 upside down and the deal block never says so; the numbers reach the model only as raw blob text inside the inquiry quote. Also unchanged: the System callmeasurement URL row in the arc (v9.7.562), scenarioRules rendering twice, and Isaac's 25 outreaches after a STOP. node --check clean on both builds; both manifests parse; version AND version_name both bumped. scraperVersion stays v9.7.51. Extension only; proxy v7.70 and reporter v1.22 unchanged and NOT redeployed. Builds on v9.7.634.)
@@ -7943,9 +7944,50 @@ function tryExecuteScript(tab, statusEl, dot) {
     function _lpIsToolFieldBlob(s) {
       var t = String(s || '').trim();
       if (!t) return false;
-      if (!/^[A-Za-z][A-Za-z0-9_]{2,}=/.test(t)) return false;
-      if (/;\s*$/.test(t)) return true;                                  // closes as a field list
-      return (t.match(/\b[A-Za-z][A-Za-z0-9_]{2,}=/g) || []).length >= 2; // or carries a second key
+      // SHAPE 1 (v9.7.637) — an "Identifier=value" field list. Rebekah Fontenot's Click & Go blob.
+      if (/^[A-Za-z][A-Za-z0-9_]{2,}=/.test(t)) {
+        if (/;\s*$/.test(t)) return true;                                    // closes as a field list
+        if ((t.match(/\b[A-Za-z][A-Za-z0-9_]{2,}=/g) || []).length >= 2) return true; // second key
+      }
+      // ── SHAPE 2 (v9.7.638) — A COLON FIELD LIST. THE BLIND SPOT I NAMED ONE BUILD AGO ────────
+      // v9.7.637 shipped with "the gate is deliberately conservative ... if a real tool emits that
+      // shape it will slip through". It did, the next morning. Rebecca Caplan's lead submission,
+      // presented to the model as "verbatim from their lead submission — treat as their own words,
+      // and as the most reliable statement of intent on this lead":
+      //   By: System CUSTOMER INSIGHTS- ; CustomerComment : Preferred Contact Method*: Text
+      //   Honda Dealercode: 208543 Vehicle Prices: Price: 17510 Dealer Doc Fee: 225
+      //   Final Price: 17735 Price: 17735 Honda Source Id: 90508 ...
+      // Not one word of it is hers, and it carries two dealer PRICES into a prompt whose OTD
+      // discipline forbids quoting a total — to a customer whose live thread is about pricing.
+      //
+      // THE RULE IS PUNCTUATION, NOT A FIELD-NAME LIST. Enumerating "Dealercode|Source Id|Doc Fee"
+      // is the enumeration trap this file keeps falling into (v9.7.552/553/554/555). What actually
+      // separates a machine field list from a terse human message is that PROSE HAS SENTENCES:
+      // three or more "Label: value" pairs running together with no . ? or ! between the first and
+      // the last is a record, not something a person typed. A customer writing
+      // "Trade: 2019 Durango. Timeframe: 2 weeks." keeps her periods and is kept.
+      var _tfPairs = [], _tfRe = /[A-Za-z][A-Za-z0-9 _*'-]{1,28}:\s*\S/g, _tfM;
+      while ((_tfM = _tfRe.exec(t)) !== null) _tfPairs.push(_tfM.index);
+      if (_tfPairs.length >= 3) {
+        var _tfSpan = t.slice(_tfPairs[0], _tfPairs[_tfPairs.length - 1]);
+        if (!/[.?!]/.test(_tfSpan)) return true;
+      }
+      // An explicit system authorship stamp is its own sufficient signal — nobody types this.
+      if (/^\s*By:\s*System\b/i.test(t) || /\bCUSTOMER INSIGHTS-/i.test(t)) return true;
+      return false;
+    }
+    // ── (v9.7.638) ONE DEFINITION OF "IS THIS TEXT SOMETHING WE SENT THEM" ────────────────────
+    // v9.7.594 established the rule and wrote the test inline in the topic scan: an agent NOTE
+    // recording what a customer said is real evidence about the customer; a message WE composed
+    // and sent is not. The CONCERN scanner three thousand lines up never got that rule and still
+    // reads our own outbound as though the customer had said it. Rather than copy the test, it is
+    // hoisted here and both callers use it — the recurring failure in this file is one question
+    // answered in two places, and adding a third copy to fix a bug caused by the second would be
+    // absurd.
+    function _lpIsOurOwnSend(text) {
+      var t = String(text || '');
+      return /outbound text message|email reply to prospect|email sent to prospect/i.test(t)
+          || /^\s*(?:sent\s+to|sent\s+by)\s*:/im.test(t);
     }
     var lastInboundMsg='';  // (v9.7.248) single declaration; only the inbound-note loop below populates it. No pre-loop last-message extraction.
     var firstLeadReceivedSeen=false;
@@ -10605,7 +10647,31 @@ function tryExecuteScript(tab, statusEl, dot) {
           // Require real substance: enough length, actual words, and at least one signal that the
           // customer stated something concrete rather than boilerplate ("lead received with no
           // comments" and similar filler can never clear this).
-          if (_lir.length >= 40 && /[a-z]{4,}/i.test(_lir)
+          // ── (v9.7.638) THE SAME QUESTION, ANSWERED IN A SECOND PLACE ─────────────────────────
+          // This rescue has its own strip chain, entirely separate from the inquiry-slot chain
+          // ~600 lines up, and v9.7.637 hardened only that one. Rebecca Caplan's lead-received
+          // note therefore reached the prompt through here, under the strongest attribution
+          // language in the whole file — "verbatim from their lead submission — treat as their own
+          // words, and as the most reliable statement of intent on this lead" — reading:
+          //   By: System CUSTOMER INSIGHTS- ; CustomerComment : Preferred Contact Method*: Text
+          //   Honda Dealercode: 208543 Vehicle Prices: Price: 17510 Dealer Doc Fee: 225 ...
+          //
+          // AND THE SUBSTANCE GATE BELOW IS WHAT LET IT THROUGH: it requires a concrete-intent
+          // word, and "Price:" is on that list. A machine field list containing the word "Price"
+          // clears the bar built to prove a human wrote something concrete. The gate was doing
+          // exactly what it was told; it was told the wrong thing.
+          //
+          // Routed through the SHARED predicate rather than given a strip of its own — a third
+          // hand-maintained answer to "is this the customer's words" is how this recurs. Unlike
+          // Rebekah's trade figures (v9.7.637), nothing here is re-emitted: these are dealer
+          // codes, source ids and the store's own listing price, the last of which OTD discipline
+          // forbids quoting anyway, and the customer's real preference already reaches the model
+          // through the transcript's stripped copy of this same note.
+          if (_lpIsToolFieldBlob(_lir)) {
+            _lpD('[LP INTAKE REQ DIAG] REFUSED ' + _lir.length + ' chars — reads as machine-generated'
+              + ' record fields, not the customer\'s own words; not presented as their stated intent'
+              + ' | opens:' + JSON.stringify(_lir.slice(0, 60)));
+          } else if (_lir.length >= 40 && /[a-z]{4,}/i.test(_lir)
               && /\b(?:trade|lease|finance|payment|quote|price|worksheet|interested|looking|want|need|payoff|miles|down|monthly|come in|appointment|available|color|trim)\b/i.test(_lir)) {
             _leadIntakeReq = _lir.substring(0, 900);
           }
@@ -12357,12 +12423,39 @@ function tryExecuteScript(tab, statusEl, dot) {
       // generation re-matched on our own words. A false fact that manufactures its own evidence.
       // The source string is a CRM FIELD, not speech, so it is removed before any concern scan.
       var _lpSrcNoise = /\bAudi\s+Partner\s+Lead\b|\bPartner\s+Lead\b|\bLead\s+Source\b/gi;
-      var allTranscriptText = concernScanLines.join(' ').replace(_lpSrcNoise, ' ');
+      // ── (v9.7.638) TWO DEFECTS IN ONE LINE, AND THE WILDCARD IS THE WORSE ONE ────────────────
+      // Rebecca Caplan (Community Honda Baytown, 9/5). Her prompt carried "PRICE/PAYMENT CONCERN:
+      // Customer raised price or payment as an issue. Open by addressing this directly." She never
+      // raised price. The draft opened "Confirm your $75k max" and asked "is your max budget
+      // $75,000 (not miles)?" — of a woman shopping a used small SUV, who had said "I want a used
+      // car around 50,000 no more than 75,000" meaning MILES, and confirmed it two messages later
+      // with "That CRV probably has more miles than i want".
+      //
+      // (a) THE WILDCARDS ARE UNBOUNDED. `over.*budget` matched a SIX-HUNDRED-CHARACTER span of
+      // the joined transcript, starting at her "over the phone" and ending at the agent's "budget
+      // range" — across four message boundaries and two speakers. Neither fragment is about price.
+      // Same class as v9.7.555's "ram" inside "Timeframe" and v9.7.554's "poi" inside
+      // "appointment": a pattern with no boundary discipline reaching text it was never meant to
+      // span. `payment.*too` and `price.*concern` carry the identical hazard. All three are now
+      // bounded to a single sentence with [^.!?\n], the same treatment v9.7.634 gave the claim
+      // patterns.
+      // (b) IT READ OUR OWN OUTBOUND. The word "budget" that completed the match is ours, from
+      // "options in your budget range". v9.7.594 settled that our own sends are not evidence about
+      // the customer; this scanner predates that rule. It now uses the shared _lpIsOurOwnSend.
+      // Agent NOTES still count, exactly as v9.7.594 intended — a note recording "says the payment
+      // is too high" is real evidence, and only messages we composed and sent are excluded.
+      var _lpConcernLines = concernScanLines.filter(function (line) { return !_lpIsOurOwnSend(line); });
+      var allTranscriptText = _lpConcernLines.join(' ').replace(_lpSrcNoise, ' ');
       var customerOnlyText = concernScanLines.filter(function(line){
         return line.indexOf('[CUSTOMER]') !== -1;
       }).join(' ');
 
-      if(/too (much|high|expensive)|can.t afford|out of (my |our )?budget|payment.*too|over.*budget|price.*concern|what.s the (price|payment|cost)|how much (is|would)|monthly payment|out the door/i.test(allTranscriptText)){
+      // (c) TWO FALSE NEGATIVES FOUND BY WRITING THE TEST, not by a report. `can.t afford` used a
+      // single-character wildcard, so it matched "can't" and "cant" but never "cannot"; `what.s
+      // the price` likewise never matched "what is the price". Both are unmistakable price
+      // language and both were being missed. Widened to cover the spelled-out forms — the only
+      // change in this build that makes a detector MORE sensitive, and deliberately narrow.
+      if(/too (much|high|expensive)|can(?:(?:'|’)?t|not) afford|out of (my |our )?budget|payment[^.!?\n]{0,30}too|over[^.!?\n]{0,20}budget|price[^.!?\n]{0,20}concern|(?:what(?:'|’)?s|what is) the (price|payment|cost)|how much (is|would)|monthly payment|out the door/i.test(allTranscriptText)){
         customerConcerns.push('PRICE/PAYMENT CONCERN: Customer raised price or payment as an issue. Open by addressing this directly - not by pitching features.');
       }
       // (v9.7.581) A BARE NOUN IS NOT A RELATIONSHIP CLAIM. The old test fired on any occurrence
@@ -13579,9 +13672,23 @@ function tryExecuteScript(tab, statusEl, dot) {
         // to" and the interpretation line tells the model to address the topic head-on. Reading our
         // own words back as theirs is the same shape as the tapback bug: a scan mistaking our text
         // for the customer's, then handing the model a directive built on it.
-        var _topicOurOwnSend = /outbound text message|email reply to prospect|email sent to prospect/i.test(title)
-                            || /^\s*(?:sent\s+to|sent\s+by)\s*:/i.test(String(body || ''));
-        if (body && body.length > 0 && !_topicOurOwnSend) {
+        var _topicOurOwnSend = _lpIsOurOwnSend(title) || _lpIsOurOwnSend(String(body || ''));
+        // ── (v9.7.638) THE ROUTING HEADER WAS THE TOPIC ────────────────────────────────────────
+        // Rebecca Caplan's prompt: 'Other vehicles or dealerships has come up 7 time(s):
+        // "Received by: Vinessa Virtual Assistant Community Honda"' — followed by the directive
+        // '"competitor" has been a recurring thread (7 mentions) ... Addressing it directly often
+        // unsticks the conversation.' All seven mentions are the CRM's own inbound routing header,
+        // which names the store, and the store is a Honda store.
+        // v9.7.634 already taught this file what a routing header looks like and stripped it from
+        // note bodies for the transcript. This scan reads the note body BEFORE that strip, so it
+        // kept seeing it. Same predicate, no second definition — the header is dropped line-wise so
+        // a real sentence sitting under it still counts.
+        // Scoped to this block deliberately: the customer-commitment scan below reads `body` too,
+        // and changing what IT sees is a separate decision that is not being made here.
+        var _topicBody = String(body || '').split('\n')
+          .filter(function (l) { return !_lpIsRoutingLine(l); })
+          .join('\n').trim();
+        if (_topicBody && _topicBody.length > 0 && !_topicOurOwnSend) {
           var topicPatterns = {
             trade:         /\b(trade.?in|trade.?value|appraisal|kbb|kelley blue book|payoff|my (current|old) (car|vehicle|truck|suv))\b/i,
             financing:     /\b(financ\w+|credit (app|application|score|union)|down ?payment|monthly payment|interest rate|apr|prequalif\w+|approval|loan|lease (offer|payment|term)|cosigner|co.?signer)\b/i,
@@ -13591,13 +13698,13 @@ function tryExecuteScript(tab, statusEl, dot) {
             competitor:    /\b(toyota|honda|ford|chevy|chevrolet|nissan|hyundai|kia|mazda|subaru|jeep|ram|gmc|dodge|buick|cadillac|lincoln|acura|infiniti|lexus|bmw|mercedes|audi|volkswagen|vw|tesla|volvo|porsche|other dealer\w*|another dealership|shopping around|comparing|cross.?shop)\b/i
           };
           for (var topicKey in topicPatterns) {
-            if (topicPatterns[topicKey].test(body)) {
-              var topicMatch = body.match(new RegExp('[^.!?\\n]*' + topicPatterns[topicKey].source + '[^.!?\\n]*', 'i'));
+            if (topicPatterns[topicKey].test(_topicBody)) {
+              var topicMatch = _topicBody.match(new RegExp('[^.!?\\n]*' + topicPatterns[topicKey].source + '[^.!?\\n]*', 'i'));
               sig.topicMentions[topicKey].count++;
               if (sig.topicMentions[topicKey].mentions.length < 3) {
                 sig.topicMentions[topicKey].mentions.push({
                   date: dateStr,
-                  sentence: (topicMatch ? topicMatch[0] : body.substring(0,140)).trim().substring(0,140)
+                  sentence: (topicMatch ? topicMatch[0] : _topicBody.substring(0,140)).trim().substring(0,140)
                 });
               }
             }
@@ -17504,7 +17611,16 @@ function renderRelationshipReading(data) {
   // only judge the captured examples. If none of them is a real competitor the topic is dropped;
   // if some are, the count is left alone rather than guessed downward.
   var _lpTopicDropped = {};
-  var _lpLeadMarque = String((data && (data.vehicle || data.vehicleRaw)) || '').toLowerCase();
+  // ── (v9.7.638) THE STORE'S OWN MARQUE IS NEVER A COMPETITOR ─────────────────────────────────
+  // v9.7.594 fixed "our own marque scores a competitor mention" by comparing the matched brand
+  // against the LEAD VEHICLE. That works whenever the lead vehicle is the house brand — and fails
+  // exactly when it is not. Rebecca Caplan's lead vehicle is a 2020 Volkswagen Tiguan at COMMUNITY
+  // HONDA BAYTOWN: leadMarque was "volkswagen", so every occurrence of "honda" — including in our
+  // own store name — read as a rival marque. Baytown and Lafayette both retail off-brand pre-owned
+  // on every lot, so this is the normal case there, not an edge case.
+  // The store name is added to the marque set. A Honda store is not cross-shopping Honda.
+  var _lpLeadMarque = (String((data && (data.vehicle || data.vehicleRaw)) || '') + ' '
+                     + String((data && data.store) || '')).toLowerCase();
   var _lpCrossShop  = /\b(other dealer\w*|another dealership|shopping around|comparing|cross.?shop)\b/i;
   function _lpIsRealCompetitor(sentence) {
     var t = String(sentence || '');
@@ -18987,6 +19103,55 @@ function buildUserPrompt(data) {
             + '") -- a vehicle they are disposing of, not one they are shopping for';
         }
       } catch (ePgH) { /* a candidate that will not compile is not evidence -- keep looking */ }
+    }
+
+    // ── (v9.7.638) (2b) POSSESSION STATED IN PROSE, NOT ONLY IN A CRM FIELD ────────────────────
+    // Rebecca Caplan (Community Honda Baytown, 9/5). Her prompt carried "VEHICLE PIVOT DETECTED:
+    // Customer is now asking about a Odyssey ... Address the Odyssey questions directly." She asked
+    // no Odyssey questions. What she wrote was:
+    //   "I drive a honda odyssey we bought from you quick and easy found it over the phone and
+    //    came and bought it same day. Thats the experience i am looking for."
+    // That is the van on her driveway and a compliment about how we sold it to her. What she
+    // actually wants is three messages up: a used small SUV under 75,000 miles.
+    //
+    // The concept was already here and already correct -- guard (2) above suppresses a candidate
+    // that is "a vehicle they are disposing of, not one they are shopping for". It reads
+    // data.tradeDescription and data.ownedVehicle, both CRM FIELDS. Rebecca's lead has neither
+    // filled in, because she said it in a text message instead. A customer stating ownership in
+    // prose is the ordinary case, not the exception; the structured field is the rare one.
+    //
+    // Bounded to one clause with [^.!?] so "I drive a Honda" three sentences before an unrelated
+    // Pilot cannot suppress a real Pilot pivot -- the v9.7.638 lesson from `over.*budget`, which
+    // matched six hundred characters across four messages because nothing bounded it.
+    // THE FIRST DRAFT OF THIS GUARD SUPPRESSED A REAL PIVOT, and the pivot suite caught it before
+    // it shipped: "actually my wife wants an Accord instead, do you have any" matched a loose
+    // `my ... Accord`. That is DESIRE, not possession, and suppressing it would re-create the
+    // Billups incident (v9.7.537) this guard family exists to prevent. Two discriminators, both
+    // narrow and both learned from that failure:
+    //   - "my/our X" means ownership only when X is the DIRECT object. An article in between
+    //     ("my wife wants AN Accord") means somebody wants one, not that we have one. Articles and
+    //     desire verbs are excluded from the gap.
+    //   - "we have" is ownership; "we have BEEN looking" is not.
+    var _pgEsc = _pgLowCand.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    var _pgOwnRe = [
+      '\\b(?:i|we)\\s+(?:currently\\s+)?(?:drive|own|bought|purchased|(?:have|had|got)(?!\\s+been))\\b[^.!?]{0,40}?\\b' + _pgEsc + '\\b',
+      '\\b(?:my|our)\\s+(?:(?!(?:a|an|the|wants?|needs?|likes?|loves?|prefers?|is|was|would|will|might|should)\\b)[a-z0-9\'-]+\\s+){0,3}?' + _pgEsc + '\\b',
+      // "the Pilot we bought from you last year". The gap is a POSITIVE character class rather
+      // than [^.!?] because recentCustomerCtx is lastInboundMsg concatenated with the tagged
+      // transcript lines, and [^.!?] happily spanned that seam: "an Accord [CUSTOMER] I drive a
+      // Corolla" matched and suppressed a real pivot. Excluding the bracket keeps the clause
+      // inside one message.
+      '\\b' + _pgEsc + '\\b[ ,a-z\'-]{0,20}?\\b(?:we|i)\\s+(?:bought|own|drive|purchased)\\b'
+    ];
+    for (var _pgO = 0; _pgO < _pgOwnRe.length; _pgO++) {
+      try {
+        var _pgM = String(recentCustomerCtx || '').match(new RegExp(_pgOwnRe[_pgO], 'i'));
+        if (_pgM) {
+          return 'the customer said in their own words that they ALREADY OWN it ("'
+            + _pgM[0].trim().replace(/\s+/g, ' ').slice(0, 70)
+            + '") -- a vehicle they have, not one they are shopping for';
+        }
+      } catch (ePgO) { /* a candidate that will not compile is not evidence -- keep looking */ }
     }
 
     // (3) EXPLICIT SUPERSEDE NOTE. VinSolutions writes "Primary vehicle changed from X to
@@ -22700,7 +22865,22 @@ function computeAppointmentTimes(store) {
 
   // --- Determine whether same-day is valid ---
   const isClosed = openMins === null; // Sunday
-  const earliestSlot = nextSlot(nowMins);
+  // ── (v9.7.638) THE STORE HAS TO BE OPEN, NOT MERELY NOT-YET-CLOSED ───────────────────────────
+  // Rebecca Caplan's 9/5 prompt, captured at 12:45 AM, carried:
+  //     SUGGESTED APPOINTMENT TIMES (fallback only — see rule below):
+  //     Option: 2:45 AM today
+  //     Option: 3:30 AM today
+  //     ↳ These are valid open in-hours slots
+  // Honda Baytown opens at 9 AM. The three conditions below tested that the slot was before the
+  // same-day cutoff and that it fit before CLOSE — and never that it fell after OPEN. openMins was
+  // computed forty lines up and then used by nothing. Executing the shipped function across the
+  // clock: every grab from 00:00 to 06:59 produced a pre-open pair, 7 of 24 hours. The evening
+  // side was always correct (it rolls to the next business day), so this was only ever the
+  // small-hours half, which is exactly when Gil's captures happen.
+  // The clamp goes on earliestSlot rather than into the conditions because findSameDayPair()
+  // starts its walk there — bounding the walk fixes both the validity test and the slots it emits.
+  const _rawEarliest = nextSlot(nowMins);
+  const earliestSlot = isClosed ? _rawEarliest : Math.max(_rawEarliest, openMins);
   const sameDayValid = !isClosed
     && earliestSlot <= sameDayCutoffMins
     && earliestSlot + 45 <= closeMins;

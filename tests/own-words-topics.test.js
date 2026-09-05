@@ -82,9 +82,25 @@ function extract(file) {
   if (end < 0) throw new Error('scan end not found in ' + file);
   const body = src.slice(start, end) + '\n      }\n';
 
+  // (v9.7.638) The topic scan now calls two shared predicates that live outside this slice:
+  // _lpIsOurOwnSend (hoisted so the concern scanner and this one cannot disagree about what our
+  // own outbound is) and _lpIsRoutingLine (v9.7.634, so "Received by: ... Community Honda" stops
+  // being counted as a competitor mention). They are LIFTED FROM THE SHIPPED FILE, not stubbed —
+  // a hand-written stand-in would let the real predicates rot while this suite stayed green, which
+  // is exactly the trap v9.7.588 recorded.
+  function lift(name) {
+    const at = src.indexOf('function ' + name + '(');
+    if (at < 0) throw new Error(name + ' not found in ' + file + ' — THE SUITE DID NOT LOAD');
+    const close = src.indexOf('\n    }', at);
+    if (close < 0) throw new Error(name + ' has no close in ' + file);
+    return src.slice(at, close + 6);
+  }
+  const shared = lift('_lpIsOurOwnSend') + '\n' + lift('_lpIsRoutingLine') + '\n';
+
   const sb = { String, RegExp, Date, Math, parseInt, parseFloat };
   vm.createContext(sb);
   vm.runInContext(
+    shared +
     'function _scan(noteEls) {\n' +
     '  var sig = { totalInboundCount: 0, totalOutboundCount: 0, consecutiveOutboundNoReply: 0,\n' +
     '    lastInboundAgeDays: null, priorPricingObjections: [], hasNoShowHistory: false,\n' +
@@ -201,8 +217,16 @@ console.log('\nthe store\'s own marque is not a competitor:');
 
 const strip = s => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^[ \t]*\/\/.*$/gm, '');
 
+// (v9.7.638) The marque set now carries the STORE as well as the lead vehicle. v9.7.594 compared
+// against the lead vehicle alone, which is correct whenever the lead vehicle is the house brand and
+// wrong exactly when it is not: Rebecca Caplan's lead vehicle is a 2020 Volkswagen Tiguan at
+// COMMUNITY HONDA BAYTOWN, so "honda" — including inside our own store name — read as a rival
+// marque and produced "competitor has been a recurring thread (7 mentions)". Both Baytown and
+// Lafayette retail off-brand pre-owned on every lot, so that is the normal case there.
 check('the render compares the matched brand against the lead vehicle',
-  i => /_lpLeadMarque = String\(\(data && \(data\.vehicle \|\| data\.vehicleRaw\)\) \|\| ''\)/.test(strip(i.src)), true);
+  i => /_lpLeadMarque = \(String\(\(data && \(data\.vehicle \|\| data\.vehicleRaw\)\) \|\| ''\)/.test(strip(i.src)), true);
+check('...and against the store, so the house brand is never a competitor',
+  i => /\+ String\(\(data && data\.store\) \|\| ''\)\)\.toLowerCase\(\)/.test(strip(i.src)), true);
 
 check('an explicit cross-shop phrase still counts as a real competitor',
   i => /other dealer\\w\*\|another dealership\|shopping around\|comparing\|cross\.\?shop/.test(strip(i.src)), true);
@@ -277,6 +301,58 @@ check('  on the REAL number (7 outreaches): normal',   () => bucket(7),  'normal
 check('  the boundaries themselves are unchanged',
   () => [bucket(2), bucket(3), bucket(7), bucket(8), bucket(14), bucket(15)],
   ['light', 'normal', 'normal', 'sustained', 'sustained', 'heavy']);
+
+// ── (v9.7.638) THE ROUTING HEADER WAS THE TOPIC ────────────────────────────────
+// Rebecca Caplan (Community Honda Baytown, 9/5). Her prompt:
+//   Other vehicles or dealerships has come up 7 time(s):
+//     "Received by: Vinessa Virtual Assistant Community Honda"
+//   ...
+//   "competitor" has been a recurring thread (7 mentions). If this topic has not been resolved,
+//   it may be the silent reason for any stall. Addressing it directly often unsticks the
+//   conversation.
+// All seven "mentions" are the CRM's own inbound routing header. v9.7.634 already taught this file
+// what a routing header looks like and stripped it for the transcript; this scan reads the note
+// body BEFORE that strip, so it kept seeing it.
+const REBECCA_INBOUND = {
+  dir: 'inbound', title: 'Inbound Text Message', date: '09/04/2026 8:16 PM',
+  body: 'Received from: (281) 723-0800\nReceived by: Vinessa Virtual Assistant Community Honda\n'
+      + 'They can send me stuff. I live in Clear Lake so im only coming if there is a car that i can purchase when i come.'
+};
+console.log('\nthe CRM routing header is not a topic:');
+check('the "Received by: ... Community Honda" header scores no competitor mention',
+  i => i.scan([REBECCA_INBOUND]).topicMentions.competitor.count, 0);
+check('  ...while the real sentence underneath it still scores its own topic',
+  i => i.scan([REBECCA_INBOUND]).topicMentions.distance.count, 1);
+check('  ...and the captured example is her sentence, not the header',
+  i => /Received (?:from|by)/.test(
+    (i.scan([REBECCA_INBOUND]).topicMentions.distance.mentions[0] || {}).sentence || ''), false);
+check('a routing header with nothing under it contributes nothing at all',
+  i => i.scan([{ dir: 'inbound', title: 'Inbound Text Message', date: '09/04/2026 8:16 PM',
+                 body: 'Received from: (281) 723-0800\nReceived by: Vinessa Virtual Assistant Community Honda' }])
+        .topicMentions.competitor.count, 0);
+// A customer who genuinely names a rival marque in the body under a routing header must still
+// count — the header is dropped line-wise, not the whole note.
+check('a real competitor named UNDER a routing header still counts',
+  i => i.scan([{ dir: 'inbound', title: 'Inbound Text Message', date: '09/04/2026 8:16 PM',
+                 body: 'Received from: (281) 723-0800\nReceived by: Vinessa Virtual Assistant Community Honda\n'
+                     + 'I am also looking at a Subaru Forester at another dealership' }])
+        .topicMentions.competitor.count, 1);
+
+// ── THE STORE'S OWN MARQUE ─────────────────────────────────────────────────────
+// v9.7.594 compared the matched brand against the LEAD VEHICLE, which is right whenever the lead
+// vehicle is the house brand and wrong exactly when it is not. Rebecca's lead vehicle is a 2020
+// Volkswagen Tiguan at COMMUNITY HONDA BAYTOWN, so "honda" read as a rival marque. Both Baytown
+// and Lafayette retail off-brand pre-owned on every lot, so this is the normal case there.
+console.log('\nthe house brand is never a competitor, even on an off-brand lead vehicle:');
+const marqueSet = (i, vehicle, store) =>
+  (String(vehicle) + ' ' + String(store)).toLowerCase();
+check('the marque set for Rebecca\'s lead contains BOTH volkswagen and honda',
+  () => { const s = marqueSet(null, '2020 Volkswagen Tiguan', 'Community Honda Baytown');
+          return [s.indexOf('volkswagen') >= 0, s.indexOf('honda') >= 0]; }, [true, true]);
+check('  ...so a Honda mention at a Honda store is inside the set',
+  () => marqueSet(null, '2020 Volkswagen Tiguan', 'Community Honda Baytown').indexOf('honda') >= 0, true);
+check('  ...and a Subaru mention is still outside it',
+  () => marqueSet(null, '2020 Volkswagen Tiguan', 'Community Honda Baytown').indexOf('subaru') >= 0, false);
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);
