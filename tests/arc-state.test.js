@@ -358,5 +358,77 @@ check('a KNOWN zero inbound still says "never replied" and nothing else',
     return { never: _never.test(l), noRun: !/in a row with no answer/.test(l) };
   }, { never: true, noRun: true });
 
+// ── (v9.7.645) THE BOT'S OUTREACH MUST BE VISIBLE TO THIS SCANNER ────────────
+// Deandre Romee (Audi Lafayette, 9/7, CarGurus, 2020 Dodge Challenger SXT). Vinessa — the store's
+// AI assistant — emailed him on 9/6 saying the car is in inventory. Every one of the eight angles
+// returned no match, so the prompt told the model "Not raised with this customer yet: availability,
+// price, ..." and LP spent its touch re-making the move the bot had already made.
+//
+// THE GAP WAS PHRASING, NOT PLUMBING, and that is asserted here rather than assumed: the collector
+// that builds outboundSends excludes CALL LOGS, not AUTHORS, so the bot's email was always in the
+// list this function reads. Feeding it the bot's real body is therefore the whole test.
+console.log('\n(v9.7.645) the store AI\'s own outreach registers as a spent angle:');
+
+// Verbatim from the 9/7 VinSolutions record, as the scanner receives it (VinSolutions itself
+// truncates the body at "...."; that IS the text outboundSends carries).
+const BOT_EMAIL =
+  'Subject: Your 2020 Dodge Challenger Awaits at Audi Lafayette By: Vinessa Virtual Assistant ' +
+  'Audi Lafayette Hi Deandre, I’m Vinessa, Audi Concierge at Audi Lafayette. I wanted to reach ' +
+  'out because we have a 2020 Dodge Challenger in our inventory that I think you’d really ' +
+  'appreciate. It’s a fantastic vehicle, and I’d love for you to experience it firsthand....';
+
+check('the bot email registers availability — the incident, exactly',
+  i => i.spent([send('20', BOT_EMAIL)]).spent.map(x => x.angle), ['availability']);
+
+check('  ...and availability is no longer reported as unused on that lead',
+  i => i.spent([send('20', BOT_EMAIL)]).unused.indexOf('availability') < 0, true);
+
+check('  ...with the literal phrase carried as evidence, so a wrong match stays visible',
+  i => i.spent([send('20', BOT_EMAIL)]).spent[0].evidence, 'in our inventory');
+
+// The bot's template is a soft visit invitation ("experience it firsthand") but carries no literal
+// appointment phrase. This list is deliberately literal-phrase-only — "never inferred from intent" —
+// so reading that as an appointment ask would be the very thing the header forbids. Pinned so a
+// later widening cannot quietly turn this scanner into an intent reader.
+check('  ...and NOTHING else is inferred from it — no appointment, no price, no trade',
+  i => i.spent([send('20', BOT_EMAIL)]).spent.length, 1);
+
+// LP could not see its OWN availability claims either, which is the same defect pointed inward:
+// both of these are real drafts LP produced on 9/5 and neither matched the old pattern.
+console.log('\n  ...and so does our own wording, which it also could not see:');
+
+check('"is showing available" — our 9/5 Audi Lafayette draft',
+  i => i.spent([send('20', 'your 2026 Audi A6 Sedan Premium Plus is showing available.')]).spent.map(x => x.angle),
+  ['availability']);
+
+check('"here and available to see" — our 9/5 Honda Lafayette draft',
+  i => i.spent([send('20', 'It is here in Ironman Silver Metallic and available to see.')]).spent.map(x => x.angle),
+  ['availability']);
+
+// A false SPENT is not free: it suppresses a legitimate mention. A bare "we have a/an" was
+// deliberately NOT added for exactly this sentence, and the control pins that decision.
+console.log('\n  ...without turning unrelated sentences into availability claims:');
+
+check('a financing sentence is not an availability claim',
+  i => i.spent([send('20', 'We have a few options for financing that might work for you.')]).spent.map(x => x.angle),
+  ['payment']);
+
+check('a scheduling question is not an availability claim',
+  i => i.spent([send('20', 'Are you available Tuesday afternoon?')]).spent.map(x => x.angle), []);
+
+// The legacy phrases must all still fire — a widening that dropped one would trade this defect
+// for a quieter one.
+console.log('\n  ...and every phrase that already worked still works:');
+[['in stock', 'The unit is in stock today.'],
+ ['on the lot', 'It is on the lot now.'],
+ ['still here', 'It is still here.'],
+ ['still available', 'Still available as of this morning.'],
+ ['we have it', 'Good news, we have it.'],
+ ['just arrived', 'It just arrived.'],
+ ['came in', 'It came in last week.']].forEach(function (pair) {
+  check('    "' + pair[0] + '"',
+    i => i.spent([send('20', pair[1])]).spent.map(x => x.angle), ['availability']);
+});
+
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);
