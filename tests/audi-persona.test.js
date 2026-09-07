@@ -91,7 +91,7 @@ for (const file of BUILDS) {
   check('  first contact carries the title mandate', MANDATE.test(firstTouch), true);
   check('  a continuing thread carries the SAME title mandate', MANDATE.test(continuing), true);
   check('  ...and says outright that the title stays on every touch after the first',
-    /it is the title and it stays, on a first touch and on every touch after/.test(continuing), true);
+    /it stays, on a first touch and on every touch after/.test(continuing), true);
   check('  the persona is still described as an Audi Concierge, not a sales coordinator',
     /Audi Concierge, not a generic sales coordinator/.test(continuing), true);
 
@@ -138,6 +138,55 @@ for (const file of BUILDS) {
     /Concierge/.test(build(B.region, { persona: 'concierge', hasOutbound: true })), true);
   check('  no Brand Specialist assigned falls back cleanly',
     /one of our Audi Brand Specialists/.test(build(B.region, { hasOutbound: true, salesRep: '' })), true);
+
+  // ── (v9.7.646) THE TITLE HAS AN OWNER, AND IT IS THE WRITER ────────────────
+  // Duncan Thomson (Audi Lafayette, 9/7, 2019 Jaguar F-TYPE P340). The v9.7.645 draft said
+  // "I can also have your Audi Concierge, Austin Leonard, coordinate the next step" — Austin is the
+  // SALES REP, named twice in that same prompt as "your Audi Brand Specialist".
+  //
+  // CAUSE, and it is this suite's own blind spot as much as the prompt's. Before v9.7.645 the title
+  // was ANCHORED to the self-introduction ("this is <agent>, your Audi Concierge"), which bound the
+  // word to the writer by construction. v9.7.645 removed that opener on a continuing thread — right
+  // — but kept "must appear in every format", leaving a floating demand for the word with nobody
+  // named to wear it. The model gave it to the nearest human. THE SUITE PASSED, because every
+  // assertion asked whether the word was PRESENT and none asked WHOSE it was.
+  console.log('\n(v9.7.646) the Concierge title belongs to the writer and to nobody else:');
+  for (const [label, text] of [['first contact', firstTouch], ['continuing', continuing]]) {
+    check('  ' + label + ' — the mandate says the title is YOURS',
+      /it is YOUR title/.test(text), true);
+    check('  ' + label + ' — ...and yours ALONE',
+      /IT IS YOURS ALONE/.test(text), true);
+    check('  ' + label + ' — ...naming the roles it must never be attached to',
+      /never attach "Concierge" to the Sales Rep, the Brand Specialist, the Manager/.test(text), true);
+    check('  ' + label + ' — ...and DUNCAN\'S CASE: the Brand Specialist is named and protected',
+      /Austin Leonard is your Audi Brand Specialist and must NEVER be called a Concierge/
+        .test(build(B.region, { hasOutbound: label === 'continuing', salesRep: 'Austin Leonard' })), true);
+  }
+
+  // The continuing branch is where the anchor was lost, so its wording is pinned specifically:
+  // "carry it in the body" is what created an unowned demand; "carry it as YOUR OWN role" does not.
+  check('  the continuing branch says to carry the title as the writer\'s own role',
+    /carry it as YOUR OWN role/.test(continuing), true);
+  check('  ...and says outright not to pin it on anybody else',
+    /never by pinning it on anybody else/.test(continuing), true);
+
+  // With no Brand Specialist on the lead there is no name to protect, and the sentence must not
+  // dangle. The general prohibition still stands.
+  const noSpec = build(B.region, { hasOutbound: true, salesRep: '' });
+  check('  no Brand Specialist on the lead — no dangling "Specifically:" clause',
+    /Specifically:/.test(noSpec), false);
+  check('  ...but the general prohibition still stands',
+    /IT IS YOURS ALONE/.test(noSpec), true);
+
+  // The Brand Specialist keeps their own title — the other half of the collision. Built with
+  // Duncan's actual Brand Specialist rather than the default fixture, so the two lines that
+  // disagreed on 9/7 are compared as they actually shipped.
+  const duncan = build(B.region, { hasOutbound: true, salesRep: 'Austin Leonard' });
+  check('  and the Brand Specialist still has their own title line',
+    /reference as "your Audi Brand Specialist, Austin Leonard"/.test(duncan), true);
+  check('  ...so the two lines about Austin now agree instead of competing',
+    /Austin Leonard is your Audi Brand Specialist and must NEVER be called a Concierge/.test(duncan)
+      && !/your Audi Concierge, Austin/.test(duncan), true);
 
   // ── OWNERSHIP ──────────────────────────────────────────────────────────────
   // Comment-stripped: this file's build headers quote its own code, which has produced seven false
