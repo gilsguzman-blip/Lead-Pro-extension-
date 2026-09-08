@@ -72,19 +72,20 @@ const CASES = [
 
 function load(upstream, kv) {
   const logs = [];
+  const calls = { n: 0 };
   const box = {
     console: { log: (...a) => logs.push(a.join(' ')), warn: (...a) => logs.push(a.join(' ')), error: (...a) => logs.push(a.join(' ')) },
     Response, Request, Headers, URL, URLSearchParams, TextEncoder, TextDecoder,
     AbortController, Promise, Date, Math, JSON, String, Number, Object, Array, RegExp, Error,
     setTimeout, clearTimeout, crypto,
-    fetch: (url, opts) => Promise.resolve(upstream(String(url))),
+    fetch: (url, opts) => { calls.n++; return Promise.resolve(upstream(String(url))); },
     caches: { default: { match: () => Promise.resolve(undefined), put: () => Promise.resolve() } },
   };
   box.globalThis = box; box.self = box;
   vm.createContext(box);
   vm.runInContext(src.replace(/^export default\s*\{/m, 'globalThis.__WORKER = {'), box);
   if (!box.__WORKER || typeof box.__WORKER.fetch !== 'function') bail('worker exposes no fetch handler');
-  return { worker: box.__WORKER, logs };
+  return { worker: box.__WORKER, logs, calls };
 }
 
 // A KV stub that records writes and serves them back, so the write path and the read path are
@@ -182,14 +183,18 @@ function draftBody() {
   check('  every rejection is in the export', body.count, 3);
   check('  tallied by field', body.byField, { email: 3 });
   check('  ...and by finish reason', Object.keys(body.byFinish), ['stop']);
-  check('  emailRejections answers the collapse question directly',
-    body.emailRejections, { subjectPresent: 3, subjectEmptyOrAbsent: 0 });
+  // (v7.73) These three are the "subject" abandonment shape, so they tally as abandoned. The
+  // v7.72 counter this replaced would have called them subjectPresent — see the header.
+  check('  emailShapes splits them on whether the email field was a JSON envelope',
+    body.emailShapes, { doubleEncoded: 0, abandoned: 3 });
   check('  rows carry the shape', body.rows.every(r => r.shape && typeof r.shape.subject === 'number'), true);
 
-  // ── THE OTHER HALF: AN ABANDONED ENVELOPE MUST TALLY DIFFERENTLY ───────────
-  // If subject is empty too, this is not a field collapse — it is the model giving up. The whole
-  // point of the counter is that these two land in different buckets.
-  console.log('\nan abandoned envelope (no subject either) tallies as the OTHER case:');
+  // ── (v7.73) THE TOP-LEVEL SUBJECT IS IRRELEVANT TO THE SPLIT ───────────────
+  // This block used to assert the opposite, because v7.72 split the day on "was there a top-level
+  // subject". One afternoon of real rows disproved that axis, so what is pinned now is that the
+  // subject does NOT move a row between buckets: an abandonment with no subject tallies exactly
+  // like one with a subject.
+  console.log('\nan abandonment tallies the same with or without a top-level subject:');
   const kv2 = makeKV();
   let n2 = 0;
   const L2 = load(() => okBody(++n2 === 1 ? envelope('subject', '') : GOOD), kv2);
@@ -200,8 +205,120 @@ function draftBody() {
   await new Promise(r => setTimeout(r, 0));
   const out2 = await L2.worker.fetch(new Request('https://p.test/degenerate?key=' + DIRECTOR), ENV2, CTX);
   const body2 = await out2.json();
-  check('  subjectEmptyOrAbsent, not subjectPresent',
-    body2.emailRejections, { subjectPresent: 0, subjectEmptyOrAbsent: 1 });
+  check('  still abandoned, exactly as the subject-bearing one was',
+    body2.emailShapes, { doubleEncoded: 0, abandoned: 1 });
+
+
+  // ── (v7.73) THE UNWRAP: A DOUBLE-ENCODED EMAIL IS RESCUED, NOT DISCARDED ───
+  // The 9/8 rows showed four of five rejections carrying a complete 410-468 char email wrapped in
+  // a JSON object. We were paying for a second model call to replace output we already had.
+  // The inner body key was never visible in the 40-char samples, so three different key names are
+  // driven here — two conventional and one that is not — to prove the extraction does not depend
+  // on guessing it.
+  console.log('\n(v7.73) a double-encoded email is unwrapped and served:');
+  const BODY = 'Hi there,\n\nThe Camry is here at Kia Baytown and I can have it ready whenever suits you. '
+             + 'Everything will be staged before you arrive so the visit stays quick, and I can walk you '
+             + 'through the numbers in person rather than guessing at them over text.\n\nJolette';
+  const INNER_KEYS = [['body', 'the conventional key'], ['text', 'another conventional key'],
+                      ['emailBody', 'a key the extractor was never told about']];
+
+  for (const [key, label] of INNER_KEYS) {
+    console.log('\n  inner body under "' + key + '" — ' + label + ':');
+    const inner = JSON.stringify({ subject: 'Your 2018 Camry is at Kia Baytown', [key]: BODY });
+    const kvR = makeKV();
+    const LR = load(() => okBody(envelope(inner, 'Your 2018 Camry is at Kia Baytown')), kvR);
+    const r = await LR.worker.fetch(new Request('https://p.test/', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(draftBody()),
+    }), ENVBASE(kvR), CTX);
+    await new Promise(z => setTimeout(z, 0));
+
+    check('    the caller gets a draft', r.status, 200);
+    check('    ...on the FIRST upstream call — the second model call is saved', LR.calls.n, 1);
+    const served = JSON.parse((await r.json()).candidates[0].content.parts[0].text);
+    check('    the email is now prose, not a JSON envelope', served.email.startsWith('{'), false);
+    check('    ...rebuilt in the shape a clean generation produces',
+      served.email, 'Subject: Your 2018 Camry is at Kia Baytown\n\n' + BODY);
+    check('    ...and the other fields are untouched', [served.sms, served.voicemail], [SMS, '']);
+    const rk = [...kvR.store.keys()].filter(k => k.startsWith('degen:'));
+    check('    the rescue is STILL recorded — it is a defect that now succeeds', rk.length, 1);
+    const rr = rk.length ? JSON.parse(kvR.store.get(rk[0])) : {};
+    check('    ...marked repaired, not rejected', rr.outcome, 'repaired');
+    check('    ...naming the inner keys it found', !!(rr.repair && rr.repair.innerKeys), true);
+  }
+
+  // The top-level subject is filled only when the model omitted it — the 9/8 16:35 shape.
+  console.log('\n  the 16:35 shape — no top-level subject, one nested inside:');
+  const kvS = makeKV();
+  const innerS = JSON.stringify({ subject: 'Verifying your 2027 Seltos match', body: BODY });
+  const LS = load(() => okBody(JSON.stringify({ sms: SMS, email: innerS, voicemail: '' })), kvS);
+  const rs = await LS.worker.fetch(new Request('https://p.test/', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(draftBody()),
+  }), ENVBASE(kvS), CTX);
+  await new Promise(z => setTimeout(z, 0));
+  const servedS = JSON.parse((await rs.json()).candidates[0].content.parts[0].text);
+  check('    the missing top-level subject is filled from the nested one',
+    servedS.subject, 'Verifying your 2027 Seltos match');
+
+  // ── THE ABANDONMENT IS NOT RESCUED ────────────────────────────────────────
+  // There is nothing to unwrap in a 7-character "subject", and inventing a body would be far worse
+  // than a fallback call. This is the line between the two shapes.
+  console.log('\n(v7.73) a genuine abandonment is still rejected:');
+  const kvA = makeKV();
+  let na = 0;
+  const LA = load(() => okBody(++na === 1 ? envelope('subject', 'Your Accord trade appraisal') : GOOD), kvA);
+  const ra = await LA.worker.fetch(new Request('https://p.test/', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(draftBody()),
+  }), ENVBASE(kvA), CTX);
+  await new Promise(z => setTimeout(z, 0));
+  check('    it still falls through to the next tier', LA.calls.n, 2);
+  check('    the caller still gets a draft', ra.status, 200);
+  const ar = JSON.parse(kvA.store.get([...kvA.store.keys()].find(k => k.startsWith('degen:'))));
+  check('    recorded as rejected, not repaired', ar.outcome, 'rejected');
+
+  // A nested envelope whose body is too short to stand on its own must NOT be admitted — the
+  // unwrap may only rescue, never lower the bar.
+  console.log('\n(v7.73) the unwrap cannot admit a body the guard would refuse:');
+  const kvT = makeKV();
+  let nt = 0;
+  const tiny = JSON.stringify({ subject: 'Hi', body: 'ok' });
+  const LT = load(() => okBody(++nt === 1 ? envelope(tiny, 'Hi') : GOOD), kvT);
+  await LT.worker.fetch(new Request('https://p.test/', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(draftBody()),
+  }), ENVBASE(kvT), CTX);
+  await new Promise(z => setTimeout(z, 0));
+  const tr = JSON.parse(kvT.store.get([...kvT.store.keys()].find(k => k.startsWith('degen:'))));
+  check('    a two-character body is rejected, not unwrapped', tr.outcome, 'rejected');
+
+  // ── (v7.73) THE TALLY SPLITS ON THE RIGHT AXIS ────────────────────────────
+  // Driven with the two shapes that broke v7.72's counter: a double-encoded email with NO
+  // top-level subject, and an abandonment WITH one. Under the old axis these landed in each
+  // other's bucket.
+  console.log('\n(v7.73) the export splits double-encoded from abandoned:');
+  const kvX = makeKV();
+  let nx = 0;
+  const LX = load(() => {
+    nx++;
+    if (nx === 1) return okBody(JSON.stringify({ sms: SMS, email: innerS, voicemail: '' })); // double, no top subject
+    if (nx === 2) return okBody(envelope('subject', 'Your Accord trade appraisal'));         // abandoned, top subject
+    return okBody(GOOD);
+  }, kvX);
+  const ENVX = ENVBASE(kvX);
+  for (let g = 0; g < 2; g++) {
+    await LX.worker.fetch(new Request('https://p.test/', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(draftBody()),
+    }), ENVX, CTX);
+    await new Promise(z => setTimeout(z, 0));
+  }
+  const xo = await LX.worker.fetch(new Request('https://p.test/degenerate?key=' + DIRECTOR), ENVX, CTX);
+  const xb = await xo.json();
+  check('    both rows are exported', xb.count, 2);
+  check('    ...split correctly despite the top-level subject being the WRONG signal',
+    xb.emailShapes, { doubleEncoded: 1, abandoned: 1 });
+  // Sorted: JSON.stringify is key-order sensitive and the insertion order here depends on which
+  // generation ran first, which is not a property worth asserting.
+  check('    ...and byOutcome distinguishes the rescue from the rejection',
+    Object.entries(xb.byOutcome).sort(), [['rejected', 1], ['repaired', 1]]);
+  check('    the retired v7.72 counter is gone', xb.emailRejections === undefined, true);
 
   // ── A CLEAN DAY WRITES NOTHING ─────────────────────────────────────────────
   console.log('\na clean generation records nothing at all:');

@@ -299,8 +299,19 @@ one('the fact floor ACCEPTS every real probe answer — the point of the whole c
 one('the draft path still applies MIN_CONTENT_CHARS, unchanged and unguarded by anything else',
   () => /if \(_contract === RESPONSE_CONTRACT_DRAFT\) \{\s*\n\s*if \(text\.length < MIN_CONTENT_CHARS\)/.test(proxySrc), true);
 
+// (v7.73) The variable name is not the property. This pinned `isLikelyJson(text)` verbatim and
+// went red when v7.73 renamed that local to `_outText` — a rename, not a regression, and the
+// contract gate it exists to protect never moved. Matching \w+ keeps the assertion about the
+// GATE. The v7.73 rescue below it is gated the same way and is asserted separately, because a
+// repair on a probe response would be repairing an email field a probe does not have.
 one('the degenerate-field guard runs on the draft contract only — it judges sms/email/voicemail',
-  () => /const degenerate = \(_contract === RESPONSE_CONTRACT_DRAFT && isLikelyJson\(text\)\)/.test(proxySrc), true);
+  () => /const degenerate = \(_contract === RESPONSE_CONTRACT_DRAFT && isLikelyJson\(\w+\)\)/.test(proxySrc), true);
+
+one('(v7.73) the nested-email unwrap is gated on the draft contract too',
+  () => /_repair = null, _outText = text;[\s\S]{0,120}?_contract === RESPONSE_CONTRACT_DRAFT/.test(proxySrc), true);
+
+one('(v7.73) ...and it only ever runs on text already judged degenerate — a rescue, never a filter',
+  () => /RESPONSE_CONTRACT_DRAFT && isLikelyJson\(text\) && hasDegenerateField\(text\)/.test(proxySrc), true);
 
 one('isParseableJson applies to BOTH contracts — any JSON contract requires JSON',
   () => {
