@@ -186,7 +186,7 @@ function draftBody() {
   // (v7.73) These three are the "subject" abandonment shape, so they tally as abandoned. The
   // v7.72 counter this replaced would have called them subjectPresent — see the header.
   check('  emailShapes splits them on whether the email field was a JSON envelope',
-    body.emailShapes, { doubleEncoded: 0, abandoned: 3 });
+    body.emailShapes, { doubleEncoded: 0, abandoned: 3, unclassified: 0 });
   check('  rows carry the shape', body.rows.every(r => r.shape && typeof r.shape.subject === 'number'), true);
 
   // ── (v7.73) THE TOP-LEVEL SUBJECT IS IRRELEVANT TO THE SPLIT ───────────────
@@ -206,7 +206,7 @@ function draftBody() {
   const out2 = await L2.worker.fetch(new Request('https://p.test/degenerate?key=' + DIRECTOR), ENV2, CTX);
   const body2 = await out2.json();
   check('  still abandoned, exactly as the subject-bearing one was',
-    body2.emailShapes, { doubleEncoded: 0, abandoned: 1 });
+    body2.emailShapes, { doubleEncoded: 0, abandoned: 1, unclassified: 0 });
 
 
   // ── (v7.73) THE UNWRAP: A DOUBLE-ENCODED EMAIL IS RESCUED, NOT DISCARDED ───
@@ -313,12 +313,77 @@ function draftBody() {
   const xb = await xo.json();
   check('    both rows are exported', xb.count, 2);
   check('    ...split correctly despite the top-level subject being the WRONG signal',
-    xb.emailShapes, { doubleEncoded: 1, abandoned: 1 });
+    xb.emailShapes, { doubleEncoded: 1, abandoned: 1, unclassified: 0 });
   // Sorted: JSON.stringify is key-order sensitive and the insertion order here depends on which
   // generation ran first, which is not a property worth asserting.
   check('    ...and byOutcome distinguishes the rescue from the rejection',
     Object.entries(xb.byOutcome).sort(), [['rejected', 1], ['repaired', 1]]);
   check('    the retired v7.72 counter is gone', xb.emailRejections === undefined, true);
+
+
+  // ── (v7.74) THE REAL 9/8 EXPORT, SEEDED VERBATIM ──────────────────────────
+  // The strongest test available here: Gil's own nine rows, exactly as /degenerate returned them,
+  // asserted against the tally that misread them. Four were written by v7.72 (a `shape` with no
+  // emailIsJson), two by v7.72 as abandonments, three by v7.73 as repairs — so the fixture spans
+  // all three record formats the store actually contains, which is the whole point of the fix.
+  // Only the fields the tally reads are kept; request ids are dropped as they serve nothing here.
+  console.log('\n(v7.74) the real 9/8 rows tally the way the raw rows read:');
+  const D8 = [
+    // v7.73 repairs
+    { ts: '2026-09-09T00:53:47.933Z', finish: 'STOP', outcome: 'repaired', sample: '(unwrapped)' },
+    { ts: '2026-09-08T22:44:21.498Z', finish: 'STOP', outcome: 'repaired', sample: '(unwrapped)' },
+    { ts: '2026-09-08T22:23:47.070Z', finish: 'STOP', outcome: 'repaired', sample: '(unwrapped)' },
+    // v7.73 rejection — carries emailIsJson
+    { ts: '2026-09-08T22:12:44.094Z', finish: 'stop', outcome: 'rejected', sample: 'subject',
+      shape: { sms: 246, email: 7, subject: 31, voicemail: 253, emailBody: 7, emailIsJson: 0 } },
+    // v7.72 rows — shape present, emailIsJson ABSENT. These are the four that were miscounted.
+    { ts: '2026-09-08T21:35:52.903Z', finish: 'stop', sample: '{"subject":"Verifying your 2027 Seltos m…',
+      shape: { sms: 223, email: 454, subject: -1, voicemail: 226, emailBody: 454 } },
+    { ts: '2026-09-08T19:46:06.172Z', finish: 'stop', sample: '{"subject":"Sell the Yukon XL or trade i…',
+      shape: { sms: 266, email: 444, subject: 30, voicemail: 255, emailBody: 444 } },
+    { ts: '2026-09-08T18:28:16.093Z', finish: 'stop', sample: '{"subject":"Your 2018 Camry is at Kia Ba…',
+      shape: { sms: 169, email: 410, subject: 33, voicemail: 268, emailBody: 410 } },
+    { ts: '2026-09-08T18:15:31.995Z', finish: 'stop', sample: 'subject',
+      shape: { sms: 149, email: 7, subject: 24, voicemail: 207, emailBody: 7 } },
+    { ts: '2026-09-08T18:09:40.274Z', finish: 'stop', sample: '{"subject":"Revisiting the financing con…',
+      shape: { sms: 276, email: 468, subject: 37, voicemail: 215, emailBody: 468 } },
+  ].map((r, i) => Object.assign({ field: 'email', model: 'gpt-5.6-luna', tier: 'primary' }, r));
+
+  const kvD = makeKV();
+  D8.forEach((r, i) => kvD.store.set('degen:' + r.ts + ':row' + i, JSON.stringify(r)));
+  const LD = load(() => okBody(GOOD), kvD);
+  const outD = await LD.worker.fetch(
+    new Request('https://p.test/degenerate?key=' + DIRECTOR + '&date=2026-09-08'), ENVBASE(kvD), CTX);
+  const bD = await outD.json();
+  check('    all nine rows are in the window', bD.count, 9);
+  check('    SEVEN double-encoded, TWO abandoned — what the raw rows say',
+    bD.emailShapes, { doubleEncoded: 7, abandoned: 2, unclassified: 0 });
+  check('    ...and one finish reason, not two spellings', bD.byFinish, { stop: 9 });
+  check('    byOutcome is unchanged and still correct',
+    Object.entries(bD.byOutcome).sort(), [['rejected', 6], ['repaired', 3]]);
+
+  // A row that answers to none of the ladder must be reported, not guessed into a bucket.
+  console.log('\n(v7.74) an unreadable row is counted as unclassified, never assumed:');
+  const kvU = makeKV();
+  kvU.store.set('degen:2026-09-08T18:00:00.000Z:u', JSON.stringify(
+    { ts: '2026-09-08T18:00:00.000Z', field: 'email', model: 'gpt-5.6-luna', finish: 'stop' }));
+  const LU = load(() => okBody(GOOD), kvU);
+  const bU = await (await LU.worker.fetch(
+    new Request('https://p.test/degenerate?key=' + DIRECTOR + '&date=2026-09-08'), ENVBASE(kvU), CTX)).json();
+  check('    no shape and no sample — unclassified',
+    bU.emailShapes, { doubleEncoded: 0, abandoned: 0, unclassified: 1 });
+
+  // emailIsJson:0 is a VERDICT, not a missing field — it must not fall through to the sample.
+  console.log('\n(v7.74) a recorded emailIsJson:0 outranks the sample:');
+  const kvZ = makeKV();
+  kvZ.store.set('degen:2026-09-08T18:00:00.000Z:z', JSON.stringify(
+    { ts: '2026-09-08T18:00:00.000Z', field: 'email', model: 'gpt-5.6-luna', finish: 'stop',
+      sample: '{not really json', shape: { emailIsJson: 0 } }));
+  const LZ = load(() => okBody(GOOD), kvZ);
+  const bZ = await (await LZ.worker.fetch(
+    new Request('https://p.test/degenerate?key=' + DIRECTOR + '&date=2026-09-08'), ENVBASE(kvZ), CTX)).json();
+  check('    abandoned, despite a sample that starts with a brace',
+    bZ.emailShapes, { doubleEncoded: 0, abandoned: 1, unclassified: 0 });
 
   // ── A CLEAN DAY WRITES NOTHING ─────────────────────────────────────────────
   console.log('\na clean generation records nothing at all:');
