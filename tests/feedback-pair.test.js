@@ -110,6 +110,11 @@ function runPrelude(B, state, seed) {
       }
     },
     lastScrapedData: { autoLeadId: '2079186130' },
+    // (v9.7.648) The shipped capture now asks _lpVmForLead about the ROW's lead — meta.autoLeadId,
+    // stamped at generation time — rather than about lastScrapedData, which clearFields() nulls on
+    // every grab. Seeded to the same lead so this suite still measures ORDERING and nothing else;
+    // which lead the capture names is vm-lead-scope.test.js's question, not this one's.
+    _lpFeedback: { meta: { autoLeadId: '2079186130' } },
     _lpScrubPII: (s) => String(s === undefined || s === null ? '' : s),
     _lpVmForLead: () => state.vm || '',
     __row: { drafts: null }
@@ -136,6 +141,11 @@ function captureOnly(B, fields, seed) {
     console: { log() {} },
     document: { getElementById: (id) => ({ value: fields[id] === undefined ? '' : fields[id] }) },
     lastScrapedData: { autoLeadId: '2079186130' },
+    // (v9.7.648) The shipped capture now asks _lpVmForLead about the ROW's lead — meta.autoLeadId,
+    // stamped at generation time — rather than about lastScrapedData, which clearFields() nulls on
+    // every grab. Seeded to the same lead so this suite still measures ORDERING and nothing else;
+    // which lead the capture names is vm-lead-scope.test.js's question, not this one's.
+    _lpFeedback: { meta: { autoLeadId: '2079186130' } },
     _lpScrubPII: (s) => String(s === undefined || s === null ? '' : s),
     _lpVmForLead: () => '',
     __row: { drafts: null }
