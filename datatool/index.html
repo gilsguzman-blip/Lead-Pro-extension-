@@ -479,7 +479,22 @@ function ipChunkByModelNames(fullText, models) {
     // already-correct backward match is never overridden.
     if (!yearM) {
       const chunkText = fullText.slice(start, boundedEnd);
-      const forwardM = chunkText.match(/\b(?:Finance|Lease)\s+(20\d{2})\b/);
+      // (v2 forward fallback) The first form enumerated the offer-type LABEL WORDS -- Finance,
+      // Lease -- so any card whose label is neither walked straight through with no year at all.
+      // Confirmed on the real 9/9 Honda pages (Baytown 6191 and Lafayette 24399, identical
+      // layout): 11 lines per store carried no year, every one of them a Loyalty Cash / Customer
+      // Cash card whose label reads "Special Program". The page itself is completely uniform --
+      // EVERY card is "<model> See All Offers <label> <year>" -- so the label is the one part
+      // that varies and the one part worth not depending on. Match the structure instead: the
+      // "See All Offers" token that Honda's own chunk filter already relies on, then the first
+      // year within a few words of it. The bounded {0,4} word gap keeps this anchored to the
+      // card header rather than reaching an unrelated year deeper in the offer body. The old
+      // alternation is kept as a second fallback, so any card that was dated correctly before
+      // is still dated by exactly the same match it was.
+      // Not a uniform "missing 2026": CR-V, CR-V Hybrid and HR-V run 2027 Special Program cards
+      // alongside their 2026 ones, which is precisely why a hardcoded year would be wrong here.
+      const forwardM = chunkText.match(/See All Offers\s+(?:[A-Za-z]+\s+){0,4}?(20\d{2})\b/)
+                    || chunkText.match(/\b(?:Finance|Lease)\s+(20\d{2})\b/);
       if (forwardM) yearM = forwardM;
     }
     // Genuinely absent or ambiguous (e.g. two different years both nearby, neither pattern
