@@ -56,6 +56,11 @@ function extract(file) {
     // exactly the mistake that made three of this suite's own assertions fail on the first run.
     ack:   grab('var _ackSaid = false;', "+ 'label, a vendor name, or anything you see in the notes or lead history.');\n    }", 'source acknowledgment'),
     angles: grab('var LP_ARC_ANGLES = [', '\n];', 'angle table'),
+    // (v9.7.651)
+    asked: grab('function _lpQualifyingAsked(d) {', '\n  return false;\n}', 'qualifying-asked helper'),
+    crm:   grab('vehicleExtras.push(_lpQualifyingAsked(d)', 'the vehicle you asked about."\');', 'CRM-CONFIRMS branch'),
+    noveh: grab('(_lpQualifyingAsked(data)', "Ask what they are looking for instead.'),", 'no-vehicle constraint'),
+    subj:  grab('...((!data.vehicle && !hasCustomerReply)', "none of the banned openers.']\n      : []),", 'subject directive'),
   };
 }
 
@@ -224,6 +229,153 @@ check('C: without the angle the table is back to eight',
 check('C: and the question that was asked twice reads as unused',
   i => { const sb = {}; vm.createContext(sb); vm.runInContext(OLD_ANGLES(i.angles), sb);
          return vm.runInContext('LP_ARC_ANGLES', sb).some(r => r[1].test(SENT_TEXT) && r[0] === 'qualifying'); }, false);
+
+// ── (v9.7.651) THE NO-VEHICLE BLOCKS READ THE ARC INSTEAD OF ASSUMING ───────────────────────
+// v9.7.650's lever fired and the draft asked anyway, because the arc block is an OBSERVATION and
+// it was up against two INSTRUCTIONS. These execute the shipped helper and both shipped branches.
+function askedFor(impl, sends) {
+  const sb = { LP_ARC_ANGLES: null, d: { outboundSends: sends }, __out: null, String: String };
+  vm.createContext(sb);
+  vm.runInContext(impl.angles + '\n' + impl.asked + '\n__out = _lpQualifyingAsked(d);', sb);
+  return sb.__out;
+}
+function crmLine(impl, asked, code) {
+  const out = [];
+  const sb = { vehicleExtras: { push: (x) => out.push(x) }, _lpQualifyingAsked: () => asked, d: {} };
+  vm.createContext(sb);
+  vm.runInContext(code || impl.crm, sb);
+  return out[0];
+}
+function noVehLine(impl, asked) {
+  const sb = { _lpQualifyingAsked: () => asked, data: {}, __out: null };
+  vm.createContext(sb);
+  vm.runInContext('__out = ' + impl.noveh.replace(/,\s*$/, '') + ';', sb);
+  return sb.__out;
+}
+function subjLines(impl, data, hasReply) {
+  const sb = { data: data, hasCustomerReply: hasReply, __out: null };
+  vm.createContext(sb);
+  // The lifted span is a SPREAD member. Strip the leading dots and evaluate the ternary itself —
+  // wrapping it in another array made length always 1 and hid two real cases on the first run.
+  vm.runInContext('__out = ' + impl.subj.replace(/^\.\.\./, '').replace(/,\s*$/, '') + ';', sb);
+  return sb.__out;
+}
+
+console.log('\n(4) the helper reads the one table that owns the answer:');
+
+check('Brennan\'s three real sends make it true',
+  i => askedFor(i, [{ body: SENT_TEXT }, { body: SENT_EMAIL }, { body: SENT_CHASSICA }]), true);
+
+check('the 8:52 text alone is enough',
+  i => askedFor(i, [{ body: SENT_TEXT }]), true);
+
+check('sends that never asked leave it false',
+  i => askedFor(i, [{ body: 'The CR-V is here and available to see.' },
+                    { body: 'Would 2:00 PM or 2:45 PM work today?' }]), false);
+
+check('no sends at all is false, not a throw',
+  i => askedFor(i, []), false);
+
+check('a malformed send cannot throw it',
+  i => askedFor(i, [null, { }, { body: null }]), false);
+
+console.log('\n(5) both no-vehicle blocks branch on it:');
+
+check('CRM-CONFIRMS, first asking — the v9.7.650 wording, byte for byte',
+  i => crmLine(i, false),
+  'CRM CONFIRMS: no vehicle of interest is on file for this lead (authoritative record, not a display failure). Ask directly and confidently what they are shopping for — do not reference or hedge about "the vehicle you asked about."');
+
+check('CRM-CONFIRMS, already asked — names it the restate failure',
+  i => /Asking a third time in different words is the restate failure/.test(crmLine(i, true)), true);
+
+check('...and still states the authoritative fact that there is no vehicle',
+  i => /no vehicle of interest is on file for this lead \(authoritative record/.test(crmLine(i, true)), true);
+
+check('...and offers the two real ways out: a smaller ask, or another lever',
+  i => /make the ask far smaller/.test(crmLine(i, true)) && /lever that has not been used yet/.test(crmLine(i, true)), true);
+
+check('hard constraint, first asking — unchanged',
+  i => noVehLine(i, false),
+  '- NEVER mention a specific vehicle model, trim, or name that does not appear in this prompt. If no vehicle of interest is listed on the lead, do NOT invent one. Ask what they are looking for instead.');
+
+check('hard constraint, already asked — drops the ask, keeps the prohibition',
+  i => /NEVER mention a specific vehicle model/.test(noVehLine(i, true))
+    && /Do NOT simply ask what they are looking for either/.test(noVehLine(i, true)), true);
+
+check('the prohibition on naming an absent vehicle is on BOTH arms',
+  i => [true, false].every(a => /do NOT invent one/.test(noVehLine(i, a))), true);
+
+console.log('\n(6) the subject directive fires on the shape that has no anchors:');
+
+check('no vehicle and no customer message — the directive is emitted',
+  i => subjLines(i, { vehicle: '' }, false).length, 1);
+
+check('...and it forbids stating a fact back at them, with the real example',
+  i => /Your application is already submitted/.test(subjLines(i, { vehicle: '' }, false)[0]), true);
+
+check('...and points at what is new to the reader instead',
+  i => /Anchor on what is NEW to them/.test(subjLines(i, { vehicle: '' }, false)[0]), true);
+
+check('...and keeps the length and the bans from the system rules',
+  i => /4-8 words/.test(subjLines(i, { vehicle: '' }, false)[0])
+    && /none of the banned openers/.test(subjLines(i, { vehicle: '' }, false)[0]), true);
+
+check('a lead WITH a vehicle gets nothing — the rules already have an anchor',
+  i => subjLines(i, { vehicle: '2026 Honda Civic Hatchback Sport' }, false).length, 0);
+
+check('a customer who has written to us gets nothing — they said something to quote',
+  i => subjLines(i, { vehicle: '' }, true).length, 0);
+
+// The cached prefix must not have moved: the SUBJECT LINE RULES stay in the system prompt above
+// the breakpoint, untouched. A per-lead subject rule up there would re-cost the prefix every
+// generation, and the daily report reads that number.
+check('the SUBJECT LINE RULES are still above the cache breakpoint and unbranched',
+  i => { const s = i.src; const r = s.indexOf("'SUBJECT LINE RULES:'");
+         const b = s.indexOf("'⟦LP_CACHE_BREAKPOINT⟧'");
+         return r > 0 && b > 0 && r < b; }, true);
+
+// Read the actual span rather than a bounded lazy regex: a length guess is not a measurement,
+// and a lazy match with no bound would run to the first hit anywhere in the file.
+check('...and nothing per-lead was added to them',
+  i => { const s = i.src;
+         const a = s.indexOf("'SUBJECT LINE RULES:'");
+         const b = s.indexOf("'⟦LP_CACHE_BREAKPOINT⟧'", a);
+         const span = s.slice(a, b);
+         // Identifiers only. An earlier version of this line also tested /data\./ and failed on the
+         // span's own English -- "without confirmation in the lead data." -- which is the prose-match
+         // hazard (v9.7.630) inside the suite that exists to catch it.
+         return !/_lpQualifyingAsked|hasCustomerReply/.test(span); }, true);
+
+// The stronger property behind that one: this span is a list of STATIC strings, so the cached
+// prefix is byte-identical on every lead. Any string concatenation in here would make it per-lead.
+check('...and the whole rules block is static — no interpolation in the cached prefix',
+  i => { const s = i.src;
+         const a = s.indexOf("'SUBJECT LINE RULES:'");
+         const b = s.indexOf("'⟦LP_CACHE_BREAKPOINT⟧'", a);
+         return (s.slice(a, b).match(/' \+ | \+ '/g) || []).length; }, 0);
+
+console.log('\nnon-vacuity (v9.7.651 branches):');
+const OLD_CRM   = c => c.replace('_lpQualifyingAsked(d)', 'false');
+const OLD_NOVEH = c => c.replace('_lpQualifyingAsked(data)', 'false');
+const OLD_SUBJ  = c => c.replace('(!data.vehicle && !hasCustomerReply)', 'false');
+
+check('neuter D actually changed the CRM branch', i => OLD_CRM(i.crm) !== i.crm, true);
+check('D: pinned to "not asked", the third asking is instructed again — the reported bug',
+  i => /Ask directly and confidently what they are shopping for/.test(crmLine(i, true, OLD_CRM(i.crm))), true);
+
+check('neuter E actually changed the constraint', i => OLD_NOVEH(i.noveh) !== i.noveh, true);
+check('E: pinned to "not asked", the constraint tells it to ask again',
+  i => { const sb = { _lpQualifyingAsked: () => true, data: {}, __out: null };
+         vm.createContext(sb);
+         vm.runInContext('__out = ' + OLD_NOVEH(i.noveh).replace(/,\s*$/, '') + ';', sb);
+         return /Ask what they are looking for instead/.test(sb.__out); }, true);
+
+check('neuter F actually changed the subject gate', i => OLD_SUBJ(i.subj) !== i.subj, true);
+check('F: with the gate off, the anchorless lead gets no subject guidance',
+  i => { const sb = { data: { vehicle: '' }, hasCustomerReply: false, __out: null };
+         vm.createContext(sb);
+         vm.runInContext('__out = ' + OLD_SUBJ(i.subj).replace(/^\.\.\./, '').replace(/,\s*$/, '') + ';', sb);
+         return sb.__out.length; }, 0);
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);
