@@ -195,7 +195,14 @@ for (const file of BUILDS) {
     /var _ackP = \(typeof _lpSourceAckPhrase === 'function'\) \? _lpSourceAckPhrase\(_ls\) : null;/.test(code), true);
   check('...and the name still comes from it, not from a second list',
     /var _ackName = _ackP \? _ackP\.name : '';/.test(code), true);
-  check('...and it returns early when there is no name', /if \(!_ackName\) return;/.test(code), true);
+  // (v9.7.652) Was pinned to the one-line form `if (!_ackName) return;`. That return now logs its
+  // outcome first, so the literal stopped matching while the PROPERTY -- the block bails when no
+  // customer-facing name resolves -- is unchanged. Asserted as the property, and paired with the
+  // new one that the bail is now observable rather than silent.
+  check('...and it returns early when there is no name',
+    /if \(!_ackName\)[\s\S]{0,400}?return;/.test(code), true);
+  check('...and that suppression is reported, not silent',
+    /_ackLog\('SUPPRESSED-no-recognisable-name/.test(code), true);
   check('the raw lead source is never pushed into the prompt from this block',
     /ageBlock\.push\('This lead came in through: ' \+ _ls/.test(code), false);
   check('...the emitted line uses the resolved name',

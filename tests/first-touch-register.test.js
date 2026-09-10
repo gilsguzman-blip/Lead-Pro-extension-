@@ -54,7 +54,10 @@ function extract(file) {
     // The end marker must be the THIRD arm's tail, not the first arm's: all three end with the same
     // sentence, and grabbing to the first match lifts only the scan plus one branch — which is
     // exactly the mistake that made three of this suite's own assertions fail on the first run.
-    ack:   grab('var _ackSaid = false;', "+ 'label, a vendor name, or anything you see in the notes or lead history.');\n    }", 'source acknowledgment'),
+    // (v9.7.652) The span now starts at _ackArm and ends at the _ackLog call after the chain, so
+    // the arm-recording and the outcome line are both inside what this suite executes. Ending at
+    // the third arm's tail alone would test the emitted text and none of the reporting.
+    ack:   grab("var _ackArm = '';", '_ackLog(_ackArm);', 'source acknowledgment'),
     angles: grab('var LP_ARC_ANGLES = [', '\n];', 'angle table'),
     // (v9.7.651)
     asked: grab('function _lpQualifyingAsked(d) {', '\n  return false;\n}', 'qualifying-asked helper'),
@@ -88,14 +91,19 @@ function stepBlock(impl, data, code) {
   vm.runInContext((code || impl.steps) + '\n__block = drSessionBlock;', sb);
   return sb.__block;
 }
-function ackLine(impl, data, ackName, code) {
-  const sb = { data: data, _ackName: ackName, ageBlock: [],
+function ackRun(impl, data, ackName, code) {
+  const outcomes = [];
+  const sb = { data: data, _ackName: ackName, ageBlock: [], JSON: JSON,
+               _ackLog: (o) => outcomes.push(o),
                _ackP: { ex1: 'I saw your ' + ackName + ' request come through...',
                         ex2: 'Thanks for starting this on ' + ackName + '...' } };
   vm.createContext(sb);
   vm.runInContext(code || impl.ack, sb);
-  return sb.ageBlock.join('\n');
+  // length, not truthiness: an outcome logged as the empty string is a DIFFERENT fact from no
+  // outcome logged at all, and collapsing them hid a neuter result on the first run.
+  return { text: sb.ageBlock.join('\n'), outcome: outcomes.length ? outcomes[0] : '(none logged)' };
 }
+const ackLine = (impl, data, ackName, code) => ackRun(impl, data, ackName, code).text;
 function angleFor(impl, key, code) {
   const sb = {};
   vm.createContext(sb);
@@ -376,6 +384,66 @@ check('F: with the gate off, the anchorless lead gets no subject guidance',
          vm.createContext(sb);
          vm.runInContext('__out = ' + OLD_SUBJ(i.subj).replace(/^\.\.\./, '').replace(/,\s*$/, '') + ';', sb);
          return sb.__out.length; }, 0);
+
+// ── (v9.7.652) THE DIAGNOSTIC REPORTS THE ARM THAT ACTUALLY RAN ────────────────────────────
+// log191 printed 'example shown:"I saw your Click & Go request come through..."' while the block
+// had taken the continuing-thread arm, which carries no example and forbids that sentence. The
+// line ran ahead of the branch, so it described the arm it used to take.
+console.log('\n(7) the source-ack diagnostic names its own outcome:');
+
+check('already named to them — the outcome says so',
+  i => /EMITTED-already-named-to-them/.test(ackRun(i, SAID, 'Click & Go').outcome), true);
+
+check('continuing thread — the outcome says so',
+  i => /EMITTED-continuing-thread/.test(ackRun(i, OUT_UNSAID, 'Click & Go').outcome), true);
+
+check('first contact — the outcome says so',
+  i => /EMITTED-first-contact/.test(ackRun(i, FIRST, 'Click & Go').outcome), true);
+
+// The example is the specific thing that was wrong: it belongs to one arm and was printed on all.
+check('the example sentence is printed ONLY on the arm that shows one',
+  i => [ackRun(i, SAID, 'Click & Go').outcome,
+        ackRun(i, OUT_UNSAID, 'Click & Go').outcome].every(o => !/example shown/.test(o)), true);
+
+check('...and it IS printed on the first-contact arm, which does show one',
+  i => /example shown/.test(ackRun(i, FIRST, 'Click & Go').outcome), true);
+
+check('exactly one outcome is logged per run — not none, not two',
+  i => { const runs = [SAID, OUT_UNSAID, FIRST].map(d => {
+           const outs = []; const sb = { data: d, _ackName: 'Click & Go', ageBlock: [], JSON: JSON,
+             _ackLog: (o) => outs.push(o), _ackP: { ex1: 'a', ex2: 'b' } };
+           vm.createContext(sb); vm.runInContext(i.ack, sb); return outs.length; });
+         return runs; }, [1, 1, 1]);
+
+// The older half of the fault: three exits ran AFTER the old diagnostic, so it claimed an
+// acknowledgment was emitted on leads where none was. Asserted on the shipped source, since those
+// exits sit outside the span this suite executes.
+const ackFn = (i) => { const a = i.src.indexOf('var _ackP = (typeof _lpSourceAckPhrase');
+                       const b = i.src.indexOf('_ackLog(_ackArm);', a);
+                       return i.src.slice(a, b); };
+
+check('every early exit reports an outcome before returning',
+  i => (ackFn(i).match(/_ackLog\('SKIPPED|_ackLog\('SUPPRESSED/g) || []).length, 4);
+
+check('no bare "return;" is left unreported in the block',
+  i => { const body = ackFn(i).split('\n').filter(l => !/^\s*\/\//.test(l)).join('\n');
+         return /[^}]\s+return;/.test(body.replace(/_ackLog\([^)]*\);\s*\n?\s*return;/g, '')); }, false);
+
+check('the eager pre-branch console.log is gone',
+  i => /console\.log\('\[LP SOURCE ACK DIAG\][\s\S]{0,300}?acknowledgment emitted with the resolved name/
+         .test(i.src.split('\n').filter(l => !/^\s*\/\//.test(l)).join('\n')), false);
+
+console.log('\nnon-vacuity (v9.7.652):');
+// Restore the fault: pin the arm variable empty so the outcome cannot name the arm.
+// Line-based, because the first-contact arm CONCATENATES the example onto its label and a
+// quote-bounded regex stopped short of the semicolon — the neuter silently left that arm intact.
+const OLD_ARM = c => c.split('\n').map(l => /^\s*_ackArm = 'EMITTED-/.test(l) ? "      _ackArm = '';" : l).join('\n');
+check('neuter G actually blanked the arm recording', i => OLD_ARM(i.ack) !== i.ack, true);
+check('G: with no arm recorded, the outcome names nothing on any of the three arms',
+  i => [SAID, OUT_UNSAID, FIRST].map(d => ackRun(i, d, 'Click & Go', OLD_ARM(i.ack)).outcome),
+  ['', '', '']);
+check('G (control): the shipped block names all three',
+  i => [SAID, OUT_UNSAID, FIRST].every(d => /^EMITTED-/.test(ackRun(i, d, 'Click & Go').outcome)), true);
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);
