@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.654-dev (Dev. AN ANSWERED QUESTION THAT COULD NOT BE CLOSED, AND A CORRUPTED APOSTROPHE THAT OPENED TWO MORE. Extension only; proxy v7.74 and reporter v1.22 unchanged. LIVE, 9/10, Antonio Cadena (Community Kia Baytown, lead 2079566626, CarGurus, 2022 Ram 1500 Laramie). Kristen: "Seems like it missed the salesperson notes. would have built a better response with that info in the mix." THE NOTE REACHED THE MODEL THREE TIMES -- in the arc spine, in the AGENT CONTEXT preamble and in the transcript -- and the CRM dump taken one minute before the prompt proves it read exactly as captured. What ignored it was the OPEN THREADS resolver, which shipped this to the model: 'Customer asked question(s) that may not have been answered: "So you have a video of this vehicle by any chance ?" (09/07/2026 9:52 AM)', followed by 'addressing them is the highest-leverage move this message can make'. Kristen had answered it 48 minutes after he asked, and Alyssa's 3:48 PM note says the pictures and videos went out and he loves the truck. THREE INDEPENDENT DEFECTS STACKED TO PRODUCE ONE FALSE OPEN. (1) A NOTE COULD NEVER CLOSE A THREAD: the answered-check required an item carrying a data-direction flag, and a General Note carries none, so an agent recording that she DID the thing was structurally invisible to it. (2) THE OVERLAP BAR WAS UNREACHABLE: closing needed two shared content words; the question has three and the reply named the truck instead of repeating 'vehicle', scoring one -- and worse, a question of one or two content words could NEVER reach two, so every one of them on every lead has been permanently open since v9.7.81. (3) A CORRUPTED APOSTROPHE IS NOT A SENTENCE BOUNDARY: VinSolutions stores the CarGurus lead body with its curly quotes mangled into question marks, so I?m / I?d / it?s each split the line, and TWO of the three open questions on this lead were fragments of that single sentence, one of them a URL fragment. FIXES: a dated note closes a thread when it records a FULFILMENT rather than a plan (a short past-tense verb list is the entire guard, and 'will let me know' is deliberately absent from it); the bar is one shared word for a question of three content words or fewer and a generic vehicle noun answers any other generic vehicle noun; and a question mark with a letter tight on the left and a lowercase letter tight on the right is restored to an apostrophe before the split. THE ASYMMETRY THAT SETS THE DIRECTION, stated because the looser bar is a real risk: a false close drops a nudge, a false open INSTRUCTS the model to re-ask something the customer already received. Closing is the cheaper error. NEW [LP OPEN THREAD DIAG] prints one row per question with the verdict, the bar it had to clear and what cleared it -- a silent resolver is why this took a prompt capture and a CRM dump to find. SECOND DEFECT ON THE SAME LEAD, the ownership rule for the seventh time: three blocks disagreed about whether to ask for a visit at all. PAUSE said 'Do NOT offer an appointment. NO QUESTIONS of any kind.' FINANCING CONCERN pointed at the visit for real numbers. The DISTANCE BUYER block, in the strongest wording of the three, said the visit justification is REQUIRED in every format and that the email closes on the appointment ask -- and its own CONTEXT line said to 'encourage the soonest workable time' at a customer recorded 66 minutes earlier as saying he will let us know when he can come down. v9.7.611 gated this same text on the appointment engine and its gate checks stalled and never-replied but not pause. One _lpPauseHold helper now feeds both the gate and the CONTEXT line. THE ORDERING IS THE FIX AND IS ASSERTED AS SUCH: the pause test sits BEFORE the _dbReplied short-circuit, because a paused lead has replied by definition, so the other order would have been dead code on every lead it exists for. The JUSTIFICATION half still ships on a paused lead, deliberately and per v9.7.611 -- a distance buyer must never feel they might drive far for nothing whether or not we are asking them in. The zero-contact reason clause is unchanged to the byte; only the paused arm states a reason that is true on a paused lead. VERIFIED: NEW open-thread-resolver.test.js, 47 assertions, EXECUTING the shipped resolver against Antonio's real 27-item CRM shape rebuilt from the dump with the phone and email replaced -- the video thread closes on Alyssa's note AND on Kristen's outbound independently, both fake questions are gone, the objection path still refuses to clear on an agent's note, and a genuinely unanswered question with no answering note still surfaces as open. distance-appt-gate extended to 59 (+30), EXECUTING the shipped block with the SHIPPED helper loaded for every case including the twenty-nine that predate it: the paused lead loses the invite clause, the email ask and the soonest-workable-time CONTEXT line while keeping the mandatory SMS justification, Lolita's wording is asserted byte-identical, and the ordering is pinned as its own case -- replied:true with the engine still off, which is the assertion that would fail if the pause test were moved below the reply short-circuit. 99 suites green (4,571 assertions, +77), dev===comm with all four changed regions byte-compared between builds. ONE OF MY OWN NEUTERS WAS WRONG AND SAID SO BY FAILING: restoring the two-word bar did NOT reopen the video thread, because Alyssa's note carries BOTH 'videos' and 'truck' and clears two words on its own. The note was never hidden by the overlap count -- it was hidden by the direction flag alone, which is a sharper statement of the defect than the one I wrote. The neuter now runs against a neutralised note, and the fact it uncovered is pinned as an assertion of its own. NON-VACUITY, behavioural and in-build, each paired with a control: restoring the outbound-only closure re-opens the video thread on the note path, restoring the two-word bar re-opens it on the outbound path, removing the apostrophe repair brings both fake questions back, and pinning the pause helper false restores the time-close directives to a paused lead. TWO SIBLINGS OBSERVED AND NOT BUILT, both real: the same CONTEXT line still says 'encourage the soonest workable time' on the zero-contact and reactivation paths that v9.7.611 gated, and convState 'exit' is not fed into the hold. Both are the same shape as what is fixed here and both change text v9.7.611's suite pins, so they get their own build. STILL OPEN, unchanged: the monthly-payment / incentive directive collision; OFFER ENDING SOON has never fired; the open-tomorrow branch; a translate press is invisible in telemetry; the reporter's comprehension footer contradicts its own Changed column; the System callmeasurement URL row; scenarioRules rendering twice per prompt. node --check clean on both builds; both manifests parse; version AND version_name both bumped. scraperVersion stays v9.7.51. Builds on v9.7.653. Mirrors COMMERCIAL v9.7.654.)
 // Lead Pro -- popup.js  v9.7.653-dev (DEV. I OFFERED THE MODEL TWO DOORS AND ONLY ONE OF THEM WENT THE RIGHT DIRECTION. Extension only; proxy v7.74 and reporter v1.22 unchanged. v9.7.651 told the model that once the qualifying question has gone unanswered it may EITHER make the ask far smaller OR spend the touch on a lever that has not been used yet. On Brennan Mitchell's next grab it took the second door: "I can set aside 30 minutes this afternoon at 2:30 or 3:15. Which works better?" -- a two-option appointment close on touch seven of a lead that has answered nothing, and a step back from the previous draft's "Reply SUV, sedan, or truck." THE MODEL DID EXACTLY WHAT I WROTE. What I wrote was wrong, and the fault is a false equivalence: after silence, moving from an open question to a hard time-close is a BIGGER ask, not a different one. Appointment was sitting in the unused list, so my own sentence pointed straight at it. THE PROMPT ALREADY CARRIED THE ANSWER AND I TOLD THE MODEL TO GO AND RECONCILE IT. renderRelationshipReading emits 'This is not a hot lead. Soft re-engage -- change the angle, do not press for an appointment hard' under exactly s.channelFatigue AND NOT s.hasNoShowHistory, and that block sits several thousand characters away from the no-vehicle directive that was pointing at the appointment lever. That predicate is the OWNER of how hard a touch may push. It lives on the data envelope and is reachable at BOTH no-vehicle sites, so both now READ it rather than hoping the model weighs two blocks against each other -- the same rule this file has re-earned five builds running, and the same shape as v9.7.651's own _lpQualifyingAsked. WHAT CHANGES: the second door is narrowed rather than closed. A different lever is still allowed, but only where it asks LESS of the customer than the question they already ignored, and a two-option appointment close is named as the example of what that excludes. Where the relationship read says soft re-engage, a time-close is out for that touch whatever the unused levers are -- a visit may still be offered in passing, it just cannot be the ask the message ends on. On a lead with no fatigue signal the wording is byte-unchanged from v9.7.651 apart from the go-down-not-up sentence, which is true on every lead where the question has already been asked. NOT A MODEL-ADHERENCE PROBLEM, and worth saying because the temptation was to add a third directive shouting louder. Three builds in this codebase (v9.7.496, v9.7.504, v9.7.507) proved a correction placed after the thing it corrects loses to it. The fix is upstream of the collision, in the directive that named the lever. VERIFIED: first-touch-register extended to 91 assertions (+17), EXECUTING the shipped predicate against all four signal shapes and both shipped no-vehicle branches with the ceiling on and off. THE NO-REGRESSION DIRECTION IS ASSERTED AS AN INDEX, not by eye: the fatigued text must START WITH the unfatigued text, so the ceiling can only ever be additive. A no-show history turns the predicate OFF, mirroring the block it reads from rather than approximating it. 99 suites green (4,494 assertions, +20), dev===comm on all three regions. ONE OF MY OWN v9.7.651 ASSERTIONS WAS REWRITTEN RATHER THAN RELAXED: it was called 'offers the two real ways out' and pinned the wording that presented a smaller ask and a different lever as EQUAL options. That equivalence is the defect this build fixes, so the assertion now states the rule -- the direction of travel, the concrete smaller ask, the less-than test on the alternative, and the escalation named. NON-VACUITY IS BEHAVIOURAL AND IN-BUILD: restoring an unconstrained second door removes the direction of travel entirely, and pinning the predicate false strips the time-close prohibition off a lead that has earned it; each is paired with a control on the shipped form. STILL OPEN, unchanged: the monthly-payment / incentive directive collision; OFFER ENDING SOON has never fired; the open-tomorrow branch; a translate press is invisible in telemetry; the reporter's comprehension footer contradicts its own Changed column; the System callmeasurement URL row; scenarioRules rendering twice per prompt. node --check clean on both builds; both manifests parse; version AND version_name both bumped. scraperVersion stays v9.7.51. Builds on v9.7.652. Mirrors COMMERCIAL v9.7.653.)
 // Lead Pro -- popup.js  v9.7.652-dev (DEV. THE SOURCE-ACK DIAGNOSTIC DESCRIBED A BRANCH IT DID NOT TAKE, AND HAD BEEN LYING IN AN OLDER WAY SINCE THE DAY IT SHIPPED. Extension only; proxy v7.74 and reporter v1.22 unchanged. Console-only; no customer-facing behaviour changes anywhere in this build. REPORTED off the v9.7.651 capture. log191 printed 'shape:brand | example shown:"I saw your Click & Go request come through..." -- acknowledgment emitted with the resolved name' while the block had actually taken v9.7.650's CONTINUING-THREAD arm, which carries NO example and forbids that exact sentence by name. I branched the block in v9.7.650 and left its diagnostic behind, so it reported the arm it used to take. AND THE OLDER FAULT, found while fixing that one and worth more than it: the line ran BEFORE THREE OF THE FIVE EARLY RETURNS. On a marketplace source (CarGurus, KBB, TrueCar, Facebook, Capital One and the rest), on an internal finance-program source, or on ANY lead past the early-touch window, it announced 'acknowledgment emitted with the resolved name' and then emitted nothing at all. That has been true on every one of those leads since v9.7.635 shipped the diagnostic, and it is the kind of line an investigation trusts -- v9.7.635's own header records that the Click & Go path had no diagnostic and that this was why a naming bug took a prompt capture to find. A diagnostic that reports an outcome it did not reach is worse than none. FIXED BY LOGGING AT THE OUTCOME RATHER THAN AHEAD OF IT. One _ackLog helper, called at each of the four named exits and once after the emit chain, reporting which of seven things happened: SUPPRESSED-no-recognisable-name, SKIPPED-dedicated-directive, SKIPPED-internal-program-source, SKIPPED-past-early-touch, or EMITTED- with the arm named -- already-named-to-them, continuing-thread, or first-contact. The example sentence is printed ONLY on the first-contact arm, because that is the only arm that shows one. NOT BUILT, AND IT IS GIL'S CALL RATHER THAN A DEFECT: the subject line on the same capture read 'Your next Honda, made simpler', which cleared the restate the v9.7.651 directive was written against but is softer and more generic than the rules ask for. I proposed making the ask itself the subject ('SUV, sedan, or truck?'). Gil: 'I thik I'm ok with the subject. The direct subject I think would be to harsh in this instance.' The subject directive is therefore unchanged. VERIFIED: first-touch-register extended to 71 assertions (+12), EXECUTING the shipped block through all three emitted arms and asserting the logged outcome names the arm that ACTUALLY ran, that exactly one outcome is logged per run, and that the example sentence appears on the one arm that shows one and on neither of the others. The four early exits are asserted on the shipped source, since they sit outside the executed span, together with an assertion that no bare return is left unreported. 99 suites green (4,474 assertions, +14), dev===comm on all ten regions. ONE EXISTING SUITE UPDATED, DELIBERATELY AND NOT TO GO GREEN: source-name pinned the LITERAL one-line form `if (!_ackName) return;`, which now logs before returning. The property it protects -- the block bails when no customer-facing name resolves -- is unchanged and is now asserted as the property rather than as formatting, paired with a NEW assertion that the suppression is reported instead of silent. That is a strengthening, not a relaxation. TWO OF MY OWN NEUTER ERRORS, both caught by the neuter failing rather than passing: the first-contact arm CONCATENATES its example onto its label, and my quote-bounded regex stopped at the first quote, so the neuter silently left that arm intact -- it is line-based now; and the suite runner collapsed an outcome logged as the empty string with no outcome logged at all, which hid the result. Length, not truthiness. STILL OPEN, unchanged: the monthly-payment / incentive directive collision; OFFER ENDING SOON has never fired; the open-tomorrow branch; a translate press is invisible in telemetry; the reporter's comprehension footer contradicts its own Changed column; the System callmeasurement URL row; scenarioRules rendering twice per prompt. node --check clean on both builds; both manifests parse; version AND version_name both bumped. scraperVersion stays v9.7.51. Builds on v9.7.651. Mirrors COMMERCIAL v9.7.652.)
 // Lead Pro -- popup.js  v9.7.651-dev (DEV. THE LEVER FIRED AND TWO DIRECTIVES OVERRULED IT, WHICH IS THE OWNERSHIP RULE FOR THE FIFTH TIME. Extension only; proxy v7.74 and reporter v1.22 unchanged. v9.7.650 made the qualifying ask a tracked angle and it worked on the very next grab -- [LP ARC STATE DIAG] spent:qualifying,price,availability, with the evidence line quoting Chassica's own words. The draft asked "Which model are you considering?" anyway, the third time that question has gone to Brennan Mitchell in his own thread. NOT MODEL DISOBEDIENCE, AND THE PROMPT SHOWS WHY. The arc block is deliberately an OBSERVATION -- its own header reads "Nothing here tells you what to write" -- and it was up against two INSTRUCTIONS that say to ask, in those words: the CRM-CONFIRMS line ('Ask directly and confidently what they are shopping for') and the no-vehicle hard constraint ('Ask what they are looking for instead'). An observation loses to an instruction, correctly. Both instructions ASSUME the question is still unasked, and that fact belongs to the arc. Same family as v9.7.640 (an assumed vehicle), v9.7.645 (an assumed first meeting), v9.7.646 (an unowned title) and v9.7.649 (an assumed discovery). FIXED BY READING THE OWNER'S FIELD, not by adding a third directive to argue with the other two -- this codebase has proven three times (v9.7.496, .504, .507) that a correction placed after the thing it corrects loses to it. New _lpQualifyingAsked reads the SAME 'qualifying' row out of LP_ARC_ANGLES that the arc scanner uses, so there is one definition rather than two; if that row is ever renamed the helper returns false and both sites fall back to today's wording, which is the safe direction. Both no-vehicle blocks now branch on it. The authoritative-empty FACT is untouched on both arms -- there really is no vehicle -- and so is the unconditional prohibition on naming one that is not in the prompt. What changes is only the instruction that hung off them: with the question already asked and unanswered, asking again in different words is named as the restate failure, and the model is told to either make the ask far smaller than the one that failed (a yes/no, a two-way choice, one word back) or spend the touch on a lever that has not been used. On this lead that leaves payment, trade, incentive, appointment, manager and stepback, with a submitted credit application in hand. AND THE SUBJECT LINE, which Gil flagged in the same read. The SUBJECT LINE RULES name five things to anchor on -- the vehicle model, the trade vehicle, the offer, what happened in the visit, something the customer actually said -- and this lead has NONE of them: no vehicle on file, no trade, no visit, and a customer who has never written to us. The model did the only thing left and stated a fact back at him, "Your application is already submitted". Telling someone what they themselves did is not a reason to open an email. A per-lead subject directive now fires exactly on that shape (no vehicle AND no customer reply), names the dead end explicitly with its own examples, and points at what is actually NEW to the reader: what happens next, what their step makes possible, or the single easiest thing they could answer. IT LIVES IN THE USER PROMPT DELIBERATELY: the SUBJECT LINE RULES sit ABOVE the ⟦LP_CACHE_BREAKPOINT⟧, so making them per-lead would move the cached prefix on every generation and cost the prompt cache the daily report watches -- 78% of achievable this morning. VERIFIED: first-touch-register extended to 59 assertions (+27), EXECUTING the shipped helper against Brennan's three real sends, both shipped no-vehicle branches on both arms, and the shipped subject directive on all three lead shapes. 99 suites green (4,460 assertions, +27), dev===comm on all four regions. THE CACHED PREFIX IS ASSERTED UNMOVED, which is the risk this build had to avoid: the SUBJECT LINE RULES are still above the breakpoint and the span between them and the sentinel is asserted to contain zero string interpolation, so it stays byte-identical on every lead. FOUR OF THE SUITE'S OWN ASSERTIONS FAILED FIRST RUN AND BOTH CAUSES ARE MINE. Three shared one: the subject span is a SPREAD member, and my runner wrapped the ternary in another array so its length was always 1 -- it was reporting a pass on two cases that never ran. The fourth is the PROSE-MATCH HAZARD (v9.7.630) inside the suite written to catch that class: my cached-prefix check tested /data\./ against a span whose own English reads "without confirmation in the lead data." Narrowed to identifiers, and paired with the stronger structural check it should have been in the first place. NON-VACUITY IS BEHAVIOURAL AND IN-BUILD: pinning the CRM branch to "not asked" re-issues "Ask directly and confidently what they are shopping for" -- the reported bug exactly; pinning the constraint does the same for its half; disabling the subject gate leaves the anchorless lead with no guidance. Each is paired with a control on the shipped form, and the first-asking arms are asserted byte-for-byte identical to v9.7.650 so the fix cannot have moved a lead that has not been asked yet. WHAT THIS MIGHT BREAK, PLAINLY: on a no-vehicle lead where the qualifying question has already gone out, the model is now steered AWAY from the qualifying question and toward a smaller ask or a different lever -- which is the point, but it changes the destination v9.7.640 set for VOI-less leads, and that build's reasoning (the qualifying question is the honest and only move) still holds for the FIRST asking, which is why the branch is on 'already asked' rather than on 'no vehicle'. A lead where the question has not been asked is byte-unchanged in both blocks. STILL OPEN, unchanged: the monthly-payment / incentive directive collision; OFFER ENDING SOON has never fired; the open-tomorrow branch; a translate press is invisible in telemetry; the reporter's comprehension footer contradicts its own Changed column; the System callmeasurement URL row; scenarioRules rendering twice per prompt. node --check clean on both builds; both manifests parse; version AND version_name both bumped. scraperVersion stays v9.7.51. Builds on v9.7.650. Mirrors COMMERCIAL v9.7.651.)
@@ -14061,6 +14062,24 @@ function tryExecuteScript(tab, statusEl, dot) {
       // The check is loose -- looks for any shared content word (4+ chars) between
       // the question and the next outbound. Misses are conservatively flagged.
       (function detectUnansweredQuestions() {
+        // ── (v9.7.654) WHAT COUNTS AS AN ANSWER ────────────────────────────────────────────────
+        // A note only closes a thread when it records that something WAS done. "Said he will let
+        // me know" must never close anything, which is why a bare "let me know" is absent here and
+        // the possessive forms are pinned to a third party. This list is the entire guard on the
+        // note path, so it stays short and stays past-tense.
+        var _fulfilRe = /\b(?:sent|emailed|texted|gave|provided|shared|attached|answered|explained|forwarded|showed|went over|walked (?:him|her|them) through|told (?:him|her|them)|let (?:him|her|them) know)\b/i;
+        // Generic vehicle nouns are interchangeable in this position. The customer asks about
+        // "this vehicle" and the reply names the truck: same subject, zero literal overlap, and
+        // the old check scored that as not answering. car/van/suv cannot appear as question words
+        // (the collector keeps 4+ characters) but must still count on the REPLY side.
+        var _genNouns = ['vehicle','car','truck','suv','van','sedan','coupe','crossover','minivan'];
+        function _wordHit(body, w) {
+          if (body.indexOf(w) >= 0) return true;
+          if (_genNouns.indexOf(w) < 0) return false;
+          for (var _g = 0; _g < _genNouns.length; _g++) { if (body.indexOf(_genNouns[_g]) >= 0) return true; }
+          return false;
+        }
+        var _uqDiag = [];
         // Collect inbound questions oldest-first with their note index
         var inboundQuestions = [];
         for (var qi = noteEls.length - 1; qi >= 0; qi--) {
@@ -14069,6 +14088,17 @@ function tryExecuteScript(tab, statusEl, dot) {
           if (qdir !== 'inbound') continue;
           var qbody = ((qn.querySelector('.notes-and-history-item-content')||{}).innerText||'').trim();
           if (!qbody || qbody.length < 8) continue;
+          // ── (v9.7.654) A QUESTION MARK WITH LETTERS TIGHT ON BOTH SIDES IS AN APOSTROPHE ─────
+          // Antonio Cadena (Kia Baytown, lead 2079566626, 9/10). VinSolutions stores the CarGurus
+          // lead body with its curly apostrophes corrupted into question marks, so "I'm interested
+          // in this 2022 RAM 1500 and I'd like to know if it's still available." arrives as
+          // "I?m ... I?d ... it?s". The splitter below treats each one as a terminator, and TWO of
+          // the three open questions this lead shipped were fragments of that single line -- one of
+          // them a URL. The model was then told that answering them was the highest-leverage move
+          // it could make. Restored to an apostrophe rather than dropped, so a question that does
+          // survive reads correctly. A LOOKAHEAD rather than a consumed second character, so a run
+          // of them all convert; lowercase-only on the right, so a real "available?Thanks" is safe.
+          qbody = qbody.replace(/([A-Za-z])\?(?=[a-z])/g, "$1'");
           // Find sentences ending with ? (explicit questions)
           var qs = qbody.match(/[^.!?\n]{8,200}\?/g) || [];
           // (v9.7.354) ALSO capture DECLARATIVE objection statements — an unresolved objection is an
@@ -14105,7 +14135,7 @@ function tryExecuteScript(tab, statusEl, dot) {
                        .filter(function(w){ return !stopwords.test(w); });
           if (qWords.length === 0) continue;
           // Check notes that came AFTER this item (lower index = newer, DOM is newest-first).
-          var answered = false;
+          var answered = false, _closedBy = '';
           for (var oi = iq.noteIdx - 1; oi >= 0 && !answered; oi--) {
             var on = noteEls[oi];
             var odir = (on.getAttribute('data-direction')||'').toLowerCase();
@@ -14119,20 +14149,53 @@ function tryExecuteScript(tab, statusEl, dot) {
               // check counted as answered; but the customer never moved off it, so it stays OPEN.
               if (odir === 'inbound' && !objRe.test(obody)) { answered = true; break; }
             } else {
-              // A plain QUESTION is answered when a subsequent OUTBOUND shares >=2 content words.
-              if (odir !== 'outbound') continue;
+              // ── (v9.7.654) TWO DEFECTS, ONE LEAD, ONE QUESTION ─────────────────────────────
+              // Antonio asked "So you have a video of this vehicle by any chance ?" on 9/07.
+              // Kristen answered it 48 minutes later, and Alyssa's 9/10 note records that the
+              // pictures and videos went out and that he loves the truck. The prompt still told
+              // the model the question was open and that answering it was the highest-leverage
+              // move available.
+              //
+              // (1) A NOTE COULD NEVER CLOSE A THREAD. This required an item carrying an
+              // inbound/outbound direction flag, and a General Note carries none -- so an agent
+              // recording that she DID the thing was structurally invisible here, however dated
+              // and explicit the note was. A note counts now, but only when it records a
+              // fulfilment rather than a plan; the verb list above is the whole guard.
+              //
+              // (2) TWO SHARED WORDS WAS OUT OF REACH FOR A SHORT QUESTION. This one has three
+              // content words and the reply named the truck instead of repeating "vehicle", so it
+              // scored one. Worse: a question of one or two content words could never reach two at
+              // all, so every one of them has been permanently open since v9.7.81. One word now
+              // clears a question of three or fewer, and a generic vehicle noun answers any other
+              // generic vehicle noun.
+              //
+              // THE ASYMMETRY THAT PICKS THE DIRECTION: a false close drops a nudge; a false open
+              // INSTRUCTS the model to re-ask something the customer already received. Closing is
+              // the cheaper error, so the looser bar is the correct side to land on.
+              var _isNote = (odir !== 'inbound' && odir !== 'outbound');
+              if (odir !== 'outbound' && !(_isNote && _fulfilRe.test(obody))) continue;
+              var _need = qWords.length <= 3 ? 1 : 2;
               var hits = 0;
               for (var wi = 0; wi < qWords.length; wi++) {
-                if (obody.indexOf(qWords[wi]) >= 0) hits++;
-                if (hits >= 2) break;
+                if (_wordHit(obody, qWords[wi])) hits++;
+                if (hits >= _need) break;
               }
-              if (hits >= 2) { answered = true; break; }
+              if (hits >= _need) { answered = true; _closedBy = _isNote ? 'note' : 'outbound'; break; }
             }
           }
           if (!answered) {
             sig.unansweredQuestions.push({ date: iq.date, question: iq.question, isObjection: iq.isObjection });
           }
+          // (v9.7.654) A SILENT RESOLVER IS HOW A FALSE OPEN SHIPPED FOR MONTHS WITHOUT BEING SEEN.
+          // One row per question carrying the verdict, the bar it had to clear and what cleared it,
+          // so the next one is readable from a log instead of costing a prompt capture and a CRM dump.
+          _uqDiag.push((answered ? 'CLOSED-by-' + _closedBy : 'OPEN')
+            + ' need:' + (iq.isObjection ? 'customer-reply' : (qWords.length <= 3 ? 1 : 2))
+            + ' words:' + qWords.length
+            + ' "' + String(iq.question).slice(0, 60) + '"');
         }
+        try { _lpD('[LP OPEN THREAD DIAG] ' + _uqDiag.length + ' inbound question(s) examined | '
+          + (_uqDiag.join(' | ') || '(none)')); } catch (eUq) {}
         // Cap at 3 to avoid noise
         sig.unansweredQuestions = sig.unansweredQuestions.slice(-3);
       })();
@@ -18061,6 +18124,32 @@ function renderRelationshipReading(data) {
   lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   lines.push('');
   return lines.join('\n');
+}
+
+// ── (v9.7.654) DOES THIS LEAD'S OWN STATE FORBID ASKING FOR ANYTHING ON THIS TOUCH ──────────
+// Antonio Cadena, 9/10. Three blocks in one prompt disagreed about whether to ask for a visit.
+// PAUSE said "Do NOT offer an appointment. NO QUESTIONS of any kind." FINANCING CONCERN said the
+// visit is the easiest way to get real numbers. The DISTANCE BUYER block, in the strongest wording
+// of the three, said a visit-justification is REQUIRED in every format and that the email opens
+// with the confirmation THEN the appointment ask -- and its own CONTEXT line told the model to
+// "encourage the soonest workable time" at a customer who had just been recorded as saying he will
+// let us know when he can come down.
+//
+// Ownership rule, seventh instance. The pause state is the block whose JOB is to determine how
+// hard this touch may push; the distance block does not determine that at all, it ASSUMES it on
+// the way to asking for the visit. So the distance block reads the field rather than being
+// out-shouted by it. Same shape as v9.7.611, which gated this identical text on the appointment
+// engine, and v9.7.653, which gated the no-vehicle ask on the relationship read.
+//
+// convState is the field that actually carries this: hasPauseSignal is a hard-coded false (the
+// v9.7.189 phrase list was deleted) and the live signal is hasCallNotePause, which reaches the
+// prompt only as convState === 'pause'. Read the same way populateFromData already reads it. The
+// flag is kept in the test as a second door in case a later path sets it truthy.
+function _lpPauseHold(d) {
+  try {
+    var c = String((d && d.convState) || '').toLowerCase();
+    return c === 'pause' || !!(d && d.hasPauseSignal);
+  } catch (e) { return false; }
 }
 
 function buildUserPrompt(data) {
@@ -22323,6 +22412,12 @@ function buildUserPrompt(data) {
       // a wasted trip costs them more than most. What changes is what the trip can be FOR. No
       // availability claim, and no time discussed until there is a unit we can actually confirm.
       distanceContext = 'The ' + data.vehicle + ' named on this lead is SOLD — see VEHICLE STATUS above, which is the authoritative reading of stock. Do NOT say or imply it is available, and do NOT ask them to come in for it. This customer is a distance buyer, so a wasted drive costs them more than most: name a comparable unit you can actually confirm FIRST, and only discuss timing once there is something real to come and see.';
+    } else if (data.vehicle && ((typeof _lpPauseHold === 'function') ? _lpPauseHold(data) : false)) {
+      // (v9.7.654) The sold-unit arm above still wins, because a sold car must never be claimed
+      // available whatever state the lead is in. This arm is the same directive with the time
+      // taken out of it: availability is a fact this block may state, "the soonest workable time"
+      // is an ask it may not make while the pause directives stand.
+      distanceContext = 'Customer is interested in the ' + data.vehicle + '. Confirming it is here is fine and worth saying. Do NOT encourage a time, a visit or the soonest workable anything on this touch — this lead is in a PAUSE state and the directives that own that state forbid an appointment ask. Say it will be ready whenever they are, and do NOT promise to hold or set aside an in-stock unit (we do not reserve on-lot cars).';
     } else if (data.vehicle) {
       distanceContext = 'Customer is interested in the ' + data.vehicle + '. Confirm it is available and encourage the soonest workable time so the trip is worth it — do NOT promise to hold or set aside an in-stock unit (we do not reserve on-lot cars). If it is in transit/inbound, securing it before arrival is appropriate.';
     }
@@ -22376,14 +22471,22 @@ function buildUserPrompt(data) {
       try {
         var _dbLad = parseFloat(data.leadAgeDays || 0) || 0;
         var _dbReplied = (typeof _hasCustomerReplied === 'function') ? !!_hasCustomerReplied(data) : false;
+        // (v9.7.654) TESTED BEFORE THE REPLY SHORT-CIRCUIT, AND THE ORDER IS THE FIX. A paused
+        // lead has replied by definition -- that is how we know they want room -- so putting this
+        // after the _dbReplied line would have made it dead code on every lead it exists for.
+        if ((typeof _lpPauseHold === 'function') ? _lpPauseHold(data) : false) return true;
         if (_dbReplied) return false;                                   // they answered — the engine is live
         if (!!data._isStalled && !!data._neverReplied) return true;     // zero-contact: engine disabled upstream
         if (_dbLad >= 31) return true;                                  // reactivation: NO APPOINTMENT TIME
         return false;
       } catch (eDb) { return false; }
     })();
+    // (v9.7.654) Read again rather than threaded out of the gate above, so the gate stays a
+    // self-contained expression. It is the SAME helper, so the two cannot drift apart.
+    var _dbPaused = (typeof _lpPauseHold === 'function') ? _lpPauseHold(data) : false;
     try {
       console.log('[LP DISTANCE APPT GATE] apptEngineOff:' + _dbApptOff
+        + ' | pauseHold:' + _dbPaused
         + ' | leadAgeDays:' + (data.leadAgeDays || 0)
         + ' | stalled:' + !!data._isStalled + ' neverReplied:' + !!data._neverReplied
         + (_dbApptOff ? ' — distance block will require the justification but NOT an appointment ask'
@@ -22392,7 +22495,16 @@ function buildUserPrompt(data) {
       lines.push('🔴 DISTANCE BUYER: Customer is driving 30-60+ minutes (INTERNAL fact — shapes the offer, never the wording). '
         + (_dbApptOff ? 'Whatever you ask of them must be worth their time.' : 'The visit ask must be worth their time.'),
         _inStateFar ? ('- This customer is in-state but outside the local area. The DISTANCE HARD RULE applies IN FULL: do NOT name the miles, the drive, the trip, or the travel in ANY wording — including "your drive will be worth it", "worth the trip", "before you head over", or any paraphrase. Use the distance SILENTLY: make what you offer obviously worth their time with concrete pre-staging — the exact vehicle confirmed and ready, paperwork pre-filled, no waiting'
-          + (_dbApptOff ? '. Do NOT invite them in on this touch — the appointment engine is disabled for this lead, and the pre-staging is context for when they are ready, not an ask.'
+          // (v9.7.654) The reason clause is split because "the appointment engine is disabled
+          // for this lead" is TRUE on the zero-contact and reactivation paths and FALSE on a
+          // paused one -- and a directive that asserts a fact it does not own is the exact
+          // failure mode this build is fixing elsewhere. The zero-contact wording is unchanged
+          // to the byte.
+          + (_dbApptOff ? ('. Do NOT invite them in on this touch — '
+              + (_dbPaused
+                  ? 'this customer has asked for room and the PAUSE directives on this lead forbid an appointment ask'
+                  : 'the appointment engine is disabled for this lead')
+              + ', and the pre-staging is context for when they are ready, not an ask.')
                         : ' — and invite it once you have given them a concrete reason.')
           + ' The reason names what is READY FOR THEM, never the distance they would cover.') : '',
         '- NEVER say "stop by", "swing by", or "come see us" — these feel like casual asks for a significant trip.',
