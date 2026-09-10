@@ -61,6 +61,8 @@ function extract(file) {
     angles: grab('var LP_ARC_ANGLES = [', '\n];', 'angle table'),
     // (v9.7.651)
     asked: grab('function _lpQualifyingAsked(d) {', '\n  return false;\n}', 'qualifying-asked helper'),
+    // (v9.7.653)
+    soft:  grab('function _lpSoftReEngage(d) {', '} catch (e) { return false; }\n}', 'soft-re-engage helper'),
     crm:   grab('vehicleExtras.push(_lpQualifyingAsked(d)', 'the vehicle you asked about."\');', 'CRM-CONFIRMS branch'),
     noveh: grab('(_lpQualifyingAsked(data)', "Ask what they are looking for instead.'),", 'no-vehicle constraint'),
     subj:  grab('...((!data.vehicle && !hasCustomerReply)', "none of the banned openers.']\n      : []),", 'subject directive'),
@@ -247,15 +249,16 @@ function askedFor(impl, sends) {
   vm.runInContext(impl.angles + '\n' + impl.asked + '\n__out = _lpQualifyingAsked(d);', sb);
   return sb.__out;
 }
-function crmLine(impl, asked, code) {
+function crmLine(impl, asked, code, soft) {
   const out = [];
-  const sb = { vehicleExtras: { push: (x) => out.push(x) }, _lpQualifyingAsked: () => asked, d: {} };
+  const sb = { vehicleExtras: { push: (x) => out.push(x) }, _lpQualifyingAsked: () => asked,
+               _lpSoftReEngage: () => !!soft, d: {} };
   vm.createContext(sb);
   vm.runInContext(code || impl.crm, sb);
   return out[0];
 }
-function noVehLine(impl, asked) {
-  const sb = { _lpQualifyingAsked: () => asked, data: {}, __out: null };
+function noVehLine(impl, asked, soft) {
+  const sb = { _lpQualifyingAsked: () => asked, _lpSoftReEngage: () => !!soft, data: {}, __out: null };
   vm.createContext(sb);
   vm.runInContext('__out = ' + impl.noveh.replace(/,\s*$/, '') + ';', sb);
   return sb.__out;
@@ -299,8 +302,21 @@ check('CRM-CONFIRMS, already asked — names it the restate failure',
 check('...and still states the authoritative fact that there is no vehicle',
   i => /no vehicle of interest is on file for this lead \(authoritative record/.test(crmLine(i, true)), true);
 
-check('...and offers the two real ways out: a smaller ask, or another lever',
-  i => /make the ask far smaller/.test(crmLine(i, true)) && /lever that has not been used yet/.test(crmLine(i, true)), true);
+// (v9.7.653) WAS "offers the two real ways out", pinned to v9.7.651's wording. That build presented
+// a smaller ask and a different lever as EQUAL options, and the model took the second one to a
+// two-option appointment close on touch seven — a bigger ask, not a different one. The two are no
+// longer equivalent, so the assertion is rewritten to the rule rather than relaxed to pass.
+check('...and the direction of travel is stated: the ask goes down',
+  i => /THE ASK GOES DOWN FROM HERE, NOT UP/.test(crmLine(i, true)), true);
+
+check('...the smaller ask is still spelled out concretely',
+  i => /a yes\/no, a two-way choice, one word back/.test(crmLine(i, true)), true);
+
+check('...a different lever is still allowed, but only when it asks LESS',
+  i => /ONLY where it asks LESS of them than the question they already ignored/.test(crmLine(i, true)), true);
+
+check('...and the escalation it must not make is named',
+  i => /two-option appointment close is a HEAVIER ask/.test(crmLine(i, true)), true);
 
 check('hard constraint, first asking — unchanged',
   i => noVehLine(i, false),
@@ -373,7 +389,7 @@ check('D: pinned to "not asked", the third asking is instructed again — the re
 
 check('neuter E actually changed the constraint', i => OLD_NOVEH(i.noveh) !== i.noveh, true);
 check('E: pinned to "not asked", the constraint tells it to ask again',
-  i => { const sb = { _lpQualifyingAsked: () => true, data: {}, __out: null };
+  i => { const sb = { _lpQualifyingAsked: () => true, _lpSoftReEngage: () => false, data: {}, __out: null };
          vm.createContext(sb);
          vm.runInContext('__out = ' + OLD_NOVEH(i.noveh).replace(/,\s*$/, '') + ';', sb);
          return /Ask what they are looking for instead/.test(sb.__out); }, true);
@@ -444,6 +460,69 @@ check('G: with no arm recorded, the outcome names nothing on any of the three ar
   ['', '', '']);
 check('G (control): the shipped block names all three',
   i => [SAID, OUT_UNSAID, FIRST].every(d => /^EMITTED-/.test(ackRun(i, d, 'Click & Go').outcome)), true);
+
+// ── (v9.7.653) THE RELATIONSHIP READ OWNS HOW HARD THIS TOUCH MAY PUSH ─────────────────────
+// The soft-re-engage line and the no-vehicle directive sat thousands of characters apart, one
+// saying do not press for an appointment and the other pointing at the unused appointment lever.
+// Both no-vehicle sites now read the same predicate the soft-re-engage text is gated on.
+function softFor(impl, signals) {
+  const sb = { d: { relationshipSignals: signals }, __out: null };
+  vm.createContext(sb);
+  vm.runInContext(impl.soft + '\n__out = _lpSoftReEngage(d);', sb);
+  return sb.__out;
+}
+
+console.log('\n(8) the pressure ceiling comes from the block that owns it:');
+
+check('channel fatigue with no no-show history — soft re-engage is on',
+  i => softFor(i, { channelFatigue: true, hasNoShowHistory: false }), true);
+
+check('...and a no-show history turns it off, matching the block it mirrors',
+  i => softFor(i, { channelFatigue: true, hasNoShowHistory: true }), false);
+
+check('no fatigue — off', i => softFor(i, { channelFatigue: false, hasNoShowHistory: false }), false);
+
+check('missing relationshipSignals cannot throw',
+  i => [softFor(i, null), softFor(i, undefined)], [false, false]);
+
+check('on a fatigued lead the CRM branch forbids the time-close outright',
+  i => /a time-close is out on this touch whatever the unused levers are/.test(crmLine(i, true, null, true)), true);
+
+check('...and still allows the visit to be offered in passing',
+  i => /A visit may be offered as an easy option in passing/.test(crmLine(i, true, null, true)), true);
+
+check('on a lead with no fatigue signal that sentence is absent',
+  i => /time-close is out on this touch/.test(crmLine(i, true, null, false)), false);
+
+check('the hard constraint carries the same ceiling',
+  i => /do not end this message on a time-close/.test(noVehLine(i, true, true)), true);
+
+check('...and drops it when the read does not call for it',
+  i => /do not end this message on a time-close/.test(noVehLine(i, true, false)), false);
+
+// The no-regression direction: everything apart from the appended sentence must be identical.
+check('the fatigue sentence is purely additive on the CRM branch',
+  i => crmLine(i, true, null, true).indexOf(crmLine(i, true, null, false)), 0);
+
+check('...and on the hard constraint',
+  i => noVehLine(i, true, true).indexOf(noVehLine(i, true, false)), 0);
+
+console.log('\nnon-vacuity (v9.7.653):');
+const OLD_DOOR = c => c.replace(/THE ASK GOES DOWN FROM HERE[\s\S]*?the wrong direction\./,
+  'Either make the ask far smaller than the one that went unanswered, or spend this touch on a lever that has not been used yet.');
+
+check('neuter H actually restored an unconstrained second door', i => OLD_DOOR(i.crm) !== i.crm, true);
+check('H: no direction of travel is stated any more',
+  i => /THE ASK GOES DOWN/.test(crmLine(i, true, OLD_DOOR(i.crm), false)), false);
+check('H (control): the shipped branch states it',
+  i => /THE ASK GOES DOWN/.test(crmLine(i, true, null, false)), true);
+
+const OLD_SOFT = c => c.replace('_lpSoftReEngage(d)', 'false');
+check('neuter I actually pinned the predicate off', i => OLD_SOFT(i.crm) !== i.crm, true);
+check('I: a fatigued lead loses its time-close prohibition',
+  i => /time-close is out on this touch/.test(crmLine(i, true, OLD_SOFT(i.crm), true)), false);
+check('I (control): the shipped branch keeps it',
+  i => /time-close is out on this touch/.test(crmLine(i, true, null, true)), true);
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);
