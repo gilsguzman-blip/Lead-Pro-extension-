@@ -72,7 +72,10 @@ function build(file) {
   const remote = vm.runInContext(
     '(function(data, opts){\n' +
     '  var _bpLocalVeto = !!opts.localVeto, _geoOutOfState = !!opts.geoOutOfState;\n' +
-    cut(src, '    var _manualDistance = ', '    if (flags.includes(\'credit\')', 'the isRemoteBuyer branch', file) +
+    // (v9.7.655) END ANCHOR MOVED. The distanceContext chain used to open on the credit arm; it
+    // now opens on the exit arm, because the credit arm ends "before asking them to drive" and is
+    // just as wrong on a goodbye. Same span of code, same assertions — only the boundary marker.
+    cut(src, '    var _manualDistance = ', "    if ((typeof _lpTouchHold === 'function') && _lpTouchHold(data) === 'exit') {", 'the isRemoteBuyer branch', file) +
     '\n  return { manual: _manualDistance, remote: isRemoteBuyer }; })', ctx);
 
   // ── C: classifyScenario's own local-ZIP veto (the half that was always correct) ─────────

@@ -59,18 +59,35 @@ function extract(file) {
   // predicate the build does not actually use. The distanceContext chain sits ABOVE the gate's
   // slice and carries the third visit-ask on this block ("encourage the soonest workable time"),
   // so it needs its own span; it is small and self-contained.
-  const pa = src.indexOf('function _lpPauseHold(d) {');
-  if (pa < 0) throw new Error('_lpPauseHold not found');
-  const pb = src.indexOf('\n}\n', pa);
-  if (pb < 0) throw new Error('_lpPauseHold end not found');
-  const ca = src.indexOf("    if (flags.includes('credit') || (data.activeFlags||[]).includes('credit')) {");
+  // (v9.7.655) DELIBERATE CHANGE TO A v9.7.654 LIFT. _lpPauseHold became _lpTouchHold and now
+  // returns the REASON, and the engine predicate was hoisted out of the block's own IIFE into
+  // _lpApptEngineOff so the distanceContext chain (which runs earlier in the function) can read
+  // it. Both travel with the block. Every behavioural pause assertion below is unchanged.
+  const span = (mark, what) => {
+    const a2 = src.indexOf(mark);
+    if (a2 < 0) throw new Error(what + ' not found');
+    const b2 = src.indexOf('\n}\n', a2);
+    if (b2 < 0) throw new Error(what + ' end not found');
+    return src.slice(a2, b2 + 2);
+  };
+  const pauseSrc = span('function _lpTouchHold(d) {', '_lpTouchHold')
+    + '\n' + span('function _lpApptEngineOff(d) {', '_lpApptEngineOff');
+  // The fourth hand-rolled copy of the exit-or-pause union, now reading the helper.
+  const da = src.indexOf('        var _ddExitPause = (typeof _lpTouchHold === \'function\')');
+  if (da < 0) throw new Error('_ddExitPause consolidation not found');
+  const dEnd = src.indexOf(';\n', da);
+  const ddSrc = src.slice(da, dEnd + 1);
+  // (v9.7.655) The chain now opens with the exit arm rather than the credit arm, because the
+  // credit arm ends "before asking them to drive" and is just as wrong on a goodbye.
+  const ca = src.indexOf("    if ((typeof _lpTouchHold === 'function') && _lpTouchHold(data) === 'exit') {");
   if (ca < 0) throw new Error('distanceContext chain not found');
   const cb = src.indexOf('\n    if (isRemoteBuyer) {', ca);
   if (cb < 0) throw new Error('distanceContext chain end not found');
   return {
     name: path.basename(path.dirname(file)), src,
     code: src.slice(a, b + endMark.length),
-    pause: src.slice(pa, pb + 2),
+    pause: pauseSrc,
+    dd: ddSrc,
     ctx: src.slice(ca, cb)
   };
 }
@@ -98,20 +115,55 @@ function build(impl, data, opts) {
   // (v9.7.654) The SHIPPED helper is loaded for every case, including the twenty-three that
   // predate it. None of their fixtures carries a convState, so all of them read false and their
   // output is byte-identical — which is the point: the guard runs on the old cases too.
-  vm.runInContext(opts.pauseOff ? impl.pause.replace("return c === 'pause' || !!(d && d.hasPauseSignal);", 'return false;') : impl.pause, sb);
+  vm.runInContext(holds(impl, opts), sb);
   vm.runInContext(impl.code, sb);
   return { lines: vm.runInContext('lines', sb).filter(Boolean), logs };
+}
+
+// (v9.7.655) The two shipped helpers, optionally neutered. pauseOff pins the hold to none;
+// engineOff pins the engine predicate to false. Each is asserted to actually change the source
+// before it is relied on.
+const HOLD_OFF   = "if (c === 'exit'  || !!(d && d.hasExitSignal))  return 'exit';";
+const ENGINE_OFF = 'function _lpApptEngineOff(d) {';
+function holds(impl, opts) {
+  let p = impl.pause;
+  if (opts && opts.pauseOff)  p = p.replace(HOLD_OFF, '').replace("if (c === 'pause' || !!(d && d.hasPauseSignal)) return 'pause';", '');
+  if (opts && opts.engineOff) p = p.replace(ENGINE_OFF, ENGINE_OFF + ' return false;');
+  return p;
 }
 
 // (v9.7.654) The distanceContext chain, executed on its own. It runs BEFORE the gate in the
 // shipped file and assigns the '- CONTEXT: ...' line the block appends at the end.
 function context(impl, data, opts) {
   opts = opts || {};
-  const sb = { String, data, flags: ['distance'], distanceContext: '', _dbSoldUnit: !!opts.soldUnit };
+  const sb = {
+    String, parseFloat, data, flags: opts.flags || ['distance'],
+    distanceContext: '', _dbSoldUnit: !!opts.soldUnit,
+    // (v9.7.655) The chain now reaches _lpApptEngineOff, which reads this the same way the gate
+    // does. Supplied here for the same reason and with the same default.
+    _hasCustomerReplied: opts.replied === undefined ? undefined : () => !!opts.replied
+  };
   vm.createContext(sb);
-  vm.runInContext(opts.pauseOff ? impl.pause.replace("return c === 'pause' || !!(d && d.hasPauseSignal);", 'return false;') : impl.pause, sb);
+  vm.runInContext(holds(impl, opts), sb);
   vm.runInContext(impl.ctx, sb);
   return vm.runInContext('distanceContext', sb);
+}
+
+// (v9.7.655) The hold reason, read straight off the shipped helper.
+function hold(impl, data) {
+  const sb = { String, d: data, __out: null };
+  vm.createContext(sb);
+  vm.runInContext(impl.pause + '\n__out = _lpTouchHold(d);', sb);
+  return sb.__out;
+}
+
+// (v9.7.655) The consolidated exit-or-pause predicate, executed on its own.
+function ddExitPause(impl, data, opts) {
+  const sb = { String, data, _ddConvLow: ((data && data.convState) || '').toLowerCase(), _ddExitPause: null };
+  vm.createContext(sb);
+  if (!(opts && opts.noHelper)) vm.runInContext(impl.pause, sb);
+  vm.runInContext(impl.dd, sb);
+  return vm.runInContext('_ddExitPause', sb);
 }
 const text = r => r.lines.join('\n');
 
@@ -281,8 +333,11 @@ check('the gate reads the engine as OFF on a paused lead',
 check('...even though the customer HAS replied, which is what pause means',
   i => /apptEngineOff:true/.test(build(i, PAUSED, { replied: true }).logs.join(' ')), true);
 
-check('the log reports the pause hold as its own input',
-  i => /pauseHold:true/.test(build(i, PAUSED, { replied: true }).logs.join(' ')), true);
+// (v9.7.655) CHANGED DELIBERATELY FROM pauseHold:true. The hold now carries a reason, because
+// "pauseHold" was about to read false on an exiting lead that is held HARDER than a paused one.
+// Same property, stated more precisely.
+check('the log reports the hold and names it as pause',
+  i => /hold:pause/.test(build(i, PAUSED, { replied: true }).logs.join(' ')), true);
 
 check('the email no longer closes with the appointment ask',
   i => /THEN the appointment ask/.test(text(build(i, PAUSED, { inStateFar: true, replied: true }))), false);
@@ -314,8 +369,8 @@ check('...and is NOT told the appointment engine is disabled, which is false her
 check('Lolita keeps her original wording, to the byte',
   i => /Do NOT invite them in on this touch — the appointment engine is disabled for this lead, and the pre-staging is context for when they are ready, not an ask\./.test(text(build(i, LOLITA, { inStateFar: true }))), true);
 
-check('...and her log reports no pause hold',
-  i => /pauseHold:false/.test(build(i, LOLITA, { inStateFar: true }).logs.join(' ')), true);
+check('...and her log reports no hold at all — she is engine-off, not held',
+  i => /hold:none/.test(build(i, LOLITA, { inStateFar: true }).logs.join(' ')), true);
 
 // ── WHAT THE HELPER READS ───────────────────────────────────────────────────
 // hasPauseSignal is a hard-coded false since v9.7.189 and the live signal reaches the prompt only
@@ -326,8 +381,11 @@ check('convState pause holds', i => /apptEngineOff:true/.test(build(i, { convSta
 check('case does not matter', i => /apptEngineOff:true/.test(build(i, { convState: 'PAUSE' }).logs.join(' ')), true);
 check('hasPauseSignal alone holds', i => /apptEngineOff:true/.test(build(i, { hasPauseSignal: true }).logs.join(' ')), true);
 check('an ordinary follow-up does not', i => /apptEngineOff:false/.test(build(i, { convState: 'active-follow-up' }).logs.join(' ')), true);
-check('an exit lead is NOT held here — observed, deliberately not built in this version',
-  i => /apptEngineOff:false/.test(build(i, { convState: 'exit' }).logs.join(' ')), true);
+// (v9.7.655) INVERTED DELIBERATELY. This assertion existed to record that exit was a known,
+// named gap v9.7.654 chose not to close. It is closed now, so the assertion states the new rule
+// rather than the old omission.
+check('an exit lead IS held — the gap v9.7.654 recorded here is closed',
+  i => /apptEngineOff:true/.test(build(i, { convState: 'exit' }).logs.join(' ')), true);
 check('a lead with no convState at all does not throw',
   i => /apptEngineOff:false/.test(build(i, {}).logs.join(' ')), true);
 
@@ -358,8 +416,8 @@ check('a lead with no vehicle produces no CONTEXT line at all',
 
 console.log('\nnon-vacuity (v9.7.654):');
 
-check('neuter D actually pinned the pause helper off',
-  i => i.pause.replace("return c === 'pause' || !!(d && d.hasPauseSignal);", 'return false;') !== i.pause, true);
+check('neuter D actually pinned the hold off',
+  i => holds(i, { pauseOff: true }) !== i.pause, true);
 check('D: a paused lead gets its appointment ask back',
   i => /THEN the appointment ask/.test(text(build(i, PAUSED, { inStateFar: true, replied: true, pauseOff: true }))), true);
 check('D: ...and the invite clause with it',
@@ -373,6 +431,221 @@ check('D (control): the shipped helper suppresses all three',
         && !/invite it once you have given them a concrete reason/.test(t)
         && !/encourage the soonest workable time/.test(context(i, PAUSED));
   }, true);
+
+// ── (v9.7.655) THE TWO PATHS v9.7.654 GATED THE OTHER THREE CLAUSES FOR, BUT NOT THIS LINE ──
+// v9.7.611 gated the header, the in-state invite clause and the email ask on the appointment
+// engine. The CONTEXT line was never gated, so on a zero-contact or reactivation lead three
+// clauses said no appointment and a fourth said "encourage the soonest workable time". Each path
+// was checked against the directive that owns it rather than assumed from the pause fix.
+console.log('\nzero-contact — the CONTEXT line stops naming a time:');
+const LOLITA_V = { leadAgeDays: 54, _isStalled: true, _neverReplied: true, vehicle: '2022 Ram 1500 Laramie' };
+
+check('the CONTEXT line no longer tells a never-replied lead to encourage a time',
+  i => /encourage the soonest workable time/.test(context(i, LOLITA_V)), false);
+
+check('...it says the opposite',
+  i => /Do NOT encourage a time, a visit or the soonest workable anything on this touch/.test(context(i, LOLITA_V)), true);
+
+// The ZERO-CONTACT block states "DO NOT include appointment times in ANY format", so the engine
+// really is the owner here and naming it is true.
+check('...and names the appointment engine, which is what is true of her',
+  i => /every other directive on this lead disables the appointment engine/.test(context(i, LOLITA_V)), true);
+
+check('...and does NOT claim she asked for room, which she never did',
+  i => /PAUSE state/.test(context(i, LOLITA_V)), false);
+
+check('the no-hold rule survives the rewrite',
+  i => /do NOT promise to hold or set aside an in-stock unit/.test(context(i, LOLITA_V)), true);
+
+// v9.7.611's split is re-examined and upheld, not inherited: she may still come in.
+check('the justification requirement still ships on a zero-contact lead',
+  i => /REQUIRED in EVERY format: One specific reason the visit is worth their time/.test(text(build(i, LOLITA, { inStateFar: true }))), true);
+
+check('...and the mandatory SMS sentence with it',
+  i => /SMS: 1 sentence justifying the trip is MANDATORY/.test(text(build(i, LOLITA, { inStateFar: true }))), true);
+
+console.log('\nreactivation — same directive, same answer:');
+const REACT = { leadAgeDays: 45, _isStalled: false, _neverReplied: false, vehicle: '2022 Ram 1500 Laramie' };
+
+check('a 45-day lead with no reply reads the engine as off',
+  i => /apptEngineOff:true/.test(build(i, REACT).logs.join(' ')), true);
+
+check('its CONTEXT line drops the time',
+  i => /encourage the soonest workable time/.test(context(i, REACT)), false);
+
+check('...and names the engine',
+  i => /every other directive on this lead disables the appointment engine/.test(context(i, REACT)), true);
+
+check('the justification still ships on a reactivation lead too',
+  i => /REQUIRED in EVERY format: One specific reason the visit is worth their time/.test(text(build(i, REACT, { inStateFar: true }))), true);
+
+// ── THE ARM THAT DELIBERATELY PERMITS A TIME IS UNTOUCHED ───────────────────
+// The 31-day block has a second arm — SOFT TIME CLOSE ONLY — for a long-gap lead that HAS
+// replied, and it explicitly allows a tentative time. The reply short-circuit already leaves the
+// engine on for it. Breaking that is the real risk of this change, so it is pinned.
+console.log('\nthe soft-time-close arm still gets its time:');
+
+check('a 45-day lead that HAS replied keeps the engine on',
+  i => /apptEngineOff:false/.test(build(i, REACT, { replied: true }).logs.join(' ')), true);
+
+check('...and its CONTEXT line is the original v9.7.611 wording, to the byte',
+  i => context(i, REACT, { replied: true }),
+  'Customer is interested in the 2022 Ram 1500 Laramie. Confirm it is available and encourage the soonest workable time so the trip is worth it — do NOT promise to hold or set aside an in-stock unit (we do not reserve on-lot cars). If it is in transit/inbound, securing it before arrival is appropriate.');
+
+check('...and its email still closes with the appointment ask',
+  i => /Open with the vehicle\/option confirmation, THEN the appointment ask/.test(text(build(i, REACT, { inStateFar: true, replied: true }))), true);
+
+check('the 30-day boundary still leaves the CONTEXT line alone',
+  i => /encourage the soonest workable time/.test(context(i, { leadAgeDays: 30, vehicle: 'X' })), true);
+
+check('...and 31 days does not',
+  i => /encourage the soonest workable time/.test(context(i, { leadAgeDays: 31, vehicle: 'X' })), false);
+
+// ── EXIT IS A DIFFERENT ANSWER, NOT A STRONGER ONE ──────────────────────────
+// The exit directive this file ships reads: "write a gracious close only ... Do NOT pivot to
+// alternatives, do NOT offer appointment times, do NOT ask ANY question ... They said no; respect
+// it and end the message." The v9.7.611 reasoning for keeping the justification does not reach
+// here: there is no trip to justify, because they are not coming.
+console.log('\nan exiting distance buyer is asked for nothing at all:');
+const EXITED = { leadAgeDays: 5, convState: 'exit', vehicle: '2022 Ram 1500 Laramie' };
+const exitText = i => text(build(i, EXITED, { inStateFar: true, replied: true }));
+
+check('the hold reads exit', i => hold(i, EXITED), 'exit');
+check('the engine is off', i => /apptEngineOff:true/.test(build(i, EXITED, { replied: true }).logs.join(' ')), true);
+check('the log names the reason', i => /hold:exit/.test(build(i, EXITED, { replied: true }).logs.join(' ')), true);
+
+check('no CONTEXT line is produced at all — the exit directive owns the close',
+  i => context(i, EXITED, { replied: true }), '');
+
+check('the visit-justification requirement is withheld',
+  i => /REQUIRED in EVERY format/.test(exitText(i)), false);
+
+check('the mandatory SMS sentence is withheld',
+  i => /1 sentence justifying the trip is MANDATORY/.test(exitText(i)), false);
+
+check('neither email arm ships',
+  i => /Open with the vehicle\/option confirmation/.test(exitText(i)), false);
+
+check('none of the four worth-the-trip examples ship',
+  i => /I will have everything ready when you arrive|pre-fill most of the paperwork|trade-in numbers ready before you arrive|staged and ready specifically for you/.test(exitText(i)), false);
+
+check('the drive-far-for-nothing line goes too — there is no drive',
+  i => /might drive far for nothing/.test(exitText(i)), false);
+
+// A directive block that simply goes quiet invites the model to fill the gap.
+check('the withholding is stated rather than left as an absence',
+  i => /THIS LEAD IS EXITING\. The EXIT directive owns this message/.test(exitText(i)), true);
+
+check('the header says there is nothing to ask',
+  i => /There is nothing to ask of them on this touch/.test(exitText(i)), true);
+
+// What MUST survive: a goodbye that mentions the drive they are now not making is worse.
+check('the DISTANCE HARD RULE survives — never name the miles or the drive',
+  i => /do NOT name the miles, the drive, the trip, or the travel in ANY wording/.test(exitText(i)), true);
+
+check('...and so does the stop-by prohibition',
+  i => /NEVER say "stop by", "swing by", or "come see us"/.test(exitText(i)), true);
+
+check('the in-state clause says the hard rule is ALL it means on this touch',
+  i => /On this touch that is ALL it means: the distance stays a silent fact, and there is nothing to pre-stage and nobody to invite, because this lead is exiting/.test(exitText(i)), true);
+
+// FOUND BY RENDERING THE BLOCK, NOT BY READING THE DIFF: the first version appended the
+// prohibition to a sentence whose own first half instructs the model to pre-stage, so one line
+// told it to do and not do the same thing. The exit arm is the whole clause now.
+check('...and does NOT also tell it to pre-stage, which the live arm does',
+  i => /make what you offer obviously worth their time with concrete pre-staging/.test(exitText(i)), false);
+
+check('...nor promise that the reason names what is ready for them',
+  i => /The reason names what is READY FOR THEM/.test(exitText(i)), false);
+
+check('...and does NOT promise a visit later, which the paused arm does',
+  i => /the pre-staging is context for when they are ready/.test(exitText(i)), false);
+
+check('a raw exit signal with no convState holds the same way',
+  i => hold(i, { hasExitSignal: true }), 'exit');
+
+check('exit beats pause when a lead carries both',
+  i => hold(i, { convState: 'pause', hasExitSignal: true }), 'exit');
+
+check('an exiting lead produces no CONTEXT line even with the credit flag up',
+  i => context(i, EXITED, { replied: true, flags: ['distance', 'credit'] }), '');
+
+check('...nor when the unit is sold',
+  i => context(i, EXITED, { replied: true, soldUnit: true }), '');
+
+// The credit arm ends "before asking them to drive", which is the same defect one clause over.
+console.log('\nthe credit arm stops asking them to drive when the engine is off:');
+
+check('an engine-off credit lead is told not to ask them in',
+  i => /do NOT ask them to drive in on this touch/.test(context(i, LOLITA_V, { flags: ['distance', 'credit'] })), true);
+
+check('a live credit lead keeps the original wording',
+  i => context(i, { leadAgeDays: 4, vehicle: 'X' }, { flags: ['distance', 'credit'], replied: true }),
+  'Customer has credit sensitivity AND is a distance buyer — the trip must feel financially worthwhile. Lead with financing confidence before asking them to drive.');
+
+// ── THE HELPER ITSELF ───────────────────────────────────────────────────────
+console.log('\nthe hold reads one field and returns one reason:');
+
+check('an ordinary lead is not held', i => hold(i, { convState: 'active-follow-up' }), '');
+check('case does not matter on exit', i => hold(i, { convState: 'EXIT' }), 'exit');
+check('a raw pause flag still holds', i => hold(i, { hasPauseSignal: true }), 'pause');
+check('degenerate input returns no hold',
+  i => [hold(i, null), hold(i, undefined), hold(i, {})], ['', '', '']);
+
+// ── THE FOURTH COPY OF THE SAME PREDICATE, RETIRED ──────────────────────────
+// The deadline/deal-condition detector carried its own inline exit-or-pause union. Equivalence
+// is proved across all sixteen combinations of the four inputs rather than by eye — a parallel
+// hand-maintained definition of one question is the shape that produced v9.7.629/.630/.634/.635.
+console.log('\nthe deadline detector reads the same predicate, provably:');
+const COMBOS = [];
+for (const cs of ['', 'exit', 'pause', 'active-follow-up']) {
+  for (const es of [false, true]) {
+    for (const ps of [false, true]) {
+      COMBOS.push({ convState: cs, hasExitSignal: es, hasPauseSignal: ps });
+    }
+  }
+}
+const ORIGINAL = d => {
+  const c = ((d && d.convState) || '').toLowerCase();
+  return (c === 'exit' || c === 'pause' || !!(d && d.hasExitSignal) || !!(d && d.hasPauseSignal));
+};
+
+check('all 32 input combinations agree with the expression it replaced',
+  i => COMBOS.filter(c => ddExitPause(i, c) !== ORIGINAL(c)).length, 0);
+
+check('...and the fallback agrees too, if the helper is ever missing',
+  i => COMBOS.filter(c => ddExitPause(i, c, { noHelper: true }) !== ORIGINAL(c)).length, 0);
+
+check('it is genuinely exercised — some combinations are true and some false',
+  i => {
+    const t = COMBOS.filter(c => ddExitPause(i, c) === true).length;
+    return t > 0 && t < COMBOS.length;
+  }, true);
+
+console.log('\nnon-vacuity (v9.7.655):');
+
+check('neuter E actually pinned the engine predicate false',
+  i => holds(i, { engineOff: true }) !== i.pause, true);
+check('E: a zero-contact lead is told to encourage a time again',
+  i => /encourage the soonest workable time/.test(context(i, LOLITA_V, { engineOff: true })), true);
+check('E: and so is a reactivation lead',
+  i => /encourage the soonest workable time/.test(context(i, REACT, { engineOff: true })), true);
+check('E (control): the shipped predicate suppresses both',
+  i => /encourage the soonest workable time/.test(context(i, LOLITA_V))
+    || /encourage the soonest workable time/.test(context(i, REACT)), false);
+
+check('F: pinning the hold off restores the whole visit apparatus to an exiting lead',
+  i => {
+    const t = text(build(i, EXITED, { inStateFar: true, replied: true, pauseOff: true }));
+    return /REQUIRED in EVERY format/.test(t) && /1 sentence justifying the trip is MANDATORY/.test(t);
+  }, true);
+check('F (control): the shipped hold withholds both',
+  i => {
+    const t = exitText(i);
+    return /REQUIRED in EVERY format/.test(t) || /1 sentence justifying the trip is MANDATORY/.test(t);
+  }, false);
+check('F: ...and gives the exiting lead its CONTEXT line back',
+  i => context(i, EXITED, { replied: true, pauseOff: true }).length > 0, true);
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);

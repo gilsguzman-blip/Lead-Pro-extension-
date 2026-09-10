@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.655-dev (Dev. THE TWO SIBLINGS v9.7.654 NAMED AND DID NOT BUILD. Extension only; proxy v7.74 and reporter v1.22 unchanged. v9.7.654 fed the pause state into the distance block and recorded two structurally identical gaps it deliberately left alone, because both change text an existing suite pins. This is that build, and each path was decided on its own evidence rather than by carrying the pause answer across. ONE: ZERO-CONTACT AND REACTIVATION. v9.7.611 gated the header, the in-state invite clause and the email ask on the appointment engine; the CONTEXT line was not gated at all, so on those two paths three clauses said no appointment and a fourth said "encourage the soonest workable time". The zero-contact block itself states "DO NOT include appointment times in ANY format. DO NOT say 'would X or Y work'", and the 31-day block states "do NOT offer a specific appointment time -- close with a single low-friction question or a soft check-in". Both own the engine; the CONTEXT line assumes it on the way to asking for a visit, so it yields. SUPPRESSED ON BOTH. The JUSTIFICATION half STAYS on both, which is v9.7.611's own decision re-examined and upheld rather than inherited: those customers may still come in, and a far buyer must never feel they might drive far for nothing. The SOFT TIME CLOSE arm -- 31+ days where the customer HAS replied, which explicitly permits a tentative time -- is untouched, because the reply short-circuit already leaves the engine on for it, and that is asserted at the 30/31-day boundary and with a reply on an old lead. TWO: EXIT, AND IT IS A DIFFERENT ANSWER. The exit directive this file already ships reads "write a gracious close only ... Do NOT pivot to alternatives, do NOT offer appointment times, do NOT ask ANY question ... They said no; respect it and end the message." The distance block answered that with "REQUIRED in EVERY format: One specific reason the visit is worth their time" and "SMS: 1 sentence justifying the trip is MANDATORY" -- a mandate to pitch a visit inside a goodbye. THE v9.7.611 SPLIT DOES NOT TRANSFER HERE and that is the whole finding: the justification survives a disabled engine because the customer may still come, and on an exit lead there is no trip to justify. So on exit the entire visit apparatus is withheld -- the requirement, all four examples, the mandatory SMS sentence, the email line, the never-drive-far line and the CONTEXT line -- and what survives is the WORDING rule only, because a goodbye that mentions the drive they are now not making is worse than one that does not. The withholding is STATED rather than left as an absence: a directive block that simply goes quiet invites the model to fill the gap. ONE SOURCE OF TRUTH, WHICH IS WHY THIS IS ONE BUILD AND NOT TWO PATCHES. _lpPauseHold becomes _lpTouchHold and returns the REASON ('exit' | 'pause' | ''), exit first because a lead can carry a pause note and a later exit and the stronger state has to win; every clause that must say why the ask is off reads that one value. The engine predicate is hoisted out of the distance block's own IIFE into _lpApptEngineOff -- unchanged line for line, including v9.7.654's ordering fix where the hold is tested BEFORE the reply short-circuit -- because it previously lived BELOW the CONTEXT chain, which is the mechanical reason v9.7.654 could not gate that line on it. AND A FOURTH HAND-ROLLED COPY OF THE SAME PREDICATE RETIRED: the deadline/deal-condition detector carried its own inline exit-or-pause union. It reads the helper now, with the original expression kept as the fallback, and equivalence is proved across all sixteen input combinations rather than by eye -- that parallel-definition shape is what produced v9.7.629, .630, .634 and .635. A DEFECT OF MY OWN, CAUGHT BY RENDERING THE BLOCK RATHER THAN BY READING THE DIFF, and worth recording because the diff looked fine: the exit arm of the in-state clause was first written as a swapped TAIL, so the sentence read "make what you offer obviously worth their time with concrete pre-staging ... Do NOT invite them in and do NOT pre-stage anything" -- one line telling the model to do and not do the same thing. A tail swap is only safe when the head is neutral, and this head is an instruction. The exit arm is the whole clause now, keeping the HARD RULE and nothing else, and both existing arms stay byte-identical. VERIFIED: distance-appt-gate extended to 112 assertions (+53), EXECUTING the shipped block and the shipped helpers against four real lead shapes -- Lolita Lane's zero-contact close-out, a 45-day reactivation, Antonio Cadena's paused distance lead and an exit lead -- with the CONTEXT line and the gate read on each, and the rendered exit block asserted to carry neither the pre-staging instruction nor the reason-is-ready promise. 99 suites green (4,624 assertions, +53), dev===comm with all nine changed regions byte-compared. FOUR v9.7.654 ASSERTIONS CHANGED DELIBERATELY, NOT INCIDENTALLY, AND EACH IS A STRENGTHENING: the two that read pauseHold:true/false now read the hold REASON, because pauseHold:true was about to become false on an exit lead that is held harder than a paused one; the one that recorded 'an exit lead is NOT held here -- observed, deliberately not built' is inverted, because that is the gap this build closes; and the lift target moved from _lpPauseHold to _lpTouchHold. ONE ANCHOR MOVED IN distance-zip, which cut its span at the credit arm and now cuts it at the exit arm -- an extraction boundary, not a behavioural assertion, and its 52 assertions are unchanged and green. Every behavioural pause assertion from v9.7.654 is unchanged and still green, including the byte-identical paused CONTEXT wording and the ordering case. NON-VACUITY, behavioural and in-build, each paired with a control: pinning the hold to '' restores the appointment ask to a paused lead AND the full visit apparatus to an exiting one; pinning the engine predicate false restores "encourage the soonest workable time" to a zero-contact and to a reactivation lead; and forcing _dbExit false puts the justification requirement back into a goodbye. STILL OPEN, unchanged: the monthly-payment / incentive directive collision; OFFER ENDING SOON has never fired; the open-tomorrow branch; a translate press is invisible in telemetry; the reporter's comprehension footer contradicts its own Changed column; the System callmeasurement URL row; scenarioRules rendering twice per prompt. node --check clean on both builds; both manifests parse; version AND version_name both bumped. scraperVersion stays v9.7.51. Builds on v9.7.654. Mirrors COMMERCIAL v9.7.655.)
 // Lead Pro -- popup.js  v9.7.654-dev (Dev. AN ANSWERED QUESTION THAT COULD NOT BE CLOSED, AND A CORRUPTED APOSTROPHE THAT OPENED TWO MORE. Extension only; proxy v7.74 and reporter v1.22 unchanged. LIVE, 9/10, Antonio Cadena (Community Kia Baytown, lead 2079566626, CarGurus, 2022 Ram 1500 Laramie). Kristen: "Seems like it missed the salesperson notes. would have built a better response with that info in the mix." THE NOTE REACHED THE MODEL THREE TIMES -- in the arc spine, in the AGENT CONTEXT preamble and in the transcript -- and the CRM dump taken one minute before the prompt proves it read exactly as captured. What ignored it was the OPEN THREADS resolver, which shipped this to the model: 'Customer asked question(s) that may not have been answered: "So you have a video of this vehicle by any chance ?" (09/07/2026 9:52 AM)', followed by 'addressing them is the highest-leverage move this message can make'. Kristen had answered it 48 minutes after he asked, and Alyssa's 3:48 PM note says the pictures and videos went out and he loves the truck. THREE INDEPENDENT DEFECTS STACKED TO PRODUCE ONE FALSE OPEN. (1) A NOTE COULD NEVER CLOSE A THREAD: the answered-check required an item carrying a data-direction flag, and a General Note carries none, so an agent recording that she DID the thing was structurally invisible to it. (2) THE OVERLAP BAR WAS UNREACHABLE: closing needed two shared content words; the question has three and the reply named the truck instead of repeating 'vehicle', scoring one -- and worse, a question of one or two content words could NEVER reach two, so every one of them on every lead has been permanently open since v9.7.81. (3) A CORRUPTED APOSTROPHE IS NOT A SENTENCE BOUNDARY: VinSolutions stores the CarGurus lead body with its curly quotes mangled into question marks, so I?m / I?d / it?s each split the line, and TWO of the three open questions on this lead were fragments of that single sentence, one of them a URL fragment. FIXES: a dated note closes a thread when it records a FULFILMENT rather than a plan (a short past-tense verb list is the entire guard, and 'will let me know' is deliberately absent from it); the bar is one shared word for a question of three content words or fewer and a generic vehicle noun answers any other generic vehicle noun; and a question mark with a letter tight on the left and a lowercase letter tight on the right is restored to an apostrophe before the split. THE ASYMMETRY THAT SETS THE DIRECTION, stated because the looser bar is a real risk: a false close drops a nudge, a false open INSTRUCTS the model to re-ask something the customer already received. Closing is the cheaper error. NEW [LP OPEN THREAD DIAG] prints one row per question with the verdict, the bar it had to clear and what cleared it -- a silent resolver is why this took a prompt capture and a CRM dump to find. SECOND DEFECT ON THE SAME LEAD, the ownership rule for the seventh time: three blocks disagreed about whether to ask for a visit at all. PAUSE said 'Do NOT offer an appointment. NO QUESTIONS of any kind.' FINANCING CONCERN pointed at the visit for real numbers. The DISTANCE BUYER block, in the strongest wording of the three, said the visit justification is REQUIRED in every format and that the email closes on the appointment ask -- and its own CONTEXT line said to 'encourage the soonest workable time' at a customer recorded 66 minutes earlier as saying he will let us know when he can come down. v9.7.611 gated this same text on the appointment engine and its gate checks stalled and never-replied but not pause. One _lpPauseHold helper now feeds both the gate and the CONTEXT line. THE ORDERING IS THE FIX AND IS ASSERTED AS SUCH: the pause test sits BEFORE the _dbReplied short-circuit, because a paused lead has replied by definition, so the other order would have been dead code on every lead it exists for. The JUSTIFICATION half still ships on a paused lead, deliberately and per v9.7.611 -- a distance buyer must never feel they might drive far for nothing whether or not we are asking them in. The zero-contact reason clause is unchanged to the byte; only the paused arm states a reason that is true on a paused lead. VERIFIED: NEW open-thread-resolver.test.js, 47 assertions, EXECUTING the shipped resolver against Antonio's real 27-item CRM shape rebuilt from the dump with the phone and email replaced -- the video thread closes on Alyssa's note AND on Kristen's outbound independently, both fake questions are gone, the objection path still refuses to clear on an agent's note, and a genuinely unanswered question with no answering note still surfaces as open. distance-appt-gate extended to 59 (+30), EXECUTING the shipped block with the SHIPPED helper loaded for every case including the twenty-nine that predate it: the paused lead loses the invite clause, the email ask and the soonest-workable-time CONTEXT line while keeping the mandatory SMS justification, Lolita's wording is asserted byte-identical, and the ordering is pinned as its own case -- replied:true with the engine still off, which is the assertion that would fail if the pause test were moved below the reply short-circuit. 99 suites green (4,571 assertions, +77), dev===comm with all four changed regions byte-compared between builds. ONE OF MY OWN NEUTERS WAS WRONG AND SAID SO BY FAILING: restoring the two-word bar did NOT reopen the video thread, because Alyssa's note carries BOTH 'videos' and 'truck' and clears two words on its own. The note was never hidden by the overlap count -- it was hidden by the direction flag alone, which is a sharper statement of the defect than the one I wrote. The neuter now runs against a neutralised note, and the fact it uncovered is pinned as an assertion of its own. NON-VACUITY, behavioural and in-build, each paired with a control: restoring the outbound-only closure re-opens the video thread on the note path, restoring the two-word bar re-opens it on the outbound path, removing the apostrophe repair brings both fake questions back, and pinning the pause helper false restores the time-close directives to a paused lead. TWO SIBLINGS OBSERVED AND NOT BUILT, both real: the same CONTEXT line still says 'encourage the soonest workable time' on the zero-contact and reactivation paths that v9.7.611 gated, and convState 'exit' is not fed into the hold. Both are the same shape as what is fixed here and both change text v9.7.611's suite pins, so they get their own build. STILL OPEN, unchanged: the monthly-payment / incentive directive collision; OFFER ENDING SOON has never fired; the open-tomorrow branch; a translate press is invisible in telemetry; the reporter's comprehension footer contradicts its own Changed column; the System callmeasurement URL row; scenarioRules rendering twice per prompt. node --check clean on both builds; both manifests parse; version AND version_name both bumped. scraperVersion stays v9.7.51. Builds on v9.7.653. Mirrors COMMERCIAL v9.7.654.)
 // Lead Pro -- popup.js  v9.7.653-dev (DEV. I OFFERED THE MODEL TWO DOORS AND ONLY ONE OF THEM WENT THE RIGHT DIRECTION. Extension only; proxy v7.74 and reporter v1.22 unchanged. v9.7.651 told the model that once the qualifying question has gone unanswered it may EITHER make the ask far smaller OR spend the touch on a lever that has not been used yet. On Brennan Mitchell's next grab it took the second door: "I can set aside 30 minutes this afternoon at 2:30 or 3:15. Which works better?" -- a two-option appointment close on touch seven of a lead that has answered nothing, and a step back from the previous draft's "Reply SUV, sedan, or truck." THE MODEL DID EXACTLY WHAT I WROTE. What I wrote was wrong, and the fault is a false equivalence: after silence, moving from an open question to a hard time-close is a BIGGER ask, not a different one. Appointment was sitting in the unused list, so my own sentence pointed straight at it. THE PROMPT ALREADY CARRIED THE ANSWER AND I TOLD THE MODEL TO GO AND RECONCILE IT. renderRelationshipReading emits 'This is not a hot lead. Soft re-engage -- change the angle, do not press for an appointment hard' under exactly s.channelFatigue AND NOT s.hasNoShowHistory, and that block sits several thousand characters away from the no-vehicle directive that was pointing at the appointment lever. That predicate is the OWNER of how hard a touch may push. It lives on the data envelope and is reachable at BOTH no-vehicle sites, so both now READ it rather than hoping the model weighs two blocks against each other -- the same rule this file has re-earned five builds running, and the same shape as v9.7.651's own _lpQualifyingAsked. WHAT CHANGES: the second door is narrowed rather than closed. A different lever is still allowed, but only where it asks LESS of the customer than the question they already ignored, and a two-option appointment close is named as the example of what that excludes. Where the relationship read says soft re-engage, a time-close is out for that touch whatever the unused levers are -- a visit may still be offered in passing, it just cannot be the ask the message ends on. On a lead with no fatigue signal the wording is byte-unchanged from v9.7.651 apart from the go-down-not-up sentence, which is true on every lead where the question has already been asked. NOT A MODEL-ADHERENCE PROBLEM, and worth saying because the temptation was to add a third directive shouting louder. Three builds in this codebase (v9.7.496, v9.7.504, v9.7.507) proved a correction placed after the thing it corrects loses to it. The fix is upstream of the collision, in the directive that named the lever. VERIFIED: first-touch-register extended to 91 assertions (+17), EXECUTING the shipped predicate against all four signal shapes and both shipped no-vehicle branches with the ceiling on and off. THE NO-REGRESSION DIRECTION IS ASSERTED AS AN INDEX, not by eye: the fatigued text must START WITH the unfatigued text, so the ceiling can only ever be additive. A no-show history turns the predicate OFF, mirroring the block it reads from rather than approximating it. 99 suites green (4,494 assertions, +20), dev===comm on all three regions. ONE OF MY OWN v9.7.651 ASSERTIONS WAS REWRITTEN RATHER THAN RELAXED: it was called 'offers the two real ways out' and pinned the wording that presented a smaller ask and a different lever as EQUAL options. That equivalence is the defect this build fixes, so the assertion now states the rule -- the direction of travel, the concrete smaller ask, the less-than test on the alternative, and the escalation named. NON-VACUITY IS BEHAVIOURAL AND IN-BUILD: restoring an unconstrained second door removes the direction of travel entirely, and pinning the predicate false strips the time-close prohibition off a lead that has earned it; each is paired with a control on the shipped form. STILL OPEN, unchanged: the monthly-payment / incentive directive collision; OFFER ENDING SOON has never fired; the open-tomorrow branch; a translate press is invisible in telemetry; the reporter's comprehension footer contradicts its own Changed column; the System callmeasurement URL row; scenarioRules rendering twice per prompt. node --check clean on both builds; both manifests parse; version AND version_name both bumped. scraperVersion stays v9.7.51. Builds on v9.7.652. Mirrors COMMERCIAL v9.7.653.)
 // Lead Pro -- popup.js  v9.7.652-dev (DEV. THE SOURCE-ACK DIAGNOSTIC DESCRIBED A BRANCH IT DID NOT TAKE, AND HAD BEEN LYING IN AN OLDER WAY SINCE THE DAY IT SHIPPED. Extension only; proxy v7.74 and reporter v1.22 unchanged. Console-only; no customer-facing behaviour changes anywhere in this build. REPORTED off the v9.7.651 capture. log191 printed 'shape:brand | example shown:"I saw your Click & Go request come through..." -- acknowledgment emitted with the resolved name' while the block had actually taken v9.7.650's CONTINUING-THREAD arm, which carries NO example and forbids that exact sentence by name. I branched the block in v9.7.650 and left its diagnostic behind, so it reported the arm it used to take. AND THE OLDER FAULT, found while fixing that one and worth more than it: the line ran BEFORE THREE OF THE FIVE EARLY RETURNS. On a marketplace source (CarGurus, KBB, TrueCar, Facebook, Capital One and the rest), on an internal finance-program source, or on ANY lead past the early-touch window, it announced 'acknowledgment emitted with the resolved name' and then emitted nothing at all. That has been true on every one of those leads since v9.7.635 shipped the diagnostic, and it is the kind of line an investigation trusts -- v9.7.635's own header records that the Click & Go path had no diagnostic and that this was why a naming bug took a prompt capture to find. A diagnostic that reports an outcome it did not reach is worse than none. FIXED BY LOGGING AT THE OUTCOME RATHER THAN AHEAD OF IT. One _ackLog helper, called at each of the four named exits and once after the emit chain, reporting which of seven things happened: SUPPRESSED-no-recognisable-name, SKIPPED-dedicated-directive, SKIPPED-internal-program-source, SKIPPED-past-early-touch, or EMITTED- with the arm named -- already-named-to-them, continuing-thread, or first-contact. The example sentence is printed ONLY on the first-contact arm, because that is the only arm that shows one. NOT BUILT, AND IT IS GIL'S CALL RATHER THAN A DEFECT: the subject line on the same capture read 'Your next Honda, made simpler', which cleared the restate the v9.7.651 directive was written against but is softer and more generic than the rules ask for. I proposed making the ask itself the subject ('SUV, sedan, or truck?'). Gil: 'I thik I'm ok with the subject. The direct subject I think would be to harsh in this instance.' The subject directive is therefore unchanged. VERIFIED: first-touch-register extended to 71 assertions (+12), EXECUTING the shipped block through all three emitted arms and asserting the logged outcome names the arm that ACTUALLY ran, that exactly one outcome is logged per run, and that the example sentence appears on the one arm that shows one and on neither of the others. The four early exits are asserted on the shipped source, since they sit outside the executed span, together with an assertion that no bare return is left unreported. 99 suites green (4,474 assertions, +14), dev===comm on all ten regions. ONE EXISTING SUITE UPDATED, DELIBERATELY AND NOT TO GO GREEN: source-name pinned the LITERAL one-line form `if (!_ackName) return;`, which now logs before returning. The property it protects -- the block bails when no customer-facing name resolves -- is unchanged and is now asserted as the property rather than as formatting, paired with a NEW assertion that the suppression is reported instead of silent. That is a strengthening, not a relaxation. TWO OF MY OWN NEUTER ERRORS, both caught by the neuter failing rather than passing: the first-contact arm CONCATENATES its example onto its label, and my quote-bounded regex stopped at the first quote, so the neuter silently left that arm intact -- it is line-based now; and the suite runner collapsed an outcome logged as the empty string with no outcome logged at all, which hid the result. Length, not truthiness. STILL OPEN, unchanged: the monthly-payment / incentive directive collision; OFFER ENDING SOON has never fired; the open-tomorrow branch; a translate press is invisible in telemetry; the reporter's comprehension footer contradicts its own Changed column; the System callmeasurement URL row; scenarioRules rendering twice per prompt. node --check clean on both builds; both manifests parse; version AND version_name both bumped. scraperVersion stays v9.7.51. Builds on v9.7.651. Mirrors COMMERCIAL v9.7.652.)
@@ -18145,10 +18146,58 @@ function renderRelationshipReading(data) {
 // v9.7.189 phrase list was deleted) and the live signal is hasCallNotePause, which reaches the
 // prompt only as convState === 'pause'. Read the same way populateFromData already reads it. The
 // flag is kept in the test as a second door in case a later path sets it truthy.
-function _lpPauseHold(d) {
+//
+// ── (v9.7.655) THE HOLD HAS TWO GRADES, AND EXIT IS THE STRONGER ONE ────────────────────────
+// v9.7.654 shipped this as _lpPauseHold and named EXIT as a sibling it had not built. Exit is a
+// worse mismatch than pause, and the difference is not one of degree: a paused customer has asked
+// for room and is still in the funnel, so the pre-staging is legitimately context for when they
+// are ready. An EXIT customer has said no. The exit directive this file already ships says so in
+// its own words -- "write a gracious close only ... Do NOT pivot to alternatives, do NOT offer
+// appointment times, do NOT ask ANY question ... They said no; respect it and end the message" --
+// while the distance block, unconditionally, said "REQUIRED in EVERY format: One specific reason
+// the visit is worth their time" and "SMS: 1 sentence justifying the trip is MANDATORY". That is
+// a mandate to pitch a visit inside a goodbye, and the v9.7.611 reasoning for keeping the
+// justification does NOT transfer: there is no trip to justify, because they are not coming.
+//
+// Returns the REASON rather than a boolean, because every call site needs it anyway to say
+// something true about why the ask is off. Exit is tested first: a lead can carry a pause note
+// and a later exit, and the stronger state has to win.
+function _lpTouchHold(d) {
   try {
     var c = String((d && d.convState) || '').toLowerCase();
-    return c === 'pause' || !!(d && d.hasPauseSignal);
+    if (c === 'exit'  || !!(d && d.hasExitSignal))  return 'exit';
+    if (c === 'pause' || !!(d && d.hasPauseSignal)) return 'pause';
+    return '';
+  } catch (e) { return ''; }
+}
+
+// ── (v9.7.655) THE APPOINTMENT ENGINE, READ ONCE ────────────────────────────────────────────
+// This predicate lived inside the distance block's own IIFE, BELOW the distanceContext chain, so
+// the CONTEXT line could not read it. That is why v9.7.654 could gate the CONTEXT line on pause
+// and not on the two paths v9.7.611 had already gated the other three clauses for: the value did
+// not exist yet at that point in the function. Hoisted, so the four clauses that must agree read
+// one value instead of two.
+//
+// EACH PATH EVALUATED SEPARATELY RATHER THAN ASSUMED FROM THE PAUSE FIX:
+//   zero-contact -- the ZERO-CONTACT block states "DO NOT include appointment times in ANY
+//     format. DO NOT say 'would X or Y work'." "Encourage the soonest workable time" is a direct
+//     contradiction of a directive that owns the appointment engine. Suppress.
+//   reactivation -- the 31-day block states "do NOT offer a specific appointment time -- close
+//     with a single low-friction question or a soft check-in." Same contradiction. Suppress.
+//   the SOFT TIME CLOSE arm (31+ days but the customer HAS replied) explicitly permits a
+//     tentative time, and the reply short-circuit below already leaves the engine ON for it. No
+//     change there, and it is asserted.
+// The JUSTIFICATION half stays on both, exactly as v9.7.611 decided for them: those customers may
+// still come in, and a far buyer must never feel they might drive far for nothing. It is only on
+// EXIT that the justification goes, because only there is the visit itself off the table.
+function _lpApptEngineOff(d) {
+  try {
+    if (_lpTouchHold(d)) return true;                                   // pause or exit: the hold owns it
+    var _replied = (typeof _hasCustomerReplied === 'function') ? !!_hasCustomerReplied(d) : false;
+    if (_replied) return false;                                         // they answered — the engine is live
+    if (!!(d && d._isStalled) && !!(d && d._neverReplied)) return true; // zero-contact: disabled upstream
+    if ((parseFloat((d && d.leadAgeDays) || 0) || 0) >= 31) return true;// reactivation: NO APPOINTMENT TIME
+    return false;
   } catch (e) { return false; }
 }
 
@@ -21081,7 +21130,14 @@ function buildUserPrompt(data) {
         // this path — a stepping-back customer is a close, not a number negotiation.
         var _ddCustArc = _lpCustomerText(data);
         var _ddConvLow = ((data && data.convState) || '').toLowerCase();
-        var _ddExitPause = (_ddConvLow === 'exit' || _ddConvLow === 'pause' || !!(data && data.hasExitSignal) || !!(data && data.hasPauseSignal));
+        // (v9.7.655) The same union, written out a second time. _lpTouchHold is now the one
+        // reading of it, and this reads that instead of maintaining a parallel copy -- the shape
+        // that produced v9.7.629, .630, .634 and .635. Behaviour is identical across all sixteen
+        // combinations of the four inputs, which is asserted rather than asserted-by-eye, and the
+        // original expression stays as the fallback so a missing helper cannot change the answer.
+        var _ddExitPause = (typeof _lpTouchHold === 'function')
+          ? !!_lpTouchHold(data)
+          : (_ddConvLow === 'exit' || _ddConvLow === 'pause' || !!(data && data.hasExitSignal) || !!(data && data.hasPauseSignal));
         var _ddNamedDay = /\b(today|tonight|tomorrow|this\s*(week|weekend|afternoon|morning|evening)|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i.test(_ddCustArc);
         // (1) Deadline cue: the customer tied a near-term moment to finalizing/taking the car.
         // (v9.7.429/427) Now requires a customer-named day-word (_ddNamedDay — computed but
@@ -22405,19 +22461,39 @@ function buildUserPrompt(data) {
     // CUSTOMER wrote; the ZIP/state facts above are what carry a remote lead the customer never
     // spoke about, and a manual chip still overrides everything.
     var isRemoteBuyer = _manualDistance || _geoOutOfState || /ship(?:ping)? to|not (?:local|in the (?:local )?area|nearby)|not (?:located|based) (?:in|near)|out of state|out.of.state/i.test(_lpCustomerText(data));
-    if (flags.includes('credit') || (data.activeFlags||[]).includes('credit')) {
-      distanceContext = 'Customer has credit sensitivity AND is a distance buyer — the trip must feel financially worthwhile. Lead with financing confidence before asking them to drive.';
+    // ── (v9.7.655) AN EXITING LEAD GETS NO CONTEXT LINE AT ALL ──────────────────────────────
+    // Checked FIRST, above the credit arm, because that arm ends "before asking them to drive"
+    // and is just as wrong on a goodbye as the vehicle arm is. This is the ownership rule applied
+    // to its own conclusion: the EXIT directive owns what this message is for, this block does
+    // not, so the right move is for this block to stop talking rather than to issue a quieter
+    // competing instruction. Non-exit leads reach the identical chain they always did.
+    if ((typeof _lpTouchHold === 'function') && _lpTouchHold(data) === 'exit') {
+      distanceContext = '';
+    } else if (flags.includes('credit') || (data.activeFlags||[]).includes('credit')) {
+      distanceContext = 'Customer has credit sensitivity AND is a distance buyer — the trip must feel financially worthwhile. Lead with financing confidence'
+        + (((typeof _lpApptEngineOff === 'function') ? _lpApptEngineOff(data) : false)
+            ? ', and do NOT ask them to drive in on this touch — the directives on this lead disable the appointment ask.'
+            : ' before asking them to drive.');
     } else if (data.vehicle && _dbSoldUnit) {
       // (v9.7.631) The distance FACT still applies and still shapes the offer — they are far, so
       // a wasted trip costs them more than most. What changes is what the trip can be FOR. No
       // availability claim, and no time discussed until there is a unit we can actually confirm.
       distanceContext = 'The ' + data.vehicle + ' named on this lead is SOLD — see VEHICLE STATUS above, which is the authoritative reading of stock. Do NOT say or imply it is available, and do NOT ask them to come in for it. This customer is a distance buyer, so a wasted drive costs them more than most: name a comparable unit you can actually confirm FIRST, and only discuss timing once there is something real to come and see.';
-    } else if (data.vehicle && ((typeof _lpPauseHold === 'function') ? _lpPauseHold(data) : false)) {
+    } else if (data.vehicle && ((typeof _lpApptEngineOff === 'function') ? _lpApptEngineOff(data) : false)) {
       // (v9.7.654) The sold-unit arm above still wins, because a sold car must never be claimed
       // available whatever state the lead is in. This arm is the same directive with the time
       // taken out of it: availability is a fact this block may state, "the soonest workable time"
-      // is an ask it may not make while the pause directives stand.
-      distanceContext = 'Customer is interested in the ' + data.vehicle + '. Confirming it is here is fine and worth saying. Do NOT encourage a time, a visit or the soonest workable anything on this touch — this lead is in a PAUSE state and the directives that own that state forbid an appointment ask. Say it will be ready whenever they are, and do NOT promise to hold or set aside an in-stock unit (we do not reserve on-lot cars).';
+      // is an ask it may not make while the directives that own the engine say otherwise.
+      // (v9.7.655) WIDENED FROM PAUSE TO THE ENGINE. v9.7.654 gated this on pause alone while
+      // v9.7.611 had already gated the header, the in-state clause and the email line on the
+      // engine -- so on a zero-contact or reactivation lead three clauses said no appointment and
+      // this one said "encourage the soonest workable time". The paused wording is unchanged to
+      // the byte; the other two paths get a reason that is true of them.
+      distanceContext = 'Customer is interested in the ' + data.vehicle + '. Confirming it is here is fine and worth saying. Do NOT encourage a time, a visit or the soonest workable anything on this touch — '
+        + (((typeof _lpTouchHold === 'function') ? _lpTouchHold(data) : '') === 'pause'
+            ? 'this lead is in a PAUSE state and the directives that own that state forbid an appointment ask'
+            : 'every other directive on this lead disables the appointment engine, and this block does not override them')
+        + '. Say it will be ready whenever they are, and do NOT promise to hold or set aside an in-stock unit (we do not reserve on-lot cars).';
     } else if (data.vehicle) {
       distanceContext = 'Customer is interested in the ' + data.vehicle + '. Confirm it is available and encourage the soonest workable time so the trip is worth it — do NOT promise to hold or set aside an in-stock unit (we do not reserve on-lot cars). If it is in transit/inbound, securing it before arrival is appropriate.';
     }
@@ -22467,68 +22543,90 @@ function buildUserPrompt(data) {
     // independent inputs, both structured: the zero-contact stalled pair that populateFromData
     // sets (the same pair line 3076 and the isZeroContactStalled resolver already use), and the
     // reactivation suppression's own age/reply test.
+    // (v9.7.655) THE BODY MOVED OUT, THE SHAPE STAYED. Every line that was here is now in
+    // _lpApptEngineOff above, unchanged in order and in meaning -- including the v9.7.654 ordering
+    // fix, where the hold is tested BEFORE the reply short-circuit because a held lead has replied
+    // by definition. It is hoisted so the distanceContext chain, which runs earlier in this
+    // function, can read the same value instead of approximating it.
     var _dbApptOff = (function () {
-      try {
-        var _dbLad = parseFloat(data.leadAgeDays || 0) || 0;
-        var _dbReplied = (typeof _hasCustomerReplied === 'function') ? !!_hasCustomerReplied(data) : false;
-        // (v9.7.654) TESTED BEFORE THE REPLY SHORT-CIRCUIT, AND THE ORDER IS THE FIX. A paused
-        // lead has replied by definition -- that is how we know they want room -- so putting this
-        // after the _dbReplied line would have made it dead code on every lead it exists for.
-        if ((typeof _lpPauseHold === 'function') ? _lpPauseHold(data) : false) return true;
-        if (_dbReplied) return false;                                   // they answered — the engine is live
-        if (!!data._isStalled && !!data._neverReplied) return true;     // zero-contact: engine disabled upstream
-        if (_dbLad >= 31) return true;                                  // reactivation: NO APPOINTMENT TIME
-        return false;
-      } catch (eDb) { return false; }
+      return (typeof _lpApptEngineOff === 'function') ? _lpApptEngineOff(data) : false;
     })();
-    // (v9.7.654) Read again rather than threaded out of the gate above, so the gate stays a
-    // self-contained expression. It is the SAME helper, so the two cannot drift apart.
-    var _dbPaused = (typeof _lpPauseHold === 'function') ? _lpPauseHold(data) : false;
+    // (v9.7.655) The hold REASON, for the clauses that have to say something true about why.
+    var _dbHold = (typeof _lpTouchHold === 'function') ? _lpTouchHold(data) : '';
+    var _dbExit = (_dbHold === 'exit');
     try {
       console.log('[LP DISTANCE APPT GATE] apptEngineOff:' + _dbApptOff
-        + ' | pauseHold:' + _dbPaused
+        + ' | hold:' + (_dbHold || 'none')
         + ' | leadAgeDays:' + (data.leadAgeDays || 0)
         + ' | stalled:' + !!data._isStalled + ' neverReplied:' + !!data._neverReplied
         + (_dbApptOff ? ' — distance block will require the justification but NOT an appointment ask'
                       : ' — distance block asks for the visit as normal'));
     } catch (eDbL) {}
       lines.push('🔴 DISTANCE BUYER: Customer is driving 30-60+ minutes (INTERNAL fact — shapes the offer, never the wording). '
-        + (_dbApptOff ? 'Whatever you ask of them must be worth their time.' : 'The visit ask must be worth their time.'),
-        _inStateFar ? ('- This customer is in-state but outside the local area. The DISTANCE HARD RULE applies IN FULL: do NOT name the miles, the drive, the trip, or the travel in ANY wording — including "your drive will be worth it", "worth the trip", "before you head over", or any paraphrase. Use the distance SILENTLY: make what you offer obviously worth their time with concrete pre-staging — the exact vehicle confirmed and ready, paperwork pre-filled, no waiting'
-          // (v9.7.654) The reason clause is split because "the appointment engine is disabled
-          // for this lead" is TRUE on the zero-contact and reactivation paths and FALSE on a
-          // paused one -- and a directive that asserts a fact it does not own is the exact
-          // failure mode this build is fixing elsewhere. The zero-contact wording is unchanged
-          // to the byte.
+        + (_dbExit ? 'There is nothing to ask of them on this touch.'
+           : _dbApptOff ? 'Whatever you ask of them must be worth their time.'
+           : 'The visit ask must be worth their time.'),
+        // (v9.7.655) SAID OUT LOUD RATHER THAN LEFT AS AN ABSENCE. Everything this block normally
+        // demands is withheld below on an exiting lead, and a directive block that simply goes
+        // quiet invites the model to fill the gap. What survives is the WORDING rule, because a
+        // goodbye that mentions the drive they are now not making is worse than one that does not.
+        (_dbExit
+          ? '- THIS LEAD IS EXITING. The EXIT directive owns this message and calls for a gracious close and nothing else, so the distance treatment asks for NOTHING here: no visit, no time, no reason-to-come-in sentence, no pre-staging pitch. The distance stays a silent fact — it changes only what you must not say.'
+          : undefined),
+        // (v9.7.655) THE EXIT ARM IS THE WHOLE CLAUSE, NOT A SWAPPED TAIL. Appending a
+        // "do NOT pre-stage anything" tail to a sentence whose first half instructs the model to
+        // pre-stage produced a directive that argued with itself inside one line -- caught by
+        // rendering the block rather than by reading the diff. On an exiting lead the only part
+        // of this clause that still has a job is the HARD RULE, because a goodbye that mentions
+        // the drive they are now not making is worse than one that does not. The two existing
+        // arms below are unchanged to the byte.
+        //
+        // (v9.7.654) The reason clause is split because "the appointment engine is disabled
+        // for this lead" is TRUE on the zero-contact and reactivation paths and FALSE on a
+        // paused one -- and a directive that asserts a fact it does not own is the exact
+        // failure mode that build was fixing elsewhere.
+        (!_inStateFar ? ''
+         : _dbExit
+          ? '- This customer is in-state but outside the local area. The DISTANCE HARD RULE applies IN FULL: do NOT name the miles, the drive, the trip, or the travel in ANY wording — including "your drive will be worth it", "worth the trip", "before you head over", or any paraphrase. On this touch that is ALL it means: the distance stays a silent fact, and there is nothing to pre-stage and nobody to invite, because this lead is exiting.'
+          : ('- This customer is in-state but outside the local area. The DISTANCE HARD RULE applies IN FULL: do NOT name the miles, the drive, the trip, or the travel in ANY wording — including "your drive will be worth it", "worth the trip", "before you head over", or any paraphrase. Use the distance SILENTLY: make what you offer obviously worth their time with concrete pre-staging — the exact vehicle confirmed and ready, paperwork pre-filled, no waiting'
           + (_dbApptOff ? ('. Do NOT invite them in on this touch — '
-              + (_dbPaused
+              + (_dbHold === 'pause'
                   ? 'this customer has asked for room and the PAUSE directives on this lead forbid an appointment ask'
                   : 'the appointment engine is disabled for this lead')
               + ', and the pre-staging is context for when they are ready, not an ask.')
                         : ' — and invite it once you have given them a concrete reason.')
-          + ' The reason names what is READY FOR THEM, never the distance they would cover.') : '',
+          + ' The reason names what is READY FOR THEM, never the distance they would cover.')),
         '- NEVER say "stop by", "swing by", or "come see us" — these feel like casual asks for a significant trip.',
         // (v9.7.631) The JUSTIFICATION half survives a sold unit — it is the whole point of the
         // distance treatment and a far buyer must never feel they might drive for nothing. What
         // cannot survive is anchoring that justification on a car we have sold, so the two
         // examples that name THIS vehicle are swapped for ones that do not. Same split v9.7.611
         // used: the colliding clause yields, the rest is untouched.
-        (_dbSoldUnit
+        // (v9.7.655) THE JUSTIFICATION HALF, EVALUATED PER PATH RATHER THAN CARRIED OVER.
+        // v9.7.611 kept it on the zero-contact and reactivation paths, and that decision stands
+        // and is asserted: those customers may still come in, and a far buyer must never feel
+        // they might drive far for nothing. v9.7.654 kept it on a paused lead for the same
+        // reason. On an EXIT lead it goes, and that is the one place the reasoning breaks down --
+        // there is no trip to justify because they are not coming, so "REQUIRED in EVERY format:
+        // One specific reason the visit is worth their time" is a mandate to pitch a visit inside
+        // a goodbye. undefined rather than '' so these members are dropped by the caller's filter
+        // instead of leaving eight blank lines in the middle of the block.
+        (_dbExit ? undefined : _dbSoldUnit
           ? '- REQUIRED in EVERY format: One specific reason any visit would be worth their time — phrased around what is ready for them, never around the drive, distance, or trip. It must be anchored on a CONFIRMED alternative, never on the sold unit.'
           : '- REQUIRED in EVERY format: One specific reason the visit is worth their time — phrased around what is ready for them, never around the drive, distance, or trip.'),
-        (_dbSoldUnit
+        (_dbExit ? undefined : _dbSoldUnit
           ? '  • Confirmed alternative: "I have a comparable one on the ground I can have ready for you." (Only name a unit whose stock is confirmed — see PRESENCE LANGUAGE. Never the sold unit.)'
           : '  • Vehicle confirmation: "I will have everything ready when you arrive — you will not be waiting." (Only promise the vehicle itself is ready to see if its stock is confirmed — see PRESENCE LANGUAGE.)'),
-        '  • Efficiency: "We can pre-fill most of the paperwork so you are in and out in under an hour."',
-        '  • Trade value: "I want to have your trade-in numbers ready before you arrive so we can get straight to business."',
-        '  • First-touch: "I want to make sure your trip is productive — I will have [2-3 options] staged and ready specifically for you."',
-        (_dbSoldUnit
+        (_dbExit ? undefined : '  • Efficiency: "We can pre-fill most of the paperwork so you are in and out in under an hour."'),
+        (_dbExit ? undefined : '  • Trade value: "I want to have your trade-in numbers ready before you arrive so we can get straight to business."'),
+        (_dbExit ? undefined : '  • First-touch: "I want to make sure your trip is productive — I will have [2-3 options] staged and ready specifically for you."'),
+        (_dbExit ? undefined : _dbSoldUnit
           ? '- SMS: 1 sentence is MANDATORY, but it must not promise this vehicle is waiting. Anchor it on the confirmed alternative — e.g. "I have a comparable one on the ground I can get ready for you."'
           : '- SMS: 1 sentence justifying the trip is MANDATORY. Example: "I will have everything ready when you arrive."'),
-        (_dbApptOff
+        (_dbExit ? undefined : _dbApptOff
           ? '- Email: Open with the vehicle/option confirmation. Do NOT close with an appointment ask or a time — every other directive on this lead disables the appointment engine, and this block does not override them. Close with the one easy question those directives call for.'
           : '- Email: Open with the vehicle/option confirmation, THEN the appointment ask.'),
-        '- Never make the distance buyer feel like they might drive far for nothing.',
+        (_dbExit ? undefined : '- Never make the distance buyer feel like they might drive far for nothing.'),
         distanceContext ? '- CONTEXT: ' + distanceContext : '',
         '');
     }
