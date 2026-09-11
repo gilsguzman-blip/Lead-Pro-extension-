@@ -36,15 +36,40 @@ function extract(file) {
   const hb = src.indexOf('// (v9.7.429/427) ONE definition of');
   if (ha < 0 || hb < 0 || hb <= ha) throw new Error('could not locate LP_SCAFFOLD_LINE_RE in ' + file);
   const helper = src.slice(ha, hb);
+  // (v9.7.657) The cross-brand arm now asks the lot whether we hold the pivot make before
+  // declaring we cannot supply it, so the three helpers behind that question travel with the
+  // block. Sliced out of the SAME shipped file for the same reason LP_SCAFFOLD_LINE_RE is.
+  const span = (mark, what, end) => {
+    const x = src.indexOf(mark);
+    if (x < 0) throw new Error('could not locate ' + what + ' in ' + file);
+    const y = src.indexOf(end, x);
+    if (y < 0) throw new Error('could not locate the end of ' + what + ' in ' + file);
+    return src.slice(x, y + end.length);
+  };
+  const stockHelpers =
+      span('var _LP_MAKE_ALIAS = {', '_LP_MAKE_ALIAS', '};') + '\n'
+    + span('function _lpNormMake(m){', '_lpNormMake', '\n}\n') + '\n'
+    + span('function _lpOffFranchiseGate(make, text, dealerId, cache) {', '_lpOffFranchiseGate', '\n}\n') + '\n'
+    + span('function _lpPivotStock(pivotModel, pivotBrand, d) {', '_lpPivotStock', '\n}\n');
   // The block reads `data`, `hasCustomerReply` and `hasRealOutbound` from the enclosing
   // buildUserPrompt scope, and writes `vehiclePivotNote`. Wrap it with exactly those.
   const fn = new vm.Script(
-    helper +
+    helper + '\n' + stockHelpers +
     '\n(function(data, hasCustomerReply, hasRealOutbound){\n' +
     block +
     '\nreturn vehiclePivotNote; })'
   );
-  return fn.runInNewContext({ console: { log: function(){} } });
+  // (v9.7.657) An inventory that is PRESENT and holds nothing of the pivot make. Every fixture in
+  // this suite is a store that does not have the pivoted-to car on the lot, which is the state
+  // that makes the CROSS-BRAND wording true — so supplying an empty-but-loaded feed keeps each
+  // case meaning what it already meant. The fixtures carry no dealerId, so it is keyed on ''.
+  // _lpCustomerText is stubbed to the fixture's own inbound, which is what the NEW-ask test reads;
+  // the v9.7.657 suite covers the stocked and NEW cases against real unit shapes.
+  return fn.runInNewContext({
+    console: { log: function(){} },
+    _lpValueFactCache: { '': { inv: { units: [] } } },
+    _lpCustomerText: function (d) { return String((d && d.lastInboundMsg) || ''); },
+  });
 }
 
 // (v9.7.597) Guarded like the rest — see tests/lib/guarded-impls.js.
