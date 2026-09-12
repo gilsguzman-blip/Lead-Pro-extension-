@@ -48,7 +48,15 @@ function extract(file) {
 
   const gate = span('    var _incAiOnly = _lpFirstHumanTouch(d);', 'the incentive suppression', '\n    }');
   const ask  = span('                if (!_ddSuppressAppt && _lpFirstHumanTouch(data)) {', 'the light-ask block', '\n                }');
-  return { name: path.basename(path.dirname(file)), src, helper, gate, ask };
+  // (v9.7.659) The bot-anchor block's closing sentence, which used to claim "first real person"
+  // unconditionally. Lifted from the push that opens it to the diagnostic that now follows it.
+  const anchor = span('          ageBlock.push(_lpFirstHumanTouch(data)\n', 'the anchor first-person claim',
+    "_lpFirstHumanTouch(data)); } catch (eFh3) {}");
+  // (v9.7.659) v9.7.415's own regex, so the asked case is driven by the shipped test rather than
+  // by a string I chose. If that regex ever narrows, these assertions move with it.
+  const asked = span('    var _incCustomerAsked = ', "v9.7.415's customer-asked test",
+    "lastInboundMsg || '');");
+  return { name: path.basename(path.dirname(file)), src, helper, gate, ask, anchor, asked };
 }
 
 // ── THE SEND SHAPES ─────────────────────────────────────────────────────────
@@ -70,23 +78,40 @@ function touchFor(impl, bodies, opts) {
   return sb.__out;
 }
 
-// Runs the SHIPPED incentive suppression with the gate state supplied.
-function gateFor(impl, firstTouchBefore, aiOnly) {
+// Runs the SHIPPED incentive suppression with the gate state supplied. `reasonBefore` is which
+// override upstream had already unlocked the incentive — the whole point of (6) below.
+function gateFor(impl, firstTouchBefore, aiOnly, reasonBefore, opts) {
   const logs = [];
   const sb = {
     _lpFirstHumanTouch: () => aiOnly,
     _incFirstTouch: firstTouchBefore,
-    _incFirstTouchReason: firstTouchBefore ? 'convstate' : 'prior_outreach',
+    _incFirstTouchReason: reasonBefore !== undefined
+      ? reasonBefore
+      : (firstTouchBefore ? 'convstate' : 'prior_outreach'),
     d: {},
     console: { log: (...x) => logs.push(x.join(' ')) },
   };
   vm.createContext(sb);
-  vm.runInContext(impl.gate, sb);
+  vm.runInContext(opts && opts.mutate ? opts.mutate(impl.gate) : impl.gate, sb);
   return {
     suppressed: vm.runInContext('_incFirstTouch', sb),
     reason: vm.runInContext('_incFirstTouchReason', sb),
     logs: logs.join(' '),
   };
+}
+
+// Runs the SHIPPED bot-anchor closing sentence off the shipped predicate.
+function anchorFor(impl, aiOnly, opts) {
+  const logs = [];
+  const sb = {
+    _lpFirstHumanTouch: () => aiOnly,
+    data: {},
+    ageBlock: [],
+    console: { log: (...x) => logs.push(x.join(' ')) },
+  };
+  vm.createContext(sb);
+  vm.runInContext(opts && opts.mutate ? opts.mutate(impl.anchor) : impl.anchor, sb);
+  return { text: vm.runInContext('ageBlock', sb).join('\n'), logs: logs.join(' ') };
 }
 
 // Runs the SHIPPED light-ask block.
@@ -216,6 +241,59 @@ check('...and nothing is logged in that case',
 check('a lead a person has written to gets no light ask',
   i => askFor(i, false, false).lines.length, 0);
 
+// ── (6) THE QUESTION THE CUSTOMER ACTUALLY ASKED ────────────────────────────
+// v9.7.658 shipped this suppression LAST in the chain, so it overturned v9.7.415's customer-asked
+// override and went quiet on a customer who had asked about money. Gil's "non AI engaged leads
+// will still behave correctly.... right?" is what sent me back through the chain.
+console.log('\n(6) the customer-asked override survives (v9.7.659):');
+
+// Driven through v9.7.415's own regex, not through a phrase I picked.
+function askedBy(impl, inbound) {
+  const sb = { d: { lastInboundMsg: inbound }, RegExp, __out: null };
+  vm.createContext(sb);
+  vm.runInContext(impl.asked + '\n__out = _incCustomerAsked;', sb);
+  return sb.__out;
+}
+
+check('the shipped regex recognises the questions a customer actually sends',
+  i => ["What's the payment on it?", 'any specials right now?', 'Can you send me an OTD price?']
+        .map(m => askedBy(i, m)), [true, true, true]);
+check('...and does not fire on an ordinary reply',
+  i => askedBy(i, 'Is the S5 still available? I can come look this week.'), false);
+
+check('a bot-only lead where the customer ASKED keeps its incentive',
+  i => gateFor(i, false, true, 'asked').suppressed, false);
+check('...and keeps the asked reason, so the log does not misreport why',
+  i => gateFor(i, false, true, 'asked').reason, 'asked');
+check('...and nothing is logged as suppressed',
+  i => gateFor(i, false, true, 'asked').logs, '');
+
+// The other two overrides are proactive mentions, which is exactly what Gil said should wait.
+check('a proactive generic-VOI mention still yields on a first human touch',
+  i => gateFor(i, false, true, 'generic').reason, 'ai_only_outreach');
+check('an in-transit mention yields too',
+  i => gateFor(i, false, true, 'in_transit').reason, 'ai_only_outreach');
+check('...as does the v9.7.616 outreach override this build was written for',
+  i => gateFor(i, false, true, 'prior_outreach').reason, 'ai_only_outreach');
+
+// ── (7) THE ANCHOR SENTENCE ─────────────────────────────────────────────────
+console.log('\n(7) the bot-anchor claim reads the field that owns it (v9.7.659):');
+
+check('on a genuinely bot-only lead it says first real person',
+  i => /YOU ARE THE FIRST REAL PERSON TO WRITE TO THIS CUSTOMER/.test(anchorFor(i, true).text), true);
+check('when a person HAS written it says so instead',
+  i => /A PERSON HAS ALREADY WRITTEN TO THIS CUSTOMER/.test(anchorFor(i, false).text), true);
+check('...and it does NOT also claim first contact',
+  i => /FIRST REAL PERSON/.test(anchorFor(i, false).text), false);
+check('...and it tells the model not to introduce itself',
+  i => /Do not introduce yourself or the store as though this were first contact/.test(anchorFor(i, false).text), true);
+check('the diagnostic reports the verdict either way',
+  i => [/first human touch: true/.test(anchorFor(i, true).logs),
+        /first human touch: false/.test(anchorFor(i, false).logs)], [true, true]);
+check('exactly one of the two sentences is emitted',
+  i => [anchorFor(i, true).text.split('\n').filter(Boolean).length,
+        anchorFor(i, false).text.split('\n').filter(Boolean).length], [1, 1]);
+
 // ── NON-VACUITY ─────────────────────────────────────────────────────────────
 console.log('\nnon-vacuity (v9.7.658):');
 
@@ -232,6 +310,24 @@ check('B: ...and so does the time close',
   i => askFor(i, false, false).lines.length, 0);
 check('B (control): with it true both are gone',
   i => [gateFor(i, false, true).suppressed, askFor(i, true, false).lines.length > 0], [true, true]);
+
+console.log('\nnon-vacuity (v9.7.659):');
+
+// C: remove the asked guard and the silence v9.7.658 shipped comes straight back.
+const NO_GUARD = c => c.replace(" && _incFirstTouchReason !== 'asked'", '');
+check('neuter C actually removed the asked guard', i => NO_GUARD(i.gate) !== i.gate, true);
+check('C: without it, a customer who asked about the payment is answered with silence',
+  i => gateFor(i, false, true, 'asked', { mutate: NO_GUARD }).suppressed, true);
+check('C (control): the shipped chain answers them',
+  i => gateFor(i, false, true, 'asked').suppressed, false);
+
+// D: pin the anchor predicate and the false introduction comes back.
+const PIN_TRUE = c => c.replace(/_lpFirstHumanTouch\(data\)/g, 'true');
+check('neuter D actually pinned the anchor predicate', i => PIN_TRUE(i.anchor) !== i.anchor, true);
+check('D: pinned true, a human-worked lead is told it is first contact again',
+  i => /FIRST REAL PERSON/.test(anchorFor(i, false, { mutate: PIN_TRUE }).text), true);
+check('D (control): the shipped block does not',
+  i => /FIRST REAL PERSON/.test(anchorFor(i, false).text), false);
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);
