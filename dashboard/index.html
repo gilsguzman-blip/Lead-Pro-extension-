@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LeadPro Dashboard — Community Auto Group</title>
+<!--
+  v1.4 — WHAT LEAD PRO IS HOLDING. This page had ZERO references to incentives or valuefact, and
+  neither did anything else: the Data Tool's summary table is a receipt for the file you just
+  dropped (incResult is replaced on every Normalize and nothing merges across runs), so a Kia-only
+  upload never appears beside four stores parsed in a different run. On 9/4 "is the Kia incentive
+  upload actually in Lead Pro?" cost a full day. It was — 110 lines uploaded, 110 in KV model for
+  model, 110 loaded by the extension, and both Sportage programs reached a real customer's draft.
+  Nothing was broken; nothing could answer the question.
+
+  This panel reads GET /valuefact back, once per rooftop, and separates the four states an operator
+  actually acts on — from outside the proxy these were indistinguishable, which is the whole reason
+  it took a day:
+      nothing published     → the store is missing entirely, re-publish
+      published, all lapsed → expiry did its job and the sheet is stale, re-publish
+      published and live    → nothing to do
+      unreachable           → a network problem, not a data problem
+  And one more: on a proxy older than v7.70 the stored count is UNKNOWN, rendered as such rather
+  than as zero. "We don't know" and "there are none" are the two states this panel exists to keep
+  apart, and collapsing them is what the 9/4 survey did.
+
+  v1.5 — QUOTABLE, BECAUSE THE PROXY AND THE EXTENSION DISAGREE ABOUT WHAT "LIVE" MEANS. The two
+  expiry rules are deliberately opposite, and v1.4 reported only one of them:
+      GET /valuefact          drops a line when `expires` is present AND past -> an UNDATED line PASSES
+      _lpExpiryFilterIncentives  drops a line unless `expires` is a valid ISO date >= today
+                              -> an UNDATED line is DISCARDED, matching the Data Tool's own publish
+                                 rule, whose UI calls expiry "the kill-switch"
+  So a store can read "39 live" off the proxy and inject ZERO incentive lines into a real prompt.
+  A panel that reported only the proxy's number would hide the exact failure it was built to
+  surface — and on 9/4 it did: both Honda rooftops read 39 live while their publish date was a
+  month old. Quotable applies the EXTENSION's rule, so the column says what a customer can
+  actually be told, and a store holding undated lines gets its own state and its own red.
+
+  NO NEW CREDENTIAL. GET /valuefact is unauthenticated and returns incentive lines only, never
+  contact data, so this panel does NOT append the director key and must never be changed to. It is
+  a pure read; nothing here can write to KV.
+
+  IT LOADS INDEPENDENTLY of the feedback range fetch and renders above it, so it still answers its
+  question when /feedback/* is erroring or the director key has rotated — the failure mode where
+  someone most needs to ask what is published.
+
+  readStore() is copied VERBATIM from tools/leadpro-live-check.js and tests/live-check.test.js runs
+  both copies against the same fixtures and asserts they agree, so the two cannot drift.
+
+  REQUIRES PROXY v7.70 for `generated` and `storedCount`; against v7.69 the Published column says
+  "proxy older than v7.70" rather than looking like missing data.
+
+  v1.2 — EXPLICIT/IMPLICIT SPLIT. Every tile and column labelled 👍/👎 was rendering `ratings.up`
+  and `ratings.down`, which cannot carry the distinction: the extension's _lpFeedbackDeriveRating
+  returns 'up' for BOTH an explicit thumbs-up and a copied-as-is draft, and (since v9.7.540) 'down'
+  for BOTH an explicit thumbs-down and an implicit regenerated-or-chipped-then-abandoned session.
+  Only `signal` separates them. Confirmed live on 8/15: the daily report correctly showed 0 explicit
+  👎 against 27 real down-ratings (all implicit_regen_no_copy / implicit_chip_no_copy), while this
+  dashboard's tile read "EXPLICIT 👎: 27" and its per-store column read 16/4/4/2/1 — precisely
+  ratings.down, per store.
+
+  Nothing here needed a new computation. The proxy has emitted the split since v7.49 (top-level
+  explicitUp / explicitDown / implicitUp) and v7.51 (per-bucket explicitDown / implicitDown), the
+  latter's own header stating it exists "so a renderer's 👎 column can stop merging a thumbs-down
+  with a regen-then-abandoned session". This is a field swap: ratings.down → explicitDown, with
+  implicitDown disclosed alongside so nothing is hidden. Same defect and same fix as the reporter
+  Worker's v1.8 (tiles) and v1.10 (per-store column).
+
+  COMPATIBILITY: top-level implicitDown is new in proxy v7.53. Where it is absent the value is
+  derived as ratings.down - explicitDown, so this page renders correctly against v7.49+ regardless
+  of which proxy version is deployed. Per-bucket implicitDown has existed since v7.51.
+
+  v1.3 — RATES MOVE TO THE ENGAGED DENOMINATOR, matching the report and the API. Every rate on the
+  page was hand-computed from raw counts, and each one differed from the report on the same rows:
+    · the headline tile used data.posRate = shipped/total   → 70% where the report said 86%
+    · store bars used (up+weak_up)/total                    → Honda Laf. 59/85 = 69% vs 64/80 = 80%
+    · lead-source rows and flag chips used up/total alone, dropping weak_up AND neutral
+  Two separate deviations. The numerator dropped `neutral` — a draft copied AFTER a regen still
+  shipped, which is the whole point of v1.3 of the reporter — and the denominator counted
+  `abandoned` and `incomplete` rows, which are sessions that produced nothing anyone used or
+  nothing at all. A generate-reliability number does not belong in a quality rate.
+  As with the 👎 split, no new computation was needed: _bucketRates has returned engagedShippedRate
+  and engagedFirstTryRate per bucket since proxy v7.50, and aggregate() returns them at the top
+  level. The tile is relabelled "Shipped Rate" to say what it measures, with first-try beside it —
+  the same two numbers, in the same words, as the daily report.
+  A bucket with zero engaged sessions now renders an em-dash rather than 0%, which read as total
+  failure when the truth was "nothing to measure" (reporter v1.9 made the same correction).
+  COMPATIBILITY: byDay's engaged pair is new in proxy v7.54, so the per-day trend falls back to the
+  raw fields, and finally to posRate, when it is absent. Deploy order does not matter.
+
+  v1.1 — director-key patch (7/7/26).
+-->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prop-types/15.8.1/prop-types.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/recharts@2.12.7/umd/Recharts.min.js"></script>
+<script>
+  // Verify Recharts loaded correctly
+  window.addEventListener('load', function() {
+    if (!window.Recharts) {
+      console.warn('Recharts failed to load from CDN — charts will be hidden');
+    }
+  });
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:       #080c14;
+    --surface:  #0e1320;
+    --border:   #1a2235;
+    --border2:  #111827;
+    --text:     #e2e8f0;
+    --muted:    #4b5563;
+    --dim:      #94a3b8;
+    --blue:     #3b82f6;
+    --blue-dim: #1d4ed8;
+    --green:    #34d399;
+    --amber:    #fbbf24;
+    --red:      #f87171;
+    --mono:     'IBM Plex Mono', monospace;
+    --sans:     'IBM Plex Sans', sans-serif;
+  }
+  html, body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; }
+  body { padding: 28px 20px; }
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  button { cursor: pointer; border: none; outline: none; font-family: var(--sans); }
+  table { border-collapse: collapse; width: 100%; }
+
+  /* Animations */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
+  .fade-up { animation: fadeUp 0.4s ease both; }
+  .fade-up-1 { animation-delay: 0.05s; }
+  .fade-up-2 { animation-delay: 0.10s; }
+  .fade-up-3 { animation-delay: 0.15s; }
+  .fade-up-4 { animation-delay: 0.20s; }
+  .fade-up-5 { animation-delay: 0.25s; }
+  .loading-pulse { animation: pulse 1.4s ease infinite; }
+
+  .wrap { max-width: 980px; margin: 0 auto; }
+
+  /* Header */
+  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 28px; flex-wrap: wrap; gap: 16px; }
+  .logo-line { font-family: var(--mono); font-size: 11px; color: var(--muted); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 6px; }
+  .logo { font-family: var(--mono); font-size: 26px; font-weight: 600; color: var(--blue); letter-spacing: -0.01em; }
+  .logo span { color: var(--dim); font-weight: 400; }
+  .sub { font-size: 12px; color: var(--muted); margin-top: 3px; }
+
+  /* Range buttons */
+  .range-btns { display: flex; gap: 6px; align-items: center; }
+  .range-btn {
+    padding: 7px 16px; border-radius: 6px; font-size: 12px; font-weight: 500;
+    background: var(--surface); color: var(--dim); border: 1px solid var(--border);
+    transition: all 0.15s;
+  }
+  .range-btn.active { background: var(--blue-dim); color: #fff; border-color: var(--blue); }
+  .range-btn:hover:not(.active) { border-color: var(--blue); color: var(--text); }
+  .refresh-btn {
+    padding: 7px 11px; border-radius: 6px; font-size: 13px;
+    background: var(--surface); color: var(--muted); border: 1px solid var(--border);
+  }
+  .refresh-time { font-size: 10px; color: #374151; text-align: right; margin-top: 4px; font-family: var(--mono); }
+
+  /* Cards */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px; }
+  .section-title {
+    font-size: 10px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--blue); border-bottom: 1px solid var(--border2); padding-bottom: 9px; margin-bottom: 16px;
+    font-family: var(--mono);
+  }
+
+  /* Stats grid */
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 12px; }
+  .stat { background: #090d16; border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; }
+  .stat-label { font-size: 9px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 7px; font-family: var(--mono); }
+  .stat-value { font-size: 26px; font-weight: 600; font-family: var(--mono); line-height: 1; }
+  .stat-sub { font-size: 10px; color: var(--muted); margin-top: 5px; }
+
+  /* Store bars */
+  .store-row { margin-bottom: 13px; }
+  .store-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+  .store-name { font-size: 12px; color: var(--text); }
+  .store-stats { display: flex; gap: 14px; align-items: center; }
+  .store-signals { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+  .store-rate { font-size: 13px; font-weight: 600; font-family: var(--mono); }
+  .store-down { font-size: 11px; color: var(--red); }
+  .store-nocopy { font-size: 11px; color: var(--amber); font-family: var(--mono); }
+  .store-firsttry { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+  .bar-bg { height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 3px; transition: width 0.8s cubic-bezier(0.4,0,0.2,1); }
+
+  /* Table */
+  .tbl th { padding: 7px 10px; border-bottom: 1px solid var(--border2); color: var(--blue); font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; text-align: left; font-weight: 600; font-family: var(--mono); }
+  .tbl td { padding: 8px 10px; border-bottom: 1px solid var(--border2); font-size: 12px; }
+  .tbl tr:last-child td { border-bottom: none; }
+  .tbl .right { text-align: right; }
+  .mono { font-family: var(--mono); }
+
+  /* Flag chips */
+  .flag-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+  .flag-chip { background: #090d16; border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; min-width: 110px; }
+  .flag-name { font-size: 10px; color: var(--dim); margin-bottom: 4px; font-family: var(--mono); }
+  .flag-rate { font-size: 18px; font-weight: 600; font-family: var(--mono); line-height: 1; }
+  .flag-meta { font-size: 10px; color: var(--muted); margin-top: 3px; }
+
+  /* Two col layout */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  /* Error */
+  .error-box { background: #1c0a0a; border: 1px solid #7f1d1d; border-radius: 8px; padding: 16px; margin-bottom: 20px; font-size: 13px; color: var(--red); }
+
+  /* Show more */
+  .show-more { font-size: 11px; color: var(--blue); background: none; padding: 8px 0 0; font-family: var(--sans); }
+  .show-more:hover { text-decoration: underline; }
+
+  /* Tooltip */
+  .custom-tooltip { background: var(--surface); border: 1px solid var(--border); border-radius: 7px; padding: 9px 13px; font-size: 12px; font-family: var(--mono); }
+  .custom-tooltip .label { color: var(--dim); margin-bottom: 4px; font-size: 10px; }
+
+  /* Disclosure line under the tiles */
+  .disclosure { font-size: 10px; color: var(--muted); margin: -4px 0 20px; line-height: 1.6; }
+
+  @media (max-width: 640px) {
+    .stats-grid { grid-template-columns: 1fr 1fr; }
+    .two-col { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+const { createElement: h, useState, useEffect, useCallback, Fragment } = React;
+const RC = window.Recharts || {};
+  const { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } = RC;
+  const chartsAvailable = !!window.Recharts;
+
+const PROXY = 'https://leadpro-proxy.gilsguzman.workers.dev';
+// (v1.1 — director-key patch, 7/7/26) The proxy's /feedback/* GET endpoints now require a
+// director key (worker v7.30, W3). This dashboard is a static Pages site with no server side,
+// so the key necessarily ships in this client-side source — same exposure class as it being
+// visible in a URL bar. Acceptable for an internal, non-public dashboard; rotate this value
+// (and the DIRECTOR_KEYS var on the worker) if this file or its deployed URL is ever shared
+// outside the director/ownership group.
+const DIRECTOR_KEY = 'LPDEV-GIL-DIRECTOR-001'; // ← replace with your current DIRECTOR_KEYS value
+
+// (v1.2) EXPLICIT vs IMPLICIT — the whole point of this build.
+// `rating` cannot carry the distinction. _lpFeedbackDeriveRating in the extension returns 'up'
+// for an explicit thumbs-up AND for a copied-as-is draft, and 'down' for an explicit thumbs-down
+// AND for a regenerated-or-chipped-then-abandoned session. Only `signal` separates them, and the
+// proxy already does that separation for us. These two readers are the only place this page is
+// allowed to source a 👍/👎 count from; nothing below may reach for ratings.up / ratings.down /
+// bucket.down again.
+//   explicitDown — a human pressed the thumb. This is what an "EXPLICIT 👎" tile means.
+//   implicitDown — the draft was regenerated or chipped and then never sent. Real signal, and
+//                  usually the larger number, but it is not a rejection someone declared.
+// implicitDown at the TOP level arrived in proxy v7.53; derive it where the deployed proxy is
+// older so this page is correct against v7.49+ either way. Per-bucket implicitDown is v7.51.
+function explicitDownOf(d)  { return (d && d.explicitDown) || 0; }
+function implicitDownOf(d)  {
+  if (!d) return 0;
+  if (typeof d.implicitDown === 'number') return d.implicitDown;
+  const down = (d.ratings ? d.ratings.down : d.down) || 0;
+  return Math.max(0, down - explicitDownOf(d));
+}
+function explicitUpOf(d)    { return (d && d.explicitUp) || 0; }
+function implicitUpOf(d)    {
+  if (!d) return 0;
+  if (typeof d.implicitUp === 'number') return d.implicitUp;
+  return (d.signals && d.signals.implicit_copy) || 0;
+}
+
+// (v1.3) RATES — one reader, used everywhere, so no two panels can disagree again.
+// The quality denominator is ENGAGED: total minus `abandoned` (a draft was produced and nobody
+// used it) minus `incomplete` (no draft was ever produced — a failed or aborted generate). Those
+// are reliability signals, not rejections, and the proxy has excluded them since v7.50. The
+// numerator is SHIPPED: up + weak_up + neutral, because a draft copied after a regen still went to
+// the customer. Prefer the API's own field; derive it only where an older payload lacks it; and
+// return null — rendered as an em-dash — when there is genuinely nothing to measure.
+function engagedOf(d) {
+  if (!d) return 0;
+  if (typeof d.engaged === 'number') return d.engaged;
+  return Math.max(0, (d.total || 0) - (d.abandoned || 0) - (d.incomplete || 0));
+}
+function shippedRateOf(d) {
+  if (!d) return null;
+  if (typeof d.engagedShippedRate === 'number' && engagedOf(d) > 0) return d.engagedShippedRate;
+  const eng = engagedOf(d);
+  if (!eng) return null;
+  const shipped = (typeof d.shipped === 'number')
+    ? d.shipped
+    : (d.up || 0) + (d.weak_up || 0) + (d.neutral || 0);
+  return Math.round(100 * shipped / eng);
+}
+function firstTryRateOf(d) {
+  if (!d) return null;
+  if (typeof d.engagedFirstTryRate === 'number' && engagedOf(d) > 0) return d.engagedFirstTryRate;
+  const eng = engagedOf(d);
+  if (!eng) return null;
+  const ft = (typeof d.firstTry === 'number') ? d.firstTry : (d.up || 0) + (d.weak_up || 0);
+  return Math.round(100 * ft / eng);
+}
+const DASH = '—';
+function pct(v) { return v === null || v === undefined ? DASH : v + '%'; }
+
+const STORE_COLORS = {
+  'Community Honda Lafayette': '#38bdf8',
+  'Community Honda Baytown':   '#34d399',
+  'Community Toyota Baytown':  '#f87171',
+  'Community Kia Baytown':     '#fb923c',
+  'Audi Lafayette':            '#a78bfa',
+  'unknown':                   '#374151',
+};
+const PERSONA_LABELS = {
+  bdc: 'BDC Agent', sales: 'Sales', manager: 'Manager',
+  internet_director: 'Int. Director', concierge: 'Concierge', unknown: 'Unknown',
+};
+const RANGES = [
+  { label: 'Today',   days: 0 },
+  { label: '7 days',  days: 6 },
+  { label: '14 days', days: 13 },
+  { label: '30 days', days: 29 },
+];
+
+// (Fixed — real bug: Gil caught the dashboard rolling over to "tomorrow" at
+// 7:55 PM Central, hours before actual local midnight.) new Date() gets the
+// right moment in time, but .toISOString() always converts to UTC before
+// formatting — Central Daylight Time is UTC-5 in summer, so anything after
+// ~7 PM Central was already "tomorrow" in UTC terms. Fixed the same way the
+// Feedback Gatherer tool already does it correctly: format "now" directly
+// in America/Chicago via Intl.DateTimeFormat, never round-tripping through
+// UTC. en-CA locale gives YYYY-MM-DD formatting natively.
+function centralToday(offsetDays) {
+  const now = new Date(Date.now() - (offsetDays || 0) * 86400000);
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Chicago', year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
+}
+function fmtDate(n) {
+  return centralToday(n);
+}
+function posColor(r) { return r >= 90 ? '#34d399' : r >= 75 ? '#fbbf24' : '#f87171'; }
+
+async function fetchRange(from, to) {
+  const extTo = new Date(new Date(to).getTime() + 864e5).toISOString().slice(0,10);
+  // (v1.1) key= appended — see DIRECTOR_KEY note above.
+  const res = await fetch(`${PROXY}/feedback/range?from=${from}&to=${extTo}&key=${encodeURIComponent(DIRECTOR_KEY)}`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+// ── (v1.4) WHAT LEAD PRO IS HOLDING ──────────────────────────────────────────────────────
+// Keep in step with the Data Tool's store <select>. A sixth rooftop is one line here.
+const VF_STORES = [
+  ['6189',  'Toyota Baytown'],
+  ['6190',  'Kia Baytown'],
+  ['6191',  'Honda Baytown'],
+  ['24399', 'Honda Lafayette'],
+  ['21135', 'Audi Lafayette'],
+];
+
+// VERBATIM from tools/leadpro-live-check.js. tests/live-check.test.js lifts BOTH copies and runs
+// them against the same fixtures, asserting identical results — if one is edited and the other is
+// not, that suite fails. No director key: /valuefact is unauthenticated and returns lines only.
+async function readStore(base, did, name, today){
+  try{
+    const r = await fetch(base + '/valuefact?dealer=' + encodeURIComponent(did));
+    if(!r.ok) return { did, name, state:'error', detail:'HTTP ' + r.status };
+    const j = await r.json();
+    const vf = j && j.valuefact;
+    if(!vf) return { did, name, state:'empty' };
+    const inc = Array.isArray(vf.incentives) ? vf.incentives : [];
+    const models = {};
+    inc.forEach(function(x){ const m = (x && x.model) || '(unnamed)'; models[m] = (models[m]||0)+1; });
+    // QUOTABLE APPLIES THE EXTENSION'S RULE, NOT THE WORKER'S — and they disagree on purpose.
+    // GET /valuefact drops a line only when `expires` is present AND past, so an UNDATED line
+    // passes. _lpExpiryFilterIncentives does the opposite: a missing or malformed expires is
+    // dropped, matching the Data Tool's own publish rule ("expiry is the kill-switch"). A store
+    // can therefore read "39 live" off the worker and inject ZERO lines into a real prompt.
+    // Reporting only the worker's count is how this panel would hide the exact failure it exists
+    // to surface, so it reports both and says which is which.
+    let quotable = 0;
+    inc.forEach(function(x){
+      const e = (x && x.expires != null) ? String(x.expires).trim() : '';
+      if(/^\d{4}-\d{2}-\d{2}$/.test(e) && e >= today) quotable++;
+    });
+    return {
+      did, name,
+      // 'undated' is its own state: the worker serves these, the extension discards them, and the
+      // store quotes nothing. It looks identical to a healthy store from the proxy alone.
+      state: !inc.length ? 'lapsed' : (quotable ? 'live' : 'undated'),
+      live: inc.length,
+      quotable: quotable,
+      // storedCount arrives from v7.70. null on an older proxy — reported as unknown, not as 0,
+      // because "we don't know" and "there are none" are the two states this page exists to separate.
+      stored: (typeof vf.storedCount === 'number') ? vf.storedCount : null,
+      generated: vf.generated || null,
+      models
+    };
+  }catch(e){ return { did, name, state:'error', detail:String((e && e.message) || e) }; }
+}
+
+function LiveIncentives() {
+  const [rows, setRows] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  const load = useCallback(async () => {
+    setBusy(true);
+    const out = [];
+    const today = centralToday(0);
+    for (const s of VF_STORES) out.push(await readStore(PROXY, s[0], s[1], today));
+    setRows(out); setBusy(false);
+  }, []);
+  useEffect(() => { load(); }, []);
+
+  // centralToday, NOT new Date().toISOString() — the same UTC round-trip that had this page
+  // rolling over to "tomorrow" at 7:55 PM Central would call the afternoon's own upload stale.
+  const today = centralToday(0);
+
+  const liveCell = (r) =>
+    r.state === 'error'   ? h('span', { style:{color:'#f87171'} }, 'unreachable')  :
+    r.state === 'empty'   ? h('span', { style:{color:'#f87171'} }, 'nothing published') :
+    r.state === 'lapsed'  ? h('span', { style:{color:'#fbbf24'} }, '0 — all lapsed') :
+    r.state === 'undated' ? h('span', { style:{color:'#f87171'} }, r.live + ' — none dated') :
+                            h('span', { style:{color:'#34d399',fontWeight:600} }, r.live);
+  // What actually reaches a customer. Red when the store holds lines and quotes none of them.
+  const quotableCell = (r) =>
+    (r.state === 'error' || r.state === 'empty')
+      ? h('span', { style:{color:'#4b5563'} }, DASH)
+      : h('span', { style:{color: r.quotable ? '#34d399' : '#f87171', fontWeight:600} }, r.quotable || 0);
+
+  const verdict = () => {
+    if (!rows) return null;
+    const errs   = rows.filter(r => r.state === 'error').length;
+    const empty  = rows.filter(r => r.state === 'empty').length;
+    const lapsed = rows.filter(r => r.state === 'lapsed').length;
+    const undated = rows.filter(r => r.state === 'undated').length;
+    if (errs)    return [errs + ' rooftop(s) unreachable — a network problem, not a data problem.', '#f87171'];
+    if (empty)   return [empty + ' rooftop(s) have NOTHING published to Lead Pro.', '#f87171'];
+    if (undated) return [undated + ' rooftop(s) hold lines with NO expiry date. The proxy serves them; the '
+                       + 'extension discards every one, so those stores quote nothing.', '#f87171'];
+    if (lapsed)  return [lapsed + ' rooftop(s) published but every line has lapsed — re-publish those.', '#fbbf24'];
+    return ['All ' + rows.length + ' rooftops published and quotable.', '#34d399'];
+  };
+  const v = verdict();
+
+  return h('div', { className: 'card fade-up fade-up-1', style:{marginBottom:20} },
+    h('div', { className:'section-title', style:{display:'flex',justifyContent:'space-between',alignItems:'center'} },
+      h('span', null, "What Lead Pro is holding right now"),
+      h('button', { className:'refresh-btn', onClick: load, disabled: busy, title:'Re-read the proxy' }, '↻')
+    ),
+    busy && !rows && h('div', { style:{fontSize:12,color:'#4b5563'} }, 'Reading the proxy…'),
+    rows && h(Fragment, null,
+      v && h('div', { style:{fontSize:11,color:v[1],marginBottom:12,fontFamily:'IBM Plex Mono,monospace'} }, v[0]),
+      h('table', { className:'tbl' },
+        h('thead', null, h('tr', null,
+          h('th', null, 'Store'),
+          h('th', { className:'right' }, 'Dealer'),
+          h('th', { className:'right' }, 'Live lines'),
+          h('th', { className:'right', title:"Passes the extension's stricter rule — what a customer can actually be told" }, 'Quotable'),
+          h('th', { className:'right' }, 'Stored'),
+          h('th', null, 'Published'),
+          h('th', null, 'Models')
+        )),
+        h('tbody', null, rows.map(r => {
+          const stale = r.generated && r.generated < today;
+          return h('tr', { key:r.did },
+            h('td', null, r.name),
+            h('td', { className:'right mono', style:{color:'#4b5563'} }, r.did),
+            h('td', { className:'right mono' }, liveCell(r)),
+            h('td', { className:'right mono' }, quotableCell(r)),
+            // Unknown is not zero. An older proxy sends no storedCount at all.
+            h('td', { className:'right mono', style:{color: r.stored == null ? '#4b5563' : '#94a3b8'} },
+              r.stored == null ? DASH : r.stored),
+            h('td', { className:'mono', style:{fontSize:11,color: r.generated ? (stale ? '#fbbf24' : '#34d399') : '#fbbf24'} },
+              r.generated || DASH + ' proxy older than v7.70'),
+            h('td', { style:{fontSize:11,color:'#4b5563'} },
+              r.models && Object.keys(r.models).length
+                ? Object.keys(r.models).map(m => m + ':' + r.models[m]).join(' · ')
+                : (r.detail || DASH))
+          );
+        }))
+      ),
+      h('div', { className:'disclosure', style:{margin:'12px 0 0'} },
+        'Read back from the proxy — not from the last file uploaded. No director key: /valuefact is ',
+        'unauthenticated and returns incentive lines only, never contact data. This panel cannot write.'
+      )
+    )
+  );
+}
+
+// ── Tooltip ──
+function CT({ active, payload, label }) {
+  if (!active || !payload?.length) return null;
+  return h('div', { className: 'custom-tooltip' },
+    h('div', { className: 'label' }, label),
+    payload.map((p,i) => h('div', { key: i, style: { color: p.color || '#e2e8f0' } },
+      `${p.name}: `, h('strong', null, p.value + (p.name === 'Shipped %' ? '%' : ''))
+    ))
+  );
+}
+
+// ── Stat card ──
+function Stat({ label, value, color, sub }) {
+  return h('div', { className: 'stat' },
+    h('div', { className: 'stat-label' }, label),
+    h('div', { className: 'stat-value', style: { color: color || '#f0f9ff' } }, value),
+    sub && h('div', { className: 'stat-sub' }, sub)
+  );
+}
+
+// ── Store bar ──
+function StoreBar({ name, data }) {
+  // (v1.3) was (up+weak_up)/total — wrong numerator and wrong denominator, both.
+  const rate = shippedRateOf(data);
+  const ftRate = firstTryRateOf(data);
+  const color = STORE_COLORS[name] || '#60a5fa';
+  const short = name.replace('Community ','').replace(' Lafayette',' Laf.').replace(' Baytown',' Bay.');
+  // (v1.2) Two separate facts, never one blended count. An agent pressing 👎 is not the same
+  // event as a draft being regenerated and left unsent, and on 8/15 this row showed 16 for Honda
+  // Lafayette when the true explicit count for the entire day, every store, was zero.
+  const exDown = explicitDownOf(data);
+  const imDown = implicitDownOf(data);
+  return h('div', { className: 'store-row' },
+    h('div', { className: 'store-meta' },
+      h('div', { className: 'store-name' }, short),
+      h('div', { className: 'store-stats' },
+        h('span', { className: 'store-signals' }, data.total + ' sig'),
+        h('span', { className: 'store-rate', style: { color: rate === null ? '#4b5563' : posColor(rate) },
+          title: 'Shipped — copied and sent, including after a regen' }, pct(rate)),
+        ftRate !== null && h('span', { className: 'store-firsttry', title: 'First try — sent with no regen' }, pct(ftRate)),
+        exDown > 0 && h('span', { className: 'store-down', title: 'Explicit thumbs-down' }, '👎 ' + exDown),
+        imDown > 0 && h('span', { className: 'store-nocopy', title: 'Regenerated or chipped, then left unsent — not an explicit rejection' }, 'no-copy ' + imDown)
+      )
+    ),
+    h('div', { className: 'bar-bg' },
+      h('div', { className: 'bar-fill', style: { width: (rate || 0) + '%', background: color } })
+    )
+  );
+}
+
+// ── Main ──
+function App() {
+  const [ri, setRi] = useState(1);
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [showAll, setShowAll] = useState(false);
+  const [ts, setTs] = useState(null);
+
+  const load = useCallback(async (idx) => {
+    setLoading(true); setError(null);
+    try {
+      const from = fmtDate(RANGES[idx].days);
+      const to   = fmtDate(0);
+      const d = await fetchRange(from, to);
+      setData(d); setTs(new Date());
+    } catch(e) { setError(e.message); }
+    finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { load(ri); }, [ri]);
+
+  const trend = data ? Object.entries(data.byDay||{})
+    .filter(([,d]) => d.total > 0)
+    .sort(([a],[b]) => a.localeCompare(b))
+    // (v1.3) same denominator as the tile above it — byDay's own posRate is shipped/total, so the
+    // line used to sit ~16 points below the headline on identical rows.
+    .map(([date,d]) => ({ date: date.slice(5), 'Shipped %': shippedRateOf(d) ?? d.posRate ?? 0,
+                          'Signals': d.total,
+                          'Explicit 👎': explicitDownOf(d), 'No-copy': implicitDownOf(d) }))
+    : [];
+
+  const stores = data ? Object.entries(data.byStore||{})
+    .filter(([n]) => n !== 'unknown')
+    .sort((a,b) => b[1].total - a[1].total) : [];
+
+  const personas = data ? Object.entries(data.byPersona||{})
+    .filter(([n]) => n !== 'unknown')
+    .sort((a,b) => b[1].total - a[1].total) : [];
+
+  const sources = data ? Object.entries(data.byLeadSource||{})
+    .filter(([,d]) => d.total >= 2)
+    .sort((a,b) => b[1].total - a[1].total) : [];
+  const visSrc = showAll ? sources : sources.slice(0,12);
+
+  const flags = data ? Object.entries(data.byFlag||{})
+    .filter(([,d]) => d.total >= 2)
+    .sort((a,b) => b[1].total - a[1].total) : [];
+
+  const total = data?.total || 0;
+  // (v1.3) was data.posRate — shipped/TOTAL, which counts sessions that produced nothing anyone
+  // used. The report's headline is the engaged basis; on 8/15 that was 86% here against 70%.
+  const shippedRate  = shippedRateOf(data);
+  const firstTryRate = firstTryRateOf(data);
+  // (v1.2) These were `data.ratings.up` and `data.ratings.down` — the blended fields. Under a tile
+  // labelled EXPLICIT that overstated 👍 by the entire implicit-copy count and 👎 by every
+  // regenerated-then-abandoned session. 8/15: 156 shown for 0 real thumbs-up, 27 for 0 real
+  // thumbs-down.
+  const explicitUp   = explicitUpOf(data);
+  const explicitDown = explicitDownOf(data);
+  const implicitUp   = implicitUpOf(data);
+  const implicitDown = implicitDownOf(data);
+
+  return h('div', { className: 'wrap' },
+
+    // Header
+    h('div', { className: 'header fade-up' },
+      h('div', null,
+        h('div', { className: 'logo-line' }, 'Community Auto Group'),
+        h('div', { className: 'logo' }, 'LeadPro ', h('span', null, 'Dashboard')),
+        h('div', { className: 'sub' }, 'Response Quality · Live KV Data')
+      ),
+      h('div', null,
+        h('div', { className: 'range-btns' },
+          RANGES.map((r,i) => h('button', {
+            key: i, onClick: () => setRi(i),
+            className: 'range-btn' + (ri === i ? ' active' : ''),
+          }, r.label)),
+          h('button', { className: 'refresh-btn', onClick: () => load(ri) }, '↻')
+        ),
+        ts && h('div', { className: 'refresh-time' }, 'Updated ' + ts.toLocaleTimeString())
+      )
+    ),
+
+    // (v1.4) OUTSIDE the `data && !loading` block on purpose. This panel answers a different
+    // question from a different endpoint, and it must still answer it when /feedback/* is erroring
+    // or the director key has rotated — the exact moment someone needs to ask what is published.
+    h(LiveIncentives),
+
+    loading && h('div', { style: { textAlign:'center', padding:60, color:'#4b5563', fontSize:13 }, className:'loading-pulse' }, 'Loading feedback data…'),
+    error && h('div', { className: 'error-box' }, 'Error: ' + error),
+
+    data && !loading && h(Fragment, null,
+
+      // Stats row 1
+      h('div', { className: 'stats-grid fade-up fade-up-1' },
+        h(Stat, { label:'Total Signals', value: total.toLocaleString() }),
+        h(Stat, { label:'Shipped Rate', value: pct(shippedRate),
+          color: shippedRate === null ? '#4b5563' : posColor(shippedRate),
+          sub: 'first try ' + pct(firstTryRate) }),
+        h(Stat, { label:'Explicit 👍', value: explicitUp.toLocaleString(), color:'#34d399',
+          sub: implicitUp.toLocaleString()+' implicit copy' }),
+        h(Stat, { label:'Explicit 👎', value: explicitDown,
+          color: explicitDown > 5 ? '#f87171' : '#94a3b8',
+          sub: implicitDown.toLocaleString()+' regenerated / chipped, unsent' })
+      ),
+
+      // (v1.2) Say plainly what the two tiles above do and do not count, so the numbers are not
+      // read as "nobody liked anything today".
+      h('div', { className: 'disclosure fade-up fade-up-1' },
+        '👍/👎 above are explicit thumb clicks only. Implicit: ',
+        h('strong', null, implicitUp.toLocaleString()), ' copied as-is, ',
+        h('strong', null, implicitDown.toLocaleString()), ' regenerated or chipped then left unsent.',
+        // (v1.3) engaged basis here too — an explicit thumb can only be pressed on a draft that
+        // rendered and was looked at, so the sessions excluded from every other rate do not belong
+        // in this one either.
+        (engagedOf(data) ? ' Explicit rejection rate: ' + Math.round(100*explicitDown/engagedOf(data)) + '%.' : ''),
+        h('br'),
+        'Shipped and first-try are of ' + engagedOf(data).toLocaleString() + ' engaged sessions — ' +
+        (data.abandoned || 0).toLocaleString() + ' produced but never used and ' +
+        (data.incomplete || 0).toLocaleString() + ' that never rendered a draft are excluded.'
+      ),
+
+      // Stats row 2
+      h('div', { className: 'stats-grid fade-up fade-up-2', style:{marginBottom:20} },
+        h(Stat, { label:'Avg Regens/Session', value: data.avgRegens,
+          color: data.avgRegens > 0.3 ? '#fbbf24' : '#94a3b8' }),
+        h(Stat, { label:'Regen → Copy', value: data.signals?.implicit_regen_copy||0, sub:'regen helped' }),
+        h(Stat, { label:'Date Range', value: (data.from||'').slice(5)+' →', sub: (data.to||'').slice(5) }),
+        h(Stat, { label:'Days w/ Data', value: trend.length, sub: 'of '+(data.dates?.length||0)+' days' })
+      ),
+
+      // Trend line
+      chartsAvailable && trend.length > 1 && h('div', { className: 'card fade-up fade-up-3', style:{marginBottom:12} },
+        h('div', { className: 'section-title' }, 'Shipped Rate Trend'),
+        h(ResponsiveContainer, { width:'100%', height:155 },
+          h(LineChart, { data: trend, margin:{top:4,right:4,left:-22,bottom:0} },
+            h(XAxis, { dataKey:'date', tick:{fontSize:10,fill:'#6b7280'}, axisLine:false, tickLine:false }),
+            h(YAxis, { domain:[50,100], tick:{fontSize:10,fill:'#6b7280'}, axisLine:false, tickLine:false }),
+            h(Tooltip, { content: h(CT) }),
+            h(Line, { type:'monotone', dataKey:'Shipped %', stroke:'#3b82f6', strokeWidth:2.5,
+              dot:{r:3,fill:'#3b82f6',strokeWidth:0}, name:'Shipped %' })
+          )
+        )
+      ),
+
+      // Volume bar chart
+      chartsAvailable && trend.length > 1 && h('div', { className: 'card fade-up fade-up-3', style:{marginBottom:20} },
+        h('div', { className: 'section-title' }, 'Daily Signal Volume'),
+        h(ResponsiveContainer, { width:'100%', height:110 },
+          h(BarChart, { data: trend, margin:{top:4,right:4,left:-22,bottom:0} },
+            h(XAxis, { dataKey:'date', tick:{fontSize:10,fill:'#6b7280'}, axisLine:false, tickLine:false }),
+            h(YAxis, { tick:{fontSize:10,fill:'#6b7280'}, axisLine:false, tickLine:false }),
+            h(Tooltip, { content: h(CT) }),
+            h(Bar, { dataKey:'Signals', radius:[3,3,0,0] },
+              trend.map((e,i) => h(Cell, { key:i,
+                fill: e['Shipped %'] >= 85 ? '#1d4ed8' : e['Shipped %'] >= 70 ? '#92400e' : '#7f1d1d' }))
+            )
+          )
+        )
+      ),
+
+      // Store + Persona
+      h('div', { className: 'two-col fade-up fade-up-4', style:{marginBottom:12} },
+
+        h('div', { className: 'card' },
+          h('div', { className: 'section-title' }, 'By Store'),
+          stores.map(([name,d]) => h(StoreBar, { key:name, name, data:d }))
+        ),
+
+        h('div', { className: 'card' },
+          h('div', { className: 'section-title' }, 'By Persona'),
+          h('table', { className: 'tbl' },
+            h('thead', null, h('tr', null,
+              h('th', null, 'Persona'),
+              h('th', { className:'right' }, 'Signals'),
+              h('th', { className:'right' }, 'Shipped'),
+              h('th', { className:'right' }, 'Expl. 👎'),
+              h('th', { className:'right' }, 'No-Copy')
+            )),
+            h('tbody', null, personas.map(([name,d]) => {
+              const rate = shippedRateOf(d);   // (v1.3) was (up+weak_up)/total
+              const ex = explicitDownOf(d), im = implicitDownOf(d);
+              return h('tr', { key:name },
+                h('td', null, PERSONA_LABELS[name]||name),
+                h('td', { className:'right mono', style:{color:'#94a3b8'} }, d.total),
+                h('td', { className:'right mono', style:{color: rate === null ? '#4b5563' : posColor(rate),fontWeight:600} }, pct(rate)),
+                h('td', { className:'right', style:{color: ex > 0 ? '#f87171' : '#4b5563'} }, ex > 0 ? '👎 '+ex : '—'),
+                h('td', { className:'right mono', style:{color: im > 0 ? '#fbbf24' : '#4b5563'} }, im > 0 ? im : '—')
+              );
+            }))
+          )
+        )
+      ),
+
+      // Lead Sources
+      h('div', { className: 'card fade-up fade-up-5', style:{marginBottom:12} },
+        h('div', { className: 'section-title' }, 'By Lead Source (≥2 signals)'),
+        h('table', { className: 'tbl' },
+          h('thead', null, h('tr', null,
+            h('th', null, 'Source'),
+            h('th', { className:'right' }, 'Signals'),
+            h('th', { className:'right' }, 'Shipped'),
+            h('th', { className:'right' }, 'Expl. 👎'),
+            h('th', { className:'right' }, 'No-Copy')
+          )),
+          h('tbody', null, visSrc.map(([name,d]) => {
+            // (v1.3) was up/total — dropped weak_up AND neutral from the numerator, on top of the
+            // wrong denominator. This column was the furthest of any from the report.
+            const rate = shippedRateOf(d);
+            const short = name.length > 42 ? name.slice(0,40)+'…' : name;
+            const ex = explicitDownOf(d), im = implicitDownOf(d);
+            return h('tr', { key:name },
+              h('td', null, short),
+              h('td', { className:'right mono', style:{color:'#94a3b8'} }, d.total),
+              h('td', { className:'right mono', style:{color: rate === null ? '#4b5563' : posColor(rate),fontWeight:600} }, pct(rate)),
+              h('td', { className:'right', style:{color: ex > 0 ? '#f87171' : '#4b5563'} }, ex > 0 ? ex : '—'),
+              h('td', { className:'right mono', style:{color: im > 0 ? '#fbbf24' : '#4b5563'} }, im > 0 ? im : '—')
+            );
+          }))
+        ),
+        sources.length > 12 && h('button', { className:'show-more', onClick:()=>setShowAll(v=>!v) },
+          showAll ? 'Show less' : 'Show all '+sources.length+' sources'
+        )
+      ),
+
+      // Context Flags
+      flags.length > 0 && h('div', { className: 'card fade-up fade-up-5', style:{marginBottom:12} },
+        h('div', { className: 'section-title' }, 'By Context Flag'),
+        h('div', { className: 'flag-grid' },
+          flags.map(([flag,d]) => {
+            const rate = shippedRateOf(d);   // (v1.3) was up/total
+            const ex = explicitDownOf(d), im = implicitDownOf(d);
+            return h('div', { key:flag, className:'flag-chip' },
+              h('div', { className:'flag-name' }, flag),
+              h('div', { className:'flag-rate', style:{color: rate === null ? '#4b5563' : posColor(rate)} }, pct(rate)),
+              h('div', { className:'flag-meta' }, d.total+' signals · 👎'+ex+' · '+im+' no-copy')
+            );
+          })
+        )
+      ),
+
+      h('div', { style:{textAlign:'center',fontSize:10,color:'#374151',paddingTop:8,fontFamily:'IBM Plex Mono,monospace'} },
+        'LeadPro · Community Auto Group · Data via leadpro-proxy KV'
+      )
+    )
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(h(App));
+</script>
+</body>
+</html>
