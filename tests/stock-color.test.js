@@ -164,8 +164,29 @@ check('it forbids the in-stock line standing in for a colour confirmation',
 console.log('\n(3) the matching is left to the model, on purpose:');
 check('it asks the model to judge the match rather than asserting one',
   i => /Work out for yourself whether Winter Frost Pearl IS black/.test(V(i).text), true);
-check('it gives the reason a paint name usually answers it',
+check('it gives the names that answer it outright',
   i => /"Crystal Black Pearl" is black, "Platinum White Pearl" is white/.test(V(i).text), true);
+
+// (v9.7.662) Gil: "paint on the feed data might be frosted pearl whatever and the customer says
+// white ... Most customers aren't going to ask for the formal paint name." The old sentence said a
+// paint name "usually says so plainly" and then gave two examples that BOTH contain the colour
+// word — no help at all on the name that needs it.
+check('it says a missing colour word is NOT a mismatch',
+  i => /MANY DO NOT, AND A MISSING WORD IS NOT EVIDENCE OF A MISMATCH/.test(V(i).text), true);
+check('...with the names that hide their colour, Gil\'s own example first',
+  i => /"Winter Frost Pearl" is white, "Modern Steel Metallic" is gray, "Still Night Pearl" is dark blue, "Nordic Forest Pearl" is green/.test(V(i).text), true);
+check('it says to judge what the name describes, not whether their word is in it',
+  i => /Judge the colour the name actually DESCRIBES, never whether their word appears inside it/.test(V(i).text), true);
+
+// The safety net, and the reason it breaks the tie that way.
+check('an uncertain model may not deny the colour',
+  i => /IF YOU GENUINELY CANNOT TELL what colour a paint name is, do NOT tell them we do not have the colour they asked for/.test(V(i).text), true);
+check('...and the asymmetry is stated so the tie breaks safely',
+  i => /that is the worse error of the two, because it is a denial about a car that may be sitting on our lot/.test(V(i).text), true);
+check('...with what to do instead',
+  i => /say you want to be certain it is the shade they have in mind, and let them tell you/.test(V(i).text), true);
+check('the old "usually says so plainly" sentence is gone from the directive',
+  i => /because a factory paint name usually says so plainly/.test(V(i).text), false);
 // A colour table would call Winter Frost Pearl a non-match for white. It IS white.
 check('no colour table ships with the block',
   i => /winterfrost|frost.*=.*white|COLOR_SYNONYMS|colou?rMap/i.test(i.block), false);
@@ -320,6 +341,29 @@ check('D: without it, a lead recording black is told the colour is settled at Wi
   i => SETTLED.test(block(i, { color: 'Winter Frost Pearl' }, '', { lead: 'Black', mutate: NO_GATE }).text), true);
 check('D (control): the shipped gate withholds it',
   i => SETTLED.test(block(i, { color: 'Winter Frost Pearl' }, '', { lead: 'Black' }).text), false);
+
+// E (v9.7.662): the sharpened guidance is wording, so its neuter is the sentence it replaced.
+const OLD_SENTENCE = c => c.replace(
+  /', and write only what is true of THIS car\. SOME factory names[\s\S]*?let them tell you\./,
+  "', because a factory paint name usually says so plainly, and write only what is true of THIS car.");
+check('neuter E actually restored the old sentence', i => OLD_SENTENCE(i.block) !== i.block, true);
+check('E: the old wording carries none of what this build added',
+  i => { const t = block(i, { color: 'Winter Frost Pearl' }, 'white', { lead: 'Winter Frost Pearl', mutate: OLD_SENTENCE }).text;
+         return [/A MISSING WORD IS NOT EVIDENCE/.test(t), /GENUINELY CANNOT TELL/.test(t), /"Winter Frost Pearl" is white,/.test(t)]; },
+  [false, false, false]);
+check('E (control): the shipped wording carries all three',
+  i => { const t = V(i).text;
+         return [/A MISSING WORD IS NOT EVIDENCE/.test(t), /GENUINELY CANNOT TELL/.test(t), /"Winter Frost Pearl" is white,/.test(t)]; },
+  [true, true, true]);
+
+// Everything else must be exactly where v9.7.661 left it.
+console.log('\nnothing else moved (v9.7.662):');
+check('the settled line is untouched',
+  i => [SETTLED.test(S(i).text), S(i).lines.length], [true, 2]);
+check('the withheld case still withholds',
+  i => silentCase(i, { color: 'Winter Frost Pearl' }, '', { lead: 'Black' }), SILENT);
+check('the no-colour-in-feed case still ships the confirmation alone',
+  i => silentCase(i, { color: '' }, 'black'), SILENT);
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);
