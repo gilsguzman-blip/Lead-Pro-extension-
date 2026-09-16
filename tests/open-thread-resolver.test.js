@@ -288,11 +288,18 @@ check('a note claiming the price was explained does NOT close the objection',
 check('...and the diagnostic says the bar is a customer reply',
   i => /need:customer-reply/.test(run(i, objLead()).diag), true);
 
-check('a later customer message on another topic does close it',
-  i => run(i, [
-    item('Inbound', '09/10/2026 11:00 AM', 'Received by: Kristen Willis\nWhat time do you close today'),
-    item('Inbound', '09/09/2026 9:00 AM', 'Received by: Kristen Willis\nIt is priced above the range even with the recent price reduction.')
-  ]).open.length, 0);
+// (v9.7.666) CHANGED DELIBERATELY. This asserted open.length === 0, and that was only true because
+// the collector was blind to "What time do you close today" — a real question with no question
+// mark. The objection IS still closed by her later message, which is what this case tests; what
+// also changed is that her newer question is now correctly OPEN. Both halves are asserted.
+const objThenAsk = [
+  item('Inbound', '09/10/2026 11:00 AM', 'Received by: Kristen Willis\nWhat time do you close today'),
+  item('Inbound', '09/09/2026 9:00 AM', 'Received by: Kristen Willis\nIt is priced above the range even with the recent price reduction.')
+];
+check('a later customer message on another topic closes the objection',
+  i => run(i, objThenAsk).open.some(q => /priced above the range/.test(q)), false);
+check('...and her later question is now open, which the old collector could not see',
+  i => run(i, objThenAsk).open.some(q => /What time do you close today/.test(q)), true);
 
 // ── (8) THE RESOLVER IS NO LONGER SILENT ────────────────────────────────────
 console.log('\n(8) one diagnostic row per question, with the verdict and the bar:');
@@ -359,6 +366,64 @@ check('C: and one of them is the URL fragment the model was shown',
   i => run(i, [item('Inbound', '09/06/2026 5:38 PM', CARGURUS_BODY)], NO_APOS).open.some(q => /1y864y/.test(q)), true);
 check('C (control): the shipped resolver produces none',
   i => run(i, [item('Inbound', '09/06/2026 5:38 PM', CARGURUS_BODY)]).open.length, 0);
+
+// ── (10) A QUESTION WITHOUT A QUESTION MARK (v9.7.666) ──────────────────────
+// LIVE, 9/16. Aimee Williams, Community Kia Baytown. She had just been sent an exterior photo and
+// wrote "Can I see the inside". The resolver reported 0 questions examined, and both drafts
+// answered with "1:15 PM or 2:00 PM today?" — a time close in reply to a request for photos.
+console.log('\n(10) she asked without typing a "?" (v9.7.666):');
+
+const asked = (i, text) => run(i, [
+  item('Inbound', '09/16/2026 11:02 AM', 'Received by: Vinessa Virtual Assistant Community Kia\n' + text)
+]).open;
+
+check('her exact line is now an open thread',
+  i => asked(i, 'Can I see the inside').some(q => /Can I see the inside/.test(q)), true);
+check('...and the diagnostic says it carried no question mark',
+  i => /carried NO question mark/.test(run(i, [
+        item('Inbound', '09/16/2026 11:02 AM', 'Received by: V\nCan I see the inside')]).diag), true);
+
+// The rest of her thread, verbatim. Most of it is NOT a question and must stay quiet.
+check('her other messages are not turned into questions',
+  i => ['Yes or sportage', 'Something bigger', 'I need to know im approved', 'Nice I love it',
+        'Everything sent', 'Application done', 'Navy federal',
+        '1000 down think im upside down not sure'].filter(t => asked(i, t).length).length, 0);
+check('...while her earlier real request is caught',
+  i => asked(i, 'Can you send me a application to fill out to see if I qualify').length, 1);
+// Corrected to what the resolver actually does, and the reason is pre-existing and sound: it
+// tracks a question by its CONTENT WORDS so it can tell whether a later message answered it.
+// "How much" is all stopwords, so there is nothing to match against and it is dropped by the
+// `qWords.length === 0` gate that has always been there. A real limitation, recorded not forced.
+check('a wh-question with no content word is still dropped — nothing to match a reply against',
+  i => asked(i, 'How much').length, 0);
+check('...but the same question with one content word is caught',
+  i => asked(i, 'How much is the payment').length, 1);
+
+// Auxiliary + SUBJECT is a question. Auxiliary + anything else is not. This is the whole
+// discriminator, and it is grammar rather than a list of things customers have said.
+console.log('\n(11) the inversion test, not a word list:');
+check('auxiliary followed by a verb is not a question',
+  i => asked(i, 'Will call you later when I get off work').length, 0);
+check('auxiliary followed by an article is not a question',
+  i => asked(i, 'Have a good day and thanks again').length, 0);
+check('a first-person statement is not a question',
+  i => asked(i, 'I can do that tomorrow afternoon').length, 0);
+check('a negative imperative is not a question',
+  i => asked(i, 'Do not call me before noon please').length, 0);
+check('auxiliary followed by a subject IS a question',
+  i => [asked(i, 'Is the car still there').length, asked(i, 'Do you have it in black').length], [1, 1]);
+
+check('a question that DOES carry a mark is not counted twice',
+  i => asked(i, 'Is the car still available?').length, 1);
+
+console.log('\nnon-vacuity (v9.7.666):');
+// Pin the interrogative test false and her line goes back to being invisible.
+const NO_SHAPE = c => c.replace('_qInvRe.test(sn)', 'false');
+check('neuter D actually disabled the shape test', i => NO_SHAPE(i.code) !== i.code, true);
+check('D: this is exactly what v9.7.665 shipped — she asked and nothing saw it',
+  i => run(i, [item('Inbound', '09/16/2026 11:02 AM', 'Received by: V\nCan I see the inside')], NO_SHAPE).open.length, 0);
+check('D (control): the shipped resolver sees it',
+  i => asked(i, 'Can I see the inside').length, 1);
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);
