@@ -222,19 +222,85 @@ check('no sends at all cannot throw',
 
 // ── (6) THE STATE LINE ──────────────────────────────────────────────────────
 // It said "You ALREADY replied to it" about a reply the robot wrote.
-console.log('\n(6) the state line stops claiming the robot\'s reply:');
-const STATE = i => {
-  const a = i.src.indexOf("'\". ' + (_lpScraperBotAuthor(lastOutboundMsg)");
-  return a < 0 ? '' : i.src.slice(a, a + 700);
-};
-check('the true branch says YOU have not replied',
-  i => /YOU have not replied to this yet, and you must not write as though you had/.test(STATE(i)), true);
+//
+// (v9.7.664) THIS SECTION USED TO READ THE SOURCE AND IT PROVED NOTHING. v9.7.663 asserted that
+// the true branch's words were present and that the human branch was unchanged, and every one of
+// those assertions passed against a branch that COULD NOT EXECUTE: it tested a variable declared
+// ~520 lines further down, so it was hoisted-but-undefined and always false. Aimee's 9/16 capture
+// shipped "You ALREADY replied to it" with sixteen assistant markers three hundred lines below it.
+// Asserting a string is present is not asserting it can ship. This now EXECUTES the shipped loop
+// and the shipped line together and asserts which branch comes out.
+console.log('\n(6) the state line stops claiming the robot\'s reply (v9.7.664):');
+
+function stateLine(impl, notes, opts) {
+  // A minimal stand-in for the CRM note DOM: newest first, each with a direction, a title and a
+  // content element. Only what the shipped loop actually reads.
+  const el = n => ({
+    getAttribute: () => n.dir,
+    querySelector: sel => /title/.test(sel) ? { innerText: n.title }
+                        : /item-date/.test(sel) ? { innerText: n.date || '' }
+                        : { innerText: n.body || '' },
+  });
+  const a = impl.src.indexOf('        var _alreadyReplied = false;');
+  const b = impl.src.indexOf('          keySignal = _alreadyReplied', a);
+  // The assignment is one long concatenation; end it at its own terminating quote-semicolon.
+  const c = impl.src.indexOf("React to the complete picture, not just one message.';", b);
+  if (a < 0 || b < 0 || c < 0) throw new Error('the state-line region could not be sliced');
+  // The region opens inside `if(!isStaleReply && !keySignalSuppressed){` and the slice ends before
+  // that block's closing brace, so it is supplied here. Both guards are inputs to the harness.
+  let body = impl.src.slice(a, impl.src.indexOf('\n', c)) + '\n}';
+  if (opts && opts.mutate) body = opts.mutate(body);
+  const sb = {
+    String, Date, Math, RegExp,
+    noteEls: notes.map(el),
+    mostRecentInbound: 'Nice I love it',
+    msgAgeLabel: ' [sent TODAY]',
+    _multiBurst: false,
+    keySignal: '',
+    isStaleReply: false,
+    keySignalSuppressed: false,
+    // v9.7.663's dead read named this; it is hoisted-but-undefined at that point in the real file,
+    // and the harness reproduces exactly that.
+    lastOutboundMsg: undefined,
+  };
+  vm.createContext(sb);
+  vm.runInContext(impl.scraper + '\n' + body, sb);
+  return vm.runInContext('keySignal', sb);
+}
+
+const BOT_NOTE   = { dir: 'outbound', title: 'Outbound Text Message', body: BOT_SPORTAGE };
+const HUMAN_NOTE = { dir: 'outbound', title: 'Outbound Text Message', body: HUMAN_CHRIS };
+const INBOUND    = { dir: 'inbound',  title: 'Inbound Text Message',  body: 'Nice I love it', date: '09/16/2026 10:21 AM' };
+
+check('Aimee\'s shape: the reply since her message was the assistant\'s',
+  i => /YOU have not replied to this yet/.test(stateLine(i, [BOT_NOTE, INBOUND])), true);
+check('...so it no longer claims she was answered',
+  i => /You ALREADY replied to it/.test(stateLine(i, [BOT_NOTE, INBOUND])), false);
 check('...and still allows building on what was sent',
-  i => /Build on what the assistant said if it helps, but never as something you wrote/.test(STATE(i)), true);
-check('the human branch is unchanged word for word',
-  i => /'You ALREADY replied to it \(see your most recent outbound in the transcript\);'/.test(STATE(i)), true);
-check('it reads the shipped detector rather than a third copy',
-  i => (i.src.match(/_lpScraperBotAuthor\(/g) || []).length, 3);
+  i => /Build on what the assistant said if it helps, but never as something you wrote/
+        .test(stateLine(i, [BOT_NOTE, INBOUND])), true);
+
+check('a HUMAN reply keeps the original wording, word for word',
+  i => /You ALREADY replied to it \(see your most recent outbound in the transcript\);/
+        .test(stateLine(i, [HUMAN_NOTE, INBOUND])), true);
+check('...and does not get the assistant branch',
+  i => /YOU have not replied to this yet/.test(stateLine(i, [HUMAN_NOTE, INBOUND])), false);
+
+// Newest-first: the most recent outbound is the one that answers for the reply.
+check('a human send NEWER than a bot send wins',
+  i => /You ALREADY replied to it/.test(stateLine(i, [HUMAN_NOTE, BOT_NOTE, INBOUND])), true);
+check('a bot send NEWER than a human send wins',
+  i => /YOU have not replied to this yet/.test(stateLine(i, [BOT_NOTE, HUMAN_NOTE, INBOUND])), true);
+
+// A phone-call attempt is not a written reply and must not set the flag either way (v9.7.300).
+check('a voicemail attempt is not a reply at all',
+  i => stateLine(i, [{ dir: 'outbound', title: 'Outbound phone call (Machine)', body: 'left message' }, INBOUND])
+        .indexOf('CONVERSATION STATE') === -1, true);
+
+// Call sites only — the v9.7.664 comment quotes the old dead call twice, which is prose.
+check('exactly three call sites, no fourth copy of the detector',
+  i => (i.src.split('\n').filter(l => !/^\s*\/\//.test(l)).join('\n')
+          .match(/_lpScraperBotAuthor\(/g) || []).length, 3);
 
 // ── NON-VACUITY ─────────────────────────────────────────────────────────────
 console.log('\nnon-vacuity (v9.7.663):');
@@ -263,6 +329,19 @@ check('C: nothing tells the model who wrote what',
   i => directive(i, [BOT_SPORTAGE, HUMAN_CHRIS], { mutate: NO_COUNT }).lines.length, 0);
 check('C (control): the shipped block speaks',
   i => directive(i, [BOT_SPORTAGE, HUMAN_CHRIS]).lines.length, 1);
+
+// D (v9.7.664): put the dead read back. lastOutboundMsg is hoisted-but-undefined at this point in
+// the real file, and the harness supplies exactly that, so this reproduces the branch that could
+// never fire — and this section, unlike the source scan it replaced, catches it.
+const DEAD_READ = c => c.replace('(_lpReplyWasBot ?', '(_lpScraperBotAuthor(lastOutboundMsg) ?');
+check('neuter D actually restored the v9.7.663 read',
+  i => DEAD_READ(i.src.slice(i.src.indexOf("' + (_lpReplyWasBot ? '") - 5)).indexOf('_lpScraperBotAuthor(lastOutboundMsg)') >= 0, true);
+check('D: the dead branch ships "You ALREADY replied to it" on Aimee\'s shape',
+  i => /You ALREADY replied to it/.test(stateLine(i, [BOT_NOTE, INBOUND], { mutate: DEAD_READ })), true);
+check('D: ...and never reaches the assistant branch at all',
+  i => /YOU have not replied to this yet/.test(stateLine(i, [BOT_NOTE, INBOUND], { mutate: DEAD_READ })), false);
+check('D (control): the shipped read gets it right',
+  i => /YOU have not replied to this yet/.test(stateLine(i, [BOT_NOTE, INBOUND])), true);
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);
