@@ -220,8 +220,20 @@ check('the rule states the command is never what gets cut',
   i => /AGENT LP COMMAND IS NEVER WHAT GETS CUT/.test(i.smsRule),
   true);
 
-check('it names what to cut instead rather than only forbidding',
-  i => /WHAT GETS DROPPED, IN THIS ORDER/.test(i.smsRule) && /an incentive mention/.test(i.smsRule),
+// (v9.7.673) CHANGED DELIBERATELY — THIS PINNED A RANKED DELETE-LIST.
+// v9.7.553 wrote "WHAT GETS DROPPED, IN THIS ORDER: a second reason to come in; the logistics of
+// the visit; an appointment time; a comparable vehicle; an incentive mention; scene-setting" so
+// the model had somewhere to take length FROM. With the size caps gone (v9.7.672) there is no
+// length to take, and the list was simply instructing deletion — log211's refined draft dropped
+// the trade appraisal and the approval answer, which are items one and two on it. It is also an
+// enumeration, the trap this file keeps walking into. The LP-command carve-out that used to
+// outrank it is asserted still present on its own, just below.
+check('the ranked delete-list is gone — nothing tells it what to cut any more',
+  i => /WHAT GETS DROPPED, IN THIS ORDER|a second reason to come in|scene-setting/.test(i.smsRule),
+  false);
+check('...and what replaces it is a reason not to defer, not a list',
+  i => /DO NOT HOLD THE SUBSTANCE BACK FOR THE EMAIL/.test(i.smsRule)
+    && /plenty of customers read the text and never open the email/.test(i.smsRule),
   true);
 
 check('...and the carve-out is stated as outranking that list',
@@ -256,7 +268,7 @@ check('the old compression framing is gone',
 // size. The anti-agenda purpose the first cap served survives in "an email works through an
 // agenda, a text does not have one".
 check('a text leads rather than working an agenda — and neither half is a number any more',
-  i => [/An email works through an agenda\. A text does not have one/.test(i.smsRule),
+  i => [/An email works through an agenda; a text does not/.test(i.smsRule),
         /THERE IS NO SENTENCE COUNT AND NO LENGTH TO HIT/.test(i.smsRule),
         /two or three short sentences|can carry three things/.test(i.smsRule)],
   [true, true, false]);
@@ -269,8 +281,11 @@ check('it says to open on them, not on us',
 check('the example names no vehicle, so it cannot be copied onto the wrong lead',
   i => /Sportage|Seltos|Accord|Prelude|CR-V/.test(i.smsRule),
   false);
-check('the hook is put out of reach of the cut',
-  i => /THE HOOK IS NEVER WHAT GETS CUT/.test(i.smsRule) && /cut exactly the wrong half/.test(i.smsRule),
+// (v9.7.673) Reworded with the delete-list: the priority this states is real, but phrasing it as
+// "what gets cut" only made sense while something was being cut. Same meaning, no cutting.
+check('leading on their thing rather than our agenda is still the priority',
+  i => /LEAD ON WHAT THEY CARE ABOUT, NOT ON OUR AGENDA/.test(i.smsRule)
+    && /led with exactly the wrong half/.test(i.smsRule),
   true);
 
 // The read-it-back test, run against the two drafts that produced this build.

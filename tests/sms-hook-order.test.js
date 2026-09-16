@@ -214,8 +214,9 @@ check('it NAMES NO BLOCK — the next mandate is covered too, not just the dista
   i => /distance|DISTANCE|trade-in flag|OTD/.test(i.smsRule), false);
 check('the new clause sits ABOVE the LP-command carve-out, so that still outranks it',
   i => i.smsRule.indexOf('IT DOES NOT GET THE FIRST ONE') < i.smsRule.indexOf('ONE EXCEPTION, AND IT OUTRANKS EVERYTHING ABOVE'), true);
-check('the hook is still put out of reach of the cut',
-  i => /THE HOOK IS NEVER WHAT GETS CUT/.test(i.smsRule), true);
+// (v9.7.673) The rule no longer frames this as cutting, because nothing is being cut now.
+check('leading on their thing rather than our agenda is still the priority',
+  i => /LEAD ON WHAT THEY CARE ABOUT, NOT ON OUR AGENDA/.test(i.smsRule), true);
 check('the rule still names no vehicle, so it cannot be copied onto the wrong lead',
   i => /Sportage|Seltos|Accord|Prelude|CR-V|HR-V/.test(i.smsRule), false);
 

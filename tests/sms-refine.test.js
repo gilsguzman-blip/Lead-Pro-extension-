@@ -160,7 +160,7 @@ check('the refine system prompt reads the same constant, not a copy',
 check('the constant is DECLARED above its first use, not below it (v9.7.422)',
   i => i.src.indexOf('var _LP_SMS_SHAPE_RULE =') < i.src.indexOf('\n    _LP_SMS_SHAPE_RULE,'), true);
 check('so the rule reaches the refine pass verbatim, read-back test and all',
-  i => /joins two clauses with "while"/.test(sysPrompt(i)) && /THE HOOK IS NEVER WHAT GETS CUT/.test(sysPrompt(i)), true);
+  i => /joins two clauses with "while"/.test(sysPrompt(i)) && /LEAD ON WHAT THEY CARE ABOUT, NOT ON OUR AGENDA/.test(sysPrompt(i)), true);
 
 // ── (2) THE SYSTEM PROMPT SAYS WHAT THIS PASS IS NOT ────────────────────────
 console.log('\n(2) the system prompt forbids the operation that IS the failure mode:');
@@ -193,7 +193,7 @@ check('it carries the first-pass draft it is replacing',
 // sits inside the anti-agenda sentence rather than standing alone. Same instruction, and it is
 // still asserted by the clause that carries the meaning rather than by the old phrasing.
 check('it names the failure it exists to prevent',
-  i => /do not write it again with words removed .* is the exact failure this pass exists to prevent/.test(userPrompt(i, AIMEE)), true);
+  i => /do not take the email and delete words out of it .* is the exact failure this pass exists to prevent/.test(userPrompt(i, AIMEE)), true);
 
 // ── (v9.7.671) NO LENGTH CONSTRAINT AT ALL ─────────────────────────────────
 // Gil, 9/16: "I don't think giving it a 3 sentence constraint is the right idea. I'm pretty sure
@@ -232,7 +232,18 @@ check('the rule slice is the rule, not a header quoting it',
 check('both failure directions are named without either becoming a number',
   i => /Do not pad it to sound thorough and do not strip it to a receipt/.test(userPrompt(i, AIMEE)), true);
 check('what replaces the constraint is a job, not a size',
-  i => /give them what they need in order to say yes, and nothing they do not need/.test(userPrompt(i, AIMEE)), true);
+  i => /Then give them the substance \u2014 the actual reason this visit is worth making/.test(userPrompt(i, AIMEE)), true);
+// (v9.7.673) THE DEFERRAL LANGUAGE WAS THE LAST THING STILL CUTTING. Four statements across the
+// two prompts told the model to leave content out and let the email carry it. log211's refined
+// draft dropped the appraisal and the approval answer — the whole reason to come in — and
+// kept only "I can have it ready". The file's own v9.7.553 header had already established why
+// that is wrong: the customer may only ever read the text.
+check('nothing defers the substance to the email any more',
+  i => /nothing they do not need|The email carries the rest|second AND third points/.test(userPrompt(i, AIMEE)), false);
+check('...and the reason is stated, not just the rule',
+  i => /plenty of customers read the text and never open the email/.test(userPrompt(i, AIMEE)), true);
+check('"if that reason is two things, it is two things" — no cap on the substance',
+  i => /If that reason is two things, it is two things/.test(userPrompt(i, AIMEE)), true);
 
 console.log('\n    the quoting artefact log209 produced, which my own wording caused:');
 check('"Open on THEIR words" — the phrase the model read as "quote them" — is gone',
@@ -245,10 +256,13 @@ check('...with the reason stated, so it reads as register rather than as a ban',
   i => /A person answers the question; they do not read it aloud first/.test(userPrompt(i, AIMEE)), true);
 
 console.log('\n    what survives untouched:');
-check('the anti-agenda instruction is still there — that failure is unchanged',
-  i => /do not carry its second AND third points/.test(userPrompt(i, AIMEE)), true);
-check('the lead is still the thing that earns a reply',
-  i => /Lead on the one thing in that email that earns a reply/.test(userPrompt(i, AIMEE)), true);
+check('the anti-agenda instruction survives as FORM, not as a content cap',
+  i => [/Do not work through an agenda in paragraphs/.test(userPrompt(i, AIMEE)),
+        /The difference between the two is the voice and the rhythm, not how much you left out/.test(userPrompt(i, AIMEE))],
+  [true, true]);
+check('the lead is still the thing that earns a reply — without "one" capping it',
+  i => [/Lead on the thing in that email that earns a reply/.test(userPrompt(i, AIMEE)),
+        /Lead on the one thing/.test(userPrompt(i, AIMEE))], [true, false]);
 check('the first-name opener reaches this pass from both sides',
   i => [/Open with their first name/.test(userPrompt(i, AIMEE)),
         /The text OPENS with the customer's first name/.test(sysPrompt(i))], [true, true]);
