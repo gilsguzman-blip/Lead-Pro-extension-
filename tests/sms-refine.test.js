@@ -215,8 +215,20 @@ check('...and so is v9.7.669\'s absolute on the other side',
   i => /Carry that one thing and nothing else/.test(userPrompt(i, AIMEE)), false);
 check('length is handed to the model outright',
   i => /LENGTH IS YOURS TO JUDGE\. There is no target here and no sentence count\./.test(userPrompt(i, AIMEE)), true);
-check('the shape rule\'s own phrase is defused rather than left to collide with that',
-  i => /describes what a text usually looks like — it is not a quota to reach or a ceiling to squeeze under/.test(userPrompt(i, AIMEE)), true);
+// (v9.7.672) v9.7.671 defused the shared rule's "two or three short sentences" by arguing with it
+// from this prompt. That is the move this codebase has proven does not work — a rule stated
+// elsewhere loses to the line the model is reading — and log210 proved it again, both passes still
+// at two sentences. The phrase is removed at the source now, so the argument is gone with it.
+check('the defusing clause is gone, because what it defused is gone',
+  i => /describes what a text usually looks like|quota to reach or a ceiling/.test(userPrompt(i, AIMEE)), false);
+// THE PROSE-MATCH HAZARD, EIGHTH TIME, ONE BUILD AFTER RECORDING THE SEVENTH. This first scanned
+// i.src — the whole file — which carries v9.7.671's build header, and headers quote the very text
+// the build removed. It read as "the count is still shipping" when the rule no longer has it.
+// The subject of the assertion is the RULE, so the slice under test has to be the rule.
+check('...and no sentence count survives in the shared rule either',
+  i => /two or three short sentences|can carry three things/.test(i.rule), false);
+check('the rule slice is the rule, not a header quoting it',
+  i => /^var _LP_SMS_SHAPE_RULE = /.test(i.rule) && i.rule.length > 1500, true);
 check('both failure directions are named without either becoming a number',
   i => /Do not pad it to sound thorough and do not strip it to a receipt/.test(userPrompt(i, AIMEE)), true);
 check('what replaces the constraint is a job, not a size',

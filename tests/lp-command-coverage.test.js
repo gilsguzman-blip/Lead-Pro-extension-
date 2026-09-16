@@ -246,8 +246,22 @@ console.log('\nthe rule teaches a shape rather than a subtraction (v9.7.665):');
 check('the old compression framing is gone',
   i => /Just written at text length|WRITING AT TEXT LENGTH IS A CUT|Same specific hook, same quality/.test(i.smsRule),
   false);
-check('a text carries one thing, an email can carry three',
-  i => /An email can carry three things\. A text carries the ONE that earns a reply/.test(i.smsRule),
+// (v9.7.672) THIS ASSERTION CHANGED DELIBERATELY, AND IT WAS PINNING THE DEFECT.
+// Gil, 9/16, on log210: "I think the 'two to three sentences' directive is killing this."
+// v9.7.665 wrote a numeric cap on both axes -- "an email can carry three things, a text carries
+// the ONE" and "two or three short sentences" -- and then, four sentences later in the SAME
+// paragraph, forbade the constructions a model reaches for when it has more to say than budget:
+// a semicolon, three items off "and", two clauses joined with "while". The rule was creating the
+// pressure it then named as a failure. Both caps are gone; what replaces them is a rhythm, not a
+// size. The anti-agenda purpose the first cap served survives in "an email works through an
+// agenda, a text does not have one".
+check('a text leads rather than working an agenda — and neither half is a number any more',
+  i => [/An email works through an agenda\. A text does not have one/.test(i.smsRule),
+        /THERE IS NO SENTENCE COUNT AND NO LENGTH TO HIT/.test(i.smsRule),
+        /two or three short sentences|can carry three things/.test(i.smsRule)],
+  [true, true, false]);
+check('...and the rule now says SPLIT where it used to leave only welding available',
+  i => /ONE THOUGHT PER SENTENCE — if two thoughts have to be joined with "and", "while" or a semicolon, they are two sentences, not one/.test(i.smsRule),
   true);
 check('it says to open on them, not on us',
   i => /Open on something THEY said or want, never on what YOU are going to do/.test(i.smsRule),
