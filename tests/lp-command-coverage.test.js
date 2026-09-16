@@ -61,7 +61,11 @@ function extract(file) {
     '(function(data){ var lines = [];\n' + src.slice(ma, mb) + '\n return lines.join("\\n"); })', sandbox);
 
   // The SMS format rule as shipped in the system prompt.
-  const smsRuleLine = (src.match(/'SMS: A real text message[^\n]*'/) || [''])[0];
+  // (v9.7.665) The prefix is now upper-case. Note the trap this fell into first: when the pattern
+  // stopped matching, this returned '' and every NEGATIVE assertion below passed vacuously against
+  // an empty string. A silent empty extraction is the quiet cousin of the extraction that throws,
+  // which tests/lib/guarded-impls.js exists to catch. Asserted non-empty below.
+  const smsRuleLine = (src.match(/'SMS: A REAL TEXT MESSAGE[^\n]*'/) || [''])[0];
 
   return { name: path.basename(path.dirname(file)), cover, term, mandate, smsRule: smsRuleLine };
 }
@@ -208,19 +212,73 @@ check('no commands at all renders nothing',
 // ── The SMS format rule ────────────────────────────────────────────────────────
 console.log('\nthe shipped SMS format rule now says length may not eat the command:');
 
+check('the SMS rule was actually extracted — an empty slice passes every negative test',
+  i => i.smsRule.length > 400,
+  true);
+
 check('the rule states the command is never what gets cut',
   i => /AGENT LP COMMAND IS NEVER WHAT GETS CUT/.test(i.smsRule),
   true);
 
 check('it names what to cut instead rather than only forbidding',
-  i => /Cut somewhere else first/.test(i.smsRule) && /incentive mention/.test(i.smsRule),
+  i => /WHAT GETS DROPPED, IN THIS ORDER/.test(i.smsRule) && /an incentive mention/.test(i.smsRule),
   true);
 
-check('the pre-existing SMS rules are still intact',
-  i => /Same specific hook, same quality, same framing/.test(i.smsRule)
-    && /End with the stacked signature/.test(i.smsRule)
+check('...and the carve-out is stated as outranking that list',
+  i => /ONE EXCEPTION, AND IT OUTRANKS EVERYTHING ABOVE/.test(i.smsRule),
+  true);
+
+check('the signature rules are still intact, word for word',
+  i => /End with the stacked signature/.test(i.smsRule)
     && /No dash, no comma, no name in the message body/.test(i.smsRule),
   true);
+
+// ── (v9.7.665) A TEXT IS A SHAPE, NOT A SHORTENED EMAIL ────────────────────────
+// Gil, 9/16, on Aimee Williams: "The Email was much better than the Text message. We need to work
+// on the text messaging content." The email opened on HER; the SMS opened on US and crammed three
+// logistics items into one thirty-word sentence closed with a semicolon.
+//
+// The rule was the cause. It said "not a compressed email" and then, in five of its seven
+// sentences, taught compression. v9.7.553 had already written in its own header that this wording
+// "tells the model to compress" and fixed only the LP-command half.
+console.log('\nthe rule teaches a shape rather than a subtraction (v9.7.665):');
+
+check('the old compression framing is gone',
+  i => /Just written at text length|WRITING AT TEXT LENGTH IS A CUT|Same specific hook, same quality/.test(i.smsRule),
+  false);
+check('a text carries one thing, an email can carry three',
+  i => /An email can carry three things\. A text carries the ONE that earns a reply/.test(i.smsRule),
+  true);
+check('it says to open on them, not on us',
+  i => /Open on something THEY said or want, never on what YOU are going to do/.test(i.smsRule),
+  true);
+check('the example names no vehicle, so it cannot be copied onto the wrong lead',
+  i => /Sportage|Seltos|Accord|Prelude|CR-V/.test(i.smsRule),
+  false);
+check('the hook is put out of reach of the cut',
+  i => /THE HOOK IS NEVER WHAT GETS CUT/.test(i.smsRule) && /cut exactly the wrong half/.test(i.smsRule),
+  true);
+
+// The read-it-back test, run against the two drafts that produced this build.
+const SHIPPED_SMS   = 'Aimee, I can have the 2026 Sportage ready for you and get your 2022 Seltos appraised while finance gives you a clear approval answer; can you make it in today?';
+const SHIPPED_EMAIL = 'The 2026 Sportage you liked gives you the added space you wanted over your 2022 Seltos. I can have it ready for you, complete the trade appraisal, and have finance review everything together so you get a clear approval answer rather than a guess by text.';
+// The three shapes the rule now names, applied per sentence as the rule instructs.
+const failsReadBack = t => String(t).split(/(?<=[.!?])\s+/).filter(Boolean).map(sen => ({
+  semicolon: /;/.test(sen),
+  threeOffAnd: (sen.match(/\band\b/g) || []).length >= 1 && (sen.match(/,/g) || []).length >= 1 && sen.split(/\s+/).length > 25,
+  whileClause: /\bwhile\b/.test(sen),
+}));
+
+check('the rule names all three shapes',
+  i => /needs a semicolon/.test(i.smsRule) && /hangs three items off "and"/.test(i.smsRule)
+    && /joins two clauses with "while"/.test(i.smsRule),
+  true);
+check('the SMS that shipped fails the read-back on all three',
+  () => { const r = failsReadBack(SHIPPED_SMS)[0]; return [r.semicolon, r.threeOffAnd, r.whileClause]; },
+  [true, true, true]);
+check('the EMAIL that shipped passes it — the rule is not just banning long sentences',
+  () => failsReadBack(SHIPPED_EMAIL).some(r => r.semicolon || r.whileClause),
+  false);
 
 console.log('\n' + (fail ? 'FAILED' : 'PASSED') + ' — ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);
