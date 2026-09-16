@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.669 (Commercial. THE TEXT IS WRITTEN BEFORE THE EMAIL EXISTS, SO IT IS NOW REWRITTEN FROM IT. Extension only; proxy v7.75 and reporter v1.22 unchanged. Gil, 9/16, on log207 running v9.7.668: "this is 668 same old text... crazy idea can we have the sms gen and then the email and then have the text regen based off the email and then present the results? Might take too much time but worth a shot at fixing the problem." WHAT v9.7.668 DID AND DID NOT DO, because both halves matter. It DID work, measurably: [LP SMS HOOK DIAG] read "reaches for: THEM" on log207 where all four prior captures read US, and the distance sentence moved off the opener exactly as designed. It did NOT fix the shape. The text still opened on OUR fact rather than her words, still carried "while", and -- the tell -- its opening sentence was very nearly the email's opening sentence: SMS "the Glacial White Pearl 2026 Kia Sportage LX is here and certified, so you can sit inside..." against EMAIL "The Glacial White Pearl 2026 Kia Sportage LX is here and certified, so you can see the interior in person...". The text had become the email with words removed -- the v9.7.665 failure arriving by a different road. THE MECHANICAL REASON THREE PROMPT BUILDS COULD NOT FIX IT. The output contract is {"sms":...,"email":...,"voicemail":...}, stated twice in the prompt and confirmed by every raw capture, all of which open with the sms key. The TEXT IS THE FIRST THING THE MODEL WRITES, cold, off an 84,668-character prompt, before one word of the email exists. The email is written second, once an angle has been chosen and the lead has been worked once. No rule written inside that single prompt changes the order the two are produced in. AND THE SIZE RATIO IS THE OTHER HALF: the shape rule is ~2,000 characters against ~84,000 of context and flag blocks, and the one measured difference between a lead whose text lands and one whose does not has been prompt size all week. SO THE TEXT IS REGENERATED FROM THE FINISHED EMAIL, which is Gil's design and not a variation on it. A second call, ~3,000 characters total, of which the shape rule is more than half. Nothing competes with it. IT IS EXPLICITLY NOT "SHORTEN THE EMAIL" and the wording is load-bearing, because compression is the defect v9.7.665 named: the pass asks for the ONE thing in the email that earns a reply, forbids its second and third points outright, and says so in as many words -- "a text that reads like the email with words removed is the exact failure this pass exists to prevent". It pins the appointment times to the email's and forbids stating any fact the email does not state, so the two channels cannot contradict each other. PRECEDENT, NOT A NEW ARCHITECTURE: generateVoicemail() has always made exactly this kind of second call with its own narrow system prompt. This is that pattern applied to the channel that needs it. THE RULE NOW HAS ONE DEFINITION. A second copy of a 2,000-character string is the parallel-definition shape that produced v9.7.629, .630, .634 and .635, so it is hoisted to _LP_SMS_SHAPE_RULE and both system prompts read it. Declared ABOVE its first use rather than below, because reading a var declared further down is the v9.7.422 trap and replicating the shape is how this file keeps getting caught. WHAT IT WILL NEVER DO, which is the part that matters on a pipeline feeding real customers: every failure keeps the first pass. An opted-out lead whose SMS was deliberately emptied is skipped BEFORE any network call; no email, no endpoint, a worker error, a SAFE_FALLBACK envelope, an empty or unparseable response, a missing sms field, a throw, or the 25s timeout each return null and leave the draft alone. The call site assigns only on a truthy return and is itself wrapped. window.LEADPRO_SMS_REFINE = false turns the whole pass off without touching anything else. WIRED AT EXACTLY ONE POINT, below the email being finalised and above the opener guard, the hook row, enforceSmsSig and setOutput -- so every downstream stage sees the refined draft, the hook row measures what actually ships, and nothing has been rendered yet, meaning the agent never sees a draft change under them. VERIFIED: NEW sms-refine.test.js, 54 assertions, EXECUTING the three shipped functions against Aimee's real log207 email and draft with the worker stubbed. Eleven distinct failure paths are each asserted to return null and keep the first pass, the opt-out check is asserted to run before any fetch, an agent LP command is asserted to survive a pass whose job is cutting, and the four ordering facts at the call site are read off the shipped file. 108 suites green (5,080 assertions, +54), dev===comm with all three changed regions byte-compared. NON-VACUITY, behavioural and in-build, paired with controls: removing the empty-draft guard makes the neutered build return a refined draft for an OPTED-OUT lead, which is the one outcome this pass must never produce. A TEST DEFECT OF MY OWN, RECORDED: the call-site ordering assertion anchored on the bare string "[LP SMS HOOK DIAG]", which matches v9.7.668's build header at line 1 because headers quote the file's own code -- the prose-match hazard for the SEVENTH time. It read as "the refine runs after the hook row" when it runs well before it. Anchored on the code form, with a uniqueness assertion beside it. WHAT THIS CANNOT PROVE: every assertion here stubs the worker. Whether a real model, handed the email and the rule with nothing competing, writes a better text is the thing only live traffic answers -- the [LP SMS REFINE DIAG] row prints pass1, pass2 and the elapsed milliseconds on every generation so both the quality and Gil's "might take too much time" are readable from one log line. If the latency does not justify it, the kill switch is one line and no code has to come out. STILL OPEN, unchanged: the context-flag chips are add-only -- Gil's call; v9.7.243/244 reads the lead colour rather than the feed; the monthly-payment / incentive directive collision; OFFER ENDING SOON has never fired; the open-tomorrow branch; a translate press is invisible in telemetry; the reporter's comprehension footer contradicts its own Changed column; the System callmeasurement URL row; scenarioRules rendering twice per prompt. ALSO NOTED, NOT FIXED: the refine call is a second proxy request per generation, so the cache-hit rate Gil is already watching will read lower without anything getting worse -- its system prefix is per agent/store exactly like the main path, so it caches the same way, but it is a new prefix and starts cold. node --check clean on both builds; both manifests parse; version AND version_name both bumped. scraperVersion stays v9.7.51. Builds on v9.7.668. Mirrors DEV v9.7.669-dev.)
 // Lead Pro -- popup.js  v9.7.668 (Commercial. TWO DIRECTIVES NAMED THE SAME SENTENCE -- ONE FORBADE IT AS THE TEXT'S OPENER, THE OTHER HANDED IT OVER AS A COPYABLE EXAMPLE AND CALLED IT MANDATORY. Extension only; proxy v7.75 and reporter v1.22 unchanged. Gil, 9/16, on Aimee Williams (Community Kia Baytown, lead 2081769045): "again the email hits, the text misses." THE TWO LINES, BOTH OURS, BOTH IN THE SAME PROMPT. The SMS format rule: "Open on something THEY said or want, never on what YOU are going to do -- 'the one you said you loved' beats 'I can have it ready for you'." The DISTANCE BUYER block: "SMS: 1 sentence justifying the trip is MANDATORY. Example: \u0022I will have everything ready when you arrive.\u0022" That is the same sentence, forbidden as an opener in one place and supplied as a worked example in the other. FOUR FOR FOUR, ACROSS TWO LEADS AND TWO STORES, and the mandate won every time: log205 "Aimee, I can have the Sportage ready for you today..."; log204 gen 1 "...is here, and I can have it ready while we appraise..."; log204 gen 3 "...I can have the interior ready for you to see today while..."; and Allie Trahan at Honda Lafayette "Allie, I can review the $25,988 offer... I'll have the HR-V ready so you won't be waiting;". distanceBlockRendered:true on all four. Three of the four also carry a semicolon or a "while" clause -- the two constructions v9.7.665's own read-back test names -- because a model with one slot and two mandates welds them into one sentence. WHY THE EMAIL KEEPS LANDING, WHICH IS THE ACTUAL ANSWER TO GIL'S SENTENCE. An email can carry three things, so it satisfies the hook AND the distance mandate AND the trade line; Aimee's opened "Since you like the inside of the 2026 Kia Sportage LX" and answered her question. The SMS has ONE slot, and the only MANDATORY channel-scoped directive competing for it was the distance one -- so the hook is what got cut, which is precisely what the format rule says must never happen ("THE HOOK IS NEVER WHAT GETS CUT"). The text was not worse at writing than the email. It was given less room and a louder instruction about what to put in it. THE OWNERSHIP RULE (v9.7.631), TWELFTH INSTANCE. Whose job is it to decide what opens the text? The SMS format rule. The distance block owns "make the trip worth their time" -- a requirement about CONTENT. It does not determine sentence order; it assumes it on the way to stating a requirement, and supplies a copyable opener while doing so. An assumption is not evidence, however forcefully worded, and it yields. FIXED IN BOTH PLACES, THE v9.7.631 PATTERN. (1) AT THE SOURCE, because a rule stated elsewhere is a weaker signal than the line the model is reading -- proven five times now. The distance mandate keeps its force and loses the opening: "1 sentence justifying the trip is MANDATORY, AND IT IS NOT THE OPENING SENTENCE", the example is re-shown as a mid-sentence clause instead of a sentence, and the zero-reply case is handled honestly (it may open there, because there is no hook to lose). The sold-unit arm carries the same defect and gets the same clause. (2) THE GENERAL RULE goes in the SMS format rule, stated as a SHAPE and naming no block: "WHERE A DIRECTIVE ELSEWHERE IN THIS PROMPT REQUIRES A SENTENCE IN THE TEXT, IT GETS ONE -- IT DOES NOT GET THE FIRST ONE ... a worked example it hands you is showing you that sentence, not your opening line." Naming the distance block there would be the enumeration trap, and the next mandate would walk through; it is placed ABOVE the LP-command carve-out so "OUTRANKS EVERYTHING ABOVE" still covers an agent command, asserted by source position. WHAT IS DELIBERATELY NOT TOUCHED: "REQUIRED in EVERY format" stays exactly as it is -- the justification is the whole point of the distance treatment and a far buyer must never feel they might drive far for nothing. This build moves one sentence; it removes nothing. NEW [LP SMS HOOK DIAG], OBSERVATIONAL AND NOTHING BRANCHES ON IT, because "the text misses" has been a judgement about tone for three builds running and needs to become a row. It reports which side the text reaches for FIRST, measured as the ORDER of the two pronouns rather than as a sentence subject: a subject test scores "The Glacial White Pearl Sportage is here, and I can have it ready" as clean when it is the same failure, and that under-reporting is asserted so the row is not "simplified" into one later. All four captured drafts read US; the shape the corrected prompt asks for reads THEM. The semicolon and "while" flags ride the same row. VERIFIED: NEW sms-hook-order.test.js, 45 assertions, EXECUTING the shipped distance block and the shipped hook row -- not scanning them. The mandate is asserted present and repositioned rather than deleted; the vehicle-confirmation bullet, the never-drive-far line and "REQUIRED in EVERY format" are each asserted untouched; the exit lead is asserted to get none of it, so v9.7.655 is not disturbed; and the row is asserted to return the draft unmodified, on an empty draft, a null draft and a name carrying regex metacharacters. 107 suites green (5,026 assertions, +45), dev===comm, all five changed regions byte-compared. NON-VACUITY, behavioural and in-build, paired with a control: restoring the old mandate makes the block hand back the exact sentence all four drafts copied, and say nothing about where it goes. WHAT THIS CANNOT PROVE, PLAINLY: every assertion here is about what the PROMPT now says. Whether the model then opens on the customer is adherence, and the only thing that will settle it is the next capture -- which is what the new row is for. Three of these four drafts also failed to answer an open question the v9.7.666 detector had already surfaced; that is the same adherence gap and it is not closed here. STILL OPEN, unchanged: the context-flag chips are add-only -- Gil's call; v9.7.243/244 reads the lead colour rather than the feed; the monthly-payment / incentive directive collision; OFFER ENDING SOON has never fired; the open-tomorrow branch; a translate press is invisible in telemetry; the reporter's comprehension footer contradicts its own Changed column; the System callmeasurement URL row; scenarioRules rendering twice per prompt. node --check clean on both builds; both manifests parse; version AND version_name both bumped. scraperVersion stays v9.7.51. Builds on v9.7.667. Mirrors DEV v9.7.668-dev.)
 // Lead Pro -- popup.js  v9.7.667 (Commercial. THE SMS OPENER GUARD TESTED A LIST OF BAD OPENERS RATHER THAN THE RULE IT EXISTS TO ENFORCE. Extension only; proxy v7.75 and reporter v1.22 unchanged. Gil, 9/16, after v9.7.666: "grabbed Allie Trahan and it picked up the name on the text. So was the Amiee a once wrong or is it broken." NEITHER, AND THE ANSWER IS MEASURABLE. Not once: log204 carries TWO Aimee generations, both fresh (regen:false, no chips), and BOTH shipped an SMS with no first name -- "The Glacial White Pearl 2026 Kia Sportage LX is here, and I can have it ready...". Not broken either: Allie Trahan's on the same build and the same minute opened "Allie, I can review the $25,988 offer". It is lead-specific, and nothing in the code was catching it. THERE WAS A GUARD AND IT COULD NOT SEE THIS. A light-touch opener check has existed for a long time, and it fires only when the opener matches one of NINE named template phrases -- "I saw you started", "Just checking", "Following up" and so on -- AND the name is missing. Aimee's opener is not on that list. The HARD CONSTRAINT it is supposed to enforce is POSITIVE ("SMS: first-name opener") and the guard was NEGATIVE (not one of these nine), so a message that plainly broke the rule passed. That is the enumeration trap this file has walked into six times, and here it did not even take a novel shape to slip through: naming the vehicle first is an ordinary thing to write. INVERTED TO TEST THE RULE. If the first sentence does not carry the customer's first name, the name is prepended. The nine-phrase list is no longer part of this decision; it survives as prompt-side instruction where it belongs. The model's own sentence is kept intact and only lower-cased at the join, so nothing is rewritten. WHY DETERMINISTIC RATHER THAN ANOTHER PROMPT LINE, which is the more general point: the SIGNATURE is already enforced in code by enforceSmsSig and never drifts, while the OPENER -- a requirement of exactly the same kind -- was left to the model. The one measured difference between the two leads is prompt size, Aimee 84,257 characters against Allie 45,798, and a rule that survives only on short prompts is not a rule. NEW [LP SMS OPENER DIAG] reports both branches on every generation, so the rate is measurable instead of argued. ALSO OBSERVED ON THIS CAPTURE AND NOT BUILT ON: the THIRD generation of Aimee's lead DID answer her question -- "I can have the interior ready for you to see today", subject "See the Sportage interior today" -- on an identical 84,257-character prompt that the first generation answered with times alone. v9.7.666's detector put both open questions in front of the model on every run; whether the message uses them varies run to run, and that is adherence, not plumbing. VERIFIED: NEW sms-opener.test.js, 17 assertions, EXECUTING the shipped guard against BOTH real drafts from log204 verbatim -- Aimee's gets her name and the sentence the model wrote survives the join intact, Allie's is returned character for character untouched -- plus the case the OLD guard was built for, which still works. It is asserted not to act where it has nothing to add: a name already inside the first sentence but not first, no scraped name, no scraped data at all, an empty draft, and a lower-case name. A name that appears only in a LATER sentence is asserted still missing from the OPENER, which is the rule. 106 suites green (4,981 assertions, +17), dev===comm, the guard byte-compared between the two builds. NON-VACUITY, behavioural and in-build, paired with a control: restoring the nine-phrase condition lets Aimee's draft through untouched -- exactly what v9.7.666 produced, twice -- while the nine named phrases stay caught, which is precisely why this guard looked healthy for so long. The absence of any opener word-list in the shipped guard is asserted too, so it cannot be quietly widened back into a list. STILL OPEN, unchanged: the context-flag chips are add-only -- Gil's call; v9.7.243/244 reads the lead colour rather than the feed; the monthly-payment / incentive directive collision; OFFER ENDING SOON has never fired; the open-tomorrow branch; a translate press is invisible in telemetry; the reporter's comprehension footer contradicts its own Changed column; the System callmeasurement URL row; scenarioRules rendering twice per prompt. node --check clean on both builds; both manifests parse; version AND version_name both bumped. scraperVersion stays v9.7.51. Builds on v9.7.666. Mirrors DEV v9.7.667-dev.)
 // Lead Pro -- popup.js  v9.7.657 (Commercial. WE TOLD A CUSTOMER WE DO NOT CARRY HONDA WHILE HOLDING ELEVEN USED HONDAS, AND THIS FILE SAID SO IN THE SAME LOG. Extension only; proxy v7.75 and reporter v1.22 unchanged. LIVE, 9/11, Rachel Landry (Audi Lafayette, lead 2022 INFINITI QX50 LUXE Pre-Owned, stock 85118A). She wrote "I currently own an Infiniti. I'm also looking at the Honda CR-V." The CROSS-BRAND PIVOT block fired and the delivered SMS read: "Audi Lafayette doesn't carry Honda inventory, so I won't steer you toward something we can't provide." SIX LINES EARLIER IN THE SAME LOG, ON THE SAME GENERATION: [LP OFF-FRANCHISE GATE] make:Honda | suppressed -- we hold 11 used honda unit(s) -- not off-franchise. Lead Pro read the live feed for that rooftop, found eleven used Hondas, correctly suppressed its own off-franchise directive, and then a different block told the customer we have none. The same log has Lead Pro writing about a 2016 Jeep Wrangler Rubicon AT AUDI LAFAYETTE, and the lead itself is an INFINITI on the Audi lot; the claim was checkable against our own public listings. Gil: "messaging mentions not selling Hondas but we do have pre-owned Hondas. The model is wrong in this instance for pre-owned. That narrative is only when we are working new options." THE RULE ALREADY EXISTED AND WAS ALREADY RIGHT. v9.7.576 wrote it into _lpOffFranchiseGate: a franchise constraint is about NEW cars. A Honda store cannot sell, order or dealer-trade a NEW BMW; it can absolutely sell a used one off its own lot, and used inventory spans every make because it arrives as trades. That gate fires only when the customer said NEW near the make, or when the live feed holds zero units of it. THE PIVOT BLOCK ASKED A CRUDER QUESTION -- does the pivot brand differ from the rooftop brand -- and answered an INVENTORY fact with a BRAND comparison. Ownership rule, eighth instance, and the same shape as v9.7.640, .645, .646, .649, .651, .653 and .655: the directive that needs a fact READS the field that owns it. Extracted, never reimplemented, which is v9.7.576's own lesson about this exact predicate. FOUR ARMS, because "we are an Audi store and they want a Honda" has four different truths behind it and one of them was being shipped to all four. (1) WE HOLD THE MODEL: say so plainly and offer to send details -- but name no trim, colour, year or unit, because a COUNT is not a confirmed match, and that restraint is what keeps this from becoming an availability promise. Gil's reading is why this arm exists: she wrote "the Honda CR-V", not "a Honda CR-V". (2) WE HOLD THE MAKE BUT NOT THE MODEL: we do not sell NEW Honda, our pre-owned lot carries other makes, a CR-V is not on the ground today, offer to watch for one. The old wording collapsed this into a flat denial. (3) THEY ASKED FOR IT NEW, OR THE FEED IS IN HAND AND HOLDS NONE: the original directive, unchanged to the byte -- it is true on exactly those two facts and on no others. (4) THE FEED DID NOT LOAD: v9.7.483 settled that a failed fetch must not manufacture an off-franchise directive, and the same applies to an absolute "we do NOT carry" claim, so the franchise fact is stated in the only form that is true without inventory -- we do not sell it NEW -- and every stock claim is withheld in both directions. NEW [LP PIVOT STOCK DIAG] names the arm, the counts and the gate's own reason, so the next time this block speaks about stock the basis is in the log. NOT TOUCHED: the SISTER-BRAND arm still wins ahead of all of this on a Baytown rooftop, because handing a Honda shopper to Community Honda Baytown is better than selling them a used one off the Toyota lot, and that is a business call rather than a defect. VERIFIED: NEW pivot-stock.test.js, 48 assertions, EXECUTING the shipped _lpPivotStock against real feed-unit shapes AND the shipped four-arm branch, with Rachel's exact case driven end to end -- eleven Honda units, two CR-Vs among them, and the sentence she actually received asserted GONE. All four arms are pinned separately, the arm-3 wording is asserted byte-identical to what it has always been including its three-step approach, and the model-match normalisation is asserted across CR-V, CRV and Cr-v, which is the enumeration trap this build deliberately avoids. 102 suites green (4,759 assertions, +48), dev===comm. NON-VACUITY, behavioural and in-build, each paired with a control: pinning the model count to zero moves her to the make arm, pinning the make count to zero restores the denial she actually received, and pinning inventory unknown produces a directive that claims nothing in either direction. ONE EXISTING SUITE'S HARNESS CHANGED, DELIBERATELY AND NOT TO GO GREEN: pivot.test.js lifts this block and executes it, so it now lifts the three helpers behind the new question out of the SAME shipped file, and supplies an inventory that is PRESENT and holds nothing of the pivot make. That is the state every one of its twenty fixtures was already describing -- a store that does not have the pivoted-to car -- so each case means exactly what it meant before and all twenty stay green. A stubbed-empty cache would have been the easier change and would have quietly moved every one of them onto the inventory-unknown arm. ONE ASSERTION OF MINE WAS WRONG AND THE CODE WAS RIGHT: the inventory-unknown arm contains the words 'cannot provide Honda inventory' inside a PROHIBITION on saying them, and my substring test read the guard as the offence. The question is whether the denial is INSTRUCTED, so that is what is tested now. STILL OPEN, unchanged: the monthly-payment / incentive directive collision; OFFER ENDING SOON has never fired; the open-tomorrow branch; a translate press is invisible in telemetry; the reporter's comprehension footer contradicts its own Changed column; the System callmeasurement URL row; scenarioRules rendering twice per prompt. node --check clean on both builds; both manifests parse; version AND version_name both bumped. scraperVersion stays v9.7.51. Builds on v9.7.656. Mirrors DEV v9.7.657-dev.)
@@ -17413,6 +17414,15 @@ function lookupPhone(agentName, store, dealerId) {
 // ─────────────────────────────────────────────────────────────────
 // FOCUSED SYSTEM PROMPT — universal rules only, short
 // ─────────────────────────────────────────────────────────────────
+// ── (v9.7.669) THE SMS SHAPE RULE, ONE DEFINITION ────────────────────────────────────────
+// The refine pass added in this build needs this rule verbatim, and a second copy of a
+// 1,400-character string is the parallel-definition shape that produced v9.7.629, .630,
+// .634 and .635 -- two copies drift, and the one that drifts is the one nobody is reading.
+// Declared ABOVE its first use rather than below it: reading a var declared further down is
+// the v9.7.422 ordering trap, and although module-level assignment would in fact beat the
+// first call here, replicating the shape is how this file keeps getting caught by it.
+var _LP_SMS_SHAPE_RULE = 'SMS: A REAL TEXT MESSAGE, WHICH IS A DIFFERENT SHAPE FROM AN EMAIL AND NOT A SHORTER VERSION OF ONE. An email can carry three things. A text carries the ONE that earns a reply; the rest wait for that reply, or they live in the email. WHAT A TEXT LOOKS LIKE: two or three short sentences. Open on something THEY said or want, never on what YOU are going to do — "the one you said you loved" beats "I can have it ready for you". Then one clear ask a person can answer in a word. READ IT BACK BEFORE YOU SEND: if a sentence needs a semicolon, or hangs three items off "and", or joins two clauses with "while", it is an email sentence — break it up or drop something. WHAT GETS DROPPED, IN THIS ORDER: a second reason to come in; the logistics of the visit (paperwork, who will look at what, how long it takes); an appointment time; a comparable vehicle; an incentive mention; scene-setting. THE HOOK IS NEVER WHAT GETS CUT — a text carrying the agenda but not the hook has cut exactly the wrong half. WHERE A DIRECTIVE ELSEWHERE IN THIS PROMPT REQUIRES A SENTENCE IN THE TEXT, IT GETS ONE — IT DOES NOT GET THE FIRST ONE. A block that says a sentence is mandatory is telling you what the text must CONTAIN, not what it must OPEN WITH, and a worked example it hands you is showing you that sentence, not your opening line. Write the hook first, in their terms, then fold the required sentence in behind it — often as a clause of the same sentence rather than a sentence of its own. IF THE TEXT OPENS ON SOMETHING WE ARE GOING TO DO, A REQUIRED SENTENCE HAS TAKEN THE OPENING AND THE HOOK IS WHAT GOT CUT. ONE EXCEPTION, AND IT OUTRANKS EVERYTHING ABOVE: AN AGENT LP COMMAND IS NEVER WHAT GETS CUT. If the agent asked for several distinct things, the SMS carries ALL of them, even when that makes it longer than a text you would otherwise write. End with the stacked signature — agent first name, store name, phone — each on its own line. Nothing else. No dash, no comma, no name in the message body before the signature.';
+
 function buildSystemPrompt(personaId) {
   var activePersonaId = personaId || (window._leadProResolvedContext && window._leadProResolvedContext.persona) || (_leadProProfile && _leadProProfile.persona) || 'bdc';
   window._leadProRouteTrace = { directorMode: null }; // (v9.7.311) routing trace for feedback meta — reset each generation
@@ -17607,7 +17617,7 @@ function buildSystemPrompt(personaId) {
     'Mix it up. Sometimes one word is the whole sentence. Sometimes a full thought needs 25 words and you let it run. Read it back in your head — if it sounds like a press release or a polished marketing email, rewrite the rhythm before you send.',
     '',
     '━━━ FORMAT ━━━',
-    'SMS: A REAL TEXT MESSAGE, WHICH IS A DIFFERENT SHAPE FROM AN EMAIL AND NOT A SHORTER VERSION OF ONE. An email can carry three things. A text carries the ONE that earns a reply; the rest wait for that reply, or they live in the email. WHAT A TEXT LOOKS LIKE: two or three short sentences. Open on something THEY said or want, never on what YOU are going to do — "the one you said you loved" beats "I can have it ready for you". Then one clear ask a person can answer in a word. READ IT BACK BEFORE YOU SEND: if a sentence needs a semicolon, or hangs three items off "and", or joins two clauses with "while", it is an email sentence — break it up or drop something. WHAT GETS DROPPED, IN THIS ORDER: a second reason to come in; the logistics of the visit (paperwork, who will look at what, how long it takes); an appointment time; a comparable vehicle; an incentive mention; scene-setting. THE HOOK IS NEVER WHAT GETS CUT — a text carrying the agenda but not the hook has cut exactly the wrong half. WHERE A DIRECTIVE ELSEWHERE IN THIS PROMPT REQUIRES A SENTENCE IN THE TEXT, IT GETS ONE — IT DOES NOT GET THE FIRST ONE. A block that says a sentence is mandatory is telling you what the text must CONTAIN, not what it must OPEN WITH, and a worked example it hands you is showing you that sentence, not your opening line. Write the hook first, in their terms, then fold the required sentence in behind it — often as a clause of the same sentence rather than a sentence of its own. IF THE TEXT OPENS ON SOMETHING WE ARE GOING TO DO, A REQUIRED SENTENCE HAS TAKEN THE OPENING AND THE HOOK IS WHAT GOT CUT. ONE EXCEPTION, AND IT OUTRANKS EVERYTHING ABOVE: AN AGENT LP COMMAND IS NEVER WHAT GETS CUT. If the agent asked for several distinct things, the SMS carries ALL of them, even when that makes it longer than a text you would otherwise write. End with the stacked signature — agent first name, store name, phone — each on its own line. Nothing else. No dash, no comma, no name in the message body before the signature.',
+    _LP_SMS_SHAPE_RULE,
     '',
     'EMAIL: Full format. Opens with something specific. Body addresses the actual conversation. Closes in whatever way fits where this customer is. Subject line in the "subject" field. Full signature at the end.',
     '',
@@ -17679,6 +17689,176 @@ function buildSystemPrompt(personaId) {
 // ─────────────────────────────────────────────────────────────────
 // FOCUSED USER PROMPT — scenario-specific, built by JS
 // ─────────────────────────────────────────────────────────────────
+
+// ── (v9.7.669) THE SMS REFINE PASS ───────────────────────────────────────────────────────
+// Gil, 9/16, after v9.7.668 landed and the text still read like an email: "crazy idea can we
+// have the sms gen and then the email and then have the text regen based off the email and
+// then present the results?"
+//
+// WHY THIS IS THE RIGHT SHAPE AND THREE PROMPT BUILDS WERE NOT. The SMS is the FIRST field in
+// the JSON contract -- {"sms":...,"email":...,"voicemail":...}, stated twice in the prompt and
+// confirmed by every raw capture, which all open `{"sms":`. So the text is the very first thing
+// the model writes, generated cold off an 84,000-character prompt, before a word of the email
+// exists. The email is written second, by which point an angle has been chosen. That is why the
+// email keeps landing and the text keeps missing, and no amount of rule-writing inside that one
+// prompt changes the order in which the two are produced.
+//
+// AND THE SIZE RATIO IS THE OTHER HALF. The shape rule is ~1,400 characters against ~84,000 of
+// context and flag blocks. This pass hands the model ~3,000 characters total, of which the rule
+// is half. Nothing is competing with it.
+//
+// IT IS NOT "SHORTEN THE EMAIL", AND THE WORDING IS LOAD-BEARING. v9.7.665 established that
+// compression IS the failure mode -- the draft Gil rejected on 9/16 was the email with words
+// removed, semicolon and all. This pass asks for ONE thing out of the email and forbids carrying
+// its second and third points, which is a different operation from shortening it.
+//
+// PRECEDENT: generateVoicemail() already makes exactly this kind of second call with its own
+// narrow system prompt. This is that pattern, applied to the channel that needs it.
+function buildSystemPromptSmsRefine(agentFirst, storeName, phone) {
+  return [
+    'You are ' + (agentFirst || 'the coordinator') + ' at ' + (storeName || 'the dealership') + '.'
+      + (phone ? ' Your direct phone number is ' + phone + '.' : ''),
+    '',
+    'You write ONE text message to a real car dealership customer.',
+    '',
+    'An email to this customer has ALREADY been written and is going out. It has already decided '
+      + 'what this outreach is about and which facts are true. You are not writing the email again, '
+      + 'and you are NOT shortening it. You are writing the TEXT, which is a different thing.',
+    '',
+    _LP_SMS_SHAPE_RULE,
+    '',
+    'Return ONLY valid JSON: {"sms":"..."}. No markdown, no text outside the JSON.'
+  ].join('\n');
+}
+
+// The user turn. Deliberately small -- the whole point of this pass is that the rule is not
+// drowned. Everything here is something the first pass already had; none of it is re-scraped.
+function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
+  d = d || {};
+  var out = [];
+  out.push('\u2501\u2501\u2501 THE EMAIL THAT IS GOING OUT \u2501\u2501\u2501');
+  out.push(String(emailText || '').trim());
+  out.push('');
+
+  var lastIn = String(d.lastInboundMsg || '').trim();
+  if (lastIn) {
+    out.push('\u2501\u2501\u2501 WHAT THE CUSTOMER LAST SAID, IN THEIR OWN WORDS \u2501\u2501\u2501');
+    out.push('"' + lastIn.replace(/"/g, "'").slice(0, 400) + '"');
+    out.push('');
+  }
+
+  // The open threads the v9.7.666 detector surfaced. Same source the main prompt reads, so the
+  // two cannot disagree about what is open.
+  try {
+    var uq = (d.relationshipSignals && d.relationshipSignals.unansweredQuestions) || [];
+    if (uq.length) {
+      out.push('\u2501\u2501\u2501 QUESTIONS OF THEIRS THAT ARE STILL OPEN \u2501\u2501\u2501');
+      uq.slice(-3).forEach(function (q) {
+        out.push('  - "' + String(q && q.question || '').replace(/"/g, "'").slice(0, 160) + '"');
+      });
+      out.push('');
+    }
+  } catch (eUq) {}
+
+  out.push('\u2501\u2501\u2501 THE FIRST DRAFT OF THE TEXT \u2014 THIS IS WHAT YOU ARE REPLACING \u2501\u2501\u2501');
+  out.push(String(pass1 || '').trim());
+  out.push('');
+
+  // (v9.7.553) An agent LP command is the one thing in this whole pipeline a human typed by hand
+  // for this specific lead, and the shape rule already says it is never what gets cut. It has to
+  // survive a pass whose entire job is cutting.
+  try {
+    var cmds = (d.agentLPCommands && d.agentLPCommands.length) ? d.agentLPCommands : null;
+    if (cmds) {
+      out.push('\u2501\u2501\u2501 WHAT THE AGENT TYPED BY HAND FOR THIS LEAD \u2501\u2501\u2501');
+      cmds.forEach(function (c) { out.push('  \u25ba ' + String(c || '').slice(0, 300)); });
+      out.push('EVERY ONE OF THESE MUST APPEAR IN THE TEXT. This outranks length and outranks '
+        + 'everything below.');
+      out.push('');
+    }
+  } catch (eCm) {}
+
+  out.push('\u2501\u2501\u2501 WRITE THE TEXT \u2501\u2501\u2501');
+  out.push('Find the ONE thing in that email that earns a reply. When the customer has asked '
+    + 'something that is still open, that is almost always it.');
+  out.push('Open on THEIR words, not on ours.');
+  out.push('Carry that one thing and nothing else. The email already carries the rest, and the '
+    + 'rest can wait for their reply.');
+  out.push('Do NOT summarise the email. Do NOT carry its second and third points. A text that '
+    + 'reads like the email with words removed is the exact failure this pass exists to prevent.');
+  out.push('If the email offered appointment times, use the SAME times. Never invent different ones.');
+  out.push('Never state a fact the email does not state.');
+  return out.join('\n');
+}
+
+// Returns the refined text, or null to keep the first pass. NEVER throws, and never returns
+// something the caller has to validate further -- every failure is a null and a logged reason,
+// because a refine pass that can blank an agent's draft is worse than one that does nothing.
+async function _lpRefineSms(pass1, emailText, d) {
+  var t0 = Date.now();
+  try {
+    if (window.LEADPRO_SMS_REFINE === false) { console.log('[LP SMS REFINE DIAG] skipped \u2014 turned off (window.LEADPRO_SMS_REFINE === false)'); return null; }
+    if (!pass1) { console.log('[LP SMS REFINE DIAG] skipped \u2014 no first-pass SMS to replace (suppressed or empty)'); return null; }
+    if (!emailText || String(emailText).trim().length < 80) { console.log('[LP SMS REFINE DIAG] skipped \u2014 no usable email to derive from'); return null; }
+
+    var endpoint = getEndpoint();
+    if (!endpoint || !endpoint.url) { console.log('[LP SMS REFINE DIAG] skipped \u2014 no endpoint resolved'); return null; }
+
+    var sgn = (window._leadProResolvedSigner) || {};
+    var ctx = (window._leadProResolvedContext) || {};
+    var sysText = buildSystemPromptSmsRefine(
+      sgn.firstName || '',
+      ctx.storeName || (d && d.storeName) || '',
+      sgn.phone || '');
+    var usrText = _lpBuildSmsRefinePrompt(pass1, emailText, d);
+
+    var ctrl = new AbortController();
+    var timer = setTimeout(function () { try { ctrl.abort(); } catch (e) {} }, 25000);
+    var resp = await fetch(endpoint.url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(_lpAttachLicense({
+        system_instruction: { parts: [{ text: sysText }] },
+        contents: [{ role: 'user', parts: [{ text: usrText }] }],
+        generationConfig: {
+          temperature:      0.5,
+          maxOutputTokens:  700,
+          topP:             0.9,
+          responseMimeType: 'application/json'
+        }
+      })),
+      signal: ctrl.signal
+    }).finally(function () { clearTimeout(timer); });
+
+    var data = await resp.json();
+    if (data && data.error) { console.log('[LP SMS REFINE DIAG] kept the first pass \u2014 worker error: ' + (data.error.message || data.error)); return null; }
+    // Same SAFE_FALLBACK guard the other two call sites carry: the cascade fallback is a generic
+    // appointment push, and rendering it as a refined draft is exactly the v9.7.379/377 hazard.
+    if (data && data.candidates && data.candidates[0] && data.candidates[0]._fallback) {
+      console.log('[LP SMS REFINE DIAG] kept the first pass \u2014 worker returned SAFE_FALLBACK'); return null;
+    }
+    var txt = '';
+    try { txt = data.candidates[0].content.parts[0].text || ''; } catch (eP) { txt = ''; }
+    if (!txt) { console.log('[LP SMS REFINE DIAG] kept the first pass \u2014 empty response'); return null; }
+
+    var obj = null;
+    try { obj = JSON.parse(txt); } catch (eJ) {
+      var m = String(txt).match(/\{[^]*\}/);
+      if (m) { try { obj = JSON.parse(m[0]); } catch (eJ2) { obj = null; } }
+    }
+    var out = obj && typeof obj.sms === 'string' ? obj.sms.trim() : '';
+    if (!out) { console.log('[LP SMS REFINE DIAG] kept the first pass \u2014 no sms field in the response'); return null; }
+
+    console.log('[LP SMS REFINE DIAG] ran | ' + (Date.now() - t0) + 'ms | shipped:pass2'
+      + '\n    pass1: ' + JSON.stringify(String(pass1).slice(0, 220))
+      + '\n    pass2: ' + JSON.stringify(out.slice(0, 220)));
+    return out;
+  } catch (e) {
+    var why = (e && e.name === 'AbortError') ? 'timed out at 25s' : ('threw: ' + (e && e.message || e));
+    console.log('[LP SMS REFINE DIAG] kept the first pass \u2014 ' + why + ' | ' + (Date.now() - t0) + 'ms');
+    return null;
+  }
+}
 
 function buildSystemPromptVoicemailOnly(personaId, agentFirst, storeName, phone) {
   // (v9.7.212) The standalone VM CTA INHERITS the full main system prompt — the same
@@ -25034,6 +25214,20 @@ async function generateAll() {
         + ' | "' + fallbackSubject + '" | saw vehicle:' + (vName || '(none)')
         + ' name:' + (_fbFirst || '(none)') + ' store:' + (_fbStore || '(none)'));
       rawEmail = 'Subject: ' + fallbackSubject + '\n\n' + rawEmail;
+    }
+
+    // (v9.7.669) THE SMS REFINE PASS. Placed HERE and nowhere else: rawEmail is finalised above
+    // (subject stripped and re-prepended), and everything that shapes the text -- the opener
+    // guard, the hook row, cleanOutput, the finance guard, the store-name canon, enforceSmsSig,
+    // setOutput and the feedback capture -- all runs BELOW and reads rawSms. So one assignment
+    // here carries the refined draft through every downstream stage unchanged, and nothing has
+    // been rendered yet, so the agent never sees a draft swap under them.
+    // A null return keeps the first pass. It is never allowed to blank a draft.
+    try {
+      var _rfSms = await _lpRefineSms(rawSms, rawEmail, lastScrapedData);
+      if (_rfSms) rawSms = _rfSms;
+    } catch (eRf) {
+      try { console.log('[LP SMS REFINE DIAG] kept the first pass \u2014 call site threw: ' + (eRf && eRf.message || eRf)); } catch (eRf2) {}
     }
 
     // Light-touch SMS opener check — only fix if opener has no customer name and is pure template
