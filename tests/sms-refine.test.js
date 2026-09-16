@@ -189,8 +189,38 @@ check('it carries BOTH open threads the v9.7.666 detector surfaced',
   i => { const p = userPrompt(i, AIMEE); return [/Did you get my inform/.test(p), /QUESTIONS OF THEIRS THAT ARE STILL OPEN/.test(p)]; }, [true, true]);
 check('it carries the first-pass draft it is replacing',
   i => /THE FIRST DRAFT OF THE TEXT/.test(userPrompt(i, AIMEE)) && /and certified, so you can sit inside/.test(userPrompt(i, AIMEE)), true);
+// (v9.7.670) Reworded when the floor was added — "do not write it again with words removed" now
+// sits inside the anti-agenda sentence rather than standing alone. Same instruction, and it is
+// still asserted by the clause that carries the meaning rather than by the old phrasing.
 check('it names the failure it exists to prevent',
-  i => /reads like the email with words removed is the exact failure this pass exists to prevent/.test(userPrompt(i, AIMEE)), true);
+  i => /do not write it again with words removed .* is the exact failure this pass exists to prevent/.test(userPrompt(i, AIMEE)), true);
+
+// ── (v9.7.670) THE FLOOR, NOT ONLY THE CEILING ─────────────────────────────
+// Gil, 9/16, on log208: "like the concept but seems rather short. Maybe too constrictive on
+// length parameters we built." Four instructions pointed at less and nothing pushed back, so
+// the refined draft answered her question, asked for a time, and gave her no reason to come.
+console.log('\n    (v9.7.670) a floor as plain as the ceiling:');
+check('the lead is named as a LEAD, not as the whole message',
+  i => /That is what the text LEADS on/.test(userPrompt(i, AIMEE)), true);
+check('one supporting reason is REQUIRED, not merely permitted',
+  i => /THEN GIVE THEM ONE REASON/.test(userPrompt(i, AIMEE)), true);
+check('...and it says what that reason is for',
+  i => /makes replying easy or makes the visit worth making/.test(userPrompt(i, AIMEE)), true);
+check('the floor is stated in sentences, agreeing with the shape rule rather than undercutting it',
+  i => /THAT IS USUALLY THREE SENTENCES, AND SHORTER IS NOT AUTOMATICALLY BETTER/.test(userPrompt(i, AIMEE)), true);
+check('...and it names log208\'s draft as the failure on that side',
+  i => /answers the question and jumps straight to a time has cut too much/.test(userPrompt(i, AIMEE)), true);
+check('it says outright that cutting is not the goal',
+  i => /Cutting is not the goal/.test(userPrompt(i, AIMEE)), true);
+check('the absolute "nothing else" that produced the two-sentence draft is gone',
+  i => /Carry that one thing and nothing else/.test(userPrompt(i, AIMEE)), false);
+check('...while the anti-agenda instruction it was doing double duty for survives',
+  i => /do not carry its second AND third points/.test(userPrompt(i, AIMEE)), true);
+check('the first-name opener now reaches this pass from both sides',
+  i => [/open with their first name/.test(userPrompt(i, AIMEE)),
+        /The text OPENS with the customer's first name/.test(sysPrompt(i))], [true, true]);
+check('...and the system prompt says a nameless refine is not a refine',
+  i => /A refined text that has dropped the name has not been refined/.test(sysPrompt(i)), true);
 check('it pins the appointment times to the email, so the two cannot disagree',
   i => /use the SAME times\. Never invent different ones/.test(userPrompt(i, AIMEE)), true);
 check('it forbids inventing a fact the email does not state',
@@ -308,6 +338,25 @@ check('neuter B actually changed the anti-compression sentence',
   i => NOSHRINK(i.sys) !== i.sys, true);
 check('B (control): the shipped system prompt forbids shortening',
   i => /you are NOT shortening it/.test(sysPrompt(i)), true);
+
+// (v9.7.670) Put the absolute back and the prompt points only one way again, which is the
+// state that produced log208's two-sentence draft.
+const NOFLOOR = c => c
+  .replace(/out\.push\('THEN GIVE THEM ONE REASON[^;]*\);/s, '')
+  .replace(/out\.push\('THAT IS USUALLY THREE SENTENCES[^;]*\);/s, '');
+check('neuter C actually removed both floor statements',
+  i => { const m = NOFLOOR(i.usr); return [m !== i.usr, /THREE SENTENCES/.test(m), /ONE REASON/.test(m)]; },
+  [true, false, false]);
+check('C: with the floor gone, every remaining instruction points at less',
+  i => {
+    const sb = ctx({ ...i, usr: NOFLOOR(i.usr) }, {});
+    sb.__d = AIMEE; sb.__p = PASS1; sb.__e = EMAIL;
+    const p = vm.runInContext('_lpBuildSmsRefinePrompt(__p, __e, __d)', sb);
+    return [/ONE thing/.test(p), /second AND third points/.test(p), /SHORTER IS NOT AUTOMATICALLY BETTER/.test(p)];
+  }, [true, true, false]);
+check('C (control): the shipped prompt carries both directions at once',
+  i => { const p = userPrompt(i, AIMEE); return [/ONE thing/.test(p), /SHORTER IS NOT AUTOMATICALLY BETTER/.test(p)]; },
+  [true, true]);
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);
