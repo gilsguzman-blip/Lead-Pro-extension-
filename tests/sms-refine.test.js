@@ -195,32 +195,55 @@ check('it carries the first-pass draft it is replacing',
 check('it names the failure it exists to prevent',
   i => /do not write it again with words removed .* is the exact failure this pass exists to prevent/.test(userPrompt(i, AIMEE)), true);
 
-// ── (v9.7.670) THE FLOOR, NOT ONLY THE CEILING ─────────────────────────────
-// Gil, 9/16, on log208: "like the concept but seems rather short. Maybe too constrictive on
-// length parameters we built." Four instructions pointed at less and nothing pushed back, so
-// the refined draft answered her question, asked for a time, and gave her no reason to come.
-console.log('\n    (v9.7.670) a floor as plain as the ceiling:');
-check('the lead is named as a LEAD, not as the whole message',
-  i => /That is what the text LEADS on/.test(userPrompt(i, AIMEE)), true);
-check('one supporting reason is REQUIRED, not merely permitted',
-  i => /THEN GIVE THEM ONE REASON/.test(userPrompt(i, AIMEE)), true);
-check('...and it says what that reason is for',
-  i => /makes replying easy or makes the visit worth making/.test(userPrompt(i, AIMEE)), true);
-check('the floor is stated in sentences, agreeing with the shape rule rather than undercutting it',
-  i => /THAT IS USUALLY THREE SENTENCES, AND SHORTER IS NOT AUTOMATICALLY BETTER/.test(userPrompt(i, AIMEE)), true);
-check('...and it names log208\'s draft as the failure on that side',
-  i => /answers the question and jumps straight to a time has cut too much/.test(userPrompt(i, AIMEE)), true);
-check('it says outright that cutting is not the goal',
-  i => /Cutting is not the goal/.test(userPrompt(i, AIMEE)), true);
-check('the absolute "nothing else" that produced the two-sentence draft is gone',
+// ── (v9.7.671) NO LENGTH CONSTRAINT AT ALL ─────────────────────────────────
+// Gil, 9/16: "I don't think giving it a 3 sentence constraint is the right idea. I'm pretty sure
+// the model can convey what it needs to without any constraint and not be too wordy."
+//
+// The record backs him. v9.7.669 pushed only at length and produced a two-sentence receipt.
+// v9.7.670 answered with a floor and a sentence count; log209 hit the count exactly and produced
+// a NEW artefact — 'Aimee, you asked, "Can I see the inside?" ...' — reading her own message back
+// to her in quotation marks. Each counter-weight bought one problem and sold another.
+console.log('\n    (v9.7.671) length is the model\'s to judge:');
+check('no sentence count survives anywhere in the refine prompt',
+  i => /THREE SENTENCES|two or three short sentences\b(?![^]*describes)/i.test(
+    userPrompt(i, AIMEE).slice(userPrompt(i, AIMEE).indexOf('WRITE THE TEXT'))), false);
+check('the v9.7.670 floor statements are gone by name',
+  i => [/THEN GIVE THEM ONE REASON/.test(userPrompt(i, AIMEE)),
+        /SHORTER IS NOT AUTOMATICALLY BETTER/.test(userPrompt(i, AIMEE)),
+        /Cutting is not the goal/.test(userPrompt(i, AIMEE))], [false, false, false]);
+check('...and so is v9.7.669\'s absolute on the other side',
   i => /Carry that one thing and nothing else/.test(userPrompt(i, AIMEE)), false);
-check('...while the anti-agenda instruction it was doing double duty for survives',
+check('length is handed to the model outright',
+  i => /LENGTH IS YOURS TO JUDGE\. There is no target here and no sentence count\./.test(userPrompt(i, AIMEE)), true);
+check('the shape rule\'s own phrase is defused rather than left to collide with that',
+  i => /describes what a text usually looks like — it is not a quota to reach or a ceiling to squeeze under/.test(userPrompt(i, AIMEE)), true);
+check('both failure directions are named without either becoming a number',
+  i => /Do not pad it to sound thorough and do not strip it to a receipt/.test(userPrompt(i, AIMEE)), true);
+check('what replaces the constraint is a job, not a size',
+  i => /give them what they need in order to say yes, and nothing they do not need/.test(userPrompt(i, AIMEE)), true);
+
+console.log('\n    the quoting artefact log209 produced, which my own wording caused:');
+check('"Open on THEIR words" — the phrase the model read as "quote them" — is gone',
+  i => /Open on THEIR words/.test(userPrompt(i, AIMEE)), false);
+check('...replaced by what it was meant to say',
+  i => /Answer it IN YOUR OWN VOICE/.test(userPrompt(i, AIMEE)), true);
+check('quoting the customer back is forbidden outright',
+  i => /Do NOT quote their message back to them, and do not repeat their words in quotation marks/.test(userPrompt(i, AIMEE)), true);
+check('...with the reason stated, so it reads as register rather than as a ban',
+  i => /A person answers the question; they do not read it aloud first/.test(userPrompt(i, AIMEE)), true);
+
+console.log('\n    what survives untouched:');
+check('the anti-agenda instruction is still there — that failure is unchanged',
   i => /do not carry its second AND third points/.test(userPrompt(i, AIMEE)), true);
-check('the first-name opener now reaches this pass from both sides',
-  i => [/open with their first name/.test(userPrompt(i, AIMEE)),
+check('the lead is still the thing that earns a reply',
+  i => /Lead on the one thing in that email that earns a reply/.test(userPrompt(i, AIMEE)), true);
+check('the first-name opener reaches this pass from both sides',
+  i => [/Open with their first name/.test(userPrompt(i, AIMEE)),
         /The text OPENS with the customer's first name/.test(sysPrompt(i))], [true, true]);
 check('...and the system prompt says a nameless refine is not a refine',
   i => /A refined text that has dropped the name has not been refined/.test(sysPrompt(i)), true);
+check('the shared shape rule itself is NOT forked — still one definition',
+  i => (i.src.match(/'SMS: A REAL TEXT MESSAGE/g) || []).length, 1);
 check('it pins the appointment times to the email, so the two cannot disagree',
   i => /use the SAME times\. Never invent different ones/.test(userPrompt(i, AIMEE)), true);
 check('it forbids inventing a fact the email does not state',
@@ -339,24 +362,23 @@ check('neuter B actually changed the anti-compression sentence',
 check('B (control): the shipped system prompt forbids shortening',
   i => /you are NOT shortening it/.test(sysPrompt(i)), true);
 
-// (v9.7.670) Put the absolute back and the prompt points only one way again, which is the
-// state that produced log208's two-sentence draft.
-const NOFLOOR = c => c
-  .replace(/out\.push\('THEN GIVE THEM ONE REASON[^;]*\);/s, '')
-  .replace(/out\.push\('THAT IS USUALLY THREE SENTENCES[^;]*\);/s, '');
-check('neuter C actually removed both floor statements',
-  i => { const m = NOFLOOR(i.usr); return [m !== i.usr, /THREE SENTENCES/.test(m), /ONE REASON/.test(m)]; },
-  [true, false, false]);
-check('C: with the floor gone, every remaining instruction points at less',
+// (v9.7.671) Put a sentence count back and the prompt is telling the model a size again, which
+// is the state that produced log209's quoted-question draft.
+const RECOUNT = c => c.replace(
+  "out.push('LENGTH IS YOURS TO JUDGE. There is no target here and no sentence count. ",
+  "out.push('THAT IS USUALLY THREE SENTENCES. ");
+check('neuter C actually put a sentence count back',
+  i => { const m = RECOUNT(i.usr); return [m !== i.usr, /THREE SENTENCES/.test(m)]; }, [true, true]);
+check('C: the neutered build hands the model a size again',
   i => {
-    const sb = ctx({ ...i, usr: NOFLOOR(i.usr) }, {});
+    const sb = ctx({ ...i, usr: RECOUNT(i.usr) }, {});
     sb.__d = AIMEE; sb.__p = PASS1; sb.__e = EMAIL;
     const p = vm.runInContext('_lpBuildSmsRefinePrompt(__p, __e, __d)', sb);
-    return [/ONE thing/.test(p), /second AND third points/.test(p), /SHORTER IS NOT AUTOMATICALLY BETTER/.test(p)];
-  }, [true, true, false]);
-check('C (control): the shipped prompt carries both directions at once',
-  i => { const p = userPrompt(i, AIMEE); return [/ONE thing/.test(p), /SHORTER IS NOT AUTOMATICALLY BETTER/.test(p)]; },
-  [true, true]);
+    return [/THREE SENTENCES/.test(p), /LENGTH IS YOURS TO JUDGE/.test(p)];
+  }, [true, false]);
+check('C (control): the shipped prompt names no size at all',
+  i => { const p = userPrompt(i, AIMEE); return [/THREE SENTENCES/.test(p), /LENGTH IS YOURS TO JUDGE/.test(p)]; },
+  [false, true]);
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);
