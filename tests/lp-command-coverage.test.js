@@ -386,5 +386,38 @@ check('the two are actually distinguishable — otherwise this proves nothing',
 check('and the surviving half on Thomas is HIS question, not ours',
   () => /tint/i.test(THOMAS_ASK.split(/,\s*and\s+/)[1] || ''), true);
 
+// ── (v9.7.680) A COURTESY IS NOT HANDED BACK ────────────────────────────────
+// Carlos, 9/17: "Still in the market. Just trying to decide if wife wants to go with the 27's
+// since it's so late in the year. Thanks for checking in on me."
+// The draft opened: "Carlos, thanks for checking back in."
+//
+// He thanked US for checking in on HIM. The text hands his own gesture back with the roles
+// swapped, and in doing so says nothing — he did not check back in, he answered a message we
+// sent. The warmth slot was filled by the SHAPE of his message (a thank-you) instead of its
+// CONTENT (he is weighing a 2027 this late in the model year). The second generation on the same
+// lead got it right — "glad you're still considering it" — so this is a shape the rule can name
+// rather than something the model cannot do.
+console.log('\n(v9.7.680) the warmth sentence answers what they said, not how they said it:');
+
+check('the rule says a courtesy paid to you is not a line to give back',
+  i => /A COURTESY THEY PAID YOU IS NOT A LINE TO HAND BACK/.test(i.smsRule), true);
+check('...and tells it what to do instead, so it is not only a prohibition',
+  i => /you have been thanked — take it and answer what they actually said/.test(i.smsRule), true);
+check('it names the failure as reading the shape rather than the content',
+  i => /you read the shape of their message instead of the content/.test(i.smsRule), true);
+check('...and ranks it, so it is not traded against dropping warmth entirely',
+  i => /worse than opening on the substance with no warmth at all/.test(i.smsRule), true);
+check('it sits inside the warmth clause it governs, not somewhere else in the rule',
+  i => i.smsRule.indexOf('ONE SHORT SENTENCE answering it')
+     < i.smsRule.indexOf('A COURTESY THEY PAID YOU IS NOT A LINE TO HAND BACK')
+    && i.smsRule.indexOf('A COURTESY THEY PAID YOU IS NOT A LINE TO HAND BACK')
+     < i.smsRule.indexOf('then the thing that earns a reply'), true);
+check('the worked example is shown as the FAILURE, with the good form left to the model',
+  i => /comes back as/.test(i.smsRule) && !/instead say|better: /i.test(i.smsRule), true);
+check('it still names no lead and no vehicle',
+  i => /Carlos|Thomas|Andrea|Bionca|K5|Seltos|Kia/.test(i.smsRule), false);
+check('and it did not disturb the ask rule that follows it',
+  i => /IT IS WHETHER ONE REPLY CAN ANSWER IT/.test(i.smsRule), true);
+
 console.log('\n' + (fail ? 'FAILED' : 'PASSED') + ' — ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);

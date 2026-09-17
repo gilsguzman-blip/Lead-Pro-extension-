@@ -115,13 +115,17 @@ function antonio(over) {
     item('', '09/10/2026 3:42 PM', 'By: Daniel Schatte\nSales Rep Changed From Alyssa Williams to Damien Brooks'),
     item('', '09/10/2026 3:42 PM', 'By: Daniel Schatte\nService Rep Changed From Sticky_Round_Robin to System'),
     item('', '09/10/2026 3:42 PM', 'By: Daniel Schatte\nCSI Agent Changed From Sticky_Round_Robin to System'),
-    item('Inbound', '09/10/2026 3:22 PM', 'Received from: ' + PH + '\nReceived by: Daniel Schatte\nCredit score 590 I only have the 10% down because I do have a mortgage payment'),
+    item('Inbound', '09/10/2026 3:22 PM', over.laterInbound === undefined
+      ? ('Received from: ' + PH + '\nReceived by: Daniel Schatte\nCredit score 590 I only have the 10% down because I do have a mortgage payment')
+      : over.laterInbound),
     item('Outbound', '09/10/2026 12:34 PM', 'Sent to: ' + PH + '\nSent by: Daniel Schatte\nAntonio, this is Daniel, Sales Manager at Community Kia'),
     item('Outbound', '09/10/2026 8:57 AM', 'Sent to: ' + PH + '\nSent by: Daniel Schatte\nAntonio, this is Daniel, Sales Manager at Community Kia'),
     item('Outbound', '09/09/2026 11:32 AM', 'Sent to: ' + PH + '\nSent by: Alyssa Williams\nAntonio, Alyssa again. No pressure - I just want to make sure you have what you need'),
     item('', '09/07/2026 12:39 PM', 'Antonio Cadena and Name Unknown were merged. By: Kristen Willis'),
     item('Inbound', '09/07/2026 12:38 PM', 'By: Samantha Gonzalez\ntransferred to Alyssa'),
-    item('Inbound', '09/07/2026 10:53 AM', 'Received from: ' + PH + '\nReceived by: Kristen Willis\nYou can text it to me sure'),
+    item('Inbound', '09/07/2026 10:53 AM', over.laterInbound === undefined
+      ? ('Received from: ' + PH + '\nReceived by: Kristen Willis\nYou can text it to me sure')
+      : over.laterInbound),
     item('Outbound', '09/07/2026 10:40 AM', over.reply === undefined ? KRISTEN_VIDEO_REPLY : over.reply),
     item('', '09/07/2026 10:38 AM', 'By: Kristen Willis\nDUPE ON NAME BUT NOTHING ACTIVE..... NO DUPE ON NUMBER OR EMAIL..... Antonio Cadena Cell: ' + PH + ' ' + EM),
     item('Inbound', '09/07/2026 9:52 AM', 'Received from: ' + PH + '\nReceived by: Kristen Willis\nLive in San Antonio'),
@@ -198,22 +202,30 @@ check('on the full lead it is the OUTBOUND that closes it — the reply came fir
 // defect Kristen actually felt: a General Note carries no direction flag, so before this build
 // nothing an agent wrote could ever close a thread.
 console.log('\n(3) a dated General Note can close a thread:');
+// (v9.7.680) Antonio answered Kristen at 10:53 — "You can text it to me sure" — and wrote again on
+// 09/10. Either of those now closes the thread on its own, BEFORE the walk can reach Alyssa's note
+// three days later. That is correct, and section (7) asserts it directly. But it shadows the NOTE
+// path, which still has to be testable in isolation, so these variants replace both later inbounds
+// with an agent-typed entry: a lead where nobody heard from the customer again, which is precisely
+// the arc a fulfilment note exists to close. It is also the shape the speaker check must skip —
+// inbound-tagged, attributed "By: <name>", not one word of it from the customer.
+const AGENT_TYPED = 'By: Daniel Schatte\nNo answer';
 const NO_REPLY = { reply: 'Sent to: ' + PH + '\nSent by: Kristen Willis\nAntonio, let me know what works for you.' };
 
 check('with the reply neutered, the note still closes it',
-  i => run(i, antonio(NO_REPLY)).open, []);
+  i => run(i, antonio({ reply: NO_REPLY.reply, laterInbound: AGENT_TYPED })).open, []);
 
 check('...and the diagnostic says the NOTE is what closed it',
-  i => /CLOSED-by-note/.test(run(i, antonio(NO_REPLY)).diag), true);
+  i => /CLOSED-by-note/.test(run(i, antonio({ reply: NO_REPLY.reply, laterInbound: AGENT_TYPED })).diag), true);
 
 check('a note that records a PLAN rather than a fulfilment does not close it',
-  i => run(i, antonio({ reply: NO_REPLY.reply, note: 'By: Alyssa Williams\nWill send him the video tomorrow' })).open.length, 1);
+  i => run(i, antonio({ reply: NO_REPLY.reply, laterInbound: AGENT_TYPED, note: 'By: Alyssa Williams\nWill send him the video tomorrow' })).open.length, 1);
 
 check('...and "said he will let me know" alone is not a fulfilment either',
-  i => run(i, antonio({ reply: NO_REPLY.reply, note: 'By: Alyssa Williams\nSaid he will let me know when he can come down' })).open.length, 1);
+  i => run(i, antonio({ reply: NO_REPLY.reply, laterInbound: AGENT_TYPED, note: 'By: Alyssa Williams\nSaid he will let me know when he can come down' })).open.length, 1);
 
 check('a fulfilment verb with no shared subject does not close it',
-  i => run(i, antonio({ reply: NO_REPLY.reply, note: 'By: Alyssa Williams\nSent him the finance application' })).open.length, 1);
+  i => run(i, antonio({ reply: NO_REPLY.reply, laterInbound: AGENT_TYPED, note: 'By: Alyssa Williams\nSent him the finance application' })).open.length, 1);
 
 // ── (4) THE GENERIC-NOUN MATCH ──────────────────────────────────────────────
 // He asked about "this vehicle"; every human on the lead calls it the truck. Answering more
@@ -221,10 +233,10 @@ check('a fulfilment verb with no shared subject does not close it',
 console.log('\n(4) a generic vehicle noun is answered by any other generic vehicle noun:');
 
 check('a note naming the truck closes a question that said "vehicle"',
-  i => run(i, antonio({ reply: NO_REPLY.reply, note: 'By: Alyssa Williams\nSent him pictures of the truck' })).open, []);
+  i => run(i, antonio({ reply: NO_REPLY.reply, laterInbound: AGENT_TYPED, note: 'By: Alyssa Williams\nSent him pictures of the truck' })).open, []);
 
 check('a note naming an unrelated subject does not',
-  i => run(i, antonio({ reply: NO_REPLY.reply, note: 'By: Alyssa Williams\nSent him the service coupon' })).open.length, 1);
+  i => run(i, antonio({ reply: NO_REPLY.reply, laterInbound: AGENT_TYPED, note: 'By: Alyssa Williams\nSent him the service coupon' })).open.length, 1);
 
 // ── (5) THE SHORT-QUESTION BAR ──────────────────────────────────────────────
 // Two shared words was unreachable for a two-word question, so every one of them has been
@@ -328,6 +340,106 @@ check('an item with no content div', i => run(i, [{ getAttribute: () => 'Inbound
 check('an item whose direction attribute is missing entirely',
   i => run(i, [{ getAttribute: () => null, querySelector: () => ({ innerText: 'Sent him the video ?' }) }]).open, []);
 
+// ── (7) v9.7.680: THE ANSWERS THAT CARRY NO WORDS ───────────────────────────
+// Carlos, 9/17 capture (Community Kia Baytown). The resolver examined five questions and returned
+// FOUR open. His own transcript answers three of those four, and not one answer shares a content
+// word with its question:
+//
+//   3:09p "When you get a chance can you send me a cost breakdown."
+//   5:46p  an image link          5:47p "Msrp was 33,050 we discounted to $32,238.67"
+//   5:26p "Can u get the car we're looking at? White with red interior"
+//   5:32p "Yes, just let us know if you are ready to move forward..."
+//   11:59a "Can u send over the credit app?"
+//   12:01p https://www.communitykia.com/finance-application/      -- TWO MINUTES LATER
+//
+// A link, a number and a plain "Yes" are how this BDC answers, and vocabulary overlap cannot see
+// any of them. The prompt therefore told the model all three were open, and the draft offered
+// Carlos a cost breakdown and a credit app he had already been sent. What closes them is his own
+// next message: he wrote again on 9/17 and did not ask for any of it again.
+console.log('\n(7) v9.7.680 — a link, a number and a bare "Yes" are answers:');
+
+const CARLOS_PH = '(555) 010-0143';
+function carlos(over) {
+  over = over || {};
+  return [
+    item('Inbound', '09/17/2026 11:02 AM', over.last === undefined
+      ? ('Received from: ' + CARLOS_PH + '\nReceived by: Daniel Schatte\nStill in the market. Just trying '
+         + 'to decide if wife wants to go with the 27\u2019s since it\u2019s so late in the year. Thanks for checking in on me.')
+      : over.last),
+    item('Outbound', '09/02/2026 12:01 PM', 'Sent to: ' + CARLOS_PH
+      + '\nSent by: Samantha Gonzalez\nhttps://www.communitykia.com/finance-application/'),
+    item('Inbound', '09/02/2026 11:59 AM', 'Received from: ' + CARLOS_PH
+      + '\nReceived by: Samantha Gonzalez\nCan u send over the credit app?'),
+    item('Outbound', '09/01/2026 5:32 PM', 'Sent to: ' + CARLOS_PH + '\nSent by: Samantha Gonzalez\nYes, just let '
+      + 'us know if you are ready to move forward and we can send you the credit app. We can get it here tomorrow.'),
+    item('Inbound', '09/01/2026 5:26 PM', 'Received from: ' + CARLOS_PH
+      + '\nReceived by: Samantha Gonzalez\nCan u get the car we\u2019re looking at? White with red interior'),
+    item('Outbound', '08/29/2026 5:47 PM', 'Sent to: ' + CARLOS_PH
+      + '\nSent by: Jocelyne Martinez\nMsrp was 33,050 we discounted to $32,238.67'),
+    item('Inbound', '08/29/2026 3:09 PM', 'Received from: ' + CARLOS_PH
+      + '\nReceived by: Jocelyne Martinez\nWhen you get a chance can you send me a cost breakdown.')
+  ];
+}
+
+check('all three of his answered questions are now closed',
+  i => run(i, carlos()).open, []);
+check('...and the diagnostic attributes every one of them to his own next message',
+  i => (run(i, carlos()).diag.match(/CLOSED-by-customer-moved-on/g) || []).length, 3);
+check('...and the log says so in words, with a count',
+  i => /3 closed by the customer's OWN next message — v9\.7\.680/.test(run(i, carlos()).diag), true);
+
+console.log('\n    the guard: a customer who was NOT answered asks again, and that keeps it open:');
+check('a re-ask about the same thing does not close it',
+  i => run(i, carlos({ last: 'Received from: ' + CARLOS_PH
+    + '\nReceived by: Daniel Schatte\nDid you ever send over that credit app?' })).open.length > 0, true);
+check('...while a message on a different subject does close it',
+  i => run(i, carlos({ last: 'Received from: ' + CARLOS_PH
+    + '\nReceived by: Daniel Schatte\nWe are still thinking it over. Thanks.' })).open, []);
+check('an inbound-tagged entry the STORE typed cannot speak for him (v9.7.560)',
+  i => run(i, carlos({ last: 'By: Samantha Gonzalez\ntransferred to Alyssa' })).open.length > 0, true);
+
+// THE INTERVENING OUTBOUND IS THE GUARD THAT MAKES THIS SAFE. Carlos sent two messages one minute
+// apart on 9/01 — "...out the door cost without dealer fees" and then "* dealer add on fees",
+// correcting himself before anyone had replied. A correction is not an answer, and nothing in it
+// says he was helped; without the outbound requirement it would close a live question.
+// His first of the two was phrased as a statement and so is not a thread the collector holds at
+// all; it is put here as the question he would have had to ask for one to exist, because the
+// timing is the thing under test and a statement gives it nothing to act on.
+console.log('\n    a self-correction before anyone replied must NOT close anything:');
+function selfCorrect() {
+  return [
+    item('Inbound', '09/01/2026 2:25 PM', 'Received from: ' + CARLOS_PH
+      + '\nReceived by: Samantha Gonzalez\n* dealer add on fees'),
+    item('Inbound', '09/01/2026 2:25 PM', 'Received from: ' + CARLOS_PH + '\nReceived by: Samantha Gonzalez\nCan '
+      + 'u send the out the door cost without dealer fees?')
+  ];
+}
+check('his question stays open — we had not replied yet',
+  i => run(i, selfCorrect()).open.length, 1);
+check('...and nothing was credited to him as having closed it',
+  i => /customer-moved-on/.test(run(i, selfCorrect()).diag), false);
+
+// Bionca (9/17): she told us she had already done the thing she had asked about. Her request could
+// never close by vocabulary either — her own message shares one word with it and the bar was two.
+console.log('\n    and the other half of it: "I already did that":');
+const BIONCA_PH = '(555) 010-0177';
+function bionca() {
+  return [
+    item('Inbound', '09/17/2026 9:14 AM', 'Received from: ' + BIONCA_PH + '\nReceived by: Brad White\ncorrect. '
+      + 'i am traveling and cannot answer but i have submitted the application'),
+    item('Outbound', '09/16/2026 4:02 PM', 'Sent to: ' + BIONCA_PH
+      + '\nSent by: Rotaxlyn Hudson\nhttps://www.communitykia.com/finance-application/'),
+    item('Inbound', '09/16/2026 3:55 PM', 'Received from: ' + BIONCA_PH + '\nReceived by: Rotaxlyn Hudson\nCan I '
+      + 'fill out an application or send over my info so we can see what my options are?')
+  ];
+}
+check('her request is closed by her telling us she had done it',
+  i => run(i, bionca()).open, []);
+check('...by the customer path, since the link that answered her has no words in it',
+  i => /CLOSED-by-customer-moved-on/.test(run(i, bionca()).diag), true);
+check('and the old vocabulary bar could never have closed it — one shared word against a bar of two',
+  i => /need:2/.test(run(i, bionca()).diag), true);
+
 // ── NON-VACUITY ─────────────────────────────────────────────────────────────
 // Each neuter is applied to THIS build's shipped code and paired with a control on the shipped
 // form, so a passing assertion is attributable to the change rather than to absent code.
@@ -337,10 +449,14 @@ const OUTBOUND_ONLY = c => c.replace(
   "if (odir !== 'outbound' && !(_isNote && _fulfilRe.test(obody))) continue;",
   "if (odir !== 'outbound') continue;");
 check('neuter A actually restored the outbound-only rule', i => OUTBOUND_ONLY(i.code) !== i.code, true);
+// Both neuters below target mechanisms OTHER than v9.7.680, so they take the same isolation the
+// note-path tests take: without it the customer's own later message closes the thread first and
+// the neuter has nothing left to demonstrate.
+const NO_REPLY_ALONE = { reply: NO_REPLY.reply, laterInbound: AGENT_TYPED };
 check('A: the note can no longer close the video thread',
-  i => run(i, antonio(NO_REPLY), OUTBOUND_ONLY).open.length, 1);
+  i => run(i, antonio(NO_REPLY_ALONE), OUTBOUND_ONLY).open.length, 1);
 check('A (control): the shipped resolver closes it',
-  i => run(i, antonio(NO_REPLY)).open.length, 0);
+  i => run(i, antonio(NO_REPLY_ALONE)).open.length, 0);
 
 const TWO_WORDS = c => c.replace('var _need = qWords.length <= 3 ? 1 : 2;', 'var _need = 2;');
 check('neuter B actually restored the two-word bar', i => TWO_WORDS(i.code) !== i.code, true);
@@ -348,13 +464,13 @@ check('neuter B actually restored the two-word bar', i => TWO_WORDS(i.code) !== 
 // path the bar governs. Left as-is the note closes it even under the old bar (it carries BOTH
 // "videos" and "truck"), and that is worth pinning on its own: what hid Alyssa's note for months
 // was the direction flag, not the overlap count.
-const FLAT_NOTE = { note: 'By: Alyssa Williams\nTexting on cell.' };
+const FLAT_NOTE = { note: 'By: Alyssa Williams\nTexting on cell.', laterInbound: AGENT_TYPED };
 check('B: with the note neutral, the outbound reply no longer clears the bar',
   i => run(i, antonio(FLAT_NOTE), TWO_WORDS).open.length, 1);
 check('B (control): the shipped resolver closes it on that same lead',
   i => run(i, antonio(FLAT_NOTE)).open.length, 0);
 check('B: the note itself clears even the OLD bar — the direction flag is what hid it',
-  i => /CLOSED-by-note/.test(run(i, antonio(NO_REPLY), TWO_WORDS).diag), true);
+  i => /CLOSED-by-note/.test(run(i, antonio(NO_REPLY_ALONE), TWO_WORDS).diag), true);
 check('B: and a two-word question becomes unclosable again, as it was for months',
   i => run(i, shortLead('The Patriot one is on the ground now'), TWO_WORDS).open.length, 1);
 
@@ -470,6 +586,40 @@ check('D: this is exactly what v9.7.665 shipped — she asked and nothing saw it
   i => run(i, [item('Inbound', '09/16/2026 11:02 AM', 'Received by: V\nCan I see the inside')], NO_SHAPE).open.length, 0);
 check('D (control): the shipped resolver sees it',
   i => asked(i, 'Can I see the inside').length, 1);
+
+console.log('\nnon-vacuity (v9.7.680):');
+
+// Remove the customer-closure branch and Carlos's three answered questions come straight back —
+// which is the state the 9/17 prompt actually shipped in.
+const NO_CUST_CLOSE = c => c.replace(
+  "              if (odir === 'inbound') {", "              if (odir === 'inbound' && false) {");
+check('neuter C actually disabled the customer path',
+  i => NO_CUST_CLOSE(i.code) !== i.code, true);
+check('C: all three of Carlos\'s answered questions are reported open again',
+  i => run(i, carlos(), NO_CUST_CLOSE).open.length, 3);
+check('C: and that is exactly what the 9/17 capture showed — a link, a number and a "Yes" seen as silence',
+  i => /customer-moved-on/.test(run(i, carlos(), NO_CUST_CLOSE).diag), false);
+check('C (control): the shipped resolver closes all three',
+  i => run(i, carlos()).open.length, 0);
+
+// The outbound requirement is the guard; without it a self-correction closes a live question.
+const NO_OB_GUARD = c => c.replace(
+  '                if (!_obSeen) continue;                                   // we never replied\n', '');
+check('neuter D actually removed the intervening-outbound requirement',
+  i => NO_OB_GUARD(i.code) !== i.code, true);
+check('D: Carlos\'s own correction now closes a question nobody had answered',
+  i => run(i, selfCorrect(), NO_OB_GUARD).open.length, 0);
+check('D (control): the shipped resolver leaves it open',
+  i => run(i, selfCorrect()).open.length, 1);
+
+// The speaker check is what stops a store-typed entry speaking for the customer.
+const NO_SPEAKER = c => c.replace("                if (obody.indexOf('received from:') < 0) continue;\n", '');
+check('neuter E actually removed the speaker check',
+  i => NO_SPEAKER(i.code) !== i.code, true);
+check('E: "transferred to Alyssa" now closes his thread on his behalf',
+  i => run(i, carlos({ last: 'By: Samantha Gonzalez\ntransferred to Alyssa' }), NO_SPEAKER).open.length, 0);
+check('E (control): the shipped resolver refuses it',
+  i => run(i, carlos({ last: 'By: Samantha Gonzalez\ntransferred to Alyssa' })).open.length > 0, true);
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);
