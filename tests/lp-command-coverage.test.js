@@ -298,9 +298,24 @@ const failsReadBack = t => String(t).split(/(?<=[.!?])\s+/).filter(Boolean).map(
   whileClause: /\bwhile\b/.test(sen),
 }));
 
-check('the rule names all three shapes',
-  i => /needs a semicolon/.test(i.smsRule) && /hangs three items off "and"/.test(i.smsRule)
-    && /joins two clauses with "while"/.test(i.smsRule),
+// (v9.7.678) REWORDED, AND THE REWORDING IS THE POINT. log215 shipped a 39-word opening sentence
+// carrying unit, colour, payment, term, amount due and two disclaimers — and it contained NONE of
+// the three constructions this test names, so the read-back cleared it. Three named items became
+// the definition of the failure instead of examples of it: the enumeration trap, inside the very
+// test written to catch bad sentences. The three survive as examples; the test is now the reading.
+check('the rule still names all three shapes',
+  i => /needing a semicolon/.test(i.smsRule) && /hanging three items off "and"/.test(i.smsRule)
+    && /joining two clauses with "while"/.test(i.smsRule),
+  true);
+check('...but frames them as examples of one failure, not a checklist that clears it',
+  i => /THOSE ARE THREE EXAMPLES OF ONE FAILURE, NOT A CHECKLIST THAT CLEARS IT/.test(i.smsRule),
+  true);
+check('...and states the actual test, which is the reading rather than the contents',
+  i => /if you could not say it in one breath, or would not thumb it into a phone/.test(i.smsRule),
+  true);
+check('...and names the shape that got past the checklist, without naming this lead',
+  i => /a noun phrase loaded with specification/.test(i.smsRule)
+    && !/Kia|K5|Snow White|Thomas/.test(i.smsRule),
   true);
 check('the SMS that shipped fails the read-back on all three',
   () => { const r = failsReadBack(SHIPPED_SMS)[0]; return [r.semicolon, r.threeOffAnd, r.whileClause]; },
