@@ -110,6 +110,13 @@ function runPrelude(B, state, seed) {
       }
     },
     lastScrapedData: { autoLeadId: '2079186130' },
+    // (v9.7.674) THE CAPTURE GAINED A DEPENDENCY OUTSIDE THIS SLICE, so the slice has to supply
+    // it — the same shape as v9.7.631 moving _dbSoldUnit above distance-appt-gate's lift. The
+    // shipped drafts block now records whether the row was built by the FLUSH or by a live copy
+    // or thumb, which it reads from _lpFeedbackSend's own `isFlush` parameter. This harness models
+    // the FLUSH path, so it supplies the flush label. Neither value changes what this suite
+    // measures, which is ORDERING and nothing else.
+    isFlush: 'abandoned',
     // (v9.7.648) The shipped capture now asks _lpVmForLead about the ROW's lead — meta.autoLeadId,
     // stamped at generation time — rather than about lastScrapedData, which clearFields() nulls on
     // every grab. Seeded to the same lead so this suite still measures ORDERING and nothing else;
@@ -141,6 +148,13 @@ function captureOnly(B, fields, seed) {
     console: { log() {} },
     document: { getElementById: (id) => ({ value: fields[id] === undefined ? '' : fields[id] }) },
     lastScrapedData: { autoLeadId: '2079186130' },
+    // (v9.7.674) THE CAPTURE GAINED A DEPENDENCY OUTSIDE THIS SLICE, so the slice has to supply
+    // it — the same shape as v9.7.631 moving _dbSoldUnit above distance-appt-gate's lift. The
+    // shipped drafts block now records whether the row was built by the FLUSH or by a live copy
+    // or thumb, which it reads from _lpFeedbackSend's own `isFlush` parameter. This harness models
+    // the copy / thumb path, so it supplies false. Neither value changes what this suite
+    // measures, which is ORDERING and nothing else.
+    isFlush: false,
     // (v9.7.648) The shipped capture now asks _lpVmForLead about the ROW's lead — meta.autoLeadId,
     // stamped at generation time — rather than about lastScrapedData, which clearFields() nulls on
     // every grab. Seeded to the same lead so this suite still measures ORDERING and nothing else;
