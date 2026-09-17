@@ -115,17 +115,13 @@ function antonio(over) {
     item('', '09/10/2026 3:42 PM', 'By: Daniel Schatte\nSales Rep Changed From Alyssa Williams to Damien Brooks'),
     item('', '09/10/2026 3:42 PM', 'By: Daniel Schatte\nService Rep Changed From Sticky_Round_Robin to System'),
     item('', '09/10/2026 3:42 PM', 'By: Daniel Schatte\nCSI Agent Changed From Sticky_Round_Robin to System'),
-    item('Inbound', '09/10/2026 3:22 PM', over.laterInbound === undefined
-      ? ('Received from: ' + PH + '\nReceived by: Daniel Schatte\nCredit score 590 I only have the 10% down because I do have a mortgage payment')
-      : over.laterInbound),
+    item('Inbound', '09/10/2026 3:22 PM', 'Received from: ' + PH + '\nReceived by: Daniel Schatte\nCredit score 590 I only have the 10% down because I do have a mortgage payment'),
     item('Outbound', '09/10/2026 12:34 PM', 'Sent to: ' + PH + '\nSent by: Daniel Schatte\nAntonio, this is Daniel, Sales Manager at Community Kia'),
     item('Outbound', '09/10/2026 8:57 AM', 'Sent to: ' + PH + '\nSent by: Daniel Schatte\nAntonio, this is Daniel, Sales Manager at Community Kia'),
     item('Outbound', '09/09/2026 11:32 AM', 'Sent to: ' + PH + '\nSent by: Alyssa Williams\nAntonio, Alyssa again. No pressure - I just want to make sure you have what you need'),
     item('', '09/07/2026 12:39 PM', 'Antonio Cadena and Name Unknown were merged. By: Kristen Willis'),
     item('Inbound', '09/07/2026 12:38 PM', 'By: Samantha Gonzalez\ntransferred to Alyssa'),
-    item('Inbound', '09/07/2026 10:53 AM', over.laterInbound === undefined
-      ? ('Received from: ' + PH + '\nReceived by: Kristen Willis\nYou can text it to me sure')
-      : over.laterInbound),
+    item('Inbound', '09/07/2026 10:53 AM', 'Received from: ' + PH + '\nReceived by: Kristen Willis\nYou can text it to me sure'),
     item('Outbound', '09/07/2026 10:40 AM', over.reply === undefined ? KRISTEN_VIDEO_REPLY : over.reply),
     item('', '09/07/2026 10:38 AM', 'By: Kristen Willis\nDUPE ON NAME BUT NOTHING ACTIVE..... NO DUPE ON NUMBER OR EMAIL..... Antonio Cadena Cell: ' + PH + ' ' + EM),
     item('Inbound', '09/07/2026 9:52 AM', 'Received from: ' + PH + '\nReceived by: Kristen Willis\nLive in San Antonio'),
@@ -209,23 +205,22 @@ console.log('\n(3) a dated General Note can close a thread:');
 // with an agent-typed entry: a lead where nobody heard from the customer again, which is precisely
 // the arc a fulfilment note exists to close. It is also the shape the speaker check must skip —
 // inbound-tagged, attributed "By: <name>", not one word of it from the customer.
-const AGENT_TYPED = 'By: Daniel Schatte\nNo answer';
 const NO_REPLY = { reply: 'Sent to: ' + PH + '\nSent by: Kristen Willis\nAntonio, let me know what works for you.' };
 
 check('with the reply neutered, the note still closes it',
-  i => run(i, antonio({ reply: NO_REPLY.reply, laterInbound: AGENT_TYPED })).open, []);
+  i => run(i, antonio({ reply: NO_REPLY.reply })).open, []);
 
 check('...and the diagnostic says the NOTE is what closed it',
-  i => /CLOSED-by-note/.test(run(i, antonio({ reply: NO_REPLY.reply, laterInbound: AGENT_TYPED })).diag), true);
+  i => /CLOSED-by-note/.test(run(i, antonio({ reply: NO_REPLY.reply })).diag), true);
 
 check('a note that records a PLAN rather than a fulfilment does not close it',
-  i => run(i, antonio({ reply: NO_REPLY.reply, laterInbound: AGENT_TYPED, note: 'By: Alyssa Williams\nWill send him the video tomorrow' })).open.length, 1);
+  i => run(i, antonio({ reply: NO_REPLY.reply, note: 'By: Alyssa Williams\nWill send him the video tomorrow' })).open.length, 1);
 
 check('...and "said he will let me know" alone is not a fulfilment either',
-  i => run(i, antonio({ reply: NO_REPLY.reply, laterInbound: AGENT_TYPED, note: 'By: Alyssa Williams\nSaid he will let me know when he can come down' })).open.length, 1);
+  i => run(i, antonio({ reply: NO_REPLY.reply, note: 'By: Alyssa Williams\nSaid he will let me know when he can come down' })).open.length, 1);
 
 check('a fulfilment verb with no shared subject does not close it',
-  i => run(i, antonio({ reply: NO_REPLY.reply, laterInbound: AGENT_TYPED, note: 'By: Alyssa Williams\nSent him the finance application' })).open.length, 1);
+  i => run(i, antonio({ reply: NO_REPLY.reply, note: 'By: Alyssa Williams\nSent him the finance application' })).open.length, 1);
 
 // ── (4) THE GENERIC-NOUN MATCH ──────────────────────────────────────────────
 // He asked about "this vehicle"; every human on the lead calls it the truck. Answering more
@@ -233,10 +228,10 @@ check('a fulfilment verb with no shared subject does not close it',
 console.log('\n(4) a generic vehicle noun is answered by any other generic vehicle noun:');
 
 check('a note naming the truck closes a question that said "vehicle"',
-  i => run(i, antonio({ reply: NO_REPLY.reply, laterInbound: AGENT_TYPED, note: 'By: Alyssa Williams\nSent him pictures of the truck' })).open, []);
+  i => run(i, antonio({ reply: NO_REPLY.reply, note: 'By: Alyssa Williams\nSent him pictures of the truck' })).open, []);
 
 check('a note naming an unrelated subject does not',
-  i => run(i, antonio({ reply: NO_REPLY.reply, laterInbound: AGENT_TYPED, note: 'By: Alyssa Williams\nSent him the service coupon' })).open.length, 1);
+  i => run(i, antonio({ reply: NO_REPLY.reply, note: 'By: Alyssa Williams\nSent him the service coupon' })).open.length, 1);
 
 // ── (5) THE SHORT-QUESTION BAR ──────────────────────────────────────────────
 // Two shared words was unreachable for a two-word question, so every one of them has been
@@ -381,12 +376,39 @@ function carlos(over) {
   ];
 }
 
+// One question and the reply that answered it, built explicitly so each shape stands alone and a
+// regression in any one of them is visible on its own.
+function oneAsk(question, reply) {
+  const rows = [];
+  if (reply !== null) rows.push(item('Outbound', '09/02/2026 12:01 PM',
+    'Sent to: ' + CARLOS_PH + '\nSent by: Samantha Gonzalez\n' + reply));
+  rows.push(item('Inbound', '09/02/2026 11:59 AM',
+    'Received from: ' + CARLOS_PH + '\nReceived by: Samantha Gonzalez\n' + question));
+  return rows;
+}
+
 check('all three of his answered questions are now closed',
   i => run(i, carlos()).open, []);
-check('...and the diagnostic attributes every one of them to his own next message',
-  i => (run(i, carlos()).diag.match(/CLOSED-by-customer-moved-on/g) || []).length, 3);
-check('...and the log says so in words, with a count',
-  i => /3 closed by the customer's OWN next message — v9\.7\.680/.test(run(i, carlos()).diag), true);
+check('...and each one is credited to the REPLY that answered it, not to his silence',
+  i => (run(i, carlos()).diag.match(/CLOSED-by-handover/g) || []).length, 3);
+check('...and the log names the shapes, with a count',
+  i => /3 closed by a link, a price or a bare "Yes" — v9\.7\.681/.test(run(i, carlos()).diag), true);
+// Each of the three shapes is doing the work on its own question, so no one of them carries all
+// three and a regression in any single shape is visible.
+check('the bare link closes the credit-app ask',
+  i => run(i, oneAsk('Can u send over the credit app?',
+    'https://www.communitykia.com/finance-application/')).open, []);
+check('the plain "Yes" closes the can-you-get-it ask',
+  i => run(i, oneAsk('Can u get the car we\u2019re looking at? White with red interior',
+    'Yes, just let us know if you are ready to move forward. We can get it here tomorrow.')).open, []);
+check('and the price line closes the cost-breakdown ask',
+  i => run(i, oneAsk('When you get a chance can you send me a cost breakdown.',
+    'Msrp was 33,050 we discounted to $32,238.67')).open, []);
+check('an ordinary prose reply that shares no word still does NOT close it',
+  i => run(i, oneAsk('Can u send over the credit app?',
+    'I have a few people in front of me, give me an hour and I will take care of it.')).open.length, 1);
+check('...and with no reply at all it stays open, which is the guard',
+  i => run(i, oneAsk('Can u send over the credit app?', null)).open.length, 1);
 
 console.log('\n    the guard: a customer who was NOT answered asks again, and that keeps it open:');
 check('a re-ask about the same thing does not close it',
@@ -395,8 +417,37 @@ check('a re-ask about the same thing does not close it',
 check('...while a message on a different subject does close it',
   i => run(i, carlos({ last: 'Received from: ' + CARLOS_PH
     + '\nReceived by: Daniel Schatte\nWe are still thinking it over. Thanks.' })).open, []);
-check('an inbound-tagged entry the STORE typed cannot speak for him (v9.7.560)',
-  i => run(i, carlos({ last: 'By: Samantha Gonzalez\ntransferred to Alyssa' })).open.length > 0, true);
+// TORI (Community Honda Lafayette, 9/17) — THE LEAD v9.7.680 GOT WRONG THE SAME DAY IT SHIPPED.
+// She asked "did i get pre approved". Her most recent message is "i'm willing to be $2,500 down",
+// and v9.7.680 read that as moving on and closed the thread. She had not moved on; she is offering
+// more money to get the answer she is still waiting for, and the CRM agrees — that lead's
+// [LP DR SESSION DIAG] reads creditApp:true completed:false with lender:false creditTier:false.
+// No lender response exists. Her question must stay open, and a link cannot close it either.
+const TORI_PH = '(555) 010-0167';
+function tori(over) {
+  over = over || {};
+  return [
+    item('Inbound', '09/17/2026 8:58 AM', 'Received from: ' + TORI_PH
+      + '\nReceived by: Colby Landry\ni\u2019m willing to be $2,500 down'),
+    item('Outbound', '09/16/2026 2:10 PM', 'Sent to: ' + TORI_PH + '\nSent by: Noelia Diaz\n'
+      + (over.reply === undefined ? 'Let me check with the lender and get right back to you.' : over.reply)),
+    item('Inbound', '09/14/2026 9:59 AM', 'Received from: ' + TORI_PH
+      + '\nReceived by: Noelia Diaz\ndid i get pre approved')
+  ];
+}
+check('Tori: her pre-approval question stays OPEN — she offered more down, she did not move on',
+  i => run(i, tori()).open, ['did i get pre approved']);
+check('...and nothing is credited as having closed it',
+  i => /CLOSED-by/.test(run(i, tori()).diag), false);
+check('a status question can never take the handover path — a link does not answer it',
+  i => run(i, tori({ reply: 'https://www.communitykia.com/finance-application/' })).open.length, 1);
+check('...nor does a bare "Yes", which is the shape most likely to look like an answer here',
+  i => run(i, tori({ reply: 'Yes' })).open.length, 1);
+check('the gate is the QUESTION\'s subject: hers asks what happened TO her, not for something FROM us',
+  i => [/\b(?:can|could|will|would|u|you)\b[^?]{0,40}\b(?:send|get|provide|text|email|show|forward)\b/i
+          .test('did i get pre approved'),
+        /\b(?:can|could|will|would|u|you)\b[^?]{0,40}\b(?:send|get|provide|text|email|show|forward)\b/i
+          .test('Can u send over the credit app?')], [false, true]);
 
 // THE INTERVENING OUTBOUND IS THE GUARD THAT MAKES THIS SAFE. Carlos sent two messages one minute
 // apart on 9/01 — "...out the door cost without dealer fees" and then "* dealer add on fees",
@@ -423,20 +474,30 @@ check('...and nothing was credited to him as having closed it',
 // never close by vocabulary either — her own message shares one word with it and the bar was two.
 console.log('\n    and the other half of it: "I already did that":');
 const BIONCA_PH = '(555) 010-0177';
-function bionca() {
+function bionca(over) {
+  over = over || {};
   return [
-    item('Inbound', '09/17/2026 9:14 AM', 'Received from: ' + BIONCA_PH + '\nReceived by: Brad White\ncorrect. '
-      + 'i am traveling and cannot answer but i have submitted the application'),
-    item('Outbound', '09/16/2026 4:02 PM', 'Sent to: ' + BIONCA_PH
-      + '\nSent by: Rotaxlyn Hudson\nhttps://www.communitykia.com/finance-application/'),
+    item('Inbound', '09/17/2026 9:14 AM', over.last === undefined
+      ? ('Received from: ' + BIONCA_PH + '\nReceived by: Brad White\ncorrect. '
+         + 'i am traveling and cannot answer but i have submitted the application')
+      : over.last),
+    // A plain prose reply on purpose: it is neither a link, an affirmative nor figures, so the
+    // handover path cannot fire and her own statement is the only thing left that can close this.
+    item('Outbound', '09/16/2026 4:02 PM', 'Sent to' + ': ' + BIONCA_PH
+      + '\nSent by: Rotaxlyn Hudson\nI will get that started on my end for you.'),
     item('Inbound', '09/16/2026 3:55 PM', 'Received from: ' + BIONCA_PH + '\nReceived by: Rotaxlyn Hudson\nCan I '
       + 'fill out an application or send over my info so we can see what my options are?')
   ];
 }
 check('her request is closed by her telling us she had done it',
   i => run(i, bionca()).open, []);
-check('...by the customer path, since the link that answered her has no words in it',
-  i => /CLOSED-by-customer-moved-on/.test(run(i, bionca()).diag), true);
+check('...by the customer path, which is now the ONLY thing her own message can do',
+  i => /CLOSED-by-customer-did-it/.test(run(i, bionca()).diag), true);
+check('an inbound-tagged entry the STORE typed cannot speak for her (v9.7.560)',
+  i => run(i, bionca({ last: 'By: Rotaxlyn Hudson\ntransferred to Brad' })).open.length, 1);
+check('...and neither can a message of hers that claims no such thing',
+  i => run(i, bionca({ last: 'Received from: ' + BIONCA_PH
+    + '\nReceived by: Brad White\ni am willing to put $2,000 down' })).open.length, 1);
 check('and the old vocabulary bar could never have closed it — one shared word against a bar of two',
   i => /need:2/.test(run(i, bionca()).diag), true);
 
@@ -449,14 +510,10 @@ const OUTBOUND_ONLY = c => c.replace(
   "if (odir !== 'outbound' && !(_isNote && _fulfilRe.test(obody))) continue;",
   "if (odir !== 'outbound') continue;");
 check('neuter A actually restored the outbound-only rule', i => OUTBOUND_ONLY(i.code) !== i.code, true);
-// Both neuters below target mechanisms OTHER than v9.7.680, so they take the same isolation the
-// note-path tests take: without it the customer's own later message closes the thread first and
-// the neuter has nothing left to demonstrate.
-const NO_REPLY_ALONE = { reply: NO_REPLY.reply, laterInbound: AGENT_TYPED };
 check('A: the note can no longer close the video thread',
-  i => run(i, antonio(NO_REPLY_ALONE), OUTBOUND_ONLY).open.length, 1);
+  i => run(i, antonio(NO_REPLY), OUTBOUND_ONLY).open.length, 1);
 check('A (control): the shipped resolver closes it',
-  i => run(i, antonio(NO_REPLY_ALONE)).open.length, 0);
+  i => run(i, antonio(NO_REPLY)).open.length, 0);
 
 const TWO_WORDS = c => c.replace('var _need = qWords.length <= 3 ? 1 : 2;', 'var _need = 2;');
 check('neuter B actually restored the two-word bar', i => TWO_WORDS(i.code) !== i.code, true);
@@ -464,13 +521,13 @@ check('neuter B actually restored the two-word bar', i => TWO_WORDS(i.code) !== 
 // path the bar governs. Left as-is the note closes it even under the old bar (it carries BOTH
 // "videos" and "truck"), and that is worth pinning on its own: what hid Alyssa's note for months
 // was the direction flag, not the overlap count.
-const FLAT_NOTE = { note: 'By: Alyssa Williams\nTexting on cell.', laterInbound: AGENT_TYPED };
+const FLAT_NOTE = { note: 'By: Alyssa Williams\nTexting on cell.' };
 check('B: with the note neutral, the outbound reply no longer clears the bar',
   i => run(i, antonio(FLAT_NOTE), TWO_WORDS).open.length, 1);
 check('B (control): the shipped resolver closes it on that same lead',
   i => run(i, antonio(FLAT_NOTE)).open.length, 0);
 check('B: the note itself clears even the OLD bar — the direction flag is what hid it',
-  i => /CLOSED-by-note/.test(run(i, antonio(NO_REPLY_ALONE), TWO_WORDS).diag), true);
+  i => /CLOSED-by-note/.test(run(i, antonio(NO_REPLY), TWO_WORDS).diag), true);
 check('B: and a two-word question becomes unclosable again, as it was for months',
   i => run(i, shortLead('The Patriot one is on the ground now'), TWO_WORDS).open.length, 1);
 
@@ -587,39 +644,56 @@ check('D: this is exactly what v9.7.665 shipped — she asked and nothing saw it
 check('D (control): the shipped resolver sees it',
   i => asked(i, 'Can I see the inside').length, 1);
 
-console.log('\nnon-vacuity (v9.7.680):');
+console.log('\nnon-vacuity (v9.7.681):');
 
-// Remove the customer-closure branch and Carlos's three answered questions come straight back —
-// which is the state the 9/17 prompt actually shipped in.
-const NO_CUST_CLOSE = c => c.replace(
-  "              if (odir === 'inbound') {", "              if (odir === 'inbound' && false) {");
-check('neuter C actually disabled the customer path',
-  i => NO_CUST_CLOSE(i.code) !== i.code, true);
+// Remove the handover path and Carlos's three answered questions come straight back — which is
+// the state the 9/17 prompt actually shipped in, and what put a stale re-offer in his text.
+const NO_HANDOVER = c => c.replace(
+  'if (_qHandoverRe.test(iq.question) && _uqIsHandover(obody)) {', 'if (false) {');
+check('neuter C actually disabled the handover path',
+  i => NO_HANDOVER(i.code) !== i.code, true);
 check('C: all three of Carlos\'s answered questions are reported open again',
-  i => run(i, carlos(), NO_CUST_CLOSE).open.length, 3);
-check('C: and that is exactly what the 9/17 capture showed — a link, a number and a "Yes" seen as silence',
-  i => /customer-moved-on/.test(run(i, carlos(), NO_CUST_CLOSE).diag), false);
+  i => run(i, carlos(), NO_HANDOVER).open.length, 3);
 check('C (control): the shipped resolver closes all three',
   i => run(i, carlos()).open.length, 0);
 
-// The outbound requirement is the guard; without it a self-correction closes a live question.
-const NO_OB_GUARD = c => c.replace(
-  '                if (!_obSeen) continue;                                   // we never replied\n', '');
-check('neuter D actually removed the intervening-outbound requirement',
-  i => NO_OB_GUARD(i.code) !== i.code, true);
-check('D: Carlos\'s own correction now closes a question nobody had answered',
-  i => run(i, selfCorrect(), NO_OB_GUARD).open.length, 0);
-check('D (control): the shipped resolver leaves it open',
-  i => run(i, selfCorrect()).open.length, 1);
+// Remove the SUBJECT gate and Tori's status question starts accepting answers that do not answer
+// it. This is the guard that keeps v9.7.681 from repeating v9.7.680.
+const NO_SUBJECT_GATE = c => c.replace(
+  'if (_qHandoverRe.test(iq.question) && _uqIsHandover(obody)) {', 'if (_uqIsHandover(obody)) {');
+check('neuter D actually removed the subject gate',
+  i => NO_SUBJECT_GATE(i.code) !== i.code, true);
+check('D: a bare link now "answers" whether she was pre-approved',
+  i => run(i, tori({ reply: 'https://www.communitykia.com/finance-application/' }), NO_SUBJECT_GATE).open.length, 0);
+check('D (control): the shipped resolver leaves her question open',
+  i => run(i, tori({ reply: 'https://www.communitykia.com/finance-application/' })).open.length, 1);
 
-// The speaker check is what stops a store-typed entry speaking for the customer.
+// Remove the completion requirement and v9.7.680 is back: any later message closes the thread,
+// and Tori's "$2,500 down" closes her own pre-approval question.
+const NO_DID_IT = c => c
+  .replace('                if (!_custDidItRe.test(obody)) continue;                  // not "I already did it"\n', '')
+  .replace('                if (!_uqShares(obody, qWords)) continue;                  // and not about this\n', '');
+check('neuter E actually removed the completion requirement',
+  i => NO_DID_IT(i.code) !== i.code, true);
+check('E: this is exactly v9.7.680 — her own next message closes it and she is never answered',
+  i => run(i, tori(), NO_DID_IT).open.length, 0);
+check('E (control): the shipped resolver keeps it open',
+  i => run(i, tori()).open.length, 1);
+check('E: and the path still works where it belongs — Bionca closes on the shipped form',
+  i => run(i, bionca()).open, []);
+
+// The speaker check, still load-bearing on the path that remains.
 const NO_SPEAKER = c => c.replace("                if (obody.indexOf('received from:') < 0) continue;\n", '');
-check('neuter E actually removed the speaker check',
+check('neuter F actually removed the speaker check',
   i => NO_SPEAKER(i.code) !== i.code, true);
-check('E: "transferred to Alyssa" now closes his thread on his behalf',
-  i => run(i, carlos({ last: 'By: Samantha Gonzalez\ntransferred to Alyssa' }), NO_SPEAKER).open.length, 0);
-check('E (control): the shipped resolver refuses it',
-  i => run(i, carlos({ last: 'By: Samantha Gonzalez\ntransferred to Alyssa' })).open.length > 0, true);
+// First person, because that is the shape that actually threatens this path: an agent
+// typing "i have submitted the application for her" into an inbound-tagged entry reads as
+// the CUSTOMER saying she did it. A third-person note would never have matched.
+check('F: a store-typed entry written in the first person now speaks for her',
+  i => run(i, bionca({ last: 'By: Rotaxlyn Hudson\ni have submitted the application for her' }), NO_SPEAKER).open.length, 0);
+check('F (control): the shipped resolver refuses it',
+  i => run(i, bionca({ last: 'By: Rotaxlyn Hudson\ni have submitted the application for her' })).open.length, 1);
+
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);
