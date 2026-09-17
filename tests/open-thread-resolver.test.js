@@ -416,6 +416,52 @@ check('auxiliary followed by a subject IS a question',
 check('a question that DOES carry a mark is not counted twice',
   i => asked(i, 'Is the car still available?').length, 1);
 
+// ── (v9.7.677) A QUESTION THAT SITS INSIDE A SENTENCE ──────────────────────
+// Gil, 9/17, on Thomas Lilley: the tint question went unanswered and the row read "0 inbound
+// question(s) examined". He wrote it in one unbroken run with no '?' and no full stop, so the
+// whole thing is ONE segment and v9.7.666 tests only a segment's START.
+console.log('\n(12) a question embedded mid-sentence (v9.7.677):');
+
+const THOMAS = '2 more questions and that is I am going to tint the windows darker than what will '
+  + 'come on the car so do you have any that does n';
+
+check("Thomas's tint question is found at all \u2014 it was invisible before this build",
+  i => asked(i, THOMAS).length, 1);
+// MY FIRST DRAFT SLICED FROM THE INVERSION ONWARD AND THIS SUITE REJECTED IT. "do you have any
+// that does n" has no content word of four letters or more, so the pre-existing qWords gate — the
+// same one that drops a bare "How much" — threw it away and the thread stayed invisible. The topic
+// sits BEFORE the inversion, which is how run-on sentences work, so the whole segment is kept.
+check('...and what is captured carries the TOPIC, not just the inverted tail',
+  i => /tint the windows darker/i.test(asked(i, THOMAS)[0]), true);
+check('...and the inversion that identified it is in there too',
+  i => /do you have any/i.test(asked(i, THOMAS)[0]), true);
+check('...so it survives the content-word gate that killed the sliced version',
+  i => asked(i, 'do you have any that does n').length, 0);
+
+console.log('\n    other run-ons a customer actually writes:');
+check('a question after a coordinator is found',
+  i => asked(i, 'I looked at the website and can you tell me if it has the sunroof').length, 1);
+check('a question after a comma is found',
+  i => asked(i, 'thanks for that, do you know what the payment would be').length, 1);
+
+console.log('\n    and the false opens this nearly shipped, each one pinned:');
+// My own 14-line corpus passed the wide subject set. THIS suite's existing fixture caught it:
+// "do that" is a verb phrase, not an inversion, and that sentence is an agreement.
+check('"I can do that tomorrow afternoon" is still an agreement, not a question',
+  i => asked(i, 'I can do that tomorrow afternoon').length, 0);
+check('"I will do it when I can" is not a question',
+  i => asked(i, 'I will do it when I can').length, 0);
+check('"sure I could do that" is not a question',
+  i => asked(i, 'sure I could do that').length, 0);
+check('a linking verb mid-sentence is not an inversion \u2014 the set excludes them on purpose',
+  i => asked(i, 'I did not build a payment because it was just a program I had to go through').length, 0);
+
+console.log('\n    the anchored branch is untouched, so no existing verdict moved:');
+check('a segment-initial "Is there" still works, though the mid-sentence set excludes it',
+  i => asked(i, 'Is there a way to get it in black').length, 1);
+check('...and the same words mid-sentence are deliberately NOT caught, which is the stated hole',
+  i => asked(i, 'I was wondering is there a way to get it in black').length, 0);
+
 console.log('\nnon-vacuity (v9.7.666):');
 // Pin the interrogative test false and her line goes back to being invisible.
 const NO_SHAPE = c => c.replace('_qInvRe.test(sn)', 'false');
