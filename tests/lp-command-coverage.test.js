@@ -324,5 +324,67 @@ check('the EMAIL that shipped passes it — the rule is not just banning long se
   () => failsReadBack(SHIPPED_EMAIL).some(r => r.semicolon || r.whileClause),
   false);
 
+// ── (v9.7.679) THE ASK: ONE REPLY, NOT ONE QUESTION ─────────────────────────
+// Gil, 9/17, on being told a draft "asks two things": "we need to make sure that the one ask is
+// the most important one. How does that work? if the double barrell gives us insurance then let's
+// keep it."
+//
+// He is right, and "one ask" was the wrong cut. THE DISCRIMINATOR IS NOT HOW MANY THINGS THE
+// SENTENCE MENTIONS — IT IS WHETHER ONE REPLY RESOLVES IT. Both log218 closers are double-barrelled
+// and only one of them is broken:
+//
+//   Carlos  "Would you like me to send it and have the K5 ready?"
+//           -> one "yes" and BOTH happen. Two actions, one answer. This is the insurance case and
+//              it is good: two reasons to reply, no extra work for the customer.
+//   Thomas  "Would Snow White Pearl work for you, and do you want one already tinted or
+//            aftermarket tint arranged?"
+//           -> "yes" answers the colour and leaves the tint unknown; the second half is a THREE-WAY
+//              choice, not a yes/no. They answer one, or neither.
+//
+// So the rule tests the reply, not the question — and for the case where one genuinely has to go,
+// it says whose survives: THEIRS. Thomas raised tint himself (v9.7.677 is why it reached the text
+// at all); the colour is ours to ask. Ours keeps until the next message. Theirs has been waiting.
+console.log('\n(v9.7.679) the closing ask is tested by the reply it can get:');
+
+check('the rule states the test, and states it as the reply rather than the count',
+  i => /IT IS WHETHER ONE REPLY CAN ANSWER IT/.test(i.smsRule), true);
+check('...and explicitly KEEPS the bundled double-barrel, which is what Gil asked for',
+  i => /Two actions bundled under a single yes are ONE ask/.test(i.smsRule), true);
+check('...naming why it is worth keeping, so it does not read as merely tolerated',
+  i => /it gives them two reasons to reply and costs them nothing/.test(i.smsRule), true);
+check('it names the failing shape as two ANSWERS, not two clauses',
+  i => /Two different answers[\s\S]*are TWO asks/.test(i.smsRule), true);
+check('it gives a mechanical tell an author can apply to their own sentence',
+  i => /write the word "yes" under your own question and see whether it means anything/.test(i.smsRule), true);
+check('and it settles the priority Gil asked about — theirs outranks ours',
+  i => /IF YOU GENUINELY HAVE TO DROP ONE, KEEP THE ONE THEY RAISED/.test(i.smsRule), true);
+check('...with the reason, so it survives a paraphrase',
+  i => /ours can go in the next message, and theirs has already been waiting/.test(i.smsRule), true);
+check('the old bare count is gone — it is what would have deleted the Carlos ask',
+  i => /one clear ask a person can answer in a word/.test(i.smsRule), false);
+check('the rule names no lead, vehicle or colour from the drafts that produced it',
+  i => /Thomas|Carlos|Andrea|K5|Seltos|Snow White|Kia/.test(i.smsRule), false);
+check('it sits ABOVE the LP-command carve-out, which still outranks everything',
+  i => i.smsRule.indexOf('IT IS WHETHER ONE REPLY CAN ANSWER IT')
+     < i.smsRule.indexOf('ONE EXCEPTION, AND IT OUTRANKS EVERYTHING ABOVE'), true);
+
+// THE TEST APPLIED TO THE TWO REAL CLOSERS. A "yes" is substituted for the reply and we ask what
+// is left unresolved — the same operation the rule describes in words.
+const CARLOS_ASK = 'Would you like me to send it and have the K5 ready?';
+const THOMAS_ASK = 'Would Snow White Pearl work for you, and do you want one already tinted or aftermarket tint arranged?';
+// A yes resolves the ask when every branch of it is a yes/no on the SAME decision. An embedded
+// "X or Y" is the tell that it is not: a yes cannot select between them.
+const yesResolves = q => !/\bor\b/.test(String(q).replace(/^[^,]*,\s*/, '')) || !/,\s*(?:and|or)\s+do\b/i.test(q);
+const openChoice = q => /\b(?:already \w+|\w+)\s+or\s+\w+/.test(q) && /,\s*and\s+do\s+you\b/i.test(q);
+
+check('Carlos: one yes covers both actions, so the double-barrel stands',
+  () => [yesResolves(CARLOS_ASK), openChoice(CARLOS_ASK)], [true, false]);
+check('Thomas: a yes leaves the tint unanswered, and the tint half is a choice',
+  () => openChoice(THOMAS_ASK), true);
+check('the two are actually distinguishable — otherwise this proves nothing',
+  () => openChoice(CARLOS_ASK) === openChoice(THOMAS_ASK), false);
+check('and the surviving half on Thomas is HIS question, not ours',
+  () => /tint/i.test(THOMAS_ASK.split(/,\s*and\s+/)[1] || ''), true);
+
 console.log('\n' + (fail ? 'FAILED' : 'PASSED') + ' — ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);

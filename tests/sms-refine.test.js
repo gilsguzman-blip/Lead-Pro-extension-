@@ -369,7 +369,9 @@ check('...and ABOVE the opener guard, so the guard sees the refined draft',
 // (v9.7.669) THE PROSE-MATCH HAZARD, SEVENTH TIME (v9.7.630). The bare string '[LP SMS HOOK DIAG]'
 // matches v9.7.668's build header at line 1 — headers quote the file's own code — so this read as
 // "the refine pass runs after the hook row" when it runs well before it. Anchor on the CODE form.
-const HOOK_ROW = "console.log('[LP SMS HOOK DIAG] the text reaches for: '";
+// (v9.7.679) The row no longer opens with a verdict, so the anchor moves with it — still the CODE
+// form, and still asserted unique, which is what catches a header that quotes it.
+const HOOK_ROW = "console.log('[LP SMS HOOK DIAG] firstPersonAt:'";
 check('the hook-row anchor is the code, not a build header quoting it',
   i => (i.src.split(HOOK_ROW).length - 1), 1);
 check('...and above the hook row, so the row measures what actually ships',

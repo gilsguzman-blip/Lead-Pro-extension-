@@ -120,7 +120,14 @@ function hook(impl, sms, firstName) {
   vm.runInContext(impl.hook, sb);
   return logs.join(' ');
 }
+// (v9.7.679) The verdict this helper read is gone from the row. It is kept — pointed at a string
+// the shipped row no longer emits — because several assertions below exist to prove exactly that,
+// and because the NEUTER restores the verdict and has to be able to read it back.
 const reaches = out => (out.match(/reaches for: (US|THEM|neither)/) || [, 'NONE'])[1];
+const num = (out, field) => {
+  const m = out.match(new RegExp(field + ':(-?\\d+)'));
+  return m ? Number(m[1]) : null;
+};
 
 const guardedImpls = require('./lib/guarded-impls.js');
 const impls = guardedImpls(BUILDS, extract);
@@ -220,28 +227,62 @@ check('leading on their thing rather than our agenda is still the priority',
 check('the rule still names no vehicle, so it cannot be copied onto the wrong lead',
   i => /Sportage|Seltos|Accord|Prelude|CR-V|HR-V/.test(i.smsRule), false);
 
-// ── (5) THE OBSERVATIONAL ROW, RUN ON ALL FOUR REAL DRAFTS ──────────────────
-console.log('\n(5) the hook row, executed against every draft that produced this build:');
+// ── (5) THE OBSERVATIONAL ROW, AND THE MEASURE THAT WAS SCORING IT BACKWARDS ─
+console.log('\n(5) the hook row, executed against the drafts that produced these builds:');
 
-check('log205 Aimee — reaches for US',       i => reaches(hook(i, D_205,   'Aimee')), 'US');
-check('log204 Aimee gen 1 — reaches for US', i => reaches(hook(i, D_204a,  'Aimee')), 'US');
-check('log204 Aimee gen 3 — reaches for US', i => reaches(hook(i, D_204c,  'Aimee')), 'US');
-check('log204 Allie — reaches for US',       i => reaches(hook(i, D_ALLIE, 'Allie')), 'US');
-check('the shape the corrected prompt asks for reads THEM',
-  i => reaches(hook(i, D_WANT, 'Aimee')), 'THEM');
+// (v9.7.679) THE VERDICT IS RETIRED, ON EVIDENCE FROM THE BUILD IT WAS MEANT TO GRADE.
+// v9.7.676 taught the text to open by ANSWERING THE PERSON. log218 shows it doing so, and the row
+// called all four drafts "US (what we are going to do)":
+//
+//   Thomas  "no worries at all. Teaching and coaching make for a busy season."      -> US
+//   Carlos  "I understand wanting to see what your wife prefers before deciding"    -> US
+//   Andrea  "I'm checking the current details on window tint, interior protection,
+//            free oil changes, incentives, and warranty coverage."                  -> US
+//   Andrea  "I'll verify the exact blue 2027 Seltos match and get you clear answers
+//            on incentives, warranty, window tint, interior protection..."          -> US
+//
+// Four identical verdicts over two GOOD openers and two bad ones is not a measure. And it is not
+// merely blunt, it is inverted: acknowledgement is first-person by construction — "I understand",
+// "no worries", "I hear you" — so the warmer the opener, the earlier a first-person pronoun lands
+// and the worse it scores. It punished the exact behaviour .676 was built to produce.
+const D218_THOMAS = 'Thomas, no worries at all. Teaching and coaching make for a busy season.\n\nI can find out whether darker aftermarket tint can be arranged for the 2027 K5 GT-Line we have in Snow White Pearl. The 2026 you were researching is no longer available. Would Snow White Pearl work for you, and do you want one already tinted or aftermarket tint arranged?';
+const D218_ANDREA1 = 'Andrea, I’m checking the current details on window tint, interior protection, free oil changes, incentives, and warranty coverage. The comparable 2027 Seltos EX is available at $259 per month for 36 months with $3,799 due at signing for qualified buyers. I’ll keep watching for the blue EX you want. Would you like the exact lease details by email?';
+const D218_ANDREA2 = 'Andrea, I’ll verify the exact blue 2027 Seltos match and get you clear answers on incentives, warranty, window tint, interior protection, and free oil changes. We also have a comparable Seltos EX available with a current lease program for qualified buyers, with your payment goal near $450 before insurance in mind. Should I confirm the blue match first?';
+const D218_CARLOS = 'Carlos, I understand wanting to see what your wife prefers before deciding on a 2027. The 2027 K5 GT-Line lease is $319 per month for 36 months with $3,499 due at signing for qualified buyers, subject to approval and program terms. I have a comparable one on the ground for you to compare. I can send the credit application too. Would you like me to send it and have the K5 ready?';
 
-// A sentence-subject test would have scored the two vehicle-first drafts as clean. That is the
-// reason this row measures pronoun ORDER instead, and it is worth pinning so it is not "simplified"
-// back into a subject test later.
-check('the two vehicle-first drafts do NOT begin with a first-person pronoun',
-  i => [/^(?:I|we)\b/i.test(D_204a), /^(?:I|we)\b/i.test(D_204c)], [false, false]);
-check('...yet the shipped row still catches both, which a subject test would not',
-  i => [reaches(hook(i, D_204a, 'Aimee')), reaches(hook(i, D_204c, 'Aimee'))], ['US', 'US']);
+check('the row no longer reports a US/THEM verdict on ANY of the four',
+  i => [D218_THOMAS, D218_ANDREA1, D218_ANDREA2, D218_CARLOS]
+        .map(d => reaches(hook(i, d, d.slice(0, d.indexOf(','))))), ['NONE', 'NONE', 'NONE', 'NONE']);
+check('...nor on the four older drafts, so nothing reads the string anywhere',
+  i => [reaches(hook(i, D_205, 'Aimee')), reaches(hook(i, D_ALLIE, 'Allie'))], ['NONE', 'NONE']);
+check('the phrase is gone from the shipped source, not merely unreachable',
+  i => /reaches for/.test(i.hook), false);
 
+console.log('\n    openerCommas — the thing that actually separated them (0, 4, 4, 0):');
+
+check('Thomas, an acknowledgement opener, reads 0',   i => num(hook(i, D218_THOMAS,  'Thomas'), 'openerCommas'), 0);
+check('Carlos, an acknowledgement opener, reads 0',   i => num(hook(i, D218_CARLOS,  'Carlos'), 'openerCommas'), 0);
+check('Andrea gen 1, a five-item list opener, reads 4', i => num(hook(i, D218_ANDREA1, 'Andrea'), 'openerCommas'), 4);
+check('Andrea gen 2, a five-item list opener, reads 4', i => num(hook(i, D218_ANDREA2, 'Andrea'), 'openerCommas'), 4);
+check('so it separates the two shapes the verdict could not',
+  i => num(hook(i, D218_CARLOS, 'Carlos'), 'openerCommas') < num(hook(i, D218_ANDREA1, 'Andrea'), 'openerCommas'), true);
+
+// longestSentence cannot see this shape: both Andrea openers fit inside the 22w the row reported.
+check('longestSentence does NOT catch the list openers — this is why the field was added',
+  i => [num(hook(i, D218_ANDREA1, 'Andrea'), 'longestSentence'),
+        num(hook(i, D218_ANDREA2, 'Andrea'), 'longestSentence')].every(w => w <= 26), true);
+
+console.log('\n    the raw positions survive, because those were only ever facts:');
 check('the name is stripped before the measurement, so the opener guard cannot skew it',
   i => /firstPersonAt:0/.test(hook(i, D_205, 'Aimee')), true);
-check('...and it still measures correctly when no name was prepended',
-  i => reaches(hook(i, 'I can have it ready for you today.', '')), 'US');
+check('both positions are still reported on every row',
+  i => [num(hook(i, D_205, 'Aimee'), 'firstPersonAt') !== null,
+        num(hook(i, D_205, 'Aimee'), 'secondPersonAt') !== null], [true, true]);
+check('...and they still reproduce the log218 row exactly, so nothing else moved',
+  i => [num(hook(i, D218_THOMAS, 'Thomas'), 'firstPersonAt'),
+        num(hook(i, D218_CARLOS, 'Carlos'), 'firstPersonAt')], [66, 0]);
+check('a draft with no first-person pronoun still reports -1 rather than throwing',
+  i => num(hook(i, 'The Sportage is here. Want to come see it?', ''), 'firstPersonAt'), -1);
 
 console.log('\n    the read-back shapes, reported on the same row:');
 check('log205 carries a "while" clause',      i => /"while" clause:true/.test(hook(i, D_205, 'Aimee')), true);
@@ -255,10 +296,16 @@ check('the draft is returned unmodified whatever the row says',
          vm.createContext(sb); vm.runInContext(i.hook, sb); return vm.runInContext('rawSms', sb); }, D_205);
 check('it says so on the row itself',
   i => /observational only, nothing branches on this row/.test(hook(i, D_205, 'Aimee')), true);
-check('an empty draft cannot throw',  i => reaches(hook(i, '', 'Aimee')), 'neither');
-check('a null draft cannot throw',    i => reaches(hook(i, null, 'Aimee')), 'neither');
+check('an empty draft cannot throw',
+  i => [num(hook(i, '',   'Aimee'), 'firstPersonAt'), num(hook(i, '',   'Aimee'), 'openerCommas')], [-1, 0]);
+check('a null draft cannot throw',
+  i => [num(hook(i, null, 'Aimee'), 'firstPersonAt'), num(hook(i, null, 'Aimee'), 'openerCommas')], [-1, 0]);
 check('a name with regex metacharacters cannot throw',
-  i => reaches(hook(i, D_205, 'A(i)m*ee')), 'US');
+  i => num(hook(i, D_205, 'A(i)m*ee'), 'firstPersonAt') !== null, true);
+// (v9.7.679) openerCommas splits on sentence end, so a draft with no terminator must still measure
+// rather than read null off a missing first sentence.
+check('a draft with no sentence terminator still reports a comma count',
+  i => num(hook(i, 'Andrea, checking tint, oil changes, warranty', 'Andrea'), 'openerCommas'), 2);
 
 // ── NON-VACUITY ─────────────────────────────────────────────────────────────
 console.log('\nnon-vacuity (v9.7.668):');
@@ -277,6 +324,34 @@ check('A: and says nothing about where it goes — which is the whole defect',
 check('A (control): the shipped block does neither',
   i => [/MANDATORY\. Example: "I will have everything ready when you arrive\."/.test(build(i, LIVE)),
         /NOT THE OPENING SENTENCE/.test(build(i, LIVE))], [false, true]);
+
+// ── NON-VACUITY (v9.7.679): THE REMOVAL ─────────────────────────────────────
+console.log('\nnon-vacuity (v9.7.679) — putting the verdict back reproduces the inversion:');
+
+// Restore the retired verdict on top of the shipped row. If the claim "it scored good openers
+// badly" is true, the restored row says US on all four log218 drafts — including the two Gil
+// signed off as reading well — while openerCommas keeps separating them.
+const RESTORE_VERDICT = h => h.replace(
+  "console.log('[LP SMS HOOK DIAG] firstPersonAt:'",
+  "var _hkOpensOnUs = _hkMe >= 0 && (_hkYou < 0 || _hkMe < _hkYou);\n"
+  + "        console.log('[LP SMS HOOK DIAG] the text reaches for: '\n"
+  + "          + (_hkOpensOnUs ? 'US (what we are going to do)' : (_hkYou >= 0 ? 'THEM' : 'neither'))\n"
+  + "          + ' | firstPersonAt:'");
+
+check('neuter B actually restored the verdict',
+  i => { const m = RESTORE_VERDICT(i.hook); return [m !== i.hook, /reaches for/.test(m)]; }, [true, true]);
+check('B: the restored row calls all four log218 drafts US — two of them wrongly',
+  i => { const m = { ...i, hook: RESTORE_VERDICT(i.hook) };
+         return [D218_THOMAS, D218_ANDREA1, D218_ANDREA2, D218_CARLOS]
+           .map(d => reaches(hook(m, d, d.slice(0, d.indexOf(','))))); }, ['US', 'US', 'US', 'US']);
+check('B: so it carries no information — one verdict over four drafts of two different qualities',
+  i => { const m = { ...i, hook: RESTORE_VERDICT(i.hook) };
+         const v = [D218_THOMAS, D218_ANDREA1, D218_ANDREA2, D218_CARLOS]
+           .map(d => reaches(hook(m, d, d.slice(0, d.indexOf(',')))));
+         return new Set(v).size; }, 1);
+check('B (control): openerCommas on the SHIPPED row takes two distinct values over the same four',
+  i => new Set([D218_THOMAS, D218_ANDREA1, D218_ANDREA2, D218_CARLOS]
+        .map(d => num(hook(i, d, d.slice(0, d.indexOf(','))), 'openerCommas'))).size, 2);
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);
