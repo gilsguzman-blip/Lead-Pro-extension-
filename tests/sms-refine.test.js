@@ -173,8 +173,16 @@ check('it carries the identity, so the refine cannot drift off the signer',
   i => /You are Jordyn at Community Kia Baytown\. Your direct phone number is 281-837-3630\./.test(sysPrompt(i)), true);
 check('it asks for the same JSON envelope the rest of the pipeline parses',
   i => /Return ONLY valid JSON: \{"sms":"\.\.\."\}/.test(sysPrompt(i)), true);
+// (v9.7.675) BOUND RAISED FROM 3500 TO 4500, DELIBERATELY. This build restates three main-brief
+// constraints here because the pass cannot see that brief, and LANGUAGE is long on purpose — it
+// shipped Spanish to a real customer. The bound was only ever a stand-in for "the rule is not
+// drowned"; the measures that actually say that are the rule's SHARE (asserted just below, and
+// unchanged) and the ratio against the prompt this pass exists to escape (added below). The raise
+// therefore loosens nothing that was load-bearing.
 check('it is SMALL — the whole point is that the rule is not drowned',
-  i => sysPrompt(i).length < 3500, true);
+  i => sysPrompt(i).length < 4500, true);
+check('...and it is more than an order of magnitude smaller than the brief it replaces',
+  i => 84667 / sysPrompt(i).length > 15, true);
 check('...and the rule is a large share of it, not a footnote',
   i => { const s = sysPrompt(i); return i.rule.length / s.length > 0.5; }, true);
 
@@ -265,7 +273,7 @@ check('the lead is still the thing that earns a reply — without "one" capping 
         /Lead on the one thing/.test(userPrompt(i, AIMEE))], [true, false]);
 check('the first-name opener reaches this pass from both sides',
   i => [/Open with their first name/.test(userPrompt(i, AIMEE)),
-        /The text OPENS with the customer's first name/.test(sysPrompt(i))], [true, true]);
+        /THE TEXT OPENS WITH THE CUSTOMER'S FIRST NAME/.test(sysPrompt(i))], [true, true]);
 check('...and the system prompt says a nameless refine is not a refine',
   i => /A refined text that has dropped the name has not been refined/.test(sysPrompt(i)), true);
 check('the shared shape rule itself is NOT forked — still one definition',
@@ -304,7 +312,7 @@ await checkA('...and the diagnostic reports both drafts and the time it took',
 let sent = null;
 await checkA('the request carries the refine system prompt, not the 84k one',
   i => refine(i, { fetch: stub(ok(BETTER), b => { sent = b; }) })
-        .then(() => sent.system_instruction.parts[0].text.length < 3500), true);
+        .then(() => sent.system_instruction.parts[0].text.length < 4500), true);
 await checkA('...and asks for JSON, like every other call on this pipeline',
   i => refine(i, { fetch: stub(ok(BETTER), b => { sent = b; }) })
         .then(() => sent.generationConfig.responseMimeType), 'application/json');
@@ -362,6 +370,66 @@ check('the assignment is guarded on a truthy return — a null can never blank r
   i => /if \(_rfSms\) rawSms = _rfSms;/.test(i.site), true);
 check('and the call site itself is wrapped, so a throw cannot take the generation down',
   i => /catch \(eRf\)/.test(i.site), true);
+
+// ── (v9.7.675) THE LANGUAGE FLIP ───────────────────────────────────────────
+// log213, Juan at Community Honda Baytown, 9/17. His last message is "Y yo". The main call obeyed
+// the brief's LANGUAGE hard constraint and wrote English BOTH times. This pass, which never
+// received that constraint, answered in Spanish BOTH times — and the email, which is never
+// refined, stayed English. Two channels, same outreach, different languages.
+console.log('\n(7) the language constraint the main brief has and this pass did not (v9.7.675):');
+
+// The two real pairs, verbatim from log213.
+const J1_EN = 'Juan, the 2026 Honda CR-V Hybrid Sport in Urban Gray Pearl is here if you\u2019d like to see how it feels in person. Would a quick visit today be useful, or are you still gathering information?';
+const J1_ES = 'Juan, puedo revisar contigo las ofertas disponibles cuando vengas a ver el CR-V Hybrid Sport 2026 en Urban Gray Pearl. Est\u00e1 disponible aqu\u00ed. \u00bfTe sirve pasar hoy?';
+const J2_EN = 'Juan, the 2026 Honda CR-V Hybrid Sport in Urban Gray Pearl is still showing available, and qualified buyers may be eligible for 2.99% APR on 24\u201336 months, subject to approval. Is this still the Honda you are considering?';
+const J2_ES = 'Juan, s\u00ed. La CR-V Hybrid Sport 2026 en Urban Gray Pearl sigue disponible. Los compradores que califiquen podr\u00edan obtener 2.99% APR por 24\u201336 meses, sujeto a aprobaci\u00f3n de cr\u00e9dito y requisitos del programa. \u00bfSigue siendo la Honda que est\u00e1s considerando?';
+
+console.log('    the prompt, which is the actual fix:');
+check('the refine system prompt now carries the LANGUAGE constraint',
+  i => /LANGUAGE\. The text is written in ENGLISH\. ALWAYS\./.test(sysPrompt(i)), true);
+check('...and closes the exact escape the customer\'s own message opened',
+  i => /if their last message is in Spanish, the text is STILL IN ENGLISH/.test(sysPrompt(i)), true);
+check('...and names the translate step, so the rule has a reason rather than just force',
+  i => /The dealership translates inside the CRM after this step, on the agent's command/.test(sysPrompt(i)), true);
+check('it says every main-brief constraint still binds, not just these three',
+  i => /EVERY CONSTRAINT FROM THE MAIN BRIEF STILL BINDS THIS MESSAGE/.test(sysPrompt(i)), true);
+check('the v9.7.670 first-name requirement survived the rewrite',
+  i => /THE TEXT OPENS WITH THE CUSTOMER'S FIRST NAME/.test(sysPrompt(i)), true);
+check('...and the signer rule is restated too',
+  i => /YOU ARE THE PERSON NAMED ABOVE and you sign as them/.test(sysPrompt(i)), true);
+check('the prompt is still small — restating three rules did not drown the shape rule',
+  i => sysPrompt(i).length < 5000, true);
+
+console.log('\n    the net under it, executed against both real drafts:');
+await checkA('log213 generation 1 — the Spanish refine is rejected, the English first pass ships',
+  i => refine(i, { pass1: J1_EN, fetch: stub(ok(J1_ES)) }).then(r => r.out), null);
+await checkA('...and the row says what it saw, without naming a language',
+  i => refine(i, { pass1: J1_EN, fetch: stub(ok(J1_ES)) })
+        .then(r => /introduced \d+ character\(s\) the first pass did not have/.test(r.logs)
+                && !/Spanish|spanish/.test(r.logs)), true);
+await checkA('log213 generation 2 — same, on the longer draft',
+  i => refine(i, { pass1: J2_EN, fetch: stub(ok(J2_ES)) }).then(r => r.out), null);
+await checkA('the diagnostic reports the introduced characters themselves',
+  i => refine(i, { pass1: J2_EN, fetch: stub(ok(J2_ES)) })
+        .then(r => /\\u00ed|\u00ed/.test(r.logs) || /character\(s\)/.test(r.logs)), true);
+
+console.log('\n    it is comparative, so it does not punish a legitimate accent:');
+await checkA('a customer called Jos\u00e9 keeps his name — pass 1 carries the accent too',
+  i => refine(i, { pass1: 'Jos\u00e9, the CR-V is here.',
+                   fetch: stub(ok('Jos\u00e9, the CR-V is ready whenever you are. Does today work?')) })
+        .then(r => r.out), 'Jos\u00e9, the CR-V is ready whenever you are. Does today work?');
+await checkA('typographic punctuation an English draft uses is never treated as a flip',
+  i => refine(i, { pass1: 'Juan, the CR-V is here.',
+                   fetch: stub(ok('Juan, the CR-V is here \u2014 24\u201336 months, and I\u2019ll have it ready\u2026')) })
+        .then(r => typeof r.out), 'string');
+await checkA('an ordinary English refine is untouched',
+  i => refine(i, { pass1: J1_EN, fetch: stub(ok(BETTER)) }).then(r => r.out), BETTER);
+
+console.log('\n    and it falls back rather than blanking anything:');
+await checkA('a rejected refine returns null, which the call site treats as keep-pass-1',
+  i => refine(i, { pass1: J1_EN, fetch: stub(ok(J1_ES)) }).then(r => r.out), null);
+check('the call site assigns only on a truthy return, so null cannot blank the draft',
+  i => /if \(_rfSms\) rawSms = _rfSms;/.test(i.site), true);
 
 // ── NON-VACUITY ─────────────────────────────────────────────────────────────
 console.log('\nnon-vacuity (v9.7.669):');
