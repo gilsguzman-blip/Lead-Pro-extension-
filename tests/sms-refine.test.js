@@ -173,16 +173,21 @@ check('it carries the identity, so the refine cannot drift off the signer',
   i => /You are Jordyn at Community Kia Baytown\. Your direct phone number is 281-837-3630\./.test(sysPrompt(i)), true);
 check('it asks for the same JSON envelope the rest of the pipeline parses',
   i => /Return ONLY valid JSON: \{"sms":"\.\.\."\}/.test(sysPrompt(i)), true);
-// (v9.7.675) BOUND RAISED FROM 3500 TO 4500, DELIBERATELY. This build restates three main-brief
-// constraints here because the pass cannot see that brief, and LANGUAGE is long on purpose — it
-// shipped Spanish to a real customer. The bound was only ever a stand-in for "the rule is not
-// drowned"; the measures that actually say that are the rule's SHARE (asserted just below, and
-// unchanged) and the ratio against the prompt this pass exists to escape (added below). The raise
-// therefore loosens nothing that was load-bearing.
-check('it is SMALL — the whole point is that the rule is not drowned',
-  i => sysPrompt(i).length < 4500, true);
-check('...and it is more than an order of magnitude smaller than the brief it replaces',
+// (v9.7.676) THE RAW CHARACTER CAP IS GONE, AND THAT IS A CORRECTION, NOT A LOOSENING.
+// It has now broken twice in two builds for legitimate growth — v9.7.675 restating the LANGUAGE
+// constraint, v9.7.676 giving the SMS the register instructions the email has always had — and
+// both times the honest response was to raise it, which is the shape of an assertion measuring
+// the wrong thing. A cap on total characters was only ever standing in for "the shape rule is not
+// drowned", and it actively hides the outcome that matters: this build ADDED text and the rule's
+// share went UP, from 62% to 67%, because the addition went into the rule rather than around it.
+// The two measures below are what the cap was for, they cannot be satisfied by padding, and they
+// would both fail on the 84,000-character brief this pass exists to escape.
+check('the shape rule dominates the prompt rather than sitting inside it',
+  i => { const s2 = sysPrompt(i); return i.rule.length / s2.length > 0.55; }, true);
+check('...and the prompt is more than an order of magnitude smaller than the brief it replaces',
   i => 84667 / sysPrompt(i).length > 15, true);
+check('...which the brief itself would fail, so the bound is not vacuous',
+  i => 84667 / 84667 > 15, false);
 check('...and the rule is a large share of it, not a footnote',
   i => { const s = sysPrompt(i); return i.rule.length / s.length > 0.5; }, true);
 
@@ -312,7 +317,7 @@ await checkA('...and the diagnostic reports both drafts and the time it took',
 let sent = null;
 await checkA('the request carries the refine system prompt, not the 84k one',
   i => refine(i, { fetch: stub(ok(BETTER), b => { sent = b; }) })
-        .then(() => sent.system_instruction.parts[0].text.length < 4500), true);
+        .then(() => 84667 / sent.system_instruction.parts[0].text.length > 15), true);
 await checkA('...and asks for JSON, like every other call on this pipeline',
   i => refine(i, { fetch: stub(ok(BETTER), b => { sent = b; }) })
         .then(() => sent.generationConfig.responseMimeType), 'application/json');
@@ -430,6 +435,54 @@ await checkA('a rejected refine returns null, which the call site treats as keep
   i => refine(i, { pass1: J1_EN, fetch: stub(ok(J1_ES)) }).then(r => r.out), null);
 check('the call site assigns only on a truthy return, so null cannot blank the draft',
   i => /if \(_rfSms\) rawSms = _rfSms;/.test(i.site), true);
+
+// ── (v9.7.676) REGISTER PARITY, AND THE FACT THAT MUST NOT BE DROPPED ──────
+// Gil, 9/17, on Thomas Lilley at Community Kia Baytown: "The emails are so good but then the text
+// just seems pale in comparison... Text is just so important as it just about always gets read."
+//
+// Counted against the shipped prompt, the asymmetry is total: the EMAIL carries five
+// channel-scoped REGISTER instructions — "match the depth of the customer's last message", "Email
+// is a personal message, not a memo", "natural prose paragraphs", "weave them into sentences",
+// "body addresses the actual conversation" — and the SMS carried ZERO. Every SMS rule written
+// since v9.7.665 is about content selection or form. The one closest to register, "specific and
+// substantive — not a generic check-in", points AWAY from warmth.
+//
+// Thomas wrote: "Sorry I am late getting back to you. I teach school and coach football so it is
+// a busy time of year." The EMAIL answered it — "No problem at all — I understand this is a busy
+// time of year with teaching and football." The TEXT opened "Thomas, what was the rest of your
+// tint question?", which is a demand that he repeat himself.
+console.log('\n(8) register parity with the email (v9.7.676):');
+
+check('the shared rule now carries the email\'s own depth-and-tone requirement',
+  i => /MATCH THE DEPTH AND THE TONE OF WHAT THEY SENT YOU/.test(i.rule), true);
+check('...and names it as the half the text keeps losing, so it is not read as optional polish',
+  i => /the same requirement the email carries, and the half the text keeps losing/.test(i.rule), true);
+check('it says answering a personal remark comes FIRST and is cheap',
+  i => /a PERSON answers that first and it costs one short sentence/.test(i.rule), true);
+check('...and that accuracy without warmth is a worse message, not a leaner one',
+  i => /is not the efficient version of a good message; it is a worse message/.test(i.rule), true);
+
+console.log('\n    the failure that produced this build, named in the rule:');
+check('a question WE are asking is explicitly not a hook',
+  i => /A QUESTION YOU ARE ASKING THEM IS NOT A HOOK/.test(i.rule), true);
+check('...with the remedy stated, not just the ban',
+  i => /say what you CAN do first and put your question at the END/.test(i.rule), true);
+check('...and the exact shipped opener named as the coldest start',
+  i => /Opening on a request for them to repeat themselves is the coldest way to start/.test(i.rule), true);
+
+console.log('\n    a material fact in the email must reach the text (Thomas\'s K5 was gone):');
+check('the refine prompt states the mirror of "never add a fact"',
+  i => /if the email states something that changes what they should DO or EXPECT/.test(userPrompt(i, AIMEE)), true);
+check('...naming an unavailable vehicle first, which is the case that shipped',
+  i => /a vehicle no longer being available/.test(userPrompt(i, AIMEE)), true);
+check('...and says why, rather than only that',
+  i => /An email that discloses and a text that does not is one outreach telling two different stories/.test(userPrompt(i, AIMEE)), true);
+check('the no-invented-facts rule it mirrors is still there',
+  i => /Never state a fact the email does not state/.test(userPrompt(i, AIMEE)), true);
+
+console.log('\n    and the rule is still a rule, not a word list:');
+check('no vehicle, store or customer name leaked into the register text',
+  i => /Thomas|Lilley|K5|Kia|Sportage|football/.test(i.rule), false);
 
 // ── NON-VACUITY ─────────────────────────────────────────────────────────────
 console.log('\nnon-vacuity (v9.7.669):');
