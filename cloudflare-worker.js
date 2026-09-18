@@ -1,4 +1,16 @@
 /**
+ * ⚠ OUT OF SYNC WITH PRODUCTION — DO NOT DEPLOY AS-IS.
+ *
+ * The deployed leadpro-proxy runs a SEQUENTIAL tier cascade and emits
+ * "PRIMARY OK <model> <n>ms" / "FALLBACK OK" / "EMERGENCY OK" / "REGEN OK" /
+ * "FINAL total=… regenerated=…" / "CLASSIFY …" / "CACHE primary cached=…" /
+ * "<TIER> FAIL|ERROR <model> <n>ms", which is what leadpro-reporter parses out
+ * of R2. This file is the older Promise.any hedge and emits none of that.
+ * Deploying it would roll production back and blind the daily report.
+ *
+ * The structured logging below (v3.6) is a reference implementation of the
+ * idea, not a deployable artifact — port it onto the live proxy source.
+ *
  * Lead Pro — Cloudflare Worker v3.6
  * Promise.any hedge strategy: primary fires immediately, secondary at +400ms,
  * pro at +1000ms. First success wins and cancels the rest.

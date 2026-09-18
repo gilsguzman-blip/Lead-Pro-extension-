@@ -1,9 +1,36 @@
 # Worker log tools
 
-Pull a complete day of Cloudflare Workers Logs out of the `leadpro-proxy` /
-`leadpro-reporter` Workers and break the failures down locally. The dashboard
-Query Builder is an investigation UI — it caps what it returns per query and has
-no "export day" button, so a day with thousands of requests never fits on screen.
+Pull a complete day of `leadpro-proxy` logs and break the failures down. The
+dashboard Query Builder is an investigation UI — it caps what it returns per
+query and has no "export day" button, so a day with thousands of requests never
+fits on screen.
+
+**Start here: complete days are already archived.** `leadpro-reporter` reads
+Workers Trace Events Logpush output from the `LOGS` R2 bucket at
+`logs/YYYYMMDD/` (gzipped NDJSON), so every day is already on disk with no
+retention clock. A Central day straddles two UTC partitions — `logs/{D}/` holds
+the CT morning and afternoon, `logs/{D+1}/` the CT evening — so read both and
+filter by each entry's own CT date, the rule `runReport` applies.
+
+| Want | Use |
+| --- | --- |
+| A past day, complete | The R2 archive + `logpush-failures.mjs` |
+| Just the fail lines, no download | The `?raw=failures` route in `reporter-failure-detail.md` |
+| Today, before Logpush has flushed | `fetch-worker-logs.mjs` (Query API, 3–7 day retention) |
+
+## Breaking down proxy failures
+
+```bash
+node tools/logpush-failures.mjs day.ndjson --date 2026-09-17
+node tools/logpush-failures.mjs day.ndjson --date 2026-09-17 --raw   # source lines only
+```
+
+Parses the Logpush shape the reporter reads, but keeps what the reporter's
+`RE_FAIL` discards: the model, the FAIL-vs-ERROR distinction, and any text after
+the ms. It reports up front how many fail lines carry a cause, which decides
+whether the reporter patch alone is enough — see `reporter-failure-detail.md`.
+
+## The Query API path (live / recent days)
 
 ## One-time setup
 
@@ -50,11 +77,9 @@ It pages backwards through the day at the documented 2000-event maximum per
 query, using the oldest event of each page as the next page's cursor, dedupes by
 event id, and retries 429/5xx with exponential backoff.
 
-**Retention is the constraint:** Workers Logs keeps 3 days on the Free plan and
-7 on Paid. Anything older is gone — for a permanent archive, set `logpush = true`
-in the Wrangler config and create a Logpush job on the `workers_trace_events`
-dataset pointing at an R2 bucket (Workers Paid; $0.05/M delivered with 10M/month
-free).
+**Retention is the constraint** on this path: Workers Logs keeps 3 days on Free
+and 7 on Paid. That is why it is the fallback — the R2 archive above has no such
+limit.
 
 ## Break down the failures
 
@@ -77,10 +102,12 @@ jq -r 'select(.["$metadata"].level == "error")
 jq -r 'select(.timestamp > 1758155000000 and .timestamp < 1758155120000) | .message' worker-logs-2026-09-17.ndjson
 ```
 
-## What the Worker emits
+## Reference: structured per-request logging
 
-`cloudflare-worker.js` v3.6+ writes one structured line per invocation, so the
-breakdown above can attribute every failure. Lead content is never logged — only
+`cloudflare-worker.js` v3.6 is a **reference implementation, not the deployed
+proxy** — production runs a sequential tier cascade with a different log format.
+The shape below is what to port onto the live proxy if its FAIL lines turn out to
+carry no cause. It writes one structured line per invocation. Lead content is never logged — only
 tier, model, timing and the upstream error.
 
 ```json
@@ -110,10 +137,10 @@ the breakdown script line up with real failures.
 
 ## If the failures have no cause attached
 
-The breakdown is only as good as what the Worker logs. If a hedged Gemini call
-fails, the `AggregateError` detail has to be written to the log explicitly or it
-never reaches observability — one structured line per failed tier is what makes
-the export greppable:
+The breakdown is only as good as what the proxy logs. Run
+`logpush-failures.mjs` first — it says outright whether the archived fail lines
+carry text after the ms. If they do, the cause is already in R2 and only the
+reporter needs fixing. If they don't, the proxy has to emit one:
 
 ```js
 console.log(JSON.stringify({ evt: 'gemini_fail', model, tier, ms: Date.now() - t0,
