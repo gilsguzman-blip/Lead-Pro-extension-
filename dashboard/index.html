@@ -5,6 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LeadPro Dashboard — Community Auto Group</title>
 <!--
+  v1.6 — THE PAGE STATES ITS OWN VERSION. A footer marker plus a suite assertion tying it to the
+  newest block in this header. Written because on 9/17 a stale deploy of this page was mistaken for
+  a live defect in the reporter: the deployed tiles read "Explicit 👍 479 / 👎 16" against the
+  reporter's 38 / 0, and the reporter was correct — the 16 are 14 implicit_regen_no_copy plus 2
+  implicit_chip_no_copy. Identifying the snapshot as pre-v1.2 took cross-referencing which tiles it
+  did and did not render. One string in the footer answers that in a glance.
+
   v1.4 — WHAT LEAD PRO IS HOLDING. This page had ZERO references to incentives or valuefact, and
   neither did anything else: the Data Tool's summary table is a receipt for the file you just
   dropped (incResult is replaced on every Normalize and nothing merges across runs), so a Kia-only
@@ -242,6 +249,24 @@ const RC = window.Recharts || {};
   const chartsAvailable = !!window.Recharts;
 
 const PROXY = 'https://leadpro-proxy.gilsguzman.workers.dev';
+// ── (v1.6) THE PAGE SAYS WHICH PAGE IT IS ────────────────────────────────────────────────────
+// 9/17: the deployed dashboard reported "Explicit 👍 479 / Explicit 👎 16" while the reporter, on
+// the same KV rows, reported 38 and 0. The reporter was right — those 16 are 14
+// implicit_regen_no_copy plus 2 implicit_chip_no_copy, and its own Signal Type table adds to
+// exactly 16. This page has read explicitUp/explicitDown since v1.2 and two suites have pinned it
+// since, so the repo was never capable of rendering that tile.
+//
+// THE DEPLOYED PAGE WAS SIMPLY OLDER THAN THE FIX, and nothing rendered said so. The snapshot had
+// to be identified by absence — a "Positive Rate" tile where v1.3 renders "Shipped Rate", no v1.2
+// disclosure line, no v1.4 incentives panel — which is archaeology, not a version check. A stale
+// deploy is indistinguishable from a live defect until you can read a version off the page, and
+// that ambiguity cost a full investigation and a wrong conclusion stated with confidence.
+//
+// This is the cheapest possible instrument: a version in the footer, asserted by the suite to
+// match the newest vN.N block in this header, so bumping one without the other fails a test
+// rather than shipping a page that misreports its own age.
+const DASH_VERSION = 'v1.6';
+
 // (v1.1 — director-key patch, 7/7/26) The proxy's /feedback/* GET endpoints now require a
 // director key (worker v7.30, W3). This dashboard is a static Pages site with no server side,
 // so the key necessarily ships in this client-side source — same exposure class as it being
@@ -786,7 +811,7 @@ function App() {
       ),
 
       h('div', { style:{textAlign:'center',fontSize:10,color:'#374151',paddingTop:8,fontFamily:'IBM Plex Mono,monospace'} },
-        'LeadPro · Community Auto Group · Data via leadpro-proxy KV'
+        'LeadPro · Community Auto Group · Data via leadpro-proxy KV · dashboard ' + DASH_VERSION
       )
     )
   );

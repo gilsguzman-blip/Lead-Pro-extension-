@@ -85,6 +85,7 @@ run cache-ceiling.test.js            "$REPORTER"
 run reporter-feedback.test.js        "$REPORTER"
 run reporter-leadlink.test.js        "$REPORTER"
 [ -n "${DASH:-}" ] && run dashboard-render.test.js "$DASH" "$PROXY"
+[ -n "${DASH:-}" ] && run dashboard-version.test.js "$DASH"
 
 echo
 echo "───────────────────────────────────────────────────────────"
