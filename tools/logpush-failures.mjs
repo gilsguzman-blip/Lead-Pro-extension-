@@ -41,10 +41,29 @@ const RE_FINAL = /FINAL total=(\d+)ms regenerated=(true|false)/;
 const fails = [];
 let entries = 0, withLogs = 0, requests = 0, nonOk = 0;
 
+// The ?raw=failures route emits "<iso>\t<message>" lines rather than Logpush
+// JSON, so accept both and let the two tools compose.
+const RE_ROUTE = /^(\d{4}-\d{2}-\d{2}T[\d:.]+Z?)?\t(.+)$/;
+
 for (const line of fs.readFileSync(file, 'utf8').split('\n')) {
-  const t = line.trim();
-  if (!t) continue;
-  let e; try { e = JSON.parse(t); } catch { continue; }
+  const t = line.replace(/\s+$/, '');
+  if (!t.trim()) continue;
+
+  let e;
+  try { e = JSON.parse(t); }
+  catch {
+    const r = t.match(RE_ROUTE);
+    if (!r) continue;
+    entries++; withLogs++;
+    const when = r[1] ? new Date(r[1]) : null;
+    if (wantDate && when && ctDate(when) !== wantDate) continue;
+    const m = r[2].match(RE_FAIL);
+    if (m) fails.push({
+      when, tier: m[1], kind: m[2], model: m[3], ms: +m[4],
+      detail: (m[5] || '').trim(), outcome: '', script: '', raw: r[2]
+    });
+    continue;
+  }
   entries++;
 
   const logs = e.Logs ?? e.logs ?? null;
@@ -81,8 +100,9 @@ if (rawOnly) {
 
 const pct = (a, b) => b ? ((100 * a) / b).toFixed(2) + '%' : '—';
 
-console.log(`entries ${entries} · with logs ${withLogs} · completed requests ${requests}` +
-            (nonOk ? ` · non-ok outcomes ${nonOk}` : ''));
+console.log(`entries ${entries} · with logs ${withLogs}`
+            + (requests ? ` · completed requests ${requests}` : '')
+            + (nonOk ? ` · non-ok outcomes ${nonOk}` : ''));
 console.log(`fail events ${fails.length} across ${new Set(fails.map(f => f.when?.getTime())).size} distinct timestamps`);
 
 if (!fails.length) {

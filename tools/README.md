@@ -20,10 +20,37 @@ filter by each entry's own CT date, the rule `runReport` applies.
 
 ## Breaking down proxy failures
 
+Run these on your own machine, from the repo root, after `git pull` — they read a
+file you have downloaded, not Cloudflare directly.
+
+**Getting the file.** `wrangler r2 object` has only `get`/`put`/`delete` — there
+is no listing command, and Logpush object keys carry generated IDs, so a day's
+files cannot be enumerated locally. Two ways around that:
+
+1. **The `?raw=failures` route** (patch 7 in `reporter-failure-detail.md`). The
+   reporter already holds the R2 binding and a `listObjects` helper, so it can
+   enumerate what you cannot:
+
+   ```bash
+   curl -s 'https://leadpro-reporter.gilsguzman.workers.dev/?date=2026-09-17&raw=failures&token=…'      > failures-2026-09-17.txt
+   node tools/logpush-failures.mjs failures-2026-09-17.txt --date 2026-09-17
+   ```
+
+2. **The R2 S3 API**, with an R2 access key from the dashboard, using `rclone` or
+   `aws s3` to sync `logs/20260917/` and `logs/20260918/`, then `gunzip -c *.gz >
+   day.ndjson`.
+
+Either input works — the script takes Logpush JSON and the route's
+`<iso>TAB<message>` lines:
+
 ```bash
 node tools/logpush-failures.mjs day.ndjson --date 2026-09-17
 node tools/logpush-failures.mjs day.ndjson --date 2026-09-17 --raw   # source lines only
 ```
+
+**To answer only "is a cause logged at all", skip all of this** and search the
+Observability Query Builder for `FAIL`, then expand one event and read the
+message. 9/17 is still inside the 3–7 day retention window.
 
 Parses the Logpush shape the reporter reads, but keeps what the reporter's
 `RE_FAIL` discards: the model, the FAIL-vs-ERROR distinction, and any text after
