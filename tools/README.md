@@ -77,6 +77,37 @@ jq -r 'select(.["$metadata"].level == "error")
 jq -r 'select(.timestamp > 1758155000000 and .timestamp < 1758155120000) | .message' worker-logs-2026-09-17.ndjson
 ```
 
+## What the Worker emits
+
+`cloudflare-worker.js` v3.6+ writes one structured line per invocation, so the
+breakdown above can attribute every failure. Lead content is never logged — only
+tier, model, timing and the upstream error.
+
+```json
+{"evt":"gemini_req","rid":"9a1f…","ok":true,"winner":"secondary","ms":551,
+ "tiers":[{"tier":"primary","model":"gemini-3.1-flash-lite-preview","wait":0,"ms":60,
+           "ok":false,"err":"http","status":429,"reason":"RESOURCE_EXHAUSTED",
+           "msg":"Quota exceeded for quota metric …"},
+          {"tier":"secondary","model":"gemini-3-flash-preview","wait":400,"ms":150,"ok":true},
+          {"tier":"pro","model":"gemini-3.1-pro-preview","wait":1000,"ms":1,"ok":false,"err":"cancelled"}]}
+```
+
+`err` separates the four cases that used to be indistinguishable:
+
+| `err` | Meaning |
+| --- | --- |
+| `cancelled` | Another tier won and aborted this one. Expected — two per healthy request, not a failure. |
+| `timeout` | The 12s `TIMEOUT_MS` ceiling fired. Shows up as a ~12000ms row. |
+| `http` | Gemini rejected it. Carries `status` (429/500/…), `reason` (`RESOURCE_EXHAUSTED`, `INVALID_ARGUMENT`, …) and the message. |
+| `network` | The call never reached Gemini. |
+
+`rid` is the `cf-ray` header, so a line joins to Cloudflare's own request log.
+Requests rejected before Gemini is reached (bad JSON, missing fields, missing key)
+emit `evt:"gemini_reject"` — previously invisible.
+
+Successful requests log at `info`, failures at `error`, so the level filters in
+the breakdown script line up with real failures.
+
 ## If the failures have no cause attached
 
 The breakdown is only as good as what the Worker logs. If a hedged Gemini call
