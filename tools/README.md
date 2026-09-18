@@ -40,8 +40,16 @@ files cannot be enumerated locally. Two ways around that:
    `aws s3` to sync `logs/20260917/` and `logs/20260918/`, then `gunzip -c *.gz >
    day.ndjson`.
 
-Either input works — the script takes Logpush JSON and the route's
-`<iso>TAB<message>` lines:
+**Exporting from the dashboard instead?** Filter *before* you export. An
+unfiltered export hits the 2000-event cap, and on this proxy 2000 events is
+about 34 seconds — most of it auto-instrumented `kv_get` tracing spans
+(`$metadata.type == "span"`), not console output. Put `FAIL` in the search box,
+set the range to the whole day, then export: the cap applies to matching events,
+so a day's ~25 fail lines fit easily.
+
+All three inputs work — Logpush JSON, the route's `<iso>TAB<message>` lines, and
+the dashboard's JSON export (message under `$metadata.message`, spans skipped
+and counted):
 
 ```bash
 node tools/logpush-failures.mjs day.ndjson --date 2026-09-17

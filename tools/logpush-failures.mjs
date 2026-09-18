@@ -39,13 +39,46 @@ const RE_FAIL  = /(PRIMARY|FALLBACK|EMERGENCY)\s+(FAIL|ERROR)\s+(\S+)\s+(\d+)ms\
 const RE_FINAL = /FINAL total=(\d+)ms regenerated=(true|false)/;
 
 const fails = [];
-let entries = 0, withLogs = 0, requests = 0, nonOk = 0;
+let entries = 0, withLogs = 0, requests = 0, nonOk = 0, spans = 0;
+
+/** Dashboard "Export logs" JSON: one array, message under $metadata.message. */
+function readDashboardExport(text) {
+  let arr;
+  try { arr = JSON.parse(text); } catch { return false; }
+  if (!Array.isArray(arr) || !arr.length) return false;
+  const m0 = arr[0] && arr[0].$metadata;
+  if (!m0 || typeof m0.message !== 'string') return false;
+
+  for (const e of arr) {
+    const md = e.$metadata || {};
+    entries++;
+    // Auto-instrumented tracing spans (kv_get, kv_list, fetch) carry no console
+    // output and swamp the real logs — count them, don't scan them.
+    if (md.type === 'span') { spans++; continue; }
+    withLogs++;
+    const when = e.timestamp ? new Date(e.timestamp)
+               : md.startTime ? new Date(md.startTime) : null;
+    if (wantDate && when && ctDate(when) !== wantDate) continue;
+    const msg = md.message || '';
+    if (RE_FINAL.test(msg)) requests++;
+    const m = msg.match(RE_FAIL);
+    if (m) fails.push({
+      when, tier: m[1], kind: m[2], model: m[3], ms: +m[4],
+      detail: (m[5] || '').trim(),
+      outcome: '', script: md.service || '', raw: msg
+    });
+  }
+  return true;
+}
 
 // The ?raw=failures route emits "<iso>\t<message>" lines rather than Logpush
 // JSON, so accept both and let the two tools compose.
 const RE_ROUTE = /^(\d{4}-\d{2}-\d{2}T[\d:.]+Z?)?\t(.+)$/;
 
-for (const line of fs.readFileSync(file, 'utf8').split('\n')) {
+const text = fs.readFileSync(file, 'utf8');
+const isDashboard = readDashboardExport(text);
+
+for (const line of (isDashboard ? [] : text.split('\n'))) {
   const t = line.replace(/\s+$/, '');
   if (!t.trim()) continue;
 
@@ -101,6 +134,7 @@ if (rawOnly) {
 const pct = (a, b) => b ? ((100 * a) / b).toFixed(2) + '%' : '—';
 
 console.log(`entries ${entries} · with logs ${withLogs}`
+            + (spans ? ` · tracing spans skipped ${spans}` : '')
             + (requests ? ` · completed requests ${requests}` : '')
             + (nonOk ? ` · non-ok outcomes ${nonOk}` : ''));
 console.log(`fail events ${fails.length} across ${new Set(fails.map(f => f.when?.getTime())).size} distinct timestamps`);
