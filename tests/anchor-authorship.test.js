@@ -394,8 +394,21 @@ check('the spent-moves line no longer describes what the bot said',
   i => /In practice it names the vehicle and asks for a test drive/.test(joined(i)), false);
 check('  ...it points at the quote instead',
   i => /Read what it actually said above/.test(joined(i)), true);
-check('both branches still forbid the come-in ask',
-  i => (joined(i).match(/not "when can you come in"/g) || []).length, 2);
+// (v9.7.682) THIS ASSERTION PINNED THE THING GIL ASKED TO CHANGE, which is what it was for —
+// it required BOTH branches to forbid the come-in ask, and the with-vehicle branch no longer
+// does. Jolette, on lead 2086363968: the bot had spent two named slots, this line then forbade
+// asking for the visit at all, and nine drafts in 81 seconds all closed on "any questions?" or a
+// photo. The forbiddance was right about TIMES and wrong about the VISIT, and only on a lead that
+// HAS a vehicle to come and see. The branches now differ on purpose, so this asserts the split
+// rather than the old uniformity. See bot-visit-angle.test.js for the behaviour either side.
+check('the no-vehicle branch still forbids the come-in ask — there is nothing there to see',
+  i => (joined(i).match(/not "when can you come in"/g) || []).length, 1);
+check('  ...and it is the NO-VEHICLE branch that kept it',
+  i => /THERE IS NO VEHICLE ON THIS LEAD[\s\S]*not "when can you come in"/.test(joined(i)), true);
+check('  ...while the with-vehicle branch now asks them in, with the customer choosing when',
+  i => /THEN ASK THEM IN/.test(joined(i)) && /let THEM say when/.test(joined(i)), true);
+check('  ...and still refuses to name a day, a time or a slot',
+  i => /do not name a day, a time or a slot/.test(joined(i)), true);
 
 check('the generic ask is named as already spent',
   i => /HAS ALREADY SPENT WHATEVER MOVES IT USED/.test(stripComments(i.src)), true);
