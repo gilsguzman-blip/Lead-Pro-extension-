@@ -65,6 +65,10 @@ function send(impl, opts) {
     _lpScrubPII: t => String(t || ''),
     _lpVmForLead: () => opts.vm === undefined ? '' : opts.vm,
     _lpAttachLicense: p => p,
+    // (v9.7.684) The payload now stamps the build, read from the manifest. Supplied here so
+    // the positive case is exercised; the absent case is exercised by omitting it below.
+    chrome: opts.noChrome ? undefined
+      : { runtime: { getManifest: () => ({ version: '9.7.684', version_name: opts.versionName === undefined ? '9.7.684' : opts.versionName }) } },
     lastScrapedData: { autoLeadId: '2082290355' },
     fetch: (url, init) => { posted.push(JSON.parse(init.body)); return { catch: () => {} }; },
     console: { log: (...x) => logs.push(x.map(String).join(' ')) }
@@ -161,8 +165,17 @@ check('...and reads "(none)" rather than blank when the proxy returned none',
 console.log('\nnon-vacuity (v9.7.674):');
 
 const NO_ONSCREEN = c => c.replace(/\n\s*onScreen: \{[^]*?\n\s*\}\n/, '\n');
+// (v9.7.684) THE PROSE-MATCH HAZARD, IN A TEST THIS TIME. This assertion scanned the whole slice
+// for the word, and v9.7.684 added a COMMENT to _lpFeedbackSend that explains what the absence of
+// drafts.onScreen proved on 9/18. The neuter removed the code exactly as designed and the check
+// still read "present", because it was matching the sentence about it. The assertion is about
+// CODE, so it reads code: comments are stripped before the scan, and the code form is asserted
+// present on the shipped slice so this cannot pass vacuously against an empty match.
+const noComments = c => c.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^[ \t]*\/\/.*$/gm, '');
+check('the shipped slice really does carry the onScreen block as code',
+  i => /onScreen: \{/.test(noComments(i.send)), true);
 check('neuter A actually removed the onScreen block',
-  i => { const m = NO_ONSCREEN(i.send); return [m !== i.send, /onScreen/.test(m)]; }, [true, false]);
+  i => { const m = NO_ONSCREEN(i.send); return [m !== i.send, /onScreen: \{/.test(noComments(m))]; }, [true, false]);
 check('A: without it the row is exactly what the 9/16 export showed — empty, unexplained',
   i => {
     const mutated = { ...i, send: NO_ONSCREEN(i.send) };
@@ -171,6 +184,28 @@ check('A: without it the row is exactly what the 9/16 export showed — empty, u
   }, [['final', 'prior'], '', true]);
 check('A (control): the shipped build explains the same row',
   i => send(i, { sms: '', email: '' }).row.drafts.onScreen.builtBy, 'flush:abandoned');
+
+// ── (v9.7.684) THE ROW SAYS WHICH BUILD WROTE IT ────────────────────────────
+// Twice in three days the absence of this field turned a filter into a deduction, and the second
+// deduction was wrong: five 9/19 rows leaked a customer name and I attributed them to the stale
+// pre-v9.7.674 build, when all 37 rows that day were current and the cause was elsewhere entirely.
+console.log('\n(4) v9.7.684 — a feedback row can be attributed to a build:');
+
+check('the row carries the version the manifest reports',
+  i => send(i).row.extensionVersion, '9.7.684');
+check('...preferring version_name, which is what carries the -dev suffix',
+  i => send(i, { versionName: '9.7.684-dev' }).row.extensionVersion, '9.7.684-dev');
+check('...and falls back to the plain version when version_name is unset',
+  i => send(i, { versionName: '' }).row.extensionVersion, 'v9.7.684');
+// A telemetry field must never cost a row. Without chrome.runtime the stamp is simply absent.
+check('with no chrome.runtime the field is omitted and the row still posts',
+  i => { const r = send(i, { noChrome: true }).row;
+         return ['extensionVersion' in r, !!r.id, r.rating]; }, [false, true, 'down']);
+check('...and the drafts capture is untouched by its absence',
+  i => send(i, { noChrome: true }).row.drafts.onScreen.builtBy, 'flush:abandoned');
+// It is a build string and nothing else — the v9.7.489 posture, same reasoning as note TYPE.
+check('the stamp carries no lead, customer or draft content',
+  i => /2082290355|Aimee|hotmail|936/.test(String(send(i).row.extensionVersion)), false);
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);

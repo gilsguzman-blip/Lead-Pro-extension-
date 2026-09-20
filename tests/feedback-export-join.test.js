@@ -157,6 +157,48 @@ const CTX = { waitUntil: () => {}, passThroughOnException: () => {} };
   check('  rating and signal still travel',
     by('gen_ok') && [by('gen_ok').rating, by('gen_ok').signal], ['neutral', 'implicit_regen_copy']);
 
+  // ── (v7.76) THE BUILD THAT WROTE THE ROW, PERSISTED AND EXPORTED ──────────────────────────
+  // Same defect shape as workerRequestId above, which is why both halves land together:
+  // persisting a field the export throws away is precisely what v7.71 existed to fix, and doing
+  // the write path in one release and the read path in the next would recreate it.
+  console.log('\n(v7.76) extensionVersion survives from POST to export:');
+
+  // Added to the SAME stubbed KV the assertions above read, then removed, so the row counts they
+  // pin are untouched. The endpoint is called again for real rather than re-projected by hand.
+  const STAMPED = 'feedback:' + TS + ':gen_stamped';
+  KV_ROWS[STAMPED] = {
+    id: 'gen_stamped', ts: TS, rating: 'down', signal: 'implicit_regen_no_copy', trigger: 'superseded',
+    regenCount: 1, chipCount: 0, chipsUsed: [], workerRequestId: RID, extensionVersion: '9.7.684-dev',
+    meta: { store: 'Community Honda Baytown', autoLeadId: '2086363968' },
+    drafts: DRAFTS
+  };
+  const res2 = await load().fetch(
+    new Request('https://leadpro-proxy.test/feedback/drafts?date=2026-09-05&key=' + DIRECTOR), ENV, CTX);
+  const body2 = await res2.json();
+  delete KV_ROWS[STAMPED];
+  const outStamped = body2.rows.find(r => r.id === 'gen_stamped');
+  const outPlain   = body2.rows.find(r => r.id === 'gen_empty');
+
+  check('the export carries the stamp through', outStamped && outStamped.extensionVersion, '9.7.684-dev');
+  check('  ...and it is the ONLY key that differs from an unstamped row',
+    outStamped && outPlain
+      && Object.keys(outStamped).sort().filter(k => k !== 'extensionVersion').join(',')
+         === Object.keys(outPlain).sort().join(','), true);
+  // The shape guarantee, held to the same standard as workerRequestId.
+  check('a row written before v9.7.684 comes back with NO such key',
+    outPlain && ('extensionVersion' in outPlain), false);
+  check('  ...not an empty string and not a null', outPlain && outPlain.extensionVersion, undefined);
+
+  console.log('\n  the POST handler stores it on the same terms:');
+  check('the write path spreads it conditionally',
+    /\.\.\.\(fb\.extensionVersion \? \{ extensionVersion: String\(fb\.extensionVersion\)\.slice\(0, 24\) \} : \{\}\),/.test(src), true);
+  check('  ...clamped, so a hostile client cannot grow the row',
+    /String\(fb\.extensionVersion\)\.slice\(0, 24\)/.test(src), true);
+  check('the read path spreads it conditionally too',
+    /\.\.\.\(e\.extensionVersion \? \{ extensionVersion: e\.extensionVersion \} : \{\}\),/.test(src), true);
+  check('and the feedback console line names the build, or says it is unstamped',
+    /build: \$\{fb\.extensionVersion \|\| '\(unstamped\)'\}/.test(src), true);
+
   console.log('\n' + pass + ' passed, ' + fail + ' failed');
   process.exit(fail ? 1 : 0);
 })().catch(e => { bail('the suite threw: ' + (e && e.message)); });
