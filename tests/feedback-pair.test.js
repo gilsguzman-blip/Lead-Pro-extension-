@@ -247,5 +247,95 @@ if (BUILDS.length > 1) {
     regions.every(r => r === regions[0]), true);
 }
 
+// ── (v9.7.683) THE PRIOR IS SCRUBBED WHERE THE NAME IS STILL KNOWN ──────────────────────────
+// Five rows in the 9/19 export carried a real first name into the downloaded file — Taylor,
+// Savannah, Stephanie, Robert, Fernando — every one of them in `prior`, none in `final`, 5 for 5.
+//
+// _lpScrubPII matches on lastScrapedData.name, and v9.7.648 recorded that clearFields() has
+// nulled lastScrapedData by the time the flush runs. So scrubbing the prior AT FLUSH had nothing
+// to match on and passed the draft through verbatim. `final` never showed it because on those
+// same rows the panel was already cleared and final was empty.
+//
+// The harness above deliberately stubs _lpScrubPII to identity, because ORDERING is what it
+// measures. This section supplies a REAL one — name-dependent, exactly like the shipped scrubber
+// — and then takes the name away before the flush, which is the live condition.
+console.log('\nv9.7.683 — the prior carries no customer name out of the CRM:');
+
+const CUSTOMER = 'Taylor';
+const DRAFT = CUSTOMER + ', the 2026 Accord LX in Platinum White is here. Want to come see it?';
+
+// Models the shipped scrubber: it can only replace a name it is given.
+function nameAwareScrub(sb) {
+  return function (t) {
+    const d = sb.lastScrapedData || {};
+    let out = String(t === undefined || t === null ? '' : t);
+    if (d.name) out = out.split(d.name).join('[NAME]');
+    return out;
+  };
+}
+
+// The real sequence: capture with the lead loaded, then flush after clearFields() has nulled it.
+function captureThenFlush(B, opts) {
+  opts = opts || {};
+  const sb = {
+    console: { log() {}, warn() {} },
+    document: {
+      getElementById(id) {
+        if (id === 'regenStrip') return { classList: { contains: (c) => c === 'visible' } };
+        return { value: id === 'output-sms' ? DRAFT : (id === 'output-email' ? DRAFT : '') };
+      }
+    },
+    lastScrapedData: { autoLeadId: '2079186130', name: CUSTOMER },
+    isFlush: 'abandoned',
+    _lpFeedback: { meta: { autoLeadId: '2079186130' } },
+    _lpVmForLead: () => '',
+    __row: { drafts: null }
+  };
+  sb.window = sb;
+  sb._lpScrubPII = nameAwareScrub(sb);
+  sb._leadProPriorDraft = null;
+  sb._lpFeedbackReset = function () {};
+  vm.createContext(sb);
+  // 1. the generate that renders the draft — the snapshot happens here, lead still loaded
+  vm.runInContext('(function(){\n' + (opts.mutate ? opts.mutate(B.prelude) : B.prelude) + '\n})();', sb, { filename: 'prelude' });
+  const atCapture = sb.window._leadProPriorDraft;
+  // 2. clearFields() nulls the lead (v9.7.648), THEN the row is built
+  sb.lastScrapedData = null;
+  sb.document = { getElementById: () => ({ value: '' }) };   // panel cleared, final empty
+  vm.runInContext('(function(){ var payload = __row; ' + B.capture + ' })();', sb, { filename: 'capture' });
+  return { atCapture, row: sb.__row.drafts };
+}
+
+check('the snapshot is already scrubbed the moment it is stored',
+  BUILDS.map(f => captureThenFlush(load(f)).atCapture.sms).every(t => t.indexOf(CUSTOMER) < 0), true);
+check('  ...and it is scrubbed to the placeholder, not merely emptied',
+  BUILDS.map(f => captureThenFlush(load(f)).atCapture.sms).every(t => /\[NAME\]/.test(t)), true);
+check('the row that ships carries no customer name, though the lead is gone by then',
+  BUILDS.map(f => captureThenFlush(load(f)).row.prior.sms).every(t => t.indexOf(CUSTOMER) < 0), true);
+check('  ...in the email half too',
+  BUILDS.map(f => captureThenFlush(load(f)).row.prior.email).every(t => t.indexOf(CUSTOMER) < 0), true);
+// The condition that produced the leak, reproduced: final really is empty at flush time, which is
+// why only `prior` ever showed a name.
+check('  ...and final is empty on exactly this row, as it was in the export',
+  BUILDS.map(f => captureThenFlush(load(f)).row.final.sms).every(t => t === ''), true);
+check('double-scrubbing is a no-op, so the flush-time net cannot fight the capture',
+  BUILDS.map(f => captureThenFlush(load(f)).row.prior.sms).every(t => !/\[\[NAME\]\]|\[NAME\]{2}/.test(t)), true);
+
+console.log('\n  non-vacuity — put the scrub back at flush time only:');
+const NO_CAPTURE_SCRUB = p => p
+  .replace('sms:_lpScrubPII(_g(\'output-sms\')), email:_lpScrubPII(_g(\'output-email\'))',
+           'sms:_g(\'output-sms\'), email:_g(\'output-email\')');
+check('neuter actually removed the capture-time scrub',
+  BUILDS.map(f => load(f).prelude).every(p => NO_CAPTURE_SCRUB(p) !== p), true);
+check('  the name survives to the stored snapshot again',
+  BUILDS.map(f => captureThenFlush(load(f), { mutate: NO_CAPTURE_SCRUB }).atCapture.sms)
+        .every(t => t.indexOf(CUSTOMER) >= 0), true);
+check('  and it reaches the exported row — which is the 9/19 defect, reproduced',
+  BUILDS.map(f => captureThenFlush(load(f), { mutate: NO_CAPTURE_SCRUB }).row.prior.sms)
+        .every(t => t.indexOf(CUSTOMER) >= 0), true);
+check('  control: the shipped build keeps it out of both',
+  BUILDS.map(f => captureThenFlush(load(f)))
+        .every(r => r.atCapture.sms.indexOf(CUSTOMER) < 0 && r.row.prior.sms.indexOf(CUSTOMER) < 0), true);
+
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);

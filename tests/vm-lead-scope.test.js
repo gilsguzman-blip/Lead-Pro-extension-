@@ -196,8 +196,14 @@ check('populateFromData clears a foreign voicemail on grab',
 check('the feedback FINAL capture reads through _lpVmForLead',
   i => /voicemail:_lpScrubPII\(_lpVmForLead\(/.test(strip(i.src)), true);
 
-check('the PRIOR draft capture reads through it too',
-  i => /voicemail: _lpVmForLead\(/.test(strip(i.src)), true);
+// (v9.7.683) The prior snapshot is now scrubbed where it is STORED rather than where it is sent,
+// so this site reads _lpScrubPII(_lpVmForLead(...)) — the same wrapped form the FINAL capture
+// asserts three lines above. The lead-scoping this assertion exists for is unchanged; only the
+// wrapper is new, and requiring it here keeps the two capture sites symmetric.
+check('the PRIOR draft capture reads through it too, and scrubs where it captures',
+  i => /voicemail: _lpScrubPII\(_lpVmForLead\(/.test(strip(i.src)), true);
+check('  ...and the prior\'s text halves are scrubbed at that same moment',
+  i => /sms:_lpScrubPII\(_g\('output-sms'\)\), email:_lpScrubPII\(_g\('output-email'\)\)/.test(strip(i.src)), true);
 
 check('no capture site reads output-vm raw any more',
   i => (strip(i.src).match(/_g\('output-vm'\)/g) || []).length, 0);
