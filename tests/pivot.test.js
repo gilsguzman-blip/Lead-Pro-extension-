@@ -455,5 +455,59 @@ test('  ...and the block header is not mistaken for something the customer said'
   hasCustomerReply: true, hasOutbound: true
 }, plainPivot);
 
+// ── (v9.7.686) THE "RECENT" WINDOW KEPT THE OLDEST END ──────────────────────────────────────
+// recentCustomerCtx was custOnlyLines.join(' ').slice(-2000). slice(-2000) keeps the TAIL of the
+// string and the transcript arrives NEWEST-FIRST, so past 2,000 characters of customer speech the
+// variable every pivot guard reads held the customer's OLDEST messages and dropped the newest.
+//
+// These cases need a lead long enough for the window to bite, which is why they are padded. The
+// padding is ordinary customer chatter naming no vehicle, so it cannot decide anything by itself.
+console.log('\nv9.7.686 — the recent window keeps the RECENT end, in arc order:');
+
+function longLead(newestLines, olderLines) {
+  // Newest-first, the shape the bounded transcript actually reaches this block in.
+  const block = (stamp, body) =>
+    ['[' + stamp + '] [CUSTOMER] Inbound Text Message', '  ' + body];
+  const rows = [];
+  newestLines.forEach((b, n) => rows.push(...block('09/21/2026 ' + (9 + n) + ':00 AM', b)));
+  // ~180 chars of filler per block; 20 blocks comfortably exceeds the 2,000-char budget.
+  for (let n = 0; n < 20; n++) {
+    rows.push(...block('09/1' + (n % 9) + '/2026 10:00 AM', olderLines + ' ' + 'x'.repeat(150)));
+  }
+  return rows.join('\n');
+}
+
+// The model the customer named MOST RECENTLY must survive the window.
+test('a pivot in the newest message survives a long history', {
+  vehicle: '2026 Toyota Camry SE', store: 'Community Toyota Baytown', dealerId: '6189',
+  lastInboundMsg: 'actually can we look at a Highlander instead',
+  context: longLead(['actually can we look at a Highlander instead'],
+                    'thanks for getting back to me, appreciate the help'),
+  hasCustomerReply: true, hasOutbound: true
+}, plainPivot);
+
+// THIS IS THE ONE THAT DISCRIMINATES, and it is worth saying which. The case above passes against
+// the OLD slice too, because recentCustomerCtx is lastInboundMsg + the window and lastInboundMsg
+// carries the pivot word on its own -- it proves the fix broke nothing, not that the fix works.
+// Emptying lastInboundMsg forces the guard to read the WINDOW and nothing else. Verified against a
+// copy of the shipped file with slice(-2000) put back: this case returns "" there and pivots here.
+test('  ...and with lastInboundMsg empty, the WINDOW alone still carries it', {
+  vehicle: '2026 Toyota Camry SE', store: 'Community Toyota Baytown', dealerId: '6189',
+  lastInboundMsg: '',   // forces the guard to read the WINDOW, not lastInboundMsg
+  context: longLead(['actually can we look at a Highlander instead'],
+                    'thanks for getting back to me, appreciate the help'),
+  hasCustomerReply: true, hasOutbound: true
+}, plainPivot);
+
+// A model named only in the OLD end of a long lead is exactly what v9.7.685 suppresses, and the
+// window must not resurrect it by keeping the wrong end.
+test('  ...while a model only in the far history stays suppressed', {
+  vehicle: '2026 Toyota Camry SE', store: 'Community Toyota Baytown', dealerId: '6189',
+  lastInboundMsg: 'ok what is the out the door number on it',
+  context: longLead(['ok what is the out the door number on it'],
+                    'I was originally looking at a Tundra but that is fine'),
+  hasCustomerReply: true, hasOutbound: true
+}, none);
+
 console.log('\n' + (fail ? 'FAILED' : 'PASSED') + ' — ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);
