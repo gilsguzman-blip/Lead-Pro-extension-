@@ -159,5 +159,60 @@ for (const phrase of [
     i => decide(i, '[08/01/2026 1:00 PM] [CALL NOTE]\n  ' + phrase).paused, true);
 }
 
+// ── (v9.7.687) A PROMISE WE MADE IS NOT A PAUSE THE CUSTOMER ASKED FOR ──────────────────────
+// Kevin Washington (Community Toyota Baytown, lead 2086810111, 9/21). He asked "Is this the awd
+// hybrid, cost?" at 9:35 AM and "Cost?" at 9:37. The automated assistant answered him with a
+// handoff promise, and convState came out `pause` — so the prompt carried "PAUSE SIGNAL: customer
+// needs more time. Empathetic check-in only." and the drafts went vague: "I'll give you some space
+// for now", "Which vehicle would you like me to price?" Gil: "Seems like only the VM works."
+//
+// The phrase was OURS. "will reach out" sits in _pauseRx beside "will contact", "will get in
+// touch", "will be in touch" and "will touch base" — every one of them a sentence a dealership
+// writes TO a customer as a commitment. The scan had no speaker test, so our own promise to follow
+// up about pricing read as the customer asking to be left alone.
+console.log('\nv9.7.687 — the pause must come from an entry we did not send:');
+
+const KEVIN_BOT_PROMISE =
+  '[09/21/2026 9:37 AM] [CUSTOMER] Inbound Text Message\n  Cost?\n' +
+  '[09/21/2026 9:37 AM] [AGENT] Outbound Text Message\n' +
+  '  I’d be happy to connect you with our team for accurate pricing on that 2026 Camry SE hybrid.' +
+  ' Someone will reach out to you shortly to help with pricing and answer any other questions you have!';
+
+check('Kevin — our own bot promising a callback is NOT a pause',
+  i => decide(i, KEVIN_BOT_PROMISE).paused, false);
+check('  ...and the reason is the speaker, not the date — nothing here is superseded',
+  i => decide(i, KEVIN_BOT_PROMISE).superseded, false);
+
+// The detector must not be weakened: the SAME words in a note about the customer still pause.
+check('the same phrase in a CALL NOTE still pauses',
+  i => decide(i, '[09/21/2026 9:37 AM] [CALL NOTE] Outbound phone call\n  Customer will reach out when ready').paused, true);
+check('...and in a general NOTE',
+  i => decide(i, '[09/21/2026 9:37 AM] [NOTE]\n  Spoke with him, he will get in touch next week').paused, true);
+// Written "I will" rather than "I'll" deliberately: _pauseRx matches the literal "will reach
+// out", so the contraction does not match it at all. That is a pre-existing hole in the phrase
+// list, unrelated to this build and not widened here — noted so the fixture is not mistaken for
+// a claim that contractions are covered.
+check('...and in the CUSTOMER\'s own words',
+  i => decide(i, '[09/21/2026 9:37 AM] [CUSTOMER] Inbound Text Message\n  I will reach out when I am ready').paused, true);
+
+// A real pause in a note must survive our own outbound carrying the same words elsewhere.
+check('an AGENT promise does not bury a real pause recorded in a note',
+  i => decide(i,
+    '[09/21/2026 9:37 AM] [AGENT] Outbound Text Message\n  Someone will reach out to you shortly!\n' +
+    '[09/20/2026 2:00 PM] [CALL NOTE] Outbound phone call\n  He said he will call back if interested').paused, true);
+
+console.log('\n  the diagnostic says which entry it came from, and which scan ran:');
+check('a scoped scan names the tag it matched inside',
+  i => /\| from:\[CALL NOTE\]/.test(decide(i, '[09/21/2026 9:37 AM] [CALL NOTE] Outbound phone call\n  Customer will reach out when ready').logs.join(' ')), true);
+check('...and says the scan was entry-scoped',
+  i => /scan:entry-scoped, our own \[AGENT\] sends excluded/.test(decide(i, '[09/21/2026 9:37 AM] [CALL NOTE] x\n  he will call back').logs.join(' ')), true);
+
+// FAILS OPEN on a shape that does not split into bracketed entries — today's behaviour, kept.
+console.log('\n  an unexpected history shape degrades to the old behaviour, not to silence:');
+check('a blob with no bracketed entries still matches as before',
+  i => decide(i, 'customer said he will call back if interested').paused, true);
+check('...and the diagnostic says the fallback ran',
+  i => /scan:UNSCOPED fallback/.test(decide(i, 'customer said he will call back if interested').logs.join(' ')), true);
+
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);
