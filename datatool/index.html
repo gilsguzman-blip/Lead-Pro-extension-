@@ -78,11 +78,6 @@
 
   .note{display:flex;gap:10px;align-items:flex-start;margin-top:18px;font-size:12.5px;color:var(--mut);
     background:rgba(51,176,106,.07);border:1px solid rgba(51,176,106,.25);border-radius:9px;padding:12px 14px;line-height:1.5}
-    .unmatched{display:none;white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,Menlo,Consolas,monospace;
-      font-size:12px;line-height:1.55;margin:10px 0 0;padding:11px 13px;border-radius:8px;
-      background:#101a2b;border:1px solid #1f3350;color:#9fb4d0}
-    .unmatched.show{display:block}
-    .unmatched.err{background:#1e1410;border-color:#6b3a2a;color:#f0b49a}
   .note svg{flex:0 0 auto;margin-top:1px} .note b{color:var(--green)}
   .note.warn{background:rgba(224,168,46,.08);border-color:rgba(224,168,46,.35)} .note.warn b{color:var(--gold)}
   .note.err{background:rgba(224,88,78,.1);border-color:rgba(224,88,78,.4);color:#f3b4af} .note.err b{color:var(--red)}
@@ -142,8 +137,6 @@
     <div class="summary" id="inv-summary">
       <div class="statline" id="inv-statline"></div>
       <table><thead><tr><th>Store</th><th>Dealer ID</th><th style="text-align:right">Units</th><th style="text-align:right">Priced</th><th>New / CPO / Used</th></tr></thead><tbody id="inv-rows"></tbody></table>
-      <!-- (2026-09-21) What the dealer filter rejected, named. Filled by textContent only. -->
-      <pre class="unmatched" id="inv-unmatched"></pre>
       <div class="note"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#33b06a" stroke-width="1.6"><path d="M12 2 4 5v6c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V5z" stroke-linejoin="round"></path><path d="m9 12 2 2 4-4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
         <span><b>Confidential data stayed on your machine.</b> Only customer-safe fields are written — stock, VIN, vehicle, class, body, color, odometer, days-on-lot, price. Cost, markup, water, book, appraised value, and trade numbers were read and discarded.</span></div>
     </div>
@@ -238,25 +231,6 @@ const CUR_YEAR=new Date().getFullYear();
 const TODAY=new Date().toISOString().slice(0,10);
 const DEALER_MAP={"Community Toyota TX":["6189","Toyota Baytown"],"Community Kia TX":["6190","Kia Baytown"],"Community Honda TX":["6191","Honda Baytown"],"Community Honda of Lafayette":["24399","Honda Lafayette"],"Audi Lafayette":["21135","Audi Lafayette"]};
 const ID2LABEL={"6189":"Toyota Baytown","6190":"Kia Baytown","6191":"Honda Baytown","24399":"Honda Lafayette","21135":"Audi Lafayette"};
-/* ── (2026-09-21) EVERY ROW FELL TO "OTHER ROOFTOPS" AND THE TILE COULD NOT SAY WHY ──────────
-   Gil, on a 2026-09-21 Audi Lafayette pair: 252 rows read, 0 units kept, 252 other rooftops,
-   0 stores. The tool was fine -- the deployed source is byte-for-byte the repo's -- so the
-   DEALER NAME IN THE EXPORT STOPPED MATCHING, and nothing on screen could say what it had become.
-   Note the asymmetry that made this possible: get() has always matched the COLUMN name
-   case-insensitively and whitespace-insensitively, while the dealer VALUE was compared with `in`
-   against the raw map keys. One end tolerant, the other exact.
-   So: resolve the value the same way get() resolves the key. Lower-cased, whitespace collapsed,
-   and a short export prefix like "CC-" removed -- a SHAPE (<=4 chars then a dash), not a list of
-   prefixes, because enumerating them means the next one walks through. The five stores' own
-   display labels are accepted alongside the vAuto names, since a row saying "Honda Lafayette" is
-   Honda Lafayette.
-   AND WHATEVER STILL DOES NOT MATCH IS NAMED ON SCREEN. A silent 252 is what turned a one-minute
-   fix into a support round trip; the values never leave the browser, exactly like everything else
-   this tool touches. */
-function normDealer(v){return String(v==null?'':v).toLowerCase().replace(/\s+/g,' ').trim().replace(/^[a-z0-9]{1,4}\s*[-\u2013\u2014]\s*/,'');}
-const DEALER_NORM=(function(){const m={};for(const k in DEALER_MAP)m[normDealer(k)]=DEALER_MAP[k];
-  for(const id in ID2LABEL)m[normDealer(ID2LABEL[id])]=[id,ID2LABEL[id]];return m;})();
-function resolveDealer(raw){const n=normDealer(raw);return Object.prototype.hasOwnProperty.call(DEALER_NORM,n)?DEALER_NORM[n]:null;}
 const INV_SAFE=["stock","vin","vehicle","year","make","model","condition","certified","class","body","color","odometer","daysOnLot","price"];
 
 const $=id=>document.getElementById(id);
@@ -922,20 +896,15 @@ dropWire('inv-drop','inv-file',async fileObjs=>{ msg('inv-msg','');
   $('inv-go').disabled=invLoaded.length===0;
 });
 $('inv-go').addEventListener('click',()=>{ try{
-  const stores={},stats={rows:0,kept:0,other:0,deleted:0,noColumn:0},unmatched={};
+  const stores={},stats={rows:0,kept:0,other:0,deleted:0};
   for(const f of invLoaded){stats.rows+=f.rows.length;
-    for(const r of f.rows){const dealerRaw=get(r,'Dealer Name');const dealer=str(dealerRaw);
-      /* A MISSING COLUMN AND AN UNRECOGNISED VALUE ARE DIFFERENT FAILURES and were being counted
-         as one. Separated so the message can say which happened. */
-      if(dealer==null){stats.noColumn++;stats.other++;continue;}
-      const hit=resolveDealer(dealer);
-      if(!hit){stats.other++;unmatched[dealer]=(unmatched[dealer]||0)+1;continue;}
+    for(const r of f.rows){const dealer=str(get(r,'Dealer Name'));if(!dealer||!(dealer in DEALER_MAP)){stats.other++;continue;}
       if(str(get(r,'Deleted Date'))){stats.deleted++;continue;}
       const vin=str(get(r,'VIN')),stock=str(get(r,'Stock #'));if(!vin&&!stock)continue;
       const certified=String(get(r,'Certified')||'').trim().toLowerCase()==='yes';const condition=(f.pool==='used'&&certified)?'cpo':f.pool;
       const veh=str(get(r,'Vehicle'));const[year,make,model]=parseVehicle(veh);let price=int(get(r,'Price'));if(price===null)price=int(get(r,'AskingPrice'));
       const unit={stock,vin,vehicle:veh,year,make,model,condition,certified,class:str(get(r,'Class')),body:str(get(r,'Body')),color:str(get(r,'Color')),odometer:int(get(r,'Odometer')),daysOnLot:int(get(r,'Age')),price};
-      const[did,label]=hit;(stores[did]=stores[did]||{store:label,units:{}}).units[vin||stock]=unit;stats.kept++;}}
+      const[did,label]=DEALER_MAP[dealer];(stores[did]=stores[did]||{store:label,units:{}}).units[vin||stock]=unit;stats.kept++;}}
   for(const did in stores)for(const k in Object.values(stores[did].units)[0]||{})if(!INV_SAFE.includes(k))throw new Error('non-safe field leaked: '+k);
   const out={generated:TODAY,type:'inventory',source:'vAuto Merchandising export (browser)',storeUnitCounts:{},stores:{}};
   for(const did in stores){const units=Object.values(stores[did].units);const priced=units.filter(u=>u.price!==null).length;const cond={};units.forEach(u=>cond[u.condition]=(cond[u.condition]||0)+1);
@@ -944,28 +913,6 @@ $('inv-go').addEventListener('click',()=>{ try{
   const total=Object.values(out.stores).reduce((a,s)=>a+s.count,0);
   $('inv-statline').innerHTML=`<div class="stat"><div class="n">${stats.rows}</div><div class="l">Rows read</div></div><div class="stat"><div class="n gr">${total}</div><div class="l">Units kept</div></div><div class="stat"><div class="n">${stats.other}</div><div class="l">Other rooftops</div></div><div class="stat"><div class="n">${stats.deleted}</div><div class="l">Deleted/sold</div></div><div class="stat"><div class="n g">${Object.keys(out.stores).length}</div><div class="l">Stores</div></div>`;
   $('inv-rows').innerHTML=Object.entries(out.stores).map(([did,s])=>{const c=out.storeUnitCounts[did].conditions;return `<tr><td class="store">${s.store}</td><td class="cond">${did}</td><td class="num">${s.count}</td><td class="num">${out.storeUnitCounts[did].priced}</td><td class="cond"><span class="nw">${c.new||0} new</span> · <span class="cp">${c.cpo||0} cpo</span> · ${c.used||0} used</td></tr>`;}).join('');
-  /* (2026-09-21) NAME WHAT WAS REJECTED. Loudest when nothing matched at all, which is the state
-     that produced no information whatsoever before. Values are rendered as text, never as HTML. */
-  const unmatchedList=Object.keys(unmatched).sort((a,b)=>unmatched[b]-unmatched[a]);
-  const um=$('inv-unmatched');
-  if(um){
-    if(!unmatchedList.length&&!stats.noColumn){um.textContent='';um.classList.remove('show','err');}
-    else{
-      const parts=[];
-      if(stats.noColumn)parts.push(stats.noColumn+' row(s) had no "Dealer Name" column at all — check the export still includes it.');
-      if(unmatchedList.length){
-        parts.push((total===0?'NOTHING MATCHED. ':'')+'Dealer names read from the file that are not one of the five Community stores:');
-        unmatchedList.slice(0,12).forEach(v=>parts.push('   "'+v+'"  ×'+unmatched[v]));
-        if(unmatchedList.length>12)parts.push('   …and '+(unmatchedList.length-12)+' more');
-        if(total===0)parts.push('If one of those IS a Community store under a new name, send me the line and it takes a minute to add.');
-      }
-      um.textContent=parts.join('\n');
-      um.classList.add('show'); um.classList.toggle('err',total===0);
-    }
-  }
-  try{console.log('[DATATOOL] rows:'+stats.rows+' kept:'+stats.kept+' other:'+stats.other
-    +' noDealerColumn:'+stats.noColumn+' | unmatched dealer names: '
-    +(unmatchedList.length?unmatchedList.map(v=>JSON.stringify(v)+'×'+unmatched[v]).join(', '):'(none)'));}catch(e){}
   $('inv-summary').classList.add('show'); $('inv-dl').disabled=false;
   }catch(e){msg('inv-msg','Normalize failed: '+e.message,'err');}});
 $('inv-dl').addEventListener('click',()=>download(invResult,'inventory_normalized_'));
