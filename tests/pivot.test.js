@@ -358,5 +358,102 @@ test('CONTROL possession of one model does not suppress a pivot to another', {
   context: '[CUSTOMER] I drive a Corolla now. Do you have an Accord\n',
 }, crossBrand);
 
+// ── (v9.7.685) A PIVOT THE CUSTOMER LEFT BEHIND ─────────────────────────────────────────────
+// Kevin Washington, Community Toyota Baytown, lead 2086810111, 9/21. The delivered SMS offered to
+// "price the right RAV4 option" while the lead, the panel and his last two messages were all a
+// 2026 Camry SE. Gil: "VOI is Camry not a RAV4 even the panel shows a Camry yet we're mentioning a
+// RAV4 price when the customer was presented a Camry and the customer asked about the price of the
+// Camry."
+//
+// His arc, verbatim and in order:
+//   9/20 12:05  CUSTOMER  "Rav4 phev"
+//   9/20 12:05  US        "I'm not finding exactly what you're looking for in our current
+//                          inventory."                                  <- answered, and it was no
+//   9/21 09:20  US        presented the 2026 Camry
+//   9/21 09:35  CUSTOMER  "Is this the awd hybrid, cost?"               <- about the Camry
+//   9/21 09:37  CUSTOMER  "Cost?"
+//
+// The transcript reaches this block newest-first, which is why these fixtures are written that
+// way: it is the shape the block actually walks.
+console.log('\nv9.7.685 — a model named yesterday is not what they are asking now:');
+
+const KEVIN_CTX = [
+  '[09/21/2026 9:37 AM] [CUSTOMER] Inbound Text Message',
+  '  Cost?',
+  '[09/21/2026 9:35 AM] [AGENT] Outbound Text Message',
+  '  This 2026 Toyota Camry SE is a hybrid but front-wheel drive, not AWD - it has 8,205 miles in Black.',
+  '[09/21/2026 9:35 AM] [CUSTOMER] Inbound Text Message',
+  '  Is this the awd hybrid, cost?',
+  '[09/21/2026 9:20 AM] [AGENT] Outbound Text Message',
+  '  Hi Kevin, this is Vinessa from Community Toyota. The 2026 Toyota Camry is a fantastic choice!',
+  '[09/20/2026 12:05 PM] [AGENT] Outbound Text Message',
+  '  I’m not finding exactly what you’re looking for in our current inventory.',
+  '[09/20/2026 12:05 PM] [CUSTOMER] Inbound Text Message',
+  '  Rav4 phev',
+  '[09/20/2026 12:04 PM] [CUSTOMER] Inbound Text Message',
+  '  What'
+].join('\n');
+
+test('Kevin — "Rav4 phev" a day ago, two Camry questions since', {
+  vehicle: '2026 Toyota Camry SE', store: 'Community Toyota Baytown', dealerId: '6189',
+  lastInboundMsg: 'Cost?', context: KEVIN_CTX,
+  hasCustomerReply: true, hasOutbound: true
+}, none);
+
+// The same lead with the later messages removed: the pivot IS the newest thing he said, and it
+// must still fire. Without this the fix above would read as "pivots are off on Toyota leads".
+test('  ...but the same words with nothing said since DO pivot', {
+  vehicle: '2026 Toyota Camry SE', store: 'Community Toyota Baytown', dealerId: '6189',
+  lastInboundMsg: 'Rav4 phev',
+  context: [
+    '[09/20/2026 12:05 PM] [CUSTOMER] Inbound Text Message',
+    '  Rav4 phev',
+    '[09/20/2026 12:04 PM] [CUSTOMER] Inbound Text Message',
+    '  What'
+  ].join('\n'),
+  hasCustomerReply: true, hasOutbound: true
+}, plainPivot);
+
+// A thin acknowledgement is not the customer moving on. Suppressing on "ok" or "?" would
+// re-create the v9.7.537 incident this whole guard family exists to prevent.
+test('  ...and a thin reply since does NOT bury a live pivot', {
+  vehicle: '2026 Toyota Camry SE', store: 'Community Toyota Baytown', dealerId: '6189',
+  lastInboundMsg: 'ok',
+  context: [
+    '[09/20/2026 12:10 PM] [CUSTOMER] Inbound Text Message',
+    '  ok',
+    '[09/20/2026 12:05 PM] [CUSTOMER] Inbound Text Message',
+    '  Rav4 phev'
+  ].join('\n'),
+  hasCustomerReply: true, hasOutbound: true
+}, plainPivot);
+
+// Raising it again after a long gap is the customer re-asserting it, not abandoning it.
+test('  ...and raising it AGAIN later keeps it live', {
+  vehicle: '2026 Toyota Camry SE', store: 'Community Toyota Baytown', dealerId: '6189',
+  lastInboundMsg: 'still want to see the Rav4 phev if you get one',
+  context: [
+    '[09/21/2026 9:37 AM] [CUSTOMER] Inbound Text Message',
+    '  still want to see the Rav4 phev if you get one',
+    '[09/21/2026 9:35 AM] [CUSTOMER] Inbound Text Message',
+    '  Is this the awd hybrid, cost?',
+    '[09/20/2026 12:05 PM] [CUSTOMER] Inbound Text Message',
+    '  Rav4 phev'
+  ].join('\n'),
+  hasCustomerReply: true, hasOutbound: true
+}, plainPivot);
+
+// The block header line is three words ("Inbound Text Message") and sits in custOnlyLines with the
+// bodies. If it were counted as customer speech, EVERY pivot would read as abandoned.
+test('  ...and the block header is not mistaken for something the customer said', {
+  vehicle: '2026 Toyota Camry SE', store: 'Community Toyota Baytown', dealerId: '6189',
+  lastInboundMsg: 'Rav4 phev',
+  context: [
+    '[09/20/2026 12:05 PM] [CUSTOMER] Inbound Text Message',
+    '  Rav4 phev'
+  ].join('\n'),
+  hasCustomerReply: true, hasOutbound: true
+}, plainPivot);
+
 console.log('\n' + (fail ? 'FAILED' : 'PASSED') + ' — ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);
