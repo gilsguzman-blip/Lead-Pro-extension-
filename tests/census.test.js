@@ -100,6 +100,27 @@ const QUESTIONS = [
     consumers: ['_lpIsBotAuthor(data.lastSubstantiveOutboundMsg)']
   },
   {
+    // (v9.7.690) The first question added here that cost no live incident — it was caught by a
+    // BUILD instead. v9.7.689 removed the word "short" from the clarify sentence and the removal
+    // needed TWO edits at two line numbers, because populateFromData's auto-detect branch and
+    // buildUserPrompt's voi_conflict chip each carried a full copy of the same four rules. Nothing
+    // in the suite could see that they were one answer written twice.
+    //
+    // They had already drifted where it mattered: the auto-detect copy built its example from the
+    // vehicles actually on the record, and the chip copy hard-coded "are you still set on the
+    // CR-V, or has the Pilot won you over?" — two real Hondas offered as the worked example on
+    // whatever lead the chip was pressed on. That is the invented-vehicle family of v9.7.583,
+    // v9.7.637 and v9.7.641, sitting in a prompt with nothing asserting against it.
+    question: 'what do we tell the model when the record names two different vehicles',
+    owner: 'function _lpVoiConflictDirective(',
+    incident: 'v9.7.690 (found by a build, not an incident): v9.7.689 needed two edits to remove one word, and the chip copy had drifted to a hard-coded CR-V/Pilot example',
+    consumers: ['_lpVoiConflictDirective(d._voiCrossFrameVehicles, false)', '_lpVoiConflictDirective(null, true)'],
+    // A lookup for the directive already being present is NOT a second answer to what it says —
+    // the chip path checks the context so it does not double-inject. Naming it here keeps the
+    // distinction explicit rather than leaving it to look like a leftover copy.
+    forbidden: ['has the Pilot won you over', 'are you still set on the CR-V']
+  },
+  {
     question: 'where does the bounded conversation transcript begin and end',
     owner: 'function _lpBoundedTranscript(',
     incident: 'v9.7.629 / v9.7.630 (the arc digest and the fence disagreed about the region)',
@@ -140,6 +161,14 @@ for (const file of BUILDS) {
     }
     for (const c of q.consumers) {
       check('    consumer delegates: ' + JSON.stringify(c.slice(0, 52)), code.indexOf(c) >= 0, true);
+    }
+    // (v9.7.690) `forbidden` WAS DOCUMENTED AT THE TOP OF THIS FILE AND NEVER IMPLEMENTED. The
+    // comment has described it since v9.7.638 — "shapes that mean somebody answered it again
+    // locally" — and no code read the field, so any entry that set it got a silent pass. That is
+    // this suite committing the failure it exists to catch: a stated guarantee with nothing
+    // behind it. Wired up here, with the first entry that needs it.
+    for (const bad of (q.forbidden || [])) {
+      check('    no private re-answer: ' + JSON.stringify(bad.slice(0, 46)), code.indexOf(bad) >= 0, false);
     }
   }
 
