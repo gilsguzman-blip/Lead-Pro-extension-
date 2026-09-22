@@ -148,12 +148,23 @@ check('regen is the ONLY difference between the two headline cases',
 // ── The diagnostic ────────────────────────────────────────────────────────────
 console.log('\nthe decision is reported, so bypass volume is countable:');
 
+// (v9.7.692) THE "chip:" LEG WAS NEVER READING A CHIP. _lpBypassEdgeCache is set by the chip
+// handlers AND by the plain Generate button (`window._lpBypassEdgeCache = _regenStripVisible`),
+// so every plain Regenerate printed chip:true with no chip pressed — while the feedback row on
+// the same generation correctly said "chips: none". The BYPASS was always right; this row exists
+// to name WHICH LEG caused it (v9.7.584), and on that job it was lying. Renamed to what the flag
+// is, with the real chip signal printed beside it. The bypass CONDITION is asserted unchanged
+// below, so this is a labelling fix and cannot be read as a behaviour change.
 check('the diag names which leg fired rather than just that one did',
   i => ({
-    regen: /' \| regen:' \+ !!_isRegenSession/.test(i.src),
-    chip:  /' chip:' \+ !!window\._lpBypassEdgeCache/.test(i.src),
-    state: /_customerReplied && 'customerReplied'/.test(i.src)
-  }), { regen: true, chip: true, state: true });
+    regen:   /' \| regen:' \+ !!_isRegenSession/.test(i.src),
+    refresh: /' explicitRefresh:' \+ !!window\._lpBypassEdgeCache/.test(i.src),
+    chip:    /' chipDirective:' \+ \(window\._lpRegenDirective \? 'yes' : 'none'\)/.test(i.src),
+    state:   /_customerReplied && 'customerReplied'/.test(i.src)
+  }), { regen: true, refresh: true, chip: true, state: true });
+
+check('  ...and the old label that called a plain regen a chip press is gone',
+  i => /' chip:' \+ !!window\._lpBypassEdgeCache/.test(i.src), false);
 
 check('it reports the eligible case too — a diag that only fires on bypass cannot show a ratio',
   i => /'BYPASS' : 'cache eligible'/.test(i.src), true);

@@ -92,7 +92,17 @@ function extract(file) {
     'var _dh = (typeof window', '(function(){',
     'return out;\n    })()', 'draft-history prompt block');
 
-  return { name: path.basename(path.dirname(file)), src, body, capture, promptBlk };
+  // The v9.7.692 variance diag reads the same list; lifted so the containment check below can
+  // tell an intended reader from a stray one.
+  let variance = '';
+  const vk = body.indexOf("var _rvHist = (typeof window !== 'undefined'");
+  if (vk >= 0) {
+    const va = body.lastIndexOf('(function () {', vk);
+    const ve = body.indexOf('    })();', vk);
+    if (va >= 0 && ve >= 0) variance = body.slice(va, ve + '    })();'.length);
+  }
+
+  return { name: path.basename(path.dirname(file)), src, body, capture, promptBlk, variance };
 }
 
 // ── harness ───────────────────────────────────────────────────────────────────────────────
@@ -327,8 +337,12 @@ check('the history is maintained INSIDE generateAll, after the flush (v9.7.644 o
 // A magic occurrence count would drift with any comment edit. What matters is CONTAINMENT: every
 // mention lives inside one of the two blocks under test, so no third place can quietly read or
 // write this list — the duplication shape census.test.js exists to prevent.
-check('every _lpDraftHistory mention is inside the collector or the prompt block, nowhere else',
-  i => { const spans = [i.capture, i.promptBlk];
+// (v9.7.692) A THIRD SPAN, AND IT IS A READER. The regen variance diag compares the new draft
+// against this same list — it never writes it. The containment rule is what caught it when it was
+// added, which is the assertion working: a new site has to be named here on purpose rather than
+// appearing quietly.
+check('every _lpDraftHistory mention is inside the collector, the prompt block or the variance diag',
+  i => { const spans = [i.capture, i.promptBlk, i.variance];
          let n = 0, from = 0, loose = 0;
          for (;;) {
            const k = i.body.indexOf('_lpDraftHistory', from);
