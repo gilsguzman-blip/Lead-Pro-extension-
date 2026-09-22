@@ -77,7 +77,12 @@ function run(impl, rawSms, history, lead) {
                     : /DIFFERENT MOVE/.test(row) ? 'different' : (row ? '?' : 'silent') };
 }
 
-const LEAD = { vehicle: '2026 Kia Carnival LX FWD', name: 'Christina',
+// (v9.7.693) THE FIXTURE NOW MATCHES THE CRM, NOT THE IMPLEMENTATION. v9.7.692 set name to
+// 'Christina' — the FIRST name — and every draft below carried the FULL '2026 Kia Carnival LX
+// FWD'. Both are the reverse of what the field supplies, so the whole-string strip matched in the
+// suite and never once matched in production. [LP PHONE DIAG] on the real capture reads
+// customerName: "Christina Gonzalez", and the model wrote "the 2026 Kia Carnival".
+const LEAD = { vehicle: '2026 Kia Carnival LX FWD', name: 'Christina Gonzalez',
                signer: 'Melanie', store: 'Community Kia Baytown' };
 const SIG = ' Melanie Community Kia Baytown 281-837-3373';
 
@@ -194,6 +199,32 @@ check('the scrubbed [NAME] in history does not match the real name in the new dr
   i => run(i, 'Christina, did your timeline change?' + SIG,
               ['[NAME], what colour were you hoping for?' + SIG], LEAD).score < 0.35, true);
 
+// ── THE REAL CAPTURE, IN THE SHAPES THE CRM ACTUALLY SUPPLIES ────────────────────────────
+// log231, 9/22 17:36, the first live run of the v9.7.692 row. It printed the correct verdict and
+// this: "ask terms:[christina prefer check back later kia carnival stop reaching out]" — the two
+// things the strip exists to remove, both still present. Driven here verbatim so the strip is
+// asserted on its OUTPUT rather than on the fact that a strip exists.
+console.log('\n  the real 9/22 capture — full scraped name, short vehicle form in the draft:');
+
+const LIVE_PRIOR = 'Christina, I’ll reach out about the 2026 Kia Carnival in whatever way works best for you. Would you prefer text, email, or no further messages?' + SIG;
+const LIVE_NEW   = 'Christina, would you prefer I check back later about the 2026 Kia Carnival, or stop reaching out?' + SIG;
+const liveTerms = i => ((run(i, LIVE_NEW, [LIVE_PRIOR], LEAD).row.match(/ask terms:\[([^\]]*)\]/) || ['', ''])[1]);
+
+check('the customer\'s first name is stripped even though the CRM stored the full name',
+  i => / christina |^christina | christina$|^christina$/.test(' ' + liveTerms(i) + ' '), false);
+
+check('the vehicle is stripped even though the draft used a SHORTER form than the VOI',
+  i => /kia|carnival/.test(liveTerms(i)), false);
+
+check('...and what is left is the ask itself',
+  i => liveTerms(i), 'prefer check back later stop reaching out');
+
+check('the verdict on that capture is still the one the log printed',
+  i => run(i, LIVE_NEW, [LIVE_PRIOR], LEAD).verdict, 'different');
+
+check('the signer and store are stripped from the signature too',
+  i => /melanie|community|baytown/.test(liveTerms(i)), false);
+
 // ── THE ROW SAYS WHAT IT IS ───────────────────────────────────────────────────────────────
 console.log('\n  the row is honest about what it can and cannot tell you (diag-honesty):');
 
@@ -263,6 +294,26 @@ neuter('C — jaccard instead of containment → 4 of the 6 go unflagged (contro
   c => c.replace('return hit / Math.max(1, Math.min(uA, uB));', 'return hit / Math.max(1, uA + uB - hit);'),
   i => run(i, BAD[1], [BAD[0]], LEAD).verdict, 'same',
   i => run(i, BAD[3], BAD.slice(0, 3), LEAD).verdict, 'same');
+
+// The mutation is a LITERAL replacement of the inner loop, not a regex. My first attempt used
+// `[^}]*}` and it swallowed the closing brace of _rvStrip, so the "neutered" build did not parse
+// and the control threw — a neuter that fails for a reason unrelated to the thing it reverts.
+const TOKENISED = [
+  "            var _rvP = String(_rvNoise[n] || '').toLowerCase().trim().split(/\\s+/);",
+  "            for (var _rvQ = 0; _rvQ < _rvP.length; _rvQ++) {",
+  "              if (_rvP[_rvQ].length > 2) s = s.split(_rvP[_rvQ]).join(' ');",
+  "            }"
+].join('\n');
+const WHOLE_STRING = [
+  "            var w = String(_rvNoise[n] || '').toLowerCase().trim();",
+  "            if (w.length > 2) s = s.split(w).join(' ');"
+].join('\n');
+
+neuter('D — the v9.7.692 whole-string strip → the live capture leaks name and vehicle again (control: verdict still right)',
+  c => { if (c.indexOf(TOKENISED) < 0) throw new Error('tokenised strip not found — cannot neuter it');
+         return c.split(TOKENISED).join(WHOLE_STRING); },
+  i => liveTerms(i), 'prefer check back later stop reaching out',
+  i => run(i, LIVE_NEW, [LIVE_PRIOR], LEAD).verdict, 'different');
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);
