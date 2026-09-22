@@ -69,7 +69,13 @@ function load(file) {
   if (iReset < 0) bail('reset call site not in ' + file + ' — THE SUITE DID NOT LOAD');
   if (src.indexOf(A_SNAP, iSnap + 1) >= 0)   bail('PAIR CAPTURE anchor is not unique in ' + file);
   if (src.indexOf(A_RESET, iReset + 1) >= 0) bail('reset anchor is not unique in ' + file);
-  const endSnap  = src.indexOf('})();\n', iSnap) + '})();\n'.length;
+  // (v9.7.688) THE SNAPSHOT IIFE NOW CONTAINS A NESTED IIFE — the session draft-history collector
+  // — so the first `})();` after the anchor is the INNER close, and slicing there cut the region
+  // mid-block and killed this suite with "Unexpected token ')'". The end is the LAST close before
+  // the statement that follows the IIFE, which cannot be fooled by nesting depth.
+  const afterSnap = src.indexOf('  // Track if this is a regen', iSnap);
+  if (afterSnap < 0) bail('statement after the snapshot IIFE not found in ' + file);
+  const endSnap  = src.lastIndexOf('})();\n', afterSnap) + '})();\n'.length;
   const endReset = src.indexOf('_lpFeedbackReset();\n', iReset) + '_lpFeedbackReset();\n'.length;
   if (endSnap <= iSnap || endReset <= iReset) bail('statement ends not found in ' + file);
   const prelude = src.slice(Math.min(iSnap, iReset), Math.max(endSnap, endReset));
