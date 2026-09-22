@@ -187,7 +187,12 @@ check('it still CONCEDES — the softest rung is still soft, this is not a re-pi
     const a = i.run(ctx(5), 40, ELIGIBLE_DATA).approach;
     return { concedes: /concede|stop filling your inbox|close it out/i.test(a),
              noPitch:  /no pitch/i.test(a),
-             oneAsk:   /ONE question/.test(a) };
+             // (v9.7.691) WAS /ONE question/. Gil, 9/22: "remove the ask rules also or phrase
+             // it differently as to not imply a limit on the ask." The rung no longer counts
+             // questions, so counting them here would pin the thing that was removed. What this
+             // assertion is FOR — the rung asks them where they stand and does not re-pitch — is
+             // now measured by the test v9.7.679 established: can one reply answer it.
+             oneAsk:   /one reply can answer you/.test(a) && /ask them where this stands/.test(a) };
   }, { concedes: true, noPitch: true, oneAsk: true });
 
 // ── THE INCIDENT SENTENCE ─────────────────────────────────────────────────────

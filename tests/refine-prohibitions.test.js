@@ -235,10 +235,14 @@ const GONE = [
 GONE.forEach(([label, needle]) =>
   check('removed — ' + label, i => i.code.indexOf(needle) >= 0, false));
 
+// (v9.7.691) These two lines lost their COUNTS as well as their size word. "One observation or
+// question" and "one simple question" cap the message just as "Short." did, and the second one
+// also reads as a limit on the ask, which Gil ruled out. What they were for — a text that reads
+// like a person, an email that ends somewhere easy to answer — is what is asserted now.
 check('what those lines were FOR survives on the close-out rung',
   i => { const r = ladder(i, 9).lines.join('\n');
-         return [/SMS: One observation or question\. Feels like a real person\./.test(r),
-                 /EMAIL: End with one simple question\. No close\./.test(r)]; }, [true, true]);
+         return [/SMS: Reads like a real person wrote it, not a memo\./.test(r),
+                 /EMAIL: End on something they can answer without effort\. No close\./.test(r)]; }, [true, true]);
 
 // ── AND THE SPARED PATHS ARE STILL SPARED ─────────────────────────────────────────────────
 // Gil chose "SMS + email body, spare the 3 special paths". Pinned by name so a later sweep
@@ -258,6 +262,79 @@ const KEPT = [
 ];
 KEPT.forEach(([label, needle]) =>
   check('kept — ' + label, i => i.code.indexOf(needle) >= 0, true));
+
+// ── (v9.7.691) THE COUNTS GO TOO ─────────────────────────────────────────────────────────
+// Gil, 9/22, reading a v9.7.690 prompt: "Isn't that 'one Sentence' building length constraint
+// also though?" He was right, and the one left behind was worse than the word removed. v9.7.689
+// took the ADJECTIVE and left the COUNTS, and a count is the harder constraint — "short" is vague
+// enough to be ignored, "Para 2 (1 sentence)" is not. The zero-contact block was the worst of it:
+// a sentence-by-sentence SMS skeleton and a paragraph-by-paragraph email skeleton, both headed
+// "write exactly this structure".
+console.log('\n  the count-based caps are gone too (Gil, 9/22 — "one Sentence" is a length constraint):');
+
+const CAPS = [
+  ['the zero-contact SMS skeleton\'s sentence numbering', 'Sentence 1:'],
+  ['...and its second sentence cap with "End there."',  'Sentence 2:'],
+  ['the email skeleton\'s paragraph sentence counts',    'Para 1 (2-3 sentences)'],
+  ['...and its one-sentence second paragraph',          'Para 2 (1 sentence)'],
+  ['"STOP THERE"',                                      'STOP THERE'],
+  ['both "write exactly this structure" headers',       'write exactly this structure'],
+  ['the cadence curiosity role\'s "One line"',          'One line, low-pressure'],
+  ['the first-touch email\'s "Nothing else."',          'End with ONE easy question about their search or interest. Nothing else.'],
+  ['the first-touch SMS three-slot template',           'one specific observation about the vehicle'],
+  ['the shape rule\'s "costs one short sentence"',      'costs one short sentence'],
+  ['...its "ONE SHORT SENTENCE answering it"',          'ONE SHORT SENTENCE answering it'],
+  ['...and its "it is one line, and it is cheap"',      'it is one line, and it is cheap'],
+  ['v9.7.689\'s own "One observation or question"',     'SMS: One observation or question']
+];
+CAPS.forEach(([label, needle]) => check('removed — ' + label, i => i.code.indexOf(needle) >= 0, false));
+
+// ── AND THE ASK RULES NO LONGER COUNT THE ASK ────────────────────────────────────────────
+// "remove the ask rules also or phrase it differently as to not imply a limit on the ask."
+// Rephrased rather than removed, because what they are FOR is real: v9.7.679 already settled
+// that the test is whether ONE REPLY CAN ANSWER IT, explicitly NOT how many things you mentioned.
+// They now point at that test instead of counting questions.
+console.log('\n  the ask rules point at the reply test instead of counting questions:');
+
+check('the close-out rung no longer says "ask ONE question"',
+  i => i.code.indexOf('ask ONE question that lets THEM') >= 0, false);
+
+check('...it asks where they stand, and names the reply test as THE test',
+  i => { const a = ladder(i, 9).lines.join('\n');
+         return [/ask them where this stands/.test(a),
+                 /The test is whether one reply can answer you/.test(a)]; }, [true, true]);
+
+check('...and says outright that it is not a limit on questions or words',
+  i => /NOT how many questions you asked or how few words you used/.test(ladder(i, 9).lines.join('\n')), true);
+
+check('the stalled email line no longer says "one simple question"',
+  i => i.code.indexOf('End with one simple question') >= 0, false);
+
+check('the exit rule keeps "do not fuse them" without the sentence count',
+  i => [i.code.indexOf('not both fused into one sentence') >= 0,
+        i.code.indexOf('not both fused together') >= 0], [false, true]);
+
+// ── WHAT SURVIVES, AND WHY ───────────────────────────────────────────────────────────────
+// Not every "one X" is a length cap. These four are pinned so a later sweep reading only the
+// word cannot take them: two are content rules, one is the spared compliance path, and one is
+// the anti-cramming mechanism v9.7.673 kept deliberately when the delete-list came out.
+console.log('\n  the "one X" lines that are NOT length caps survive:');
+
+const NOT_CAPS = [
+  ['the appointment-day rule — a content rule about WHICH times', 'Your ONLY close is two times on the day the customer named. Nothing else.'],
+  ['the opt-out confirmation — still a spared compliance path',   'very short opt-out confirmation'],
+  ['"GOAL: Get their first reply. Nothing else." — a goal',       'GOAL: Get their first reply. Nothing else.'],
+  ['ONE THOUGHT PER SENTENCE — rhythm, kept by v9.7.673',         'ONE THOUGHT PER SENTENCE'],
+  ['the signature format rule',                                   'End with the stacked signature']
+];
+NOT_CAPS.forEach(([label, needle]) => check('kept — ' + label, i => i.code.indexOf(needle) >= 0, true));
+
+// The warmth clause was ARGUING that warmth is cheap. The argument must survive losing its
+// measurements, or this edit traded a length cap for the defect v9.7.676 was built to fix.
+check('the warmth argument survives without its measurements',
+  i => [/a PERSON answers that first, and it costs almost nothing to do/.test(i.code),
+        /answer it before anything else/.test(i.code),
+        /It comes BEFORE it, and it is cheap/.test(i.code)], [true, true, true]);
 
 // ── NON-VACUITY ───────────────────────────────────────────────────────────────────────────
 console.log('\nnon-vacuity — reverting each decision must fail assertions by name:');

@@ -472,7 +472,10 @@ check('the shared rule now carries the email\'s own depth-and-tone requirement',
 check('...and names it as the half the text keeps losing, so it is not read as optional polish',
   i => /the same requirement the email carries, and the half the text keeps losing/.test(i.rule), true);
 check('it says answering a personal remark comes FIRST and is cheap',
-  i => /a PERSON answers that first and it costs one short sentence/.test(i.rule), true);
+  // (v9.7.691) The clause said "it costs one short sentence". It was ARGUING that warmth is
+  // cheap — but it argued it with a measurement, and Gil's call was that measurements in the
+  // prompt build constraints whatever they are there to do. The argument is what this asserts.
+  i => /a PERSON answers that first, and it costs almost nothing to do/.test(i.rule), true);
 check('...and that accuracy without warmth is a worse message, not a leaner one',
   i => /is not the efficient version of a good message; it is a worse message/.test(i.rule), true);
 

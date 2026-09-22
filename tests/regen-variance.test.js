@@ -259,8 +259,11 @@ check('...and on a chip regen too, alongside the TONE ADJUSTMENT block',
 // ── PHASE 5 NOW HAS MORE THAN ONE WAY TO BE ITSELF ────────────────────────────────────────
 console.log('\n  PHASE 5 offers four moves, not one worked example:');
 
+// (v9.7.691) Window widened from 3000 to 4400. The rung gained the one-reply test sentence and
+// the tail of the v9.7.583 safety language crossed the old boundary mid-sentence — the guard was
+// still present at offset 2981 and the assertion failed on the slice, not on the code.
 const p5 = body => body.slice(body.indexOf("stalledPhase = 'PHASE 5 -- GRACEFUL CLOSE-OUT'"),
-                              body.indexOf("stalledPhase = 'PHASE 5 -- GRACEFUL CLOSE-OUT'") + 3000);
+                              body.indexOf("stalledPhase = 'PHASE 5 -- GRACEFUL CLOSE-OUT'") + 4400);
 
 check('the single "e.g." template that every draft landed on is GONE',
   i => /e\.g\. "I have not heard back, so I will stop filling your inbox/.test(p5(i.body)), false);
