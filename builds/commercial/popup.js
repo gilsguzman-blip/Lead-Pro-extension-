@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.696 (Commercial. THREE FIXES FROM GIL'S 9/23 CAPTURES. Extension only; proxy v7.76 and reporter v1.22 unchanged. (A) SMS IS ALWAYS DRAFTED -- GIL: "lose the opt in/opt out logic and just have an SMS generated regardless ... I'll put the onus on the agent to decide when to send an SMS." This SUPERSEDES v9.7.695's P1 ruling from the same morning. Removed: the render-time SMS blank, the SMS CHANNEL OVERRIDE scenario line, the boxed TOP-PRIORITY SMS OPT-OUT block, the LEAD-section SMS STATUS line; isSmsOptOut is false on every lead, so a STOP no longer shapes exit or opt-out framing. A WRITTEN "stop contacting me" / "take me off your list" still exits -- exitRaw owns those phrases independently. KEPT, informational only: v9.7.695's marker-scoped evidence scan, renamed smsOptOutEvidence; it feeds [LP SMS OPT-OUT EVIDENCE DIAG] (popup-side, grab and render) and ONE agent-facing status line after generation -- "SMS drafted -- this lead has opt-out evidence on record. Your call whether to text." -- a notice, never a block, one statement to delete if unwanted. (B) "IT'S HERE" NOW NEEDS THE LIVE FEED. Brandy Mooney and Mike Stewart (Toyota Baytown, 9/23, log238): generic chat/web VOIs ("2024 Toyota Tundra (Used)", "2022 Toyota RAV4 (New)"), PageData present for the lead with NO stock and NO VIN, yet the page-wide "Stock #" regex found TT069306B and TE152985A elsewhere on the page -- src stock:rgx -- and both drafts said the car was here. TE152985A is not even in the live feed; the presence predicate was "!!d.stockNum && nothing says otherwise", and buildUserPrompt's branch literally said "stock number on the lead means physically on lot ... say we have it here". Survey of every log on hand: every real unit carried its stock in PageData; the only regex-only stocks were these two plus an 8/18 Audi Lafayette lead where the regex paired a customer-typed S6 e-tron VIN suffix with a Q6 e-tron VOI and called the Q6 "confirmed in stock". FIXES: (1) scraper -- when PageData describes this lead it owns the unit identity; an empty stock or VIN there is an answer, and the regex fallback runs only when PageData is ABSENT (diag src now reads pd-empty(rgx X refused)); (2) NEW _lpFeedUnitCheck -- presence requires the live feed to hold the stock AND that unit to be the lead's vehicle (make+model family, and year when both carry one); no feed loaded = not confirmed; (3) both _confirmedPresent copies, the v9.7.505 feed check and both buildUserPrompt "say we have it here" branches now use it; a stock the feed does not confirm gets an explicit "presence NOT confirmed -- do not say it is here" note. Ground-truth direction unchanged, only stricter: the feed was already the truth, it now has to vouch for the SAME car. (C) THE FIRST-REACH INCENTIVE RAIL IS CLOSED. Gil: "an incentive offer was sent on first reach. We had put a rail against that on first reach. Check if that broke." It had not broken -- it was never total: v9.7.415/425's 'generic' override (fresh, no VIN/stock, non-aggregator) and 'in_transit' override released incentives on first reach by design. Live 9/23: a $209/36-mo Accord lease on Marlene Cadena's first message (Honda Baytown), $750 Conquest/Owner Loyalty cash on Bryston Taylor's (Kia Baytown). Both overrides removed; first reach carries no incentive unless the customer asked, or 3+ outreaches already went out on the lead (v9.7.616, unchanged). John Moody is in none of the uploaded logs, so his lead is not traced here. ALSO: bot-authorship.test.js had a hard-coded 09/16 message date against code that ages notes on the real clock, and started failing ON ITS OWN on 9/23 -- a time bomb, not a regression; now relative to now. Many suites hard-code 2026 dates and pass today; flagged, not swept. VERIFIED: NEW sms-optout-evidence.test.js (48, replaces sms-suppress), first-reach-incentive.test.js (12), stock-source.test.js (12), all EXECUTING shipped code; consent-and-stock gains the Brandy/Mike/Q6/wrong-year/no-feed shapes run through the real helper (41); stock-color runs its capture through the real helper (72). NON-VACUITY against v9.7.695: sms-optout-evidence fails 23 of 24, first-reach-incentive 6 of 6, stock-source 3 of 6 (the three stray-stock shapes; the three controls pass). run-all: 119 suites, 5656 assertions, 0 failed. node --check clean on both builds; both manifests parse; version AND version_name bumped; changed regions byte-identical DEV vs COMMERCIAL. Builds on v9.7.695. Mirrors DEV v9.7.696-dev.)
 // Lead Pro -- popup.js  v9.7.695 (Commercial. AUDIT P1 -- ONE SMS SWITCH, SCOPED BY THE CURRENT-LEAD MARKER. Extension only; proxy v7.76 and reporter v1.22 unchanged. GIL'S RULING, 9/23, SUPERSEDING BOTH v9.7.435 ("a new lead disqualifies old opt-outs" via hasNewLeadToday) AND v9.7.514 ("a prior-lead opt-out keeps SMS suppressed"): opt-out evidence only BELOW the marker belongs to a prior lead and is superseded for the SMS channel AND for framing; evidence ABOVE the marker suppresses SMS whatever else the customer wrote; an explicit re-opt-in NEWER than the newest current-lead opt-out clears it; no marker means all evidence is current. NEW scraper flag smsSuppressed is the ONLY input to the render-time SMS blank, the SMS CHANNEL OVERRIDE scenario line, the LEAD-section SMS STATUS line and the empty-pane caption -- each used to OR in its own reading (isSmsOptOutOnly, or a bare STOP in lastInboundMsg, which can be a PRIOR lead's STOP). PATH A, VERIFIED ON THE REAL v9.7.694 REGION, NOT INFERRED: single-lead record, opt-out status note, then "still looking, email me instead" -- smsOptOutIsExit:true, hasExitSignal:false (recentCustomerActive), isSmsOptOutOnly:false, render blank false: an SMS draft for a number with opt-out evidence. With a marker it passed only BY ACCIDENT: SMS-status notes are stripped from the transcript, so the old marker scan filed a CURRENT-lead status note as prior-lead. The new scan reads the notes themselves and places each by DATE against the marker's own timestamp (_lpMarkerMs, recorded where the marker is placed). Evidence set: customer bare STOP; the newest-inbound STOP (placed by transcript position); SMS-status/carrier opt-out notes with the existing other-phone-number check, now over every note; NEW, customer "stop texting" / "no more texts". Re-opt-in set: opt-in status notes and a customer's bare YES/START/UNSTOP by TEXT. DELIBERATELY DROPPED from re-opt-in, both fail-safe: /reply yes/ (it matched our OWN outbound "Reply YES to confirm" and could clear a live opt-out) and a bare "Yes" by EMAIL. FRAMING KEEPS ITS FLAGS, AS RULED -- AND I MEASURED WHY THIS MATTERS: my first draft set the framing flag equal to smsSuppressed; a 448-shape differential against v9.7.694 showed it ADDED farewells (a current-lead STOP followed by "is the civic still there?" became an exit). Reverted: isSmsOptOut is the pre-695 formula with one term added, && !_ssPriorOnly. Final differential over the same 448 shapes: EXIT flips 0; opt-out-only framing flips 18, all true->false, all prior-lead-only; SMS verdict flips 120 draft->SUPPRESSED (current-lead or no-marker evidence the old code drafted on: the path-A shape, "stop texting", our "Reply YES", a current STOP followed by a later message, created-today leads) and 30 SUPPRESSED->draft (prior-lead evidence, or an explicit re-opt-in newer than the opt-out). ONE TO WATCH: "regardless of what else the customer wrote" means a current-lead STOP followed by an ordinary text now stays suppressed until an explicit START/YES/opt-in note -- v9.7.694 drafted SMS there. ALSO: the TOP-PRIORITY opt-out block's "1. SMS = generate a very short opt-out confirmation" (flagged open since v9.7.532) now asks for the EMPTY field the blank enforces. isSmsOptOut, an undeclared implicit global in the scraper since it was written, is now declared. NEW [LP SMS SUPPRESS DIAG], POPUP-SIDE at grab and at render: evidence, which side of the marker each piece sits on, re-opt-ins, whether one is newer than the newest current opt-out, and the verdict; it says so explicitly when no notes frame merged or the scoped read threw (fail-safe: then any unscoped evidence suppresses). VERIFIED: NEW sms-suppress.test.js, 98 assertions across both builds, EXECUTING the real shipped region against fake CRM notes -- 16 lead shapes covering every case in the ruling plus path A with and without a marker, re-opt-in ordering, our own "Reply YES", a different phone number, and no-farewell-added; plus the consumers and the diag line executed. NON-VACUITY: the same suite against v9.7.694 fails 40 of 64, including path A, prior-lead STOP, prior-lead status note, the no-marker fail-safe and "Reply YES". Two spared-path pins in message-constraints and refine-prohibitions now pin the empty-SMS line. run-all: 117 suites, 5679 assertions, 0 failed. node --check clean on both builds; both manifests parse; version AND version_name bumped; the changed regions byte-identical DEV vs COMMERCIAL. Builds on v9.7.694. Mirrors DEV v9.7.695-dev.)
 // Lead Pro -- popup.js  v9.7.694 (Commercial. THE AUDIT. Extension only; proxy v7.76 and reporter v1.22 unchanged and NOT redeployed. Gil, 9/23: "We've shown that the model can have constraint with the rails off of length. Audit the entire code for any instances of message constraints, first reach, follow up, showroom, etc...." and, on the result: "Build it and we'll go with your suggestions for the 5." v9.7.689 took 'short' out of thirteen sites and v9.7.691 took out thirteen counts and both zero-contact skeletons, each on a capture. This build swept EVERY string literal in the file instead of waiting for the next capture -- size words, sentence/line/paragraph/word counts, caps, stop-instructions, structure templates and ask counts -- and classified each hit by the branch that governs it. THE TWO THAT FIRED ON EVERY LEAD, and which mattered more than everything else combined: FORMAT RULES carried 'Keep it to 2-3 paragraphs max.' on EVERY email in the fleet, sitting below everything the last two builds removed; and _LP_SMS_SHAPE_RULE described a text as 'short lines a person would actually thumb into a phone' inside a rule that says outright 'THERE IS NO SENTENCE COUNT AND NO LENGTH TO HIT'. Both gone; the paragraph-spacing instruction and the thumbed-into-a-phone description stay. The shape rule's definition line was edited alone -- the v9.7.672 build header quotes the same sentence verbatim and a whole-file replace would have rewritten history. TWO SKELETONS: the trade-tool cross-brand path still said 'WRITE THE MESSAGE IN THIS EXACT ORDER -- FOUR DISTINCT PARAGRAPHS' with a numbered paragraph each and one marked 'ONE LINE ONLY'; it now says what the message has to do, in whatever shape reads naturally, with every piece of content kept. The velocity-response first reach carried 'Structure: Acknowledge inquiry + ONE light qualifying question' and a worked sentence; the structure line is now the job, and the example is labelled 'for illustration only, not a script to copy' -- the v9.7.688 lesson that a lone worked example is read as a template. SEVENTEEN SIZE WORDS REMOVED, by scenario: first reach (after phone attempts, still-shopping, bot-authored no-vehicle 'SHORT'), follow-up (re-engagement, thin reply, settled plan x2, past friction, trade declined 'in one line', the cadence value role's 'minimal preamble'), showroom/appointment confirmation, sold (customer reached out, service satisfaction check), exit/not-ready, cross-brand prior buyer 'one welcome-back line', Audi Lafayette drive-out, Click & Go x2 ('once' kept, 'briefly' removed), and the EXPAND chip, which capped the very expansion the agent had asked for at 'two to four sentences'. In every case what the line was FOR is still said. EIGHT ASK COUNTS REPHRASED on Gil's 9/22 rule -- 'phrase it differently as to not imply a limit on the ask' -- first reach no-vehicle and fresh-inquiry, follow-up fresh signal, SHOWROOM follow-up, stalled PHASE 2 (its still-interested prohibition kept), bot no-vehicle, the friction apology, and the VOI-family either/or. THE EITHER/OR IN THE AGENT CONTEXT PREAMBLE EXPOSED A DUPLICATE, the same trap the clarify line fell into in v9.7.689/.690: the 1,263-character preamble existed as two BYTE-IDENTICAL literals in the two _hasPostVisitNote branches -- the competing transcript carriers v9.7.629 recorded -- so one sentence needed two edits. It is now ONE variable, _LP_AGENT_CONTEXT_PREAMBLE, and it is declared INSIDE inlineScraper on purpose: that function is injected with `func: inlineScraper`, only its body travels, and a module-scope constant would be a ReferenceError in the CRM frame. Verified before merging that the two literals were identical (the script refuses otherwise), and after that the definition and both consumers sit inside the scraper's own boundaries. census.test.js owns it -- the second entry there found by an audit rather than an incident -- with both old literal forms and the counted either/or pinned as forbidden. THE FIVE DECISIONS, as Gil took them: Costco and Car Pro Show first reach LOSE 'CLOSE: Two specific appointment times.', which contradicted TIME-OFFER VARIETY ('ONE closing tool, not a required ending'); the two appointment-suppression filters that strip that exact line are left in place as an inert safety net should a source branch ever re-add it. Same-day evening loses its scripted close line and keeps the intent: close directly on tonight, not passive, not 'whenever works'. KEPT: bereavement stays a brief condolence (2-3 sentences), because in that scenario length is itself the harm; 'pick AT MOST ONE' secondary angle, because it stops offers being stacked rather than limiting length; and the settled-plan voicemail's 20-30 seconds, consistent with the spared voicemail target. NOT TOUCHED AND PINNED AS SUCH: the 4-8 word subject rule, the opt-out path and its STOP voicemails, the appointment-day close, the voicemail-only 60-80 words, the SHORTEN chip, ONE THOUGHT PER SENTENCE, depth-matching, the refine pass's 'LENGTH IS YOURS TO JUDGE', and the three lines that use 'short' to REMOVE a constraint. NOTHING IN CODE CONSTRAINS OUTPUT: no generated message is truncated after the fact, and the token ceilings (2,500 main, 700 refine, 1,200 voicemail) do not bind -- all 23 captures on 9/22 finished STOP. VERIFIED: 116 suites green, 5,581 assertions, dev===comm on every edit (applied as literal replacements to both builds, each verified by exact match count before writing). NEW SUITE message-constraints.test.js pins the audit in BOTH directions -- removed stays removed, the intent of each line is still present, and every kept item is still where it was -- and EXECUTES the shape rule and the hoisted preamble rather than scanning for them. Against v9.7.693 it fails 46 by name while the 16 kept-by-design items pass, which is the correct shape. Two neuters with controls: declaring the preamble at module scope fails the scope assertion while its text is still right, and putting the every-email paragraph cap back fails by name while the format line survives. THREE EXISTING ASSERTIONS UPDATED, each pinning a count this build removed on Gil's decision: friction-state ('no second question'), voi-family ('ONE direct question') and regen-variance (PHASE 2, out of scope for v9.7.688 and in scope now). WHAT THIS MIGHT BREAK, PLAINLY: this is the widest length change yet. EVERY email loses its three-paragraph ceiling, and the trade-tool path loses the only four-paragraph template in the file. Expect emails to vary in length far more than they have, most visibly on showroom, sold and appointment-confirmation paths that were each told 'brief'. Costco and Car Pro first reach will no longer always end on two appointment times. The changes to the static system-prompt prefix (the shape rule, the cadence role line) move the cacheable prefix once, so the first calls after install run cold. STILL OPEN, unchanged: proxy v7.76 is still NOT deployed; the pairs flattener still drops signal, trigger, chipCount, meta, workerRequestId and extensionVersion; the incentive/re-engagement-hook and STALL RECOVERY collision; the hook diag's first-person regex does not see 'me'; the em dash in SMS (2 of 12 on 9/22) has no rule, by Gil's call pending; the _pauseRx contraction gap; scenarioRules rendering twice per prompt. node --check clean on both builds; both manifests parse; version AND version_name both bumped. scraperVersion stays v9.7.51. Builds on v9.7.693.)
 // Lead Pro -- popup.js  v9.7.693 (Commercial. THE STRIP I SHIPPED YESTERDAY NEVER MATCHED ANYTHING IN THE FIELD, AND MY OWN SUITE HID IT. Extension only; proxy v7.76 and reporter v1.22 unchanged and NOT redeployed. The first live run of the v9.7.692 variance row printed the correct verdict and, in the same line, the evidence that half of it was dead: "ask terms:[christina prefer check back later kia carnival stop reaching out]" -- the customer's name and the vehicle, which are the two things that strip exists to remove, both still there. TWO INDEPENDENT MISSES, AND BOTH ARE THE NORMAL CASE RATHER THAN AN EDGE. v9.7.692 split on the scraped strings VERBATIM. lastScrapedData.name is the FULL name -- [LP PHONE DIAG] on that capture reads customerName: "Christina Gonzalez" -- and the draft writes the first name alone, so the split never fires. The VOI is the full trim, "2026 Kia Carnival LX FWD", and the model wrote "the 2026 Kia Carnival", so that split never fires either. An exact-substring match cannot succeed against either shape, which means the stripping has been a no-op on every generation since it shipped. FIXED BY TOKENISING: each noise string is split on whitespace and every token of three characters or more is removed, so a first name out of a full name and a short model name out of a full trim both go. On the live capture the ask terms become [prefer check back later stop reaching out]. WHAT MY SUITE DID, WHICH IS THE PART WORTH RECORDING. It was green through all of this, and it was green because I BUILT THE FIXTURES FROM MY OWN IMPLEMENTATION INSTEAD OF FROM A CAPTURE: I set name to 'Christina', the FIRST name, and wrote every draft carrying the FULL '2026 Kia Carnival LX FWD'. That is the reverse of what the CRM supplies on BOTH counts, and it is the only combination in which a whole-string split works. Twenty-five assertions executing the shipped code, three neuters with controls, and none of it could see the defect, because the input it was fed was the input the code wanted. This is the v9.7.563 false-green shape with the error moved into the fixture, and it is a more dangerous version of it: the suite was not vacuous, it was confidently testing a world that does not exist. THE RULE IT COSTS: a fixture for a scraped value is only evidence if it carries the shape the SCRAPER produces, and the way to know that is to read it out of a capture rather than to write it from the code. WHAT CHANGED IN THE SUITE: LEAD.name is now the full 'Christina Gonzalez'; the 9/22 17:36 capture is driven verbatim as its own section; and the strip is asserted on its OUTPUT -- the name is absent, the vehicle is absent, the signer and store are absent, and what remains is exactly the ask -- rather than on the existence of a strip. A FOURTH NEUTER puts the whole-string form back and reproduces the leak by name, with a control asserting the verdict was right even while the strip was dead, which it was. NOTHING THE VERDICTS SAID WAS WRONG, and that is worth stating plainly rather than letting the fix imply otherwise: Christina's six still score 0.67-1.00, the two arcs the agent kept still score 0.17 and 0.13, and the live capture scored 0.20 and read DIFFERENT MOVE both before and after this build. v9.7.692's own neuter B already measured that the six separate at 0.67-1.00 with NO stripping at all. What was actually broken is the protection the stripping was added for -- the short-ask case, two different questions that both name the vehicle, which scores 0.60 without it and 0.00 with it -- and that protection was never running. A SECOND MISTAKE INSIDE THE FIX, caught before commit and recorded because it is the same family: the first version of neuter D used a regex with `[^}]*}` to swap the loop back, and it swallowed the closing brace of _rvStrip, so the 'neutered' build did not parse and the control threw. A neuter that fails because the mutation broke the file is not a neuter. Rewritten as a literal replacement of the inner loop, which cannot over-reach. VERIFIED: 115 suites green, 5,505 assertions, +6, dev===comm on the changed region. Non-vacuity: the suite against v9.7.692 fails the five new capture-shaped assertions by name while the rest still pass, which is the correct shape -- the old build's verdicts were right and its stripping was not. WHAT THIS MIGHT BREAK, PLAINLY: the row will now strip more aggressively, and a three-letter-or-longer token from a vehicle, name, signer or store name is removed wherever it appears -- so a draft that uses a store word in ordinary prose loses it from the comparison. On the arcs measured that changes no score and no verdict. Nothing customer-facing: this is one observational log row. STILL OPEN, unchanged: proxy v7.76 is still NOT deployed; the pairs flattener still drops signal, trigger, chipCount, meta, workerRequestId and extensionVersion; the incentive/re-engagement-hook and STALL RECOVERY collision; the _pauseRx contraction gap; scenarioRules rendering twice per prompt. node --check clean on both builds; both manifests parse; version AND version_name both bumped. scraperVersion stays v9.7.51. Builds on v9.7.692.)
@@ -436,24 +437,26 @@ try { chrome.storage.sync.get(['leadpro_license'], function(r){ _lpLicenseKeyCac
 // (v9.7.462/457) console-log hygiene — customer phone numbers were logged in full; keep the
 // diagnostic value (presence + last 4) without spelling out the whole number on shared
 // BDC workstations.
-// (v9.7.695) [LP SMS SUPPRESS DIAG] — POPUP-SIDE, one line: what opt-out evidence the scraper found,
-// which side of the CURRENT LEAD marker each piece sits on, any re-opt-in, and the final flag. The
-// flag is the ONLY input to the render-time SMS blank and the prompt's SMS-status lines.
-function _lpSmsSuppressDiagLine(d, where) {
+// (v9.7.696) [LP SMS OPT-OUT EVIDENCE DIAG] — POPUP-SIDE, informational only. SMS is ALWAYS drafted
+// now (Gil, 9/23); this line says what opt-out evidence the scraper found, which side of the CURRENT
+// LEAD marker each piece sits on, any re-opt-in, and whether live evidence remains — so the agent's
+// decision to text or not can be checked against the record. Replaces [LP SMS SUPPRESS DIAG].
+function _lpSmsOptOutDiagLine(d, where) {
   try {
-    var g = (d && d._smsSuppressDiag) || null;
-    var fin = !!(d && d.smsSuppressed);
-    if (!g) return '[LP SMS SUPPRESS DIAG] ' + (where || '') + ' smsSuppressed:' + fin + ' | no scraper detail (no notes frame merged)';
-    if (g.error) return '[LP SMS SUPPRESS DIAG] ' + (where || '') + ' smsSuppressed:' + fin + ' | scoped read THREW (' + g.error + ') — fell back to unscoped evidence';
+    var g = (d && d._smsOptOutDiag) || null;
+    var fin = !!(d && d.smsOptOutEvidence);
+    var head = '[LP SMS OPT-OUT EVIDENCE DIAG] ' + (where || '') + ' liveEvidence:' + fin + ' (informational — SMS is always drafted)';
+    if (!g) return head + ' | no scraper detail (no notes frame merged)';
+    if (g.error) return head + ' | scoped read THREW (' + g.error + ') — reported unscoped evidence';
     var ev = (g.evidence || []).map(function (e) { return e.kind + ' ' + e.date + ' [' + e.side + ']'; }).join('; ') || 'none';
     var ro = (g.reoptIn || []).map(function (e) { return e.kind + ' ' + e.date + ' [' + e.side + ']'; }).join('; ') || 'none';
-    return '[LP SMS SUPPRESS DIAG] ' + (where || '') + ' smsSuppressed:' + fin
+    return head
       + ' | marker:' + (g.markerFound ? 'found' + (g.markerDate ? ' (' + g.markerDate + ')' : ' (undated — all evidence current)') : 'NONE — all evidence treated as current')
       + ' | opt-out evidence: ' + ev
       + ' | current:' + (g.currentCount || 0) + ' prior:' + (g.priorCount || 0)
       + ' | re-opt-in: ' + ro
       + ' | re-opt-in newer than newest current opt-out:' + !!g.reoptAfterNewestCurrent;
-  } catch (e) { return '[LP SMS SUPPRESS DIAG] could not render: ' + ((e && e.message) || e); }
+  } catch (e) { return '[LP SMS OPT-OUT EVIDENCE DIAG] could not render: ' + ((e && e.message) || e); }
 }
 
 function _lpMaskPhone(p) {
@@ -4672,6 +4675,42 @@ function _lpIsOurOwnSend(text) {
       || /^\s*(?:sent\s+to|sent\s+by)\s*:/im.test(t);
 }
 
+// (v9.7.696) THE ONE PRESENCE PREDICATE'S INPUT: does today's LIVE inventory feed hold this lead's
+// stock number, AND is that feed unit the vehicle this lead is about? A stock number on its own only
+// identifies a unit; it never attested presence (v9.7.597 said so and then still gated on it). The
+// model check exists because the stock and the VOI can come from different places — the 8/18 Audi
+// case paired an S6 e-tron's number with a Q6 e-tron VOI. Year must agree when both carry one; the
+// make+model family must agree when the lead names a vehicle. No feed loaded = not confirmed.
+function _lpFeedUnitCheck(d) {
+  var out = { unit: null, inFeed: false, matchesVoi: false, confirmed: false, why: '' };
+  try {
+    if (!d || !d.stockNum) { out.why = 'no stock number'; return out; }
+    var inv = (typeof _lpValueFactCache !== 'undefined') && _lpValueFactCache[d.dealerId] && _lpValueFactCache[d.dealerId].inv;
+    if (!inv || !inv.units || !inv.units.length) { out.why = 'no live feed loaded for dealer ' + (d.dealerId || '?'); return out; }
+    var want = String(d.stockNum).toUpperCase();
+    for (var i = 0; i < inv.units.length; i++) {
+      var u = inv.units[i];
+      if (u && u.stock && String(u.stock).toUpperCase() === want) { out.unit = u; break; }
+    }
+    out.inFeed = !!out.unit;
+    if (!out.inFeed) { out.why = 'stock not in the live feed'; return out; }
+    var voi = String(d.vehicle || d.vehicleRaw || '').trim();
+    if (!voi) { out.matchesVoi = true; out.why = 'in feed; lead names no vehicle to compare'; }
+    else {
+      var uv = String(out.unit.vehicle || [out.unit.year, out.unit.make, out.unit.model].filter(Boolean).join(' '));
+      var vy = (voi.match(/\b(19|20)\d{2}\b/) || [])[0] || '';
+      var uy = String(out.unit.year || (uv.match(/\b(19|20)\d{2}\b/) || [])[0] || '');
+      var yearOk = !vy || !uy || vy === uy;
+      var famOk = _lpSameModelFamily(uv, voi);
+      out.matchesVoi = yearOk && famOk;
+      out.why = out.matchesVoi ? 'in feed and matches the lead vehicle'
+        : ('in feed but it is a DIFFERENT vehicle (feed:"' + uv + '" vs lead:"' + voi + '")');
+    }
+    out.confirmed = out.inFeed && out.matchesVoi;
+  } catch (e) { out.why = 'check threw: ' + ((e && e.message) || e); }
+  return out;
+}
+
 function _lpModelFamilyKey(v){
   // Year- and trim-insensitive vehicle identity: make + first model token. "2025 Honda CR-V EX"
   // and "2026 Honda CR-V Sport" collapse to the same key (NOT a conflict); "Toyota RAV4" vs
@@ -5356,14 +5395,17 @@ function populateFromData(d) {
     // presence-language block. It is hoisted here so the two cannot disagree — one computation, two
     // consumers. A stock number identifies a unit; it does not attest that we still have it.
     var _agentSaidNotAvailPres = /not on (the )?lot|don.t have (one|it)|do not have|unfortunately we do not|unfortunately.*not.*available|not.*currently.*available|not.*have.*right now|can.*reach out.*should one become/i.test(d.lastOutboundMsg || '');
-    var _confirmedPresent = !!d.stockNum && !d.isInTransit && !d.inventoryWarning && !d.vehiclePendingSale && !_agentSaidNotAvailPres;
+    // (v9.7.696) PRESENCE NOW NEEDS THE LIVE FEED TO HOLD THIS UNIT AND IT TO BE THE LEAD'S VEHICLE
+    // (_lpFeedUnitCheck). It used to be "a stock number exists and nothing says otherwise", which
+    // turned every stray or stale stock number into "it's here".
+    var _confirmedPresent = _lpFeedUnitCheck(d).confirmed && !d.isInTransit && !d.inventoryWarning && !d.vehiclePendingSale && !_agentSaidNotAvailPres;
     var _stkStatus = _confirmedPresent
       ? ' — confirmed in stock'
-      : ' — NOT confirmed available (inventory shows it sold, pending, in transit, or unverified). Do NOT tell the customer it is here';
+      : ' — NOT confirmed available (not in today\'s live inventory feed as this vehicle, or sold, pending, or in transit). Do NOT tell the customer it is here';
     vehicleExtras.push(_stkName
       ? 'VEHICLE ON LEAD: ' + _stkName + _stkStatus + '. Name it to the customer by year/make/model ("' + _stkName + '"). Stock #' + d.stockNum + ' is an INTERNAL identifier for matching only — NEVER put a stock number in a customer-facing message.'
       : 'Stock #' + d.stockNum + ' identifies a specific unit — INTERNAL reference only, NEVER shown to the customer.' + (_confirmedPresent ? ' It is confirmed in stock.' : ' Its availability is NOT confirmed.') + ' Name the vehicle by year/make/model from the lead or what the customer said in the arc; do not use the stock number as the vehicle name.');
-    console.log('[LP STOCK CLAIM DIAG] stock:' + d.stockNum + ' | confirmedPresent:' + _confirmedPresent
+    console.log('[LP STOCK CLAIM DIAG] stock:' + d.stockNum + ' | confirmedPresent:' + _confirmedPresent + ' | feed:' + _lpFeedUnitCheck(d).why
       + ' | inventoryWarning:' + !!d.inventoryWarning + ' pendingSale:' + !!d.vehiclePendingSale
       + ' inTransit:' + !!d.isInTransit + ' agentSaidNotAvail:' + _agentSaidNotAvailPres);
   }
@@ -5371,7 +5413,10 @@ function populateFromData(d) {
   // and waiting — misleading when in transit / at another store / unconfirmed. Gate on confirmed presence.
   if ((d.vehicle && String(d.vehicle).trim()) || d.stockNum || (d.vehicleRaw && String(d.vehicleRaw).trim())) {
     var _agentSaidNotAvailPres = /not on (the )?lot|don.t have (one|it)|do not have|unfortunately we do not|unfortunately.*not.*available|not.*currently.*available|not.*have.*right now|can.*reach out.*should one become/i.test(d.lastOutboundMsg || '');
-    var _confirmedPresent = !!d.stockNum && !d.isInTransit && !d.inventoryWarning && !d.vehiclePendingSale && !_agentSaidNotAvailPres;
+    // (v9.7.696) PRESENCE NOW NEEDS THE LIVE FEED TO HOLD THIS UNIT AND IT TO BE THE LEAD'S VEHICLE
+    // (_lpFeedUnitCheck). It used to be "a stock number exists and nothing says otherwise", which
+    // turned every stray or stale stock number into "it's here".
+    var _confirmedPresent = _lpFeedUnitCheck(d).confirmed && !d.isInTransit && !d.inventoryWarning && !d.vehiclePendingSale && !_agentSaidNotAvailPres;
     vehicleExtras.push(_confirmedPresent
       ? 'PRESENCE LANGUAGE: Skip the "pulled up" cliché. This unit\'s stock is confirmed, so "have it ready for you to see" or "have everything ready" both work — just don\'t lean on "pulled up."'
       : (_agentSaidNotAvailPres
@@ -5915,11 +5960,13 @@ function populateFromData(d) {
   try {
     var _lpInvCk = _lpValueFactCache[d.dealerId] && _lpValueFactCache[d.dealerId].inv;
     if (d.stockNum && _lpInvCk && _lpInvCk.units && _lpInvCk.units.length && !d._rgxInventoryWarning && !d.inventoryWarningFromNotes) {
-      _lpInvCk.units.some(function(u){
-        if (u.stock && String(u.stock).toUpperCase() === String(d.stockNum).toUpperCase()) { _lpInvUnit = u; return true; }
-        return false;
-      });
+      // (v9.7.696) Same predicate as the presence lines: the feed unit must BE the lead's vehicle.
+      var _lpFuc = _lpFeedUnitCheck(d);
+      _lpInvUnit = _lpFuc.confirmed ? _lpFuc.unit : null;
       _lpInvConfirmedAvailable = !!_lpInvUnit;
+      if (_lpFuc.inFeed && !_lpFuc.matchesVoi) {
+        try { console.log('[LP SOLD SIGNAL DIAG] feed has stock ' + d.stockNum + ' but ' + _lpFuc.why + ' — NOT treated as confirmation'); } catch (eFuc) {}
+      }
     }
   } catch (eInvCk) {}
   d._lpInvConfirmedAvailable = _lpInvConfirmedAvailable;
@@ -6380,9 +6427,13 @@ function populateFromData(d) {
       }
     }
     var _incGenericFresh = (_incLeadAge <= 1);
-    if (_incFirstTouch && !d.vin && !d.stockNum && !_incGenericSourceExcluded && _incGenericFresh) {
-      _incFirstTouch = false; _incFirstTouchReason = 'generic';
-    }
+    // (v9.7.696) THE 'generic' FIRST-TOUCH OVERRIDE IS CLOSED. Gil, 9/23: "an incentive offer was sent
+    // on first reach. We had put a rail against that on first reach." The rail was never total: this
+    // override (v9.7.415/425) let a fresh, model-level lead open on an incentive. Live on 9/23 it put
+    // a $209/36-month Accord lease on Marlene Cadena's first message (Honda Baytown) and $750 Conquest/
+    // Owner Loyalty cash on Bryston Taylor's (Kia Baytown). First reach now carries no incentive unless
+    // the customer asked (_incCustomerAsked) or 3+ outreaches already went out on this lead.
+    // _incGenericSourceExcluded / _incGenericFresh are left computed for the diag only.
     // (v9.7.425/423 IN-TRANSIT FIRST-TOUCH OVERRIDE) Gil's own follow-up: a Toyota in-transit
     // vehicle (VIN allocated, no stockNum yet — the same isInTransit definition already used for
     // the existing VEHICLE STATUS: IN TRANSIT directive below) is a distinct, third case, not the
@@ -6391,9 +6442,8 @@ function populateFromData(d) {
     // generic case — a real, allocated VIN, not an absence of data — and the codebase already
     // treats it as "a strong selling moment" worth urgency on its own; a real incentive is a
     // natural, consistent extension of that existing framing, not a new invented behavior.
-    if (_incFirstTouch && d.isInTransit) {
-      _incFirstTouch = false; _incFirstTouchReason = 'in_transit';
-    }
+    // (v9.7.696) The 'in_transit' first-touch override is closed for the same reason — it is also a
+    // proactive incentive on first reach. The IN TRANSIT status directive itself is untouched.
     // (v9.7.616) "FIRST EXPOSURE" AFTER SEVEN MESSAGES IS NOT FIRST EXPOSURE. The v9.7.296 rule is
     // Gil's and is right as stated -- incentives belong in follow-up, not on a brand-new lead's
     // first exposure -- but it is keyed on convState, which stays 'first-touch' all day on a lead
@@ -9177,7 +9227,19 @@ function _lpScraperBotAuthor(msg) {
     // (v9.7.479/474 HYBRID) PD stock primary, regex fallback. Adopted BEFORE VIN resolution so
     // the stock-suffix validation runs against the authoritative stock. _rgxStock retained for
     // the DIAG comparison + src markers.
-    const stockNum = (LP_PD_PRIMARY && _pdStockH) ? _pdStockH : _rgxStock;
+    // (v9.7.696) WHEN PAGEDATA DESCRIBES THIS LEAD, IT OWNS THE UNIT IDENTITY — AN EMPTY STOCK THERE
+    // IS AN ANSWER, NOT A GAP. The regex above reads "Stock #" from the WHOLE frame text, notes and
+    // chat included, and it was the fallback whenever PageData had no stock. Live, 9/23 (Toyota
+    // Baytown): Brandy Mooney's VOI is a generic "2024 Toyota Tundra (Used)" from a website chat and
+    // Mike Stewart's a generic "2022 Toyota RAV4 (New)" — PageData present for the lead, LeadVehicle
+    // with NO stock and NO VIN on both — yet the regex found "Stock #" text elsewhere on the page
+    // (TT069306B, TE152985A), and every downstream presence line then told the model the car was
+    // here. Both drafts said so. Earlier, 8/18 (Audi Lafayette): the same path paired a customer's
+    // typed S6 e-tron VIN suffix with a Q6 e-tron VOI and called the Q6 "confirmed in stock".
+    // Survey of every log on hand: EVERY real unit carried its stock in PageData (src stock:pd); the
+    // regex-only stocks were exactly these stray ones. The regex still runs when PageData is ABSENT.
+    var _pdOwnsUnit = LP_PD_PRIMARY && !!_pdHoist && !!_pdLeadIdH && (!autoLeadId || autoLeadId === _pdLeadIdH);
+    const stockNum = (LP_PD_PRIMARY && _pdStockH) ? _pdStockH : (_pdOwnsUnit ? '' : _rgxStock);
     // VIN extraction: anchor to stockNum when available to prevent cross-contamination
     // from alternate vehicles of interest listed on the same page.
     // On new vehicles, last 6 chars of stock number always match last 6 of VIN — use as primary validator.
@@ -9248,6 +9310,7 @@ function _lpScraperBotAuthor(msg) {
     // runs in full — its output is kept as _rgxVin for the DIAG comparison + src markers.
     var _rgxVin = vin;
     if (LP_PD_PRIMARY && _pdVinH) vin = _pdVinH;
+    else if (_pdOwnsUnit) vin = '';   // (v9.7.696) same rule as stockNum: PageData owns the unit identity for this lead
 
     // (v9.7.467/462 — DIAGNOSTIC ONLY, no behavior change) VinSolutions' rims2 page carries an
     // undocumented __dataIsland element with data-vin/data-stocknumber attributes that the scraper
@@ -9303,7 +9366,7 @@ function _lpScraperBotAuthor(msg) {
       _pdDiag.rgx = { vin: _rgxVin ? 'Y' : 'N', stock: _rgxStock ? 'Y' : 'N', cond: _rgxCondition || '-' };
       _pdDiag.src = {
         vin:   (LP_PD_PRIMARY && _pdVinH)   ? 'pd' : (vin ? 'rgx' : '-'),
-        stock: (LP_PD_PRIMARY && _pdStockH) ? 'pd' : (stockNum ? 'rgx' : '-'),
+        stock: (LP_PD_PRIMARY && _pdStockH) ? 'pd' : (stockNum ? 'rgx' : ((_pdOwnsUnit && _rgxStock) ? 'pd-empty(rgx ' + _rgxStock + ' refused)' : '-')),
         cond:  (LP_PD_PRIMARY && _pdCondH)  ? 'pd' : (condition ? 'rgx' : '-')
       };
       _pdDiag.idConflict = _pdIdConflict;
@@ -11302,7 +11365,12 @@ function _lpScraperBotAuthor(msg) {
     //      unparseable date counts as current AND newest; a re-opt-in with an unparseable date never
     //      clears anything.
     // "Created today" is deliberately NOT an input — the marker is the scope, and it is wider.
-    // smsSuppressed is the ONLY flag the render-time blank and the prompt's SMS-status lines read.
+    // (v9.7.696) GIL, 9/23, LATER THE SAME DAY: "lose the opt in/opt out logic and just have an SMS
+    // generated regardless ... I'll put the onus on the agent to decide when to send an SMS." He found
+    // a live lead where the model missed a signal anyway. So NOTHING BELOW SUPPRESSES ANYTHING ANY
+    // MORE. The scan is kept, renamed smsOptOutEvidence, purely so the agent can be told (a status
+    // line after generation, and [LP SMS OPT-OUT EVIDENCE DIAG]) — it no longer blanks the SMS,
+    // no longer adds a line to the prompt, and no longer shapes exit/opt-out framing.
     // Evidence set, and what changed in it:
     //   - customer bare STOP (any inbound note) and the newest-inbound STOP already found above —
     //     the same carrier keyword as before;
@@ -11315,8 +11383,8 @@ function _lpScraperBotAuthor(msg) {
     // TEXT. NOT carried over: the old /reply yes/ clause, which matched our OWN outbound "Reply YES
     // to confirm" and could clear a live opt-out; and a bare "Yes" by EMAIL, which is not an SMS
     // opt-in.
-    var smsSuppressed = false;
-    var _smsSuppressDiag = null;
+    var smsOptOutEvidence = false;
+    var _smsOptOutDiag = null;
     try {
       var _ssMarkerIdx = -1;
       for (var _ssMi = 0; _ssMi < transcript.length; _ssMi++) {
@@ -11378,20 +11446,20 @@ function _lpScraperBotAuthor(msg) {
       });
       var _ssReoptAfter = _ssCur.length > 0 && _ssNewestOut !== Infinity
         && _ssIn.some(function (e) { return isFinite(e.ms) && e.ms > _ssNewestOut; });
-      smsSuppressed = _ssCur.length > 0 && !_ssReoptAfter;
+      smsOptOutEvidence = _ssCur.length > 0 && !_ssReoptAfter;
       if (noteEls.length || _ssOut.length) {
         var _ssStrip = function (e) { return { kind: e.kind, date: e.date, side: e.side }; };
-        _smsSuppressDiag = {
+        _smsOptOutDiag = {
           markerFound: _ssMarkerFound, markerDate: _lpMarkerDate || '', notesScanned: noteEls.length,
           evidence: _ssOut.map(_ssStrip), reoptIn: _ssIn.map(_ssStrip),
           currentCount: _ssCur.length, priorCount: _ssOut.length - _ssCur.length,
-          reoptAfterNewestCurrent: _ssReoptAfter, smsSuppressed: smsSuppressed
+          reoptAfterNewestCurrent: _ssReoptAfter, evidence_live: smsOptOutEvidence
         };
       }
     } catch (eSS) {
-      // Fail safe: if the scoped read throws, suppress on ANY evidence the unscoped readers found.
-      smsSuppressed = !!(rawStopSignal || _freshStopOnThisLead);
-      _smsSuppressDiag = { error: String((eSS && eSS.message) || eSS).substring(0, 120), smsSuppressed: smsSuppressed };
+      // If the scoped read throws, report ANY evidence the unscoped readers found (informational only).
+      smsOptOutEvidence = !!(rawStopSignal || _freshStopOnThisLead);
+      _smsOptOutDiag = { error: String((eSS && eSS.message) || eSS).substring(0, 120), evidence_live: smsOptOutEvidence };
     }
     // FRAMING ONLY — isSmsOptOut feeds exit-vs-opt-out-only below and no longer decides the channel.
     // Ruling: framing keeps its current flags, so this is the pre-695 formula UNCHANGED, with one
@@ -11399,10 +11467,12 @@ function _lpScraperBotAuthor(msg) {
     // lead is superseded for framing too). Deliberately NOT "= smsSuppressed": measured against
     // v9.7.694 over 448 generated shapes, that version ADDED farewells — a current-lead STOP followed
     // by "is the civic still there?" became an exit — which the ruling does not ask for.
-    var _ssPriorOnly = !!(_smsSuppressDiag && !_smsSuppressDiag.currentCount && _smsSuppressDiag.priorCount);
-    var isSmsOptOut = (_freshStopOnThisLead
-      ? true
-      : (rawStopSignal && !hasNewLeadToday && !hasRecentReoptIn)) && !_ssPriorOnly;
+    // (v9.7.696) AND NOW NOT EVEN THAT. Opt-out is no longer an input to framing either (Gil, 9/23):
+    // isSmsOptOut is false on every lead, so smsOptOutIsExit and isSmsOptOutOnly are false, the
+    // TOP-PRIORITY opt-out block never renders, and a STOP never becomes a farewell on its own. A
+    // written "stop contacting me" / "take me off your list" still exits through exitRaw, which
+    // matches those phrases independently — that is a not-interested signal, not a channel one.
+    var isSmsOptOut = false;
     // isSmsOptOut means "stop texting" - NOT "not interested"
     // Only treat SMS opt-out as a full exit signal if it's fresh AND no new lead exists
     // Otherwise: suppress SMS only, keep email/voicemail active
@@ -14628,7 +14698,7 @@ function _lpScraperBotAuthor(msg) {
       vehicle,vehicleRaw,_voiFromPanel,_voiDiag,_isServiceFrame,_leadSelectorCount,_leadSelectorIds,priorSoldVehicle,color,condition,stockNum,vin,inventoryWarning:inventoryWarningFinal,inventoryWarningFromNotes,vehiclePendingSale,noSpecificVehicle,ownedVehicle,ampEmailSubject,ownedMileage,lastServiceDate,leadAgeDays,equityData,equityAmount,equityVehicle,
       leadSource,leadStatus: currentStatus || leadStatus,hasTrade,tradeDescription,buyingSignals,
       history, totalNoteCount, hasOutbound, isContacted, contactedAgeDays, lastOutboundMsg, lastSubstantiveOutboundMsg, noReplySinceLastOutbound, newestCustomerSignalType, newestCustomerSignalDesc, hasFreshCustomerSignal, hasCustomerReply: hasRealCustomerReply /* (v9.7.301) canonical ground truth — replaces divergent inline recomputations */, lastInboundMsg: lastInboundMsg||leadReceivedCustomerQuestion, lastInboundMs: _lastInboundMs, /* (v9.7.359) date of customer's last inbound — used to age their day-words */
-      hasPauseSignal, hasExitSignal, hasRecentReactivation, isSmsOptOutOnly, smsSuppressed, _smsSuppressDiag, hasTextOrEmailSent, convState,
+      hasPauseSignal, hasExitSignal, hasRecentReactivation, isSmsOptOutOnly, smsOptOutEvidence, _smsOptOutDiag, hasTextOrEmailSent, convState,
       vrMonthlyPayment, vrDownPayment, vrCreditScore, vrAPR, vrTerm, vrLender, conversationBrief, customerSaidNotToday, customerScheduleConstraint, schedCustomerNotes, outboundSends, isLiveConversation, isRecentOutbound, recentOutboundContent,
       customerDeclinedAlternative, customerDeclinedAlternativeText,
       email: (isMaskedEmail ? '' : buyerEmail),
@@ -16172,7 +16242,7 @@ function _lpScraperBotAuthor(msg) {
           // (v9.7.81) Popup-side SMS opt-out diagnostic — mirrors the scraper-side
           // trace at line 1972 into the popup console so we can see flag resolution
           // without switching to the page DevTools.
-          try { console.log(_lpSmsSuppressDiagLine(m, '(grab)')); } catch (_eSsd) {}
+          try { console.log(_lpSmsOptOutDiagLine(m, '(grab)')); } catch (_eSsd) {}
           console.log('[Lead Pro] POPUP-side SMS opt-out trace -- m.isSmsOptOutOnly:', m.isSmsOptOutOnly,
             '| m.hasExitSignal:', m.hasExitSignal,
             '| m.hasPauseSignal:', m.hasPauseSignal,
@@ -20679,7 +20749,7 @@ function buildUserPrompt(data) {
 
   if (sc.isLoyaltyVehicle) {
     inventoryNote = 'VEHICLE NOTE: This is the customer\'s current owned vehicle — not dealership inventory. Never reference its availability.';
-  } else if (sc.staleModelYear && sc.stockNum && !data.inventoryWarning) {
+  } else if (sc.staleModelYear && sc.stockNum && !data.inventoryWarning && data._lpInvConfirmedAvailable) {   // (v9.7.696) feed-confirmed only
     // Stock number confirmed — vehicle is physically on the lot regardless of model year
     inventoryNote = 'Vehicle is confirmed in stock (Stock #' + sc.stockNum + '). Say "we have it here" or "it is here and available to see" — UNLESS the conversation arc contains a recent internal agent note indicating the vehicle has a deposit, is on hold, or has a pending sale (see AGENT INTELLIGENCE guidance — internal notes take precedence over the base inventory status). Model year is ' + sc.vehicleYear + ' — that is fine, reference it normally.';
   } else if (sc.staleModelYear && data.vin && !sc.vehicleInTransit) {
@@ -20691,8 +20761,12 @@ function buildUserPrompt(data) {
     // Prior model year with no stock AND no VIN — soft model-only language.
     inventoryNote = 'VEHICLE NOTE: The vehicle listed is a ' + sc.vehicleYear + ' ' + (data.vehicle || 'vehicle').replace(/^20\d\d\s+/,'') + ', which is a prior model year. RULES: (1) Reference the MODEL ONLY (e.g. "the Ridgeline", "the Civic") — DROP the year ' + sc.vehicleYear + ' entirely. Phrases like "the ' + sc.vehicleYear + ' Ridgeline options" or "the right ' + sc.vehicleYear + ' Ridgeline" imply we have year-specific inventory we cannot confirm. (2) Use generic, model-level language: "your Ridgeline options", "the Ridgeline you were looking at", or just "the Ridgeline". (3) The customer knows what year they asked about — you do not need to repeat it back. (4) NEVER say "we have the ' + sc.vehicleYear + ' available", "the ' + sc.vehicleYear + ' is showing available", or "we pulled up the ' + sc.vehicleYear + ' options". (5) When in doubt, ask: "What features matter most so I can show you the right Ridgeline?"';
   } else if (!sc.vehicleInTransit && !sc.vehicleSold && data.vehicle && !/not provided/i.test(data.vehicle)) {
-    if (data.stockNum && !/not provided/i.test(data.vehicle)) {
-      // Confirmed unit — stock number on the lead means physically on lot
+    if (data.stockNum && !data._lpInvConfirmedAvailable && !/not provided/i.test(data.vehicle)) {
+      // (v9.7.696) A stock number the live feed does not hold as THIS vehicle. It used to fall into
+      // the "confirmed" branch below and tell the model to say "we have it here".
+      inventoryNote = 'VEHICLE NOTE: A stock number is on the lead, but today\'s live inventory feed does not show that unit as this vehicle, so its presence on the lot is NOT confirmed. Do NOT say it is here, available, or ready to see. Reference the model, and offer to confirm the exact unit.';
+    } else if (data.stockNum && !/not provided/i.test(data.vehicle)) {
+      // Confirmed unit — stock number on the lead AND held by the live feed as this vehicle
       inventoryNote = 'Vehicle is confirmed in inventory. Use soft language: "showing available" or "we have it here" — UNLESS the conversation arc contains a recent internal agent note indicating the vehicle has a deposit, is on hold, or has a pending sale (see AGENT INTELLIGENCE guidance — internal notes take precedence over the base inventory status).';
     } else if (data.vin && !/not provided/i.test(data.vehicle)) {
       // VIN present but no stock number — non-Toyota-inbound case.
@@ -21797,13 +21871,9 @@ function buildUserPrompt(data) {
 
   // SMS channel override — applies universally across ALL lead sources
   // When customer has opted out of SMS, suppress it and let email/VM carry the message
-  // (v9.7.695) Reads smsSuppressed only. The old OR on a bare "STOP" in lastInboundMsg is gone: that
-  // string can be a PRIOR lead's STOP (the newest customer line when this lead has none), which the
-  // marker-scoped flag correctly ignores, and a current-lead STOP is already inside the flag.
+  // (v9.7.696) The SMS CHANNEL OVERRIDE scenario line that stood here is gone: SMS is always drafted
+  // and the agent decides whether to send it (Gil, 9/23).
   var customerRequestedRemoval = /take me off|remove me|unsubscribe|not interested.*list|off.*list/i.test(data.lastInboundMsg || '');
-  if (data.smsSuppressed) {
-    scenarioRules = scenarioRules + '\nSMS CHANNEL OVERRIDE: Customer opted out of SMS texts. Set sms field to empty string. Email and voicemail should proceed normally — do NOT mention the opt-out in email or voicemail. Write the email as a strong, forward-moving message appropriate to the scenario (Click & Go, follow-up, first-touch, etc.). Do NOT be apologetic or defeated.';
-  }
 
   // (v9.7.193) Removed the ⛔ "CUSTOMER ASKED OPEN SCHEDULING QUESTION" injection that quoted
   // data.lastInboundMsg as prompt-leading "Customer said: X". It cherry-picked one message out of
@@ -23625,74 +23695,9 @@ function buildUserPrompt(data) {
   lines.push(
     '━━━ LEAD ━━━'
   );
-  if (data.isSmsOptOutOnly) {
-    // Worked/multi-touch lead? Then the email must CONTINUE the existing conversation,
-    // not revert to a first-touch pitch. The "treat like first-touch / honor original
-    // inquiry" framing below is only correct when there is no real conversation arc yet
-    // (fresh lead or STOP-as-first-touch). On an active-follow-up / persistence lead the
-    // SMS suppression still applies, but the email picks up the actual thread.
-    // (v9.7.265) An AI Buying Signal lead is a system-generated re-engagement with no real
-    // conversation arc (0 substantive notes is expected for the source). A single outreach blast
-    // + an immediate STOP is NOT a worked thread — classifying it as one routes the email to the
-    // "continue the rich thread / respond to where the customer is" branch, which (when the only
-    // event IS the STOP) pulls the model into referencing the opt-out (Javier Prado). Such leads
-    // take the fresh branch: a clean first-touch-style email on the actual inquiry, opt-out unmentioned.
-    var _optOutIsAISignal = /ai buying signal/i.test(data.leadSource || '');
-    var _optOutWorkedLead = !_optOutIsAISignal && (
-         (data.convState && data.convState !== 'first-touch')
-      || (data.totalNoteCount || 0) >= 6
-      || !!data.hasOutbound);
-    lines.push(
-      '',
-      '╔════════════════════════════════════════════════════════════════════╗',
-      '║ TOP-PRIORITY DIRECTIVE — SMS OPT-OUT — READ AND OBEY EXACTLY       ║',
-      '╚════════════════════════════════════════════════════════════════════╝',
-      'The customer texted STOP. This is a CHANNEL preference (no more texts), NOT an exit signal. They did not say they bought elsewhere. They did not say they lost interest. They just said no more SMS.',
-      '',
-      'WHAT TO DO:',
-      '1. SMS = EMPTY STRING. The SMS field is blanked in code for this lead; anything written there is discarded. Put nothing in it.'
-    );
-    if (_optOutIsAISignal) {
-      lines.push(
-        '2. EMAIL = This is an AI BUYING SIGNAL lead — a behavioral signal, NOT an inquiry the customer made. Follow the AI BUYING SIGNAL SITUATION MATRIX above and write the email as that finesse RE-ENGAGEMENT, with the opt-out unmentioned anywhere. Do NOT mention the STOP. Do NOT treat the signal vehicle as a confirmed request: no "I will line up / pull / get your [vehicle] ready," no "since you are driving in," no paperwork-prep or "in and out" promises. Do NOT push an appointment or offer specific times — they have not asked to come in. If they are a previously-sold returner, LEAD with the vehicle they bought from us and ask one open question about what is prompting the look now (one warm line + one question). Behave on email as if the opt-out never happened.',
-        '3. VOICEMAIL = skip or one sentence max. Do not dwell on the STOP.',
-        '',
-        'WRONG email: "I will get your CR-V lined up — since you are driving in we can pre-fill paperwork so you are in and out in under an hour. Would 9:15 or 10:30 work?" — this treats a behavioral signal like a booked deal and pushes a visit they never requested.',
-        'RIGHT email: leads with the prior relationship and opens a conversation. e.g. "Hi [name], you got your [prior vehicle] from us a while back — saw you might be back in the market. What is prompting the look — ready for something newer, or a different size/feature set?"',
-        '',
-        'The customer opted out of ONE channel. Re-engage them on email per the AI Buying Signal approach — relationship first, no pressure.'
-      );
-    } else if (_optOutWorkedLead) {
-      lines.push(
-        '2. EMAIL = DO NOT mention the opt-out at all (not subject, body, or closing one-liner). The STOP is a CHANNEL ACTION, handled ENTIRELY by the SMS confirmation above — it is NOT a message to answer and NOT "where the customer is" for email purposes. On email, behave as if the STOP never happened: do not acknowledge it, reference it, or respond to it. This is NOT a first touch — there is a real, ongoing conversation in the arc above. CONTINUE that conversation: pick up the actual inquiry/vehicle thread where it left off (NOT the STOP), applying the persistence / VARY YOUR ANGLE / fatigue guidance already in this prompt. Do NOT reintroduce the vehicle as if it were new, do NOT re-pitch basic availability, and do NOT revert to a first-touch outreach. Move the existing thread forward on the channel they did not opt out of.',
-        '3. VOICEMAIL = skip or one sentence max. Do not dwell on the STOP.',
-        '',
-        'WRONG email: a generic "the vehicle is still here, want to come see it?" availability pitch that ignores everything already said in this thread. That reads like message #1, not the latest message in a long conversation.',
-        'RIGHT email: advances the specific open thread — answers the last thing they raised, varies the angle from prior outreach, and respects any constraint they stated (timing, distance/remote, budget).',
-        '',
-        'The customer opted out of ONE channel. Keep serving them on email, but as a continuation of the real conversation — not a restart.'
-      );
-    } else {
-      lines.push(
-        '2. EMAIL = DO NOT mention the opt-out at all. Not in the subject, not in the body, not as a closing one-liner. The SMS already confirmed it; repeating it in the email is dead weight that strays from the point. The email subject and body must address ONLY the ORIGINAL INQUIRY shown in the LEAD section below (vehicle they asked about, trade-in/KBB offer amount if present, whatever brought them in). Treat the email like a normal first-touch outreach for their actual inquiry — as if the opt-out had not happened.',
-        '3. VOICEMAIL = skip or one sentence max. Do not dwell on the STOP.',
-        '',
-        'WRONG email subject: "Text updates stopped" / "SMS opt-out confirmed" / "Your text preferences" — these treat the email as if it were just another STOP confirmation. The customer ALREADY got that confirmation via SMS.',
-        'RIGHT email subject: References the actual vehicle/trade/inquiry. e.g. "Your KBB offer on the 2017 Audi A4" / "KBB cash offer — good for 7 days" / "Trade-in number on your Accord".',
-        '',
-        'WRONG email body: "Hi [name], I have marked your number to stop text messages. [signature]" — this is dead weight. The customer already knows their texts are off.',
-        'RIGHT email body: Opens with the actual inquiry and stays on it — no mention of the text opt-out anywhere. e.g. "Hi [name], I saw your KBB instant cash offer come through at $8,568 on your 2017 Audi A4 Prestige. That offer is good for [X days] and we can have it ready to look at any time. [Substantive content about the inquiry / next step / signature]."',
-        '',
-        'The customer opted out of ONE channel. Serve them on the channel they did not opt out of, on the topic they actually raised.'
-      );
-    }
-    lines.push(
-      '╔════════════════════════════════════════════════════════════════════╗',
-      '║ END SMS OPT-OUT DIRECTIVE                                           ║',
-      '╚════════════════════════════════════════════════════════════════════╝',
-      ''
-    );
-  }
+  // (v9.7.696) The boxed "TOP-PRIORITY DIRECTIVE — SMS OPT-OUT" block that stood here is removed.
+  // It keyed on isSmsOptOutOnly, which is false on every lead since opt-out stopped shaping framing
+  // (Gil, 9/23: SMS is always drafted; the agent decides whether to send it).
   // (v9.7.118) LATE-SCRAPE BACKFILL: data is a snapshot taken when populate ran.
   // If a late frame scrape populated lastScrapedData.phone AFTER that snapshot
   // (third-party leads often render the buyer panel several seconds after the
@@ -23842,12 +23847,7 @@ function buildUserPrompt(data) {
     data.phone
       ? 'Customer Phone: ' + data.phone + '  ← already on file. Do NOT ask for a phone number.'
       : 'Customer Phone: (no phone on file)  ← genuinely missing. Asking for a phone number IS appropriate.',
-    // (v9.7.695) Keyed on smsSuppressed, the one channel flag. Wording branches only on framing.
-    data.smsSuppressed
-      ? (data.isSmsOptOutOnly
-          ? '⚠ SMS STATUS: see TOP-PRIORITY DIRECTIVE above. SMS field = EMPTY STRING (suppressed). Email = substantive on original inquiry, NOT about the opt-out.'
-          : '⚠ SMS STATUS: this customer opted out of texts on this lead. SMS field = EMPTY STRING (suppressed).')
-      : '',
+    // (v9.7.696) The SMS STATUS line is gone with the suppression it described.
     'BD Agent:   ' + (data.agent || '⚠ AGENT NAME UNKNOWN — CRITICAL: Do NOT invent or guess a name. Use ONLY the phone number in the SMS signature. Sign as the phone number only. Never fabricate a name.') + '  ← THIS IS WHO WRITES AND SIGNS THIS MESSAGE. Use this name in the signature — NOT any sales rep name from prior messages.',
     'Sales Rep:  ' + (data.salesRep || '(not assigned)') + '  ← may appear in call notes as the person who spoke with customer',
     'Agent Phone: ' + phone + '  ← CRITICAL: this is the AGENT signature phone (use in signature). Do NOT confuse with Customer Phone above. Do NOT use any other number you may have seen.',
@@ -25229,7 +25229,7 @@ async function generateAll() {
       // true at popup level but prompt length never grew. Root cause: this
       // missing prop bridge.
       isSmsOptOutOnly:           lastScrapedData ? !!lastScrapedData.isSmsOptOutOnly : false,
-      smsSuppressed:             lastScrapedData ? !!lastScrapedData.smsSuppressed : false,   // (v9.7.695) P1
+      smsOptOutEvidence:         lastScrapedData ? !!lastScrapedData.smsOptOutEvidence : false,   // (v9.7.696) informational
       hasExitSignal:             lastScrapedData ? !!lastScrapedData.hasExitSignal : false,
       hasPauseSignal:            lastScrapedData ? !!lastScrapedData.hasPauseSignal : false,
       hasTextOrEmailSent:        lastScrapedData ? !!lastScrapedData.hasTextOrEmailSent : false,
@@ -25369,7 +25369,7 @@ async function generateAll() {
     //
     // Always bypass when:
     var _inventoryBypass    = !!(lastScrapedData && (lastScrapedData.inventoryWarning || lastScrapedData.vehiclePendingSale));
-    var _exitPauseBypass    = !!(lastScrapedData && (lastScrapedData.hasExitSignal || lastScrapedData.hasPauseSignal || lastScrapedData.isSmsOptOutOnly || lastScrapedData.smsSuppressed));
+    var _exitPauseBypass    = !!(lastScrapedData && (lastScrapedData.hasExitSignal || lastScrapedData.hasPauseSignal || lastScrapedData.isSmsOptOutOnly));
     var _showroomBypass     = !!(lastScrapedData && (lastScrapedData.isShowroomFollowUp || lastScrapedData.showroomVisitToday));
     var _customerReplied    = !!(lastScrapedData && lastScrapedData.hasCustomerReply);  // reply = live conversation, cache wrong
     var _apptSetBypass      = !!(lastScrapedData && lastScrapedData.hasApptSet);         // appt already set = cache pre-appt response wrong
@@ -25984,18 +25984,9 @@ async function generateAll() {
     // enforced here regardless of what the model returned: a customer who texted STOP gets no
     // SMS draft, period. Exit-signal closes are unaffected — this fires only on the
     // channel-preference case (isSmsOptOutOnly) or a raw newest-message STOP.
-    // (v9.7.695) P1: READS smsSuppressed AND NOTHING ELSE. The scraper builds it from marker-scoped
-    // evidence (current-lead opt-out suppresses; prior-lead does not; a newer explicit re-opt-in
-    // clears). The old OR on isSmsOptOutOnly missed exit-framed opt-outs whose exit was cancelled
-    // (path A); the old OR on a bare STOP in lastInboundMsg blanked SMS on a prior lead's STOP.
-    try {
-      try { console.log(_lpSmsSuppressDiagLine(lastScrapedData, '(render)')); } catch (_eSsd2) {}
-      var _optOutNow = !!(lastScrapedData && lastScrapedData.smsSuppressed);
-      if (_optOutNow && parsed && parsed.sms) {
-        console.log('[Lead Pro] SMS suppressed deterministically (opt-out) — model draft discarded:', String(parsed.sms).substring(0, 80));
-        parsed.sms = '';
-      }
-    } catch(e) {}
+    // (v9.7.696) THE DETERMINISTIC SMS BLANK IS REMOVED. Gil, 9/23: generate the SMS regardless and
+    // let the agent decide whether to send it. The evidence line below is informational only.
+    try { console.log(_lpSmsOptOutDiagLine(lastScrapedData, '(render)')); } catch (_eSsd2) {}
     var rawSms   = flattenField(parsed.sms,   'sms');
     var rawSubject = parsed.subject ? parsed.subject.trim() : '';
     var rawEmail = flattenField(parsed.email, 'email');
@@ -26579,7 +26570,7 @@ async function generateAll() {
     // either way, write an explicit opt-out notice into the SMS pane so whichever tab the agent
     // lands on is self-explanatory. Normal leads (SMS present) open to SMS exactly as before.
     if (!smsText && emailText) {
-      var _wasOptOut = !!(lastScrapedData && lastScrapedData.smsSuppressed);   // (v9.7.695) same flag as the blank
+      var _wasOptOut = false;   // (v9.7.696) nothing blanks an SMS for opt-out any more; an empty SMS is just empty
       // Mark the SMS pane so it's clearly intentional, not broken.
       try {
         var _smsOverlayCap = document.querySelector('[data-overlay="sms"] .output-empty-caption');
@@ -26609,6 +26600,17 @@ async function generateAll() {
         if (_smsMarkReset) _smsMarkReset.textContent = 'LP';
       } catch(e) {}
       switchTab('sms');
+      // (v9.7.696) The agent decides whether to text. When THIS lead carries live opt-out evidence,
+      // say so where they will see it — a notice, never a block. One statement to delete if unwanted.
+      try {
+        if (lastScrapedData && lastScrapedData.smsOptOutEvidence) {
+          var _ooNoticeEl = document.getElementById('crm-status') || document.querySelector('.crm-status');
+          if (_ooNoticeEl) {
+            _ooNoticeEl.className = 'crm-status notice';
+            _ooNoticeEl.textContent = '⚠ SMS drafted — this lead has opt-out evidence on record. Your call whether to text.';
+          }
+        }
+      } catch (_eOoN) {}
     }
 
   } catch(e) {

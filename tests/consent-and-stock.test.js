@@ -111,7 +111,7 @@ function extract(file) {
     // (v9.7.600) The stock claim was covered by SOURCE SCANS only. That is precisely the coverage
     // that let the v9.7.596 subject ladder read the wrong object for three builds: the shape was
     // right, the binding was wrong, and no regex over source can tell those apart. Executed now.
-    stockClaim: d => {
+    stockClaim: (d, feed) => {
       const a2 = src.indexOf('  if (d.stockNum) {');
       if (a2 < 0) throw new Error('NOT IN THIS BUILD: stock claim');
       const marker = "      + ' inTransit:'";
@@ -120,9 +120,17 @@ function extract(file) {
       const b2 = src.indexOf('  }\n', m2) + 4;
       const s2 = { String, console: { log() {} } };
       vm.createContext(s2);
+      // (v9.7.696) Presence now asks the LIVE FEED (_lpFeedUnitCheck), so the real helper and the
+      // model-family functions it calls are loaded, and each case supplies its own feed.
+      const fn = (name) => { const i = src.indexOf('function ' + name + '('); if (i < 0) throw new Error('NOT IN THIS BUILD: ' + name);
+                             return src.slice(i, src.indexOf('\n}\n', i) + 3); };
+      const mk = src.slice(src.indexOf('var _LP_MAKE_RX ='), src.indexOf('\n', src.indexOf('var _LP_MAKE_RX =')));
+      vm.runInContext('var _lpValueFactCache = {};\n' + mk + '\n' + fn('_lpNormVehicleStr') + fn('_lpModelFamilyKey')
+        + fn('_lpSameModelFamily') + (src.indexOf('function _lpFeedUnitCheck(') >= 0 ? fn('_lpFeedUnitCheck') : ''), s2);
       vm.runInContext('function stockClaim(d){ var vehicleExtras=[];\n' + src.slice(a2, b2)
         + '\n return vehicleExtras.join(" "); }', s2);
-      return vm.runInContext('stockClaim', s2)(d);
+      s2._lpValueFactCache['6191'] = { inv: { units: (feed || []) } };
+      return vm.runInContext('stockClaim', s2)(Object.assign({ dealerId: '6191' }, d));
     },
     applyConfig: stores => vm.runInContext('applyConfig', sb)({ stores: stores }),
     fallback: id => vm.runInContext('STORE_PHONE_FALLBACK', sb)[id],
@@ -225,7 +233,9 @@ check('_confirmedPresent is computed BEFORE the claim that uses it',
   }, true);
 
 check('the presence-language block still has its own copy — one computation, two consumers',
-  i => (strip(i.src).match(/var _confirmedPresent = !!d\.stockNum/g) || []).length, 2);
+  i => (strip(i.src).match(/var _confirmedPresent = _lpFeedUnitCheck\(d\)\.confirmed/g) || []).length, 2);
+check('(v9.7.696) neither copy gates on the bare stock number any more',
+  i => (strip(i.src).match(/var _confirmedPresent = !!d\.stockNum/g) || []).length, 0);
 
 check('[LP STOCK CLAIM DIAG] reports every input to the decision',
   i => {
@@ -235,12 +245,14 @@ check('[LP STOCK CLAIM DIAG] reports every input to the decision',
   }, { confirmed: true, warn: true, pending: true, transit: true });
 
 // The predicate itself, run rather than described — Amber's signals vs a healthy unit.
-const confirmed = d => !!d.stockNum && !d.isInTransit && !d.inventoryWarning && !d.vehiclePendingSale && !d.agentSaidNotAvail;
+const confirmed = d => !!d.stockNum && !!d.feedConfirms && !d.isInTransit && !d.inventoryWarning && !d.vehiclePendingSale && !d.agentSaidNotAvail;   // (v9.7.696) feed must confirm
 console.log('\nwhat that predicate says about the units in play:');
 check('  Amber\'s Sentra (inventoryWarning:true) -> NOT confirmed',
   () => confirmed({ stockNum: 'P4804', inventoryWarning: true }), false);
 check('  a healthy in-stock unit -> confirmed',
-  () => confirmed({ stockNum: 'TA047502' }), true);
+  () => confirmed({ stockNum: 'TA047502', feedConfirms: true }), true);
+check('  (v9.7.696) a stock number the feed does not confirm -> NOT confirmed',
+  () => confirmed({ stockNum: 'TE152985A' }), false);
 check('  an in-transit unit -> NOT confirmed',
   () => confirmed({ stockNum: 'X1', isInTransit: true }), false);
 check('  a unit with a pending sale -> NOT confirmed',
@@ -261,14 +273,28 @@ check('...and it tells the model plainly not to claim the car is here',
   i => /Do NOT tell the customer it is here/.test(
         i.stockClaim({ stockNum: 'P4804', vehicle: '2024 Nissan Sentra SV', inventoryWarning: true })), true);
 
-check('a healthy unit IS still called confirmed in stock',
+const ACCORD_FEED = [{ stock: 'TA047502', vehicle: '2026 Honda Accord Hybrid Sport-L', year: 2026, make: 'Honda', model: 'Accord Hybrid Sport-L' }];
+check('a healthy unit IS still called confirmed in stock (the live feed holds it as this vehicle)',
   i => /— confirmed in stock/.test(
-        i.stockClaim({ stockNum: 'TA047502', vehicle: '2026 Honda Accord Hybrid Sport-L' })), true);
+        i.stockClaim({ stockNum: 'TA047502', vehicle: '2026 Honda Accord Hybrid Sport-L' }, ACCORD_FEED)), true);
+// (v9.7.696) The 9/23 Toyota shapes and the 8/18 Audi shape, run.
+check('(v9.7.696) a stock number the live feed does NOT hold is not called confirmed (Mike Stewart, RAV4)',
+  i => /— confirmed in stock/.test(i.stockClaim({ stockNum: 'TE152985A', vehicle: '2022 Toyota RAV4' }, ACCORD_FEED)), false);
+check('(v9.7.696) ...and the model is told plainly not to say it is here',
+  i => /Do NOT tell the customer it is here/.test(i.stockClaim({ stockNum: 'TE152985A', vehicle: '2022 Toyota RAV4' }, ACCORD_FEED)), true);
+check('(v9.7.696) a feed unit that is a DIFFERENT vehicle does not confirm the lead\'s VOI (S6 e-tron stock on a Q6 e-tron lead)',
+  i => /— confirmed in stock/.test(i.stockClaim({ stockNum: 'SA023556', vehicle: '2026 Audi Q6 e-tron' },
+        [{ stock: 'SA023556', vehicle: '2025 Audi S6 e-tron Premium Plus', year: 2025, make: 'Audi', model: 'S6 e-tron' }])), false);
+check('(v9.7.696) a different model YEAR of the same family does not confirm it either',
+  i => /— confirmed in stock/.test(i.stockClaim({ stockNum: 'TT1', vehicle: '2024 Toyota Tundra' },
+        [{ stock: 'TT1', vehicle: '2021 Toyota Tundra SR5', year: 2021, make: 'Toyota', model: 'Tundra SR5' }])), false);
+check('(v9.7.696) no feed loaded at all -> not confirmed (fails closed)',
+  i => /— confirmed in stock/.test(i.stockClaim({ stockNum: 'TA047502', vehicle: '2026 Honda Accord Hybrid Sport-L' }, [])), false);
 
 check('every suppressing signal is honoured, not just inventoryWarning',
   i => ['inventoryWarning', 'vehiclePendingSale', 'isInTransit'].map(flag => {
-        const d = { stockNum: 'X1', vehicle: '2026 Civic' }; d[flag] = true;
-        return /— confirmed in stock/.test(i.stockClaim(d));
+        const d = { stockNum: 'X1', vehicle: '2026 Honda Civic' }; d[flag] = true;
+        return /— confirmed in stock/.test(i.stockClaim(d, [{ stock: 'X1', vehicle: '2026 Honda Civic', year: 2026 }]));
       }), [false, false, false]);
 
 check('the block reads a real lead object — the vehicle name reaches the output',

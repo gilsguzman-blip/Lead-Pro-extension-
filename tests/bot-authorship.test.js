@@ -270,7 +270,16 @@ function stateLine(impl, notes, opts) {
 
 const BOT_NOTE   = { dir: 'outbound', title: 'Outbound Text Message', body: BOT_SPORTAGE };
 const HUMAN_NOTE = { dir: 'outbound', title: 'Outbound Text Message', body: HUMAN_CHRIS };
-const INBOUND    = { dir: 'inbound',  title: 'Inbound Text Message',  body: 'Nice I love it', date: '09/16/2026 10:21 AM' };
+// (v9.7.696) The date was a literal 09/16/2026, and the shipped loop ages notes against Date.now(),
+// so this suite started failing on its own on 9/23 — a clock time bomb, not a regression. It is now
+// "one hour ago" in the CRM's own date format, so it is fresh on whatever day the suite runs.
+const _inboundDate = (function () {
+  const t = new Date(Date.now() - 3600 * 1000);
+  const p = (n) => String(n).padStart(2, '0');
+  const h = t.getHours() % 12 || 12;
+  return p(t.getMonth() + 1) + '/' + p(t.getDate()) + '/' + t.getFullYear() + ' ' + h + ':' + p(t.getMinutes()) + ' ' + (t.getHours() < 12 ? 'AM' : 'PM');
+})();
+const INBOUND    = { dir: 'inbound',  title: 'Inbound Text Message',  body: 'Nice I love it', date: _inboundDate };
 
 check('Aimee\'s shape: the reply since her message was the assistant\'s',
   i => /YOU have not replied to this yet/.test(stateLine(i, [BOT_NOTE, INBOUND])), true);

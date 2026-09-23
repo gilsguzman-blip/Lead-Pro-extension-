@@ -53,7 +53,15 @@ function extract(file) {
   // Ends at the Audi-policy branch; the ' else if (' tail is dropped so the slice closes cleanly.
   const block = span('  if (_lpInvConfirmedAvailable) {\n    // ── (v9.7.660)', 'the confirmation block',
     '\n  } else if (_audiAllAvail').replace(/ else if \(_audiAllAvail$/, '');
-  return { name: path.basename(path.dirname(file)), src, clean, capture, block };
+  // (v9.7.696) The capture now asks _lpFeedUnitCheck (feed holds the stock AND it is the lead's
+  // vehicle), so that helper and the model-family functions it calls travel with it, from the
+  // same shipped file.
+  const fnOf = (name) => span('function ' + name + '(', name, '\n}\n');
+  const feedFns = (src.indexOf('function _lpFeedUnitCheck(') >= 0)
+    ? src.slice(src.indexOf('var _LP_MAKE_RX ='), src.indexOf('\n', src.indexOf('var _LP_MAKE_RX ='))) + '\n'
+      + fnOf('_lpNormVehicleStr') + fnOf('_lpModelFamilyKey') + fnOf('_lpSameModelFamily') + fnOf('_lpFeedUnitCheck')
+    : '';
+  return { name: path.basename(path.dirname(file)), src, clean, capture, block, feedFns };
 }
 
 // ── THE FEED ────────────────────────────────────────────────────────────────
@@ -74,6 +82,7 @@ function capture(impl, stockNum, units, opts) {
     _lpInvConfirmedAvailable: false,
   };
   vm.createContext(sb);
+  if (impl.feedFns) vm.runInContext(impl.feedFns, sb);
   vm.runInContext(opts && opts.mutate ? opts.mutate(impl.capture) : impl.capture, sb);
   const u = vm.runInContext('_lpInvUnit', sb);
   return { found: vm.runInContext('_lpInvConfirmedAvailable', sb), unit: u, color: u ? u.color : null };
@@ -305,11 +314,10 @@ check('the asked-about-colour branch still wins when they HAVE asked',
 console.log('\nnon-vacuity (v9.7.660 and v9.7.661):');
 
 // A: put back the boolean-only match and the paint has nothing to come from.
-const DISCARD = c => c.replace(
-  /if \(u\.stock && String\(u\.stock\)\.toUpperCase\(\) === String\(d\.stockNum\)\.toUpperCase\(\)\) \{ _lpInvUnit = u; return true; \}/,
-  'if (u.stock && String(u.stock).toUpperCase() === String(d.stockNum).toUpperCase()) { return true; }');
+// (v9.7.696) The capture now takes the unit from _lpFeedUnitCheck; the neuter throws the record away there.
+const DISCARD = c => c.replace('_lpInvUnit = _lpFuc.confirmed ? _lpFuc.unit : null;', '_lpInvUnit = null;');
 check('neuter A actually discards the unit', i => DISCARD(i.capture) !== i.capture, true);
-check('A: the match still succeeds but the record is gone',
+check('A: with the record thrown away, nothing is confirmed and there is no unit to read paint from',
   i => { const r = capture(i, 'P4886', LOT, { mutate: DISCARD }); return [r.found, r.unit]; }, [false, null]);
 check('A (control): the shipped capture keeps it',
   i => capture(i, 'P4886', LOT).color, 'Winter Frost Pearl');
