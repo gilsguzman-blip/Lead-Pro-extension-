@@ -65,6 +65,26 @@ for (const f of BUILDS) {
   const fs = require('fs');
   const code = fs.readFileSync(f, 'utf8').split('\n').filter(l => !/^\s*\/\//.test(l)).join('\n');
   check('the distance block\'s own example no longer talks about "your trip"', () => /make sure your trip is productive/.test(code), false);
+  // (v9.7.701) The paired drafts found our own text feeding the trip back to the model.
+  check('v9.7.701: no "before you make the trip" example, no "so the trip is worth it" context line',
+    () => [/before you make the trip/.test(code), /so the trip is worth it/.test(code), /the trip must feel financially worthwhile/.test(code)], [false, false, false]);
+  check('v9.7.701: the Address Distance chip no longer orders "Acknowledge the trip directly"',
+    () => [/Acknowledge the trip directly/.test(code), /'lead-distance': '[^']*Do NOT name the distance, the drive or the trip\.'/.test(code)], [false, true]);
+  const far = prompt({ name: 'Near Buyer', vehicle: '2026 Honda Pilot', leadSource: 'Cars.com', dealerId: '24399', store: 'Community Honda Lafayette',
+    leadAgeDays: 1, convState: 'active-follow-up', hasCustomerReply: true, hasOutbound: true, customerState: 'LA', customerZip: '71301', isDistanceBuyer: true,
+    lastInboundMsg: 'Is it still available?', _lpInvConfirmedAvailable: true, stockNum: 'T12345',
+    _e: [entry(9, 23, '9:05 AM', 'CUSTOMER', 'Inbound Text Message', 'Received from: (555) 010-0199\n  Is it still available?')] });
+  check('v9.7.701: an in-state distance buyer\'s prompt carries no trip wording of ours (executed)',
+    () => (far.match(/so the trip is worth it|before you make the trip|trip is productive|acknowledge the distance once/gi) || []), []);
+  // (v9.7.701) enforceSmsSig's store-key safety net deleted a BODY line that mentioned the brand.
+  const sigSrc = fs.readFileSync(f, 'utf8'); const sa = sigSrc.indexOf('  function enforceSmsSig(sms) {'); const sigFn = sigSrc.slice(sa, sigSrc.indexOf('\n  }\n', sa) + 4);
+  const sig = new Function('window', 'lastScrapedData', 'DEALER_ID_MAP', 'selectedStore', 'lookupPhone', 'console', sigFn + '\nreturn enforceSmsSig;')(
+    { _leadProResolvedSigner: { firstName: 'Kristen', name: 'Kristen Agent', title: 'Audi Concierge', phone: '(555) 010-0199' } },
+    { dealerId: '21135', totalNoteCount: 2, leadAgeDays: 1 }, { '21135': 'Audi Lafayette' }, '', () => '', { log() {} });
+  check('v9.7.701: a closing question that mentions Audi survives the signature step (executed)',
+    () => /Would you like to compare it with an Audi Q3\?/.test(sig('Jody, the Sportage is here.\n\nWould you like to compare it with an Audi Q3?\nKristen\nAudi Concierge | Audi Lafayette\n(555) 010-0199')), true);
+  check('control: a stray store-name signature line is still stripped, not doubled',
+    () => (sig('Jody, the Sportage is here.\nAudi Lafayette\n(555) 010-0199').match(/Audi Lafayette/g) || []).length, 1);
   check('populate\'s dead distance push (never reached a prompt) is gone', () => /It is appropriate to acknowledge the distance ONCE/.test(code), false);
 }
 console.log('\n' + pass + ' passed, ' + fail + ' failed');

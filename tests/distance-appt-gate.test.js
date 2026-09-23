@@ -400,7 +400,7 @@ console.log('\nthe CONTEXT line stops naming a time on a paused lead:');
 
 check('a normal distance buyer still gets the v9.7.611 wording, unchanged',
   i => context(i, { vehicle: '2022 Ram 1500 Laramie', leadAgeDays: 4 }),
-  'Customer is interested in the 2022 Ram 1500 Laramie. Confirm it is available and encourage the soonest workable time so the trip is worth it — do NOT promise to hold or set aside an in-stock unit (we do not reserve on-lot cars). If it is in transit/inbound, securing it before arrival is appropriate.');
+  'Customer is interested in the 2022 Ram 1500 Laramie. Confirm it is available and encourage the soonest workable time, with what will be ready for them as the reason (never the drive or the trip) — do NOT promise to hold or set aside an in-stock unit (we do not reserve on-lot cars). If it is in transit/inbound, securing it before arrival is appropriate.');
 
 check('a paused lead is not told to encourage the soonest workable time',
   i => /encourage the soonest workable time/.test(context(i, PAUSED)), false);
@@ -496,7 +496,7 @@ check('a 45-day lead that HAS replied keeps the engine on',
 
 check('...and its CONTEXT line is the original v9.7.611 wording, to the byte',
   i => context(i, REACT, { replied: true }),
-  'Customer is interested in the 2022 Ram 1500 Laramie. Confirm it is available and encourage the soonest workable time so the trip is worth it — do NOT promise to hold or set aside an in-stock unit (we do not reserve on-lot cars). If it is in transit/inbound, securing it before arrival is appropriate.');
+  'Customer is interested in the 2022 Ram 1500 Laramie. Confirm it is available and encourage the soonest workable time, with what will be ready for them as the reason (never the drive or the trip) — do NOT promise to hold or set aside an in-stock unit (we do not reserve on-lot cars). If it is in transit/inbound, securing it before arrival is appropriate.');
 
 check('...and its email still closes with the appointment ask',
   i => /Open with the vehicle\/option confirmation, THEN the appointment ask/.test(text(build(i, REACT, { inStateFar: true, replied: true }))), true);
@@ -587,7 +587,7 @@ check('an engine-off credit lead is told not to ask them in',
 
 check('a live credit lead keeps the original wording',
   i => context(i, { leadAgeDays: 4, vehicle: 'X' }, { flags: ['distance', 'credit'], replied: true }),
-  'Customer has credit sensitivity AND is a distance buyer — the trip must feel financially worthwhile. Lead with financing confidence before asking them to drive.');
+  'Customer has credit sensitivity AND is a distance buyer — the visit must feel financially worthwhile (never say so in terms of the drive). Lead with financing confidence before asking them to drive.');
 
 // ── THE HELPER ITSELF ───────────────────────────────────────────────────────
 console.log('\nthe hold reads one field and returns one reason:');
