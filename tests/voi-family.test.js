@@ -149,8 +149,11 @@ check('BOTH vehicles are named in the directive',
   i => { const t = vehLine(i, SPORTAGE, [SORENTO], RAISED);
          return /2026 Kia Sportage EX/.test(t) && /2026 Kia Sorento LX FWD/.test(t); }, true);
 
-check('the model is told to ask ONE direct question rather than choose',
-  i => /Name BOTH distinctly in ONE direct question and let the customer tell you which/
+// (v9.7.694) The count came out ("ONE direct question" -> "a direct question") on Gil's ask-rule
+// decision. What this pins is the part that prevents the incident: the model names BOTH and lets
+// the customer choose, rather than choosing for them.
+check('the model is told to ask directly rather than choose',
+  i => /Name BOTH distinctly in a direct question and let the customer tell you which/
         .test(vehLine(i, SPORTAGE, [SORENTO], RAISED)), true);
 
 check('...and is explicitly forbidden from settling it itself',

@@ -315,9 +315,12 @@ check('the old bare quoted-string ban is gone',
 check('...but "do not repeat what previous messages said" is kept',
   i => /DO NOT repeat what previous messages said/.test(i.body), true);
 
-// PHASE 2 carries its own copy of the prohibition and is NOT in scope here.
-check('PHASE 2\'s own wording is untouched',
-  i => /Ask ONE low-effort question\. NOT "are you still interested\?"/.test(i.body), true);
+// (v9.7.694) PHASE 2 WAS OUT OF SCOPE FOR v9.7.688 AND IS IN SCOPE NOW. Its "NOT 'are you still
+// interested?'" prohibition is kept; its "Ask ONE low-effort question" lost the count on Gil's
+// ask-rule decision, 9/23. Pinned so the two halves cannot be separated by a later edit.
+check('PHASE 2 keeps its still-interested prohibition and no longer counts the ask',
+  i => [/Ask a low-effort question\. NOT "are you still interested\?"/.test(i.body),
+        /Ask ONE low-effort question/.test(i.body)], [true, false]);
 
 // ── WIRING ────────────────────────────────────────────────────────────────────────────────
 console.log('\n  wiring — a correct block that is never reached decides nothing (v9.7.561):');

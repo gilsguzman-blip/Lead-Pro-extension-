@@ -121,6 +121,21 @@ const QUESTIONS = [
     forbidden: ['has the Pilot won you over', 'are you still set on the CR-V']
   },
   {
+    // (v9.7.694) FOUND BY THE MESSAGE-CONSTRAINT AUDIT, the second entry here that cost no incident.
+    // The 1,263-character AGENT CONTEXT preamble existed as two byte-identical literals in the two
+    // _hasPostVisitNote branches — the competing transcript carriers v9.7.629 recorded — and
+    // rephrasing one sentence in it (the either/or ask, "Ask ONE direct question") would have
+    // needed two edits with nothing asserting they matched. Same shape as the clarify line in
+    // v9.7.689/.690. Its owner lives INSIDE inlineScraper deliberately: that function is
+    // serialised with `func: inlineScraper`, so a module-scope constant would not travel.
+    question: 'what does the AGENT CONTEXT preamble tell the model about notes vs the last message',
+    owner: 'var _LP_AGENT_CONTEXT_PREAMBLE = ',
+    incident: 'v9.7.694 (found by an audit, not an incident): two byte-identical copies; one sentence change needed two edits',
+    consumers: ['var notePrefix = _LP_AGENT_CONTEXT_PREAMBLE', 'var notePrefix2 = _LP_AGENT_CONTEXT_PREAMBLE'],
+    forbidden: ["var notePrefix = 'AGENT CONTEXT", "var notePrefix2 = 'AGENT CONTEXT",
+                'Ask ONE direct question naming both distinctly']
+  },
+  {
     question: 'where does the bounded conversation transcript begin and end',
     owner: 'function _lpBoundedTranscript(',
     incident: 'v9.7.629 / v9.7.630 (the arc digest and the fence disagreed about the region)',

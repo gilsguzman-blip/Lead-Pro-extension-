@@ -152,8 +152,14 @@ check('an agent message after the complaint with no customer reply is SILENT',
 check('it treats the silence as the friction rather than as being busy',
   i => /more likely we lost their trust than that they got busy/.test(first(run(i, [TRIP, AGENT]))), true);
 
+// (v9.7.694) Was pinned on "no second question" — which counts questions, and in a branch whose
+// point is to ask for nothing the count implied one was allowed. Gil, 9/22, on ask rules: "phrase
+// it differently as to not imply a limit on the ask." What this asserts is unchanged: the message
+// makes it easy to say where things stand and asks for no action.
 check('...and asks for nothing at all',
-  i => /ask for NOTHING — no time, no visit, no second question/.test(first(run(i, [TRIP, AGENT]))), true);
+  i => /ask for nothing else — no time, no visit, nothing they would have to do/.test(first(run(i, [TRIP, AGENT]))), true);
+check('...and no longer counts questions to say so',
+  i => /no second question/.test(first(run(i, [TRIP, AGENT]))), false);
 
 // ── ONLY OUR FRICTION, AND ONLY WHEN IT HAPPENED ────────────────────────────
 console.log('\nwhat must NOT fire:');
