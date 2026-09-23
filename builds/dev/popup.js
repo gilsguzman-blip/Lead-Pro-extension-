@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.698-dev (Dev. PHASE 2 STEP 3 (PROMPT HYGIENE) + LOG240. Extension only; proxy v7.76 and reporter v1.22 unchanged. LOG240 (Gil, 9/23: the Audi Lafayette AFS off-lease lead's message "reads like the very first message that was sent"): the lease-maturity scenario (AFS / TFS / KMF-LUV / KFA) was the one source branch with NO follow-up arm -- on every touch it said "Open by acknowledging their current vehicle and the upcoming lease end" and that the maturity "is the hook". That lead was one day old with outreach already sent and a Contacted call where the customer said they had not decided; the draft opened with the maturity again and re-listed the options. A follow-up now says PRIOR OUTREACH already made, does not re-open with the maturity or re-list the options, and builds on the latest exchange including call notes; the facts that prevent a wrong message (their own vehicle, never in stock; lease vs loan; figures unverified; program tone) stay on both arms. The repeat-customer branch had the same gap ("Acknowledge the relationship immediately" on every touch) and gets the same fork. The dump and full prompt uploaded with the report were for a different lead (the last generation before the dump); this was traced from the log. STEP 3: M3 scenarioRules renders once (the HARD CONSTRAINTS copy repeated the SITUATION and judgment lines on every lead; its inert two-time-close filters went with it). M5 zero-contact stalled leads carried seven overlapping blocks; the STALLED LEAD RE-ENGAGEMENT phase block now owns the appointment ban, the do-not-repeat rule and the silence acknowledgment -- the ZERO-CONTACT LEAD context header is one fact line, the ZERO CUSTOMER RESPONSE / HARD RULE lines are gone, NO APPOINTMENT TIME (UNLESS...), VARY YOUR ANGLE and ONE-SIDED stand down when the phase block is present, and ZERO-CONTACT RE-ENGAGEMENT (whose 'GOAL: Get their first reply. Nothing else.' contradicted PHASE 5) is removed. M6 FORMAT RULES: the SMS signature line agrees with the LEAD section; Duration and APPOINTMENT TIME FORMAT render only when times are offered; the JSON line names the subject field. M7 the no-reply digest no longer suggests 'or trade' or 'a different person picked up the thread'. Length sweep: proposals only, nothing changed. VERIFIED: NEW prompt-hygiene-698.test.js runs the WHOLE popup.js in a vm (new tests/helpers/load-popup.js) and asserts on the real buildUserPrompt output for synthetic leads -- 24 per build, 48; NON-VACUITY against v9.7.697: 16 of 24 fail, the 8 that pass are controls. On the synthetic zero-contact lead the prompt drops from 26,307 to 23,948 chars. run-all: 121 suites, 5820 assertions, 0 failed. node --check clean on both builds; both manifests parse; version AND version_name bumped; DEV vs COMMERCIAL differences unchanged. Builds on v9.7.697. Mirrors COMMERCIAL v9.7.698.)
 // Lead Pro -- popup.js  v9.7.697-dev (Dev. PHASE 2 STEP 2 + GIL'S 9/23 FOLLOW-UPS. Extension only; proxy v7.76 and reporter v1.22 unchanged. SOURCES (Gil: "I had a lead that was Facebook and Facebook wasn't mentioned as the source. Check all logic around the sources"): the first-pass SMS named Facebook and the SMS refine pass rewrote it out -- the refine prompt now says KEEP WHERE THEY CAME FROM, and a guard ships the first draft when a brand/place source name was dropped; follow-ups on dedicated sources (Facebook, TrueCar, Costco, CapitalOne, CarPro) no longer skip the acknowledgment block once the source's own first-touch framing has stopped running; a continuing thread that never named the source names it once, in passing, not as an opener; TradePending now resolves to its own name instead of the online-inquiry catch-all that contradicted it; Facebook's 'yes it is here' needs the live feed, like every other presence claim since v9.7.696. BOUNCED EMAIL (Gil: "if we see a bounced email that the text includes a request for a good email address"): the scraper counts this lead's Email Failure / Bounced Address notes ([LP EMAIL BOUNCE DIAG]); when any exist the LEAD section marks the address BOUNCING, drops 'do NOT ask for their email', and tells the SMS to ask once, plainly, for a good address; the refine pass keeps that ask or ships the first draft; bounce notices no longer count as outreach, as 'our last message', or as the customer's words (the bounce repeats OUR subject line). REMOTE BUYERS: presence wording follows the feed and a remote buyer gets a remote next step -- no suggested times, no TIMING block. STEP 2 (approved): H1 channel preferences ('text only', 'don't call me') are carried as the customer's stated channel preference, and the declined-alternative observation renders only when the text names a vehicle; H2 zero-contact examples replaced by one no-visit line; H3 trade-conflation guard reads customer text plus call/agent notes and only claims the notes contain the error when they do; H4 Director first-touch/active modes drop the stall examples, every example is labelled TONE only, persona examples in auth.js use [Vehicle]/[Brand Specialist] with no presence or numbers, Concierge bay line conditional; H5 call-log boilerplate ('By: X / no answer', call-tracking rows) is not a contact, and the hang-up/zero-contact thresholds and the SITUATION count read the scraper's outreach tally; P2 'found one', 'decided to', 'bad experience' are not exits, and exit reads the customer's lines only; P3 'today does not work' needs the customer's own words or an out-of-town constraint; P4 General Notes go in verbatim, no tags; P5 the active dealer id is reset per grab and set from the active frame; L1 four scraper diagnostics relayed; L3 (dev only) duplicate var removed; L4 chronological-order sentence fixed. ALSO: channel fatigue needs a 3-day-old lead and counts this lead's streak only; ONE-SIDED needs 3 days; the no-vehicle line no longer names Telluride/Crown/Optima; the no-trade subject line is gated on no trade listed; 'acknowledge the silence' only at 2+ days; self-claims read this lead's notes only; the arc no longer lists a General Note twice. DUMP HELPER: window._lpDumpLead() saves the last generation's buildUserPrompt inputs as leadpro_lead_dump_<time>.json, locally, for the paired harness. log239 (Kia Baytown) first-reach incentive traced to the 'generic' override removed in v9.7.696. VERIFIED: NEW step2-697.test.js (55 per build, 110), executing shipped code where it lifts cleanly and labelled (source) where it does not. NON-VACUITY against v9.7.696: 52 of 55 fail; the 3 that pass are controls. Existing suites updated where behaviour was meant to change, each marked (v9.7.697). run-all: 120 suites, 5773 assertions, 0 failed. node --check clean on both builds; both manifests parse; version AND version_name bumped; DEV vs COMMERCIAL differences unchanged except the dev-only L3 hunks. Builds on v9.7.696. Mirrors COMMERCIAL v9.7.697.)
 // Lead Pro -- popup.js  v9.7.696-dev (Dev. THREE FIXES FROM GIL'S 9/23 CAPTURES. Extension only; proxy v7.76 and reporter v1.22 unchanged. (A) SMS IS ALWAYS DRAFTED -- GIL: "lose the opt in/opt out logic and just have an SMS generated regardless ... I'll put the onus on the agent to decide when to send an SMS." This SUPERSEDES v9.7.695's P1 ruling from the same morning. Removed: the render-time SMS blank, the SMS CHANNEL OVERRIDE scenario line, the boxed TOP-PRIORITY SMS OPT-OUT block, the LEAD-section SMS STATUS line; isSmsOptOut is false on every lead, so a STOP no longer shapes exit or opt-out framing. A WRITTEN "stop contacting me" / "take me off your list" still exits -- exitRaw owns those phrases independently. KEPT, informational only: v9.7.695's marker-scoped evidence scan, renamed smsOptOutEvidence; it feeds [LP SMS OPT-OUT EVIDENCE DIAG] (popup-side, grab and render) and ONE agent-facing status line after generation -- "SMS drafted -- this lead has opt-out evidence on record. Your call whether to text." -- a notice, never a block, one statement to delete if unwanted. (B) "IT'S HERE" NOW NEEDS THE LIVE FEED. Brandy Mooney and Mike Stewart (Toyota Baytown, 9/23, log238): generic chat/web VOIs ("2024 Toyota Tundra (Used)", "2022 Toyota RAV4 (New)"), PageData present for the lead with NO stock and NO VIN, yet the page-wide "Stock #" regex found TT069306B and TE152985A elsewhere on the page -- src stock:rgx -- and both drafts said the car was here. TE152985A is not even in the live feed; the presence predicate was "!!d.stockNum && nothing says otherwise", and buildUserPrompt's branch literally said "stock number on the lead means physically on lot ... say we have it here". Survey of every log on hand: every real unit carried its stock in PageData; the only regex-only stocks were these two plus an 8/18 Audi Lafayette lead where the regex paired a customer-typed S6 e-tron VIN suffix with a Q6 e-tron VOI and called the Q6 "confirmed in stock". FIXES: (1) scraper -- when PageData describes this lead it owns the unit identity; an empty stock or VIN there is an answer, and the regex fallback runs only when PageData is ABSENT (diag src now reads pd-empty(rgx X refused)); (2) NEW _lpFeedUnitCheck -- presence requires the live feed to hold the stock AND that unit to be the lead's vehicle (make+model family, and year when both carry one); no feed loaded = not confirmed; (3) both _confirmedPresent copies, the v9.7.505 feed check and both buildUserPrompt "say we have it here" branches now use it; a stock the feed does not confirm gets an explicit "presence NOT confirmed -- do not say it is here" note. Ground-truth direction unchanged, only stricter: the feed was already the truth, it now has to vouch for the SAME car. (C) THE FIRST-REACH INCENTIVE RAIL IS CLOSED. Gil: "an incentive offer was sent on first reach. We had put a rail against that on first reach. Check if that broke." It had not broken -- it was never total: v9.7.415/425's 'generic' override (fresh, no VIN/stock, non-aggregator) and 'in_transit' override released incentives on first reach by design. Live 9/23: a $209/36-mo Accord lease on Marlene Cadena's first message (Honda Baytown), $750 Conquest/Owner Loyalty cash on Bryston Taylor's (Kia Baytown). Both overrides removed; first reach carries no incentive unless the customer asked, or 3+ outreaches already went out on the lead (v9.7.616, unchanged). John Moody is in none of the uploaded logs, so his lead is not traced here. ALSO: bot-authorship.test.js had a hard-coded 09/16 message date against code that ages notes on the real clock, and started failing ON ITS OWN on 9/23 -- a time bomb, not a regression; now relative to now. Many suites hard-code 2026 dates and pass today; flagged, not swept. VERIFIED: NEW sms-optout-evidence.test.js (48, replaces sms-suppress), first-reach-incentive.test.js (12), stock-source.test.js (12), all EXECUTING shipped code; consent-and-stock gains the Brandy/Mike/Q6/wrong-year/no-feed shapes run through the real helper (41); stock-color runs its capture through the real helper (72). NON-VACUITY against v9.7.695: sms-optout-evidence fails 23 of 24, first-reach-incentive 6 of 6, stock-source 3 of 6 (the three stray-stock shapes; the three controls pass). run-all: 119 suites, 5656 assertions, 0 failed. node --check clean on both builds; both manifests parse; version AND version_name bumped; changed regions byte-identical DEV vs COMMERCIAL. Builds on v9.7.695. Mirrors COMMERCIAL v9.7.696.)
 // Lead Pro -- popup.js  v9.7.695-dev (Dev. AUDIT P1 -- ONE SMS SWITCH, SCOPED BY THE CURRENT-LEAD MARKER. Extension only; proxy v7.76 and reporter v1.22 unchanged. GIL'S RULING, 9/23, SUPERSEDING BOTH v9.7.435 ("a new lead disqualifies old opt-outs" via hasNewLeadToday) AND v9.7.514 ("a prior-lead opt-out keeps SMS suppressed"): opt-out evidence only BELOW the marker belongs to a prior lead and is superseded for the SMS channel AND for framing; evidence ABOVE the marker suppresses SMS whatever else the customer wrote; an explicit re-opt-in NEWER than the newest current-lead opt-out clears it; no marker means all evidence is current. NEW scraper flag smsSuppressed is the ONLY input to the render-time SMS blank, the SMS CHANNEL OVERRIDE scenario line, the LEAD-section SMS STATUS line and the empty-pane caption -- each used to OR in its own reading (isSmsOptOutOnly, or a bare STOP in lastInboundMsg, which can be a PRIOR lead's STOP). PATH A, VERIFIED ON THE REAL v9.7.694 REGION, NOT INFERRED: single-lead record, opt-out status note, then "still looking, email me instead" -- smsOptOutIsExit:true, hasExitSignal:false (recentCustomerActive), isSmsOptOutOnly:false, render blank false: an SMS draft for a number with opt-out evidence. With a marker it passed only BY ACCIDENT: SMS-status notes are stripped from the transcript, so the old marker scan filed a CURRENT-lead status note as prior-lead. The new scan reads the notes themselves and places each by DATE against the marker's own timestamp (_lpMarkerMs, recorded where the marker is placed). Evidence set: customer bare STOP; the newest-inbound STOP (placed by transcript position); SMS-status/carrier opt-out notes with the existing other-phone-number check, now over every note; NEW, customer "stop texting" / "no more texts". Re-opt-in set: opt-in status notes and a customer's bare YES/START/UNSTOP by TEXT. DELIBERATELY DROPPED from re-opt-in, both fail-safe: /reply yes/ (it matched our OWN outbound "Reply YES to confirm" and could clear a live opt-out) and a bare "Yes" by EMAIL. FRAMING KEEPS ITS FLAGS, AS RULED -- AND I MEASURED WHY THIS MATTERS: my first draft set the framing flag equal to smsSuppressed; a 448-shape differential against v9.7.694 showed it ADDED farewells (a current-lead STOP followed by "is the civic still there?" became an exit). Reverted: isSmsOptOut is the pre-695 formula with one term added, && !_ssPriorOnly. Final differential over the same 448 shapes: EXIT flips 0; opt-out-only framing flips 18, all true->false, all prior-lead-only; SMS verdict flips 120 draft->SUPPRESSED (current-lead or no-marker evidence the old code drafted on: the path-A shape, "stop texting", our "Reply YES", a current STOP followed by a later message, created-today leads) and 30 SUPPRESSED->draft (prior-lead evidence, or an explicit re-opt-in newer than the opt-out). ONE TO WATCH: "regardless of what else the customer wrote" means a current-lead STOP followed by an ordinary text now stays suppressed until an explicit START/YES/opt-in note -- v9.7.694 drafted SMS there. ALSO: the TOP-PRIORITY opt-out block's "1. SMS = generate a very short opt-out confirmation" (flagged open since v9.7.532) now asks for the EMPTY field the blank enforces. isSmsOptOut, an undeclared implicit global in the scraper since it was written, is now declared. NEW [LP SMS SUPPRESS DIAG], POPUP-SIDE at grab and at render: evidence, which side of the marker each piece sits on, re-opt-ins, whether one is newer than the newest current opt-out, and the verdict; it says so explicitly when no notes frame merged or the scoped read threw (fail-safe: then any unscoped evidence suppresses). VERIFIED: NEW sms-suppress.test.js, 98 assertions across both builds, EXECUTING the real shipped region against fake CRM notes -- 16 lead shapes covering every case in the ruling plus path A with and without a marker, re-opt-in ordering, our own "Reply YES", a different phone number, and no-farewell-added; plus the consumers and the diag line executed. NON-VACUITY: the same suite against v9.7.694 fails 40 of 64, including path A, prior-lead STOP, prior-lead status note, the no-marker fail-safe and "Reply YES". Two spared-path pins in message-constraints and refine-prohibitions now pin the empty-SMS line. run-all: 117 suites, 5679 assertions, 0 failed. node --check clean on both builds; both manifests parse; version AND version_name bumped; the changed regions byte-identical DEV vs COMMERCIAL. Builds on v9.7.694. Mirrors COMMERCIAL v9.7.695.)
@@ -7217,9 +7218,12 @@ function populateFromData(d) {
 
     const stalledNote = '⚠ STALLED LEAD: This lead has been open for ' + (ageDays > 0 ? ageDays + ' days' : ageLabel) + '.' + ownedVehicleHook
       + pastVisitContext + '\n'
+      // (v9.7.698) AUDIT M5: the ZERO CUSTOMER RESPONSE line and its HARD RULE are gone from here. The fact is
+      // stated once, in the ZERO-CONTACT LEAD line below; what to do about it (no times, no duration, the
+      // rung's approach) is owned by the STALLED LEAD RE-ENGAGEMENT phase block, which renders on every
+      // lead this branch marks.
       + (neverReplied
-        ? '🚫 ZERO CUSTOMER RESPONSE: This customer has NEVER replied — multiple outreach attempts, no engagement. The goal is simply to earn a first reply.\n'
-        + 'HARD RULE: Do NOT offer appointment times ("would 9:15 or 10:30 work") to someone who has never responded — it reads tone-deaf and gets ignored. One warm, specific message that references their actual vehicle and asks one low-friction question. Same quality bar for SMS and email; never a lazy "I emailed you earlier" with no standalone value.\n'
+        ? ''
         : '- Customer engaged earlier, then went quiet. Read the arc and the GONE QUIET posture guidance above: do not repeat what was already sent, and do not imply recent engagement that did not happen.\n'
         + (d.hasConfirmedVisit ? '- KNOWN HISTORY confirms a past visit — you may reference it specifically and honestly.\n' : '- NO CONFIRMED VISIT on record — do NOT say "when you came in"; this customer has not visited.\n'));
     leadContext = stalledNote + '\n\n' + leadContext;
@@ -7228,13 +7232,15 @@ function populateFromData(d) {
     // For zero-contact stalled: inject hard appointment block directly into leadContext
     // This is more reliable than the buildUserPrompt guard since we know neverReplied here
     if (neverReplied) {
-      leadContext = '🚫 ZERO-CONTACT LEAD — APPOINTMENT ENGINE DISABLED\n'
-        + 'This customer has NEVER replied to any outreach. Multiple attempts have been made.\n'
-        + 'DO NOT include appointment times in ANY format. DO NOT say "would X or Y work". DO NOT mention duration. DO NOT say "get ahead of your schedule".\n'
-        + 'EMAIL: Warm reference to what they inquired about. End on something they can answer easily, about their search or interest.\n'
-        + 'SMS: Warm opener, something specific about the vehicle or their situation, and something they can answer easily. No appointment close.\n'
-        + 'VOICEMAIL: If AGENT CONTEXT notes state a different condition/trim/year than the structured Vehicle of Interest, ask the same direct either/or question SMS and email ask -- condensed to one sentence, but the actual distinction must survive, not just the structured Vehicle of Interest by itself. Otherwise reference the vehicle. Say you wanted to connect. Leave number. End.\n'
-        + '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n'
+      // (v9.7.698) AUDIT M5. This was the first of SEVEN zero-contact blocks in one prompt (a8dc2954), each
+      // restating the appointment ban in its own words, with a goal ("earn a first reply") that the PHASE 5
+      // rung two screens later contradicted ("concede gracefully"). It is now the FACT only. The ban and the
+      // approach live in the STALLED LEAD RE-ENGAGEMENT block: isZeroContactStalled is true whenever this
+      // branch fires and the customer has not replied, and that block renders on every such lead. The
+      // VOICEMAIL either/or line was a copy of the AGENT CONTEXT preamble's rule, which covers voicemail.
+      // The phrase 'ZERO-CONTACT LEAD' is load-bearing: zeroContactMarker and the generate-time time-strip
+      // key on it.
+      leadContext = '🚫 ZERO-CONTACT LEAD: this customer has not replied to any of our outreach on this lead.\n\n'
         + leadContext;
     }
   }
@@ -20151,11 +20157,27 @@ function buildUserPrompt(data) {
     var timingLine = monthsOut
       ? 'Their ' + termNoun + ' matures in approximately ' + monthsOut + ' months -- this is the hook.'
       : 'Their ' + termNoun + ' is approaching maturity -- lead with this timing.';
-    scenarioDirective = 'TASK: ' + programName + ' transition lead. Customer\'s ' + termNoun + ' is coming due. This is a warm transition opportunity, not a cold inquiry.';
+    // (v9.7.698) THIS BRANCH HAD NO FOLLOW-UP ARM. Every other source branch switches to "PRIOR OUTREACH
+    // already made -- continue" once we have written; this one told the model to "Open by acknowledging
+    // their current vehicle and the upcoming lease end" and that the maturity "is the hook" on EVERY
+    // touch. Log240, Audi Lafayette, an AFS off-lease lead one day old: three outreaches on the lead and a
+    // Contacted call where the customer said they had not decided and needed to talk it over -- and the
+    // draft opened "your Q5 agreement is nearing its end in about three months" and re-listed return /
+    // purchase / move into another Audi, which read as the very first message (Gil, 9/23). On a follow-up
+    // the maturity is no longer news: the opening and the hook lines are replaced, everything that keeps
+    // the facts right (whose vehicle it is, lease vs loan, unverified figures, the program's tone) stays.
+    var lmFollowUp = sc.isFollowUp && hasRealOutbound;
+    scenarioDirective = lmFollowUp
+      ? 'TASK: ' + programName + ' transition lead with PRIOR OUTREACH already made. The ' + termNoun + ' coming due is not news to this customer any more — read the transcript and the call notes and continue from where things actually stand.'
+      : 'TASK: ' + programName + ' transition lead. Customer\'s ' + termNoun + ' is coming due. This is a warm transition opportunity, not a cold inquiry.';
     scenarioRules = [
       '- The vehicle shown is their ' + ownVerb + ' vehicle — NEVER say it is in stock, available, or on the lot.',
-      '- ' + timingLine,
-      '- Open by acknowledging their current vehicle and the upcoming ' + termNoun + ' end.',
+      ...(lmFollowUp ? [
+        '- We have already told them their ' + termNoun + ' is coming due. Do NOT open with that again, and do not re-list the options as though they were new. Build on the latest exchange, including anything the customer said on a call about where they stand.'
+      ] : [
+        '- ' + timingLine,
+        '- Open by acknowledging their current vehicle and the upcoming ' + termNoun + ' end.'
+      ]),
       isLeaseType
         ? '- Options: return and lease new, purchase at residual, or switch to finance. Let them lead.'
         : isFinanceType
@@ -20174,7 +20196,7 @@ function buildUserPrompt(data) {
         : isTFSlead
         ? '- TFS: reference Toyota Financial naturally. Frame the maturity date as an opportunity, not a deadline.\n- VEHICLE FRAMING: The vehicle shown on the lead is the customer\'s CURRENT leased/financed Toyota — it is NOT what they want to buy. Do not reference it as their desired purchase or suggest they are shopping for it. If they are a lease customer deciding between buying out or upgrading, frame around "a new [model]" generically, or let them name what they want to move into. Never say "the Tundra Capstone you were looking at" or similar — they already have it.'
         : '',
-      monthsOut ? '- Reference the ' + monthsOut + '-month window naturally.' : '',
+      (monthsOut && !lmFollowUp) ? '- Reference the ' + monthsOut + '-month window naturally.' : '',
       '- Loan/lease figures (payoff, residual, equity) in context are UNVERIFIED lender projections — do NOT quote any dollar amount to the customer. The in-person review/appraisal is where real numbers get confirmed.',
     ].filter(Boolean).join('\n');
   } else if (sc.isDistanceBuyer) {
@@ -20635,12 +20657,21 @@ function buildUserPrompt(data) {
   } else if (sc.isRepeatCustomer) {
     var priorVehicle = data.ownedVehicle || '';
     var priorMiles = data.ownedMileage || '';
-    scenarioDirective = 'TASK: Repeat/returning customer — this person has done business with the dealership before. They came back because they trust you.';
-    scenarioRules = [
+    // (v9.7.698) Same gap as the lease-maturity branch (Log240): no follow-up arm, so "Acknowledge the
+    // relationship immediately" was the opening instruction on every touch, not just the first.
+    var rcFollowUp = sc.isFollowUp && hasRealOutbound;
+    scenarioDirective = rcFollowUp
+      ? 'TASK: Repeat/returning customer with PRIOR OUTREACH already made. Read the transcript and continue naturally from where things left off.'
+      : 'TASK: Repeat/returning customer — this person has done business with the dealership before. They came back because they trust you.';
+    scenarioRules = (rcFollowUp ? [
+      '- They came back. This is family — never treat them as a cold lead.',
+      '- The relationship has already been acknowledged in our earlier messages; do not re-open with it. Continue the conversation.',
+      '- Tone: warm recognition. They trust you already — honor that.'
+    ] : [
       '- They came back. This is family — never treat them as a cold lead.',
       '- Acknowledge the relationship immediately and reference their history if known.',
       '- Tone: warm recognition. They trust you already — honor that.'
-    ].join('\n');
+    ]).join('\n');
 
   } else if (sc.isGoogleAd && !sc.isStalled) {
     // (v9.7.434/432) Same class of gap as the Tradepending/default-branch fix. Likely one of the
@@ -22185,8 +22216,10 @@ function buildUserPrompt(data) {
         ? 'NO CUSTOMER REPLY YET: The agent already sent the outbound messages shown in the transcript and arc above. Customer has not responded.'
         : 'NO CUSTOMER REPLY YET: The agent already sent the messages above. Customer has not responded.');
       digestLines.push('- Do NOT repeat questions or content already sent.');
-      digestLines.push('- Write a DIFFERENT follow-up: new angle, a specific detail about the vehicle or trade, or a softer check-in.');
-      digestLines.push('- The follow-up should feel like a different person picked up the thread — not a copy of the first outreach.');
+      // (v9.7.698) AUDIT M7: "or trade" pushed a trade the TRADE-IN constraint forbids unless the customer
+      // raised one; and "feel like a different person picked up the thread" was false whenever the signer
+      // wrote the prior outreach herself. The CRITICAL line below already covers a different prior agent.
+      digestLines.push('- Write a DIFFERENT follow-up: new angle, a specific detail about the vehicle, or a softer check-in.');
       digestLines.push('- CRITICAL: Do NOT say "I left a voicemail" or "I called earlier" unless YOU are the agent who made those prior contacts. If the prior outreach was from a different agent, you are picking up the thread — not continuing your own prior conversation. Write as if you are aware of what was sent but do not claim ownership of messages you did not send.');
       digestLines.push('');
     }
@@ -22710,7 +22743,6 @@ function buildUserPrompt(data) {
       } catch (_calErr) { /* fail silent — block continues without calendar */ }
 
       var _ddSuppressAppt = false; // (v9.7.361) set by the deal-condition/deadline trigger; gates the appointment-time close directives
-      window._lpDdSuppressAppt = false; // (v9.7.462/457) mirrored to window so the second scenarioRules injection site (outside this IIFE's scope) can apply the same two-time-close strip
       // (v9.7.360) DEADLINE + DEAL-CONDITION TRIGGER. Code owns the TRIGGER (pattern detection it is
       // good at); the MODEL owns reading which day and resolving the date (reading the arc, which it
       // does well). The deterministic date parser was abandoned — it kept grabbing the wrong time-word
@@ -22860,7 +22892,7 @@ function buildUserPrompt(data) {
           // tells the model to lead with info, but we leave the appointment scaffolding available so
           // a visit can still close once info is delivered. This keeps precision: we don't kill
           // legitimate showroom closes (e.g. post-visit follow-ups), we just stop leading with them.
-          if (_ddDealCondition || _ddDeadline) { _ddSuppressAppt = true; window._lpDdSuppressAppt = true; }
+          if (_ddDealCondition || _ddDeadline) { _ddSuppressAppt = true; }
           // (v9.7.411/409) Log WHAT matched, not just that it matched — the Africa Dauphiney
           // surname false-fire lived undetected precisely because this line showed tradeValue:true
           // with no matched text. Instrument-first: every future false-fire names its own culprit.
@@ -23154,13 +23186,13 @@ function buildUserPrompt(data) {
     ageBlock.push(scenarioDirective);
   }
   if (scenarioRules) {
-    // (v9.7.462/457 fix) When the deal-condition/deadline trigger suppresses the appointment
-    // scaffolding, a source branch's hard "CLOSE: Two specific appointment times." mandate
-    // (Costco / Car Pro) directly contradicted the FINAL CLOSE RULE in the same prompt. The
-    // suppression wins — strip the two-time-close mandate line.
-    ageBlock.push(_ddSuppressAppt
-      ? scenarioRules.split('\n').filter(function(l){ return l.indexOf('CLOSE: Two specific appointment times') === -1; }).join('\n')
-      : scenarioRules);
+    // (v9.7.462/457 fix) stripped a source branch's "CLOSE: Two specific appointment times." line
+    // here when the deal-condition/deadline trigger suppressed the appointment scaffolding.
+    // (v9.7.698) AUDIT M3. v9.7.694 removed that line from every source branch, so the filter had
+    // nothing left to match; it is gone. This is now the ONLY place scenarioRules renders -- the
+    // second copy inside HARD CONSTRAINTS repeated the SITUATION line and the judgment line
+    // verbatim on every lead.
+    ageBlock.push(scenarioRules);
   }
   // (v9.7.342) SOURCE ACKNOWLEDGMENT — when we know where the lead came from and this is
   // an early-touch contact, instruct the model to naturally reference the source in the
@@ -23319,7 +23351,13 @@ function buildUserPrompt(data) {
       ageBlock.push('Customer engagement: determine this yourself from the CONVERSATION ARC below — read the full thread and see whether the customer has replied, what they last said, and where the deal actually stands. Do not assume a one-sided or silent lead unless the arc shows no customer messages. If the customer has raised a price, a competing offer, a deposit, a deadline, or any specific ask, THAT is the live conversation — respond to it.');
       if (_cad > 0 && !_freshLeadActive) ageBlock.push('Days since last contact: ' + _cad.toFixed(0));
       // (v9.7.327) Reactivation/long-dormant appointment suppression.
-      if (_lad >= 31 && !_hasReply) {
+      // (v9.7.698) AUDIT M5 -- one owner per question. On a zero-contact stalled lead the STALLED LEAD
+      // RE-ENGAGEMENT phase block owns the appointment question, the "do not repeat" question and the
+      // acknowledge-the-silence question, and it states each without a hedge. This test is the first leg
+      // of isZeroContactStalled exactly (same hasCustomerReply, same populate pair), so when it is true that
+      // block IS rendered. The three directives below stand down for it; nothing else changes for them.
+      var _lpPhaseOwnsZc = !hasCustomerReply && !!data._isStalled && !!data._neverReplied;
+      if (_lad >= 31 && !_hasReply && !_lpPhaseOwnsZc) {
         ageBlock.push('');
         ageBlock.push('\u26a0 NO APPOINTMENT TIME (UNLESS THE ARC SHOWS OTHERWISE): This lead appears to be ' + Math.round(_lad) + ' days old with no detected customer re-engagement. If the conversation arc confirms the customer has gone silent, do NOT offer a specific appointment time — close with a single low-friction question or a soft check-in. BUT if the arc shows the customer actually replied recently (a question, a price, a competing offer, a deadline), that detection was wrong — treat them as engaged and respond to what they said.');
       } else if (_lad >= 31 && _hasReply && _cad >= 14) {
@@ -23575,7 +23613,7 @@ function buildUserPrompt(data) {
       // The gates move onto the real number too, deliberately. A threshold crossed only because
       // system rows were counted fires a directive whose own text is then false -- which is the
       // failure being fixed, not a separate one. Both fire less often now.
-      if (_outreachN >= 5) {
+      if (_outreachN >= 5 && !_lpPhaseOwnsZc) {
         ageBlock.push('VARY YOUR ANGLE:');
         ageBlock.push('You have already made ' + _outreachN + ' outreach attempts on this lead (texts, emails and calls). Read your prior outbound messages above carefully. Do NOT reuse openers, phrasings, or angles you have already used.');
         ageBlock.push('');
@@ -23653,7 +23691,7 @@ function buildUserPrompt(data) {
       }
       // (v9.7.697) N1: a one-day-old lead with the auto-responder's burst is not a one-sided conversation.
       var _osAge = parseFloat(data.leadAgeDays || 0);
-      if (!_hasReplyForDirectives && _outreachN >= 8 && _osAge >= 3) {
+      if (!_hasReplyForDirectives && _outreachN >= 8 && _osAge >= 3 && !_lpPhaseOwnsZc) {
         ageBlock.push('ONE-SIDED CONVERSATION:');
         ageBlock.push('Customer has not replied to ' + _outreachN + ' prior outreach attempts. Apply the one-sided conversation rule from your system prompt — acknowledge the silence honestly rather than sending another optimistic check-in.');
         ageBlock.push('');
@@ -23760,7 +23798,7 @@ function buildUserPrompt(data) {
     '- NEVER use the sales rep name as the signer — sign as the BD Agent only.',
     '- LANGUAGE: ALL responses are written in English, regardless of what language the customer used. The dealership uses an in-CRM translation tool for delivery to non-English-speaking customers. NEVER write any portion of the SMS, email, or voicemail in Spanish, French, or any non-English language. NEVER mix languages in a single message. Even if the customer\'s most recent message is in Spanish ("hola," "gracias," "cuando este") OR a prior agent has been replying in Spanish, your output must be 100% English. Do not translate phrases for them. Do not include Spanish greetings, closings, or filler phrases ("hola," "saludos," "que tenga buen dia"). The translation step happens after Lead Pro generates the message, not inside it.',
     '- EMOTIONAL CALIBRATION: If the customer\'s most recent message is emotionally elevated — urgency ("I need this NOW", "TODAY"), frustration, anger, profanity, or aggressive demand — do NOT match that energy. Respond with calm, grounded, professional tone. Acknowledge what they said directly without dismissing it, but never escalate, never use exclamation points to mirror their intensity, never adopt their urgency framing, and never use words in all caps. The dealership voice that earns trust under pressure is steady, not amplified. Mirroring heat reads as performative or unprofessional; staying calm reads as competent.',
-    ...(scenarioRules ? ['', (window._lpDdSuppressAppt ? scenarioRules.split('\n').filter(function(l){ return l.indexOf('CLOSE: Two specific appointment times') === -1; }).join('\n') : scenarioRules)] : []), // (v9.7.462/457) same two-time-close strip as the SCENARIO injection site
+    // (v9.7.698) AUDIT M3: the second copy of scenarioRules that stood here is removed; it renders once, under SCENARIO.
     '',
   ];
 
@@ -24861,6 +24899,7 @@ function buildUserPrompt(data) {
   // (v9.7.697) && !isRemoteBuyer — a remote buyer was handed "11:30 AM or 12:15 PM today" and "great availability
   // today" beneath the block that says not to push a visit. isRemoteBuyer is declared (var) inside the
   // distance-flag block above, so on a non-distance lead it is undefined here — falsy — as intended.
+  var _lpTimesOffered = false; // (v9.7.698) M6: set where suggested times are actually handed to the model
   if (!sc.isApptConfirmation && !sc.isExitSignal && !sc.isPauseSignal && !sc.isSoldDelivered && !sc.vehicleSold && !hasVerbalCommitment && !closeOverride && !isZeroContactStalled && !isRemoteBuyer) {
     // Suppress appointment-time injection on cross-brand AI Buying Signal leads.
     // The matrix's PLAY A (honest pivot) and PLAY C (questioning open) need the model
@@ -24918,6 +24957,7 @@ function buildUserPrompt(data) {
           'Instead, ask what day works better for them. Example close: "What day this week works best for you?"');
       }
     } else {
+      _lpTimesOffered = true;
       const now2 = new Date();
       const hour = now2.getHours();
       // isSameDay is true only when appointment calculator returned 'today' times
@@ -25010,19 +25050,11 @@ function buildUserPrompt(data) {
           '- Tone: organized and thoughtful. No urgency — just proactive service.');
       }
     }
-  } else if (isZeroContactStalled) {
-    lines.push('', '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    lines.push('ZERO-CONTACT RE-ENGAGEMENT — READ THIS BEFORE WRITING ANYTHING');
-    lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    lines.push('FACT: This customer has received multiple outreach attempts and has not replied to a single one.');
-    lines.push('GOAL: Get their first reply. Nothing else.');
-    lines.push('');
-    // (v9.7.697) AUDIT H2 — the SMS/EMAIL examples, GOOD and BAD lines are removed. They were Audi A3 copy on
-    // every store; "still have the A3 here" claimed a unit with no stock number, and "Is the A3 still on
-    // your radar?" was the exact still-interested question the PHASE block in this same prompt bans.
-    lines.push('No appointment times, no duration, and nothing that assumes a visit. Give them one easy thing to answer.');
-    lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   }
+  // (v9.7.698) AUDIT M5. The ZERO-CONTACT RE-ENGAGEMENT block that was the else-if here is removed. It rendered
+  // on exactly the leads the STALLED LEAD RE-ENGAGEMENT block renders on (both key on isZeroContactStalled),
+  // repeated that block's "no appointment times, no duration", and added the one line the phase block
+  // contradicts: "GOAL: Get their first reply. Nothing else." beside PHASE 5's "concede gracefully".
 
   // Day-off override — scan context for explicit day-off statements that may be buried
   // This catches cases like "I am actually off on Friday" where the computed appointment
@@ -25144,7 +25176,10 @@ function buildUserPrompt(data) {
     '━━━ FORMAT RULES ━━━',
     sc.noCustomerPhone
       ? 'NO PHONE NUMBER ON FILE: SMS and voicemail are not usable channels. Write email only. For SMS field, write a note asking for their phone number so you can reach them directly. For voicemail field, write "(No phone number — cannot leave voicemail)".'
-      : 'SMS signature: agent first name only + phone number (two lines). No title. No store name.',
+      // (v9.7.698) AUDIT M6: this said "first name + phone, two lines, no store name" while the LEAD section
+      // said "copy these three lines exactly" (name / store / phone). enforceSmsSig strips whatever the model
+      // wrote and appends the canonical block either way; the prompt now says one thing.
+      : 'SMS signature: the stacked block given in the LEAD section, and nothing else.',
     'EMAIL FORMAT RULES:',
     '- Greeting: Use the customer first name on its own line for first-touch formal emails. For warm follow-ups where conversation is already active, "Hi [customer name]," is natural and preferred.',
     '- After greeting: blank line, then body starts.',
@@ -25154,8 +25189,12 @@ function buildUserPrompt(data) {
     '- Signature: each part on its own line — First Last / Title / Store / Phone.',
     'Email signature: Use line breaks between each part — NOT slashes. Format exactly as:\nFirst Last\nTitle\nStore Name\nPhone Number',
     'Voicemail: end with callback number. Nothing after it.',
+    // (v9.7.698) AUDIT M6: these two rendered on every lead, including the ones whose prompt says APPOINTMENT
+    // ENGINE DISABLED and "DO NOT write duration". They now render only when suggested times were offered.
+    ...(_lpTimesOffered ? [
     'Duration to state before times: ' + sc.duration + '.',
     'APPOINTMENT TIME FORMAT: Write times as "[Time 1] or [Time 2]" — the day/date appears ONCE after Time 2 only. CORRECT: "9:15 AM or 10:30 AM Saturday, March 21". WRONG: "9:15 AM Saturday, March 21 or 10:30 AM Saturday, March 21".',
+    ] : []),
     '',
     // ── Regenerate-with directive (v9.7.5) ── injected when agent clicks an adjustment chip
     ...((function(){
@@ -25198,7 +25237,9 @@ function buildUserPrompt(data) {
       out.push('');
       return out;
     })()),
-    'Return ONLY the JSON object {"sms":"...","email":"...","voicemail":"..."}.',
+    // (v9.7.698) AUDIT M6: the system prompt asks for four fields including subject, and the parser reads
+    // parsed.subject; this line listed three.
+    'Return ONLY the JSON object {"sms":"...","email":"...","subject":"...","voicemail":"..."}.',
     'CRITICAL JSON RULES: Never use unescaped double quotes inside field values. Never end a field value with a period followed by a closing quote. Phone numbers must not have a trailing period. Escape any special characters properly.'
   );
 

@@ -321,7 +321,8 @@ console.log('\n  the "one X" lines that are NOT length caps survive:');
 
 const NOT_CAPS = [
   ['the appointment-day rule — a content rule about WHICH times', 'Your ONLY close is two times on the day the customer named. Nothing else.'],
-  ['"GOAL: Get their first reply. Nothing else." — a goal',       'GOAL: Get their first reply. Nothing else.'],
+  // (v9.7.698) AUDIT M5 removed the block that carried "GOAL: Get their first reply. Nothing else." -- it
+  // contradicted PHASE 5 on the same leads. It left with its block, not as a length cap.
   ['ONE THOUGHT PER SENTENCE — rhythm, kept by v9.7.673',         'ONE THOUGHT PER SENTENCE'],
   ['the signature format rule',                                   'End with the stacked signature']
 ];

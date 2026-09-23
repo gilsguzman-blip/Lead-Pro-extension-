@@ -167,8 +167,9 @@ check('no literal copy of the preamble survives in either branch',
 console.log('\n  the five decisions, as made:');
 check('Costco / Car Pro: no scenario carries the two-time CLOSE mandate any more',
   i => (i.code.match(/'- CLOSE: Two specific appointment times\.'/g) || []).length, 0);
-check('...the appointment-suppression filters for it are left as an inert safety net',
-  i => (i.code.match(/indexOf\('CLOSE: Two specific appointment times'\)/g) || []).length, 2);
+// (v9.7.698) AUDIT M3 removed the second scenarioRules render, and with it both inert filters.
+check('...and the inert appointment-suppression filters for it are gone with the duplicate render (v9.7.698 M3)',
+  i => (i.code.match(/indexOf\('CLOSE: Two specific appointment times'\)/g) || []).length, 0);
 check('...and TIME-OFFER VARIETY, which the mandate contradicted, is untouched',
   i => has(i, 'is ONE closing tool, not a required ending'), true);
 check('same-day evening: the scripted close line is gone, the intent is kept',

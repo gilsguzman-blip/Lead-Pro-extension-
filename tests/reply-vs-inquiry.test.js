@@ -249,8 +249,8 @@ check('the real outbound tally is read off relationshipSignals',
   i => /_rsOutN = data\.relationshipSignals && data\.relationshipSignals\.totalOutboundCount/.test(stripComments(i.src)), true);
 
 check('BOTH gates moved onto the real number',
-  i => [/if \(_outreachN >= 5\)/.test(stripComments(i.src)),
-        /if \(!_hasReplyForDirectives && _outreachN >= 8( && _osAge >= 3)?\)/.test(stripComments(i.src))], [true, true]);   // (v9.7.697) N1 adds the lead-age term
+  i => [/if \(_outreachN >= 5( && !_lpPhaseOwnsZc)?\)/.test(stripComments(i.src)),
+        /if \(!_hasReplyForDirectives && _outreachN >= 8( && _osAge >= 3)?( && !_lpPhaseOwnsZc)?\)/.test(stripComments(i.src))], [true, true]);   // (v9.7.697) N1 adds the lead-age term; (v9.7.698) M5 stands both down where the phase block owns them
 
 check('no gate still reads the note count',
   i => /if \([^)]*_ncForDirectives >= \d/.test(stripComments(i.src)), false);
