@@ -91,10 +91,20 @@ function extract(file) {
     if (src[i] === '{') { ed++; estarted = true; }
     else if (src[i] === '}') { ed--; if (estarted && ed === 0) { eend = i + 1; break; } }
   }
-  const resolver = src.slice(eh, eend);
+  let resolver = src.slice(eh, eend);
+  // (v9.7.702) The ladder now also asks _lpStalledCalendarRung for the calendar rung. Lifted with its
+  // band table when the build has it; a build that predates it simply does not reference it.
+  const ch = src.indexOf('var LP_STALLED_RUNG_MIN_AGE');
+  if (ch >= 0) {
+    const cfEnd = src.indexOf('\n}\n', src.indexOf('function _lpStalledCalendarRung(', ch)) + 3;
+    resolver = src.slice(ch, cfEnd) + '\n' + resolver;
+  }
 
   const fn = new vm.Script(
+    // (v9.7.702) In the real prompt data.leadAgeDays and ageDays_final come from the same scrape; the
+    // calendar rung reads data.leadAgeDays, so a case that passes only an age gets it mirrored there.
     '(function(ctx_raw, ageDays_final, data){\n var lines = []; var logs = [];\n' +
+    ' data = Object.assign({}, data || {}); if (data.leadAgeDays === undefined) data.leadAgeDays = ageDays_final;\n' +
     'var console = { log: function(){ logs.push(Array.prototype.join.call(arguments, " ")); } };\n' +
     resolver + '\n' +
     block +
@@ -145,6 +155,12 @@ const ANDREA_DATA = { leadAgeDays: 4, hasCustomerReply: false, convState: 'activ
                       relationshipSignals: { totalOutboundCount: 5, lastInboundAgeDays: null } };
 const ELIGIBLE_DATA = { leadAgeDays: 40, hasCustomerReply: false, convState: 'active-follow-up',
                         relationshipSignals: { totalOutboundCount: 8, lastInboundAgeDays: null } };
+// (v9.7.702) The calendar now holds a 4-day lead at rung 2, so Andrea no longer exercises the close-out
+// gate at all. The gate's own behaviour is pinned on a lead the calendar lets reach rung 4 but that the
+// resolver has not cleared: 18 days old, 5 unanswered touches.
+const GATED = ctx(5), GATED_AGE = 18;
+const GATED_DATA = { leadAgeDays: 18, hasCustomerReply: false, convState: 'active-follow-up',
+                     relationshipSignals: { totalOutboundCount: 5, lastInboundAgeDays: null } };
 
 console.log('\nv9.7.583 — the stalled ladder concedes without asserting');
 console.log('builds under test: ' + impls.map(i => i.name).join(', ') + '\n');
@@ -160,15 +176,17 @@ check('the touch count still reads 5 — the COUNTER is unchanged',
 // first. The 8/27 feedback export supplied it — 8 of 21 rated drafts offered a close-out, the two
 // wrong ones at 2 and 9 days — and Gil set the rule. Four days with five touches is our cadence
 // running, not a customer gone cold, so the ladder now stops one rung short.
-check('she NO LONGER reaches the close-out rung — 4 days is our cadence, not her silence',
-  i => i.run(ANDREA, ANDREA_AGE, ANDREA_DATA).phase, 'PHASE 4 -- PATTERN INTERRUPT');
+// (v9.7.702) CHANGED AGAIN, ON PURPOSE: v9.7.595 stopped her one rung short (PHASE 4). The calendar
+// rung now holds any lead aged 2-7 days at rung 2, so five touches in four days asks a micro question.
+check('she NO LONGER reaches the close-out rung — the calendar holds a 4-day lead at rung 2',
+  i => i.run(ANDREA, ANDREA_AGE, ANDREA_DATA).phase, 'PHASE 2 -- MICRO QUESTION');
 
-check('...and that rung explicitly refuses to offer the exit',
+check('a gated lead the calendar lets reach rung 4 still refuses to offer the exit',
   i => /Do NOT offer to close the file, stop contact, or ask whether to keep it open/
-        .test(i.run(ANDREA, ANDREA_AGE, ANDREA_DATA).approach), true);
+        .test(i.run(GATED, GATED_AGE, GATED_DATA).approach), true);
 
 check('...while naming why, so the agent can see the gate rather than guess',
-  i => /never replied, 4d old with 5 outreach/.test(i.run(ANDREA, ANDREA_AGE, ANDREA_DATA).approach), true);
+  i => /never replied, 18d old with 5 outreach/.test(i.run(GATED, GATED_AGE, GATED_DATA).approach), true);
 
 check('a lead that HAS earned it still reaches the close-out rung',
   i => i.run(ctx(5), 40, ELIGIBLE_DATA).phase, 'PHASE 5 -- GRACEFUL CLOSE-OUT');
@@ -264,7 +282,7 @@ check('the phase name and touch count still reach the prompt',
 // not. Asserted so a future gate that silently emitted nothing would be caught.
 check('...and a GATED lead reaches it too, carrying PHASE 4 instead',
   i => {
-    const L = i.run(ANDREA, ANDREA_AGE, ANDREA_DATA).lines.join('\n');
+    const L = i.run(GATED, GATED_AGE, GATED_DATA).lines.join('\n');
     return { name: /STALLED LEAD RE-ENGAGEMENT -- PHASE 4 -- PATTERN INTERRUPT/.test(L),
              count: /has not responded to 5 message\(s\)/.test(L),
              noPhase5: !/GRACEFUL CLOSE-OUT/.test(L) };
@@ -276,8 +294,11 @@ console.log('\nthe young-lead disagreement is REPORTED and changes nothing:');
 check("Andrea's shape raises the flag — 5 touches in 4 days",
   i => /TOP RUNG ON A YOUNG LEAD/.test(i.run(ANDREA, ANDREA_AGE).logs.join('\n')), true);
 
-check('...and the phase is IDENTICAL with and without the flag — observation only',
-  i => i.run(ANDREA, 4).phase === i.run(ANDREA, 90).phase, true);
+// (v9.7.702) INVERTED ON PURPOSE. v9.7.583 made this flag observation-only and pinned that here; Gil
+// approved acting on it, so the same five touches now land on different rungs at 4 and 90 days.
+check('...and the calendar now ACTS on it — 4 days and 90 days land on different rungs',
+  i => [i.run(ANDREA, 4).phase, i.run(ANDREA, 90).phase],
+  ['PHASE 2 -- MICRO QUESTION', 'PHASE 4 -- PATTERN INTERRUPT']);
 
 check('an ordinary long-dormant lead does NOT raise it — the flag is not always-on',
   i => /TOP RUNG ON A YOUNG LEAD/.test(i.run(ctx(8), 75).logs.join('\n')), false);

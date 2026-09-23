@@ -69,13 +69,24 @@ function extract(file) {
     else if (src[i] === '}') { ed--; if (started && ed === 0) { eend = i + 1; break; } }
   }
 
+  // (v9.7.702) The ladder also asks _lpStalledCalendarRung for the calendar rung — lifted with its
+  // band table when the build has it, the same way stalled-phase.test.js does.
+  let helpers = src.slice(eh, eend);
+  const ch = src.indexOf('var LP_STALLED_RUNG_MIN_AGE');
+  if (ch >= 0) {
+    const cfEnd = src.indexOf('\n}\n', src.indexOf('function _lpStalledCalendarRung(', ch)) + 3;
+    helpers = src.slice(ch, cfEnd) + '\n' + helpers;
+  }
+
   const ladder = new vm.Script(
+    // (v9.7.702) data.leadAgeDays and ageDays_final come from the same scrape in the real prompt.
     '(function(ctx_raw, ageDays_final, data, window){\n var lines = []; var logs = [];\n' +
+    ' data = Object.assign({}, data || {}); if (data.leadAgeDays === undefined) data.leadAgeDays = ageDays_final;\n' +
     'var console = { log: function(){ logs.push(Array.prototype.join.call(arguments, " ")); } };\n' +
-    src.slice(eh, eend) + '\n' + block +
+    helpers + '\n' + block +
     '\nreturn { phase: stalledPhase, lines: lines, logs: logs,' +
     ' carried: (window && window._lpActiveProhibitions) || null }; })'
-  ).runInNewContext({ String, RegExp, Array, parseFloat, isNaN });
+  ).runInNewContext({ String, RegExp, Array, parseFloat, isNaN, Object });
 
   // The refine user-prompt builder, lifted whole and executed.
   const rh = body.indexOf('function _lpBuildSmsRefinePrompt(');
