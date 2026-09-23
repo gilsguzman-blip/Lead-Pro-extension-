@@ -174,8 +174,9 @@ check('...and TIME-OFFER VARIETY, which the mandate contradicted, is untouched',
   i => has(i, 'is ONE closing tool, not a required ending'), true);
 check('same-day evening: the scripted close line is gone, the intent is kept',
   i => [has(i, '\'- Close: "Can you make it in tonight?"'), has(i, "'- Close directly on tonight — not passive")], [false, true]);
-check('KEPT — bereavement stays a brief condolence (2-3 sentences): length is the harm there',
-  i => has(i, 'Write ONLY a brief, sincere condolence (2-3 sentences)'), true);
+// (v9.7.699) Gil, 9/23: "drop all the length rules". The bereavement count was kept here in v9.7.694; it goes now.
+check('v9.7.699 — bereavement: a sincere condolence, no sentence count',
+  i => [has(i, '(2-3 sentences)'), has(i, 'Write ONLY a sincere condolence: acknowledge')], [false, true]);
 check('KEPT — secondary angles: "pick AT MOST ONE" stops offers being stacked, it does not limit length',
   i => has(i, 'pick AT MOST ONE that best fits this specific touch'), true);
 check('KEPT — the settled-plan voicemail size, consistent with the spared voicemail target',
@@ -185,10 +186,10 @@ check('KEPT — the settled-plan voicemail size, consistent with the spared voic
 console.log('\n  spared or not a constraint — still exactly where they were:');
 [['subject line 4-8 words (Gil, 9/10)', 'Short is better — 4-8 words'],
  ['appointment-day close (WHICH times, not how many words)', 'Your ONLY close is two times on the day the customer named. Nothing else.'],
- ['voicemail-only 60-80 words (spoken)', 'about 60-80 words, three short beats'],
+ ['voicemail-only: 20-30 seconds kept, word count dropped (Gil, 9/23)', 'Natural spoken cadence, 20-30 seconds, three beats:'],
  ['SHORTEN chip (agent asks for it)', 'Shorten the message to roughly 60-70%'],
  ['ONE THOUGHT PER SENTENCE (rhythm, v9.7.673)', 'ONE THOUGHT PER SENTENCE'],
- ['depth-matching', 'Short reply → short response'],
+ ['register-matching, without the size instruction (v9.7.699)', 'Match the register of what they sent.'],
  ['refine: length is the model\'s call', 'LENGTH IS YOURS TO JUDGE'],
  ['anti-constraint: short is never a reason to drop an ask', 'The SMS being short is never a reason to drop one']
 ].forEach(([l, s]) => check('kept — ' + l, i => has(i, s), true));

@@ -250,13 +250,13 @@ check('what those lines were FOR survives on the close-out rung',
 console.log('\n  the three spared paths, and the lines that REMOVE constraints, are untouched:');
 
 const KEPT = [
-  ['the voicemail word target — it is spoken, not read', 'about 60-80 words, three short beats'],
+  ['the voicemail duration — 20-30 seconds kept, the word count dropped (v9.7.699)', 'Natural spoken cadence, 20-30 seconds, three beats:'],
   ['the 4-8 word subject rule — Gil settled it 9/10', 'Short is better — 4-8 words'],
   ['the SHORTEN chip — the agent asks for it by hand', 'Shorten the message to roughly 60-70%'],
   ['"being short is not a reason to drop an ask"', 'Being short is not'],
   ['"the SMS being short is never a reason to drop one"', 'The SMS being short is never a reason'],
   ['"a format being short is never a reason"', 'a format being short is never a reason'],
-  ['depth-matching — conditioned on what THEY sent', 'Short reply → short response'],
+  ['register-matching — conditioned on what THEY sent, no size instruction (v9.7.699)', 'Match the register of what they sent.'],
   ['sentence-rhythm guidance, which is not a cap', 'A short sentence after a long one creates impact']
 ];
 KEPT.forEach(([label, needle]) =>

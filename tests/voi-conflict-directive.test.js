@@ -110,8 +110,9 @@ console.log('\n  when they are NOT known — the chip path, which is where the o
 check('no vehicle name appears anywhere in the directive',
   i => /CR-V|Pilot|Camry|Carnival|Accord|Sportage|Mazda|Honda|Kia|Toyota/.test(all(i.run(null, true))), false);
 
-check('it still tells the model to clarify in one line',
-  i => /CLARIFY naturally in one line/.test(all(i.run(null, true))), true);
+// (v9.7.699) "in one line" was a length rule and went with the rest (Gil, 9/23); the clarify instruction stays.
+check('it still tells the model to clarify, without "in one line"',
+  i => [/CLARIFY naturally, naming/.test(all(i.run(null, true))), /in one line/.test(all(i.run(null, true)))], [true, false]);
 
 check('...and says outright not to invent a pair',
   i => /DO NOT INVENT A PAIR OF MODELS TO ASK ABOUT/.test(all(i.run(null, true))), true);
@@ -190,8 +191,8 @@ function rebuild(impl, newCode) {
 
 neuter('A — the CR-V/Pilot example put back on the no-pair path (control: the known-pair path still names the real two)',
   i => rebuild(i, i.code.replace(
-        /'Otherwise CLARIFY naturally in one line, naming[^']*'/,
-        "'Otherwise CLARIFY naturally in one line (e.g. \"are you still set on the CR-V, or has the Pilot won you over?\").'")),
+        /'Otherwise CLARIFY naturally, naming[^']*'/,
+        "'Otherwise CLARIFY naturally (e.g. \"are you still set on the CR-V, or has the Pilot won you over?\").'")),
   i => /CR-V|Pilot/.test(all(i.run(null, true))), false,
   i => /are you still focused on the Mazda CX-5 Sport, or the Honda CR-V\?/.test(all(i.run(PAIR, false))), true);
 

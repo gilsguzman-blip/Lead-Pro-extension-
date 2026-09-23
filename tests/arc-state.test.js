@@ -134,9 +134,10 @@ check('cadence position renders as where the schedule ARRIVED, not what to write
   i => {
     const s = i.build({ leadAgeDays: 41, outboundSends: [] },
                       { totalInbound: 1, totalOutbound: 5, daysSinceReply: 30, consecutiveOutbound: 5,
-                        cadence: { day: 41, confidence: 'high' } });
-    const line = s.lines.filter(l => /Scheduled position/.test(l))[0] || '';
-    return { has: /day-41 touch of the 90-day sequence/.test(line), noRole: !/value|curiosity|soft/i.test(line) };
+                        cadence: { day: 41, status: 'due', line: 'Cadence (by calendar): this lead is 41 days old, so the touch scheduled for day 41 of the lead is the one due now. Touches missed earlier are skipped, not made up.' } });
+    // (v9.7.699) P6: the line is built by _lpCadenceByCalendar and passed through as-is.
+    const line = s.lines.filter(l => /^Cadence/.test(l))[0] || '';
+    return { has: /day 41 of the lead is the one due now/.test(line), noRole: !/value|curiosity|soft/i.test(line) };
   }, { has: true, noRole: true });
 
 check('the 8-send cap is DISCLOSED rather than implying the history is complete',

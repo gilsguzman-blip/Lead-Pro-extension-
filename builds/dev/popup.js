@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.699-dev (Dev. PHASE 2 STEP 4 (P6, M2, M8) + GIL'S LENGTH RULING. Extension only; proxy v7.76 and reporter v1.22 unchanged. P6 CADENCE BY CALENDAR (Gil's ruling: the touch is set by calendar lead age, missed touches are skipped, the last real outreach decides WHETHER it is time, a recent reply or live appointment outranks the cadence): NEW _lpCadenceByCalendar. The prompt line was "Scheduled position: the day-24 touch of the 90-day sequence (reconciled)" on a 55-day lead; it now reads "this lead is 55 days old, so the touch scheduled for day 53 of the lead is the one due now ... Touches missed earlier are skipped", or says the touch is already covered (a text or email went out on or after its day) and when the next one falls, or says the cadence is paused (customer replied in the last 7 days, or their reply is still the newest message; or an appointment is set). Calls do not count, as before. The old progress reading still runs and [LP CADENCE DIAG] logs both with a SHIFT marker. Across the 52 uploaded logs (141 generations, 81 leads by lead id): 22 leads shift -- 12 had a touch and are now paused by a recent reply, 8 were REFUSED as over-counted and now get their calendar touch, 1 moves later (the 55-day lead, day-24 -> day-53), 1 earlier (a 4-day lead, day-8 -> day-4); 59 are unchanged (26 have no position either way: under day 4, age unknown or past day 90; 33 were already paused-equivalent). Whether a touch is due or covered needs the last send's date, which the old logs do not carry, so those counts are positions, not due/covered. STALLED LADDER (reported, thresholds NOT changed): 10 stalled leads in the logs, all on rung 4 or 5; 6 reached rung 4-5 on a lead 7 days old or younger, where the calendar says day 4, 7 or 8 -- the ladder counts raw texts+emails with no calendar term. M2: d.hasShowroomVisit was never assigned; populate now reads isShowroomFollowUp || showroomVisitToday, so the distance flag no longer lights for a customer who already came in. activeFlags delta on the uploaded logs: 0 (none of the 140 populate lines carried a showroom follow-up). FOUND, NOT CHANGED: populate's unconditional DISTANCE rule (v9.7.405) is pushed onto vehicleExtras AFTER vehicleExtras is joined into leadContext, so it has never reached a prompt -- 0 of 50 captured prompts carry it; the buildUserPrompt distance block restates the rule for flagged leads. Turning it on would add a distance paragraph to nearly every non-Audi prompt, so it waits for a ruling. M8: fact-probe verdicts are memoised per (active lead id, hash of the exact probe inputs); a regen with unchanged inputs makes 0 probe calls instead of 3 and waits 0ms instead of up to 4.5s; only answers are kept (usable or vacuous) -- a timeout, fallback, bad body or fabricated quote is asked again; verdict logic, kill switches and the telemetry row are unchanged. LENGTH (Gil, 9/23: "drop all the length rules, keep 20-30 sec on VM, drop word count, ignore subject line, change the rest"): voicemail-only 'about 60-80 words, three short beats' and its per-beat sentence counts -> '20-30 seconds, three beats'; bereavement '(2-3 sentences)' and 'brief' gone; 'Short reply -> short response' -> 'Match the register of what they sent'; CLARIFY 'in one line' gone; the dead opt-out voicemail 'one sentence' gone; auth.js personas lose 'concise', 'short sentences', 'Keep it short' and 'the shorter it is'. Both 20-30 second voicemail lines and the 4-8 word subject rule stay. VERIFIED: NEW cadence-calendar-699.test.js (19 per build, 38) and step4-699.test.js (15 per build, 30), both running the whole popup.js in a vm -- populateFromData, _lpPrepareFactVerdicts with a counting fake transport, both system prompts. NON-VACUITY against v9.7.698: cadence-calendar fails 19 of 19 (the function does not exist there); step4 fails 7 of 15, the 8 that pass are controls. run-all: 123 suites, 5888 assertions, 0 failed. node --check clean on both builds; both manifests parse; version AND version_name bumped; DEV vs COMMERCIAL differences unchanged, popup.js and auth.js. Builds on v9.7.698. Mirrors COMMERCIAL v9.7.699.)
 // Lead Pro -- popup.js  v9.7.698-dev (Dev. PHASE 2 STEP 3 (PROMPT HYGIENE) + LOG240. Extension only; proxy v7.76 and reporter v1.22 unchanged. LOG240 (Gil, 9/23: the Audi Lafayette AFS off-lease lead's message "reads like the very first message that was sent"): the lease-maturity scenario (AFS / TFS / KMF-LUV / KFA) was the one source branch with NO follow-up arm -- on every touch it said "Open by acknowledging their current vehicle and the upcoming lease end" and that the maturity "is the hook". That lead was one day old with outreach already sent and a Contacted call where the customer said they had not decided; the draft opened with the maturity again and re-listed the options. A follow-up now says PRIOR OUTREACH already made, does not re-open with the maturity or re-list the options, and builds on the latest exchange including call notes; the facts that prevent a wrong message (their own vehicle, never in stock; lease vs loan; figures unverified; program tone) stay on both arms. The repeat-customer branch had the same gap ("Acknowledge the relationship immediately" on every touch) and gets the same fork. The dump and full prompt uploaded with the report were for a different lead (the last generation before the dump); this was traced from the log. STEP 3: M3 scenarioRules renders once (the HARD CONSTRAINTS copy repeated the SITUATION and judgment lines on every lead; its inert two-time-close filters went with it). M5 zero-contact stalled leads carried seven overlapping blocks; the STALLED LEAD RE-ENGAGEMENT phase block now owns the appointment ban, the do-not-repeat rule and the silence acknowledgment -- the ZERO-CONTACT LEAD context header is one fact line, the ZERO CUSTOMER RESPONSE / HARD RULE lines are gone, NO APPOINTMENT TIME (UNLESS...), VARY YOUR ANGLE and ONE-SIDED stand down when the phase block is present, and ZERO-CONTACT RE-ENGAGEMENT (whose 'GOAL: Get their first reply. Nothing else.' contradicted PHASE 5) is removed. M6 FORMAT RULES: the SMS signature line agrees with the LEAD section; Duration and APPOINTMENT TIME FORMAT render only when times are offered; the JSON line names the subject field. M7 the no-reply digest no longer suggests 'or trade' or 'a different person picked up the thread'. Length sweep: proposals only, nothing changed. VERIFIED: NEW prompt-hygiene-698.test.js runs the WHOLE popup.js in a vm (new tests/helpers/load-popup.js) and asserts on the real buildUserPrompt output for synthetic leads -- 24 per build, 48; NON-VACUITY against v9.7.697: 16 of 24 fail, the 8 that pass are controls. On the synthetic zero-contact lead the prompt drops from 26,307 to 23,948 chars. run-all: 121 suites, 5820 assertions, 0 failed. node --check clean on both builds; both manifests parse; version AND version_name bumped; DEV vs COMMERCIAL differences unchanged. Builds on v9.7.697. Mirrors COMMERCIAL v9.7.698.)
 // Lead Pro -- popup.js  v9.7.697-dev (Dev. PHASE 2 STEP 2 + GIL'S 9/23 FOLLOW-UPS. Extension only; proxy v7.76 and reporter v1.22 unchanged. SOURCES (Gil: "I had a lead that was Facebook and Facebook wasn't mentioned as the source. Check all logic around the sources"): the first-pass SMS named Facebook and the SMS refine pass rewrote it out -- the refine prompt now says KEEP WHERE THEY CAME FROM, and a guard ships the first draft when a brand/place source name was dropped; follow-ups on dedicated sources (Facebook, TrueCar, Costco, CapitalOne, CarPro) no longer skip the acknowledgment block once the source's own first-touch framing has stopped running; a continuing thread that never named the source names it once, in passing, not as an opener; TradePending now resolves to its own name instead of the online-inquiry catch-all that contradicted it; Facebook's 'yes it is here' needs the live feed, like every other presence claim since v9.7.696. BOUNCED EMAIL (Gil: "if we see a bounced email that the text includes a request for a good email address"): the scraper counts this lead's Email Failure / Bounced Address notes ([LP EMAIL BOUNCE DIAG]); when any exist the LEAD section marks the address BOUNCING, drops 'do NOT ask for their email', and tells the SMS to ask once, plainly, for a good address; the refine pass keeps that ask or ships the first draft; bounce notices no longer count as outreach, as 'our last message', or as the customer's words (the bounce repeats OUR subject line). REMOTE BUYERS: presence wording follows the feed and a remote buyer gets a remote next step -- no suggested times, no TIMING block. STEP 2 (approved): H1 channel preferences ('text only', 'don't call me') are carried as the customer's stated channel preference, and the declined-alternative observation renders only when the text names a vehicle; H2 zero-contact examples replaced by one no-visit line; H3 trade-conflation guard reads customer text plus call/agent notes and only claims the notes contain the error when they do; H4 Director first-touch/active modes drop the stall examples, every example is labelled TONE only, persona examples in auth.js use [Vehicle]/[Brand Specialist] with no presence or numbers, Concierge bay line conditional; H5 call-log boilerplate ('By: X / no answer', call-tracking rows) is not a contact, and the hang-up/zero-contact thresholds and the SITUATION count read the scraper's outreach tally; P2 'found one', 'decided to', 'bad experience' are not exits, and exit reads the customer's lines only; P3 'today does not work' needs the customer's own words or an out-of-town constraint; P4 General Notes go in verbatim, no tags; P5 the active dealer id is reset per grab and set from the active frame; L1 four scraper diagnostics relayed; L3 (dev only) duplicate var removed; L4 chronological-order sentence fixed. ALSO: channel fatigue needs a 3-day-old lead and counts this lead's streak only; ONE-SIDED needs 3 days; the no-vehicle line no longer names Telluride/Crown/Optima; the no-trade subject line is gated on no trade listed; 'acknowledge the silence' only at 2+ days; self-claims read this lead's notes only; the arc no longer lists a General Note twice. DUMP HELPER: window._lpDumpLead() saves the last generation's buildUserPrompt inputs as leadpro_lead_dump_<time>.json, locally, for the paired harness. log239 (Kia Baytown) first-reach incentive traced to the 'generic' override removed in v9.7.696. VERIFIED: NEW step2-697.test.js (55 per build, 110), executing shipped code where it lifts cleanly and labelled (source) where it does not. NON-VACUITY against v9.7.696: 52 of 55 fail; the 3 that pass are controls. Existing suites updated where behaviour was meant to change, each marked (v9.7.697). run-all: 120 suites, 5773 assertions, 0 failed. node --check clean on both builds; both manifests parse; version AND version_name bumped; DEV vs COMMERCIAL differences unchanged except the dev-only L3 hunks. Builds on v9.7.696. Mirrors COMMERCIAL v9.7.697.)
 // Lead Pro -- popup.js  v9.7.696-dev (Dev. THREE FIXES FROM GIL'S 9/23 CAPTURES. Extension only; proxy v7.76 and reporter v1.22 unchanged. (A) SMS IS ALWAYS DRAFTED -- GIL: "lose the opt in/opt out logic and just have an SMS generated regardless ... I'll put the onus on the agent to decide when to send an SMS." This SUPERSEDES v9.7.695's P1 ruling from the same morning. Removed: the render-time SMS blank, the SMS CHANNEL OVERRIDE scenario line, the boxed TOP-PRIORITY SMS OPT-OUT block, the LEAD-section SMS STATUS line; isSmsOptOut is false on every lead, so a STOP no longer shapes exit or opt-out framing. A WRITTEN "stop contacting me" / "take me off your list" still exits -- exitRaw owns those phrases independently. KEPT, informational only: v9.7.695's marker-scoped evidence scan, renamed smsOptOutEvidence; it feeds [LP SMS OPT-OUT EVIDENCE DIAG] (popup-side, grab and render) and ONE agent-facing status line after generation -- "SMS drafted -- this lead has opt-out evidence on record. Your call whether to text." -- a notice, never a block, one statement to delete if unwanted. (B) "IT'S HERE" NOW NEEDS THE LIVE FEED. Brandy Mooney and Mike Stewart (Toyota Baytown, 9/23, log238): generic chat/web VOIs ("2024 Toyota Tundra (Used)", "2022 Toyota RAV4 (New)"), PageData present for the lead with NO stock and NO VIN, yet the page-wide "Stock #" regex found TT069306B and TE152985A elsewhere on the page -- src stock:rgx -- and both drafts said the car was here. TE152985A is not even in the live feed; the presence predicate was "!!d.stockNum && nothing says otherwise", and buildUserPrompt's branch literally said "stock number on the lead means physically on lot ... say we have it here". Survey of every log on hand: every real unit carried its stock in PageData; the only regex-only stocks were these two plus an 8/18 Audi Lafayette lead where the regex paired a customer-typed S6 e-tron VIN suffix with a Q6 e-tron VOI and called the Q6 "confirmed in stock". FIXES: (1) scraper -- when PageData describes this lead it owns the unit identity; an empty stock or VIN there is an answer, and the regex fallback runs only when PageData is ABSENT (diag src now reads pd-empty(rgx X refused)); (2) NEW _lpFeedUnitCheck -- presence requires the live feed to hold the stock AND that unit to be the lead's vehicle (make+model family, and year when both carry one); no feed loaded = not confirmed; (3) both _confirmedPresent copies, the v9.7.505 feed check and both buildUserPrompt "say we have it here" branches now use it; a stock the feed does not confirm gets an explicit "presence NOT confirmed -- do not say it is here" note. Ground-truth direction unchanged, only stricter: the feed was already the truth, it now has to vouch for the SAME car. (C) THE FIRST-REACH INCENTIVE RAIL IS CLOSED. Gil: "an incentive offer was sent on first reach. We had put a rail against that on first reach. Check if that broke." It had not broken -- it was never total: v9.7.415/425's 'generic' override (fresh, no VIN/stock, non-aggregator) and 'in_transit' override released incentives on first reach by design. Live 9/23: a $209/36-mo Accord lease on Marlene Cadena's first message (Honda Baytown), $750 Conquest/Owner Loyalty cash on Bryston Taylor's (Kia Baytown). Both overrides removed; first reach carries no incentive unless the customer asked, or 3+ outreaches already went out on the lead (v9.7.616, unchanged). John Moody is in none of the uploaded logs, so his lead is not traced here. ALSO: bot-authorship.test.js had a hard-coded 09/16 message date against code that ages notes on the real clock, and started failing ON ITS OWN on 9/23 -- a time bomb, not a regression; now relative to now. Many suites hard-code 2026 dates and pass today; flagged, not swept. VERIFIED: NEW sms-optout-evidence.test.js (48, replaces sms-suppress), first-reach-incentive.test.js (12), stock-source.test.js (12), all EXECUTING shipped code; consent-and-stock gains the Brandy/Mike/Q6/wrong-year/no-feed shapes run through the real helper (41); stock-color runs its capture through the real helper (72). NON-VACUITY against v9.7.695: sms-optout-evidence fails 23 of 24, first-reach-incentive 6 of 6, stock-source 3 of 6 (the three stray-stock shapes; the three controls pass). run-all: 119 suites, 5656 assertions, 0 failed. node --check clean on both builds; both manifests parse; version AND version_name bumped; changed regions byte-identical DEV vs COMMERCIAL. Builds on v9.7.695. Mirrors COMMERCIAL v9.7.696.)
@@ -2328,6 +2329,17 @@ function _lpBuildFactInputs(data, deps) {
 // authoritative reader, and it is why the timeout above is a rail rather than a nicety. Resolves
 // to the verdict map; never rejects, so a failure here can only ever mean "everything falls back
 // to regex", which is today's behaviour exactly.
+// (v9.7.699) M8 memo — see _lpPrepareFactVerdicts.
+var _lpFactMemo = {}, _lpFactMemoOrder = [], LP_FACT_MEMO_MAX = 30;
+function _lpFactMemoKey(inputs, deps) {
+  try {
+    var lead = String((deps && deps.activeLeadId) || (typeof window !== 'undefined' && window._activeLeadId) || '');
+    if (!lead) return '';
+    var s = JSON.stringify(inputs || {}), h = 5381;
+    for (var i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+    return lead + '|' + (h >>> 0).toString(16) + ':' + s.length;
+  } catch (e) { return ''; }
+}
 function _lpPrepareFactVerdicts(data, deps) {
   try {
     var anyOn = LEADPRO_VERBALCOMMIT_COMPREHENSION || LEADPRO_DAYLOCK_COMPREHENSION
@@ -2339,13 +2351,39 @@ function _lpPrepareFactVerdicts(data, deps) {
     try { window._lpFactDecisions = {}; window._lpFactFlushedFor = ''; } catch (e) {}
     if (!anyOn) { try { window._lpFactVerdicts = {}; } catch (e) {} return Promise.resolve({}); }
     var t0 = Date.now();
-    return _lpRunAllFactProbes(_lpBuildFactInputs(data, deps), deps).then(function (v) {
+    var _l = (deps && deps.log) || function () { try { console.log.apply(console, arguments); } catch (e) {} };
+    // (v9.7.699) AUDIT M8 — A REGEN WITH THE SAME INPUTS ASKS THE SAME THREE QUESTIONS. Every generation,
+    // regens included, awaited three probe calls (up to the 4.5s timeout) for verdicts that could not
+    // have changed. They are now memoised for the session on (active lead id, hash of exactly what the
+    // probes are sent). Any change to the notes, the customer text, the store or the lead's state gives a
+    // new hash and a fresh read. Only verdicts that are ANSWERS are kept -- usable, or vacuous (nothing to
+    // read); a timeout, a proxy fallback, a bad body or a fabricated quote is retried next time. Verdict
+    // logic, the kill switches and the per-generation telemetry row are unchanged: the flush reads
+    // window._lpFactVerdicts, which a reuse sets exactly as a fresh run does.
+    var _inputs = _lpBuildFactInputs(data, deps);
+    var _key = _lpFactMemoKey(_inputs, deps);
+    if (_key && _lpFactMemo[_key]) {
+      var _hit = _lpFactMemo[_key];
+      try { window._lpFactVerdicts = _hit; } catch (e) {}
+      try { _l('[LP FACT DIAG] verdicts REUSED — same lead, same probe inputs (' + _key.split('|')[1] + ') | 0 probe calls, 0ms waited | '
+        + Object.keys(_hit).map(function (k) { return k + ':' + (_hit[k] && _hit[k].usable ? 'usable' : 'fallback'); }).join(' ')); } catch (e) {}
+      return Promise.resolve(_hit);
+    }
+    return _lpRunAllFactProbes(_inputs, deps).then(function (v) {
       try {
-        var _l = (deps && deps.log) || function () { try { console.log.apply(console, arguments); } catch (e) {} };
         _l('[LP FACT DIAG] all probes settled in ' + (Date.now() - t0) + 'ms | '
           + Object.keys(v).map(function (k) {
               return k + ':' + (v[k] && v[k].usable ? 'usable' : 'fallback');
             }).join(' '));
+      } catch (e) {}
+      try {
+        var _answers = Object.keys(v).length > 0 && Object.keys(v).every(function (k) { return v[k] && (v[k].usable || v[k].vacuous); });
+        if (_key && _answers) {
+          _lpFactMemoOrder.push(_key); _lpFactMemo[_key] = v;
+          while (_lpFactMemoOrder.length > LP_FACT_MEMO_MAX) delete _lpFactMemo[_lpFactMemoOrder.shift()];
+        } else if (_key) {
+          _l('[LP FACT DIAG] not memoised — ' + (_answers ? 'no lead id' : 'a probe did not return an answer; it will be asked again next generation'));
+        }
       } catch (e) {}
       return v;
     });
@@ -2723,11 +2761,12 @@ function _lpBuildArcState(d, opts) {
                             + consec + ' outbound since then with no answer.');
     else                  s.lines.push('The customer replied ' + since + ' days ago and it is the newest message on the lead.');
 
-    if (opts.cadence && opts.cadence.day) {
+    if (opts.cadence && opts.cadence.line) {
       // Position is a FACT, not an instruction. It says where the schedule has arrived; it does
       // not say what to write, which is the whole difference from the tag it replaces.
-      s.lines.push('Scheduled position: the day-' + opts.cadence.day + ' touch of the 90-day sequence'
-        + (opts.cadence.confidence ? ' (' + opts.cadence.confidence + ')' : '') + '.');
+      // (v9.7.699) P6: the line is built by _lpCadenceByCalendar and says "this lead is N days old"
+      // beside "day N of the lead", so a touch number can no longer be read as a date.
+      s.lines.push(opts.cadence.line);
     }
 
     if (ang.spent.length) {
@@ -2763,7 +2802,7 @@ function _lpArcStateDiag(s, log) {
       + ' | sends read:' + (f.sendsRead || 0) + (f.capped ? ' (CAPPED)' : '')
       + ' | spent:' + ((f.spent || []).map(function (x) { return x.angle; }).join(',') || 'none')
       + ' | unused:' + ((f.unused || []).join(',') || 'none')
-      + ' | cadence:' + (f.cadence && f.cadence.day ? 'day-' + f.cadence.day : 'none')
+      + ' | cadence:' + (f.cadence && f.cadence.status ? f.cadence.status + (f.cadence.day ? ' day-' + f.cadence.day : '') : 'none')
       + ' | rendered:' + (s && s.lines ? s.lines.length : 0) + ' fact(s)');
     (f.spent || []).forEach(function (x) {
       _l('[LP ARC ANGLE] ' + x.angle + ' <- "' + x.evidence + '"'
@@ -2909,6 +2948,78 @@ function _lpComputeCadenceTouch(leadAgeDays, sent) {
 // so nothing can re-enable tag injection by accident.
 function _lpRenderCadenceTouch() { return ''; }
 
+// ── (v9.7.699) AUDIT P6 — THE CADENCE POSITION IS THE CALENDAR'S, NOT THE SEND COUNT'S ─────────
+// Gil's ruling (Phase 2): "the cadence touch is determined by calendar lead age; missed touches are
+// skipped; spacing is kept (the last real outreach decides WHETHER it's time); a recent reply or live
+// appointment outranks the cadence."
+//
+// What it replaces in the prompt: "Scheduled position: the day-24 touch of the 90-day sequence
+// (reconciled)" on a lead the same prompt called 55 days old (capture a8dc2954). _lpComputeCadenceTouch
+// let PROGRESS win -- five sends counted meant "next is touch six, day 24" -- so a lead that fell
+// behind was walked through every missed touch in order, and "day-24" read as a date. That reading is
+// kept below, unchanged, for the diagnostic only, so the two can be compared on live traffic.
+//
+//   WHICH touch: the latest one whose day the lead has reached. Earlier touches that never went out
+//     are skipped, not made up.
+//   WHETHER it is time: if a real text or email has gone out ON OR AFTER that touch's day, it is
+//     already covered and the next one is not due until its own day. That is the spacing.
+//   WHAT OUTRANKS IT: a customer reply in the last 7 days, or a reply that is still the newest message
+//     on the lead (nothing sent since), or a live appointment. Then the conversation sets the next move.
+// Calls are not cadence touches (the 16 are text and email only), so they do not count as outreach
+// here either, the same rule _lpCadenceCountTouches applies.
+var LP_CADENCE_REPLY_OUTRANKS_DAYS = 7;
+function _lpCadenceByCalendar(o) {
+  var out = { status: 'none', touch: null, next: null, daysToNext: null, lastOutreachDay: null, reason: '', line: '' };
+  try {
+    o = o || {};
+    var age = parseFloat(o.leadAgeDays);
+    if (!(age > 0)) { out.reason = 'lead age unknown'; return out; }
+    var ageD = Math.floor(age);
+    if (o.hasApptSet) {
+      out.status = 'paused'; out.reason = 'a live appointment is set';
+      out.line = 'Cadence: paused — an appointment is set, so the appointment, not the 90-day schedule, decides the next message.';
+      return out;
+    }
+    var since = (o.daysSinceReply === undefined || o.daysSinceReply === null || o.daysSinceReply === '') ? null : parseFloat(o.daysSinceReply);
+    var consec = parseFloat(o.consecutiveOutbound) || 0;
+    if (since !== null && !isNaN(since) && (since <= LP_CADENCE_REPLY_OUTRANKS_DAYS || consec === 0)) {
+      out.status = 'paused';
+      out.reason = since <= LP_CADENCE_REPLY_OUTRANKS_DAYS ? 'customer replied ' + since.toFixed(1) + 'd ago' : 'the customer reply is still the newest message';
+      out.line = 'Cadence: paused — the customer '
+        + (since <= LP_CADENCE_REPLY_OUTRANKS_DAYS
+            ? 'replied ' + (since < 1 ? 'today' : Math.round(since) + ' day' + (Math.round(since) === 1 ? '' : 's') + ' ago')
+            : 'wrote last and nothing has gone out since')
+        + ', so the conversation, not the 90-day schedule, decides the next message.';
+      return out;
+    }
+    if (ageD > 90) { out.status = 'nurture'; out.reason = 'past day 90 — monthly nurture, not a numbered touch'; return out; }
+    if (ageD < LP_CADENCE_TOUCHES[0].day) { out.reason = 'day ' + ageD + ' is before the first scheduled touch (day ' + LP_CADENCE_TOUCHES[0].day + ')'; return out; }
+    var ti = -1;
+    for (var i = 0; i < LP_CADENCE_TOUCHES.length; i++) { if (LP_CADENCE_TOUCHES[i].day <= ageD) ti = i; }
+    out.touch = LP_CADENCE_TOUCHES[ti];
+    var now = o.nowMs || Date.now();
+    if (o.lastOutreachMs > 0) out.lastOutreachDay = Math.floor(age - (now - o.lastOutreachMs) / 86400000);
+    if (out.lastOutreachDay !== null && out.lastOutreachDay >= out.touch.day) {
+      out.status = 'covered';
+      out.next = LP_CADENCE_TOUCHES[ti + 1] || null;
+      out.daysToNext = out.next ? out.next.day - ageD : null;
+      out.reason = 'day-' + out.touch.day + ' already covered by outreach on day ' + out.lastOutreachDay
+        + (out.next ? '; next is day-' + out.next.day + ' in ' + out.daysToNext + 'd' : '; no numbered touch left before day 90');
+      out.line = 'Cadence (by calendar): this lead is ' + ageD + ' days old. The touch scheduled for day ' + out.touch.day
+        + ' of the lead is already covered — our last text or email went out on day ' + out.lastOutreachDay + '. '
+        + (out.next ? 'The next scheduled touch is on day ' + out.next.day + ', ' + out.daysToNext + ' day' + (out.daysToNext === 1 ? '' : 's') + ' from now.'
+                    : 'No numbered touch is left before day 90.');
+      return out;
+    }
+    out.status = 'due';
+    out.reason = 'day-' + out.touch.day + ' touch due' + (out.lastOutreachDay === null ? ' (no dated text/email on this lead)' : '; last outreach was day ' + out.lastOutreachDay);
+    out.line = 'Cadence (by calendar): this lead is ' + ageD + ' days old, so the touch scheduled for day ' + out.touch.day
+      + ' of the lead is the one due now' + (out.lastOutreachDay === null ? '' : ' — nothing has gone out since day ' + out.lastOutreachDay)
+      + '. Touches missed earlier are skipped, not made up.';
+  } catch (e) { out.status = 'none'; out.reason = 'calendar cadence threw: ' + (e && e.message); out.line = ''; }
+  return out;
+}
+
 // The single entry point. Returns what to inject (or '') plus everything the diagnostic needs.
 // A MANUAL PASTE ALWAYS WINS. The brief ships this additive: when an agent has pasted a cadence
 // command the computed value is still computed and still logged, so the two can be compared on
@@ -2940,6 +3051,11 @@ function _lpCadence(deps) {
     res.sent    = _lpCadenceCountTouches(deps.contextText);
     res.compute = _lpComputeCadenceTouch(res.age, res.sent);
     res.touch   = res.compute.touch;
+    // (v9.7.699) P6: the position the prompt states. res.compute stays as the old progress reading,
+    // logged beside it so any lead the ruling moves is visible in [LP CADENCE DIAG].
+    res.calendar = _lpCadenceByCalendar({ leadAgeDays: deps.leadAgeDays, lastOutreachMs: deps.lastOutreachMs,
+      nowMs: deps.nowMs, daysSinceReply: deps.daysSinceReply, consecutiveOutbound: deps.consecutiveOutbound,
+      hasApptSet: deps.hasApptSet });
     if (res.manual) return res;                    // human wins; computed value is logged only
     if (!deps.flagOn) return res;                  // observer: computed, logged, NOT injected
     res.inject = _lpRenderCadenceTouch(res.touch);
@@ -2960,6 +3076,13 @@ function _lpCadenceDiag(res, log) {
           ) : 'NONE')
       + ' | confidence:' + (c ? c.confidence : '?')
       + ' | why: ' + (c ? c.reason : '?')
+      + (res && res.calendar
+          ? ' | CALENDAR (what the prompt states, v9.7.699 P6): ' + res.calendar.status
+            + (res.calendar.touch ? ' day-' + res.calendar.touch.day : '')
+            + ' — ' + res.calendar.reason
+            + (((res.touch ? res.touch.day : null) !== ((res.calendar.status === 'due' || res.calendar.status === 'covered') && res.calendar.touch ? res.calendar.touch.day : null))
+                ? ' | ⚠ SHIFT: progress said ' + (res.touch ? 'day-' + res.touch.day : 'none') : ' | no shift')
+          : '')
       + ' | manual paste:' + (res && res.manual ? 'YES — OVERRIDES the computed value' : 'no')
       + ' | injected:' + (res && res.inject ? 'YES' : 'no'
           + (res && !res.flag && !res.manual ? ' (LEADPRO_CADENCE_AUTO is off — observing only)' : '')));
@@ -4792,8 +4915,8 @@ function _lpVoiConflictDirective(vehicles, agentFlagged) {
       'Do NOT confidently assert which vehicle they want, and do NOT stack several vehicles into one message.',
       'If the conversation arc makes their current focus obvious, use that vehicle.',
       (a && b)
-        ? 'Otherwise CLARIFY naturally in one line — e.g. "are you still focused on the ' + a + ', or the ' + b + '?" — and keep the rest of the message helpful and forward-moving.'
-        : 'Otherwise CLARIFY naturally in one line, naming the two vehicles exactly as they appear in this conversation and asking which one they are focused on, then keep the rest of the message helpful and forward-moving. DO NOT INVENT A PAIR OF MODELS TO ASK ABOUT — if you cannot see both in the conversation, ask which vehicle they are focused on without naming either.',
+        ? 'Otherwise CLARIFY naturally — e.g. "are you still focused on the ' + a + ', or the ' + b + '?" — and keep the rest of the message helpful and forward-moving.'
+        : 'Otherwise CLARIFY naturally, naming the two vehicles exactly as they appear in this conversation and asking which one they are focused on, then keep the rest of the message helpful and forward-moving. DO NOT INVENT A PAIR OF MODELS TO ASK ABOUT — if you cannot see both in the conversation, ask which vehicle they are focused on without naming either.',
       'NEVER mention duplicates, records, CRM, or systems to the customer.'
     ]
   };
@@ -5304,7 +5427,7 @@ function populateFromData(d) {
   // for all engine suppression (convState exit → no appointment machinery), this line sets
   // the tone the generic exit close doesn't: pure condolence, no door-open-for-business.
   if (d.hasBereavementSignal) {
-    vehicleExtras.push('🕊 BEREAVEMENT NOTICE IN THREAD — OVERRIDES EVERYTHING ELSE. The conversation contains a death notification (the customer or a family member has passed away). Write ONLY a brief, sincere condolence (2-3 sentences): acknowledge the loss plainly, offer to close the file / stop all outreach, and if the sender asked for anything (closing the account, removing the number), confirm it will be handled. ABSOLUTELY NO: vehicle mentions, appointments or times, incentives, questions, "door open for the future" or "if you\'re still shopping" language, or any sales content whatsoever. Do not use their loss as a transition to anything.');
+    vehicleExtras.push('🕊 BEREAVEMENT NOTICE IN THREAD — OVERRIDES EVERYTHING ELSE. The conversation contains a death notification (the customer or a family member has passed away). Write ONLY a sincere condolence: acknowledge the loss plainly, offer to close the file / stop all outreach, and if the sender asked for anything (closing the account, removing the number), confirm it will be handled. ABSOLUTELY NO: vehicle mentions, appointments or times, incentives, questions, "door open for the future" or "if you\'re still shopping" language, or any sales content whatsoever. Do not use their loss as a transition to anything.');
   }
   // (v9.7.414/412 ENGAGEMENT ENHANCEMENTS) Set true whenever the color-mismatch or SOLD-vehicle
   // pivot already names comparable units for this generation — the new like-vehicle/CPO facts
@@ -7314,7 +7437,12 @@ function populateFromData(d) {
   // This is a FACT: geographic distance between the customer's address and the store, which the model
   // cannot compute from the text. Suppress for showroom-followup (already came in) and Audi (concierge
   // handles distance differently).
-  if (d.isDistanceBuyer && !d.hasShowroomVisit && !/audi/i.test(detectedStore || d.store || '')) {
+  // (v9.7.699) AUDIT M2. `d.hasShowroomVisit` was never assigned anywhere -- it existed only as a local
+  // inside classifyScenario -- so `!d.hasShowroomVisit` was always true and neither suppression below
+  // ever happened for a customer who had already come in. The two fields the scraper DOES return for a
+  // visit are read instead. Routing change, approved: the distance flag no longer lights for them.
+  var _dsVisited = !!(d.isShowroomFollowUp || d.showroomVisitToday);
+  if (d.isDistanceBuyer && !_dsVisited && !/audi/i.test(detectedStore || d.store || '')) {
     toggleFlag('distance', true);
   }
   // (v9.7.405/403 DISTANCE-RULE UNCONDITIONAL) The distance directive must be present on EVERY
@@ -7326,7 +7454,7 @@ function populateFromData(d) {
   // The rule now runs unconditionally (skipped only for true remote buyers, who get the acknowledge-
   // once directive, and for Audi/showroom where distance is handled differently). Whether or not the
   // distance FLAG fired, the model is now always told: do not state the miles unless truly remote.
-  if (!d.hasShowroomVisit && !/audi/i.test(detectedStore || d.store || '')) {
+  if (!_dsVisited && !/audi/i.test(detectedStore || d.store || '')) {
     // (v9.7.406/404 CRASH FIX) Compute may-state-distance INLINE — the v9.7.405 edit referenced
     // `sc`, which does not exist in this scope (this is the data-prep scope; everything here is
     // `d`/`data`). That threw "ReferenceError: sc is not defined", which propagated up and HUNG the
@@ -13162,7 +13290,7 @@ function _lpScraperBotAuthor(msg) {
         stateLabel = 'SMS OPT-OUT AS FIRST TOUCH: The customer texted STOP before any real conversation happened. They did NOT say they bought elsewhere or that they are uninterested in the vehicle -- they only said they do not want texts. This is a channel preference, not an exit. Handle as follows:\n'
           + '  - SMS = leave the sms field an EMPTY STRING. The customer opted out of texts — nothing is sent on that channel, not even a confirmation.\n'
           + '  - EMAIL = This is your real channel now. Do NOT mention SMS, texting, or the opt-out anywhere in the email — go straight to HONORING THEIR ORIGINAL INQUIRY with substantive content on what the LEAD section shows they actually asked about (vehicle availability, trade offer, KBB cash offer amount if present, whatever brought them in). Email is NOT covered by the SMS opt-out. Treat the email like a real first-touch response to their original inquiry, with no reference to the opt-out.\n'
-          + '  - VOICEMAIL = Skip or keep extremely brief (one sentence). Do not leave a voicemail dwelling on the STOP.\n'
+          + '  - VOICEMAIL = Skip it, or do not dwell on the STOP.\n'
           + '  - Do NOT introduce off-topic business they did not ask about. Anchor on the actual inquiry from the LEAD section.\n'
           + '  - The customer opted out of ONE channel. Serve them through the others, on the topic they raised.';
         _lpD('[Lead Pro] STOP-as-first-touch detected (convState=' + convState + ') -- SMS terse, email honors original inquiry through non-SMS channel');
@@ -18636,7 +18764,9 @@ function buildSystemPrompt(personaId) {
     'The transcript is your most important input. Everything else is context.',
     '',
     'Match their energy exactly:',
-    '- Short reply → short response. A wall of text after a one-word reply is tone-deaf.',
+    // (v9.7.699) Gil, 9/23: "drop all the length rules". Was 'Short reply → short response. A wall of text after a
+    // one-word reply is tone-deaf.' The register point survives; the size instruction does not.
+    '- Match the register of what they sent. A one-word reply is answered in kind, not with an agenda.',
     '- Detailed message → match the depth. Answer every question they raised.',
     '- Excited → move with them. Do not over-explain.',
     '- Asked a question → answer it first. Everything else comes after.',
@@ -19176,9 +19306,11 @@ function buildSystemPromptVoicemailOnly(personaId, agentFirst, storeName, phone)
     '━━━ OUTPUT CONTRACT — VOICEMAIL ONLY (overrides any instruction above to return multiple formats) ━━━',
     'For THIS request you are leaving a single spoken voicemail. Apply ALL the reasoning above — the conversation arc, the current status, what is already handled, and especially the persona voice and its required opening — but produce ONLY a voicemail.',
     'Respond with exactly one JSON object: {"voicemail":"..."} — a flat string. Do NOT generate sms, email, or subject; if you do, they are discarded.',
-    'SPOKEN — this is heard, not read. Natural spoken cadence, about 60-80 words, three short beats:',
-    '  1. INTRO: open exactly the way the persona and format rules above specify your introduction (use your first name' + (_store ? ' and "' + _store + '"' : '') + '). One spoken sentence. Do not flatten a persona-specific opening into a generic one.',
-    '  2. REASON: ONE sentence — the reason to call back that fits where this conversation actually is right now, the same thing your SMS and email would say. If the AGENT CONTEXT notes state the customer wants a different condition, year, trim, or model than the Vehicle of Interest field (e.g. a note says pre-owned 2020-or-newer while the field says a new 2026), then this ONE sentence IS the either/or question naming both distinctly — like "are you set on a 2020-or-newer pre-owned A6, or the 2026 model?" — spoken naturally. In that case NEVER reference only the Vehicle of Interest vehicle by itself; the brevity of a voicemail is never a reason to drop the distinction. Do not re-pitch anything the notes show is already handled (a placed deposit, a set appointment, another agent working it).',
+    // (v9.7.699) "Keep 20-30 sec on VM, drop word count" (Gil, 9/23). Was 'about 60-80 words, three short beats', with
+    // a sentence count on each beat; the duration is the one limit the voicemail keeps, as in the main prompt.
+    'SPOKEN — this is heard, not read. Natural spoken cadence, 20-30 seconds, three beats:',
+    '  1. INTRO: open exactly the way the persona and format rules above specify your introduction (use your first name' + (_store ? ' and "' + _store + '"' : '') + '). Do not flatten a persona-specific opening into a generic one.',
+    '  2. REASON: the reason to call back that fits where this conversation actually is right now, the same thing your SMS and email would say. If the AGENT CONTEXT notes state the customer wants a different condition, year, trim, or model than the Vehicle of Interest field (e.g. a note says pre-owned 2020-or-newer while the field says a new 2026), then the reason IS the either/or question naming both distinctly — like "are you set on a 2020-or-newer pre-owned A6, or the 2026 model?" — spoken naturally. In that case NEVER reference only the Vehicle of Interest vehicle by itself; being a voicemail is never a reason to drop the distinction. Do not re-pitch anything the notes show is already handled (a placed deposit, a set appointment, another agent working it).',
     '  3. CALLBACK: close with your callback number, spoken in digits, twice — EXACTLY: "Give me a call back at ' + (_ph || '[your number]') + '. That is ' + (_ph || '[your number]') + ' again."',
     (_ph ? 'YOUR CALLBACK NUMBER IS ' + _ph + '. Say those exact digits in beat 3. NEVER say the store name in place of the number, NEVER use the customer\'s own number, NEVER use any other number that appears in the context.' : ''),
     'No appointment times. Never speak a website address or URL out loud. End on the number — nothing after it.',
@@ -25991,7 +26123,13 @@ async function generateAll() {
         leadAgeDays:     lastScrapedData ? lastScrapedData.leadAgeDays : 0,
         agentLPCommands: lastScrapedData ? (lastScrapedData.agentLPCommands || []) : [],
         contextText:     userPrompt,
-        flagOn:          false            // tag injection is retired; position is a fact, not a directive
+        flagOn:          false,           // tag injection is retired; position is a fact, not a directive
+        // (v9.7.699) P6 inputs. outboundSends is the scraper's list of real texts/emails on THIS lead
+        // (calls and bounce notices excluded, bounded by the lead-created cutoff).
+        lastOutreachMs:  (function () { var m = 0; try { ((lastScrapedData && lastScrapedData.outboundSends) || []).forEach(function (x) { if (x && x.ms > m) m = x.ms; }); } catch (e) {} return m; })(),
+        daysSinceReply:  (lastScrapedData && lastScrapedData.relationshipSignals) ? lastScrapedData.relationshipSignals.lastInboundAgeDays : null,
+        consecutiveOutbound: (lastScrapedData && lastScrapedData.relationshipSignals) ? (lastScrapedData.relationshipSignals.consecutiveOutboundNoReply || 0) : 0,
+        hasApptSet:      !!(lastScrapedData && lastScrapedData.hasApptSet)
       });
       // (v9.7.579) FIELD NAMES CORRECTED. v9.7.578 read `m.inboundCount` and `m.outboundCount` —
       // `m` does not exist at this scope and NEITHER FIELD EXISTS ANYWHERE; I invented both. The
@@ -26025,8 +26163,9 @@ async function generateAll() {
         totalOutbound:       (_arcSig.totalOutboundCount !== undefined && _arcSig.totalOutboundCount !== null)
                                ? _arcSig.totalOutboundCount : null,
         consecutiveOutbound: _arcSig.consecutiveOutboundNoReply || 0,
-        cadence:             (_cad && _cad.touch)
-                               ? { day: _cad.touch.day, confidence: _cad.compute && _cad.compute.confidence }
+        // (v9.7.699) P6: the calendar reading, not the progress one.
+        cadence:             (_cad && _cad.calendar && _cad.calendar.line)
+                               ? { day: _cad.calendar.touch ? _cad.calendar.touch.day : null, status: _cad.calendar.status, line: _cad.calendar.line }
                                : null
       });
       _lpCadenceDiag(_cad);

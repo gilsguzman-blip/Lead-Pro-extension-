@@ -279,8 +279,10 @@ check('the tag-injection site is GONE — no journey-position directive is appen
 check('the cadence is called with flagOn hard-wired false — it can only inform, never instruct',
   i => /flagOn:\s*false\b/.test(i.code), true);
 
-check('...and its computed position reaches the situation read as a fact',
-  i => /cadence:\s*\(_cad && _cad\.touch\)/.test(i.code), true);
+// (v9.7.699) P6: the position that reaches the situation read is the CALENDAR reading (Gil's ruling);
+// the progress reading this suite covers is still computed and logged beside it.
+check('...and its computed position reaches the situation read as a fact (the calendar reading, v9.7.699)',
+  i => /cadence:\s*\(_cad && _cad\.calendar && _cad\.calendar\.line\)/.test(i.code), true);
 
 check('Phase 2 is NOT built — no auto-sourcing of the VALUE FACT anywhere',
   i => /_lpAutoValueFact|autoValueFact|VALUE_FACT_SOURCE/.test(i.code), false);
