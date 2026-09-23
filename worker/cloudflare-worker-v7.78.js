@@ -41,12 +41,18 @@
  *   non-reasoning model. That backstop is gone again, as it was in v7.38; Gil's call. gpt-4.1-nano
  *   remains CLASSIFIER_MODEL (unchanged).
  *
- *   NOT VERIFIED, AND HOW IT WOULD SHOW: GPT-6 Luna's page confirms caching but does not spell out
- *   the per-block prompt_cache_breakpoint or `verbosity` on Chat Completions. If either were
- *   rejected, the primary fails FAST with a 400 (never fatal), 5.6 Luna answers, and the Worker log
- *   reads `PRIMARY FAIL gpt-6-luna <ms> status=400 -> <message>` on every request. /perf would show
- *   tier=fallback on nearly every row. No latency data exists for GPT-6 Luna yet; 12000ms is the
- *   primary slot as it stood, not a measurement.
+ *   CONFIRMED FROM THE PROMPT-CACHING GUIDE: explicit prompt_cache_breakpoint blocks, ttl '30m' only,
+ *   1.25x writes, 0.1x reads and the 1,024-token minimum all apply to "GPT-5.6 and later", which
+ *   includes GPT-6 Luna. The guide also lists reasoning effort, verbosity and response format as
+ *   part of the cached prefix; LP holds all three constant across drafts ('low', 'low', json_object),
+ *   so one prefix is shared, exactly as on 5.6. `configuration_update` (GPT-6's way to vary effort
+ *   without breaking the prefix) is a Responses API input item and buys LP nothing: drafts never
+ *   vary effort, and the 'none' probes carry their own short system prompt, a separate prefix anyway.
+ *   NOT VERIFIED, AND HOW IT WOULD SHOW: `verbosity` on Chat Completions for GPT-6 Luna is not spelled
+ *   out. If it were rejected, the primary fails FAST with a 400 (never fatal), 5.6 Luna answers, and
+ *   the Worker log reads `PRIMARY FAIL gpt-6-luna <ms> status=400 -> <message>` on every request.
+ *   /perf would show tier=fallback on nearly every row. No latency data exists for GPT-6 Luna yet;
+ *   12000ms is the primary slot as it stood, not a measurement.
  *
  *   LEFT ALONE: TOTAL_BUDGET_MS, MIN_TIMEOUT_MS, the escalated-primary budget, REASONING_EFFORT
  *   'low', the escalation clamp, CACHE_TTL, the breakpoint/sentinel logic, the classifier, the
