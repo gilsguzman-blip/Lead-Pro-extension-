@@ -247,7 +247,9 @@ one('every correct probe answer shape is UNDER the draft floor — this is the w
 one('spec.tokens is set on ALL THREE tiers, so the logged tokens=300 never reached OpenAI',
   () => (proxySrc.match(/const MODEL_CASCADE = \[([\s\S]*?)\];/) || [, ''])[1]
     .match(/tokens:\s*(\d+)/g).map(x => Number(x.replace(/\D/g, ''))),
-  [3500, 3500, 2000]);
+  // (v7.78) The third tier is now gpt-5.4-nano, a reasoning model, and keeps its own 3500 (was 2000
+  // for the non-reasoning gpt-4.1-nano). Still set on all three, which is what this pins.
+  [3500, 3500, 3500]);
 
 one('...and the START line now says so, so tokens=300 cannot mislead the next reader',
   () => /tokens=\$\{callerMax\}\(caller; tiers use spec\.tokens\)/.test(proxySrc), true);
@@ -560,19 +562,24 @@ pOne('an effort the tier cannot take still degrades to its NEAREST supported val
   }, { effort: 'high', explained: true });
 
 pOne('400 is genuinely NOT fatal — the claim above is checked, not asserted',
-  () => /const fatal\s+= status === 401 \|\| status === 403 \|\| status === 404;/.test(proxySrc), true);
+  // (v7.78) The line now also exempts a model-specific 401/403/404 (a model the project cannot use);
+  // either form pins the same fact this assertion is about: 400 is not in the fatal set.
+  () => /const fatal\s+= status === 401 \|\| status === 403 \|\| status === 404;/.test(proxySrc)
+     || /const fatal\s+= \(status === 401 \|\| status === 403 \|\| status === 404\) && !modelSpecific;/.test(proxySrc), true);
 
-pOne('the emergency tier is a DIFFERENT model family on purpose',
+// (v7.78) REWRITTEN, AND IT NOW RECORDS A LOSS. Through v7.77 this asserted "the emergency tier is a
+// DIFFERENT model family on purpose": gpt-4.1-nano, a NON-reasoning model, under two GPT-5 tiers, so
+// one family-wide event (7/31 17:06) or the v7.30/W2 reasoning-burn shape could not empty all three.
+// Gil moved the cascade down one rung for GPT-6 Luna (9/23) knowing that; 4.1-nano is out and every
+// tier now reasons. The old check would still have PASSED (it split names into 'gpt-6', 'gpt-5.6',
+// 'gpt-5.4' and called that diversity), which is precisely why it is replaced: three GPT-5-lineage
+// reasoning models is not the backstop the assertion's own comment described. This says what is true.
+pOne('v7.78: three distinct models, and every one of them a reasoning model — no non-reasoning backstop',
   () => {
-    // The 5.4 guide suggests gpt-4.1-nano -> gpt-5.4-nano with effort 'none'. Declined: that would
-    // put the fallback and emergency tiers on the same family, so one family-wide outage takes both
-    // and the ladder stops being a ladder. Tier diversity is the reason the third tier exists.
-    // Read from the shipped source: MODEL_CASCADE sits outside the extracted span.
-    const fams = (proxySrc.match(/\{ model: '([^']+)'/g) || [])
-      .map(m => m.slice(m.indexOf("'") + 1, -1))
-      .map(m => m.split('-').slice(0, 2).join('-'));
-    return { families: Array.from(new Set(fams)).sort(), distinct: new Set(fams).size >= 2 };
-  }, { families: ['gpt-4.1', 'gpt-5.4', 'gpt-5.6'], distinct: true });
+    const rows = (proxySrc.match(/\{ model: '[^']+'[^}]*\}/g) || []);
+    return { models: rows.map(r => r.match(/model: '([^']+)'/)[1]),
+             reasoning: rows.map(r => /gpt5:\s*true/.test(r)) };
+  }, { models: ['gpt-6-luna', 'gpt-5.6-luna', 'gpt-5.4-nano-2026-03-17'], reasoning: [true, true, true] });
 
 pOne('...and a high effort the tier cannot take degrades downward the same way',
   () => W.effort('gpt-5.4-nano-2026-03-17', 'max').effort, 'high');

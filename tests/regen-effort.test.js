@@ -230,8 +230,14 @@ pOne('prompt_cache_options appears ONLY under a cacheBreakpoints guard',
     return bad;
   }, []);
 
-pOne('only ONE tier carries cacheBreakpoints, so "gated" means Luna alone',
-  () => (proxySrc.match(/cacheBreakpoints: true/g) || []).length, 1);
+// (v7.78) Was "only ONE tier carries cacheBreakpoints" (a count of 1 over the whole source). The
+// cascade moved down a rung and 5.6 Luna is now the FALLBACK, so two tiers carry it: both Luna
+// models, 5.6 and later, which is what the flag has always meant. Read from the cascade rows, not a
+// source-wide count, since the version notes quote the flag too.
+pOne('only the Luna tiers (5.6 and later) carry cacheBreakpoints — the pre-5.6 tier never does',
+  () => (proxySrc.match(/\{ model: '[^']+'[^}]*\}/g) || [])
+    .filter(r => /cacheBreakpoints:\s*true/.test(r)).map(r => r.match(/model: '([^']+)'/)[1]),
+  ['gpt-6-luna', 'gpt-5.6-luna']);
 
 console.log('\nthe escalated primary budget:');
 

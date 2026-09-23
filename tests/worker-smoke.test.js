@@ -197,14 +197,20 @@ pending.push(() => post(draftBody(), primaryFails).then(r => {
           'only ' + upstream.length + ' upstream call(s) — the ladder did not advance');
 }));
 
-pending.push(() => post(draftBody(), primaryFails).then(r => {
-  // THE v7.61 BUG, executed: the second tier's real payload must not carry prompt_cache_options.
+// (v7.78) THE CASCADE MOVED DOWN A RUNG. The second tier is now gpt-5.6-luna, which REQUIRES the
+// 5.6 field, so "the second tier must not carry it" became the wrong rule. The v7.61 bug is about
+// the PRE-5.6 tier, which is now the third (gpt-5.4-nano): drive two failures to reach it.
+const twoFail = (url, n) => n <= 2
+  ? new Response(JSON.stringify({ error: { message: 'simulated failure' } }), { status: 400 })
+  : new Response(JSON.stringify(OK_BODY), { status: 200 });
+pending.push(() => post(draftBody(), twoFail).then(r => {
+  // THE v7.61 BUG, executed: the pre-5.6 tier's real payload must not carry prompt_cache_options.
   const upstream = r.L.calls.filter(c => /openai|chat\/completions/i.test(c.url));
-  const second = upstream[1] && upstream[1].body;
-  if (!second) return bad('the fallback tier is not handed the 5.6-only cache field', 'no second tier payload captured');
-  return second.prompt_cache_options === undefined
-    ? ok('the fallback tier is not handed the 5.6-only cache field')
-    : bad('the fallback tier is not handed the 5.6-only cache field',
+  const pre56 = upstream.map(c => c.body).find(b => b && !/luna/.test(b.model || ''));
+  if (!pre56) return bad('the pre-5.6 tier is not handed the 5.6-only cache field', 'no pre-5.6 tier payload captured');
+  return pre56.prompt_cache_options === undefined && pre56.prompt_cache_retention !== undefined
+    ? ok('the pre-5.6 tier is not handed the 5.6-only cache field (' + pre56.model + ' gets prompt_cache_retention)')
+    : bad('the pre-5.6 tier is not handed the 5.6-only cache field',
           'payload carried prompt_cache_options — this 400s that model, and it is what took the ladder down between v7.61 and v7.64');
 }));
 

@@ -241,8 +241,10 @@ const getJ = async (L, env, u) => { const r = await L.worker.fetch(new Request('
     check('control: absent — the degen: row has no extensionVersion key', without.row && Object.prototype.hasOwnProperty.call(without.row, 'extensionVersion'), false);
     if (oldSrc) {
       const old = await degenRun(oldSrc, genBody());
-      const norm = (r) => r && JSON.stringify(Object.assign({}, r, { ts: 'T', requestId: 'R', latency: 0 }));
-      check('control: absent — the degen: row is byte-identical to v7.76 (ts, id and latency normalised)', norm(without.row), norm(old.row));
+      // (v7.78) model normalised too: the cascade moved a rung (primary is gpt-6-luna), which is not
+      // what this control is about. It pins that NO field is added when extensionVersion is absent.
+      const norm = (r) => r && JSON.stringify(Object.assign({}, r, { ts: 'T', requestId: 'R', latency: 0, model: 'M' }));
+      check('control: absent — the degen: row is byte-identical to v7.76 (ts, id, latency and model normalised)', norm(without.row), norm(old.row));
     }
   }
 
