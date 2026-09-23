@@ -8,7 +8,7 @@ cd "$(dirname "$0")/.."
 
 DEV=builds/dev/popup.js
 COMM=builds/commercial/popup.js
-PROXY=${1:-worker/cloudflare-worker-v7.76.js}
+PROXY=${1:-worker/cloudflare-worker-v7.77.js}
 REPORTER=${2:-worker/leadpro-reporter-v1.22.js}
 DASH=$(ls dashboard*.html dashboard/*.html 2>/dev/null | head -1)
 
@@ -54,7 +54,7 @@ for t in amp-banner arc-bound bereavement delivery-match arc-relevancy commit-co
          decline-attribution distance-zip feedback-copy feedback-flush fences-fallback \
          lp-command-coverage observer-wiring off-franchise pivot \
          dr-session first-touch-register sched-attribution spouse-attribution fact-comprehension cadence arc-state stalled-phase edge-bypass value-fact-diag on-premise-authorship sched-scan-depth transcript-cutoff tapback-anchor anchor-authorship reply-vs-inquiry close-out-floor own-words-topics close-out-eligibility customer-facing-hygiene consent-and-stock declined-alternative phone-directory vm-lead-scope inventory-freshness authoritative-phase scrub-diacritics distance-appt-gate open-thread-resolver feedback-scenario-label feedback-onscreen pivot-stock first-human-touch stock-color bot-authorship bot-visit-angle sms-opener sms-hook-order sms-refine pause-supersession color-ask friction-state concern-scope voi-family lead-boundary powertrain incentive-expiry note-meta neg-supersession stalled-recent-reply quote-chain arc-first variant-token brief-fence arc-admit fact-arbitration arc-dedupe diag-honesty routing-header source-name tool-field-data appointment-hours price-concern census feedback-pair audi-persona msg-age-label \
-         message-constraints regen-variance-diag voi-conflict-directive refine-prohibitions regen-variance sms-optout-evidence first-reach-incentive stock-source step2-697 prompt-hygiene-698 cadence-calendar-699 step4-699 step5-700 stalled-rung-702 rung2-examples-704 log241-705 scaffold-leak sold-scan splitframe-lead state-validity trade-attribution \
+         message-constraints regen-variance-diag voi-conflict-directive refine-prohibitions regen-variance sms-optout-evidence first-reach-incentive stock-source step2-697 prompt-hygiene-698 cadence-calendar-699 step4-699 step5-700 stalled-rung-702 rung2-examples-704 log241-705 fallback-notice-706 scaffold-leak sold-scan splitframe-lead state-validity trade-attribution \
          trade-delivery verbal-commit; do
   [ -f "tests/$t.test.js" ] && run "$t.test.js" "$DEV" "$COMM"
 done
@@ -78,6 +78,7 @@ run incentive-year-capture.test.js
 run regen-guard.test.js              "$PROXY"
 run worker-smoke.test.js             "$PROXY"
 run worker-aggregate.test.js         "$PROXY"
+run worker-v777.test.js              "$PROXY"
 run dashboard-explicit-down.test.js  "$PROXY"
 run feedback-export-join.test.js     "$PROXY"
 run degenerate-samples.test.js       "$PROXY"

@@ -261,8 +261,12 @@ one('SAFE_FALLBACK_TEXT is VALID JSON, which is why nothing caught this',
 one('...and it carries no "kind" key, so the old code read kind:none off a customer apology',
   () => Object.prototype.hasOwnProperty.call(JSON.parse(SAFE_FALLBACK_TEXT), 'kind'), false);
 
-one('the placeholder really is unfilled — [Agent] and [Store] are in the shipped text',
-  () => /\[Agent\]/.test(SAFE_FALLBACK_TEXT) && /\[Store\]/.test(SAFE_FALLBACK_TEXT), true);
+// (v7.77) INVERTED ON PURPOSE. Through v7.76 this asserted the unfilled [Agent] / [Store] placeholders
+// WERE in the shipped text, as evidence for the incident above. v7.77 replaced the text with neutral
+// wording that names no one (Gil, v7.77 item 7), so the same fact now reads the other way. Pointed at
+// v7.76 this fails, which is the proof the new text shipped.
+one('v7.77: the shipped text carries NO bracket placeholders — [Agent] and [Store] are gone',
+  () => /\[[^\]]*\]/.test(SAFE_FALLBACK_TEXT), false);
 
 one('the OLD delta logic turns that into AGREE-NONE — reproduced, not asserted from memory',
   () => {

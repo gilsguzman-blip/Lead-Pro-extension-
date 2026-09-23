@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.706-dev (Dev. THE EXTENSION HALF OF PROXY v7.77. Pairs with proxy v7.77 (items 4 and 7 of that build); either can deploy first, and reporter v1.22 is unchanged. (4) THE BUILD THAT ASKED: _lpAttachLicense now stamps extensionVersion on every generate-shaped body -- the drafts, the SMS rewrite pass, the fact probes, the voicemail and the translation all pass through it -- read from the manifest exactly as the feedback row has been since v9.7.684 (version_name, else 'v' + version), clamped to 24 characters; a body without system_instruction is untouched and no manifest means no field. Proxy v7.77 logs it on the START line and stores it on degen: and perf: rows; an older proxy ignores it. (7) A FAILED GENERATION SAYS SO AND LEAVES NOTHING TO COPY: when the proxy answers with a _fallback envelope (every model tier failed), the panel used to refuse to render it and say so in a status line that faded after 12 seconds, with the Copy buttons left live. New _lpShowFallbackNotice empties the panes that failure owns (all three for a draft, only the voicemail pane for the voicemail button, so the agent's SMS and email survive a voicemail failure), disables their Copy buttons until the next generation, and puts a notice before the output that stays put: 'Draft generation failed. Try again.' with a Try again button that re-runs the same generation. [LP FALLBACK DIAG] logs the tier, model, error, request id and time the proxy reported -- no draft text. generateAll and generateVoicemail clear the notice and re-enable Copy first thing. The node-removal loop is bounded so it can never spin on a non-DOM. VERIFIED: new fallback-notice-706.test.js (15 per build, 30), executing _lpAttachLicense against a stubbed manifest, _lpShowFallbackNotice against a small fake DOM, and generateAll's own fallback branch lifted verbatim; NON-VACUITY against v9.7.705: 11 of 15 fail, the 4 that pass are labelled controls. Worker side: worker-v777.test.js, 52 assertions against the shipped v7.77 handlers. run-all: 129 suites, 6152 assertions, 0 failed. node --check clean on both builds; both manifests parse; version AND version_name bumped; DEV vs COMMERCIAL differences unchanged. Builds on v9.7.705. Mirrors COMMERCIAL v9.7.706.)
 // Lead Pro -- popup.js  v9.7.705-dev (Dev. LOG241: A DEAF CUSTOMER WAS ASKED FOR A VOICEMAIL, AND A SOLD-PIVOT OFFER WAS PITCHED TWICE. Extension only; proxy v7.76 and reporter v1.22 unchanged. Honda Lafayette lead, dump 22fef1da / capture 3b3913a7, on v9.7.704. (1) THE CUSTOMER CANNOT HEAR. They texted on 9/15 that they are deaf and cannot speak or hear; a rep's call note reads 'Only text. Is deaf'. Neither reached the prompt -- the channel-preference scan reads the five newest inbound messages and matches 'text only' phrasing, and this customer had sent 25 since -- so the prompt still demanded a 20-30 second voicemail with the number said twice. New _lpHearingLimit reads the whole record: the customer's own words first (deaf, hard of hearing, hearing impaired, can't speak and hear), then staff notes; our own outbound is never evidence; 'tone-deaf' and 'can't talk right now' are not deafness; phone numbers never enter the quote. populateFromData states it as a hard fact: text or email only, never ask them to call, never offer a call, never mention a voicemail, plain everyday words, voicemail field kept to one neutral sentence. [LP HEARING DIAG] logs the finding or its absence. (2) THE SOLD PIVOT REPEATED ITSELF. We pivoted on 9/14 with '$349/month for 36 months with $4,899 due at signing'; on 9/23 the SOLD -> INCENTIVE PIVOT block told the model to LEAD with the same offer, beside the SOLD block saying the customer was already told, and the email re-quoted it to a customer asking for zero down near $200. New _lpOfferAlreadyInThread: already offered if every dollar figure of the chosen line is in the thread, or one of OUR texts/emails on this lead already quoted a monthly figure on the same model (the pivot takes the first matching line and the cache holds several per model); the customer's own '$200 a month' never counts. Then the block says ALREADY OFFERED -- NOT NEWS: do not lead with it, re-quote or re-pitch; refer back only if the customer asks about price or payment now. The v9.7.418 latch still keeps the general STORE INCENTIVE block from re-pitching it. Routing otherwise unchanged: on the real dump the user prompt differs by exactly these lines. PAIRED DRAFTS, real lead rebuilt by code, 3 per side: the $349 lease re-quoted in 1 of 3 before, 0 of 3 after; voicemails went from payment and visit talk to one line asking for a text reply. REPORTED, NOT CHANGED: the customer has no ride and has asked for delivery since 9/15, and the agent promised delivery and paperwork at home; the remote-buyer block says the dealer never delivers, so this lead is left in-state pending Gil's call, and 2 of 3 after-drafts still mention a visit. VERIFIED: new log241-705.test.js (21 per build, 42), executing both helpers and populateFromData; NON-VACUITY against v9.7.704: 19 of 21 fail, the 2 that pass are labelled controls. run-all: 127 suites, 6070 assertions, 0 failed. node --check clean on both builds; both manifests parse; version AND version_name bumped; DEV vs COMMERCIAL differences unchanged. Builds on v9.7.704. Mirrors COMMERCIAL v9.7.705.)
 // Lead Pro -- popup.js  v9.7.704-dev (Dev. PHASE 2 EXAMPLES ROTATE WITH THE LEAD (Gil, 9/23: 'add more examples and have them rotate as needed in context'). Extension only; proxy v7.76 and reporter v1.22 unchanged. v9.7.703 gave PHASE 2 -- MICRO QUESTION two fixed examples and 7 of 11 paired drafts copied the first ('set on the X, or open to other trims?'). New _lpRung2Examples offers THREE from a pool of EIGHT (trim, new vs pre-owned, color, must-have feature, photos/video, what it is for, size, a detail to check on the unit). FIT: a trim question only when the lead's vehicle carries a trim; no color question once a stock number or VIN pins the unit; the check-this-one question and 'walkaround video of this one' only when it does. COVERED: a topic our own texts/emails on this lead already asked, or a rejected draft asked (window._lpDraftHistory, i.e. Regenerate), is dropped and named back to the model as 'Already asked on this lead, so do not ask it again'. ROTATION: from what is left, three starting at an offset that advances with each touch and each regenerate; deterministic for a given lead state; if every fitting topic is used it still offers three and says to come at it from a new angle. None asks about timing, still-interested, numbers or trade; the ask stays uncounted and the v9.7.703 timeline ban is kept. New [LP RUNG2 EXAMPLES DIAG]: offered, covered, fit/fresh counts, offset, touches, rejected drafts. PAIRED DRAFTS v9.7.703 vs v9.7.704, same four PHASE 2 leads x 3: trim-shaped questions 6 of 10 before, 0 of 11 after; after-drafts spread over use (5), feature (3), size (2), photos (1). A four-regenerate chain on one lead walked trim -> color -> use -> photos. VERIFIED: new rung2-examples-704.test.js (21 per build, 42), executing _lpRung2Examples and buildUserPrompt; NON-VACUITY against v9.7.703: 19 of 21 fail, the 2 that pass are labelled controls. regen-variance names the new _lpDraftHistory reader (a fifth span, a reader); stalled-phase and refine-prohibitions lift the pool with the helpers. run-all: 126 suites, 6028 assertions, 0 failed. node --check clean on both builds; both manifests parse; version AND version_name bumped; DEV vs COMMERCIAL differences unchanged. Builds on v9.7.703. Mirrors COMMERCIAL v9.7.704.)
 // Lead Pro -- popup.js  v9.7.703-dev (Dev. THE RUNG-2 QUESTION IS ABOUT THE CAR, NOT THE TIMELINE (Gil, 9/23). Extension only; proxy v7.76 and reporter v1.22 unchanged. v9.7.702 put 2-7-day stalled leads on PHASE 2 -- MICRO QUESTION, whose YOUR APPROACH line offered 'Did your timeline change?' as an example; 4 of 8 paired drafts asked it, two days after an inquiry. The line now reads: ask a low-effort question, NOT 'are you still interested?', make it about what they are shopping for, easy to answer in a few words; tone-only examples about THIS lead's vehicle ('Are you set on the [trim], or open to others?', 'Leaning more new or pre-owned?'); and do NOT ask whether their timeline, timing or plans changed -- that is the timing-check rung's question (PHASE 3, unchanged, from day 8). The ask stays uncounted, per the 9/23 ask-rule decision (message-constraints and regen-variance pin it). PAIRED DRAFTS, v9.7.702 vs v9.7.703, 4 PHASE 2 leads x 3 per side (two real Audi Lafayette -- dump a24e7a8c and capture 5100d637 -- and two labelled synthetic, Toyota and Kia Baytown): timeline/timing questions 6 of 12 before, 0 of 11 after (one fallback-tier draft excluded). 7 of 11 after-drafts used the trim example's shape. VERIFIED: stalled-rung-702.test.js gains 4 checks (30 per build, 60); NON-VACUITY against v9.7.702: the 3 wording checks fail, the PHASE 3 control passes. run-all: 125 suites, 5986 assertions, 0 failed. node --check clean on both builds; both manifests parse; version AND version_name bumped; DEV vs COMMERCIAL differences unchanged. Builds on v9.7.702. Mirrors COMMERCIAL v9.7.703.)
@@ -436,7 +437,88 @@ function _lpMaskPhone(p) {
 }
 function _lpAttachLicense(payload) {
   try { if (_lpLicenseKeyCache && payload && !payload.licenseKey) payload.licenseKey = _lpLicenseKeyCache; } catch(e) {}
+  // (v9.7.706) THE BUILD THAT ASKED, ON EVERY /generate. Proxy v7.77 logs it on the START line and
+  // stores it on degen: and perf: rows, so a generation can be tied to the extension that sent it the
+  // way a feedback row has been since v9.7.684. Same source as that row: the manifest. Only a
+  // generate-shaped body (system_instruction) is stamped -- the drafts, the SMS rewrite, the fact
+  // probes, the voicemail and the translation all pass through here. An older proxy ignores the field.
+  try {
+    if (payload && payload.system_instruction && !payload.extensionVersion) {
+      var _lpBuild = _lpExtensionVersion();
+      if (_lpBuild) payload.extensionVersion = _lpBuild;
+    }
+  } catch(e) {}
   return payload;
+}
+function _lpExtensionVersion() {
+  try {
+    var mf = (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getManifest) ? chrome.runtime.getManifest() : null;
+    return mf ? String(mf.version_name || ('v' + mf.version)).slice(0, 24) : '';
+  } catch (e) { return ''; }
+}
+
+// ── (v9.7.706) A FAILED GENERATION SAYS SO, AND LEAVES NOTHING TO COPY ────────────────────────────
+// When every model tier fails, the proxy answers with a _fallback envelope. Since v9.7.379 the panel
+// refused to render it, but said so in a status line that faded after 12 seconds and left the Copy
+// buttons live -- on a Regenerate, over the PREVIOUS lead state's text if a field was not cleared.
+// Now: the fields named are emptied, their Copy buttons are disabled until the next generation, and a
+// notice that stays put says "Draft generation failed. Try again." with a button that does exactly
+// that. Logged popup-side as [LP FALLBACK DIAG]: the tier and error the proxy reported, its request
+// id and how long it spent -- no draft text, which does not exist. `fields` is which panes this
+// failure owns: all three for a draft, only 'vm' for the voicemail button, so a voicemail failure
+// never wipes an SMS and email the agent already has.
+function _lpShowFallbackNotice(data, source, retry, fields, doc) {
+  doc = doc || document;
+  fields = fields || ['sms', 'email', 'vm'];
+  var c = (data && data.candidates && data.candidates[0]) || data || {};
+  try {
+    console.warn('[LP FALLBACK DIAG] ' + source + ' | proxy served _fallback (all model tiers failed) — no draft rendered, nothing copyable'
+      + ' | requestId:' + (c._requestId || (data && data._requestId) || 'n/a')
+      + ' | lastTier:' + (c._lastTier || 'n/a') + ' | lastModel:' + (c._lastModel || 'n/a')
+      + ' | lastError:' + String(c._lastError || 'n/a').slice(0, 80)
+      + ' | fallbackMs:' + (c._fallbackMs != null ? c._fallbackMs : 'n/a'));
+  } catch (e) {}
+  fields.forEach(function (k) {
+    var fld = doc.getElementById('output-' + k);
+    if (fld) { fld.value = ''; try { fld.classList.remove('generating'); } catch (e) {} }
+    var copies = doc.querySelectorAll('.btn-copy[data-pane="' + k + '"]') || [];
+    for (var i = 0; i < copies.length; i++) {
+      copies[i].disabled = true;
+      try { copies[i].setAttribute('data-lp-fallback', '1'); } catch (e) {}
+    }
+  });
+  var n = doc.getElementById('lpFallbackNotice');
+  if (!n) {
+    n = doc.createElement('div');
+    n.id = 'lpFallbackNotice';
+    n.className = 'crm-status error';
+    n.setAttribute('role', 'alert');
+    var anchor = doc.querySelector('.output-section');
+    if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(n, anchor);
+  }
+  for (var _g = 0; n.firstChild && _g < 20; _g++) n.removeChild(n.firstChild);   // bounded: never spin on a non-DOM
+  var msg = doc.createElement('span');
+  msg.textContent = '⚠ Draft generation failed. Try again.';
+  var btn = doc.createElement('button');
+  btn.className = 'btn-copy';
+  btn.id = 'lpFallbackRetry';
+  btn.textContent = 'Try again';
+  btn.style.marginLeft = '8px';
+  btn.addEventListener('click', function () { _lpClearFallbackNotice(doc); if (typeof retry === 'function') retry(); });
+  n.appendChild(msg);
+  n.appendChild(btn);
+  n.style.display = '';
+  return n;
+}
+function _lpClearFallbackNotice(doc) {
+  doc = doc || document;
+  var n = doc.getElementById('lpFallbackNotice');
+  if (n) n.style.display = 'none';
+  var copies = doc.querySelectorAll('.btn-copy[data-lp-fallback="1"]') || [];
+  for (var i = 0; i < copies.length; i++) {
+    copies[i].disabled = false;
+    try { copies[i].removeAttribute('data-lp-fallback'); } catch (e) {}
+  }
 }
 // ── REQUIRED_SCRAPER — must match scraperVersion in content.js ───────────
 // When content.js scraper logic changes, bump scraperVersion there AND here.
@@ -25890,6 +25972,7 @@ function computeAppointmentTimes(store) {
 
 // ── Generate (single call, all three outputs) ─────────────────────
 async function generateAll() {
+  try { _lpClearFallbackNotice(); } catch (eFb) {}   // (v9.7.706)
   // Reset feedback tracking for this generation session
   // (v9.7.644) ORDERING, AND IT IS THE WHOLE FIX. The flush lives INSIDE _lpFeedbackReset, so the
   // snapshot below must NOT run before it: the outgoing row reads `final` from these same output
@@ -26587,8 +26670,9 @@ async function generateAll() {
     // worker never generated for THIS lead. Never render it as a draft.
     try {
       if (data && data.candidates && data.candidates[0] && data.candidates[0]._fallback) {
-        console.warn('[Lead Pro] Worker returned SAFE_FALLBACK (all model tiers failed) — not rendering. lastError:', data.candidates[0]._lastError || '(none)', '| lastTier:', data.candidates[0]._lastTier || '(none)');
-        showError('Generation failed upstream (all models timed out) — hit Generate again.');
+        _lpShowFallbackNotice(data, 'generate', function () {   // (v9.7.706) notice + retry, nothing copyable
+          var b = document.getElementById('btnGenerate'); if (b && !b.disabled) b.click();
+        });
         return;
       }
     } catch(e) {}
@@ -27885,6 +27969,7 @@ function resolveSignerForPersona() {
 }
 
 async function generateVoicemail() {
+  try { _lpClearFallbackNotice(); } catch (eFb) {}   // (v9.7.706)
   if (!lastScrapedData) { showError('Grab a lead first.'); return; }
 
   // Lead ID guard — same protection as generateAll
@@ -27974,8 +28059,7 @@ async function generateVoicemail() {
     if (data.error) { showError('Voicemail error: ' + (data.error.message || (typeof data.error === 'string' ? data.error : JSON.stringify(data.error)))); return; } // (v9.7.462/457) string-or-object error, same fix as the main path
     // (v9.7.379/377 W4) Same SAFE_FALLBACK guard as the main generation path.
     if (data.candidates && data.candidates[0] && data.candidates[0]._fallback) {
-      console.warn('[Lead Pro] Voicemail: worker returned SAFE_FALLBACK — not rendering.');
-      showError('Voicemail generation failed upstream — try again.');
+      _lpShowFallbackNotice(data, 'voicemail', function () { generateVoicemail(); }, ['vm']);   // (v9.7.706) vm pane only
       return;
     }
     if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
