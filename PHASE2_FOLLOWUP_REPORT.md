@@ -1,6 +1,6 @@
 # Lead Pro: Phase 2 follow-up report
 
-Builds v9.7.702 to v9.7.704 (DEV and COMMERCIAL paired), branch `claude/audi-honda-brand-mismatch-ybifph`.
+Builds v9.7.702 to v9.7.705 (DEV and COMMERCIAL paired), branch `claude/audi-honda-brand-mismatch-ybifph`.
 Extension only. Proxy v7.76 and reporter v1.22 were not changed.
 Leads are cited by log or capture id only. Where a log holds several leads, `#n` is the order in which the lead first appears in that log (by the panel's active lead id); the same lead keeps the same `#n` throughout.
 
@@ -303,6 +303,83 @@ Your request: "add more examples and have them rotate as needed in context." In 
   - `node --check` is clean on both builds.
   - Both manifests are at 9.7.704 / 9.7.704-dev.
   - The changed lines are byte-identical between DEV and COMMERCIAL.
+
+## v9.7.705: log241 review (new grabs, on v9.7.704)
+
+log241 (aded0fed) holds four leads:
+- #1–#3: Kia Baytown.
+- #4: Honda Lafayette. This is the lead the dump 22fef1da and capture 3b3913a7 were taken on.
+
+None of them was a stalled lead, so the v9.7.702–704 ladder changes were not exercised.
+
+### Fixed: #4, Honda Lafayette (9 days, customer replying today)
+
+**1. The customer cannot hear, and the prompt never said so.**
+- **What happened.** The customer texted on 9/15 that they are deaf and cannot speak or hear. A rep's 9/16 call note says "Only text. Is deaf". Neither reached the prompt.
+  - The channel-preference scan only reads the five newest inbound messages and matches "text only"-style wording.
+  - The customer has sent 25 messages since.
+  - So the prompt still asked for a 20–30 second voicemail with the phone number said twice.
+- **The fix: new `_lpHearingLimit`.** It reads the whole record.
+  - The customer's own words come first (deaf, hard of hearing, hearing impaired, can't speak and hear), then staff notes.
+  - Our own outbound messages never count as evidence.
+  - "Tone-deaf" and "can't talk right now" don't count.
+  - Phone numbers never get into the quote.
+- **What the model is now told:**
+  - Text or email only.
+  - Never ask them to call, and never offer or promise a call.
+  - Never mention a voicemail.
+  - Use plain, everyday words.
+  - The voicemail field stays one neutral sentence.
+- `[LP HEARING DIAG]` logs what was found, or that nothing was.
+
+**2. The sold-car incentive was pitched a second time.**
+- **What happened.**
+  - On 9/14 we told the customer the car had sold and offered "$349/month for 36 months with $4,899 due at signing" on a 2027 CR-V EX-L.
+  - On 9/23 the SOLD → INCENTIVE PIVOT block told the model to lead with the same offer again. Just above it, the SOLD block said the customer was already told and to continue the latest exchange.
+  - The email re-quoted the $349 offer to a customer asking for zero down around $200.
+- **The fix: new `_lpOfferAlreadyInThread`.** The offer counts as already made if either:
+  - every dollar figure in the chosen incentive is already in the thread, or
+  - one of our own texts or emails on this lead already quoted a monthly figure for the same model.
+  - The second rule is needed because the cache holds several CR-V lines ($349, $339, $279…), and the pivot picks whichever matches first.
+  - The customer's own "$200 a month" never counts as our offer.
+- **What the model is now told:** "ALREADY OFFERED — NOT NEWS". Don't lead with it, re-quote it or re-pitch it. Refer back to it only if the customer asks about price or payment now.
+- The existing latch still stops the general store-incentive block from re-pitching the offer.
+
+**Verification on the real dump** (rebuilt by code, v9.7.704 against v9.7.705):
+- The prompt differs by exactly these lines: the pivot line is replaced by ALREADY OFFERED, and the CANNOT HEAR line is added.
+- Paired drafts, 3 per side, all on the primary model:
+
+| | v9.7.704 | v9.7.705 |
+|---|---|---|
+| Re-quoted the $349 / $4,899 lease | 1 of 3 | 0 of 3 |
+| Voicemail content | payment talk and "if you visit" | one line: "please reply by text" |
+| Asked them to call | 0 | 0 |
+| Mentions a visit | 3 of 3 | 2 of 3 (see the delivery question below) |
+
+**Tests.**
+- **New `log241-705.test.js`:** 21 checks per build, 42 total. It runs both helpers, and runs `populateFromData` on a synthetic sold lead with a cached incentive and inventory.
+- **Non-vacuity:** against v9.7.704, 19 of 21 fail. The 2 that pass are labelled controls: the unchanged latch, and a first-time pivot that still leads with the offer.
+- **run-all:** 127 suites, **6,070 assertions, 0 failed**.
+
+### Needs your call: delivery on #4
+
+- **What the customer and agent have said.** The customer has no ride and has asked us to bring the car since 9/15 ("Why I still wait delivery nothing all time"). On 9/16 the agent wrote "we can delivery anytime. We can also bring the paper work to you to sign."
+- **Why I didn't change it.** Lead Pro's remote-buyer block says the dealer never delivers ("the customer arranges their own transport"). Marking this customer remote would contradict what the store already promised.
+- **The result.** The drafts treat delivery vaguely ("review the delivery options"), and 2 of 3 still mention a visit.
+- **The question.** Does Honda Lafayette (or the group) deliver in-state? If so, a "no ride / bring it to me" customer needs its own home-delivery handling, not the out-of-state shipping rules.
+
+### Reported, not changed
+
+- **#4, the payment line.** "PRICE/PAYMENT CONCERN: Open by addressing this directly" came from the customer's 9/16 message ("zero down and two hundred paymonth"). So 5 of 6 drafts opened or led with "I can't promise zero down or $200", even though today's messages are about delivery.
+  - The line doesn't say when the concern was raised.
+  - Dating it, or weighting it lower when newer messages are about something else, is a small change if you want it.
+- **#3, Kia Baytown: a 10-year-old lead record.**
+  - The agent was on a lead created 3/2/16 with status Lost. The customer record has two old leads, and the customer called recently.
+  - The prompt said "LEAD AGE: submitted 3856 days ago". Both drafts were fine (a light sedan-or-SUV question, then a regenerate that asked which Kia and offered two times today).
+  - If agents routinely work new calls on old Lost leads, lead age misleads the cadence and the stalled rungs. Opening a fresh lead in the CRM avoids it.
+- **#1 and #2, Kia Baytown.** No defects.
+  - #1 ("still shopping around"): a light comparison question and an afternoon look.
+  - #2 ("we need to lower our note"): quoted an advertised Seltos lease. The customer raised the payment, so that's within the payment rule.
 
 ## Left alone
 

@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.705-dev (Dev. LOG241: A DEAF CUSTOMER WAS ASKED FOR A VOICEMAIL, AND A SOLD-PIVOT OFFER WAS PITCHED TWICE. Extension only; proxy v7.76 and reporter v1.22 unchanged. Honda Lafayette lead, dump 22fef1da / capture 3b3913a7, on v9.7.704. (1) THE CUSTOMER CANNOT HEAR. They texted on 9/15 that they are deaf and cannot speak or hear; a rep's call note reads 'Only text. Is deaf'. Neither reached the prompt -- the channel-preference scan reads the five newest inbound messages and matches 'text only' phrasing, and this customer had sent 25 since -- so the prompt still demanded a 20-30 second voicemail with the number said twice. New _lpHearingLimit reads the whole record: the customer's own words first (deaf, hard of hearing, hearing impaired, can't speak and hear), then staff notes; our own outbound is never evidence; 'tone-deaf' and 'can't talk right now' are not deafness; phone numbers never enter the quote. populateFromData states it as a hard fact: text or email only, never ask them to call, never offer a call, never mention a voicemail, plain everyday words, voicemail field kept to one neutral sentence. [LP HEARING DIAG] logs the finding or its absence. (2) THE SOLD PIVOT REPEATED ITSELF. We pivoted on 9/14 with '$349/month for 36 months with $4,899 due at signing'; on 9/23 the SOLD -> INCENTIVE PIVOT block told the model to LEAD with the same offer, beside the SOLD block saying the customer was already told, and the email re-quoted it to a customer asking for zero down near $200. New _lpOfferAlreadyInThread: already offered if every dollar figure of the chosen line is in the thread, or one of OUR texts/emails on this lead already quoted a monthly figure on the same model (the pivot takes the first matching line and the cache holds several per model); the customer's own '$200 a month' never counts. Then the block says ALREADY OFFERED -- NOT NEWS: do not lead with it, re-quote or re-pitch; refer back only if the customer asks about price or payment now. The v9.7.418 latch still keeps the general STORE INCENTIVE block from re-pitching it. Routing otherwise unchanged: on the real dump the user prompt differs by exactly these lines. PAIRED DRAFTS, real lead rebuilt by code, 3 per side: the $349 lease re-quoted in 1 of 3 before, 0 of 3 after; voicemails went from payment and visit talk to one line asking for a text reply. REPORTED, NOT CHANGED: the customer has no ride and has asked for delivery since 9/15, and the agent promised delivery and paperwork at home; the remote-buyer block says the dealer never delivers, so this lead is left in-state pending Gil's call, and 2 of 3 after-drafts still mention a visit. VERIFIED: new log241-705.test.js (21 per build, 42), executing both helpers and populateFromData; NON-VACUITY against v9.7.704: 19 of 21 fail, the 2 that pass are labelled controls. run-all: 127 suites, 6070 assertions, 0 failed. node --check clean on both builds; both manifests parse; version AND version_name bumped; DEV vs COMMERCIAL differences unchanged. Builds on v9.7.704. Mirrors COMMERCIAL v9.7.705.)
 // Lead Pro -- popup.js  v9.7.704-dev (Dev. PHASE 2 EXAMPLES ROTATE WITH THE LEAD (Gil, 9/23: 'add more examples and have them rotate as needed in context'). Extension only; proxy v7.76 and reporter v1.22 unchanged. v9.7.703 gave PHASE 2 -- MICRO QUESTION two fixed examples and 7 of 11 paired drafts copied the first ('set on the X, or open to other trims?'). New _lpRung2Examples offers THREE from a pool of EIGHT (trim, new vs pre-owned, color, must-have feature, photos/video, what it is for, size, a detail to check on the unit). FIT: a trim question only when the lead's vehicle carries a trim; no color question once a stock number or VIN pins the unit; the check-this-one question and 'walkaround video of this one' only when it does. COVERED: a topic our own texts/emails on this lead already asked, or a rejected draft asked (window._lpDraftHistory, i.e. Regenerate), is dropped and named back to the model as 'Already asked on this lead, so do not ask it again'. ROTATION: from what is left, three starting at an offset that advances with each touch and each regenerate; deterministic for a given lead state; if every fitting topic is used it still offers three and says to come at it from a new angle. None asks about timing, still-interested, numbers or trade; the ask stays uncounted and the v9.7.703 timeline ban is kept. New [LP RUNG2 EXAMPLES DIAG]: offered, covered, fit/fresh counts, offset, touches, rejected drafts. PAIRED DRAFTS v9.7.703 vs v9.7.704, same four PHASE 2 leads x 3: trim-shaped questions 6 of 10 before, 0 of 11 after; after-drafts spread over use (5), feature (3), size (2), photos (1). A four-regenerate chain on one lead walked trim -> color -> use -> photos. VERIFIED: new rung2-examples-704.test.js (21 per build, 42), executing _lpRung2Examples and buildUserPrompt; NON-VACUITY against v9.7.703: 19 of 21 fail, the 2 that pass are labelled controls. regen-variance names the new _lpDraftHistory reader (a fifth span, a reader); stalled-phase and refine-prohibitions lift the pool with the helpers. run-all: 126 suites, 6028 assertions, 0 failed. node --check clean on both builds; both manifests parse; version AND version_name bumped; DEV vs COMMERCIAL differences unchanged. Builds on v9.7.703. Mirrors COMMERCIAL v9.7.704.)
 // Lead Pro -- popup.js  v9.7.703-dev (Dev. THE RUNG-2 QUESTION IS ABOUT THE CAR, NOT THE TIMELINE (Gil, 9/23). Extension only; proxy v7.76 and reporter v1.22 unchanged. v9.7.702 put 2-7-day stalled leads on PHASE 2 -- MICRO QUESTION, whose YOUR APPROACH line offered 'Did your timeline change?' as an example; 4 of 8 paired drafts asked it, two days after an inquiry. The line now reads: ask a low-effort question, NOT 'are you still interested?', make it about what they are shopping for, easy to answer in a few words; tone-only examples about THIS lead's vehicle ('Are you set on the [trim], or open to others?', 'Leaning more new or pre-owned?'); and do NOT ask whether their timeline, timing or plans changed -- that is the timing-check rung's question (PHASE 3, unchanged, from day 8). The ask stays uncounted, per the 9/23 ask-rule decision (message-constraints and regen-variance pin it). PAIRED DRAFTS, v9.7.702 vs v9.7.703, 4 PHASE 2 leads x 3 per side (two real Audi Lafayette -- dump a24e7a8c and capture 5100d637 -- and two labelled synthetic, Toyota and Kia Baytown): timeline/timing questions 6 of 12 before, 0 of 11 after (one fallback-tier draft excluded). 7 of 11 after-drafts used the trim example's shape. VERIFIED: stalled-rung-702.test.js gains 4 checks (30 per build, 60); NON-VACUITY against v9.7.702: the 3 wording checks fail, the PHASE 3 control passes. run-all: 125 suites, 5986 assertions, 0 failed. node --check clean on both builds; both manifests parse; version AND version_name bumped; DEV vs COMMERCIAL differences unchanged. Builds on v9.7.702. Mirrors COMMERCIAL v9.7.703.)
 // Lead Pro -- popup.js  v9.7.702-dev (Dev. THE STALLED LADDER GETS A CALENDAR (Gil, Phase 2 follow-up item 3). Extension only; proxy v7.76 and reporter v1.22 unchanged. A zero-contact stalled lead's rung is now the LOWER of the count rung (thresholds unchanged: 1/2/3/4/5+ texts and emails above the lead marker) and a calendar rung from data.leadAgeDays, the value P6 reads: rung 2 from day 2 (engagement), rung 3 from day 8 (persistence -- 'acknowledge their silence' needs a week of it), rung 4 from day 15 (the cadence's day-15 touch), rung 5 from day 21 (_lpCloseOutEligible's own floor, so the calendar moves no close-out). Unknown age fails safe to rung 1. A customer exit or pause is not capped. A 5+-touch lead the calendar holds at rung 4 still asks the resolver and gets the no-close-out PHASE 4, unchanged. New [LP STALLED RUNG DIAG]: outreach, lead age, count rung, calendar rung, final rung, and why it capped. REPLAY of the 52 logs (141 generations): 24 stalled-ladder generations on 8 leads; 7 leads change rung (five PHASE 4 -> PHASE 2 at 2-7 days, two PHASE 4 -> PHASE 3 at 8-9 days); the 55-day lead stays PHASE 5. ROUTING: v9.7.701 vs v9.7.702 on the Audi Lafayette dump and 420 synthetic stalled leads across all five rooftops -- every prompt line other than the phase name and YOUR APPROACH identical, every non-ladder log line identical (scenario, persona, source ack, zero-contact, close-out gate, distance, outreach count), and the P6 cadence result and its diag identical on 200 of 200. VERIFIED: new stalled-rung-702.test.js (26 per build, 52), executing _lpStalledCalendarRung and buildUserPrompt; NON-VACUITY against v9.7.701: 20 of 26 fail, the 6 that pass are labelled controls. stalled-phase.test.js: 5 assertions changed on purpose (a 4-day lead is PHASE 2 now; the gate is pinned on an 18-day lead; the young-lead flag now acts). refine-prohibitions and stalled-phase harnesses lift the new helper. run-all: 125 suites, 5978 assertions, 0 failed. node --check clean on both builds; both manifests parse; version AND version_name bumped; DEV vs COMMERCIAL differences unchanged. Builds on v9.7.701. Mirrors COMMERCIAL v9.7.702.)
@@ -5018,6 +5019,74 @@ function _lpVoiConflictDirective(vehicles, agentFlagged) {
   };
 }
 
+// ── (v9.7.705) A CUSTOMER WHO CANNOT HEAR IS NEVER ASKED TO CALL ─────────────────────────────────────────
+// log241, Honda Lafayette (dump 22fef1da, capture 3b3913a7): the customer texted on 9/15 that they are
+// deaf and cannot speak or hear, and a rep's call note reads "Only text. Is deaf". Neither reached the
+// prompt: the channel-preference scan reads only the five newest inbound messages and matches "text
+// only"-style phrasing, and this customer has sent 25 messages since. The prompt still demanded a 20-30
+// second voicemail with the number said twice. Being deaf is a standing fact about the person, not the
+// latest preference, so this reads the WHOLE record (every lead on it): the customer's own words first,
+// then staff notes. Our own outbound texts and emails are not evidence and are skipped. "tone-deaf" is
+// not deafness. Returns null or { source: 'customer'|'note', quote }.
+function _lpHearingLimit(ctx) {
+  var s = String(ctx || '');
+  if (!s) return null;
+  var ents = s.split(/\n(?=\s*\[\d{1,2}\/\d{1,2}\/\d{2,4}[^\]]*\]\s*\[)/);
+  var custRx = /(?:^|[^-\w])(?:deaf|hard of hearing|hearing[- ]impaired)\b|\bcan'?t (?:speak|talk) (?:and|or|&) hear\b|\bcan'?t hear (?:and|or|&) (?:speak|talk)\b/i;
+  var noteRx = /(?:^|[^-\w])(?:deaf|hard of hearing|hearing[- ]impaired)\b/i;
+  var clean = function (t) {
+    return t.replace(/\(?\d{3}\)?[-. ]?\d{3}[-. ]?\d{4}/g, '[number]').replace(/\s+/g, ' ').trim();
+  };
+  var pick = function (body, rx) {
+    var m = rx.exec(body); if (!m) return '';
+    // Two words of lead-in ("but I'm") and the rest of the clause; never the text before it.
+    var pre = body.slice(0, m.index).split(/\s+/).filter(Boolean).slice(-2).join(' ');
+    var post = body.slice(m.index).split(/[.!?\n]/)[0].slice(0, 80);
+    return clean((pre ? pre + ' ' : '') + post);
+  };
+  var note = null;
+  for (var i = 0; i < ents.length; i++) {
+    var e = ents[i];
+    var hm = e.match(/^\s*\[[^\]]*\]\s*\[([^\]]*)\]\s*([^\n]*)/);
+    if (!hm) continue;
+    var tag = hm[1].toUpperCase(), title = hm[2];
+    var body = e.slice(hm[0].length).replace(/^\s*(?:received|sent)\s+(?:from|to|by)\s*:[^\n]*$/gim, '');
+    if (tag === 'CUSTOMER') {
+      var q = pick(body, custRx);
+      if (q) return { source: 'customer', quote: q };
+    } else if (!note && !/Outbound Text Message|Email reply to prospect/i.test(title)) {
+      // A staff note is short and all of it is the point ("Only text. Is deaf"): quote it whole, minus "By:".
+      if (noteRx.test(body)) note = { source: 'note', quote: clean(body.replace(/^\s*By:[^\n]*$/gim, '')).slice(0, 100) };
+    }
+  }
+  return note;
+}
+
+// (v9.7.705) Has this lead's thread already carried the sold-pivot offer? Yes if every dollar figure in the
+// chosen incentive line is already in the thread, OR one of OUR texts/emails on this lead already quoted a
+// monthly figure on the same model -- the pivot picks the first matching line, and the cache holds several
+// per model ($349, $339, $279 ... on a CR-V), so a different line next time is the same pitch again.
+// Customer lines never count as us having offered ("zero down and $200 a month" is their ask, not ours).
+function _lpOfferAlreadyInThread(ctx, incLine, model) {
+  var s = String(ctx || ''), line = String(incLine || ''), mdl = String(model || '').trim();
+  var amts = (line.match(/\$\s?\d[\d,]*(?:\.\d+)?/g) || []).map(function (a) { return a.replace(/[\s,$]/g, ''); });
+  var flat = s.replace(/,/g, '');
+  var exact = amts.length > 0 && amts.every(function (a) {
+    return new RegExp('\\$\\s?' + a.replace('.', '\\.') + '(?![\\d])').test(flat); });
+  if (exact) return { already: true, why: 'the same figures (' + amts.map(function (a) { return '$' + a; }).join(', ') + ') are already in the thread' };
+  if (!mdl) return { already: false, why: 'no model to match' };
+  var mdlRx = new RegExp('(?:^|[^A-Za-z0-9])' + mdl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/-/g, '-?') + '(?![A-Za-z0-9])', 'i');
+  var moRx = /\$\s?\d{2,4}(?:\.\d\d)?\s*(?:\/\s*mo\b|\/\s*month|per month|a month|\/mo\.|monthly)/i;
+  var ents = s.split(/\n(?=\s*\[\d{1,2}\/\d{1,2}\/\d{2,4}[^\]]*\]\s*\[)/);
+  for (var i = 0; i < ents.length; i++) {
+    var hm = ents[i].match(/^\s*\[([^\]]*)\]\s*\[([^\]]*)\]\s*([^\n]*)/);
+    if (!hm || hm[2].toUpperCase() === 'CUSTOMER' || !/Outbound Text Message|Email reply to prospect/i.test(hm[3])) continue;
+    var mm = ents[i].match(moRx);
+    if (mm && mdlRx.test(ents[i])) return { already: true, why: 'our ' + hm[1].split(' ')[0] + ' message already quoted ' + mm[0].trim() + ' on the ' + mdl };
+  }
+  return { already: false, why: 'not in the thread' };
+}
+
 function populateFromData(d) {
   // (v9.7.604) Drop a voicemail belonging to a different lead before anything renders. See
   // _lpVmForLead above for why this is stamped rather than cleared unconditionally.
@@ -6482,7 +6551,17 @@ function populateFromData(d) {
             if (_soldPivotInc) {
               var _soldPivotIncTransit = null;
               for (var _tI = 0; _tI < _compsFull.length; _tI++) { if (_compsFull[_tI].text === _soldPivotInc.vehicle) { _soldPivotIncTransit = _compsFull[_tI].inTransit; break; } }
-              console.log('[LP SOLD PIVOT DIAG] leading with incentive on "' + _soldPivotInc.vehicle + '"' + (_soldPivotIncTransit ? ' (IN TRANSIT)' : '') + ': ' + _lpModelLine(_soldPivotInc.inc.model, _soldPivotInc.inc.line));
+              // (v9.7.705) AN OFFER THE THREAD ALREADY CARRIES IS NOT NEWS. log241, Honda Lafayette: we pivoted on
+              // 9/14 with "$349/month for 36 months with $4,899 due at signing"; nine days later this block
+              // fired again and told the model to LEAD with the same offer, beside the SOLD block saying the
+              // customer was already told and to anchor on the latest exchange. The email re-quoted it to a
+              // customer asking for zero down near $200. If every dollar figure in the line is already in
+              // this lead's thread, the pivot has happened: it is stated as already offered, not led with.
+              // _soldPivotIncentiveUsed still latches, so the general STORE INCENTIVE block cannot re-pitch it.
+              var _spRes = _lpOfferAlreadyInThread(_lpCtxCurrent, _soldPivotInc.inc.line, _soldPivotInc.inc.model);
+              var _spAlready = _spRes.already;
+              console.log('[LP SOLD PIVOT DIAG] ' + (_spAlready ? 'ALREADY OFFERED — ' + _spRes.why + ' — stated as already offered, not led with' : 'leading with incentive')
+                + ' on "' + _soldPivotInc.vehicle + '"' + (_soldPivotIncTransit ? ' (IN TRANSIT)' : '') + ': ' + _lpModelLine(_soldPivotInc.inc.model, _soldPivotInc.inc.line));
               _soldPivotIncentiveUsed = true;
               // (v9.7.606) The unqualified "in-stock" branch now requires this grab's inventory.
               // On a stale snapshot the unit is still NAMED — v9.7.498 established that refusing to
@@ -6505,6 +6584,12 @@ function populateFromData(d) {
                      + ' any wording that states it is physically on the lot, and do NOT offer'
                      + ' appointment times to come see THIS unit. Offer to confirm the specific unit'
                      + ' first, e.g. "let me confirm it is still here before you come in."');   // (v9.7.701) the old example named the trip
+              if (_spAlready) {
+                vehicleExtras.push('💲 ALREADY OFFERED — NOT NEWS: after the sold unit, this thread already carries the offer on the '
+                  + 'alternative (' + _lpModelLine(_soldPivotInc.inc.model, _soldPivotInc.inc.line) + ' on ' + _soldPivotInc.vehicle + '). '
+                  + 'Do NOT lead with it, re-quote it or re-pitch it. Move the latest exchange forward. Refer back to it only if the '
+                  + 'customer asks about price or payment now, and then as the offer they already have, never as news.');
+              } else
               vehicleExtras.push('🔴➡💲 SOLD → INCENTIVE PIVOT (real, current — offer only to well-qualified buyers; APR/lease/cash subject to credit approval and program terms, frame "for qualified buyers," never promise the rate): their original vehicle is sold, but ' + _soldPivotInc.vehicle + ' ' + _soldPivotAvailPhrase + ' — ' + _lpModelLine(_soldPivotInc.inc.model, _soldPivotInc.inc.line) + '.' + _soldPivotTransitNote + ' Lead the pivot with THIS as the concrete, positive reason to move forward — e.g. "the one you had your eye on sold, but we\'ve got [X] on the [alternative] right now, want to take a look?" — not a soft "still interested?" check-in that dwells on the loss. Do not ask whether they are still considering the sold unit; move forward with the alternative.' + (_comps.length > 1 ? ' Other comparable units are also available if this one doesn\'t fit: ' + _compsFull.filter(function(c){ return c.text !== _soldPivotInc.vehicle; }).map(function(c){ return c.text + (c.inTransit ? ' (in transit)' : ''); }).join('; ') + ' (no price on these others, just the offer above).' : ''));
             } else {
               // (v9.7.502/498 FIX) Live: Keijo Armstrong (Honda Lafayette). This branch had no
@@ -7104,6 +7189,19 @@ function populateFromData(d) {
     // (v9.7.697) A stated channel preference is a fact about HOW to reach them, not a declined vehicle.
     vehicleExtras.push('CUSTOMER\u2019S STATED CHANNEL PREFERENCE (their words): "' + String(d.customerChannelPref).replace(/"/g, "'") + '"');
   }
+  // (v9.7.705) See _lpHearingLimit. Read from the whole record, not the five newest inbound messages.
+  try {
+    var _hl = _lpHearingLimit(_lpCtxAll);
+    console.log('[LP HEARING DIAG] ' + (_hl
+      ? 'FOUND in ' + (_hl.source === 'customer' ? "the customer's own words" : 'a staff note') + ': "' + _hl.quote + '" — calls and voicemail ruled out'
+      : 'no statement that the customer cannot hear'));
+    if (_hl) {
+      vehicleExtras.push('\ud83e\uddcf THIS CUSTOMER CANNOT HEAR \u2014 ' + (_hl.source === 'customer' ? 'their own words' : 'our staff note')
+        + ': "' + _hl.quote.replace(/"/g, "'") + '". Reach them by text or email only. Never ask them to call, never offer or promise'
+        + ' a call, never mention a voicemail or "leaving a message", and never ask them to "talk". Use plain, everyday words.'
+        + ' The voicemail field is still required by the format; keep it to one neutral sentence, it will not be used.');
+    }
+  } catch (eHl) {}
   if (d.customerScheduleConstraint) {
     var isShiftWorkerLead = false; // Shift worker auto-detection removed — too many false positives in Baytown/Houston area
     if (isShiftWorkerLead) {
