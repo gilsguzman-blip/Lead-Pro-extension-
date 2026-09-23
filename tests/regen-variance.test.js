@@ -347,7 +347,10 @@ check('the history is maintained INSIDE generateAll, after the flush (v9.7.644 o
 check('every _lpDraftHistory mention is inside the collector, the prompt block or the variance diag',
   // (v9.7.697) A FOURTH, and it is a READER too: the harness capture (window._lpLastPromptInputs) copies the
   // list into the local dump file. Named here on purpose, per the rule above.
-  i => { const spans = [i.capture, i.promptBlk, i.variance, 'factVerdicts: window._lpFactVerdicts || {}, draftHistory: window._lpDraftHistory || [],'];
+  // (v9.7.704) A FIFTH, and a READER: the PHASE 2 example pool drops topics a rejected draft already asked,
+  // and rotates by how many there were. Named here on purpose, per the rule above.
+  i => { const spans = [i.capture, i.promptBlk, i.variance, 'factVerdicts: window._lpFactVerdicts || {}, draftHistory: window._lpDraftHistory || [],',
+                        "var _r2Rej = (typeof window !== 'undefined' && window && Array.isArray(window._lpDraftHistory)) ? window._lpDraftHistory : [];"];
          let n = 0, from = 0, loose = 0;
          for (;;) {
            const k = i.body.indexOf('_lpDraftHistory', from);

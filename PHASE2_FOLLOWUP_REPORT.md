@@ -1,6 +1,6 @@
 # Lead Pro: Phase 2 follow-up report
 
-Builds v9.7.702 and v9.7.703 (DEV and COMMERCIAL paired), branch `claude/audi-honda-brand-mismatch-ybifph`.
+Builds v9.7.702 to v9.7.704 (DEV and COMMERCIAL paired), branch `claude/audi-honda-brand-mismatch-ybifph`.
 Extension only. Proxy v7.76 and reporter v1.22 were not changed.
 Leads are cited by log or capture id only. Where a log holds several leads, `#n` is the order in which the lead first appears in that log (by the panel's active lead id); the same lead keeps the same `#n` throughout.
 
@@ -238,6 +238,70 @@ After (v9.7.703):
 - **Build checks:**
   - `node --check` is clean on both builds.
   - Both manifests are at 9.7.703 / 9.7.703-dev.
+  - The changed lines are byte-identical between DEV and COMMERCIAL.
+
+## v9.7.704: PHASE 2 examples rotate with the lead
+
+Your request: "add more examples and have them rotate as needed in context." In v9.7.703, 7 of 11 drafts copied the first example's shape.
+
+**The pool.** PHASE 2 now shows **three examples, taken from a pool of eight** (all tone only):
+
+| Topic | Example | Offered when |
+|---|---|---|
+| trim | "Are you set on the [trim], or open to other trims?" | the lead's vehicle has a trim |
+| new vs pre-owned | "Leaning more new or pre-owned?" | always |
+| color | "Is there a color you have your heart set on?" | no specific unit (a stock number or VIN fixes the color) |
+| must-have feature | "Is there a feature it has to have?" | always |
+| photos / video | "Want a quick walkaround video of this one?" / "Would a few photos help?" | always; "this one" only when there is a unit |
+| what it is for | "What will it mostly be doing -- daily driving, family, work?" | always |
+| size | "Is the size right, or are you weighing something bigger or smaller?" | always |
+| a detail on the unit | "Anything specific you'd like me to check on this one?" | only when a unit is on the lead |
+
+**How "as needed in context" works:**
+- **Fit.** An example that can't apply to this lead is never offered.
+- **Already asked.** A topic is dropped when our own texts or emails on this lead already asked it, or when a rejected draft asked it (a Regenerate). The model is also told: "Already asked on this lead, so do not ask it again: color, photos / video."
+- **Rotation.** From what is left, three are offered, starting at a point that moves with every new touch and every Regenerate.
+  - The same lead state always gives the same three.
+  - If every fitting topic has been asked, it still offers three and tells the model to come at it from a new angle.
+
+**Still in force:**
+- The timeline ban.
+- The uncounted ask ("Ask a low-effort question").
+- No still-interested question, no numbers, no trade.
+
+`[LP RUNG2 EXAMPLES DIAG]` logs what was offered, what was already covered, the fit and fresh counts, the rotation offset, the touch count and the number of rejected drafts.
+
+**Paired drafts.** v9.7.703 against v9.7.704, same four PHASE 2 leads, 3 drafts per side. Two drafts on the fallback model are excluded.
+
+| Question asked | v9.7.703 | v9.7.704 |
+|---|---|---|
+| Trim ("set on the X, or open to other trims?") | 6 of 10 | **0 of 11** |
+| What it is for | 0 | 5 |
+| Must-have feature | 1 | 3 |
+| Size | 1 | 2 |
+| Photos / video | 0 | 1 |
+| Color | 3 | 0 |
+| Timeline | 0 | 0 |
+
+- **Within one lead, drafts still agree** (the Kia lead asked about a must-have feature three times). The three offered examples only change when the lead's state changes, so the variety shows across touches and Regenerates, as below.
+- **Regenerate chain.** Four Regenerates in a row on the synthetic Kia lead, each rejected draft fed back as the panel does. The question moved **trim → color → what it's for → photos**, and each prompt named the topics already covered. The third draft came back on the fallback model.
+- **For 5100d637,** the examples were taken from the Audi dump's context, because this old capture can't be rebuilt by code. One after-draft kept "I know we haven't connected yet", which comes from the capture's own zero-contact block.
+
+**Tests.**
+- **New `rung2-examples-704.test.js`:** 21 checks per build, 42 total. It covers:
+  - Pool safety.
+  - Fit (trim, unit, color).
+  - Covered topics, from our outbound and from rejected drafts, including the "set on the XLE?" wording.
+  - Rotation across touches and Regenerates.
+  - The rendered prompt and the diagnostic.
+- **Non-vacuity:** against v9.7.703, 19 of 21 fail. The 2 that pass are labelled controls: the kept v9.7.703 guarantees, and the untouched PHASE 3.
+- **Existing tests:**
+  - `regen-variance` names the new draft-history reader, per its rule that every reader is named on purpose.
+  - `stalled-phase` and `refine-prohibitions` now load the pool.
+- **run-all:** 126 suites, **6,028 assertions, 0 failed**.
+- **Build checks:**
+  - `node --check` is clean on both builds.
+  - Both manifests are at 9.7.704 / 9.7.704-dev.
   - The changed lines are byte-identical between DEV and COMMERCIAL.
 
 ## Left alone

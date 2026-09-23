@@ -96,7 +96,8 @@ function extract(file) {
   // band table when the build has it; a build that predates it simply does not reference it.
   const ch = src.indexOf('var LP_STALLED_RUNG_MIN_AGE');
   if (ch >= 0) {
-    const cfEnd = src.indexOf('\n}\n', src.indexOf('function _lpStalledCalendarRung(', ch)) + 3;
+    // (v9.7.704) ...and everything up to the resolver, which now includes the rung-2 example pool.
+    const cfEnd = src.indexOf('function _lpCloseOutEligible(', ch);
     resolver = src.slice(ch, cfEnd) + '\n' + resolver;
   }
 

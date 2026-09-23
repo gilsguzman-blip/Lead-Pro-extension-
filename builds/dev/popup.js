@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.704-dev (Dev. PHASE 2 EXAMPLES ROTATE WITH THE LEAD (Gil, 9/23: 'add more examples and have them rotate as needed in context'). Extension only; proxy v7.76 and reporter v1.22 unchanged. v9.7.703 gave PHASE 2 -- MICRO QUESTION two fixed examples and 7 of 11 paired drafts copied the first ('set on the X, or open to other trims?'). New _lpRung2Examples offers THREE from a pool of EIGHT (trim, new vs pre-owned, color, must-have feature, photos/video, what it is for, size, a detail to check on the unit). FIT: a trim question only when the lead's vehicle carries a trim; no color question once a stock number or VIN pins the unit; the check-this-one question and 'walkaround video of this one' only when it does. COVERED: a topic our own texts/emails on this lead already asked, or a rejected draft asked (window._lpDraftHistory, i.e. Regenerate), is dropped and named back to the model as 'Already asked on this lead, so do not ask it again'. ROTATION: from what is left, three starting at an offset that advances with each touch and each regenerate; deterministic for a given lead state; if every fitting topic is used it still offers three and says to come at it from a new angle. None asks about timing, still-interested, numbers or trade; the ask stays uncounted and the v9.7.703 timeline ban is kept. New [LP RUNG2 EXAMPLES DIAG]: offered, covered, fit/fresh counts, offset, touches, rejected drafts. PAIRED DRAFTS v9.7.703 vs v9.7.704, same four PHASE 2 leads x 3: trim-shaped questions 6 of 10 before, 0 of 11 after; after-drafts spread over use (5), feature (3), size (2), photos (1). A four-regenerate chain on one lead walked trim -> color -> use -> photos. VERIFIED: new rung2-examples-704.test.js (21 per build, 42), executing _lpRung2Examples and buildUserPrompt; NON-VACUITY against v9.7.703: 19 of 21 fail, the 2 that pass are labelled controls. regen-variance names the new _lpDraftHistory reader (a fifth span, a reader); stalled-phase and refine-prohibitions lift the pool with the helpers. run-all: 126 suites, 6028 assertions, 0 failed. node --check clean on both builds; both manifests parse; version AND version_name bumped; DEV vs COMMERCIAL differences unchanged. Builds on v9.7.703. Mirrors COMMERCIAL v9.7.704.)
 // Lead Pro -- popup.js  v9.7.703-dev (Dev. THE RUNG-2 QUESTION IS ABOUT THE CAR, NOT THE TIMELINE (Gil, 9/23). Extension only; proxy v7.76 and reporter v1.22 unchanged. v9.7.702 put 2-7-day stalled leads on PHASE 2 -- MICRO QUESTION, whose YOUR APPROACH line offered 'Did your timeline change?' as an example; 4 of 8 paired drafts asked it, two days after an inquiry. The line now reads: ask a low-effort question, NOT 'are you still interested?', make it about what they are shopping for, easy to answer in a few words; tone-only examples about THIS lead's vehicle ('Are you set on the [trim], or open to others?', 'Leaning more new or pre-owned?'); and do NOT ask whether their timeline, timing or plans changed -- that is the timing-check rung's question (PHASE 3, unchanged, from day 8). The ask stays uncounted, per the 9/23 ask-rule decision (message-constraints and regen-variance pin it). PAIRED DRAFTS, v9.7.702 vs v9.7.703, 4 PHASE 2 leads x 3 per side (two real Audi Lafayette -- dump a24e7a8c and capture 5100d637 -- and two labelled synthetic, Toyota and Kia Baytown): timeline/timing questions 6 of 12 before, 0 of 11 after (one fallback-tier draft excluded). 7 of 11 after-drafts used the trim example's shape. VERIFIED: stalled-rung-702.test.js gains 4 checks (30 per build, 60); NON-VACUITY against v9.7.702: the 3 wording checks fail, the PHASE 3 control passes. run-all: 125 suites, 5986 assertions, 0 failed. node --check clean on both builds; both manifests parse; version AND version_name bumped; DEV vs COMMERCIAL differences unchanged. Builds on v9.7.702. Mirrors COMMERCIAL v9.7.703.)
 // Lead Pro -- popup.js  v9.7.702-dev (Dev. THE STALLED LADDER GETS A CALENDAR (Gil, Phase 2 follow-up item 3). Extension only; proxy v7.76 and reporter v1.22 unchanged. A zero-contact stalled lead's rung is now the LOWER of the count rung (thresholds unchanged: 1/2/3/4/5+ texts and emails above the lead marker) and a calendar rung from data.leadAgeDays, the value P6 reads: rung 2 from day 2 (engagement), rung 3 from day 8 (persistence -- 'acknowledge their silence' needs a week of it), rung 4 from day 15 (the cadence's day-15 touch), rung 5 from day 21 (_lpCloseOutEligible's own floor, so the calendar moves no close-out). Unknown age fails safe to rung 1. A customer exit or pause is not capped. A 5+-touch lead the calendar holds at rung 4 still asks the resolver and gets the no-close-out PHASE 4, unchanged. New [LP STALLED RUNG DIAG]: outreach, lead age, count rung, calendar rung, final rung, and why it capped. REPLAY of the 52 logs (141 generations): 24 stalled-ladder generations on 8 leads; 7 leads change rung (five PHASE 4 -> PHASE 2 at 2-7 days, two PHASE 4 -> PHASE 3 at 8-9 days); the 55-day lead stays PHASE 5. ROUTING: v9.7.701 vs v9.7.702 on the Audi Lafayette dump and 420 synthetic stalled leads across all five rooftops -- every prompt line other than the phase name and YOUR APPROACH identical, every non-ladder log line identical (scenario, persona, source ack, zero-contact, close-out gate, distance, outreach count), and the P6 cadence result and its diag identical on 200 of 200. VERIFIED: new stalled-rung-702.test.js (26 per build, 52), executing _lpStalledCalendarRung and buildUserPrompt; NON-VACUITY against v9.7.701: 20 of 26 fail, the 6 that pass are labelled controls. stalled-phase.test.js: 5 assertions changed on purpose (a 4-day lead is PHASE 2 now; the gate is pinned on an 18-day lead; the young-lead flag now acts). refine-prohibitions and stalled-phase harnesses lift the new helper. run-all: 125 suites, 5978 assertions, 0 failed. node --check clean on both builds; both manifests parse; version AND version_name bumped; DEV vs COMMERCIAL differences unchanged. Builds on v9.7.701. Mirrors COMMERCIAL v9.7.702.)
 // Lead Pro -- popup.js  v9.7.701-dev (Dev. THE M4 PAIRED HARNESS RAN, AND IT FOUND OUR OWN TRIP WORDING. Extension only; proxy v7.76 and reporter v1.22 unchanged. HARNESS (proxy reachable after Gil opened network access): 11 real leads, two per rooftop plus the Audi Lafayette dump, each sent BEFORE and AFTER M4 twice with sides alternated and the edge cache bypassed -- 44 calls, all 200 on the primary tier (gpt-5.6-luna), no fallbacks. M4 RESULT: output quality comparable (same specificity -- vehicle, colour, trade and benefit named on both sides); moved-rule adherence unchanged (0 volunteered OTD/payment, 0 lists, 0 non-English, subjects 22/22 after vs 21/22 before; trade mentions 5 vs 2, all on leads whose prompt carries TRADE DISCUSSED); latency NOT improved -- worker latency median 5.15s before vs 5.56s after, 7 of 11 leads slower, per-call spread ~1.5s, output size identical (median 479 vs 477 tokens); prompt tokens identical (+120 for the new header lines). The cached-token split is visible only in the Worker's own CACHE log lines, not to the client; after-side requests are the ones with sysChars ~32.5k. DISTANCE (Gil's ruling): three captured drafts said things like 'before you make the drive from McComb' and 'before making the trip from Louisiana'. With only the v9.7.700 rule added, 1 of 6 still said 'before you make the trip'; the Louisiana lead's own prompt carried OUR line 'encourage the soonest workable time so the trip is worth it'. Fixed here: that context line ('with what will be ready for them as the reason, never the drive or the trip'), the credit-sensitive distance line, two customer-facing examples that said 'before you make the trip' (VIN-only unit check, PAYMENT/numbers framing -> 'before you come in'), the VIN-only 'Better:' example, and the Address Distance regenerate chip, whose instruction was 'Make the distance reality the leading element. Acknowledge the trip directly' (it now leads with what will be ready and names no distance; the chip's label is unchanged). Re-run on the Louisiana lead with rule + context fix: 3 of 3 drafts clean. Left alone on purpose: 'Safe travels' for a customer's own trip, and acknowledging a wasted trip the customer already made to us. VERIFIED: ALSO FOUND AND FIXED: enforceSmsSig's safety net stripped the SMS's LAST LINE whenever it contained the store key ('audi' on Audi Lafayette, 'Community' elsewhere) -- after the real signature was removed, a body line like 'Would you like to compare it with an Audi Q3?' was deleted too; verified by executing the function. It now strips only a signature-like line (short, not ending a sentence). 0 of the 40 harness SMS drafts hit it (the model usually writes one paragraph), so it is rare, but when it fires it deletes the ask. VERIFIED: step5-700.test.js gains 5 checks (19 per build, 38), executing buildUserPrompt on an in-state distance buyer and enforceSmsSig on a brand-mentioning close; NON-VACUITY against v9.7.700: the 4 new fix checks fail, the 1 control passes. run-all: 124 suites, 5926 assertions, 0 failed. node --check clean on both builds; both manifests parse; version AND version_name bumped; DEV vs COMMERCIAL differences unchanged. Builds on v9.7.700. Mirrors COMMERCIAL v9.7.701.)
@@ -3499,6 +3500,68 @@ function _lpStalledCalendarRung(leadAgeDays) {
   var r = 1;
   for (var k = 2; k <= 5; k++) { if (a >= LP_STALLED_RUNG_MIN_AGE[k]) r = k; }
   return r;
+}
+
+// ── (v9.7.704) PHASE 2 EXAMPLES: A POOL THAT ROTATES WITH THE LEAD ─────────────────────────────────────
+// v9.7.703 gave rung 2 two fixed examples and 7 of 11 paired drafts copied the first one's shape ("set on
+// the X, or open to other trims?"). Gil: more examples, rotating as the context needs. Three things decide
+// which the model sees:
+//   FIT      -- an example that cannot apply to this lead is never offered (a trim question needs a trim
+//               on the lead; a color question is pointless once a specific stock unit/VIN is pinned).
+//   COVERED  -- a topic our own outbound on THIS lead already asked about, or that a rejected draft asked
+//               (Regenerate), is dropped and NAMED as covered, so the next touch moves on instead of repeating.
+//   ROTATION -- from what is left, three are offered starting at an offset that advances with every touch
+//               and every regenerate, so consecutive touches do not see the same trio.
+// Examples stay "tone only". None asks about timing (PHASE 3's question) or whether they are still
+// interested, none volunteers a number, and none raises a trade the customer has not.
+var LP_RUNG2_EXAMPLES = [
+  { id: 'trim',    label: 'trim',            rx: /\btrims?\b|\bset on (the|a|an)\b/i,
+    fit: function (c) { return c.hasTrim; },
+    text: function (c) { return '"Are you set on the [trim], or open to other trims?"'; } },
+  { id: 'newused', label: 'new vs pre-owned', rx: /pre-?owned|new or used|certified/i,
+    fit: function (c) { return true; },
+    text: function (c) { return '"Leaning more new or pre-owned?"'; } },
+  { id: 'color',   label: 'color',           rx: /\bcolou?rs?\b/i,
+    fit: function (c) { return !c.hasUnit; },
+    text: function (c) { return '"Is there a color you have your heart set on?"'; } },
+  { id: 'feature', label: 'must-have feature', rx: /must-?have|\bfeatures?\b/i,
+    fit: function (c) { return true; },
+    text: function (c) { return '"Is there a feature it has to have?"'; } },
+  { id: 'photos',  label: 'photos / video',  rx: /\bphotos?\b|\bpictures?\b|\bvideo\b|walk-?around/i,
+    fit: function (c) { return true; },
+    text: function (c) { return c.hasUnit ? '"Want a quick walkaround video of this one?"' : '"Would a few photos help?"'; } },
+  { id: 'usecase', label: 'what it is for',  rx: /commut|daily driv|mostly (be )?(for|doing|using)|for the family|for work\b/i,
+    fit: function (c) { return true; },
+    text: function (c) { return '"What will it mostly be doing -- daily driving, family, work?"'; } },
+  { id: 'size',    label: 'size',            rx: /\bsize\b|bigger|smaller|third row|\bcargo\b|room for/i,
+    fit: function (c) { return true; },
+    text: function (c) { return '"Is the size right, or are you weighing something bigger or smaller?"'; } },
+  { id: 'detail',  label: 'a detail to check on the unit', rx: /anything specific|one detail|specific question/i,
+    fit: function (c) { return c.hasUnit; },
+    text: function (c) { return '"Anything specific you\'d like me to check on this one?"'; } }
+];
+var LP_RUNG2_OFFERED = 3;
+// ctx: { vehicle, hasUnit, ourOutbound (text of our texts/emails on this lead), rejected (array of rejected
+// draft SMS), touches, regens }. Pure: reads nothing global, so it runs the same in the panel and in tests.
+function _lpRung2Examples(ctx) {
+  ctx = ctx || {};
+  var veh = String(ctx.vehicle || '').trim().split(/\s+/);
+  var c = { hasUnit: !!ctx.hasUnit, hasTrim: /^(19|20)\d\d$/.test(veh[0] || '') && veh.length >= 4 };
+  var seen = String(ctx.ourOutbound || '') + '\n' + (Array.isArray(ctx.rejected) ? ctx.rejected.join('\n') : '');
+  var fit = LP_RUNG2_EXAMPLES.filter(function (e) { return e.fit(c); });
+  var covered = fit.filter(function (e) { return e.rx.test(seen); });
+  var fresh = fit.filter(function (e) { return !e.rx.test(seen); });
+  // Everything already asked: rotate through the fitting pool anyway rather than offer nothing, and say so.
+  var pool = fresh.length ? fresh : fit;
+  var n = Math.min(LP_RUNG2_OFFERED, pool.length);
+  var step = (parseInt(ctx.touches, 10) || 0) + (parseInt(ctx.regens, 10) || 0);
+  var off = pool.length ? (step * LP_RUNG2_OFFERED) % pool.length : 0;
+  var picked = [];
+  for (var i = 0; i < n; i++) picked.push(pool[(off + i) % pool.length]);
+  return { ids: picked.map(function (e) { return e.id; }),
+           examples: picked.map(function (e) { return e.text(c); }),
+           covered: covered.map(function (e) { return e.label; }),
+           fitCount: fit.length, freshCount: fresh.length, offset: off, exhausted: !fresh.length };
 }
 
 function _lpCloseOutEligible(d) {
@@ -24886,9 +24949,23 @@ function buildUserPrompt(data) {
       // Since v9.7.702 the calendar holds 2-7-day leads at this rung, and in the paired drafts 4 of 8 asked
       // it -- two days after an inquiry nothing has had time to change. Asking about timing is PHASE 3's
       // job; this rung asks about the car. Gil, 9/23.
+      // (v9.7.704) The examples now come from _lpRung2Examples: fitted to this lead, minus what our own
+      // outbound or a rejected draft already asked, rotated by touch and regenerate.
+      var _r2Out = [];
+      ctx_stalled.split(/\n(?=\[\d{2}\/\d{2}\/\d{4}[^\]]*\] )/).forEach(function (_e) {
+        if (/^\[[^\]]*\] \[[^\]]*\] (Outbound Text Message|Email reply to prospect)/.test(_e)) _r2Out.push(_e);
+      });
+      var _r2Rej = (typeof window !== 'undefined' && window && Array.isArray(window._lpDraftHistory)) ? window._lpDraftHistory : [];
+      var _r2 = _lpRung2Examples({ vehicle: data && data.vehicle, hasUnit: !!(data && (data.stockNum || data.vin)),
+        ourOutbound: _r2Out.join('\n'), rejected: _r2Rej, touches: stalledTouches, regens: _r2Rej.length });
+      console.log('[LP RUNG2 EXAMPLES DIAG] offered:' + _r2.ids.join(',') + ' | covered:' + (_r2.covered.join(',') || 'none')
+        + ' | fit:' + _r2.fitCount + ' fresh:' + _r2.freshCount + ' offset:' + _r2.offset
+        + ' | touches:' + stalledTouches + ' rejectedDrafts:' + _r2Rej.length + (_r2.exhausted ? ' | every fitting topic already asked' : ''));
       stalledApproach = 'Ask a low-effort question. NOT "are you still interested?" Make it about what they are shopping for, '
-        + 'easy to answer in a few words. The kind of question (tone only -- make it about THIS lead\'s vehicle): '
-        + '"Are you set on the [trim], or open to others?" or "Leaning more new or pre-owned?" '
+        + 'easy to answer in a few words. The kind of question (tone only -- make it about THIS lead\'s vehicle, and pick '
+        + 'whichever fits best or write your own like them): ' + _r2.examples.join(' or ') + '. '
+        + (_r2.covered.length && !_r2.exhausted ? 'Already asked on this lead, so do not ask it again: ' + _r2.covered.join(', ') + '. '
+           : _r2.exhausted ? 'Every one of these has been asked on this lead already -- if you use one, come at it from a new angle. ' : '')
         + 'Do NOT ask whether their timeline, timing or plans changed -- that is the timing-check rung\'s question, and this lead is not there yet.';
     } else if (_rgFinal <= 3) {
       stalledPhase = 'PHASE 3 -- TIMING CHECK';
