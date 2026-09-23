@@ -1,6 +1,6 @@
 # Lead Pro: Phase 2 follow-up report
 
-Build v9.7.702 (DEV and COMMERCIAL paired), branch `claude/audi-honda-brand-mismatch-ybifph`.
+Builds v9.7.702 and v9.7.703 (DEV and COMMERCIAL paired), branch `claude/audi-honda-brand-mismatch-ybifph`.
 Extension only. Proxy v7.76 and reporter v1.22 were not changed.
 Leads are cited by log or capture id only. Where a log holds several leads, `#n` is the order in which the lead first appears in that log (by the panel's active lead id); the same lead keeps the same `#n` throughout.
 
@@ -171,7 +171,7 @@ The calendar bands follow the lead-age phases the prompt already states (TOUCH P
 **Overall:**
 - The calendar matters most at the edges: a 2-day lead no longer reads as a lapsed one, and an 8-to-9-day lead now gets its silence acknowledged.
 - On 4-to-7-day leads the drafts were already gentle, because the v9.7.595 gate had removed the close-out wording, so the change is mostly in which question is asked.
-- **Left alone:** 4 of the 8 PHASE 2 drafts used the rung's own example "Did your timeline change?", which is a strange question for a 2-to-4-day lead. Changing the rung wording was outside this item, but you can drop that example and keep "Are you leaning more new or pre-owned?" if you like.
+- 4 of the 8 PHASE 2 drafts used the rung's own example "Did your timeline change?", which is a strange question for a 2-to-4-day lead. **Changed in v9.7.703**, below.
 
 ### No other routing changes
 
@@ -197,10 +197,53 @@ v9.7.701 was compared with v9.7.702 on the Audi Lafayette dump, and on 420 synth
   - Both manifests parse, with `version` and `version_name` bumped.
   - The changed lines are byte-identical between DEV and COMMERCIAL.
 
+## v9.7.703: the PHASE 2 question is about the car, not the timeline
+
+Your follow-up to the finding above.
+
+**The PHASE 2 `YOUR APPROACH` line.**
+
+Before (v9.7.702):
+> Ask a low-effort question. NOT "are you still interested?" Instead: "Are you leaning more new or pre-owned?" or "Did your timeline change?"
+
+After (v9.7.703):
+> Ask a low-effort question. NOT "are you still interested?" Make it about what they are shopping for, easy to answer in a few words. The kind of question (tone only -- make it about THIS lead's vehicle): "Are you set on the [trim], or open to others?" or "Leaning more new or pre-owned?" Do NOT ask whether their timeline, timing or plans changed -- that is the timing-check rung's question, and this lead is not there yet.
+
+- **The timing question hasn't gone away.** It belongs to PHASE 3 (TIMING CHECK, from day 8), which is unchanged.
+- **The ask is still uncounted.** My first draft said "Ask one low-effort question". `message-constraints` and `regen-variance` caught it against your 9/23 ask-rule decision, and it was restored to "a".
+
+**Paired drafts.**
+- Setup: v9.7.702 against v9.7.703 on the four PHASE 2 pairs, 3 drafts per side, sides alternated.
+  - Two real Audi Lafayette leads: dump a24e7a8c and capture 5100d637.
+  - Two synthetic leads, labelled as such: Toyota Baytown and Kia Baytown.
+- One after-side draft came back on the fallback model and is excluded.
+
+| | v9.7.702 | v9.7.703 |
+|---|---|---|
+| Drafts asking about timeline or timing | **6 of 12** | **0 of 11** |
+
+- **a24e7a8c (2 days).** All three before-drafts asked "Did your timeline change?" / "has your timeline shifted?". One also opened with "it's been quiet since your online inquiry", two days in. All three after-drafts asked whether the EX trim is a must-have.
+- **5100d637 (4 days).** Two before-drafts asked "Did your search go a different direction?", which comes from this old capture's own zero-contact example. After: whether they're set on the Lone Star trim.
+- **Toyota and Kia (synthetic, 7 and 4 days).** The timing questions were replaced by color, trim, new-or-pre-owned, and must-have-feature questions.
+- **Worth watching:** 7 of the 11 after-drafts used the trim example's shape ("set on X, or open to other trims?"). It suits a young lead, but it's the new default phrasing.
+
+**Tests.**
+- `stalled-rung-702` gains 4 checks (30 per build, 60 total):
+  - The example is gone.
+  - The timeline question is banned, and the ban says why.
+  - The question is aimed at the vehicle, and the ask is uncounted.
+  - A PHASE 3 control: that rung still carries the timing check.
+- **Non-vacuity:** run against v9.7.702, the 3 wording checks fail and the control passes.
+- **run-all:** 125 suites, **5,986 assertions, 0 failed**.
+- **Build checks:**
+  - `node --check` is clean on both builds.
+  - Both manifests are at 9.7.703 / 9.7.703-dev.
+  - The changed lines are byte-identical between DEV and COMMERCIAL.
+
 ## Left alone
 
 - **P1** (SMS always drafted, opt-out shown as a notice), as confirmed.
 - **Worker v7.77** fixes from the earlier review (list-licenses pagination, `/feedback/summary` byScenario, UTC vs Central dates, no `extensionVersion`, safe-fallback text). Not built; the offer stands. Logging output tokens in the `CACHE` line would complete item 1.
 - **One-sided reading unknown age as 0 days** (item 2, flagged). One line; not changed in a report-only item.
-- **The rung wording**, including "Did your timeline change?" on young leads. Only the choice of rung changed.
+- **The other rungs' wording.** Only PHASE 2's approach line changed (v9.7.703).
 - **Count thresholds.** Unchanged, as asked.

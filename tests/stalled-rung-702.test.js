@@ -69,9 +69,19 @@ for (const f of BUILDS) {
   }, ['PHASE 4', true, true]);
   check('...and a PHASE 2 lead gets the PHASE 2 wording, not a stale close-out line', () => {
     const r = lead(2, 8, 0);
-    return [/Ask a low-effort question/.test(r.p), /GRACEFUL CLOSE-OUT|close it out\?/.test(r.p), r.gate];
+    return [/low-effort question/.test(r.p), /GRACEFUL CLOSE-OUT|close it out\?/.test(r.p), r.gate];
   }, [true, false, null]);
   check('control: the touch count the model is told is unchanged — it is the rung that moved', () => /This customer has not responded to 8 message\(s\)\./.test(lead(2, 8, 0).p), true);
+
+  console.log(' (v9.7.703) the rung-2 question is about the car, not the timeline:');
+  check('PHASE 2 no longer offers "Did your timeline change?" — 4 of 8 young-lead drafts asked it on day 2-7',
+    () => /Did your timeline change\?/.test(lead(2, 8, 0).p), false);
+  check('...it bans the timeline question outright and says why (that is the next rung)',
+    () => /Do NOT ask whether their timeline, timing or plans changed -- that is the timing-check rung's question, and this lead is not there yet\./.test(lead(4, 6, 0).p), true);
+  check('...and points the question at what they are shopping for, with tone-only examples and no count on the ask',
+    () => { const p = lead(7, 9, 2).p; return [/Make it about what they are shopping for, easy to answer in a few words\./.test(p), /tone only -- make it about THIS lead's vehicle/.test(p), /NOT "are you still interested\?"/.test(p), /Ask ONE|Ask one/.test(p.slice(p.indexOf('YOUR APPROACH:')))]; }, [true, true, true, false]);
+  check('control: PHASE 3 still carries the timing check — the question moved rungs, it was not removed',
+    () => /Did your timeline shift or just been busy\?/.test(lead(9, 8, 0).p), true);
 
   console.log(' unknown age fails safe:');
   check('8 touches, no lead age → PHASE 1', () => lead(undefined, 8, 0).phase, 'PHASE 1');
