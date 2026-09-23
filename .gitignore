@@ -1,3 +1,4 @@
 # Build output. Zips are delivered to Gil directly; the repo has not carried one
 # since v9.7.628, and the two channels are reproducible from builds/ per CLAUDE.md.
 dist/
+m4-results*.json

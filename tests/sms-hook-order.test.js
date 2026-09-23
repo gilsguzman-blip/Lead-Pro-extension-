@@ -164,11 +164,11 @@ guardedImpls.note(impls);
 console.log('\n(1) the distance block no longer hands over a copyable opener:');
 
 check('the SMS mandate no longer carries "Example:" at all',
-  i => /- SMS: 1 sentence justifying the trip is MANDATORY[^\n]*Example:/.test(build(i, LIVE)), false);
+  i => /- SMS: a reason the visit is worth their time is MANDATORY[^\n]*Example:/.test(build(i, LIVE)), false);
 check('...and the sentence the four drafts copied is no longer offered as the SMS example',
   i => /MANDATORY\. Example: "I will have everything ready when you arrive\."/.test(build(i, LIVE)), false);
 check('the mandate itself SURVIVES — this is a position fix, not a removal',
-  i => /- SMS: 1 sentence justifying the trip is MANDATORY/.test(build(i, LIVE)), true);
+  i => /- SMS: a reason the visit is worth their time is MANDATORY/.test(build(i, LIVE)), true);
 check('...and says in so many words that it is not the opening sentence',
   i => /MANDATORY, AND IT IS NOT THE OPENING SENTENCE/.test(build(i, LIVE)), true);
 check('it names what DOES open the text',
@@ -202,7 +202,7 @@ check('and the sold arm still never offers the available-unit promise',
 console.log('\n(3) v9.7.655 is not disturbed — an exit lead gets no visit pitch at all:');
 
 check('no SMS mandate on an exit lead, new wording included',
-  i => /1 sentence justifying the trip is MANDATORY|IT IS NOT THE OPENING SENTENCE/.test(build(i, EXIT)), false);
+  i => /a reason the visit is worth their time is MANDATORY|IT IS NOT THE OPENING SENTENCE/.test(build(i, EXIT)), false);
 check('no justification requirement on an exit lead',
   i => /REQUIRED in EVERY format/.test(build(i, EXIT)), false);
 
@@ -312,8 +312,8 @@ console.log('\nnon-vacuity (v9.7.668):');
 
 // Put the old mandate back and the block hands the copyable opener over again.
 const OLD_MANDATE = c => c.replace(
-  /'- SMS: 1 sentence justifying the trip is MANDATORY, AND IT IS NOT THE OPENING SENTENCE\.[^']*'/,
-  '\'- SMS: 1 sentence justifying the trip is MANDATORY. Example: "I will have everything ready when you arrive."\'');
+  /'- SMS: a reason the visit is worth their time is MANDATORY, AND IT IS NOT THE OPENING SENTENCE\.[^']*'/,
+  '\'- SMS: a reason the visit is worth their time is MANDATORY. Example: "I will have everything ready when you arrive."\'');
 
 check('neuter A actually restored the old mandate',
   i => OLD_MANDATE(i.code) !== i.code, true);

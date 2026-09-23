@@ -210,7 +210,7 @@ check('the JUSTIFICATION requirement still appears — this is not what was wron
         .test(text(build(i, LOLITA, { inStateFar: true }))), true);
 
 check('...and the SMS justification stays MANDATORY',
-  i => /SMS: 1 sentence justifying the trip is MANDATORY/
+  i => /SMS: a reason the visit is worth their time is MANDATORY/
         .test(text(build(i, LOLITA, { inStateFar: true }))), true);
 
 check('the email no longer says to close with the appointment ask',
@@ -357,7 +357,7 @@ check('the header stops mandating a visit ask',
 // The v9.7.611 split holds: the JUSTIFICATION is not scheduling and a distance buyer must never
 // feel they might drive far for nothing, paused or not.
 check('the SMS justification is still MANDATORY — the split is deliberate',
-  i => /SMS: 1 sentence justifying the trip is MANDATORY/.test(text(build(i, PAUSED, { inStateFar: true, replied: true }))), true);
+  i => /SMS: a reason the visit is worth their time is MANDATORY/.test(text(build(i, PAUSED, { inStateFar: true, replied: true }))), true);
 
 check('...and so is the every-format requirement',
   i => /REQUIRED in EVERY format: One specific reason the visit is worth their time/.test(text(build(i, PAUSED, { inStateFar: true, replied: true }))), true);
@@ -468,7 +468,7 @@ check('the justification requirement still ships on a zero-contact lead',
   i => /REQUIRED in EVERY format: One specific reason the visit is worth their time/.test(text(build(i, LOLITA, { inStateFar: true }))), true);
 
 check('...and the mandatory SMS sentence with it',
-  i => /SMS: 1 sentence justifying the trip is MANDATORY/.test(text(build(i, LOLITA, { inStateFar: true }))), true);
+  i => /SMS: a reason the visit is worth their time is MANDATORY/.test(text(build(i, LOLITA, { inStateFar: true }))), true);
 
 console.log('\nreactivation — same directive, same answer:');
 const REACT = { leadAgeDays: 45, _isStalled: false, _neverReplied: false, vehicle: '2022 Ram 1500 Laramie' };
@@ -527,7 +527,7 @@ check('the visit-justification requirement is withheld',
   i => /REQUIRED in EVERY format/.test(exitText(i)), false);
 
 check('the mandatory SMS sentence is withheld',
-  i => /1 sentence justifying the trip is MANDATORY/.test(exitText(i)), false);
+  i => /a reason the visit is worth their time is MANDATORY/.test(exitText(i)), false);
 
 check('neither email arm ships',
   i => /Open with the vehicle\/option confirmation/.test(exitText(i)), false);
@@ -643,12 +643,12 @@ check('E (control): the shipped predicate suppresses both',
 check('F: pinning the hold off restores the whole visit apparatus to an exiting lead',
   i => {
     const t = text(build(i, EXITED, { inStateFar: true, replied: true, pauseOff: true }));
-    return /REQUIRED in EVERY format/.test(t) && /1 sentence justifying the trip is MANDATORY/.test(t);
+    return /REQUIRED in EVERY format/.test(t) && /a reason the visit is worth their time is MANDATORY/.test(t);
   }, true);
 check('F (control): the shipped hold withholds both',
   i => {
     const t = exitText(i);
-    return /REQUIRED in EVERY format/.test(t) || /1 sentence justifying the trip is MANDATORY/.test(t);
+    return /REQUIRED in EVERY format/.test(t) || /a reason the visit is worth their time is MANDATORY/.test(t);
   }, false);
 check('F: ...and gives the exiting lead its CONTEXT line back',
   i => context(i, EXITED, { replied: true, pauseOff: true }).length > 0, true);

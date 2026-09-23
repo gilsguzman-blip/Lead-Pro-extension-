@@ -49,6 +49,12 @@ module.exports = function loadPopup(file, opts) {
   sandbox.window = sandbox; sandbox.self = sandbox; sandbox.globalThis = sandbox;
   sandbox.addEventListener = () => {}; sandbox.removeEventListener = () => {};
   vm.createContext(sandbox);
+  // opts.withAuth: run the build's own auth.js first, as popup.html does, so the persona layer
+  // (LEADPRO_AUTH, the voice profiles) is present exactly as it is in the panel.
+  if (opts.withAuth) {
+    const authFile = require('path').join(require('path').dirname(file), 'auth.js');
+    vm.runInContext(fs.readFileSync(authFile, 'utf8'), sandbox, { filename: authFile });
+  }
   vm.runInContext(src + '\n;this.__lp = { buildUserPrompt: typeof buildUserPrompt === "function" ? buildUserPrompt : null, buildSystemPrompt: typeof buildSystemPrompt === "function" ? buildSystemPrompt : null };', sandbox, { filename: file });
   sandbox.__logs = logs;
   return sandbox;
