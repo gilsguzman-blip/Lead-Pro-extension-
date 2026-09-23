@@ -196,14 +196,28 @@ check('the two-item script is gone from the shipped code',
 check('...and "Nothing else. Full stop." with it',
   i => /Nothing else\. Full stop\./.test(strip(i.src)), false);
 
-check('the prohibition itself is kept verbatim — this part was correct',
-  i => /Do NOT reference alternatives under any phrasing/.test(strip(i.src)), true);
-
-check('it now asks for a forward move on the customer\'s own terms',
-  i => /move the conversation forward on THEIR terms/.test(strip(i.src)), true);
-
-check('...and names the failure it produced, so the shape is banned not just the words',
-  i => /reads like a first contact/.test(strip(i.src)), true);
+// (v9.7.697) AUDIT H1 — the prohibition is GONE. It fired on "Not a problem, just let me know" and
+// "I would prefer to text only" and then banned alternatives outright. What reaches the prompt now
+// is the customer's own sentence, as an observation, and only when it names a vehicle; a channel
+// preference travels as its own line. Executed, not source-scanned.
+check('(v9.7.697) the "Do NOT reference alternatives" prohibition is gone from the shipped code',
+  i => /Do NOT reference alternatives under any phrasing/.test(strip(i.src)), false);
+const emit = (i, d) => {
+  const a = i.src.indexOf('  // (v9.7.697) AUDIT H1 — THE DIRECTIVE IS GONE.');
+  const b0 = i.src.indexOf('  if (d.customerChannelPref) {', a);
+  const b = i.src.indexOf('\n  }\n', b0) + 4;
+  if (a < 0 || b0 < 0) throw new Error('H1 emission block NOT FOUND');
+  const mk = i.src.slice(i.src.indexOf('var _LP_MAKE_RX ='), i.src.indexOf('\n', i.src.indexOf('var _LP_MAKE_RX =')));
+  return new Function('d', mk + '\nvar vehicleExtras = [];\n' + i.src.slice(a, b) + '\nreturn vehicleExtras.join("\\n");')(d);
+};
+check('(v9.7.697) "Not a problem, just" reaches the prompt as NOTHING',
+  i => emit(i, { customerDeclinedAlternative: true, customerDeclinedAlternativeText: 'Not a problem, just' }), '');
+check('(v9.7.697) a decline that names a vehicle arrives as the customer\'s own words, with no "do not"',
+  i => { const t = emit(i, { customerDeclinedAlternative: true, customerDeclinedAlternativeText: 'not the CR-V, just the Civic' });
+         return /CUSTOMER\u2019S OWN WORDS ON AN ALTERNATIVE/.test(t) && /not the CR-V, just the Civic/.test(t) && !/Do NOT|do not/.test(t); }, true);
+check('(v9.7.697) "I would prefer to text only" arrives as a CHANNEL PREFERENCE',
+  i => /STATED CHANNEL PREFERENCE \(their words\): "I would prefer to text only"/.test(
+         emit(i, { customerChannelPref: 'I would prefer to text only' })), true);
 
 check('the header is no longer an ABSOLUTE STOP',
   i => /CUSTOMER DECLINED ALTERNATIVE — ABSOLUTE STOP/.test(strip(i.src)), false);

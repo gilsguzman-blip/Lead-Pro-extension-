@@ -203,7 +203,8 @@ check('the prompt binding the block appends to is MUTABLE',
     const at = i.src.indexOf('userPrompt += _arcBlock');
     if (at < 0) return 'append site not found';
     // Walk back to the declaration that governs it.
-    const decl = i.src.lastIndexOf('userPrompt = buildUserPrompt({', at);
+    // (v9.7.697) the call now takes a named object (kept for the harness dump); either shape is the declaration.
+    const decl = Math.max(i.src.lastIndexOf('userPrompt = buildUserPrompt({', at), i.src.lastIndexOf('userPrompt = buildUserPrompt(_lpPromptInputData);', at));
     if (decl < 0) return 'declaration not found';
     const kw = i.src.slice(Math.max(0, decl - 12), decl).trim().split(/\s+/).pop();
     return kw;

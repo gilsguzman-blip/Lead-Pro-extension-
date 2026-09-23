@@ -81,8 +81,10 @@ function load(file) {
 }
 
 const VEHICLE = '2018 Ford Expedition Platinum';
+// (v9.7.697) "Available" now also means the live feed confirms the unit — that is what lets the
+// block say it is here. A sold unit is, by construction, not feed-confirmed.
 const run = (B, sold, opts) => B.distance(
-  { vehicle: VEHICLE, leadAgeDays: 0, activeFlags: [] },
+  { vehicle: VEHICLE, leadAgeDays: 0, activeFlags: [], _lpInvConfirmedAvailable: !sold && !(opts && opts.unconfirmed) },
   { vehicleSold: sold },
   Object.assign({ flags: ['distance'] }, opts || {}));
 
@@ -149,7 +151,13 @@ for (const file of BUILDS) {
   check('...and still drops the availability claim', /Confirm it is available/.test(remoteSold), false);
   check('...and still says the unit is sold', /is SOLD/.test(remoteSold), true);
   const remoteAvail = run(B, false, { outOfState: true });
-  check('an available remote lead is unchanged', /Confirm it is available/.test(remoteAvail), true);
+  check('an available remote lead still says it is available', /Confirm it is available/.test(remoteAvail), true);
+  check('(v9.7.697) ...but is NOT asked for the soonest workable time — they are remote',
+    /encourage the soonest workable time/.test(remoteAvail), false);
+  const localUnconf = run(B, false, { unconfirmed: true });
+  check('(v9.7.697) a unit the live feed does not confirm is NOT claimed available',
+    /Confirm it is available/.test(localUnconf), false);
+  check('(v9.7.697) ...and the model is told plainly', /NOT confirmed by today's inventory feed/.test(localUnconf), true);
 
   // ── THE CREDIT BRANCH TAKES PRECEDENCE, AS IT ALWAYS DID ───────────────────
   // Scope discipline: this build did not touch the credit branch, and must not have.
@@ -183,8 +191,11 @@ for (const file of BUILDS) {
   check('...in-transit units and the inventory-cache override',
     /!_inTransitNow && !data\._lpInvConfirmedAvailable/.test(B.src), true);
   check('a missing sc does not throw', typeof B.distance({ vehicle: 'x' }, null, { flags: ['distance'] }), 'string');
-  check('...and falls back to the available wording',
-    /Confirm it is available/.test(B.distance({ vehicle: 'x' }, null, { flags: ['distance'] })), true);
+  // (v9.7.697) With no sc AND no feed confirmation it falls back to the not-sold arm, which now fails
+  // CLOSED on presence: it names the vehicle and says its presence is not confirmed.
+  check('...and falls back to the not-sold wording, failing closed on presence',
+    (function (t) { return /Customer is interested in the x\./.test(t) && !/Confirm it is available/.test(t) && /NOT confirmed/.test(t); })(
+      B.distance({ vehicle: 'x' }, null, { flags: ['distance'] })), true);
   check('the diagnostic is wrapped', /catch \(eDbF\) \{\}/.test(B.src), true);
 
   // ── THE RULE IN THE PROMPT ─────────────────────────────────────────────────

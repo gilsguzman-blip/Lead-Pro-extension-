@@ -153,11 +153,13 @@ check('the audit row no longer counts as an inbound customer message',
 check('...so the reply clock is UNSET, not the 1.9 days the log showed',
   i => i.tally(TROY, NOW).lastInboundAgeDays, null);
 
-check('the outbound tally is untouched',
-  i => i.tally(TROY, NOW).totalOutboundCount, 9);
+// (v9.7.697) N2: one of Troy's nine outbound rows is a system call-tracking entry ("By: System https://…callmeasurement…"),
+// which is not outreach a person made. It no longer counts.
+check('the outbound tally counts real outreach only (the call-tracking row is excluded)',
+  i => i.tally(TROY, NOW).totalOutboundCount, 8);
 
-check('consecutive-outbound-no-reply is untouched',
-  i => i.tally(TROY, NOW).consecutiveOutboundNoReply, 9);
+check('consecutive-outbound-no-reply counts the same real outreach',
+  i => i.tally(TROY, NOW).consecutiveOutboundNoReply, 8);
 
 check('both halves agree, so the arc block can say "never replied" truthfully',
   i => {
@@ -248,7 +250,7 @@ check('the real outbound tally is read off relationshipSignals',
 
 check('BOTH gates moved onto the real number',
   i => [/if \(_outreachN >= 5\)/.test(stripComments(i.src)),
-        /if \(!_hasReplyForDirectives && _outreachN >= 8\)/.test(stripComments(i.src))], [true, true]);
+        /if \(!_hasReplyForDirectives && _outreachN >= 8( && _osAge >= 3)?\)/.test(stripComments(i.src))], [true, true]);   // (v9.7.697) N1 adds the lead-age term
 
 check('no gate still reads the note count',
   i => /if \([^)]*_ncForDirectives >= \d/.test(stripComments(i.src)), false);

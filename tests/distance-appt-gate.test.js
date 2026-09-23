@@ -109,6 +109,7 @@ function build(impl, data, opts) {
     _dbSoldUnit: !!opts.soldUnit,
     distanceContext: opts.distanceContext || '',
     _hasCustomerReplied: opts.replied === undefined ? undefined : () => !!opts.replied,
+    isRemoteBuyer: !!opts.remote,   // (v9.7.697) the appointment gate now reads it; local by default
     console: { log: (...x) => logs.push(x.join(' ')) }
   };
   vm.createContext(sb);
@@ -139,10 +140,15 @@ function context(impl, data, opts) {
   const sb = {
     String, parseFloat, data, flags: opts.flags || ['distance'],
     distanceContext: '', _dbSoldUnit: !!opts.soldUnit,
+    // (v9.7.697) The chain now reads isRemoteBuyer (a remote buyer is not asked for a visit time) and
+    // data._lpInvConfirmedAvailable (presence is stated only when the live feed confirms the unit).
+    // Both are explicit inputs: every pre-existing case here is a local, feed-confirmed unit.
+    isRemoteBuyer: !!opts.remote,
     // (v9.7.655) The chain now reaches _lpApptEngineOff, which reads this the same way the gate
     // does. Supplied here for the same reason and with the same default.
     _hasCustomerReplied: opts.replied === undefined ? undefined : () => !!opts.replied
   };
+  if (sb.data && sb.data._lpInvConfirmedAvailable === undefined && !opts.unconfirmed) sb.data = Object.assign({ _lpInvConfirmedAvailable: true }, sb.data);
   vm.createContext(sb);
   vm.runInContext(holds(impl, opts), sb);
   vm.runInContext(impl.ctx, sb);

@@ -345,7 +345,9 @@ check('the history is maintained INSIDE generateAll, after the flush (v9.7.644 o
 // added, which is the assertion working: a new site has to be named here on purpose rather than
 // appearing quietly.
 check('every _lpDraftHistory mention is inside the collector, the prompt block or the variance diag',
-  i => { const spans = [i.capture, i.promptBlk, i.variance];
+  // (v9.7.697) A FOURTH, and it is a READER too: the harness capture (window._lpLastPromptInputs) copies the
+  // list into the local dump file. Named here on purpose, per the rule above.
+  i => { const spans = [i.capture, i.promptBlk, i.variance, 'factVerdicts: window._lpFactVerdicts || {}, draftHistory: window._lpDraftHistory || [],'];
          let n = 0, from = 0, loose = 0;
          for (;;) {
            const k = i.body.indexOf('_lpDraftHistory', from);

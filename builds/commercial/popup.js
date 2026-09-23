@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.697 (Commercial. PHASE 2 STEP 2 + GIL'S 9/23 FOLLOW-UPS. Extension only; proxy v7.76 and reporter v1.22 unchanged. SOURCES (Gil: "I had a lead that was Facebook and Facebook wasn't mentioned as the source. Check all logic around the sources"): the first-pass SMS named Facebook and the SMS refine pass rewrote it out -- the refine prompt now says KEEP WHERE THEY CAME FROM, and a guard ships the first draft when a brand/place source name was dropped; follow-ups on dedicated sources (Facebook, TrueCar, Costco, CapitalOne, CarPro) no longer skip the acknowledgment block once the source's own first-touch framing has stopped running; a continuing thread that never named the source names it once, in passing, not as an opener; TradePending now resolves to its own name instead of the online-inquiry catch-all that contradicted it; Facebook's 'yes it is here' needs the live feed, like every other presence claim since v9.7.696. BOUNCED EMAIL (Gil: "if we see a bounced email that the text includes a request for a good email address"): the scraper counts this lead's Email Failure / Bounced Address notes ([LP EMAIL BOUNCE DIAG]); when any exist the LEAD section marks the address BOUNCING, drops 'do NOT ask for their email', and tells the SMS to ask once, plainly, for a good address; the refine pass keeps that ask or ships the first draft; bounce notices no longer count as outreach, as 'our last message', or as the customer's words (the bounce repeats OUR subject line). REMOTE BUYERS: presence wording follows the feed and a remote buyer gets a remote next step -- no suggested times, no TIMING block. STEP 2 (approved): H1 channel preferences ('text only', 'don't call me') are carried as the customer's stated channel preference, and the declined-alternative observation renders only when the text names a vehicle; H2 zero-contact examples replaced by one no-visit line; H3 trade-conflation guard reads customer text plus call/agent notes and only claims the notes contain the error when they do; H4 Director first-touch/active modes drop the stall examples, every example is labelled TONE only, persona examples in auth.js use [Vehicle]/[Brand Specialist] with no presence or numbers, Concierge bay line conditional; H5 call-log boilerplate ('By: X / no answer', call-tracking rows) is not a contact, and the hang-up/zero-contact thresholds and the SITUATION count read the scraper's outreach tally; P2 'found one', 'decided to', 'bad experience' are not exits, and exit reads the customer's lines only; P3 'today does not work' needs the customer's own words or an out-of-town constraint; P4 General Notes go in verbatim, no tags; P5 the active dealer id is reset per grab and set from the active frame; L1 four scraper diagnostics relayed; L3 (dev only) duplicate var removed; L4 chronological-order sentence fixed. ALSO: channel fatigue needs a 3-day-old lead and counts this lead's streak only; ONE-SIDED needs 3 days; the no-vehicle line no longer names Telluride/Crown/Optima; the no-trade subject line is gated on no trade listed; 'acknowledge the silence' only at 2+ days; self-claims read this lead's notes only; the arc no longer lists a General Note twice. DUMP HELPER: window._lpDumpLead() saves the last generation's buildUserPrompt inputs as leadpro_lead_dump_<time>.json, locally, for the paired harness. log239 (Kia Baytown) first-reach incentive traced to the 'generic' override removed in v9.7.696. VERIFIED: NEW step2-697.test.js (55 per build, 110), executing shipped code where it lifts cleanly and labelled (source) where it does not. NON-VACUITY against v9.7.696: 52 of 55 fail; the 3 that pass are controls. Existing suites updated where behaviour was meant to change, each marked (v9.7.697). run-all: 120 suites, 5773 assertions, 0 failed. node --check clean on both builds; both manifests parse; version AND version_name bumped; DEV vs COMMERCIAL differences unchanged except the dev-only L3 hunks. Builds on v9.7.696. Mirrors DEV v9.7.697-dev.)
 // Lead Pro -- popup.js  v9.7.696 (Commercial. THREE FIXES FROM GIL'S 9/23 CAPTURES. Extension only; proxy v7.76 and reporter v1.22 unchanged. (A) SMS IS ALWAYS DRAFTED -- GIL: "lose the opt in/opt out logic and just have an SMS generated regardless ... I'll put the onus on the agent to decide when to send an SMS." This SUPERSEDES v9.7.695's P1 ruling from the same morning. Removed: the render-time SMS blank, the SMS CHANNEL OVERRIDE scenario line, the boxed TOP-PRIORITY SMS OPT-OUT block, the LEAD-section SMS STATUS line; isSmsOptOut is false on every lead, so a STOP no longer shapes exit or opt-out framing. A WRITTEN "stop contacting me" / "take me off your list" still exits -- exitRaw owns those phrases independently. KEPT, informational only: v9.7.695's marker-scoped evidence scan, renamed smsOptOutEvidence; it feeds [LP SMS OPT-OUT EVIDENCE DIAG] (popup-side, grab and render) and ONE agent-facing status line after generation -- "SMS drafted -- this lead has opt-out evidence on record. Your call whether to text." -- a notice, never a block, one statement to delete if unwanted. (B) "IT'S HERE" NOW NEEDS THE LIVE FEED. Brandy Mooney and Mike Stewart (Toyota Baytown, 9/23, log238): generic chat/web VOIs ("2024 Toyota Tundra (Used)", "2022 Toyota RAV4 (New)"), PageData present for the lead with NO stock and NO VIN, yet the page-wide "Stock #" regex found TT069306B and TE152985A elsewhere on the page -- src stock:rgx -- and both drafts said the car was here. TE152985A is not even in the live feed; the presence predicate was "!!d.stockNum && nothing says otherwise", and buildUserPrompt's branch literally said "stock number on the lead means physically on lot ... say we have it here". Survey of every log on hand: every real unit carried its stock in PageData; the only regex-only stocks were these two plus an 8/18 Audi Lafayette lead where the regex paired a customer-typed S6 e-tron VIN suffix with a Q6 e-tron VOI and called the Q6 "confirmed in stock". FIXES: (1) scraper -- when PageData describes this lead it owns the unit identity; an empty stock or VIN there is an answer, and the regex fallback runs only when PageData is ABSENT (diag src now reads pd-empty(rgx X refused)); (2) NEW _lpFeedUnitCheck -- presence requires the live feed to hold the stock AND that unit to be the lead's vehicle (make+model family, and year when both carry one); no feed loaded = not confirmed; (3) both _confirmedPresent copies, the v9.7.505 feed check and both buildUserPrompt "say we have it here" branches now use it; a stock the feed does not confirm gets an explicit "presence NOT confirmed -- do not say it is here" note. Ground-truth direction unchanged, only stricter: the feed was already the truth, it now has to vouch for the SAME car. (C) THE FIRST-REACH INCENTIVE RAIL IS CLOSED. Gil: "an incentive offer was sent on first reach. We had put a rail against that on first reach. Check if that broke." It had not broken -- it was never total: v9.7.415/425's 'generic' override (fresh, no VIN/stock, non-aggregator) and 'in_transit' override released incentives on first reach by design. Live 9/23: a $209/36-mo Accord lease on Marlene Cadena's first message (Honda Baytown), $750 Conquest/Owner Loyalty cash on Bryston Taylor's (Kia Baytown). Both overrides removed; first reach carries no incentive unless the customer asked, or 3+ outreaches already went out on the lead (v9.7.616, unchanged). John Moody is in none of the uploaded logs, so his lead is not traced here. ALSO: bot-authorship.test.js had a hard-coded 09/16 message date against code that ages notes on the real clock, and started failing ON ITS OWN on 9/23 -- a time bomb, not a regression; now relative to now. Many suites hard-code 2026 dates and pass today; flagged, not swept. VERIFIED: NEW sms-optout-evidence.test.js (48, replaces sms-suppress), first-reach-incentive.test.js (12), stock-source.test.js (12), all EXECUTING shipped code; consent-and-stock gains the Brandy/Mike/Q6/wrong-year/no-feed shapes run through the real helper (41); stock-color runs its capture through the real helper (72). NON-VACUITY against v9.7.695: sms-optout-evidence fails 23 of 24, first-reach-incentive 6 of 6, stock-source 3 of 6 (the three stray-stock shapes; the three controls pass). run-all: 119 suites, 5656 assertions, 0 failed. node --check clean on both builds; both manifests parse; version AND version_name bumped; changed regions byte-identical DEV vs COMMERCIAL. Builds on v9.7.695. Mirrors DEV v9.7.696-dev.)
 // Lead Pro -- popup.js  v9.7.695 (Commercial. AUDIT P1 -- ONE SMS SWITCH, SCOPED BY THE CURRENT-LEAD MARKER. Extension only; proxy v7.76 and reporter v1.22 unchanged. GIL'S RULING, 9/23, SUPERSEDING BOTH v9.7.435 ("a new lead disqualifies old opt-outs" via hasNewLeadToday) AND v9.7.514 ("a prior-lead opt-out keeps SMS suppressed"): opt-out evidence only BELOW the marker belongs to a prior lead and is superseded for the SMS channel AND for framing; evidence ABOVE the marker suppresses SMS whatever else the customer wrote; an explicit re-opt-in NEWER than the newest current-lead opt-out clears it; no marker means all evidence is current. NEW scraper flag smsSuppressed is the ONLY input to the render-time SMS blank, the SMS CHANNEL OVERRIDE scenario line, the LEAD-section SMS STATUS line and the empty-pane caption -- each used to OR in its own reading (isSmsOptOutOnly, or a bare STOP in lastInboundMsg, which can be a PRIOR lead's STOP). PATH A, VERIFIED ON THE REAL v9.7.694 REGION, NOT INFERRED: single-lead record, opt-out status note, then "still looking, email me instead" -- smsOptOutIsExit:true, hasExitSignal:false (recentCustomerActive), isSmsOptOutOnly:false, render blank false: an SMS draft for a number with opt-out evidence. With a marker it passed only BY ACCIDENT: SMS-status notes are stripped from the transcript, so the old marker scan filed a CURRENT-lead status note as prior-lead. The new scan reads the notes themselves and places each by DATE against the marker's own timestamp (_lpMarkerMs, recorded where the marker is placed). Evidence set: customer bare STOP; the newest-inbound STOP (placed by transcript position); SMS-status/carrier opt-out notes with the existing other-phone-number check, now over every note; NEW, customer "stop texting" / "no more texts". Re-opt-in set: opt-in status notes and a customer's bare YES/START/UNSTOP by TEXT. DELIBERATELY DROPPED from re-opt-in, both fail-safe: /reply yes/ (it matched our OWN outbound "Reply YES to confirm" and could clear a live opt-out) and a bare "Yes" by EMAIL. FRAMING KEEPS ITS FLAGS, AS RULED -- AND I MEASURED WHY THIS MATTERS: my first draft set the framing flag equal to smsSuppressed; a 448-shape differential against v9.7.694 showed it ADDED farewells (a current-lead STOP followed by "is the civic still there?" became an exit). Reverted: isSmsOptOut is the pre-695 formula with one term added, && !_ssPriorOnly. Final differential over the same 448 shapes: EXIT flips 0; opt-out-only framing flips 18, all true->false, all prior-lead-only; SMS verdict flips 120 draft->SUPPRESSED (current-lead or no-marker evidence the old code drafted on: the path-A shape, "stop texting", our "Reply YES", a current STOP followed by a later message, created-today leads) and 30 SUPPRESSED->draft (prior-lead evidence, or an explicit re-opt-in newer than the opt-out). ONE TO WATCH: "regardless of what else the customer wrote" means a current-lead STOP followed by an ordinary text now stays suppressed until an explicit START/YES/opt-in note -- v9.7.694 drafted SMS there. ALSO: the TOP-PRIORITY opt-out block's "1. SMS = generate a very short opt-out confirmation" (flagged open since v9.7.532) now asks for the EMPTY field the blank enforces. isSmsOptOut, an undeclared implicit global in the scraper since it was written, is now declared. NEW [LP SMS SUPPRESS DIAG], POPUP-SIDE at grab and at render: evidence, which side of the marker each piece sits on, re-opt-ins, whether one is newer than the newest current opt-out, and the verdict; it says so explicitly when no notes frame merged or the scoped read threw (fail-safe: then any unscoped evidence suppresses). VERIFIED: NEW sms-suppress.test.js, 98 assertions across both builds, EXECUTING the real shipped region against fake CRM notes -- 16 lead shapes covering every case in the ruling plus path A with and without a marker, re-opt-in ordering, our own "Reply YES", a different phone number, and no-farewell-added; plus the consumers and the diag line executed. NON-VACUITY: the same suite against v9.7.694 fails 40 of 64, including path A, prior-lead STOP, prior-lead status note, the no-marker fail-safe and "Reply YES". Two spared-path pins in message-constraints and refine-prohibitions now pin the empty-SMS line. run-all: 117 suites, 5679 assertions, 0 failed. node --check clean on both builds; both manifests parse; version AND version_name bumped; the changed regions byte-identical DEV vs COMMERCIAL. Builds on v9.7.694. Mirrors DEV v9.7.695-dev.)
 // Lead Pro -- popup.js  v9.7.694 (Commercial. THE AUDIT. Extension only; proxy v7.76 and reporter v1.22 unchanged and NOT redeployed. Gil, 9/23: "We've shown that the model can have constraint with the rails off of length. Audit the entire code for any instances of message constraints, first reach, follow up, showroom, etc...." and, on the result: "Build it and we'll go with your suggestions for the 5." v9.7.689 took 'short' out of thirteen sites and v9.7.691 took out thirteen counts and both zero-contact skeletons, each on a capture. This build swept EVERY string literal in the file instead of waiting for the next capture -- size words, sentence/line/paragraph/word counts, caps, stop-instructions, structure templates and ask counts -- and classified each hit by the branch that governs it. THE TWO THAT FIRED ON EVERY LEAD, and which mattered more than everything else combined: FORMAT RULES carried 'Keep it to 2-3 paragraphs max.' on EVERY email in the fleet, sitting below everything the last two builds removed; and _LP_SMS_SHAPE_RULE described a text as 'short lines a person would actually thumb into a phone' inside a rule that says outright 'THERE IS NO SENTENCE COUNT AND NO LENGTH TO HIT'. Both gone; the paragraph-spacing instruction and the thumbed-into-a-phone description stay. The shape rule's definition line was edited alone -- the v9.7.672 build header quotes the same sentence verbatim and a whole-file replace would have rewritten history. TWO SKELETONS: the trade-tool cross-brand path still said 'WRITE THE MESSAGE IN THIS EXACT ORDER -- FOUR DISTINCT PARAGRAPHS' with a numbered paragraph each and one marked 'ONE LINE ONLY'; it now says what the message has to do, in whatever shape reads naturally, with every piece of content kept. The velocity-response first reach carried 'Structure: Acknowledge inquiry + ONE light qualifying question' and a worked sentence; the structure line is now the job, and the example is labelled 'for illustration only, not a script to copy' -- the v9.7.688 lesson that a lone worked example is read as a template. SEVENTEEN SIZE WORDS REMOVED, by scenario: first reach (after phone attempts, still-shopping, bot-authored no-vehicle 'SHORT'), follow-up (re-engagement, thin reply, settled plan x2, past friction, trade declined 'in one line', the cadence value role's 'minimal preamble'), showroom/appointment confirmation, sold (customer reached out, service satisfaction check), exit/not-ready, cross-brand prior buyer 'one welcome-back line', Audi Lafayette drive-out, Click & Go x2 ('once' kept, 'briefly' removed), and the EXPAND chip, which capped the very expansion the agent had asked for at 'two to four sentences'. In every case what the line was FOR is still said. EIGHT ASK COUNTS REPHRASED on Gil's 9/22 rule -- 'phrase it differently as to not imply a limit on the ask' -- first reach no-vehicle and fresh-inquiry, follow-up fresh signal, SHOWROOM follow-up, stalled PHASE 2 (its still-interested prohibition kept), bot no-vehicle, the friction apology, and the VOI-family either/or. THE EITHER/OR IN THE AGENT CONTEXT PREAMBLE EXPOSED A DUPLICATE, the same trap the clarify line fell into in v9.7.689/.690: the 1,263-character preamble existed as two BYTE-IDENTICAL literals in the two _hasPostVisitNote branches -- the competing transcript carriers v9.7.629 recorded -- so one sentence needed two edits. It is now ONE variable, _LP_AGENT_CONTEXT_PREAMBLE, and it is declared INSIDE inlineScraper on purpose: that function is injected with `func: inlineScraper`, only its body travels, and a module-scope constant would be a ReferenceError in the CRM frame. Verified before merging that the two literals were identical (the script refuses otherwise), and after that the definition and both consumers sit inside the scraper's own boundaries. census.test.js owns it -- the second entry there found by an audit rather than an incident -- with both old literal forms and the counted either/or pinned as forbidden. THE FIVE DECISIONS, as Gil took them: Costco and Car Pro Show first reach LOSE 'CLOSE: Two specific appointment times.', which contradicted TIME-OFFER VARIETY ('ONE closing tool, not a required ending'); the two appointment-suppression filters that strip that exact line are left in place as an inert safety net should a source branch ever re-add it. Same-day evening loses its scripted close line and keeps the intent: close directly on tonight, not passive, not 'whenever works'. KEPT: bereavement stays a brief condolence (2-3 sentences), because in that scenario length is itself the harm; 'pick AT MOST ONE' secondary angle, because it stops offers being stacked rather than limiting length; and the settled-plan voicemail's 20-30 seconds, consistent with the spared voicemail target. NOT TOUCHED AND PINNED AS SUCH: the 4-8 word subject rule, the opt-out path and its STOP voicemails, the appointment-day close, the voicemail-only 60-80 words, the SHORTEN chip, ONE THOUGHT PER SENTENCE, depth-matching, the refine pass's 'LENGTH IS YOURS TO JUDGE', and the three lines that use 'short' to REMOVE a constraint. NOTHING IN CODE CONSTRAINS OUTPUT: no generated message is truncated after the fact, and the token ceilings (2,500 main, 700 refine, 1,200 voicemail) do not bind -- all 23 captures on 9/22 finished STOP. VERIFIED: 116 suites green, 5,581 assertions, dev===comm on every edit (applied as literal replacements to both builds, each verified by exact match count before writing). NEW SUITE message-constraints.test.js pins the audit in BOTH directions -- removed stays removed, the intent of each line is still present, and every kept item is still where it was -- and EXECUTES the shape rule and the hoisted preamble rather than scanning for them. Against v9.7.693 it fails 46 by name while the 16 kept-by-design items pass, which is the correct shape. Two neuters with controls: declaring the preamble at module scope fails the scope assertion while its text is still right, and putting the every-email paragraph cap back fails by name while the format line survives. THREE EXISTING ASSERTIONS UPDATED, each pinning a count this build removed on Gil's decision: friction-state ('no second question'), voi-family ('ONE direct question') and regen-variance (PHASE 2, out of scope for v9.7.688 and in scope now). WHAT THIS MIGHT BREAK, PLAINLY: this is the widest length change yet. EVERY email loses its three-paragraph ceiling, and the trade-tool path loses the only four-paragraph template in the file. Expect emails to vary in length far more than they have, most visibly on showroom, sold and appointment-confirmation paths that were each told 'brief'. Costco and Car Pro first reach will no longer always end on two appointment times. The changes to the static system-prompt prefix (the shape rule, the cadence role line) move the cacheable prefix once, so the first calls after install run cold. STILL OPEN, unchanged: proxy v7.76 is still NOT deployed; the pairs flattener still drops signal, trigger, chipCount, meta, workerRequestId and extensionVersion; the incentive/re-engagement-hook and STALL RECOVERY collision; the hook diag's first-person regex does not see 'me'; the em dash in SMS (2 of 12 on 9/22) has no rule, by Gil's call pending; the _pauseRx contraction gap; scenarioRules rendering twice per prompt. node --check clean on both builds; both manifests parse; version AND version_name both bumped. scraperVersion stays v9.7.51. Builds on v9.7.693.)
@@ -459,6 +460,26 @@ function _lpSmsOptOutDiagLine(d, where) {
   } catch (e) { return '[LP SMS OPT-OUT EVIDENCE DIAG] could not render: ' + ((e && e.message) || e); }
 }
 
+// (v9.7.697) window._lpDumpLead() — saves the last generation's INPUTS (not just the prompt text) as a
+// local JSON file, for the before/after harness. Real customer data: it never leaves this machine
+// unless the agent chooses to share the file. Run from the side panel's DevTools after a generation.
+function _lpDumpLead() {
+  try {
+    var x = (typeof window !== 'undefined') ? window._lpLastPromptInputs : null;
+    if (!x) { console.log('[LP DUMP] nothing captured yet — generate a response first, then run _lpDumpLead()'); return false; }
+    var blob = new Blob([JSON.stringify(x, null, 2)], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var ts = new Date().toISOString().replace(/[:.]/g, '-').replace(/T/, '_').substring(0, 19);
+    var a = document.createElement('a');
+    a.href = url; a.download = 'leadpro_lead_dump_' + ts + '.json';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    console.log('[LP DUMP] saved leadpro_lead_dump_' + ts + '.json — contains real customer data; keep it local');
+    return true;
+  } catch (e) { console.log('[LP DUMP] failed: ' + ((e && e.message) || e)); return false; }
+}
+try { if (typeof window !== 'undefined') window._lpDumpLead = _lpDumpLead; } catch (e) {}
+
 function _lpMaskPhone(p) {
   var s = String(p || '');
   var digits = s.replace(/\D/g, '');
@@ -640,6 +661,12 @@ function _lpBuildArcSpine(ctx) {
     // The spine only earns its place on a real multi-turn arc; a single turn is just the opener.
     if (turns.length < 2) return '';
     turns.reverse();                          // newest-first → oldest-first
+    // (v9.7.697) The context carries General/Call notes twice — once in the AGENT CONTEXT block, once in
+    // the transcript — so the arc listed them twice, the second copy out of order at the end. Keep the
+    // first (transcript) copy of any identical date+body.
+    var _asSeen = {};
+    turns = turns.filter(function (t) { var k = t.date + '|' + t.body; if (_asSeen[k]) return false; _asSeen[k] = 1; return true; });
+    if (turns.length < 2) return '';
     // (v9.7.281) Full active arc forward-surfaced — the 18-turn cap dropped constraints/commitments
     // stated early in long arcs. The marker break above already bounds this to the active conversation;
     // the high cap below is only a backstop for marker-less mega-arcs (repeat customers with no marker).
@@ -3238,6 +3265,10 @@ var _LP_CUSTOMER_FACING_SOURCES = [
   [/\btruecar\b/i,                             'TrueCar',                  'brand'],
   [/\bcarfax\b/i,                              'the vehicle history listing', 'place'],
   [/\bkbb\b|kelley blue book/i,                'Kelley Blue Book',         'brand'],
+  // (v9.7.697) TradePending had no entry, so it fell to the "your online inquiry" catch-all — and
+  // the same prompt's HARD CONSTRAINT then forbade "any other name" while the v9.7.16 NAMED SOURCE
+  // block said "MUST mention TradePending". Live on Ashlee Brown (Kia Baytown, 9/23). One name now.
+  [/\btrade ?pending\b/i,                     'TradePending',             'brand'],
   [/\bedmunds\b/i,                             'Edmunds',                  'brand'],
   [/\bcapital one\b/i,                         'Capital One',              'brand'],
   [/\bcostco\b/i,                              'the Costco Auto Program',  'place'],
@@ -4671,7 +4702,7 @@ function _lpGuessModelFromCustomerText(text, vfc) {
 // place a second copy is the right call rather than the recurring mistake.
 function _lpIsOurOwnSend(text) {
   var t = String(text || '');
-  return /outbound text message|email reply to prospect|email sent to prospect/i.test(t)
+  return /outbound text message|email reply to prospect|email sent to prospect|email failure/i.test(t)
       || /^\s*(?:sent\s+to|sent\s+by)\s*:/im.test(t);
 }
 
@@ -5614,7 +5645,19 @@ function populateFromData(d) {
   // Trades: [] is an AUTHORITATIVE empty (Stage 2) — we positively know there is no trade on
   // file, so this condition is precisely detectable rather than guessed at.
   try {
-    var _tvArc = ((d.conversationBrief || '') + ' ' + (d.context || '') + ' ' + (d.history || '')).toLowerCase();
+    // (v9.7.697) AUDIT H3. The trigger read the WHOLE arc, our outbound included, so our own "your trade"
+    // boilerplate armed a 1,590-char CRITICAL block on customers who never mentioned a trade (live: a
+    // zero-reply Kia lead, 9/22). It now reads the customer's own words plus the agent's CALL and GENERAL
+    // notes (a human writing "looking to trade in" is real evidence). The full arc is still read below,
+    // but only to decide whether the conflation has actually happened.
+    var _tvArcFull = ((d.conversationBrief || '') + ' ' + (d.context || '') + ' ' + (d.history || '')).toLowerCase();
+    var _tvNotes = '';
+    try {
+      _tvNotes = String(d.conversationBrief || '').split(/\n(?=\[)/).filter(function (e) {
+        return /^\[[^\]]*\]\s*\[(?:CALL NOTE|NOTE)\]/.test(e);
+      }).join('\n');
+    } catch (eTvN0) { _tvNotes = ''; }
+    var _tvArc = (((typeof _lpCustomerText === 'function') ? (_lpCustomerText(d) || '') : '') + ' ' + _tvNotes).toLowerCase();
     // (v9.7.538) A NEGATIVE TRADE ASSERTION IS NOT A TRADE DISCUSSION. The detector matched the
     // FIELD NAME and ignored its VALUE, so "Has trade-in: No" -- the customer stating outright that
     // they have NO trade -- read as "trade discussed" and armed the whole guard. Same for the CRM
@@ -5666,14 +5709,24 @@ function populateFromData(d) {
         var _tvM = String(d.vehicle || '').match(/^\s*(?:19|20)\d{2}\s+\S+\s+(\S+)/);
         if (_tvM && /[A-Za-z]/.test(_tvM[1])) _tvShort = _tvM[1].replace(/[^\w-]/g, '');
       } catch (eTvS) { _tvShort = ''; }
+      // (v9.7.697) H3: has the conflation ACTUALLY happened in the record? The VOI's short name (or full
+      // name) within a few words of "trade", anywhere in the arc. Only then do the "earlier notes contain
+      // it" sentences render — they used to be asserted unconditionally.
+      var _tvConflated = false;
+      try {
+        var _tvCN = String(_tvShort || '').toLowerCase().replace(/[^a-z0-9-]/g, '');
+        if (_tvCN.length >= 2) {
+          _tvConflated = new RegExp('\\btrade\\b(?:\\W+\\w+){0,6}?\\W+' + _tvCN + '\\b|\\b' + _tvCN + '\\b(?:\\W+\\w+){0,6}?\\W+trade\\b', 'i').test(_tvArcFull);
+        }
+      } catch (eTvC) { _tvConflated = false; }
       var _tvNick = _tvShort ? ' — INCLUDING THE SHORT NAME "' + _tvShort + '". Writing "a trade value on the ' + _tvShort + '", "your ' + _tvShort + ' trade", or "verify the ' + _tvShort + '" is the SAME ERROR as writing the full name and is equally wrong' : '';
-      var _tvBase = '⚠ TRADE DISCUSSED, BUT NO TRADE VEHICLE IS IN THE STRUCTURED CRM RECORD (Trades is empty — authoritative, not an unrendered panel). CRITICAL: "' + d.vehicle + '" is the vehicle they want to BUY. It is NOT their trade. Never attach that vehicle to the word trade in any form' + _tvNick + '. THE ONLY CORRECT PHRASING IS "your trade" or "your trade-in" WITH NO VEHICLE NAME ATTACHED AT ALL — if you need to talk about appraising it, say "verify it in person" or "get eyes on it", never "verify the ' + (_tvShort || d.vehicle) + '". IF AN EARLIER NOTE OR MESSAGE IN THIS THREAD ALREADY MAKES THAT MISTAKE, DO NOT REPEAT IT — earlier notes in this thread are known to contain it, they are WRONG, and continuing the conversation does not mean inheriting their error.';
+      var _tvBase = '⚠ TRADE DISCUSSED, BUT NO TRADE VEHICLE IS IN THE STRUCTURED CRM RECORD (Trades is empty — authoritative, not an unrendered panel). CRITICAL: "' + d.vehicle + '" is the vehicle they want to BUY. It is NOT their trade. Never attach that vehicle to the word trade in any form' + _tvNick + '. THE ONLY CORRECT PHRASING IS "your trade" or "your trade-in" WITH NO VEHICLE NAME ATTACHED AT ALL — if you need to talk about appraising it, say "verify it in person" or "get eyes on it", never "verify the ' + (_tvShort || d.vehicle) + '".' + (_tvConflated ? ' IF AN EARLIER NOTE OR MESSAGE IN THIS THREAD ALREADY MAKES THAT MISTAKE, DO NOT REPEAT IT — earlier notes in this thread DO contain it, they are WRONG, and continuing the conversation does not mean inheriting their error.' : '');
       if (_tvNamed) {
         vehicleExtras.push(_tvBase + ' NOTE: the customer HAS described their trade in their own words elsewhere in this prompt (their lead submission or the transcript). Use THAT vehicle — do not ask them to repeat it, and do not treat the empty CRM record as though they never told us.');
       } else {
-        vehicleExtras.push(_tvBase + ' No trade vehicle has been named anywhere in this conversation either, so if they are asking for a trade number, ask what they are trading (year, make, model, mileage) or offer the appraisal — never name a vehicle we do not have on file. BE AWARE THE TRANSCRIPT ITSELF MAY CARRY THIS ERROR: earlier notes or voicemails in this thread may already say "trade value for the ' + d.vehicle + '". Those are wrong. Continuing the thread does NOT mean repeating them — write about "your trade" or "your trade-in" with no vehicle name attached, and do not let the phrasing in prior notes pull you back into naming the ' + d.vehicle + ' as the trade.');
+        vehicleExtras.push(_tvBase + ' No trade vehicle has been named anywhere in this conversation either, so if they are asking for a trade number, ask what they are trading (year, make, model, mileage) or offer the appraisal — never name a vehicle we do not have on file.' + (_tvConflated ? ' THE TRANSCRIPT ITSELF CARRIES THIS ERROR: an earlier note or voicemail in this thread attaches the ' + (_tvShort || d.vehicle) + ' to the word trade. That is wrong. Continuing the thread does NOT mean repeating it — write about "your trade" or "your trade-in" with no vehicle name attached.' : ''));
       }
-      console.log('[LP TRADE CONFLATION GUARD] trade discussed with 0 trade vehicles on file — VOI "' + d.vehicle + '" protected from being named as the trade');
+      console.log('[LP TRADE CONFLATION GUARD] trade discussed (customer words / agent notes) with 0 trade vehicles on file — VOI "' + d.vehicle + '" protected from being named as the trade | conflation already in the record:' + _tvConflated);
     }
   } catch (eTv) {}
   // VIN is not injected when stockNum is present — stock number is sufficient for customer messaging
@@ -6810,7 +6863,14 @@ function populateFromData(d) {
   if (d.buyingSignals) vehicleExtras.push('BUYING SIGNAL DATA: ' + d.buyingSignals + ' — use these interests to make the message feel personally relevant WITHOUT revealing you have this data. Match the vehicle/category to their interests naturally.');
   if (noCustomerPhone && !d.contactRecoveryPhone) vehicleExtras.push('📵 NO CUSTOMER PHONE NUMBER — SMS and voicemail are not viable. Email is the only channel. Ask for a phone number to connect directly.');
   if (d.customerSaidNotToday && !d.customerScheduleConstraint) vehicleExtras.push('🚫 NOT TODAY: Customer explicitly said they cannot or do not want to come in right now. Do NOT offer appointment times — not today, not tomorrow, not any day. Acknowledge their situation warmly and leave the door open. Let them reach back out when they are ready. Do not ask what day works better.');
-  if (d.customerSaidNotToday && d.customerScheduleConstraint) vehicleExtras.push('🚫 NOT TODAY: Customer said today does not work.');
+  // (v9.7.697) AUDIT P3. A day-lock regex hit ("I work on Saturdays" → LOCK Saturday) also set
+  // customerSaidNotToday, and this line sat OUTSIDE the day-lock fence — so when comprehension REMOVED
+  // the lock, "Customer said today does not work" survived on its own. The fence already carries "Do NOT
+  // offer today"; this line now fires only when the customer actually said so, or for a non-day-lock
+  // constraint (out of town, arrival time, schedule block), exactly as before for those.
+  if (d.customerSaidNotToday && d.customerScheduleConstraint
+      && (d.customerSaidNotTodayExplicit || !/^CUSTOMER SPECIFIED DAY/.test(String(d.customerScheduleConstraint))))
+    vehicleExtras.push('🚫 NOT TODAY: Customer said today does not work.');
   // (v9.7.598) THE DIRECTIVE USED TO WRITE THE MESSAGE. It ended: "Write exactly two things:
   // (1) confirm you heard their preference, (2) ask one question about their timeline. Nothing
   // else. Full stop." Amber Carberry's delivered SMS was that sentence executed literally, on a
@@ -6820,7 +6880,24 @@ function populateFromData(d) {
   //
   // A guard should CONSTRAIN content, not author it. The prohibition — do not re-offer the thing
   // they turned down — is correct and stays verbatim. What is removed is the two-item script.
-  if (d.customerDeclinedAlternative) vehicleExtras.push('❌ CUSTOMER DECLINED ALTERNATIVE: The customer stated: "' + (d.customerDeclinedAlternativeText||'') + '". They were offered an alternative and said no, so that topic is closed. Do NOT reference alternatives under any phrasing: not "if you\'re open to it," not "while we locate yours," not "just so you know," not conditionally, not as a question. Any sentence containing the declined vehicle name is a violation of this instruction. Acknowledge what they told you, then move the conversation forward on THEIR terms — answer an open question of theirs, pick up the criteria they gave you, or take the next concrete step they would actually want. Do not simply restate their preference back to them and ask for a timeline; on a lead with real history that reads like a first contact.');
+  // (v9.7.697) AUDIT H1 — THE DIRECTIVE IS GONE. The detector matched ordinary replies ("Not a problem,
+  // just let me know when it comes in", "I would prefer to text only") and emitted "❌ CUSTOMER
+  // DECLINED ALTERNATIVE … Do NOT reference alternatives under any phrasing", which then blocked the
+  // pivot to comparable units on exactly the leads that needed one. What survives is the customer's
+  // own sentence as an observation, and only when it actually names a vehicle — a decline of an
+  // alternative VEHICLE has to mention one. Channel preferences go through their own line below.
+  try {
+    var _daTxt = String(d.customerDeclinedAlternativeText || '');
+    var _daVeh = _daTxt && (_LP_MAKE_RX.test(_daTxt) || /\b(19|20)\d{2}\b/.test(_daTxt)
+      || /\b(pilot|odyssey|civic|accord|cr-?v|hr-?v|ridgeline|passport|prelude|highlander|camry|corolla|rav4|tacoma|tundra|sequoia|4runner|venza|sienna|crown|prius|k4|k5|sportage|telluride|sorento|seltos|carnival|soul|niro|ev6|ev9|stinger|q3|q4|q5|q6|q7|q8|a3|a4|a5|a6|a7|a8|e-?tron|s4|s5|s6|rs\s?\d)\b/i.test(_daTxt));
+    if (d.customerDeclinedAlternative && _daVeh) {
+      vehicleExtras.push('CUSTOMER\u2019S OWN WORDS ON AN ALTERNATIVE (read it in the arc for what it does and does not rule out): "' + _daTxt.replace(/"/g, "'") + '"');
+    }
+  } catch (eDa) {}
+  if (d.customerChannelPref) {
+    // (v9.7.697) A stated channel preference is a fact about HOW to reach them, not a declined vehicle.
+    vehicleExtras.push('CUSTOMER\u2019S STATED CHANNEL PREFERENCE (their words): "' + String(d.customerChannelPref).replace(/"/g, "'") + '"');
+  }
   if (d.customerScheduleConstraint) {
     var isShiftWorkerLead = false; // Shift worker auto-detection removed — too many false positives in Baytown/Houston area
     if (isShiftWorkerLead) {
@@ -7549,6 +7626,7 @@ document.getElementById('btnTranslate').addEventListener('click', async function
 
 // ── GRAB LEAD ─────────────────────────────────────────────────────
 async function grabLead() {
+  try { window._activeLeadDealerId = null; } catch (_eAdl0) {}   // (v9.7.697) P5: re-set from the PASS-1 active frame on every grab
   const statusEl = _domCrmStatus;
   const dot      = _domStatusDot;
 
@@ -8297,7 +8375,7 @@ function _lpScraperBotAuthor(msg) {
     // absurd.
     function _lpIsOurOwnSend(text) {
       var t = String(text || '');
-      return /outbound text message|email reply to prospect|email sent to prospect/i.test(t)
+      return /outbound text message|email reply to prospect|email sent to prospect|email failure/i.test(t)
           || /^\s*(?:sent\s+to|sent\s+by)\s*:/im.test(t);
     }
     var lastInboundMsg='';  // (v9.7.248) single declaration; only the inbound-note loop below populates it. No pre-loop last-message extraction.
@@ -10108,7 +10186,7 @@ function _lpScraperBotAuthor(msg) {
       var content = _ntInner;
       if (_ntText.length > 20 && _ntText.length > _ntInner.length + 20 && _ntText.length > _ntInner.length * 1.3) {
         content = _ntText;
-        console.log('[LP CONTENT-TRUNCATION DIAG] innerText shorter than textContent by ' + (_ntText.length - _ntInner.length) + ' chars for note titled "' + title + '" (' + date + ') — used textContent instead');
+        _lpD('[LP CONTENT-TRUNCATION DIAG] innerText shorter than textContent by ' + (_ntText.length - _ntInner.length) + ' chars for note titled "' + title + '" (' + date + ') — used textContent instead');
       }
       var dir     = (item.getAttribute('data-direction')||'').toLowerCase();
       // (v9.7.525/? — INCOMPLETE-NOTE DETECTION, mirrors DEV v9.7.527-dev) The textContent
@@ -10121,7 +10199,7 @@ function _lpScraperBotAuthor(msg) {
       // explicitly not to treat missing content as the customer having said nothing.
       var _incompleteNote = dir === 'inbound' && /email/i.test(title) && /^subject:/i.test(content) && !/\bby:\s*\S/i.test(content);
       if (_incompleteNote) {
-        console.log('[LP INCOMPLETE-NOTE DIAG] customer email reply appears not fully loaded (has Subject:, no By:) — note titled "' + title + '" (' + date + '), ' + content.length + ' chars: "' + content + '"');
+        _lpD('[LP INCOMPLETE-NOTE DIAG] customer email reply appears not fully loaded (has Subject:, no By:) — note titled "' + title + '" (' + date + '), ' + content.length + ' chars: "' + content + '"');
       }
       if(/lead log/i.test(title) && /changed from/i.test(content) && content.length < 100) return;
       // (v9.7.477/472) Generic 3rd-party ROUTING entry, not customer speech — Kia Digital 3rd
@@ -10644,7 +10722,10 @@ function _lpScraperBotAuthor(msg) {
       // is a question, not a claim we made.
       // Title must mark it OUTBOUND and must not mark it inbound — "Email reply from prospect"
       // contains "email" and would otherwise turn the customer's own question into our claim.
-      if (content && /\boutbound\b|\bsent\b|left message|voicemail/i.test(String(title || ''))
+      // (v9.7.697) N6: only THIS lead's sends are commitments — Ashlee Brown's prompt quoted a 2022 prior-lead
+      // "great selection in stock" line as "WE SAID IT WAS AVAILABLE". Notes are newest-first, so once the
+      // CURRENT LEAD marker has been placed every later note belongs to an older lead.
+      if (content && !firstLeadReceivedSeen && /\boutbound\b|\bsent\b|left message|voicemail/i.test(String(title || ''))
           && !/\binbound\b|from prospect|received from|reply from/i.test(String(title || ''))) {
         try {
           var _scMs = date ? new Date(date).getTime() : 0;
@@ -11574,7 +11655,7 @@ function _lpScraperBotAuthor(msg) {
         + ' | hasNewLeadToday:' + hasNewLeadToday + ' | leadAgeDays:' + leadAgeDays + ' scraped:' + _leadAgeScraped
         + ' | -> smsOptOutIsExit:' + smsOptOutIsExit + ' (false here means: no farewell, SMS still suppressed, email proceeds)');
     }
-    var exitRaw = smsOptOutIsExit || /already bought|bought.*something|bought.*elsewhere|purchased.*already|going.*elsewhere|not interested in (the car|the vehicle|buying|purchasing|a vehicle|coming in|visiting)|not ever interested|never going back|will not be back|will never go back|won.t be back|never coming back|remove.*from.*list|stop.*contacting|decided to (buy|go with|purchase)|went with (another|a different|ford|chevy|toyota|kia|nissan|hyundai|chevrolet|gmc|ram|jeep|dodge|subaru|mazda|volvo|bmw|mercedes|lexus|acura|infiniti|cadillac|lincoln|buick)|found (one|a car|what we)|no longer (interested|looking|in the market)|took (a|the) (deal|offer) (at|from|with)|not satisfied.*process|bad experience|sharing.*bad.*experience|terrible.*experience|horrible.*experience/i.test(fullScanText);
+    var exitRaw = smsOptOutIsExit || /already bought|bought.*something|bought.*elsewhere|purchased.*already|going.*elsewhere|not interested in (the car|the vehicle|buying|purchasing|a vehicle|coming in|visiting)|not ever interested|never going back|will not be back|will never go back|won.t be back|never coming back|remove.*from.*list|stop.*contacting|went with (another|a different|ford|chevy|toyota|kia|nissan|hyundai|chevrolet|gmc|ram|jeep|dodge|subaru|mazda|volvo|bmw|mercedes|lexus|acura|infiniti|cadillac|lincoln|buick)|no longer (interested|looking|in the market)|took (a|the) (deal|offer) (at|from|with)|not satisfied.*process|terrible.*experience|horrible.*experience/i.test(recentInbound);   // (v9.7.697) P2: CUSTOMER lines only — fullScanText carried our own outbound ("if you already bought something…")
     // (v9.7.481/476 — BEREAVEMENT GUARD) Live incident, Robert (AI Buying Signals / Toyota
     // Baytown, 7/25): the inbound was a DEATH NOTIFICATION — a reply to a birthday email
     // beginning "Sorry to inform..." — and no signal matched it, so convState stayed
@@ -11641,8 +11722,8 @@ function _lpScraperBotAuthor(msg) {
       }
     } catch(eBrv) { hasBereavementSignal = false; }
     // "we bought" / "bought it" - only exit if followed by purchase context, not ownership history
-    var boughtElsewhere = /we (bought|purchased|went with|decided on).{0,30}(another|elsewhere|different|other dealer|from them|from there)/i.test(fullScanText)
-      || /bought (one|a car|a vehicle) (from|at|with)/i.test(fullScanText);
+    var boughtElsewhere = /we (bought|purchased|went with|decided on).{0,30}(another|elsewhere|different|other dealer|from them|from there)/i.test(recentInbound)
+      || /bought (one|a car|a vehicle) (from|at|with)/i.test(recentInbound);   // (v9.7.697) P2: customer lines only
     var keepingTrade = /keep it if|keep my (car|truck|suv|altima|camry|vehicle)|hold onto it|just keep (it|my)/i.test(fullScanText);
 
     // (v9.7.56) INTERNAL AGENT NOTE EXIT DETECTION
@@ -11760,7 +11841,7 @@ function _lpScraperBotAuthor(msg) {
     // the exact matched substring for all three, same style as the two that already had it.
     if (hasBereavementSignal || ((exitRaw || boughtElsewhere || exitByRemoval) && !keepingTrade && !recentCustomerActive)) {
       try {
-        var _exitRawM = exitRaw ? String(fullScanText||'').match(/already bought|bought.*something|bought.*elsewhere|purchased.*already|going.*elsewhere|not interested in (the car|the vehicle|buying|purchasing|a vehicle|coming in|visiting)|not ever interested|never going back|will not be back|won.t be back|never coming back|remove.*from.*list|stop.*contacting|decided to (buy|go with|purchase)|went with (another|a different|ford|chevy|toyota|kia|nissan|hyundai|chevrolet|gmc|ram|jeep|dodge|subaru|mazda|volvo|bmw|mercedes|lexus|acura|infiniti|cadillac|lincoln|buick)|found (one|a car|what we)|no longer (interested|looking|in the market)|took (a|the) (deal|offer) (at|from|with)|not satisfied.*process|bad experience|sharing.*bad.*experience|terrible.*experience|horrible.*experience/i) : null;
+        var _exitRawM = exitRaw ? String(recentInbound||'').match(/already bought|bought.*something|bought.*elsewhere|purchased.*already|going.*elsewhere|not interested in (the car|the vehicle|buying|purchasing|a vehicle|coming in|visiting)|not ever interested|never going back|will not be back|won.t be back|never coming back|remove.*from.*list|stop.*contacting|went with (another|a different|ford|chevy|toyota|kia|nissan|hyundai|chevrolet|gmc|ram|jeep|dodge|subaru|mazda|volvo|bmw|mercedes|lexus|acura|infiniti|cadillac|lincoln|buick)|no longer (interested|looking|in the market)|took (a|the) (deal|offer) (at|from|with)|not satisfied.*process|terrible.*experience|horrible.*experience/i) : null;
         var _exitSrc = hasBereavementSignal ? 'hasBereavementSignal (death notification in thread)' : smsOptOutIsExit ? 'smsOptOutIsExit (SMS STOP treated as full exit)' : (_exitRawM ? 'exitRaw: "' + _exitRawM[0] + '"' : (boughtElsewhere ? 'boughtElsewhere' : (exitByRemoval ? 'exitByRemoval' : 'unknown component')));
         _lpD('[LP EXIT DIAG] hasExitSignal fired via ' + _exitSrc + ' | keepingTrade:', keepingTrade, '| recentCustomerActive:', recentCustomerActive, '| hasRecentReactivation:', hasRecentReactivation);
       } catch(e) {}
@@ -11962,6 +12043,7 @@ function _lpScraperBotAuthor(msg) {
     var isSpanishSpeaker = false; // Spanish detection removed - use translate button
 
     var customerSaidNotToday = false;
+    var customerSaidNotTodayExplicit = false;   // (v9.7.697) P3
     var customerScheduleConstraint = ''; // captures recurring schedule blocks
     // (v9.7.566) THE PROBE MUST READ THE SAME BYTES THE REGEX READ, not "the same notes" re-walked
     // popup-side from data.context. Those are not the same thing — the context is assembled,
@@ -12018,7 +12100,7 @@ function _lpScraperBotAuthor(msg) {
         }
         // Explicit same-day block
         if(/not today|can.t today|busy today|can.t make it today|no today|not available today|working today|at work today|won.t be able.*today|not.*able.*come.*today|not.*able.*out.*today|can.t come.*today|don.t think.*today|unable.*today|not going to make it today|won.t make it today|can.t.*today|not.*coming.*today|won.t be.*today|don.t think i.ll be able|i will call|i'll call|will call.*when|call.*when.*ready|not available today|don.t want to come in|do not want to come in|not coming in|won.t be home|will not be home|not home until|camping|out of town|on vacation|traveling/i.test(ntText)){
-          customerSaidNotToday = true;
+          customerSaidNotToday = true; customerSaidNotTodayExplicit = true;   // (v9.7.697) P3: the customer's own words, not a day-lock hit
         }
         // Customer specifies a future day as their availability - lock onto that day
         // e.g. "I won't be able to until Saturday", "can't until Friday", "not until next week"
@@ -12087,7 +12169,7 @@ function _lpScraperBotAuthor(msg) {
         } catch (e) { _pastVisitDay = false; }
         if (_pastVisitDay) {
           try {
-            console.log('[LP SCHED SOURCE DIAG] day-lock SUPPRESSED — the day is a COMPLETED VISIT, '
+            _lpD('[LP SCHED SOURCE DIAG] day-lock SUPPRESSED — the day is a COMPLETED VISIT, '
               + 'not availability: "' + String(ntCustomerText || ntText || '').replace(/\s+/g,' ').substring(0,140) + '"');
           } catch (e2) {}
         }
@@ -12252,6 +12334,23 @@ function _lpScraperBotAuthor(msg) {
     ];
     // An explicit exclusion somewhere in the same message.
     var _daContrast = /\bnot\s+(?:the|a|an|interested|looking|open)\b|\binstead\s+of\b|\brather\s+than\b|\bdon'?t\s+want\b|\bno\s+thanks?\b/i;
+    // (v9.7.697) A CHANNEL PREFERENCE IS ITS OWN FACT. "I would prefer to text only" was being read
+    // as a declined alternative (pattern p5). It is how they want to be reached, and it now travels
+    // as exactly that: the customer's own sentence, from their inbound, newest first.
+    var customerChannelPref = '';
+    try {
+      var _cpRe = /[^.!?\n]{0,60}\b(?:(?:prefer|rather|only|just)\b[^.!?\n]{0,25}\b(?:text|texting|texts|email|e-mail|call|calls|phone)\b|(?:text|email|e-mail|call)(?:ing)?\s+(?:me\s+)?only\b|(?:don'?t|do not|please don'?t)\s+call\b|\bno\s+(?:phone\s+)?calls?\b)[^.!?\n]{0,40}/i;
+      for (var _cpi = 0, _cpSeen = 0; _cpi < noteEls.length && _cpSeen < 5 && !customerChannelPref; _cpi++) {
+        var _cpDir = (noteEls[_cpi].getAttribute('data-direction')||'').toLowerCase();
+        var _cpT = ((noteEls[_cpi].querySelector('.legacy-notes-and-history-title')||{}).innerText||'').toLowerCase();
+        if (!(_cpDir === 'inbound' || /inbound text|inbound sms|email reply from prospect/i.test(_cpT))) continue;
+        _cpSeen++;
+        var _cpBody = ((noteEls[_cpi].querySelector('.notes-and-history-item-content')||{}).innerText||'')
+          .replace(/^[ \t]*(?:received|sent)[ \t]+(?:from|to|by)[ \t]*:[^\n]*$/gim, '').replace(/\s+/g, ' ').trim();
+        var _cpM = _cpBody.match(_cpRe);
+        if (_cpM) customerChannelPref = _cpM[0].trim().substring(0, 140);
+      }
+    } catch (eCp) { customerChannelPref = ''; }
     var inboundScanned = 0;
     for(var dai=0; dai<noteEls.length && inboundScanned<5; dai++) {
       var daNtDir = (noteEls[dai].getAttribute('data-direction')||'').toLowerCase();
@@ -12491,14 +12590,13 @@ function _lpScraperBotAuthor(msg) {
       var isPostVisit = /came (by|in|out|down)|stopped (by|in)|visited|test.?drove|test.?drive today|sat in|looked at.*today|was here|came to see/i.test(t);
       // Detect return visit plan: customer is coming back
       var isReturnVisit = /bring(ing)? back|coming back|return(ing)?|bring.*daughter|bring.*wife|bring.*husband|bring.*spouse|bring.*partner|bring.*son|coming.*tomorrow|back.*tomorrow|bring.*tomorrow|scheduled.*tomorrow|appt.*tomorrow|appointment.*tomorrow/i.test(t);
-      if (isPostVisit || isReturnVisit) {
-        _hasPostVisitNote = _hasPostVisitNote || isPostVisit;
-        _hasReturnVisitNote = _hasReturnVisitNote || isReturnVisit;
-        var tag = isReturnVisit ? '⚠ RETURN VISIT PLANNED' : '⚠ CUSTOMER ALREADY VISITED';
-        contextNoteLines.push(tag + ': ' + t);
-      } else {
-        contextNoteLines.push(t);
-      }
+      // (v9.7.697) AUDIT P4 — NO TAGS. "customer requested a return call" was tagged RETURN VISIT PLANNED
+      // and raised "RETURN VISIT OVERRIDE: … the customer has already visited"; "visited our website" and
+      // "came out of the hospital" were tagged CUSTOMER ALREADY VISITED. The note itself is the evidence
+      // and it is right here, verbatim; the model reads it. isPostVisit / isReturnVisit are computed for
+      // nothing now and left in place only so the diff stays small. The VISIT OVERRIDE below still fires
+      // from a real CRM Showroom Visit record (section 3), which is not a regex reading of prose.
+      contextNoteLines.push(t);
     });
 
     // 2. Agent call notes that have meaningful content (not just "Left message" or system)
@@ -12510,7 +12608,11 @@ function _lpScraperBotAuthor(msg) {
       var date = ((n.querySelector('.notes-and-hsitory-item-date')||{}).innerText||'').trim();
       // Only include agent outbound call notes that have real content beyond boilerplate
       if(/phone call/i.test(title) && content && content.length > 5) { // include all call types (outbound, contacted, inbound)
-        var isBoilerplate = /^(left message|no answer|auto generated|voicemail|machine|mb full|full mailbox|https?:)/i.test(content.trim()) || /^left\s/i.test(content.trim());
+        // (v9.7.697) AUDIT H5: tested against `content`, which always begins "By: <agent>", so the anchored
+        // test never matched and every "no answer" / "Left message" call came through (11 of them on one
+        // 9/22 Kia lead). Tested now against the body with the By: line removed.
+        var _bpBody = content.replace(/By:[^\n]+\n?/, '').trim();
+        var isBoilerplate = /^(left message|no answer|auto generated|voicemail|machine|mb full|full mailbox|https?:)/i.test(_bpBody) || /^left\s/i.test(_bpBody) || /callmeasurement\.com/i.test(content);
         if(!isBoilerplate) {
           // Strip Lead Pro's injected context block - appended after ' --- ' separator
           var cleanContent = content.replace(/By:[^\n]+\n?/,'').trim();
@@ -12952,7 +13054,7 @@ function _lpScraperBotAuthor(msg) {
       var _spouseHit = _spouseRe.exec(allTranscriptText);
       if(_spouseHit){
         try {
-          console.log('[LP SPOUSE DIAG] SPOUSE/PARTNER INVOLVED fired on: "' + String(_spouseHit[0]) + '"'
+          _lpD('[LP SPOUSE DIAG] SPOUSE/PARTNER INVOLVED fired on: "' + String(_spouseHit[0]) + '"'
             + ' | context: "' + allTranscriptText.substring(Math.max(0, _spouseHit.index - 60),
                                                             _spouseHit.index + 80).replace(/\s+/g,' ') + '"');
         } catch (eSp) {}
@@ -13416,6 +13518,9 @@ function _lpScraperBotAuthor(msg) {
         // (v9.7.271) SUBSTANTIVE = a real text/email we sent, NOT a dialer/voicemail log ("(Machine)", "c/m", callmeasurement).
         var niOutTitle=((noteEls[ni].querySelector('.legacy-notes-and-history-title')||{}).innerText||'').toLowerCase();
         var niOutIsCallLog=/phone call|voice\s?mail|left (a )?message|called in|hung up|\bc\/m\b|\(machine\)|callmeasurement/i.test(niOutTitle);
+        // (v9.7.697) N3: a bounce notice is the CRM telling us a send FAILED. It is not our last message
+        // (Jalen Garner's prompt quoted "… By: System Bounced Address" as his last substantive message).
+        if (/email failure|bounced/i.test(niOutTitle) || /bounced address/i.test(niOutBody)) continue;
         if(!lastOutboundMsg){ lastOutboundMsg=niOutBody.substring(0,300); lastOutboundMs=niDateMs; }
         if(!lastSubstantiveOutboundMsg && !niOutIsCallLog && !_isTrivialOutbound(niOutBody)){ lastSubstantiveOutboundMsg=niOutBody.substring(0,300); lastSubstantiveOutboundMs=niDateMs; }
         // (v9.7.570) PHASE A CARRIER. The existing two fields keep only the NEWEST outbound and
@@ -13941,6 +14046,25 @@ function _lpScraperBotAuthor(msg) {
     // CRITICAL: signals are INTERNAL -- model uses them to shape tone, must
     // never reference them directly to the customer. PERSONAL CONTEXT especially
     // must never be echoed as recall.
+    // (v9.7.697) N3 — BOUNCED EMAIL IS A FACT THE MODEL NEVER SAW. Every email to Jalen Garner (Audi,
+    // 9/23) came back undeliverable, and the prompt still said "customer email already on file. Do NOT
+    // ask for their email address." Counted on this lead (above the marker, or all notes when there is
+    // none); the prompt turns it into one plain ask for a good address in the SMS (Gil, 9/23).
+    var emailBounce = null;
+    try {
+      var _ebN = 0, _ebLast = '';
+      for (var _ebi = 0; _ebi < noteEls.length; _ebi++) {
+        var _ebT = ((noteEls[_ebi].querySelector('.legacy-notes-and-history-title')||{}).innerText||'');
+        var _ebC = ((noteEls[_ebi].querySelector('.notes-and-history-item-content')||{}).innerText||'');
+        if (!(/email failure/i.test(_ebT) || /bounced address/i.test(_ebC))) continue;
+        var _ebD = ((noteEls[_ebi].querySelector('.notes-and-hsitory-item-date')||{}).innerText||'').trim();
+        var _ebMs = _ebD ? new Date(_ebD).getTime() : NaN;
+        if (_lpMarkerMs > 0 && isFinite(_ebMs) && _ebMs < _lpMarkerMs) continue;   // a prior lead's bounce
+        _ebN++; if (!_ebLast) _ebLast = _ebD;
+      }
+      if (_ebN) emailBounce = { count: _ebN, lastDate: _ebLast };
+      _lpD('[LP EMAIL BOUNCE DIAG] bounces on this lead:' + _ebN + (_ebLast ? ' | latest:' + _ebLast : ''));
+    } catch (eEb) { emailBounce = null; }
     var relationshipSignals = (function(){
       var sig = {
         // Engagement
@@ -14001,7 +14125,7 @@ function _lpScraperBotAuthor(msg) {
         if (_pdCreatedH) {
           var _lcRaw = String(_pdCreatedH).trim();
           var _lcMs = new Date(/[Zz]|[+-]\d{2}:?\d{2}$/.test(_lcRaw) ? _lcRaw : _lcRaw + 'Z').getTime();
-          if (!isNaN(_lcMs) && _lcMs > 0) { _lpLeadCreatedMs = _lcMs; sig.leadOutboundCount = 0; }
+          if (!isNaN(_lcMs) && _lcMs > 0) { _lpLeadCreatedMs = _lcMs; sig.leadOutboundCount = 0; sig.leadConsecutiveOutboundNoReply = 0; }   // (v9.7.697) N1
         }
       } catch (_eLc) { _lpLeadCreatedMs = null; }
 
@@ -14043,7 +14167,11 @@ function _lpScraperBotAuthor(msg) {
         // VinSolutions title patterns: "Inbound Text Message", "Outbound Text Message",
         // "Email reply to prospect", "Inbound phone call", "Outbound phone call (Machine)",
         // "Voicemail", etc.
-        var isMessage = /text message|email|phone call|voicemail|inbound|outbound|received|sent|left.*message/i.test(title) || dir === 'inbound' || dir === 'outbound';
+        // (v9.7.697) N2: a bounce notice ("Email Failure … Bounced Address") and a system call-tracking row
+        // ("Outbound phone call — By: System https://…callmeasurement…") are not outreach a person made.
+        // On Jalen Garner (Audi, 9/23) six of the "14 outreach attempts" were exactly these.
+        var _rsNoise = /email failure|bounced/i.test(title) || /bounced address/i.test(body) || /callmeasurement\.com/i.test(body);
+        var isMessage = !_rsNoise && (/text message|email|phone call|voicemail|inbound|outbound|received|sent|left.*message/i.test(title) || dir === 'inbound' || dir === 'outbound');
         if (isMessage) {
           // For phone calls without explicit data-direction, infer direction from title
           var resolvedDir = dir;
@@ -14110,7 +14238,11 @@ function _lpScraperBotAuthor(msg) {
               // carries five minutes of grace rather than dropping this lead's own first touch.
               if (_noteMs && _noteMs >= (_lpLeadCreatedMs - 300000)) sig.leadOutboundCount++;
             }
-            if (!sawInbound) sig.consecutiveOutboundNoReply++;
+            if (!sawInbound) {
+              sig.consecutiveOutboundNoReply++;
+              // (v9.7.697) N1: the same streak, counted only on THIS lead.
+              if (_lpLeadCreatedMs) { var _ncMs = parseNoteDate(dateStr); if (_ncMs && _ncMs >= (_lpLeadCreatedMs - 300000)) sig.leadConsecutiveOutboundNoReply = (sig.leadConsecutiveOutboundNoReply || 0) + 1; }
+            }
           }
         }
 
@@ -14672,7 +14804,17 @@ function _lpScraperBotAuthor(msg) {
       })();
 
       // Computed interpretation flags
-      sig.channelFatigue = sig.consecutiveOutboundNoReply >= 3;
+      // (v9.7.697) N1 — FATIGUE NEEDS TIME, AND IT NEEDS TO BE THIS LEAD'S. It fired on any 3 consecutive
+      // outbound across the WHOLE customer record, with no clock: on 9/23 four of five 0–1-day-old leads
+      // were told "Channel showing fatigue … not a hot lead, soft re-engage, do not press for an
+      // appointment" — our own cadence and the auto-responder's burst read as the customer going cold,
+      // in the same prompt that says "several outreaches in a few days is OUR cadence running". Now: the
+      // streak is counted on this lead when its created time is known, and the lead must be 3+ days old.
+      var _fatLeadAgeD = _lpLeadCreatedMs ? (Date.now() - _lpLeadCreatedMs) / 86400000 : null;
+      sig.leadAgeDaysForFatigue = _fatLeadAgeD;
+      var _fatStreak = (_lpLeadCreatedMs && typeof sig.leadConsecutiveOutboundNoReply === 'number') ? sig.leadConsecutiveOutboundNoReply
+                     : (_lpLeadCreatedMs ? 0 : sig.consecutiveOutboundNoReply);
+      sig.channelFatigue = _fatStreak >= 3 && (_fatLeadAgeD === null || _fatLeadAgeD >= 3);
       sig.hasNoShowHistory = sig.priorNoShows > 0;
       sig.hasFrustrationHistory = sig.frustrationSignals.length > 0;
       sig.hasPricingFriction = sig.priorPricingObjections.length > 0;
@@ -14700,7 +14842,7 @@ function _lpScraperBotAuthor(msg) {
       history, totalNoteCount, hasOutbound, isContacted, contactedAgeDays, lastOutboundMsg, lastSubstantiveOutboundMsg, noReplySinceLastOutbound, newestCustomerSignalType, newestCustomerSignalDesc, hasFreshCustomerSignal, hasCustomerReply: hasRealCustomerReply /* (v9.7.301) canonical ground truth — replaces divergent inline recomputations */, lastInboundMsg: lastInboundMsg||leadReceivedCustomerQuestion, lastInboundMs: _lastInboundMs, /* (v9.7.359) date of customer's last inbound — used to age their day-words */
       hasPauseSignal, hasExitSignal, hasRecentReactivation, isSmsOptOutOnly, smsOptOutEvidence, _smsOptOutDiag, hasTextOrEmailSent, convState,
       vrMonthlyPayment, vrDownPayment, vrCreditScore, vrAPR, vrTerm, vrLender, conversationBrief, customerSaidNotToday, customerScheduleConstraint, schedCustomerNotes, outboundSends, isLiveConversation, isRecentOutbound, recentOutboundContent,
-      customerDeclinedAlternative, customerDeclinedAlternativeText,
+      customerDeclinedAlternative, customerDeclinedAlternativeText, customerChannelPref, customerSaidNotTodayExplicit, emailBounce,
       email: (isMaskedEmail ? '' : buyerEmail),
       emailRaw: buyerEmail, // (v9.7.459 fix) unmasked email preserved for consumers (Appointment Invite tab) that need the actual on-record address even when it's a marketplace relay — AI generation paths still read the masked `email` field above so the "ask for direct email" directive is unaffected.
       isInTransit, hasApptSet, apptDetails, isSoldDelivered, hasMissedAppt, customerRepliedReschedule: customerRepliedRescheduleFlag, apptTimeline, freshestApptEventDays: (_minApptEventDays === Infinity ? null : _minApptEventDays), hasMissedCallBackPromise, missedCallBackDetail, vrCreditApp, vrPaymentSelected, vrTradeIn, vrCompleted, vrDroppedOff, vrDroppedOffPage, vrMonthlyPayment, vrDownPayment, vrCreditScore, vrAPR, vrTerm, vrLender, noVehicleAtAll, agentLPCommands, contactRecoveryPhone, contactRecoveryEmail, isMaskedEmail, isSRPVehicle, isVelocityResponse, isLandline, engagementStrength, hasBereavementSignal, leadIntakeReq: _leadIntakeReq, onPremise: _onPremise, recordCorrected: _crAnnotated, newerLead: (typeof _newerLead !== 'undefined' ? _newerLead : null), selfClaims: _selfClaims, isHotLead: _pdHot, daysOnLot: _pdDaysOnLot, leadTypeName: _pdLeadTypeH, _pdStatus: _pdStatusH, _rgxInventoryWarning, _pdInventoryWarning, _pdDiag, pdPresent: !!_pdHoist, pdTradeCount: _pdTradeCt, pdVoiCount: _pdVoiCt, pdVoiList: _pdVoiList, pdHasLeadVehicle: _pdHasLeadVehicle, isCertifiedUnit,
@@ -15241,6 +15383,7 @@ function _lpScraperBotAuthor(msg) {
             // Skip frames without autoLeadId in this pass — they go to pass 2
             if (!d.autoLeadId) continue;
             _pass1HadActiveFrame = true; // PASS 1 authoritatively scraped the active lead
+            if (d.dealerId && !window._activeLeadDealerId) { try { window._activeLeadDealerId = String(d.dealerId); } catch (_eAdl) {} }   // (v9.7.697) P5
             // This frame is confirmed-active. Capture customerId if present.
             if (d.customerId && !_activeCustomerId) _activeCustomerId = d.customerId;
             // Track best store across confirmed frames — prefer more specific names
@@ -16338,6 +16481,9 @@ function _lpScraperBotAuthor(msg) {
                     console.warn('[Lead Pro] Rescue broad-merge: lead ID mismatch or missing (' + (_rescueLeadId||'none') + ' vs active ' + _activeId + ') — blocking context/transcript fields');
                   }
                   var _rescueDealerId = d.dealerId ? String(d.dealerId) : null;
+                  // (v9.7.697) AUDIT P5: window._activeLeadDealerId was read here and assigned NOWHERE, so this
+                  // guard compared the rescue frame only against the merged frame's own dealerId and went
+                  // inert whenever the winner had none. It is now set from the PASS-1 active frame(s).
                   var _activeDealerId = window._activeLeadDealerId ? String(window._activeLeadDealerId) : (m.dealerId ? String(m.dealerId) : null);
                   var _rescueDealerMismatch = _activeDealerId && _rescueDealerId && _rescueDealerId !== _activeDealerId;
                   if (_rescueDealerMismatch) {
@@ -18358,6 +18504,28 @@ function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
     }
   } catch (eCm) {}
 
+  // (v9.7.697) WHERE THEY CAME FROM SURVIVES THE REWRITE. Marcie (Honda Lafayette, Facebook, 9/23):
+  // pass 1 opened "thanks for reaching out on Facebook", the refine rewrote it without that line,
+  // and the agent saw a Facebook lead with no Facebook in the text.
+  try {
+    var _rsP = (typeof _lpSourceAckPhrase === 'function') ? _lpSourceAckPhrase(d && d.leadSource) : null;
+    var _rsN = _rsP ? String(_rsP.name).toLowerCase().replace(/^the\s+/, '') : '';
+    if (_rsP && (_rsP.shape === 'brand' || _rsP.shape === 'place') && String(pass1 || '').toLowerCase().indexOf(_rsN) !== -1) {
+      out.push('\u2501\u2501\u2501 KEEP WHERE THEY CAME FROM \u2501\u2501\u2501');
+      out.push('The first draft names ' + _rsP.name + ' \u2014 how this customer reached us. Keep that mention in your version, once; it tells them we read what they sent.');
+      out.push('');
+    }
+  } catch (eRsP) {}
+
+  // (v9.7.697) N3: the email-address ask survives the rewrite on a bouncing lead.
+  try {
+    if (d && d.emailBounce && d.emailBounce.count && /e-?mail/i.test(String(pass1 || ''))) {
+      out.push('\u2501\u2501\u2501 KEEP THE EMAIL ASK \u2501\u2501\u2501');
+      out.push('Emails to this customer are bouncing, and the first draft asks them for a good email address. Keep that ask in your version.');
+      out.push('');
+    }
+  } catch (eRsE) {}
+
   out.push('\u2501\u2501\u2501 WRITE THE TEXT \u2501\u2501\u2501');
   // (v9.7.670) THIS BLOCK USED TO PUSH ONLY ONE WAY, AND IT OVERSHOT. Gil, 9/16, on log208:
   // "like the concept but seems rather short. Maybe too constrictive on length parameters we
@@ -18521,6 +18689,25 @@ async function _lpRefineSms(pass1, emailText, d) {
       }
     } catch (eLg) {}
 
+    // (v9.7.697) N3: on a bouncing lead, a rewrite that drops the email-address ask loses to the first pass.
+    try {
+      if (d && d.emailBounce && d.emailBounce.count && /e-?mail/i.test(String(pass1 || '')) && !/e-?mail/i.test(out)) {
+        console.log('[LP SMS REFINE DIAG] kept the first pass \u2014 emails are bouncing and the rewrite dropped the ask for a good address | ' + (Date.now() - t0) + 'ms');
+        return null;
+      }
+    } catch (eRfE) {}
+    // (v9.7.697) And if it drops the source name anyway, the first pass ships.
+    try {
+      var _rfSrc = (typeof _lpSourceAckPhrase === 'function') ? _lpSourceAckPhrase(d && d.leadSource) : null;
+      var _rfSrcN = _rfSrc ? String(_rfSrc.name).toLowerCase().replace(/^the\s+/, '') : '';
+      if (_rfSrc && (_rfSrc.shape === 'brand' || _rfSrc.shape === 'place') && _rfSrcN
+          && String(pass1 || '').toLowerCase().indexOf(_rfSrcN) !== -1 && out.toLowerCase().indexOf(_rfSrcN) === -1) {
+        console.log('[LP SMS REFINE DIAG] kept the first pass \u2014 it named where the customer came from ("'
+          + _rfSrc.name + '") and the rewrite dropped it | ' + (Date.now() - t0) + 'ms');
+        return null;
+      }
+    } catch (eRfS) {}
+
     console.log('[LP SMS REFINE DIAG] ran | ' + (Date.now() - t0) + 'ms | shipped:pass2'
       + '\n    pass1: ' + JSON.stringify(String(pass1).slice(0, 220))
       + '\n    pass2: ' + JSON.stringify(out.slice(0, 220)));
@@ -18632,8 +18819,13 @@ function renderRelationshipReading(data) {
     if (effectiveAge < 30)      engagementBits.push('Last contact was about ' + Math.round(effectiveAge) + ' days ago -- going cold.');
     else                        engagementBits.push('Last contact was about ' + Math.round(effectiveAge) + ' days ago -- long dormant.');
   }
-  if (s.consecutiveOutboundNoReply >= 3) {
-    engagementBits.push(s.consecutiveOutboundNoReply + ' consecutive outbound messages with no customer reply. Channel showing fatigue.');
+  // (v9.7.697) N1: "fatigue" is said only when the scraper's verdict says it; a young lead's streak is
+  // described as what it is — our cadence, not the customer going cold.
+  var _rrStreak = (typeof s.leadConsecutiveOutboundNoReply === 'number') ? s.leadConsecutiveOutboundNoReply : s.consecutiveOutboundNoReply;
+  if (s.channelFatigue) {
+    engagementBits.push(_rrStreak + ' consecutive outbound messages with no customer reply. Channel showing fatigue.');
+  } else if (_rrStreak >= 3) {
+    engagementBits.push(_rrStreak + ' outbound messages on this lead with no reply yet — on a lead this young that is our cadence running, not the customer going cold.');
   } else if (s.consecutiveOutboundNoReply === 2) {
     engagementBits.push('2 outbound messages since last customer reply -- early fatigue.');
   }
@@ -19153,9 +19345,20 @@ function buildUserPrompt(data) {
 
   // Attempt counting
   var sbTexts    = (ctx_sb.match(/Outbound Text Message/gi) || []).length;
-  var sbCalls    = (ctx_sb.match(/Outbound phone call/gi) || []).length;
+  // (v9.7.697) H5: a call note sits in BOTH the AGENT CONTEXT block ("[CALL NOTE] Outbound phone call")
+  // and the transcript, and system call-tracking rows are not calls a person made. Count each once.
+  var sbCalls    = Math.max(0, (ctx_sb.match(/Outbound phone call/gi) || []).length
+                   - (ctx_sb.match(/\[CALL NOTE\] Outbound phone call/gi) || []).length
+                   - (ctx_sb.match(/callmeasurement\.com/gi) || []).length);
   var sbEmails   = (ctx_sb.match(/Email reply to prospect/gi) || []).length;
   var sbTotal    = sbTexts + sbCalls + sbEmails;
+  // (v9.7.697) AUDIT H5 / M1: thresholds and the displayed count read the SCRAPER'S outbound tally —
+  // lead-bounded when the lead's created time is known, whole-record otherwise — which excludes bounce
+  // notices and call-tracking rows (N2). sbTotal (a regex over a blob where notes appear twice) is only
+  // the fallback now. The v9.7.593 hang-up branch already read this; every branch does.
+  var _sbSig = (data && data.relationshipSignals) || {};
+  var sbAttemptsN = (typeof _sbSig.leadOutboundCount === 'number') ? _sbSig.leadOutboundCount
+                  : ((typeof _sbSig.totalOutboundCount === 'number' && _sbSig.totalOutboundCount > 0) ? _sbSig.totalOutboundCount : sbTotal);
   var sbMachine  = (ctx_sb.match(/Machine/gi) || []).length;
   var sbNoContact= (ctx_sb.match(/No Contact/gi) || []).length;
   var sbContacted= (ctx_sb.match(/(?<!\bnot\s)Contacted(?!\s*:?\s*No\b)/gi) || []).length; // (v9.7.429/427) "Not Contacted" / "Contacted: No" prose no longer counts toward "Customer was reached N time(s)"
@@ -19835,7 +20038,7 @@ function buildUserPrompt(data) {
     // keeps the original "yes it is here" language; unconfirmed gets an honest lineup-level
     // framing that still gives the customer a reason to come in.
     var _fbAgentSaidNotAvail = /not on (the )?lot|don.t have (one|it)|do not have|unfortunately we do not|unfortunately.*not.*available|not.*currently.*available|not.*have.*right now|can.*reach out.*should one become/i.test(data.lastOutboundMsg || '');
-    var _fbConfirmedPresent = !!data.stockNum && !data.isInTransit && !data.inventoryWarning && !data.vehiclePendingSale && !_fbAgentSaidNotAvail;
+    var _fbConfirmedPresent = !!data.stockNum && !!data._lpInvConfirmedAvailable && !data.isInTransit && !data.inventoryWarning && !data.vehiclePendingSale && !_fbAgentSaidNotAvail;   // (v9.7.697) feed must confirm, as everywhere since v9.7.696
     scenarioRules = fbFollowUp
       ? '- Follow-up: read the transcript and continue naturally from where things left off.'
       : [
@@ -20132,7 +20335,7 @@ function buildUserPrompt(data) {
     // unprompted, which agents reject. Forbid it explicitly. (v9.7.434/432: now gated to only the
     // genuinely-first-touch case — this exact addendum was previously firing on 84-day conversations.)
     if (!_defFollowUp) {
-      scenarioDirective += '\n⚠ THIS IS A FRESH LEAD — NOT A STALL. Do NOT use "went quiet," "the thread went silent," "did you find one elsewhere," "most people who go quiet are either still shopping," or any pattern-break / stall-recovery / ghost-reactivation framing. Nothing has gone quiet — the customer just arrived. Respond to what they asked, directly and warmly, as a first impression. Do NOT speculate about why they have not responded; there has not yet been time for them to. This ban is not a list of specific phrases to avoid — it is a principle: do NOT acknowledge, reference, or comment on the absence of a reply AT ALL, in any wording, however mild ("I didn\'t see a reply yet," "haven\'t heard back," "no response yet," "still waiting to hear from you"). A quiet, neutral version of "you haven\'t replied" is still "you haven\'t replied" — it is not made acceptable by softer wording. Write this message exactly as you would if this were the very first and only message on this lead, unless the CUSTOMER\'s own words are what you are responding to.';
+      scenarioDirective += '\n⚠ THIS IS A FRESH LEAD — NOT A STALL. Do NOT use "went quiet," "the thread went silent," "did you find one elsewhere," "most people who go quiet are either still shopping," or any pattern-break / stall-recovery / ghost-reactivation framing. Nothing has gone quiet — the customer just arrived. Respond to what they asked, directly and warmly, as a first impression. Do NOT speculate about why they have not responded; there has not yet been time for them to. This ban is not a list of specific phrases to avoid — it is a principle: do NOT acknowledge, reference, or comment on the absence of a reply AT ALL, in any wording, however mild ("I didn\'t see a reply yet," "haven\'t heard back," "no response yet," "still waiting to hear from you"). A quiet, neutral version of "you haven\'t replied" is still "you haven\'t replied" — it is not made acceptable by softer wording. Write this message exactly as you would if this were the very first and only message on this lead, unless the CUSTOMER\'s own words are what you are responding to.' + ((data.hasOutbound) ? ' (v9.7.697: outreach HAS already gone out on this lead — do not re-introduce yourself or repeat it; continue from it, still without commenting on any silence.)' : '');
       var _scFirstTouchAntiStall = true;
       console.log('[Lead Pro] First-touch anti-stall guard applied');
     } else {
@@ -21838,7 +22041,7 @@ function buildUserPrompt(data) {
     closeOverride = '📋 SITUATION: Agent already committed to sending video/photos to this distance buyer. Confirm it is coming and ask one clarifying question.';
   } else if (sc.vehicleSold) {
     closeOverride = '📋 SITUATION: The vehicle they inquired about has sold. Pivot to comparable alternatives — do not offer appointment times for a vehicle that no longer exists.';
-  } else if (sbHungUp && sbTotal >= 3) {
+  } else if (sbHungUp && sbAttemptsN >= 3) {
     // (v9.7.591) Was: sbTotal (every text + call + email) reported as a hang-up count, plus a flat
     // "Phone is not working" -- a diagnosis of the customer's equipment that nothing in the record
     // supports. A hang-up means somebody ended a call; it does not tell you the line is broken, and
@@ -21852,11 +22055,11 @@ function buildUserPrompt(data) {
       + ' on this lead ended with a hang-up, out of ' + sbAttempts + ' outreach attempt' + (sbAttempts === 1 ? '' : 's')
       + '. Calls are not landing. Try a different channel or a different angle — curiosity or value shift. '
       + 'Do NOT tell the customer their phone is broken, and do not state why any call ended — the record does not say.';
-  } else if (sbTotal >= 5 && sbContacted === 0 && !hasCustomerReply && (data.leadAgeDays || 0) >= 2) {
+  } else if (sbAttemptsN >= 5 && sbContacted === 0 && !hasCustomerReply && (data.leadAgeDays || 0) >= 2) {
     // (v9.7.356) Gated on !hasCustomerReply — never assert "zero contact" when the arc shows a reply.
     // And defer the conclusion to the arc rather than asserting silence as fact (the sbContacted
     // word-count misfired on Justin Miller, labeling a live price negotiation as zero-contact).
-    closeOverride = '📋 SITUATION: ' + sbTotal + ' outreach attempts over ' + (data.leadAgeDays || 0) + ' days. Read the arc to confirm whether the customer has actually engaged — if they have not replied at all, a pattern break beats another push. If the arc shows they DID reply (a question, a price, a competing offer), respond to that instead; it is not a zero-contact lead.';
+    closeOverride = '📋 SITUATION: ' + sbAttemptsN + ' outreach attempts over ' + (data.leadAgeDays || 0) + ' days. Read the arc to confirm whether the customer has actually engaged — if they have not replied at all, a pattern break beats another push. If the arc shows they DID reply (a question, a price, a competing offer), respond to that instead; it is not a zero-contact lead.';
   } else if (sbMsgs >= 3 && sbContacted === 0 && !hasCustomerReply && (data.leadAgeDays || 0) >= 2) {
     closeOverride = '📋 SITUATION: ' + sbMsgs + ' messages over ' + (data.leadAgeDays || 0) + ' days. If the arc confirms no customer response, a different approach beats another check-in. If the customer actually replied, respond to what they said — do not treat them as silent.';
   }
@@ -21922,13 +22125,19 @@ function buildUserPrompt(data) {
           // more DON'Ts produces the over-constrained outputs that prompted
           // this rewrite. Voice example below still anchors the shape.
           _voiceExample = '[Customer], [Your first name] here — Internet Director at [Store]. Saw you submitted your application — appreciate you taking that step. What are you shopping for, and what matters most to you right now?';
+          // (v9.7.697) AUDIT H4: the email and voicemail examples stayed the STALL versions ("I'm not going
+          // to pretend this is a regular follow-up. When someone goes quiet…") on a first-touch lead.
+          _voiceExampleEmail = ''; _voiceExampleVoicemail = '';
         } else if (pDef.id === 'internet_director' && _isActiveDirector) {
           // ACTIVE MOMENTUM — pattern-breaker as forward motion, NOT recovery
           _objective = 'Active Momentum — cut through dealership noise and move the conversation forward with clarity.';
           _mechanism = 'Direct intelligence — say the thing other agents would hedge around';
           _tone = 'Direct, sharp, forward-leaning. You sound like the agent who actually answers the question instead of dancing. Confident without being pushy.';
           // (v9.7.81) dos/donts intentionally NOT overridden — see comment above.
-          _voiceExample = 'Got it — yes, the Blueprint with graphite is here. The trade conversation usually goes faster in person but I can give you a real ballpark right now if that helps you decide.';
+          // (v9.7.697) AUDIT H4: the example asserted a specific unit was here and offered a trade number.
+          // An example is copied for its SHAPE; it must not carry a fact about inventory or money.
+          _voiceExample = 'Got it — that settles the color question. The trade is the one piece that goes faster in person; want me to line that part up?';
+          _voiceExampleEmail = ''; _voiceExampleVoicemail = '';
         }
         // (else: stall recovery is the default systemHint mode — no overrides needed)
 
@@ -21957,11 +22166,11 @@ function buildUserPrompt(data) {
           _dos,
           "DON'T:",
           _donts,
-          'Voice example (SMS): ' + _voiceExample,
-          ...(_voiceExampleEmail ? ['Voice example (email): ' + _voiceExampleEmail] : []),
-          ...(_voiceExampleVoicemail ? ['Voice example (voicemail): ' + _voiceExampleVoicemail] : []),
+          'Voice example (SMS) — for TONE only, not content: ' + _voiceExample,
+          ...(_voiceExampleEmail ? ['Voice example (email) — for TONE only, not content: ' + _voiceExampleEmail] : []),
+          ...(_voiceExampleVoicemail ? ['Voice example (voicemail) — for TONE only, not content: ' + _voiceExampleVoicemail] : []),
           '',
-          'NOTE: This is the VOICE TEMPLATE, not your identity. Your identity is set in YOUR ROLE above. Apply this voice while writing as yourself. Placeholders like [Customer], [Your first name], [Director], [Agent], or [Store] in the examples are PATTERNS to fill with YOUR actual identity from YOUR ROLE — never substitute another person\'s name from the lead context (Sales Rep, BD Agent, Manager, etc.). The example shows the SHAPE of the message, not the names to use.',
+          'NOTE: This is the VOICE TEMPLATE, not your identity. Your identity is set in YOUR ROLE above. Apply this voice while writing as yourself. Every vehicle, colour, day and fact in the examples is made up and belongs to no lead — never carry one into this message. Placeholders like [Customer], [Your first name], [Director], [Agent], [Store], [Vehicle] or [Brand Specialist] in the examples are PATTERNS to fill with YOUR actual identity from YOUR ROLE — never substitute another person\'s name from the lead context (Sales Rep, BD Agent, Manager, etc.). The example shows the SHAPE of the message, not the names to use.',
           '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
           ''
         ];
@@ -22399,7 +22608,7 @@ function buildUserPrompt(data) {
         ageBlock.push('⚠ SCHEDULING CONSTRAINT STATED IN THIS CONVERSATION — somewhere in the arc the customer named a limit on when or whether they can come in (e.g. works late, can\'t come in, only weekends, evenings only, out of town). Re-read the full arc to find it. Before you offer ANY appointment or come-in time, honor that constraint UNLESS the customer has since lifted it (e.g. they later agreed to a time). If it still stands, offer a time that fits — such as an evening slot near close — or a remote next step (phone, text, or email), never a daytime come-in time they already told you they cannot make.');
         ageBlock.push('');
       }
-      ageBlock.push('Read the complete conversation thread — texts, emails, call notes, agent notes — in chronological order. Every message has a date. Use the dates to understand what was said, when, and what each message is responding to. Reason from the full picture before writing anything. The right response follows naturally from what the conversation actually is — not from any single message in isolation.');
+      ageBlock.push('Read the complete conversation thread — texts, emails, call notes, agent notes — (the arc above runs oldest → newest; the transcript below runs newest → oldest). Every message has a date. Use the dates to understand what was said, when, and what each message is responding to. Reason from the full picture before writing anything. The right response follows naturally from what the conversation actually is — not from any single message in isolation.');
       ageBlock.push('⚠ RELATIVE DATE AGING IN NOTES AND TEXTS: Agent messages use relative day references ("tomorrow", "next week", "tonight") based on WHEN THE MESSAGE WAS SENT. Always resolve relative references against the message\'s date, not today\'s date. Examples: (1) A note written on 5/26 that says "reschedule for tomorrow morning" means the appointment was for 5/27 morning. (2) An outbound text sent on 5/27 that says "your appt tomorrow at 6:00 PM" means the appointment is on 5/28 at 6:00 PM — which may be TODAY. Check whether that time has passed or is today before referencing it. If it is today, say "tonight" or "today at [time]" — not "tomorrow."');
       ageBlock.push('⚠ THE CUSTOMER\'S OWN DAY WORDS AGE THE SAME WAY — AND CAN BE A DEADLINE. When the CUSTOMER named a day or timeframe ("I\'ll pick it up Monday", "deciding this week", "deposit goes through tomorrow"), resolve it against the DATE THEY SENT IT, not against the day-name labels in the CALENDAR REFERENCE. A bare "Monday" written several days ago usually means the FIRST upcoming Monday — which may be TODAY — NOT the one the calendar happens to label "next Monday." Do the date math from their message date. CRITICAL: if the customer\'s stated moment (a pickup, a deposit finalizing, a decision deadline) has arrived or is today, the urgency window is NOW — offer today or the soonest possible time and make the time-sensitivity explicit. Do NOT offer a date AFTER their deadline has already passed; an appointment a week past the moment the deal is decided is worse than useless.');
       ageBlock.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -22584,9 +22793,17 @@ function buildUserPrompt(data) {
     // model both "MUST mention in BOTH SMS and email" and "do NOT repeat it in both openings
     // identically" — partially contradictory, and paid for twice in tokens on the highest-
     // volume marketplace leads. One directive per source: the dedicated block owns it.
-    if (sc.isCarGurus || sc.isCarGurusDD || sc.isCarscom || sc.isAutoTrader || sc.isEdmunds
+    // (v9.7.697) ...BUT ONLY WHILE THAT DEDICATED DIRECTIVE IS ACTUALLY THE ONE RUNNING. Every one of
+    // these sources names itself in its FIRST-TOUCH branch only (the NAMED SOURCE blocks skip on
+    // `sc.isFollowUp && hasRealOutbound`, and the Facebook/TrueCar/Costco/CapitalOne/CarPro scenario
+    // branches collapse to "continue naturally" on follow-up). So on every follow-up the source was
+    // never mentioned at all — this skip handed the job to a block that had already stood down.
+    // Gil, 9/23: "I had a lead that was Facebook and Facebook wasn't mentioned as the source." On a
+    // follow-up the generic block below now owns it, with its already-named / continuing-thread arms.
+    var _ackDedicated = sc.isCarGurus || sc.isCarGurusDD || sc.isCarscom || sc.isAutoTrader || sc.isEdmunds
         || sc.isCarFax || sc.isKBB || sc.isTradePending || sc.isCostco || sc.isTrueCar
-        || sc.isFacebook || sc.isCapitalOne || sc.isCarPro) { _ackLog('SKIPPED-dedicated-directive — this source has its own framing elsewhere in the prompt'); return; }
+        || sc.isFacebook || sc.isCapitalOne || sc.isCarPro;
+    if (_ackDedicated && !(sc.isFollowUp && hasRealOutbound)) { _ackLog('SKIPPED-dedicated-directive — this source names itself in its own first-touch framing elsewhere in the prompt'); return; }
     // Skip internal/finance program sources that already have their own framing.
     if (/kfa|kmf|afs|luv|off.?lease|maturity|lease.?end|in.?equity|loyalty|autosoft|xtime|cdk/i.test(_ls)) { _ackLog('SKIPPED-internal-program-source'); return; }
     // Early touch only — referencing the source reads naturally on first/second contact,
@@ -22632,9 +22849,9 @@ function buildUserPrompt(data) {
         + 'the reason for the message. Use exactly this name and no other: never a CRM routing label, a vendor '
         + 'name, or anything you see in the notes or lead history.');
     } else if (data && data.hasOutbound) {
-      _ackArm = 'EMITTED-continuing-thread — one passing mention allowed, never as an opening announcement; no example sentence is shown';
+      _ackArm = 'EMITTED-continuing-thread — one passing mention asked for, never as an opening announcement; no example sentence is shown';
       ageBlock.push('This lead came in through ' + _ackName + '. Outreach has already gone out on this lead, so '
-        + 'this is a continuing thread: you may name the source once if it fits naturally, but NOT as an opening '
+        + 'this is a continuing thread: name the source once, in passing — it tells them we read what they sent — but NOT as an opening '
         + 'announcement — no "I saw your ' + _ackName + ' request come through" and nothing else that reads as '
         + 'noticing them for the first time. Open on where the conversation actually stands. Use exactly this '
         + 'name and no other: never a CRM routing label, a vendor name, or anything you see in the notes or '
@@ -22878,7 +23095,7 @@ function buildUserPrompt(data) {
             // only the one that would have the model comment on a gap that does not exist is
             // removed, and only on a fresh bot-touched lead.
             ? 'The customer has not answered the automated message. That is not silence to remark on — it went out hours ago, on a template, and there is nothing yet for them to have gone quiet ON. Do NOT acknowledge a gap, do NOT say it has been a while, and do NOT write recovery framing of any kind. A reworded version of the automated message — same pitch, same options, same ask — IS a restate, and restating is the failure here. Go where it did not: change the ask to something EASIER TO ANSWER — which means fewer words back from them, NOT a smaller commitment — or lead with one specific thing about this customer or this exact vehicle that a template could never have known. Dropping the visit and asking for nothing in its place is not an easier ask, it is a weaker one.'
-            : 'The customer has not replied to this. A reworded version of it — same pitch, same options, same ask — IS a restate, and restating is the failure here. This message must go somewhere that one did not: acknowledge the silence plainly, OR change the ask (smaller, simpler, or one genuinely new question), OR use something specific from THIS customer\'s history that you have not used yet. If your draft makes the same offer in different words, stop and pick a different lever.');
+            : 'The customer has not replied to this. A reworded version of it — same pitch, same options, same ask — IS a restate, and restating is the failure here. This message must go somewhere that one did not: ' + ((parseFloat(data.leadAgeDays || 0) >= 2) ? 'acknowledge the silence plainly, OR ' : '') + 'change the ask (smaller, simpler, or one genuinely new question), OR use something specific from THIS customer\'s history that you have not used yet. If your draft makes the same offer in different words, stop and pick a different lever.');
         // (v9.7.503/499 — DON'T HAND THE MODEL ITS OWN PRIOR MISTAKE AS THE ANCHOR) Live: David
         // Matthies (Toyota Baytown). v9.7.501 correctly stopped the RAW Showroom Visit note from
         // producing "the credit/kiosk step started but wasn't completed" messages — but that bad
@@ -22908,7 +23125,7 @@ function buildUserPrompt(data) {
       // back to the note count only when it is not.
       console.log('[LP OUTREACH COUNT DIAG] outreaches:' + _outreachN + ' | source:' + _outreachSrc
         + ' | noteCount:' + _ncForDirectives + ' | varyAngle:' + (_outreachN >= 5)
-        + ' | oneSided:' + (!_hasReplyForDirectives && _outreachN >= 8)
+        + ' | oneSided:' + (!_hasReplyForDirectives && _outreachN >= 8 && parseFloat(data.leadAgeDays || 0) >= 3)
         + ' | wholeRecordOutbound:' + (typeof _rsOutN === 'number' ? _rsOutN : 'n/a')
         + (typeof _rsLeadOutN === 'number' && typeof _rsOutN === 'number' && _rsOutN > _rsLeadOutN
             ? '  ← ' + (_rsOutN - _rsLeadOutN) + ' outbound predate this lead and no longer count as outreach on it'
@@ -22972,7 +23189,9 @@ function buildUserPrompt(data) {
           + 'with one specific, easy thing to respond to.');
         ageBlock.push('');
       }
-      if (!_hasReplyForDirectives && _outreachN >= 8) {
+      // (v9.7.697) N1: a one-day-old lead with the auto-responder's burst is not a one-sided conversation.
+      var _osAge = parseFloat(data.leadAgeDays || 0);
+      if (!_hasReplyForDirectives && _outreachN >= 8 && _osAge >= 3) {
         ageBlock.push('ONE-SIDED CONVERSATION:');
         ageBlock.push('Customer has not replied to ' + _outreachN + ' prior outreach attempts. Apply the one-sided conversation rule from your system prompt — acknowledge the silence honestly rather than sending another optimistic check-in.');
         ageBlock.push('');
@@ -23073,7 +23292,7 @@ function buildUserPrompt(data) {
     // form for its optional members, and hasCustomerReply is the COMPUTED local from
     // _hasCustomerReplied rather than the raw scraped flag -- the same value the rest of this
     // function reasons with.
-    ...((!data.vehicle && !hasCustomerReply)
+    ...((!data.vehicle && !hasCustomerReply && !data.hasTrade && !data.tradeDescription)   // (v9.7.697) N6: it said "no trade" on a lead with a trade listed
       ? ['- SUBJECT LINE ON THIS LEAD, and read this against the SUBJECT LINE RULES in your role: every anchor those rules name is unavailable here. There is no vehicle on file, no trade, no visit, and this customer has never written to us, so there is nothing they said to quote. Do NOT fall back on stating a fact back at them about themselves — "Your application is already submitted", "Your request came through", "About your inquiry" — telling someone what they did is not a reason to open. Anchor on what is NEW to them: what happens next, what their step makes possible, or the single easiest thing they could answer. Still 4-8 words, still no exclamation point, still none of the banned openers.']
       : []),
     '- NEVER use the sales rep name as the signer — sign as the BD Agent only.',
@@ -23512,13 +23731,16 @@ function buildUserPrompt(data) {
       // engine -- so on a zero-contact or reactivation lead three clauses said no appointment and
       // this one said "encourage the soonest workable time". The paused wording is unchanged to
       // the byte; the other two paths get a reason that is true of them.
-      distanceContext = 'Customer is interested in the ' + data.vehicle + '. Confirming it is here is fine and worth saying. Do NOT encourage a time, a visit or the soonest workable anything on this touch — '
+      distanceContext = 'Customer is interested in the ' + data.vehicle + '. ' + (data._lpInvConfirmedAvailable ? 'Confirming it is here is fine and worth saying.' : 'Its presence on the lot is NOT confirmed by today\'s inventory feed \u2014 do not say it is here.') + ' Do NOT encourage a time, a visit or the soonest workable anything on this touch — '
         + (((typeof _lpTouchHold === 'function') ? _lpTouchHold(data) : '') === 'pause'
             ? 'this lead is in a PAUSE state and the directives that own that state forbid an appointment ask'
             : 'every other directive on this lead disables the appointment engine, and this block does not override them')
         + '. Say it will be ready whenever they are, and do NOT promise to hold or set aside an in-stock unit (we do not reserve on-lot cars).';
     } else if (data.vehicle) {
-      distanceContext = 'Customer is interested in the ' + data.vehicle + '. Confirm it is available and encourage the soonest workable time so the trip is worth it — do NOT promise to hold or set aside an in-stock unit (we do not reserve on-lot cars). If it is in transit/inbound, securing it before arrival is appropriate.';
+      // (v9.7.697) Presence only when the feed confirms it; and a REMOTE buyer is not asked for a visit
+      // time here — Jalen Garner (Audi Lafayette, Mississippi, 9/23) got "do not imply a near-term visit"
+      // and "encourage the soonest workable time" in the same prompt.
+      distanceContext = 'Customer is interested in the ' + data.vehicle + '. ' + (data._lpInvConfirmedAvailable ? 'Confirm it is available' : 'Its presence on the lot is NOT confirmed by today\'s inventory feed \u2014 do not say it is here') + (isRemoteBuyer ? '. They are remote: the next step is remote (details, video, numbers), not a visit time' : ' and encourage the soonest workable time so the trip is worth it') + ' — do NOT promise to hold or set aside an in-stock unit (we do not reserve on-lot cars). If it is in transit/inbound, securing it before arrival is appropriate.';
     }
     if (isRemoteBuyer) {
       // (v9.7.225) Conditional visit: some remote buyers WILL drive in, but only after the
@@ -23836,7 +24058,12 @@ function buildUserPrompt(data) {
   } catch (_eVfd) {}
   lines.push(
     'Customer:   ' + (data.name || '(unknown — do not say Hi there)'),
-    data.email ? 'Email:      ' + data.email + '  ← customer email already on file. Do NOT ask for their email address.' : '',
+    // (v9.7.697) N3: a bouncing address is not "on file" in any useful sense.
+    data.email
+      ? (data.emailBounce && data.emailBounce.count
+          ? 'Email:      ' + data.email + '  ← ⚠ BOUNCING: ' + data.emailBounce.count + ' email' + (data.emailBounce.count === 1 ? '' : 's') + ' sent to this address on this lead came back undeliverable' + (data.emailBounce.lastDate ? ' (latest ' + data.emailBounce.lastDate + ')' : '') + '. Treat it as NOT a working address. In the SMS, ask them once, plainly, for a good email address — as part of the message, not the opener. The email draft may not reach them.'
+          : 'Email:      ' + data.email + '  ← customer email already on file. Do NOT ask for their email address.')
+      : '',
     // (v9.7.82) UNIVERSAL PHONE-ASK FIX: Mirror the email rule. When the customer's
     // phone is on file, show it as an explicit field with a "Do NOT ask" instruction.
     // When genuinely missing, show that explicitly so the model knows asking is appropriate.
@@ -23878,7 +24105,7 @@ function buildUserPrompt(data) {
           + ' Do NOT assert either one as the settled answer, and do NOT quietly write as though the pinned vehicle is what they asked for. Name BOTH distinctly in a direct question and let the customer tell you which — for example "are you looking at the ' + data.vehicle + ', or the ' + _voiMis[0].desc + '?" This applies identically to the SMS, the email AND the voicemail: a format being short is never a reason to drop the distinction. Everything else in this prompt that names the pinned vehicle alone is describing the CRM record, not a customer decision.'
         : data.vehicle
         ? 'Vehicle:    ' + data.vehicle + '  ← THIS IS THE VEHICLE FOR THIS LEAD. Do not substitute or reference other vehicles from the conversation history.'
-        : 'Vehicle:    (none specified) ← NO VEHICLE IS ATTACHED TO THIS LEAD. Do NOT reference or name any vehicle from the conversation history — those belong to prior leads or conversations. Do not mention Telluride, Crown, Optima, or any other vehicle unless it is listed here.',
+        : 'Vehicle:    (none specified) ← NO VEHICLE IS ATTACHED TO THIS LEAD. Do NOT reference or name any vehicle from the conversation history as the one they want — those belong to prior leads or conversations. A trade-in listed in the LEAD section is theirs and is fine to name as their trade.',
   );
 
   if (sc.isAudi && sc.salesRep) lines.push('Brand Specialist: ' + sc.salesRep);
@@ -24169,7 +24396,10 @@ function buildUserPrompt(data) {
     lines.push('Close with warmth, one open question, or a no-pressure next step the customer controls.');
   }
 
-  if (!sc.isApptConfirmation && !sc.isExitSignal && !sc.isPauseSignal && !sc.isSoldDelivered && !sc.vehicleSold && !hasVerbalCommitment && !closeOverride && !isZeroContactStalled) {
+  // (v9.7.697) && !isRemoteBuyer — a remote buyer was handed "11:30 AM or 12:15 PM today" and "great availability
+  // today" beneath the block that says not to push a visit. isRemoteBuyer is declared (var) inside the
+  // distance-flag block above, so on a non-distance lead it is undefined here — falsy — as intended.
+  if (!sc.isApptConfirmation && !sc.isExitSignal && !sc.isPauseSignal && !sc.isSoldDelivered && !sc.vehicleSold && !hasVerbalCommitment && !closeOverride && !isZeroContactStalled && !isRemoteBuyer) {
     // Suppress appointment-time injection on cross-brand AI Buying Signal leads.
     // The matrix's PLAY A (honest pivot) and PLAY C (questioning open) need the model
     // to ASK before committing — appointment times pull the model toward closing on
@@ -24325,18 +24555,10 @@ function buildUserPrompt(data) {
     lines.push('FACT: This customer has received multiple outreach attempts and has not replied to a single one.');
     lines.push('GOAL: Get their first reply. Nothing else.');
     lines.push('');
-    lines.push('SMS:');
-    lines.push('  Open warm, referencing the specific vehicle or inquiry. No intro, no store name beyond first touch.');
-    lines.push('  Give them something easy to answer — a yes/no, or a question that does not take work. No appointment times. No duration.');
-    lines.push('  GOOD: "Tammy, still have the A3 here if you\'re still looking — any specific questions before you come check it out?"');
-    lines.push('  BAD: anything with "would X or Y work", "45 minutes", "wide open today", "morning or afternoon"');
-    lines.push('');
-    lines.push('EMAIL:');
-    lines.push('  Open warm and personal, referencing what they inquired about, and acknowledge they have not connected yet without making it awkward.');
-    lines.push('  Then re-open with something they can answer easily. Examples: "Is the A3 still on your radar?" or "Did your search go a different direction?" or "Any specific questions I can answer for you?"');
-    lines.push('  No "would X or Y work". No "45 minutes". No "wide open today". No appointment structure of any kind.');
-    lines.push('  GOOD EMAIL CLOSE: "Is the Audi A3 still something you\'re exploring, or has your search taken a different direction?"');
-    lines.push('  BAD EMAIL CLOSE: "Would 10:45 AM or 11:30 AM today work for your visit?"');
+    // (v9.7.697) AUDIT H2 — the SMS/EMAIL examples, GOOD and BAD lines are removed. They were Audi A3 copy on
+    // every store; "still have the A3 here" claimed a unit with no stock number, and "Is the A3 still on
+    // your radar?" was the exact still-interested question the PHASE block in this same prompt bans.
+    lines.push('No appointment times, no duration, and nothing that assumes a visit. Give them one easy thing to answer.');
     lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   }
 
@@ -25119,7 +25341,7 @@ async function generateAll() {
     // throws "Assignment to constant variable." — which is how v9.7.579 STILL failed to render
     // after fixing the field names v9.7.578 got wrong. Two stacked bugs, both mine, and the second
     // was invisible until the first was cleared.
-    let userPrompt = buildUserPrompt({
+    var _lpPromptInputData = {
       name, agent, salesRep: leadSalesRep,
       store, vehicle: vehicleForPrompt, leadSource,
       context: leadContext,
@@ -25230,13 +25452,32 @@ async function generateAll() {
       // missing prop bridge.
       isSmsOptOutOnly:           lastScrapedData ? !!lastScrapedData.isSmsOptOutOnly : false,
       smsOptOutEvidence:         lastScrapedData ? !!lastScrapedData.smsOptOutEvidence : false,   // (v9.7.696) informational
+      emailBounce:               lastScrapedData ? (lastScrapedData.emailBounce || null) : null,   // (v9.7.697) N3
       hasExitSignal:             lastScrapedData ? !!lastScrapedData.hasExitSignal : false,
       hasPauseSignal:            lastScrapedData ? !!lastScrapedData.hasPauseSignal : false,
       hasTextOrEmailSent:        lastScrapedData ? !!lastScrapedData.hasTextOrEmailSent : false,
       activeFlags: Array.from(activeFlags),
       dealerId: lastScrapedData ? (lastScrapedData.dealerId || '') : '',
       leadAgeDays: lastScrapedData ? (lastScrapedData.leadAgeDays || 0) : 0
-    });
+    };
+    let userPrompt = buildUserPrompt(_lpPromptInputData);
+    // (v9.7.697) HARNESS CAPTURE, MEMORY-ONLY. What buildUserPrompt was given, plus the state around it,
+    // so a real lead can be replayed through an old and a new build side by side. Holds real customer
+    // data: it stays in this browser until the agent runs window._lpDumpLead(), which saves a local file.
+    try {
+      var _lpDumpDid = lastScrapedData ? String(lastScrapedData.dealerId || '') : '';
+      window._lpLastPromptInputs = {
+        capturedAt: new Date().toISOString(),
+        version: (function () { try { return chrome.runtime.getManifest().version_name || ''; } catch (e) { return ''; } })(),
+        promptData: _lpPromptInputData,
+        lastScrapedData: lastScrapedData,
+        persona: window._leadProResolvedPersona || '', personaOverride: window._leadProPersonaOverride || '',
+        signer: window._leadProResolvedSigner || null,
+        factVerdicts: window._lpFactVerdicts || {}, draftHistory: window._lpDraftHistory || [],
+        regenDirective: window._lpRegenDirective || '',
+        valueFacts: (typeof _lpValueFactCache !== 'undefined' && _lpDumpDid) ? (_lpValueFactCache[_lpDumpDid] || null) : null
+      };
+    } catch (_eLpDump) {}
     // ── (v9.7.578) THE SITUATION READ — replaces the cadence tag entirely ──────────────────
     // The 90-day task list still says WHEN to touch and on which channel; its [LP: ...] notes are
     // ignored. What the message is FOR is decided by the model from the facts below.

@@ -65,7 +65,7 @@ function extract(file) {
   // The three-branch vehicle line, exactly as the prompt builder evaluates it. Wrapped as an
   // assignment so the suite reads the SHIPPED string rather than a paraphrase of it.
   const line = 'var VEHLINE = ' + slice(src, '(data.vehicle && _voiMis.length)',
-                                             "unless it is listed here.'", 'vehicle line') + ';';
+                                             "fine to name as their trade.'", 'vehicle line')   /* (v9.7.697) N6 changed the line's last words */ + ';';
   // NOT named `code`: guarded-impls.js substitutes the WHOLE FILE for a missing `code`
   // (so source-scan assertions still work), which would make a pre-fix run report
   // "window is not defined" instead of naming what was absent. A distinct key gets the

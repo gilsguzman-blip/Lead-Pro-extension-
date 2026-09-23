@@ -65,7 +65,7 @@ function extract(file) {
     soft:  grab('function _lpSoftReEngage(d) {', '} catch (e) { return false; }\n}', 'soft-re-engage helper'),
     crm:   grab('vehicleExtras.push(_lpQualifyingAsked(d)', 'the vehicle you asked about."\');', 'CRM-CONFIRMS branch'),
     noveh: grab('(_lpQualifyingAsked(data)', "Ask what they are looking for instead.'),", 'no-vehicle constraint'),
-    subj:  grab('...((!data.vehicle && !hasCustomerReply)', "none of the banned openers.']\n      : []),", 'subject directive'),
+    subj:  grab('...((!data.vehicle && !hasCustomerReply', "none of the banned openers.']\n      : []),", 'subject directive'),
   };
 }
 
@@ -165,8 +165,10 @@ check('...and forbids the exact opener the model produced',
 check('...and names it a restate',
   i => /Repeating it is a restate/.test(ackLine(i, SAID, 'Click & Go')), true);
 
-check('outreach out but source never named — one mention allowed, not as an announcement',
-  i => /may name the source once if it fits naturally, but NOT as an opening/.test(ackLine(i, OUT_UNSAID, 'Click & Go')), true);
+// (v9.7.697) "may" became "name it once, in passing": Gil, 9/23 — a Facebook follow-up went out with
+// no source mention at all. Still never an opening announcement.
+check('outreach out but source never named — one passing mention asked for, not as an announcement',
+  i => /name the source once, in passing — it tells them we read what they sent — but NOT as an opening/.test(ackLine(i, OUT_UNSAID, 'Click & Go')), true);
 
 check('...and that arm does not claim we already said it',
   i => /ALREADY SAID SO/.test(ackLine(i, OUT_UNSAID, 'Click & Go')), false);
@@ -381,7 +383,8 @@ check('...and the whole rules block is static — no interpolation in the cached
 console.log('\nnon-vacuity (v9.7.651 branches):');
 const OLD_CRM   = c => c.replace('_lpQualifyingAsked(d)', 'false');
 const OLD_NOVEH = c => c.replace('_lpQualifyingAsked(data)', 'false');
-const OLD_SUBJ  = c => c.replace('(!data.vehicle && !hasCustomerReply)', 'false');
+// (v9.7.697) the gate gained two trade terms (N6); the neuter still switches the whole gate off.
+const OLD_SUBJ  = c => c.replace(/\(!data\.vehicle && !hasCustomerReply[^)]*\)/, 'false');
 
 check('neuter D actually changed the CRM branch', i => OLD_CRM(i.crm) !== i.crm, true);
 check('D: pinned to "not asked", the third asking is instructed again — the reported bug',
