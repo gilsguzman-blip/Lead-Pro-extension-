@@ -183,7 +183,7 @@ check('KEPT — the settled-plan voicemail size, consistent with the spared voic
 // ── SPARED, OR NOT A CONSTRAINT ───────────────────────────────────────────────────────────
 console.log('\n  spared or not a constraint — still exactly where they were:');
 [['subject line 4-8 words (Gil, 9/10)', 'Short is better — 4-8 words'],
- ['opt-out confirmation (compliance path)', 'very short opt-out confirmation. ONE sentence.'],
+ ['opt-out SMS line (compliance path; v9.7.695 asks for the EMPTY field the render blank enforces)', '1. SMS = EMPTY STRING. The SMS field is blanked in code for this lead'],
  ['STOP-path voicemail', 'VOICEMAIL = skip or one sentence max'],
  ['appointment-day close (WHICH times, not how many words)', 'Your ONLY close is two times on the day the customer named. Nothing else.'],
  ['voicemail-only 60-80 words (spoken)', 'about 60-80 words, three short beats'],

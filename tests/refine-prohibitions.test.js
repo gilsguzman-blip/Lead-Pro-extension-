@@ -251,7 +251,7 @@ console.log('\n  the three spared paths, and the lines that REMOVE constraints, 
 
 const KEPT = [
   ['the voicemail word target — it is spoken, not read', 'about 60-80 words, three short beats'],
-  ['the opt-out confirmation — compliance path', 'very short opt-out confirmation'],
+  ['the opt-out SMS line — compliance path (v9.7.695: empty field, matching the render blank)', '1. SMS = EMPTY STRING. The SMS field is blanked in code for this lead'],
   ['the 4-8 word subject rule — Gil settled it 9/10', 'Short is better — 4-8 words'],
   ['the SHORTEN chip — the agent asks for it by hand', 'Shorten the message to roughly 60-70%'],
   ['"being short is not a reason to drop an ask"', 'Being short is not'],
@@ -322,7 +322,7 @@ console.log('\n  the "one X" lines that are NOT length caps survive:');
 
 const NOT_CAPS = [
   ['the appointment-day rule — a content rule about WHICH times', 'Your ONLY close is two times on the day the customer named. Nothing else.'],
-  ['the opt-out confirmation — still a spared compliance path',   'very short opt-out confirmation'],
+  ['the opt-out SMS line — still a spared compliance path',       '1. SMS = EMPTY STRING. The SMS field is blanked in code for this lead'],
   ['"GOAL: Get their first reply. Nothing else." — a goal',       'GOAL: Get their first reply. Nothing else.'],
   ['ONE THOUGHT PER SENTENCE — rhythm, kept by v9.7.673',         'ONE THOUGHT PER SENTENCE'],
   ['the signature format rule',                                   'End with the stacked signature']

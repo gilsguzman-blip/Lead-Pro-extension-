@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.695-dev (Dev. AUDIT P1 -- ONE SMS SWITCH, SCOPED BY THE CURRENT-LEAD MARKER. Extension only; proxy v7.76 and reporter v1.22 unchanged. GIL'S RULING, 9/23, SUPERSEDING BOTH v9.7.435 ("a new lead disqualifies old opt-outs" via hasNewLeadToday) AND v9.7.514 ("a prior-lead opt-out keeps SMS suppressed"): opt-out evidence only BELOW the marker belongs to a prior lead and is superseded for the SMS channel AND for framing; evidence ABOVE the marker suppresses SMS whatever else the customer wrote; an explicit re-opt-in NEWER than the newest current-lead opt-out clears it; no marker means all evidence is current. NEW scraper flag smsSuppressed is the ONLY input to the render-time SMS blank, the SMS CHANNEL OVERRIDE scenario line, the LEAD-section SMS STATUS line and the empty-pane caption -- each used to OR in its own reading (isSmsOptOutOnly, or a bare STOP in lastInboundMsg, which can be a PRIOR lead's STOP). PATH A, VERIFIED ON THE REAL v9.7.694 REGION, NOT INFERRED: single-lead record, opt-out status note, then "still looking, email me instead" -- smsOptOutIsExit:true, hasExitSignal:false (recentCustomerActive), isSmsOptOutOnly:false, render blank false: an SMS draft for a number with opt-out evidence. With a marker it passed only BY ACCIDENT: SMS-status notes are stripped from the transcript, so the old marker scan filed a CURRENT-lead status note as prior-lead. The new scan reads the notes themselves and places each by DATE against the marker's own timestamp (_lpMarkerMs, recorded where the marker is placed). Evidence set: customer bare STOP; the newest-inbound STOP (placed by transcript position); SMS-status/carrier opt-out notes with the existing other-phone-number check, now over every note; NEW, customer "stop texting" / "no more texts". Re-opt-in set: opt-in status notes and a customer's bare YES/START/UNSTOP by TEXT. DELIBERATELY DROPPED from re-opt-in, both fail-safe: /reply yes/ (it matched our OWN outbound "Reply YES to confirm" and could clear a live opt-out) and a bare "Yes" by EMAIL. FRAMING KEEPS ITS FLAGS, AS RULED -- AND I MEASURED WHY THIS MATTERS: my first draft set the framing flag equal to smsSuppressed; a 448-shape differential against v9.7.694 showed it ADDED farewells (a current-lead STOP followed by "is the civic still there?" became an exit). Reverted: isSmsOptOut is the pre-695 formula with one term added, && !_ssPriorOnly. Final differential over the same 448 shapes: EXIT flips 0; opt-out-only framing flips 18, all true->false, all prior-lead-only; SMS verdict flips 120 draft->SUPPRESSED (current-lead or no-marker evidence the old code drafted on: the path-A shape, "stop texting", our "Reply YES", a current STOP followed by a later message, created-today leads) and 30 SUPPRESSED->draft (prior-lead evidence, or an explicit re-opt-in newer than the opt-out). ONE TO WATCH: "regardless of what else the customer wrote" means a current-lead STOP followed by an ordinary text now stays suppressed until an explicit START/YES/opt-in note -- v9.7.694 drafted SMS there. ALSO: the TOP-PRIORITY opt-out block's "1. SMS = generate a very short opt-out confirmation" (flagged open since v9.7.532) now asks for the EMPTY field the blank enforces. isSmsOptOut, an undeclared implicit global in the scraper since it was written, is now declared. NEW [LP SMS SUPPRESS DIAG], POPUP-SIDE at grab and at render: evidence, which side of the marker each piece sits on, re-opt-ins, whether one is newer than the newest current opt-out, and the verdict; it says so explicitly when no notes frame merged or the scoped read threw (fail-safe: then any unscoped evidence suppresses). VERIFIED: NEW sms-suppress.test.js, 98 assertions across both builds, EXECUTING the real shipped region against fake CRM notes -- 16 lead shapes covering every case in the ruling plus path A with and without a marker, re-opt-in ordering, our own "Reply YES", a different phone number, and no-farewell-added; plus the consumers and the diag line executed. NON-VACUITY: the same suite against v9.7.694 fails 40 of 64, including path A, prior-lead STOP, prior-lead status note, the no-marker fail-safe and "Reply YES". Two spared-path pins in message-constraints and refine-prohibitions now pin the empty-SMS line. run-all: 117 suites, 5679 assertions, 0 failed. node --check clean on both builds; both manifests parse; version AND version_name bumped; the changed regions byte-identical DEV vs COMMERCIAL. Builds on v9.7.694. Mirrors COMMERCIAL v9.7.695.)
 // Lead Pro -- popup.js  v9.7.694-dev (Dev. THE AUDIT. Extension only; proxy v7.76 and reporter v1.22 unchanged and NOT redeployed. Gil, 9/23: "We've shown that the model can have constraint with the rails off of length. Audit the entire code for any instances of message constraints, first reach, follow up, showroom, etc...." and, on the result: "Build it and we'll go with your suggestions for the 5." v9.7.689 took 'short' out of thirteen sites and v9.7.691 took out thirteen counts and both zero-contact skeletons, each on a capture. This build swept EVERY string literal in the file instead of waiting for the next capture -- size words, sentence/line/paragraph/word counts, caps, stop-instructions, structure templates and ask counts -- and classified each hit by the branch that governs it. THE TWO THAT FIRED ON EVERY LEAD, and which mattered more than everything else combined: FORMAT RULES carried 'Keep it to 2-3 paragraphs max.' on EVERY email in the fleet, sitting below everything the last two builds removed; and _LP_SMS_SHAPE_RULE described a text as 'short lines a person would actually thumb into a phone' inside a rule that says outright 'THERE IS NO SENTENCE COUNT AND NO LENGTH TO HIT'. Both gone; the paragraph-spacing instruction and the thumbed-into-a-phone description stay. The shape rule's definition line was edited alone -- the v9.7.672 build header quotes the same sentence verbatim and a whole-file replace would have rewritten history. TWO SKELETONS: the trade-tool cross-brand path still said 'WRITE THE MESSAGE IN THIS EXACT ORDER -- FOUR DISTINCT PARAGRAPHS' with a numbered paragraph each and one marked 'ONE LINE ONLY'; it now says what the message has to do, in whatever shape reads naturally, with every piece of content kept. The velocity-response first reach carried 'Structure: Acknowledge inquiry + ONE light qualifying question' and a worked sentence; the structure line is now the job, and the example is labelled 'for illustration only, not a script to copy' -- the v9.7.688 lesson that a lone worked example is read as a template. SEVENTEEN SIZE WORDS REMOVED, by scenario: first reach (after phone attempts, still-shopping, bot-authored no-vehicle 'SHORT'), follow-up (re-engagement, thin reply, settled plan x2, past friction, trade declined 'in one line', the cadence value role's 'minimal preamble'), showroom/appointment confirmation, sold (customer reached out, service satisfaction check), exit/not-ready, cross-brand prior buyer 'one welcome-back line', Audi Lafayette drive-out, Click & Go x2 ('once' kept, 'briefly' removed), and the EXPAND chip, which capped the very expansion the agent had asked for at 'two to four sentences'. In every case what the line was FOR is still said. EIGHT ASK COUNTS REPHRASED on Gil's 9/22 rule -- 'phrase it differently as to not imply a limit on the ask' -- first reach no-vehicle and fresh-inquiry, follow-up fresh signal, SHOWROOM follow-up, stalled PHASE 2 (its still-interested prohibition kept), bot no-vehicle, the friction apology, and the VOI-family either/or. THE EITHER/OR IN THE AGENT CONTEXT PREAMBLE EXPOSED A DUPLICATE, the same trap the clarify line fell into in v9.7.689/.690: the 1,263-character preamble existed as two BYTE-IDENTICAL literals in the two _hasPostVisitNote branches -- the competing transcript carriers v9.7.629 recorded -- so one sentence needed two edits. It is now ONE variable, _LP_AGENT_CONTEXT_PREAMBLE, and it is declared INSIDE inlineScraper on purpose: that function is injected with `func: inlineScraper`, only its body travels, and a module-scope constant would be a ReferenceError in the CRM frame. Verified before merging that the two literals were identical (the script refuses otherwise), and after that the definition and both consumers sit inside the scraper's own boundaries. census.test.js owns it -- the second entry there found by an audit rather than an incident -- with both old literal forms and the counted either/or pinned as forbidden. THE FIVE DECISIONS, as Gil took them: Costco and Car Pro Show first reach LOSE 'CLOSE: Two specific appointment times.', which contradicted TIME-OFFER VARIETY ('ONE closing tool, not a required ending'); the two appointment-suppression filters that strip that exact line are left in place as an inert safety net should a source branch ever re-add it. Same-day evening loses its scripted close line and keeps the intent: close directly on tonight, not passive, not 'whenever works'. KEPT: bereavement stays a brief condolence (2-3 sentences), because in that scenario length is itself the harm; 'pick AT MOST ONE' secondary angle, because it stops offers being stacked rather than limiting length; and the settled-plan voicemail's 20-30 seconds, consistent with the spared voicemail target. NOT TOUCHED AND PINNED AS SUCH: the 4-8 word subject rule, the opt-out path and its STOP voicemails, the appointment-day close, the voicemail-only 60-80 words, the SHORTEN chip, ONE THOUGHT PER SENTENCE, depth-matching, the refine pass's 'LENGTH IS YOURS TO JUDGE', and the three lines that use 'short' to REMOVE a constraint. NOTHING IN CODE CONSTRAINS OUTPUT: no generated message is truncated after the fact, and the token ceilings (2,500 main, 700 refine, 1,200 voicemail) do not bind -- all 23 captures on 9/22 finished STOP. VERIFIED: 116 suites green, 5,581 assertions, dev===comm on every edit (applied as literal replacements to both builds, each verified by exact match count before writing). NEW SUITE message-constraints.test.js pins the audit in BOTH directions -- removed stays removed, the intent of each line is still present, and every kept item is still where it was -- and EXECUTES the shape rule and the hoisted preamble rather than scanning for them. Against v9.7.693 it fails 46 by name while the 16 kept-by-design items pass, which is the correct shape. Two neuters with controls: declaring the preamble at module scope fails the scope assertion while its text is still right, and putting the every-email paragraph cap back fails by name while the format line survives. THREE EXISTING ASSERTIONS UPDATED, each pinning a count this build removed on Gil's decision: friction-state ('no second question'), voi-family ('ONE direct question') and regen-variance (PHASE 2, out of scope for v9.7.688 and in scope now). WHAT THIS MIGHT BREAK, PLAINLY: this is the widest length change yet. EVERY email loses its three-paragraph ceiling, and the trade-tool path loses the only four-paragraph template in the file. Expect emails to vary in length far more than they have, most visibly on showroom, sold and appointment-confirmation paths that were each told 'brief'. Costco and Car Pro first reach will no longer always end on two appointment times. The changes to the static system-prompt prefix (the shape rule, the cadence role line) move the cacheable prefix once, so the first calls after install run cold. STILL OPEN, unchanged: proxy v7.76 is still NOT deployed; the pairs flattener still drops signal, trigger, chipCount, meta, workerRequestId and extensionVersion; the incentive/re-engagement-hook and STALL RECOVERY collision; the hook diag's first-person regex does not see 'me'; the em dash in SMS (2 of 12 on 9/22) has no rule, by Gil's call pending; the _pauseRx contraction gap; scenarioRules rendering twice per prompt. node --check clean on both builds; both manifests parse; version AND version_name both bumped. scraperVersion stays v9.7.51. Builds on v9.7.693.)
 // Lead Pro -- popup.js  v9.7.693-dev (Dev. THE STRIP I SHIPPED YESTERDAY NEVER MATCHED ANYTHING IN THE FIELD, AND MY OWN SUITE HID IT. Extension only; proxy v7.76 and reporter v1.22 unchanged and NOT redeployed. The first live run of the v9.7.692 variance row printed the correct verdict and, in the same line, the evidence that half of it was dead: "ask terms:[christina prefer check back later kia carnival stop reaching out]" -- the customer's name and the vehicle, which are the two things that strip exists to remove, both still there. TWO INDEPENDENT MISSES, AND BOTH ARE THE NORMAL CASE RATHER THAN AN EDGE. v9.7.692 split on the scraped strings VERBATIM. lastScrapedData.name is the FULL name -- [LP PHONE DIAG] on that capture reads customerName: "Christina Gonzalez" -- and the draft writes the first name alone, so the split never fires. The VOI is the full trim, "2026 Kia Carnival LX FWD", and the model wrote "the 2026 Kia Carnival", so that split never fires either. An exact-substring match cannot succeed against either shape, which means the stripping has been a no-op on every generation since it shipped. FIXED BY TOKENISING: each noise string is split on whitespace and every token of three characters or more is removed, so a first name out of a full name and a short model name out of a full trim both go. On the live capture the ask terms become [prefer check back later stop reaching out]. WHAT MY SUITE DID, WHICH IS THE PART WORTH RECORDING. It was green through all of this, and it was green because I BUILT THE FIXTURES FROM MY OWN IMPLEMENTATION INSTEAD OF FROM A CAPTURE: I set name to 'Christina', the FIRST name, and wrote every draft carrying the FULL '2026 Kia Carnival LX FWD'. That is the reverse of what the CRM supplies on BOTH counts, and it is the only combination in which a whole-string split works. Twenty-five assertions executing the shipped code, three neuters with controls, and none of it could see the defect, because the input it was fed was the input the code wanted. This is the v9.7.563 false-green shape with the error moved into the fixture, and it is a more dangerous version of it: the suite was not vacuous, it was confidently testing a world that does not exist. THE RULE IT COSTS: a fixture for a scraped value is only evidence if it carries the shape the SCRAPER produces, and the way to know that is to read it out of a capture rather than to write it from the code. WHAT CHANGED IN THE SUITE: LEAD.name is now the full 'Christina Gonzalez'; the 9/22 17:36 capture is driven verbatim as its own section; and the strip is asserted on its OUTPUT -- the name is absent, the vehicle is absent, the signer and store are absent, and what remains is exactly the ask -- rather than on the existence of a strip. A FOURTH NEUTER puts the whole-string form back and reproduces the leak by name, with a control asserting the verdict was right even while the strip was dead, which it was. NOTHING THE VERDICTS SAID WAS WRONG, and that is worth stating plainly rather than letting the fix imply otherwise: Christina's six still score 0.67-1.00, the two arcs the agent kept still score 0.17 and 0.13, and the live capture scored 0.20 and read DIFFERENT MOVE both before and after this build. v9.7.692's own neuter B already measured that the six separate at 0.67-1.00 with NO stripping at all. What was actually broken is the protection the stripping was added for -- the short-ask case, two different questions that both name the vehicle, which scores 0.60 without it and 0.00 with it -- and that protection was never running. A SECOND MISTAKE INSIDE THE FIX, caught before commit and recorded because it is the same family: the first version of neuter D used a regex with `[^}]*}` to swap the loop back, and it swallowed the closing brace of _rvStrip, so the 'neutered' build did not parse and the control threw. A neuter that fails because the mutation broke the file is not a neuter. Rewritten as a literal replacement of the inner loop, which cannot over-reach. VERIFIED: 115 suites green, 5,505 assertions, +6, dev===comm on the changed region. Non-vacuity: the suite against v9.7.692 fails the five new capture-shaped assertions by name while the rest still pass, which is the correct shape -- the old build's verdicts were right and its stripping was not. WHAT THIS MIGHT BREAK, PLAINLY: the row will now strip more aggressively, and a three-letter-or-longer token from a vehicle, name, signer or store name is removed wherever it appears -- so a draft that uses a store word in ordinary prose loses it from the comparison. On the arcs measured that changes no score and no verdict. Nothing customer-facing: this is one observational log row. STILL OPEN, unchanged: proxy v7.76 is still NOT deployed; the pairs flattener still drops signal, trigger, chipCount, meta, workerRequestId and extensionVersion; the incentive/re-engagement-hook and STALL RECOVERY collision; the _pauseRx contraction gap; scenarioRules rendering twice per prompt. node --check clean on both builds; both manifests parse; version AND version_name both bumped. scraperVersion stays v9.7.51. Builds on v9.7.692.)
 // Lead Pro -- popup.js  v9.7.692-dev (Dev. THE HISTORY ASKED; NOTHING MEASURED. Extension only; proxy v7.76 and reporter v1.22 unchanged and NOT redeployed. Gil, 9/22: "are there any restraints on the regen?" Almost none, and the honest answer is worth recording: nothing caps how many times Regenerate can be pressed (regenCount is telemetry, and per v9.7.644 it is a 0/1 flag rather than a counter), every press reaches the model since v9.7.584, a plain regen sets no chip directive so it gets none of the nine chip instructions, and the ONLY content constraint is v9.7.688's draft history. That history puts the rejected drafts in front of the model and says rewording is not regenerating -- and nothing has ever checked whether the new draft actually differs. A paraphrase renders and ships looking exactly like a real variation. [LP REGEN VARIANCE DIAG] makes it countable. Observational only: nothing branches on it, the draft ships either way, and the row says so in its own text. WORD OVERLAP IS NOT THE MEASURE, AND THAT IS THE WHOLE DESIGN. Christina's six collapsed drafts scored jaccard 0.29-0.44 against each other -- inside the range of the SAME day's accepted regen pairs -- so a lexical check calls them healthy. The words moved every time; the MOVE never did, and the move lives in the QUESTION. So the row compares the ask, and three decisions make that work, each MEASURED against the real arcs rather than reasoned about. (1) STRIP WHAT IS CONSTANT -- the vehicle, the customer name, the signer and the store appear in every draft on a lead. (2) CONTAINMENT AGAINST THE SHORTER SIDE, not jaccard: a short ask fully contained in a longer earlier one is a repeat, and jaccard scores exactly that case low because it is short. (3) FALL BACK TO THE WHOLE MESSAGE when the question is thin -- Christina's draft 5 asked "Which would you prefer?", which has no content words at all because the move sat in the sentence BEFORE it, and question-only scoring gave it 0.00, the single false negative in the set. RESULTS ON THE REAL DATA: her six score 0.67, 1.00, 1.00, 1.00, 1.00 against their best prior. The two arcs the agent KEPT -- channel then timing, same lead, same evening, both after v9.7.688 shipped -- score 0.17 and 0.13. The threshold is 0.60 with the whole gap to spare. TWO OF MY OWN NEUTERS WERE WRONG AND THE MEASUREMENT SAID SO, which is the part worth keeping. I claimed removing the constant-stripping would make the kept arcs look alike: it does not, they score 0.13 either way and the six still score 0.67-1.00. Asserting it would have been a neuter that passes for the wrong reason. What the stripping actually protects is the SHORT-ask case -- two different asks that both name the vehicle score 0.60 without it and 0.00 with it -- so that is what is asserted. I also picked the wrong control for the jaccard neuter; under jaccard FOUR OF THE SIX fall below threshold and the incident goes unflagged, while draft 4 lands exactly on 0.60 and still reports, which is what makes it the control. AND THE CHIP LABEL WAS LYING. [LP EDGE BYPASS DIAG] printed "chip:true" on every plain Regenerate with no chip pressed, because the Generate button sets the same flag the chip handlers use -- `window._lpBypassEdgeCache = _regenStripVisible` -- and the diag printed that flag under the label "chip:". The feedback row on the same generation correctly said "chips: none", so the two artefacts disagreed and the log was the one that was wrong. The BYPASS was always correct and is untouched, asserted unchanged; this row exists to name WHICH LEG caused it (v9.7.584) and on that job it was misattributing. Renamed to explicitRefresh, with chipDirective printed beside it reading the actual directive. VERIFIED: 115 suites green, 5,499 assertions, +32, dev===comm on both changed regions. NEW SUITE regen-variance-diag.test.js EXECUTES the shipped comparison against BOTH real arcs -- the six it must catch and the two it must not -- asserting by SCORE and not only by verdict word, because a threshold that cannot separate those sets is decoration. THREE NEUTERS, each with a control, each corrected to what the data actually shows. TWO EXISTING ASSERTIONS UPDATED, and one of them is this file's own machinery working: regen-variance.test.js requires every _lpDraftHistory mention to sit inside a named span, and the new diag is a THIRD reader, so it had to be named on purpose rather than appearing quietly. It reads the list and never writes it. edge-bypass.test.js pinned the old label by name and now pins the new one, plus an assertion that the misleading form is gone. WHAT THIS MIGHT BREAK, PLAINLY: nothing in the drafts -- this build adds one log row and renames two fields in another. The risk is READING it wrong: OVERLAPPING between 0.35 and 0.60 is a judgement band and will fire on genuine near-misses, and a lead whose every reasonable ask is close-adjacent will score high without anything being wrong. It is a counter, not a verdict. STILL OPEN, unchanged: proxy v7.76 is still NOT deployed; the pairs flattener still drops signal, trigger, chipCount, meta, workerRequestId and extensionVersion; the incentive/re-engagement-hook and STALL RECOVERY collision; the _pauseRx contraction gap; scenarioRules rendering twice per prompt. node --check clean on both builds; both manifests parse; version AND version_name both bumped. scraperVersion stays v9.7.51. Builds on v9.7.691.)
@@ -375,6 +376,26 @@ try { chrome.storage.sync.get(['leadpro_license'], function(r){ _lpLicenseKeyCac
 // (v9.7.462/457) console-log hygiene — customer phone numbers were logged in full; keep the
 // diagnostic value (presence + last 4) without spelling out the whole number on shared
 // BDC workstations.
+// (v9.7.695) [LP SMS SUPPRESS DIAG] — POPUP-SIDE, one line: what opt-out evidence the scraper found,
+// which side of the CURRENT LEAD marker each piece sits on, any re-opt-in, and the final flag. The
+// flag is the ONLY input to the render-time SMS blank and the prompt's SMS-status lines.
+function _lpSmsSuppressDiagLine(d, where) {
+  try {
+    var g = (d && d._smsSuppressDiag) || null;
+    var fin = !!(d && d.smsSuppressed);
+    if (!g) return '[LP SMS SUPPRESS DIAG] ' + (where || '') + ' smsSuppressed:' + fin + ' | no scraper detail (no notes frame merged)';
+    if (g.error) return '[LP SMS SUPPRESS DIAG] ' + (where || '') + ' smsSuppressed:' + fin + ' | scoped read THREW (' + g.error + ') — fell back to unscoped evidence';
+    var ev = (g.evidence || []).map(function (e) { return e.kind + ' ' + e.date + ' [' + e.side + ']'; }).join('; ') || 'none';
+    var ro = (g.reoptIn || []).map(function (e) { return e.kind + ' ' + e.date + ' [' + e.side + ']'; }).join('; ') || 'none';
+    return '[LP SMS SUPPRESS DIAG] ' + (where || '') + ' smsSuppressed:' + fin
+      + ' | marker:' + (g.markerFound ? 'found' + (g.markerDate ? ' (' + g.markerDate + ')' : ' (undated — all evidence current)') : 'NONE — all evidence treated as current')
+      + ' | opt-out evidence: ' + ev
+      + ' | current:' + (g.currentCount || 0) + ' prior:' + (g.priorCount || 0)
+      + ' | re-opt-in: ' + ro
+      + ' | re-opt-in newer than newest current opt-out:' + !!g.reoptAfterNewestCurrent;
+  } catch (e) { return '[LP SMS SUPPRESS DIAG] could not render: ' + ((e && e.message) || e); }
+}
+
 function _lpMaskPhone(p) {
   var s = String(p || '');
   var digits = s.replace(/\D/g, '');
@@ -8471,6 +8492,10 @@ function _lpScraperBotAuthor(msg) {
     }
     var lastInboundMsg='';  // (v9.7.248) single declaration; only the inbound-note loop below populates it. No pre-loop last-message extraction.
     var firstLeadReceivedSeen=false;
+    // (v9.7.695) The CURRENT LEAD marker's own timestamp, recorded where the marker is placed, so
+    // notes that never reach the transcript (SMS status notes are stripped from it) can still be
+    // placed on the correct side of it. 0 = marker not placed, or placed on an unparseable date.
+    var _lpMarkerMs = 0, _lpMarkerDate = '';
     // (v9.7.492/487) Customer requirements stated in the LEAD-RECEIVED note. See the capture
     // point below for why this exists — the note is stripped from the transcript wholesale.
     var _leadIntakeReq = '';
@@ -10382,6 +10407,7 @@ function _lpScraperBotAuthor(msg) {
         }
         if(isCurrentLeadStart) {
           firstLeadReceivedSeen = true;
+          _lpMarkerMs = noteMs > 0 ? noteMs : 0; _lpMarkerDate = date || '';   // (v9.7.695) see declaration
           // If this lead note is significantly newer than the original created date,
           // this is a re-activated/recycled lead. Tighten the cutoff so old outbound
           // is excluded from hasOutbound and follow-up detection.
@@ -11591,9 +11617,125 @@ function _lpScraperBotAuthor(msg) {
     // (_freshStopOnThisLead) — that read is scoped OUT of "old/historical" by definition; a
     // customer stopping the moment they arrive must always be respected, matching the original
     // Wendy-case guard this file already carries.
-    isSmsOptOut = _freshStopOnThisLead
+    // ── (v9.7.695) P1 — ONE SMS-SUPPRESSION FLAG, SCOPED BY THE CURRENT-LEAD MARKER ───────────────
+    // Gil's ruling, 9/23. It SUPERSEDES two earlier rules, both described in the comments above and
+    // below this block and both now withdrawn:
+    //   - v9.7.435 "a newly received lead disqualifies OLD opt-outs on its own" (hasNewLeadToday), and
+    //   - v9.7.514 "an opt-out from a prior lead keeps SMS suppressed; only the farewell is dropped".
+    // THE RULE NOW:
+    //   1. Opt-out evidence that sits only BELOW the CURRENT LEAD marker belongs to a prior lead. The
+    //      new lead supersedes it for the SMS channel AND for exit/farewell framing: SMS is drafted.
+    //   2. Opt-out evidence ABOVE the marker (this lead) suppresses SMS, whatever else the customer
+    //      wrote. A current-lead opt-out followed by "still looking, email me instead" produces no SMS.
+    //      That was audit P1 path A: the old bookkeeping split it into smsOptOutIsExit:true (so not
+    //      opt-out-only) and hasExitSignal:false (cancelled by recentCustomerActive), so NEITHER flag
+    //      the popup reads went true and an SMS was drafted for a number with opt-out evidence.
+    //   3. An explicit re-opt-in NEWER than the newest current-lead opt-out clears it.
+    //   4. No marker: every piece of evidence counts as current (fail safe). Opt-out evidence with an
+    //      unparseable date counts as current AND newest; a re-opt-in with an unparseable date never
+    //      clears anything.
+    // "Created today" is deliberately NOT an input — the marker is the scope, and it is wider.
+    // smsSuppressed is the ONLY flag the render-time blank and the prompt's SMS-status lines read.
+    // Evidence set, and what changed in it:
+    //   - customer bare STOP (any inbound note) and the newest-inbound STOP already found above —
+    //     the same carrier keyword as before;
+    //   - SMS-status / carrier opt-out notes — the same phrases rawStopSignal and hasSystemOptOutNote
+    //     used, with the same "a different phone number in the note is a different customer" check,
+    //     now over EVERY note (the marker bounds age, so the old 30-note window is not needed);
+    //   - NEW: a customer writing "stop texting" / "no more texts". Before this it only reached the
+    //     exit chain, and only in the "stop.*contacting" wording.
+    // Re-opt-in set: SMS-status opt-in notes (as before) and a customer's bare YES / START / UNSTOP
+    // TEXT. NOT carried over: the old /reply yes/ clause, which matched our OWN outbound "Reply YES
+    // to confirm" and could clear a live opt-out; and a bare "Yes" by EMAIL, which is not an SMS
+    // opt-in.
+    var smsSuppressed = false;
+    var _smsSuppressDiag = null;
+    try {
+      var _ssMarkerIdx = -1;
+      for (var _ssMi = 0; _ssMi < transcript.length; _ssMi++) {
+        if (/CURRENT LEAD SUBMITTED HERE/.test(transcript[_ssMi])) { _ssMarkerIdx = _ssMi; break; }
+      }
+      var _ssMarkerFound = _ssMarkerIdx > -1;
+      var _ssMarkerMs = (_ssMarkerFound && _lpMarkerMs > 0) ? _lpMarkerMs : 0;
+      var _ssSide = function (ms) {
+        if (!_ssMarkerFound || !_ssMarkerMs || !isFinite(ms) || ms <= 0) return 'current';
+        return ms >= _ssMarkerMs ? 'current' : 'prior';
+      };
+      var _ssPhone = String(phone || '').replace(/\D/g, '').slice(-10);
+      var _ssStatusOutRe = /opted out of text|successfully.*removed.*text|removed from.*text messages|sms status.*opt.?out|manually changed to:?\s*opt.?out|status.*has been.*opt.?out/i;
+      var _ssStatusInRe  = /sms status.*opt.?in|manually changed to:?\s*opt.?in|status.*has been.*opt.?in/i;
+      var _ssAskStopRe   = /\bstop texting\b|\bno more texts?\b/i;
+      var _ssOut = [], _ssIn = [];
+      noteEls.forEach(function (item) {
+        var _d   = ((item.querySelector('.notes-and-hsitory-item-date') || {}).innerText || '').trim();
+        var _ms  = _d ? new Date(_d).getTime() : NaN;
+        var _t   = ((item.querySelector('.legacy-notes-and-history-title') || {}).innerText || '').toLowerCase();
+        var _raw = ((item.querySelector('.notes-and-history-item-content') || {}).innerText || '');
+        var _c   = _raw.toLowerCase();
+        var _dir = (item.getAttribute('data-direction') || '').toLowerCase();
+        var _inb = _dir === 'inbound' || /inbound text|inbound sms|text message.*inbound/i.test(_t);
+        var _isText = /text|sms/i.test(_t);
+        var _body = _raw.replace(/^[ \t]*(?:received|sent)[ \t]+(?:from|to|by)[ \t]*:[^\n]*$/gim, '')
+                        .replace(/^[ \t]*by[ \t]*:[^\n]*$/gim, '')
+                        .replace(/\s+/g, ' ').trim().toLowerCase();
+        var _row = function (kind) { return { kind: kind, date: _d || '(no date)', ms: _ms, side: _ssSide(_ms) }; };
+        if (_inb && /^stop[\s.!]*$/.test(_body)) { _ssOut.push(_row('customer STOP')); return; }
+        if (_inb && _isText && /^(?:yes|start|unstop)[\s.!]*$/.test(_body)) {
+          _ssIn.push(_row('customer ' + _body.replace(/[\s.!]/g, '').toUpperCase())); return;
+        }
+        if (_inb && _ssAskStopRe.test(_body)) { _ssOut.push(_row('customer asked to stop texting')); return; }
+        var _isStatusOut = _ssStatusOutRe.test(_c) || (/sms status/.test(_t) && /opt.?out/.test(_c));
+        if (_isStatusOut) {
+          if (_ssPhone.length === 10) {
+            var _pn = _raw.match(/\(?\d{3}\)?[\s.\-]?\d{3}[\s.\-]?\d{4}/);
+            if (_pn && _pn[0].replace(/\D/g, '').slice(-10) !== _ssPhone) return;   // another number on the record
+          }
+          _ssOut.push(_row('opt-out status note')); return;
+        }
+        if (_ssStatusInRe.test(_c) || (/sms status/.test(_t) && /opt.?in/.test(_c))) _ssIn.push(_row('opt-in status note'));
+      });
+      // The newest-inbound STOP found above (the v9.7.534 body recovery) — placed by its own position
+      // in the transcript relative to the marker. Not found in the transcript = current (fail safe).
+      if (_freshStopOnThisLead) {
+        var _ssNIdx = transcript.indexOf(_newestCustLine);
+        var _ssNDate = (String(_newestCustLine).match(/^\[([^\]]+)\]/) || [])[1] || '';
+        _ssOut.push({ kind: 'newest inbound STOP', date: _ssNDate || '(no date)',
+                      ms: _ssNDate ? new Date(_ssNDate).getTime() : NaN,
+                      side: (!_ssMarkerFound || _ssNIdx < 0 || _ssNIdx < _ssMarkerIdx) ? 'current' : 'prior' });
+      }
+      var _ssCur = _ssOut.filter(function (e) { return e.side === 'current'; });
+      var _ssNewestOut = -Infinity;
+      _ssCur.forEach(function (e) {
+        var v = (isFinite(e.ms) && e.ms > 0) ? e.ms : Infinity;   // undated opt-out = newest
+        if (v > _ssNewestOut) _ssNewestOut = v;
+      });
+      var _ssReoptAfter = _ssCur.length > 0 && _ssNewestOut !== Infinity
+        && _ssIn.some(function (e) { return isFinite(e.ms) && e.ms > _ssNewestOut; });
+      smsSuppressed = _ssCur.length > 0 && !_ssReoptAfter;
+      if (noteEls.length || _ssOut.length) {
+        var _ssStrip = function (e) { return { kind: e.kind, date: e.date, side: e.side }; };
+        _smsSuppressDiag = {
+          markerFound: _ssMarkerFound, markerDate: _lpMarkerDate || '', notesScanned: noteEls.length,
+          evidence: _ssOut.map(_ssStrip), reoptIn: _ssIn.map(_ssStrip),
+          currentCount: _ssCur.length, priorCount: _ssOut.length - _ssCur.length,
+          reoptAfterNewestCurrent: _ssReoptAfter, smsSuppressed: smsSuppressed
+        };
+      }
+    } catch (eSS) {
+      // Fail safe: if the scoped read throws, suppress on ANY evidence the unscoped readers found.
+      smsSuppressed = !!(rawStopSignal || _freshStopOnThisLead);
+      _smsSuppressDiag = { error: String((eSS && eSS.message) || eSS).substring(0, 120), smsSuppressed: smsSuppressed };
+    }
+    // FRAMING ONLY — isSmsOptOut feeds exit-vs-opt-out-only below and no longer decides the channel.
+    // Ruling: framing keeps its current flags, so this is the pre-695 formula UNCHANGED, with one
+    // addition — an opt-out whose ONLY evidence sits below the marker no longer drives it (a prior
+    // lead is superseded for framing too). Deliberately NOT "= smsSuppressed": measured against
+    // v9.7.694 over 448 generated shapes, that version ADDED farewells — a current-lead STOP followed
+    // by "is the civic still there?" became an exit — which the ruling does not ask for.
+    var _ssPriorOnly = !!(_smsSuppressDiag && !_smsSuppressDiag.currentCount && _smsSuppressDiag.priorCount);
+    var isSmsOptOut = (_freshStopOnThisLead
       ? true
-      : (rawStopSignal && !hasNewLeadToday && !hasRecentReoptIn);
+      : (rawStopSignal && !hasNewLeadToday && !hasRecentReoptIn)) && !_ssPriorOnly;
     // isSmsOptOut means "stop texting" - NOT "not interested"
     // Only treat SMS opt-out as a full exit signal if it's fresh AND no new lead exists
     // Otherwise: suppress SMS only, keep email/voicemail active
@@ -11614,11 +11756,13 @@ function _lpScraperBotAuthor(msg) {
     // his record holds a single lead). So if the opt-out evidence appears ONLY below the marker,
     // it belongs to a prior lead and the new inquiry supersedes it. If it appears in the current
     // lead's own segment, it is live and still escalates — unchanged.
-    // COMPLIANCE NOTE, deliberately preserved: this only stops the EXIT/farewell framing. It does
-    // NOT re-enable the SMS channel. isSmsOptOutOnly below becomes TRUE in this case, so SMS
-    // stays suppressed and the draft goes out on email/voicemail — the customer gets a proper
-    // response to their new inquiry instead of a goodbye, and we still don't text an opted-out
-    // number. Restoring SMS itself remains gated on a real opt-in record (hasRecentReoptIn).
+    // (v9.7.695) CORRECTED. The "COMPLIANCE NOTE" that stood here said this block keeps SMS
+    // suppressed for a prior-lead opt-out. Gil's 9/23 ruling reverses that, and the CHANNEL is no
+    // longer decided here at all: smsSuppressed (P1 block above) is the only SMS switch, and it
+    // ignores prior-lead evidence. This block now only shapes FRAMING, exactly as before. Known and
+    // left alone because framing keeps its current flags: SMS-status notes never reach the transcript,
+    // so this scan cannot see them and files a current-lead status note as "prior". The P1 block
+    // places those notes by DATE, so the channel is right either way.
     var _optOutPriorLead = false;
     try {
       var _mkIdx = -1;
@@ -11672,11 +11816,12 @@ function _lpScraperBotAuthor(msg) {
     // still qualifies, because that note is the SAME event recorded twice, not extra evidence of
     // disinterest. What overrides it is a real exit signal, which routes through hasExitSignal below
     // on its own merits.
-    // COMPLIANCE — THE HARD BOUNDARY: this changes only the FRAMING of the response and the CHANNEL
-    // it goes out on. It does NOT re-enable texting. isSmsOptOut stays TRUE (untouched above), so
-    // isSmsOptOutOnly becomes TRUE and the SMS field is still blanked; the draft goes out on
-    // email/voicemail as a real answer to her actual inquiry instead of a goodbye. Restoring SMS
-    // itself remains gated on hasRecentReoptIn, unchanged. There is no path here that turns SMS on.
+    // COMPLIANCE — THE HARD BOUNDARY: this changes only the FRAMING of the response. It does NOT
+    // decide the channel. (v9.7.695) The channel is decided by smsSuppressed alone (P1 block above):
+    // current-lead opt-out evidence blanks the SMS field whether this resolves to exit or to
+    // opt-out-only, and only a NEWER explicit re-opt-in clears it. The comment that stood here said
+    // "isSmsOptOut stays TRUE (untouched above)"; since v9.7.435 that was not true on a new lead, and
+    // the path-A gap (neither popup flag true) sat underneath it.
     var _bareCarrierKeywordOptOut = false;
     try {
       var _bareStopRe = /^stop[\s.!]*$/i;                       // same shape as rawStopSignal above
@@ -14816,7 +14961,7 @@ function _lpScraperBotAuthor(msg) {
       vehicle,vehicleRaw,_voiFromPanel,_voiDiag,_isServiceFrame,_leadSelectorCount,_leadSelectorIds,priorSoldVehicle,color,condition,stockNum,vin,inventoryWarning:inventoryWarningFinal,inventoryWarningFromNotes,vehiclePendingSale,noSpecificVehicle,ownedVehicle,ampEmailSubject,ownedMileage,lastServiceDate,leadAgeDays,equityData,equityAmount,equityVehicle,
       leadSource,leadStatus: currentStatus || leadStatus,hasTrade,tradeDescription,buyingSignals,
       history, totalNoteCount, hasOutbound, isContacted, contactedAgeDays, lastOutboundMsg, lastSubstantiveOutboundMsg, noReplySinceLastOutbound, newestCustomerSignalType, newestCustomerSignalDesc, hasFreshCustomerSignal, hasCustomerReply: hasRealCustomerReply /* (v9.7.301) canonical ground truth — replaces divergent inline recomputations */, lastInboundMsg: lastInboundMsg||leadReceivedCustomerQuestion, lastInboundMs: _lastInboundMs, /* (v9.7.359) date of customer's last inbound — used to age their day-words */
-      hasPauseSignal, hasExitSignal, hasRecentReactivation, isSmsOptOutOnly, hasTextOrEmailSent, convState,
+      hasPauseSignal, hasExitSignal, hasRecentReactivation, isSmsOptOutOnly, smsSuppressed, _smsSuppressDiag, hasTextOrEmailSent, convState,
       vrMonthlyPayment, vrDownPayment, vrCreditScore, vrAPR, vrTerm, vrLender, conversationBrief, customerSaidNotToday, customerScheduleConstraint, schedCustomerNotes, outboundSends, isLiveConversation, isRecentOutbound, recentOutboundContent,
       customerDeclinedAlternative, customerDeclinedAlternativeText,
       email: (isMaskedEmail ? '' : buyerEmail),
@@ -16396,6 +16541,7 @@ function _lpScraperBotAuthor(msg) {
           // (v9.7.81) Popup-side SMS opt-out diagnostic — mirrors the scraper-side
           // trace at line 1972 into the popup console so we can see flag resolution
           // without switching to the page DevTools.
+          try { console.log(_lpSmsSuppressDiagLine(m, '(grab)')); } catch (_eSsd) {}
           console.log('[Lead Pro] POPUP-side SMS opt-out trace -- m.isSmsOptOutOnly:', m.isSmsOptOutOnly,
             '| m.hasExitSignal:', m.hasExitSignal,
             '| m.hasPauseSignal:', m.hasPauseSignal,
@@ -22092,9 +22238,11 @@ function buildUserPrompt(data) {
 
   // SMS channel override — applies universally across ALL lead sources
   // When customer has opted out of SMS, suppress it and let email/VM carry the message
-  var customerSentStop = /^stop\s*$/i.test((data.lastInboundMsg || '').trim());
+  // (v9.7.695) Reads smsSuppressed only. The old OR on a bare "STOP" in lastInboundMsg is gone: that
+  // string can be a PRIOR lead's STOP (the newest customer line when this lead has none), which the
+  // marker-scoped flag correctly ignores, and a current-lead STOP is already inside the flag.
   var customerRequestedRemoval = /take me off|remove me|unsubscribe|not interested.*list|off.*list/i.test(data.lastInboundMsg || '');
-  if (data.isSmsOptOutOnly || customerSentStop) {
+  if (data.smsSuppressed) {
     scenarioRules = scenarioRules + '\nSMS CHANNEL OVERRIDE: Customer opted out of SMS texts. Set sms field to empty string. Email and voicemail should proceed normally — do NOT mention the opt-out in email or voicemail. Write the email as a strong, forward-moving message appropriate to the scenario (Click & Go, follow-up, first-touch, etc.). Do NOT be apologetic or defeated.';
   }
 
@@ -23965,7 +24113,7 @@ function buildUserPrompt(data) {
       'The customer texted STOP. This is a CHANNEL preference (no more texts), NOT an exit signal. They did not say they bought elsewhere. They did not say they lost interest. They just said no more SMS.',
       '',
       'WHAT TO DO:',
-      '1. SMS = generate a very short opt-out confirmation. ONE sentence. Then the stacked signature. Nothing else. No re-engagement, no questions, no vehicle mention.'
+      '1. SMS = EMPTY STRING. The SMS field is blanked in code for this lead; anything written there is discarded. Put nothing in it.'
     );
     if (_optOutIsAISignal) {
       lines.push(
@@ -24157,7 +24305,12 @@ function buildUserPrompt(data) {
     data.phone
       ? 'Customer Phone: ' + data.phone + '  ← already on file. Do NOT ask for a phone number.'
       : 'Customer Phone: (no phone on file)  ← genuinely missing. Asking for a phone number IS appropriate.',
-    data.isSmsOptOutOnly ? '⚠ SMS STATUS: see TOP-PRIORITY DIRECTIVE above. SMS field = EMPTY STRING (suppressed). Email = substantive on original inquiry, NOT about the opt-out.' : '',
+    // (v9.7.695) Keyed on smsSuppressed, the one channel flag. Wording branches only on framing.
+    data.smsSuppressed
+      ? (data.isSmsOptOutOnly
+          ? '⚠ SMS STATUS: see TOP-PRIORITY DIRECTIVE above. SMS field = EMPTY STRING (suppressed). Email = substantive on original inquiry, NOT about the opt-out.'
+          : '⚠ SMS STATUS: this customer opted out of texts on this lead. SMS field = EMPTY STRING (suppressed).')
+      : '',
     'BD Agent:   ' + (data.agent || '⚠ AGENT NAME UNKNOWN — CRITICAL: Do NOT invent or guess a name. Use ONLY the phone number in the SMS signature. Sign as the phone number only. Never fabricate a name.') + '  ← THIS IS WHO WRITES AND SIGNS THIS MESSAGE. Use this name in the signature — NOT any sales rep name from prior messages.',
     'Sales Rep:  ' + (data.salesRep || '(not assigned)') + '  ← may appear in call notes as the person who spoke with customer',
     'Agent Phone: ' + phone + '  ← CRITICAL: this is the AGENT signature phone (use in signature). Do NOT confuse with Customer Phone above. Do NOT use any other number you may have seen.',
@@ -25541,6 +25694,7 @@ async function generateAll() {
       // true at popup level but prompt length never grew. Root cause: this
       // missing prop bridge.
       isSmsOptOutOnly:           lastScrapedData ? !!lastScrapedData.isSmsOptOutOnly : false,
+      smsSuppressed:             lastScrapedData ? !!lastScrapedData.smsSuppressed : false,   // (v9.7.695) P1
       hasExitSignal:             lastScrapedData ? !!lastScrapedData.hasExitSignal : false,
       hasPauseSignal:            lastScrapedData ? !!lastScrapedData.hasPauseSignal : false,
       hasTextOrEmailSent:        lastScrapedData ? !!lastScrapedData.hasTextOrEmailSent : false,
@@ -25693,7 +25847,7 @@ async function generateAll() {
     //
     // Always bypass when:
     var _inventoryBypass    = !!(lastScrapedData && (lastScrapedData.inventoryWarning || lastScrapedData.vehiclePendingSale));
-    var _exitPauseBypass    = !!(lastScrapedData && (lastScrapedData.hasExitSignal || lastScrapedData.hasPauseSignal || lastScrapedData.isSmsOptOutOnly));
+    var _exitPauseBypass    = !!(lastScrapedData && (lastScrapedData.hasExitSignal || lastScrapedData.hasPauseSignal || lastScrapedData.isSmsOptOutOnly || lastScrapedData.smsSuppressed));
     var _showroomBypass     = !!(lastScrapedData && (lastScrapedData.isShowroomFollowUp || lastScrapedData.showroomVisitToday));
     var _customerReplied    = !!(lastScrapedData && lastScrapedData.hasCustomerReply);  // reply = live conversation, cache wrong
     var _apptSetBypass      = !!(lastScrapedData && lastScrapedData.hasApptSet);         // appt already set = cache pre-appt response wrong
@@ -26323,9 +26477,13 @@ async function generateAll() {
     // enforced here regardless of what the model returned: a customer who texted STOP gets no
     // SMS draft, period. Exit-signal closes are unaffected — this fires only on the
     // channel-preference case (isSmsOptOutOnly) or a raw newest-message STOP.
+    // (v9.7.695) P1: READS smsSuppressed AND NOTHING ELSE. The scraper builds it from marker-scoped
+    // evidence (current-lead opt-out suppresses; prior-lead does not; a newer explicit re-opt-in
+    // clears). The old OR on isSmsOptOutOnly missed exit-framed opt-outs whose exit was cancelled
+    // (path A); the old OR on a bare STOP in lastInboundMsg blanked SMS on a prior lead's STOP.
     try {
-      var _optOutNow = !!(lastScrapedData && (lastScrapedData.isSmsOptOutOnly ||
-        /^stop[\s.!]*$/i.test(String(lastScrapedData.lastInboundMsg || '').trim())));
+      try { console.log(_lpSmsSuppressDiagLine(lastScrapedData, '(render)')); } catch (_eSsd2) {}
+      var _optOutNow = !!(lastScrapedData && lastScrapedData.smsSuppressed);
       if (_optOutNow && parsed && parsed.sms) {
         console.log('[Lead Pro] SMS suppressed deterministically (opt-out) — model draft discarded:', String(parsed.sms).substring(0, 80));
         parsed.sms = '';
@@ -26915,8 +27073,7 @@ async function generateAll() {
     // either way, write an explicit opt-out notice into the SMS pane so whichever tab the agent
     // lands on is self-explanatory. Normal leads (SMS present) open to SMS exactly as before.
     if (!smsText && emailText) {
-      var _wasOptOut = !!(lastScrapedData && (lastScrapedData.isSmsOptOutOnly ||
-        /\bSTOP\b/.test(String(lastScrapedData.lastInboundMsg || ''))));
+      var _wasOptOut = !!(lastScrapedData && lastScrapedData.smsSuppressed);   // (v9.7.695) same flag as the blank
       // Mark the SMS pane so it's clearly intentional, not broken.
       try {
         var _smsOverlayCap = document.querySelector('[data-overlay="sms"] .output-empty-caption');
