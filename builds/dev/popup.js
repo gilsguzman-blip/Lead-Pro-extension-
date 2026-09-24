@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.716-dev (Dev. A MODEL IS NOT A UNIT: 'Honda accord' BECAME 'THE CANYON RIVER BLUE ACCORD HYBRID EX-L YOU ASKED ABOUT'. Extension only; proxy v7.81 and reporter v1.22 unchanged. log246, Community Honda Baytown (dump 93441ecd): a 'Dealertrack - Gubagoo Inc.' lead with NO vehicle of interest. Asked three times for a model name, the customer texted 'Honda accord'. The draft: 'Enrique, the 2026 Accord Hybrid EX-L you asked about is here in Canyon River Blue Metallic'. Gil: 'Where is it picking up the VOI as the Canyon river blue Accord'. CAUSE: the v9.7.257 CHAT-VOI PROMOTION. For a gubagoo-sourced lead with no VOI it scores the vehicle the customer named against the store's inventory and pins the best unit as the VOI with stock, VIN and colour. Honda Baytown's live feed holds 30 Accords, every one scores the same against 'Honda accord', and the loop kept the FIRST to reach that score -- TA066746, the first Accord in the feed. From there every downstream block did its job on a false fact: 'confirmed in stock', 'THE COLOUR IS ALREADY SETTLED', 'Vehicle: ... THIS IS THE VEHICLE FOR THIS LEAD'. FIX, two rules. (1) A unit is promoted only when it is the ONE best match. When several tie, the customer named a MODEL: nothing is pinned, and a new line says so ('THE CUSTOMER NAMED A MODEL, NOT A UNIT ... 30 units in stock match ... do not give a trim, powertrain, colour or single unit as theirs; they already told you what they are shopping for, so do not ask again'); the LEAD section's Vehicle line names the model instead of 'NO VEHICLE IS ATTACHED ... do not name any vehicle from the conversation', and the 'ask what they are shopping for' line stands down. Carried to buildUserPrompt as _lpNamedModel through generateAll's prompt-input object. (2) Without a chat transcript the vehicle is read from the CUSTOMER's transcript entries only; the whole brief also carries our texts and notes, and a vehicle an agent mentioned is not the customer's choice. [LP CHAT-VOI DIAG] logs both outcomes. REPLAYED on the real dump: the shipped v9.7.715 scraper and the fixed one in Chromium, with Honda Baytown's live inventory (181 units, 30 Accords) loaded as the panel loads it. v9.7.715 reproduces log246 exactly (TA066746, Canyon River Blue, 10 unit lines); the fix removes all 10 and adds the named-model line and Vehicle line. A unique match, a chat transcript naming a unit, and non-chat sources are unchanged. TESTS: new chat-voi-716 (11 per build: 7 new, 4 controls) executes populateFromData, buildUserPrompt and generateAll's prompt-input literal against placeholder stock. NON-VACUITY against v9.7.715: the 7 new fail, the 4 controls pass. VERIFIED: run-all 142 suites, 6,494 assertions, 0 failed (+22). node --check both builds; manifests parse; changed lines identical dev vs commercial. Builds on v9.7.715.)
 // Lead Pro -- popup.js  v9.7.715-dev (Dev. PRE-RELEASE DEEP DIVE: THE REAL SCRAPER OVER THE REAL DUMPS, AND WHAT IT FOUND. Extension only; proxy v7.80 and reporter v1.22 unchanged. Gil, before pushing to the Chrome store: 'Do a deep dive'. METHOD. The shipped inlineScraper of v9.7.710 and v9.7.714 run in Chromium (Playwright) over all 11 uploaded VinSolutions dumps, then populateFromData + buildUserPrompt, and every prompt diffed; the two Lead Pro lead dumps replayed the same way. Every difference 710 -> 714 was an intended fix: routing headers gone from 3 latest-message quotes, log242's 2023 visit now dated, a URL no longer an open question, our subject lines out of the topic counts, two false VARIANT MISMATCH lines gone ('2022' on a Seltos, 'lease' on log242's RAV4) and the item-6 availability wording. No other line moved. (1) THE CUSTOMER'S OWN CAR WAS 'SOLD'. log242's lead (dump ed87d87f): a lease-end customer whose lead vehicle, a 2024 Toyota RAV4, is the vehicle their Sales history says we sold them. VinSolutions flags it out of active inventory because they drive it, and the prompt said 'VEHICLE STATUS: SOLD ... Tell the customer once, plainly, and pivot to comparable options' plus 'TASK: The specific vehicle of interest has been sold' -- to a customer asking 'What are the options?' about their lease. The v9.7.238 loyalty guard exists for exactly this and keys on the lead SOURCE; this lead's source is 'Showroom'. New _lpVoiIsPriorSale: same year and same make+model family as priorSoldVehicle. It joins the loyalty guard, gates classifyScenario's vehicleSold, and a new branch -- ahead of the Audi show-as-available policy, so the customer's car is never presented as inventory -- says it is the customer's own vehicle. [LP OWN VEHICLE DIAG]. On the replay only that lead changes: the SOLD pivot becomes the standard follow-up. (2) MY OWN v9.7.711 WORDING pointed loyalty leads at 'the VEHICLE STATUS line below', which does not exist there -- the LOYALTY VEHICLE banner owns them. VEHICLE ON LEAD now names the customer's own vehicle first for loyalty sources and prior-sale matches. (3) _lpIsOurOwnSend did not know three of our own automated sends: Marketing Campaign Email (29 in 2 dumps), Email auto response (22 in 4) and Email Price Change. Added in both copies; it feeds only exclusions (variant scan, concern lines, topic scan). No prompt changed on the 11 dumps -- protection, not a measured fix. (4) The SOLD SIGNAL 'REJECTED' diagnostic Gil saw as an error on v9.7.708 is benign and is now a log line. The remaining warnings fire only on real failures (notes not loaded, frames disagreeing on an address). ALSO CHECKED, NO CHANGE: the commercial zip holds the 11 runtime files only; manifest v3, permissions and host list unchanged; dev vs commercial differ only in the dev-only stability diagnostics, the DEV badge and header comments; 164 logged generations all finish STOP with no SAFE_FALLBACK; one runtime error in all logs, on v9.7.531; the SMS refine's source drops in the logs all predate the v9.7.697/712/713 guards. TESTS: new own-vehicle-715 (11 per build: 5 new, 6 controls). fences-fallback, sold-scan and consent-and-stock run the classifier and stock block in isolated sandboxes, so the new helper is called behind a typeof guard; consent-and-stock's pin re-anchored. NON-VACUITY against v9.7.714: 5 fail, 6 controls pass. VERIFIED: run-all 140 suites, 6,457 assertions, 0 failed (+22). node --check both builds; manifests parse; changed lines identical dev vs commercial except the SOLD diag line, whose dev-only wording predates this build; the 11-dump replay identical between the tested and final code. Builds on v9.7.714.)
 // Lead Pro -- popup.js  v9.7.714-dev (Dev. KBB ON TOYOTA.COM. Extension only; proxy v7.80 and reporter v1.22 unchanged. Gil, 9/24, on the v9.7.713 question: 'KBB on Toyota.com would be the most correct.' The 'Toyota.Com-Kbb Trade-In' source is KBB's trade tool hosted on toyota.com, and was told 'you may say the customer came through Kelley Blue Book'. It now has its own entry in the customer-facing source table, ahead of the general KBB entry: name 'KBB on Toyota.com', shape place. It is still the KBB Trade-In Advisor scenario. HOW THIS LEAD REACHED US names 'KBB on Toyota.com', and the NAMED SOURCE block has a Toyota.com form: MUST mention 'KBB on Toyota.com' once in SMS and email, never 'came through Kelley Blue Book' or KBB's site. THE TABLE GAINS AN OPTIONAL FOURTH COLUMN: the pattern that recognises the source in a DRAFT when it differs from the label pattern. v9.7.712 used the label pattern for both; for this entry a draft saying just 'KBB' or 'Toyota.com' has still named where they came from, so the SMS refine guard and its KEEP WHERE THEY CAME FROM block protect all three forms. Every other entry is unchanged and falls back to its label pattern. NOT CHANGED: 'Kbb Ico Dealer Website' (KBB's tool on our own site) keeps 'Kelley Blue Book' until Gil rules on it. TESTS: kbb-variants-713 extended to 24 per build (+4): the Toyota label's full reading, the three draft forms through the refine guard, and the refine prompt's wording; the nine other labels still pinned to 'Kelley Blue Book'. NON-VACUITY against v9.7.713: 3 fail (the label reading, a draft saying only 'Toyota.com', and the refine prompt's name); the 'KBB on Toyota.com' and 'KBB' draft forms already held there through the KBB pattern. VERIFIED: run-all 139 suites, 6,435 assertions, 0 failed (+8). node --check both builds; manifests parse; changed lines identical dev vs commercial. Builds on v9.7.713.)
 // Lead Pro -- popup.js  v9.7.713-dev (Dev. EVERY KBB VARIANT, BOTH KINDS. Extension only; proxy v7.80 and reporter v1.22 unchanged. Gil, after log245: 'What about all the KBB variations?' (A) THE SOURCE LABELS WERE ALREADY CONSISTENT, NOW PINNED. Ten distinct KBB lead-source strings appear across the uploaded logs, captures and dumps: Kbb Ico Kelley Blue Book, its '- Mobile', '(Internet)' and '- Mobile (Internet)' forms, Toyota.Com-Kbb Trade-In, Kelley Blue Book - Trade In, Kelley Blue Book Trade-In, Kbb Ico Dealer Website - Mobile, KBB ICO Lead and KBB ICO - Internet. Run through the shipped classifyScenario, _lpSourceAckPhrase and buildUserPrompt, every one already got the KBB Trade-In Advisor task, the NAMED SOURCE -- KBB block and 'Kelley Blue Book' as the one allowed name. AutoTrader-KBB stays an AutoTrader purchase lead. (B) THE WAYS IT GETS WRITTEN WERE NOT. v9.7.712's refine guard recognises a draft's mention with the source table's pattern, which knew 'KBB' and 'Kelley Blue Book' only: a first draft saying 'Kelly Blue Book', 'Blue Book' or 'K.B.B.' could lose it to the rewrite unguarded. The misspelling is real -- a customer in the corpus wrote 'Kelly Blue Book would not give me a...'. The source table entry now reads /kbb|k.b.b|kel+e?y blue book|blue book/; the scenario classifier (isKBB), the trade flag from the source, the newer-lead trade test, the incentive source exclusion, the fresh-source list, the relationship trade topic, the intent table and the trade-value ask all accept 'kelly' (and, where it is customer text, a bare 'blue book'). The CRM's own system-note detectors are unchanged; the CRM spells its own notes correctly. NOT CHANGED, a question for Gil: two labels are KBB's tool hosted somewhere else -- 'Toyota.Com-Kbb Trade-In' (the customer was on toyota.com) and 'Kbb Ico Dealer Website' (on our own site). Both are told 'the customer came through Kelley Blue Book'. The value they saw IS a KBB value, so 'your KBB value' is true; 'came through Kelley Blue Book' is the v9.7.639 Perkspot question in another form. TESTS: new kbb-variants-713 (20 per build: 4 new, 16 pins and controls, including 'blue' alone and 'book' alone not counting). NON-VACUITY against v9.7.712: the 4 new fail (the 'Kelly Blue Book Trade-In' source and the Kelly / Blue Book / K.B.B. drafts); the 16 pass on both. VERIFIED: run-all 139 suites, 6,427 assertions, 0 failed (+40). node --check both builds; manifests parse; changed lines identical dev vs commercial. Builds on v9.7.712.)
@@ -5704,21 +5705,55 @@ function populateFromData(d) {
   // stock" path fires with a fact behind it. No match -> no promotion -> the model stays honestly
   // tentative. Off-franchise make can never be CPO (the store cannot certify another brand) —
   // enforced from the unit's own condition/certified fields plus the store-brand check.
+  // ── (v9.7.716) A MODEL IS NOT A UNIT. log246, Community Honda Baytown (dump 93441ecd): a
+  // "Dealertrack - Gubagoo Inc." lead with NO vehicle of interest. Asked for a model name, the
+  // customer texted "Honda accord". This block scored "Honda accord" against the store's
+  // inventory -- every Accord scores the same -- kept the FIRST unit to reach that score, and
+  // pinned it as the VOI with its stock, VIN and colour. The draft then said "the 2026 Accord
+  // Hybrid EX-L you asked about is here in Canyon River Blue Metallic": a trim, a powertrain and a
+  // colour the customer never mentioned, chosen by feed order.
+  // Two rules now. (1) A unit is promoted only when it is the ONE best match; when several units tie,
+  // the customer named a model, and the prompt is told exactly that (d._lpNamedModel) instead of
+  // being handed a unit. (2) Without a chat transcript the vehicle is read from the CUSTOMER's
+  // own transcript entries only -- the whole brief also carries our texts and notes, and a
+  // vehicle an agent mentioned is not the customer's choice.
+  d._lpNamedModel = null;
   if (!d.vehicle || !String(d.vehicle).trim()) {
     try {
       var _cvIsChat = /gubagoo|m-chat|chat lead|live chat/i.test(d.leadSource || '');
       var _cvInv = _lpValueFactCache[d.dealerId] && _lpValueFactCache[d.dealerId].inv;
       var _cvUnits = _cvInv && _cvInv.units;
       if (_cvIsChat && _cvUnits && _cvUnits.length && d.conversationBrief) {
-        var _cvCands = _lpChatVehicleCandidates(d.conversationBrief);
-        var _cvBest = null, _cvBestSc = 0;
+        var _cvSrc = String(d.conversationBrief);
+        if (!/\[GUBAGOO CHAT\]|CHAT TRANSCRIPT|CUSTOMER'?S? INQUIRY/i.test(_cvSrc)) {
+          var _cvLines = [], _cvIn = false;
+          _cvSrc.split('\n').forEach(function (l) {
+            if (/^\s*\[[^\]]*\]\s*\[/.test(l)) _cvIn = /\]\s*\[CUSTOMER\]/.test(l);
+            if (_cvIn) _cvLines.push(l);
+          });
+          _cvSrc = _cvLines.join('\n');
+        }
+        var _cvCands = _lpChatVehicleCandidates(_cvSrc);
+        var _cvBest = null, _cvBestSc = 0, _cvTies = [], _cvBestPhrase = '';
         _cvCands.forEach(function(p){
           _cvUnits.forEach(function(u){
             var sc = _lpScore(p, u.vehicle || ((u.make || '') + ' ' + (u.model || '')));
-            if (sc > _cvBestSc) { _cvBestSc = sc; _cvBest = u; }
+            if (sc > _cvBestSc) { _cvBestSc = sc; _cvBest = u; _cvTies = [u]; _cvBestPhrase = p; }
+            else if (sc === _cvBestSc && sc > 0 && _cvTies.indexOf(u) === -1) _cvTies.push(u);
           });
         });
+        if (_cvBest && _cvBestSc >= 3 && _cvTies.length > 1) {
+          var _cvDesc = function (u) { return (u.vehicle || ((u.year ? u.year + ' ' : '') + (u.make || '') + ' ' + (u.model || '')).trim())
+            + (u.condition ? ' (' + String(u.condition).toLowerCase() + ')' : ''); };
+          var _cvSeen = {}, _cvSample = [];
+          _cvTies.forEach(function (u) { var s = _cvDesc(u); if (!_cvSeen[s] && _cvSample.length < 4) { _cvSeen[s] = 1; _cvSample.push(s); } });
+          d._lpNamedModel = { phrase: _cvBestPhrase, count: _cvTies.length, sample: _cvSample };
+          console.log('[LP CHAT-VOI DIAG] NOT promoted -- "' + _cvBestPhrase + '" matches ' + _cvTies.length
+            + ' units equally (e.g. ' + _cvSample.join('; ') + '); the customer named a model, not a unit');
+          _cvBest = null;
+        }
         if (_cvBest && _cvBestSc >= 3) {
+          console.log('[LP CHAT-VOI DIAG] promoted "' + _cvBestPhrase + '" -> the one matching unit, stock ' + (_cvBest.stock || _cvBest.stockNum || '?'));
           var _cvStoreBrand = _LP_STORE_BRAND[String(d.dealerId)] || ''; // (v9.7.483/478) shared map
           var _cvMake = String(_cvBest.make || '').toLowerCase();
           var _cvOffBrand = !!(_cvStoreBrand && _cvMake && _cvMake !== _cvStoreBrand);
@@ -6204,7 +6239,14 @@ function populateFromData(d) {
   // ZERO-length VehiclesOfInterest array means the blank panel is REAL — the customer genuinely
   // has no vehicle on the lead — not a render failure. The model can ask what they're shopping
   // for confidently instead of hedging around a vehicle that might exist.
-  if (!d.vehicle && !stageActive && d.pdPresent && !d.pdHasLeadVehicle && (d.pdVoiCount || 0) === 0) {
+  // (v9.7.716) The customer named a model in their own words; no single unit is theirs.
+  if (!d.vehicle && d._lpNamedModel) {
+    vehicleExtras.push('🚗 THE CUSTOMER NAMED A MODEL, NOT A UNIT: in their own words they want "' + d._lpNamedModel.phrase + '". No vehicle is on file, and '
+      + d._lpNamedModel.count + ' units in stock match that model (for example: ' + d._lpNamedModel.sample.join('; ') + '). None of them is one THEY chose. '
+      + 'Do NOT write "the one you asked about" and do NOT give a trim, powertrain, colour or single unit as theirs. They have already told you what they are '
+      + 'shopping for, so do not ask that again: build on it — we have them in stock — and ask the one thing that narrows it (new or pre-owned, a trim, what matters most), or offer to send a few options.');
+  }
+  if (!d.vehicle && !d._lpNamedModel && !stageActive && d.pdPresent && !d.pdHasLeadVehicle && (d.pdVoiCount || 0) === 0) {
     // (v9.7.651) BRANCHES ON WHETHER WE HAVE ALREADY ASKED. The "ask directly and confidently"
     // instruction is right the first time and wrong the third: on Brennan Mitchell it was still
     // being issued after the same question had gone out by text at 8:52 AM and by email at 8:53 AM
@@ -25406,6 +25448,8 @@ function buildUserPrompt(data) {
           + ' Do NOT assert either one as the settled answer, and do NOT quietly write as though the pinned vehicle is what they asked for. Name BOTH distinctly in a direct question and let the customer tell you which — for example "are you looking at the ' + data.vehicle + ', or the ' + _voiMis[0].desc + '?" This applies identically to the SMS, the email AND the voicemail: a format being short is never a reason to drop the distinction. Everything else in this prompt that names the pinned vehicle alone is describing the CRM record, not a customer decision.'
         : data.vehicle
         ? 'Vehicle:    ' + data.vehicle + '  ← THIS IS THE VEHICLE FOR THIS LEAD. Do not substitute or reference other vehicles from the conversation history.'
+        : (data._lpNamedModel && data._lpNamedModel.phrase)
+        ? 'Vehicle:    (none on file) ← The customer has named a MODEL in their own words — "' + data._lpNamedModel.phrase + '" — not a specific unit. Work from what they said (see THE CUSTOMER NAMED A MODEL above); do not present any one unit, trim or colour as the one they chose.'
         : 'Vehicle:    (none specified) ← NO VEHICLE IS ATTACHED TO THIS LEAD. Do NOT reference or name any vehicle from the conversation history as the one they want — those belong to prior leads or conversations. A trade-in listed in the LEAD section is theirs and is fine to name as their trade.',
   );
 
@@ -26692,6 +26736,7 @@ async function generateAll() {
       // ask has never fired from the panel. The voicemail path spreads lastScrapedData and always had
       // it. Tests passed because they hand buildUserPrompt data with the field already on it.
       outboundSends: lastScrapedData ? (lastScrapedData.outboundSends || []) : [],
+      _lpNamedModel: lastScrapedData ? (lastScrapedData._lpNamedModel || null) : null,   // (v9.7.716)
       store, vehicle: vehicleForPrompt, leadSource,
       context: leadContext,
       convState: leadConvState,
