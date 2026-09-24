@@ -285,7 +285,9 @@ const getJ = async (L, env, u) => { const r = await L.worker.fetch(new Request('
     const p = ok.perf || {};
     check('it carries the fields asked for', Object.keys(p), ['ts', 'requestId', 'extensionVersion', 'contract', 'tier', 'model', 'latency', 'total',
       'sysChars', 'userChars', 'promptTokens', 'cachedTokens', 'writtenTokens', 'edgeCache', 'classifier', 'prefilterWouldSkip', 'prefilterMiss',
-      'regenerated', 'regenRejected']);
+      'regenerated', 'regenRejected',
+      // (v7.79) two fields appended: the effort actually sent, and whether a misplaced subject was lifted.
+      ...(/subjectLifted: false/.test(src) ? ['effort', 'subjectLifted'] : [])]);
     check('...with real values', [p.tier, p.contract, p.promptTokens, p.cachedTokens, p.writtenTokens, p.edgeCache, p.classifier, typeof p.prefilterWouldSkip, p.sysChars],
       ['primary', 'draft', 12000, 7000, 0, 'MISS', 'ran', 'boolean', SYS.length]);
     check('control: ...and no prompt text, phone or draft content', /BDC agent|Lead context|010-0199|Accord/.test(JSON.stringify(p)), false);

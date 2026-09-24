@@ -259,7 +259,8 @@ pOne('...and it applies to the PRIMARY tier only, and only on an escalation',
     const m = proxySrc.match(/const _escalated = spec\.tier === 'primary' && isEscalation\((\w+)\);/);
     if (!m) return '(shape not found)';
     // The identifier must be one the tier loop actually declares — checked, not assumed.
-    const loop = proxySrc.slice(proxySrc.indexOf('for (let i = 0; i < MODEL_CASCADE.length; i++)') - 4000,
+    // (v7.79) 4000 -> 8000: the draftEffort comment block now sits just above the loop.
+    const loop = proxySrc.slice(proxySrc.indexOf('for (let i = 0; i < MODEL_CASCADE.length; i++)') - 8000,
                                 proxySrc.indexOf('const _escalated'));
     return new RegExp('(const|let|var)\\s+' + m[1] + '\\s*=').test(loop)
       ? 'declared-in-scope' : 'UNDECLARED: ' + m[1];

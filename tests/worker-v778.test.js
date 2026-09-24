@@ -131,10 +131,12 @@ const shape = p => ({
   {
     const r = await run(['ok']);
     check('[new] exactly one call, to gpt-6-luna, answered on the primary tier', [models(r), r.tier], [['gpt-6-luna'], 'primary']);
-    check('[control] its payload has the shape 5.6 Luna had as primary: breakpoint at the sentinel, mode explicit + ttl 30m, no legacy retention, effort low, verbosity low, no temperature, 3500 tokens',
-      shape(r.calls[0].payload),
+    // (v7.79) effort left out of this shape: from v7.79 a full draft with no requested effort goes to
+    // gpt-6-luna at 'none' by design (its draftEffort). worker-v779.test.js pins that.
+    check('[control] its payload has the shape 5.6 Luna had as primary: breakpoint at the sentinel, mode explicit + ttl 30m, no legacy retention, verbosity low, no temperature, 3500 tokens',
+      (({ effort, ...rest }) => rest)(shape(r.calls[0].payload)),
       { cacheOptions: { mode: 'explicit', ttl: '30m' }, retention: null, systemIs: 'blocks', breakpoint: true, sentinelLeft: false,
-        effort: 'low', verbosity: 'low', temperature: null, maxTokens: 3500 });
+        verbosity: 'low', temperature: null, maxTokens: 3500 });
     const perf = r.kv.puts.filter(p => /^perf:/.test(p.k)).map(p => JSON.parse(p.v));
     check('[new] the perf: row records gpt-6-luna on the primary tier', perf.map(p => [p.tier, p.model]), [['primary', 'gpt-6-luna']]);
   }
