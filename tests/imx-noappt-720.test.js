@@ -10,6 +10,9 @@
 //     to tell the difference." The new-car offer is a discount on new vehicles only (never attached to a
 //     pre-owned car on the lead); the pre-owned one is a PRICE RANGE, and the customer "more than likely
 //     picked one out of that range", so we offer to find the vehicles that fit it.
+// (v9.7.722) Gil: "https://bit.ly/4AxRv4A pre-owned/CPO 25k or less maybe send link definitely offer a visit on
+//     first reach out. Especially when there's no VOI." The store's search link for the pre-owned offer, and a
+//     required visit ask on the first touch (off when the agent chose no appointment).
 // Executes the shipped extraction slice, _lpImxOfferGuidance, buildUserPrompt, and the shipped chip-handler line.
 //
 // Usage: node tests/imx-noappt-720.test.js <dev popup.js> <commercial popup.js>
@@ -96,6 +99,35 @@ for (const f of BUILDS) {
   check('the offer guidance reaches the prompt on a first touch', () => /THE OFFER THEY CLAIMED: "Pre-owned and Certified Vehicles under \$25,000/.test(imxPrompt(false, PRE)), true);
   check('...and on a follow-up, framed as how the lead began', () => /HOW THIS LEAD BEGAN \(background for a follow-up[^\n]*\n- THE OFFER THEY CLAIMED/.test(imxPrompt(true, PRE)), true);
   check('control: a non-IdentityMax lead gets no IdentityMax offer guidance', () => /THE OFFER THEY CLAIMED|HOW THIS LEAD BEGAN/.test(imxPrompt(false, PRE, 'Cars.com')), false);
+
+  console.log(' 2c. v9.7.722 -- the pre-owned search link and the first-touch visit:');
+  const G = (offer, cond, veh, o) => vm.runInContext('_lpImxOfferGuidance', sb)('claimed the website offer "' + offer + '"', cond, veh, o);
+  const LAF = { dealerId: '24399', firstTouch: true }, LINK = 'https://bit.ly/4AxRv4A';
+  const has = (t) => [t.includes(LINK), /SEND THE SEARCH LINK[^\n]*in BOTH the SMS[^\n]*and the email/.test(t), /OFFER A VISIT \(first reach-out, required\)/.test(t)];
+  check('pre-owned, no vehicle picked out: the link in SMS and email, and the visit, asking what they want', () => {
+    const t = G(PRE, '', '', LAF); return has(t).concat(/ask what they want in one \(size, features, budget\)/.test(t)); }, [true, true, true, true]);
+  check('pre-owned with a vehicle: the link is optional and email-only; the visit names their car', () => {
+    const t = G(PRE, 'Used', '2025 Honda Accord Sedan SE', LAF);
+    return [/THE SEARCH LINK \(optional here[^\n]*to the EMAIL[^\n]*Keep the SMS on the 2025 Honda Accord Sedan SE/.test(t), /SEND THE SEARCH LINK/.test(t),
+      /invite them in to see the 2025 Honda Accord Sedan SE and the others under \$25,000/.test(t)]; }, [true, false, true]);
+  check('a year and make alone ("2026 Honda", a Full Line lead) counts as no vehicle picked out', () => has(G(PRE, '', '2026 Honda', LAF)), [true, true, true]);
+  check('follow-up: the link is background for if they ask, and no visit line', () => {
+    const t = G(PRE, '', '', { dealerId: '24399', firstTouch: false });
+    return [/If they ask what else is in that range[^\n]*https:\/\/bit\.ly\/4AxRv4A/.test(t), /SEND THE SEARCH LINK|OFFER A VISIT/.test(t)]; }, [true, false]);
+  check('the agent chose no appointment: the visit line is off, the link stays', () => has(G(PRE, '', '', { dealerId: '24399', firstTouch: true, noAppt: true })), [true, true, false]);
+  check('control: another store has no link on file -> no link line, the visit still asked', () => has(G(PRE, '', '', { dealerId: '6191', firstTouch: true })), [false, false, true]);
+  check('control: the new-car offer gets no pre-owned link; on a pre-owned car the visit is for the new models', () => {
+    const t = G(NEW, 'Used', '2025 Honda Accord Sedan SE', LAF); return [t.includes(LINK), /invite them in to see the new models/.test(t)]; }, [false, true]);
+  const imxP = (sticky) => {
+    vm.runInContext('leadContext = ""; window._lpSuppressApptChip = false; window._lpNoApptLeadId = ' + JSON.stringify(sticky || '') + ';', sb);
+    return sb.__lp.buildUserPrompt(Object.assign(lead('2000000004'), { vehicle: '', stockNum: '', hasOutbound: false, convState: 'first-touch',
+      context: '[09/24/2026 12:36 PM] [=== CURRENT LEAD SUBMITTED HERE ===]\n[CUSTOMER REQUEST FROM INQUIRY] claimed the website offer "' + PRE + '"\n' }));
+  };
+  check('buildUserPrompt, Honda Lafayette, no vehicle, first touch: link and visit reach the prompt', () => { const p = imxP(''); return [p.includes(LINK), /OFFER A VISIT/.test(p)]; }, [true, true]);
+  check('...and "no appointment" pressed on this lead turns the visit off there too', () => { const p = imxP('2000000004'); return [p.includes(LINK), /OFFER A VISIT/.test(p)]; }, [true, false]);
+  check('generateAll\'s prompt-input object carries the vehicle\'s condition (v9.7.721 read data.condition and it was never passed)', () => {
+    const a = src.indexOf('    var _lpPromptInputData = {'), b = src.indexOf('\n    };\n', a);
+    return /\n\s+condition: lastScrapedData \? \(lastScrapedData\.condition \|\| ''\) : '',/.test(src.slice(a, b)); }, true);
 
   console.log(' 3. the IdentityMax first-touch rules point at the claimed offer:');
   check('"Lead with THAT offer in its own words, and add no amount, term, model or eligibility it does not state"', () =>

@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.722 (Commercial. THE PRE-OWNED OFFER GETS THE STORE'S SEARCH LINK, AND THE FIRST TOUCH ASKS FOR A VISIT. Extension only; proxy v7.81 and reporter v1.22 unchanged. Gil, 9/24: 'https://bit.ly/4AxRv4A pre-owned/CPO 25k or less maybe send link definitely offer a visit on first reach out. Especially when there's no VOI.' (1) _LP_IMX_OFFER_LINKS: per store, per offer kind; Community Honda Lafayette (24399) pre-owned -> https://bit.ly/4AxRv4A (resolves to the store's used search, price to $25,469). On the pre-owned IdentityMax offer, first touch: with NO vehicle picked out (none, or only a year and make such as a Full Line lead's '2026 Honda') the link goes in BOTH the SMS (own line, before the signature) and the email; with a vehicle on the lead it is optional and email-only, and the SMS stays on that car. Follow-up: the link is background, used only if they ask what else is in the range. A store with no entry gets no link line. The new-car offer never gets the pre-owned link. (2) OFFER A VISIT (first reach-out, required) on every claimed IdentityMax offer: the lead's car and the others in the range; with no vehicle, the range in person plus what they want in one (size, features, budget); the new models for the new-car offer on a pre-owned car. v9.7.721's guided first touch had dropped the old 'Move to appointment' line. Off when the agent chose no appointment (one-shot or sticky for this lead). (3) FIX to v9.7.721: generateAll's prompt-input literal never carried 'condition', so on the panel the guard keeping the new-car offer off a pre-owned vehicle only fired when the vehicle NAME said used. It is carried now. Tests: imx-noappt-720 extended, 58 assertions per build, 10 new, all 10 fail on v9.7.721 (the two controls there only because v9.7.721 has no visit line). run-all: 146 suites, 6,616 assertions, 0 failed.)
 // Lead Pro -- popup.js  v9.7.721 (Commercial. THE TWO IDENTITYMAX OFFERS, TOLD APART. Extension only; proxy v7.81 and reporter v1.22 unchanged. Gil, 9/24, with the new-car and pre-owned IdentityMax lead notes: 'Does the model know to tell the difference. The pre-owned offer is kind of ambiguous we need to come up with wording that tells the customer we can work on finding vehicles that fit that criteria as more than likely they picked one out of that range.' (1) New _lpImxOfferGuidance reads the claimed offer from the inquiry line. The pre-owned offer ('Pre-owned and Certified Vehicles under $25,000!') is a PRICE RANGE, not a discount on one car: the draft says they were looking at our pre-owned and certified vehicles under the cap and that we can work on finding the ones that fit, starting with the vehicle on the lead; no invented discount, and no car is called 'under $25,000' unless its listed price shows it. The new-car offer ('$1,000 OFF MSRP on All New Hondas!') is for NEW vehicles only: on a new lead vehicle it applies (eligibility confirmed in person); on a PRE-OWNED lead vehicle it does NOT, and the draft asks which new model they have in mind; 'limited time' gets no invented end date. Any other offer keeps the v9.7.720 rule (its own words, nothing added). (2) First touch: the guidance replaces the generic offer line. Follow-up: it is carried as 'HOW THIS LEAD BEGAN' background, not a restarted pitch. (3) The offer lines are de-duplicated without punctuation, so 'Limited Time Savings on All New Inventory' and the same line with '!' appear once. Tests: imx-noappt-720 extended, 38 assertions per build, 8 new: 7 fail on v9.7.720 (the no-offer control only because the helper does not exist there); the non-IdentityMax control passes on both. run-all: 146 suites, 6,596 assertions, 0 failed.)
 // Lead Pro -- popup.js  v9.7.720 (Commercial. THE IDENTITYMAX OFFER, AND 'NO APPOINTMENT' THAT STAYS ON. Extension only; proxy v7.81 and reporter v1.22 unchanged. Lead 2089026834, Community Honda Lafayette, 9/24: an IdentityMax lead regenerated 14 times in three minutes (12:39-12:42 CT), 13 rated down -- chips 'no appointment' x6, 'more direct' x6, 'shorter', 'lead with trade'. The worker log for that window shows every call answered on Luna 6; the churn was the content. (1) THE OFFER NEVER REACHED THE PROMPT. The lead-received note (dump c40bfb63) reads 'Customer claimed IdentityMax offer:' and then, on the following lines, 'Pre-owned and Certified Vehicles under $25,000!' (twice) and 'An exclusive offer for you!'. The generic 'Customer ...: <text>' inquiry match kept only the label line, so the prompt's inquiry read 'claimed IdentityMax offer:' -- the vendor's name and no offer -- and the drafts hedged about 'the IdentityMax offer'. Now the offer is read up to the record IDs, repeated lines dropped, the profile link and vendor name never passed on: 'claimed the website offer "Pre-owned and Certified Vehicles under $25,000! An exclusive offer for you!"'. A label with nothing after it yields no inquiry. [LP IDENTITYMAX DIAG]. The IdentityMax first-touch rules now say to lead with THAT offer in its own words and add no amount, term, model or eligibility it does not state. Each lead carries its own claimed offer, so nothing has to be entered monthly. (2) 'NO APPOINTMENT' WAS ONE-SHOT. The chip set a flag the next generation cleared, so 'more direct' after 'no appointment' rebuilt with the times back in -- the reason it was pressed six times. It now records the lead it was pressed on, and the AGENT OVERRIDE -- NO APPOINTMENT ASK block holds for that lead on every later generation until a different lead is grabbed. [LP NO-APPT DIAG]. REPLAYED: the shipped v9.7.719 scraper and this build in Chromium over the lead's own dump: exactly one prompt line changes, the inquiry. TESTS: new imx-noappt-720 (11 per build: 8 new, 3 controls). NON-VACUITY against v9.7.719: the 8 new fail; of the controls the two prompt controls pass and the parser control fails because its slice does not exist there. VERIFIED: run-all 146 suites, 6,580 assertions, 0 failed (+22). node --check both builds; manifests parse; changed lines identical dev vs commercial. Builds on v9.7.719.)
 // Lead Pro -- popup.js  v9.7.719 (Commercial. TOYOTA HYBRID-ONLY FROM 2026, AND POWERTRAIN FACTS AS BACKGROUND, NOT A TALKING POINT. Extension only; proxy v7.81 and reporter v1.22 unchanged. Gil, 9/24: 'The toyotas are 2026 and up for the Camry and Rav4 and Sienna as Hybrid only vehicles. I just want the model to know when it comes up and to be able to distinguish in a convo' -- then, on seeing the draft of this build: 'I don't need it to throw out a random fact "this vehicle is a hybrid" I just want it to know for when and if it comes up'. (1) Camry and Sienna now start at 2026 like the RAV4 (v9.7.717 had Camry 2025 and Sienna 2021). A 2025-or-earlier listing is judged by its marker as before. (2) v9.7.717's '🔋 THIS VEHICLE IS A HYBRID' directive is REMOVED -- it turned a reference fact into something the model would say. (3) In its place, ONE background line, carried only when a Camry, RAV4, Sienna, Accord or Civic is named somewhere on the lead (its vehicle, the customer's words or ours), and framed as reference: 'BACKGROUND -- powertrain reference (new vehicles). Do NOT bring this up on your own; use it only if gas vs hybrid or trims come up, so the answer is right: ...'. It lists only the models named -- the Toyota hybrid-only rule, the new Accord split (LX/SE gas; Sport, EX-L, Sport-L, Touring hybrid) and the new Civic Sedan split (LX/Sport gas; Sport Hybrid, Sport Touring Hybrid hybrid). A lead that names none of them carries nothing. [LP MODEL FACTS DIAG]. UNCHANGED, and they need no prompt text: the variant check no longer flags 'hybrid' against these units (the log247 'not a Hybrid'), and the incentive gate pairs them with the right program. TESTS: new model-facts-719 (8 per build: 7 new, 1 control). all-hybrid-717 and honda-trims-718 now assert NO 'THIS VEHICLE IS A HYBRID' line and the background reference instead, and all-hybrid-717's year pins move to 2026. NON-VACUITY against v9.7.718: 7 fail, the control passes. VERIFIED: run-all 145 suites, 6,558 assertions, 0 failed (+16). node --check both builds; manifests parse; changed lines identical dev vs commercial. Builds on v9.7.718.)
@@ -5197,28 +5198,51 @@ function _lpFeedUnitCheck(d) {
 // out of that range." The first is a DISCOUNT that applies to new vehicles only; the second is a PRICE
 // RANGE, not a discount on any one car. Read from the offer the lead carries (v9.7.720's inquiry line);
 // '' when there is none, so the generic rules stand.
-function _lpImxOfferGuidance(text, condition, vehicle) {
+// (v9.7.722) Gil, 9/24: "https://bit.ly/4AxRv4A pre-owned/CPO 25k or less maybe send link definitely offer a
+// visit on first reach out. Especially when there's no VOI." The link is the store's own search for the
+// range (it resolves to communityhondalafayette.com/search/used/?pr=469:25469&tp=used). Per store, per
+// offer kind; a store with no entry gets no link line. opts: { dealerId, firstTouch, noAppt }.
+var _LP_IMX_OFFER_LINKS = {
+  '24399': { preowned: 'https://bit.ly/4AxRv4A' }   // Community Honda Lafayette: pre-owned + certified search, price range to $25,469
+};
+function _lpImxOfferGuidance(text, condition, vehicle, opts) {
   var m = String(text || '').match(/claimed the website offer "([^"]{3,300})"/i);
   if (!m) return '';
+  var o = opts || {}, g;
   var offer = m[1], veh = String(vehicle || '').trim();
+  // (v9.7.722) A year and make alone ("2026 Honda", what a Full Line lead becomes) is not a vehicle picked out.
+  if (!/^(?:(?:19|20)\d{2}\s+)?[A-Za-z][A-Za-z-]*\s+\S/.test(veh)) veh = '';
   var used = /used|pre-?owned|certified|cpo/i.test(String(condition || '') + ' ' + veh);
   var isNew = /(?:^|\W)new\b/i.test(offer) && /msrp|all new|new inventory|new (?:honda|toyota|kia|audi)/i.test(offer) && !/pre-?owned|used|certified/i.test(offer);
   var isPre = /pre-?owned|\bused\b|certified/i.test(offer);
   if (isPre) {
     var cap = (offer.match(/under\s+(\$\s?[\d,]+)/i) || [])[1] || '';
-    return '- THE OFFER THEY CLAIMED: "' + offer + '". This is a PRICE RANGE for pre-owned and certified vehicles, not a discount on one car — '
+    g = '- THE OFFER THEY CLAIMED: "' + offer + '". This is a PRICE RANGE for pre-owned and certified vehicles, not a discount on one car — '
       + 'they were most likely looking at a vehicle ' + (cap ? 'under ' + cap : 'in that range') + (veh ? ' (the ' + veh + ' on this lead is probably the one they picked)' : '') + '. '
       + 'Say it the way it is: they were looking at our pre-owned and certified vehicles' + (cap ? ' under ' + cap : '') + ', and you can work on finding the ones that fit what they want'
       + (veh ? ', starting with the ' + veh : '') + '. Do NOT invent a discount, and do NOT state any vehicle\'s price or that it is ' + (cap ? 'under ' + cap : 'in range') + ' unless its listed price in this prompt shows it.';
   }
-  if (isNew) {
-    return '- THE OFFER THEY CLAIMED: "' + offer + '". This is a discount on NEW vehicles only'
+  else if (isNew) {
+    g = '- THE OFFER THEY CLAIMED: "' + offer + '". This is a discount on NEW vehicles only'
       + (used ? ' — and the vehicle on this lead (' + (veh || 'pre-owned') + ') is PRE-OWNED, so the offer does NOT apply to it. Do not attach it to that car; say the offer they claimed is for new models and ask which new one they have in mind (or whether that pre-owned one is still the one they want).'
               : veh ? ' — it applies to new models like the ' + veh + '; mention it for that one, final eligibility confirmed in person.'
                     : ' — ask which new model they have in mind.')
       + ' It says "limited time": do NOT invent an end date.';
   }
-  return '- THE OFFER THEY CLAIMED: "' + offer + '". Lead with THAT offer in its own words, and add no amount, term, model or eligibility it does not state.';
+  else g = '- THE OFFER THEY CLAIMED: "' + offer + '". Lead with THAT offer in its own words, and add no amount, term, model or eligibility it does not state.';
+  var rng = 'our pre-owned and certified vehicles ' + (cap ? 'under ' + cap : 'in that range');
+  var link = isPre ? String((_LP_IMX_OFFER_LINKS[String(o.dealerId || '')] || {}).preowned || '') : '';
+  if (link) g += o.firstTouch
+    ? (veh ? '\n- THE SEARCH LINK (optional here, because the lead already names the ' + veh + '): if it fits, add ' + link + ' to the EMAIL so they can see the rest of ' + rng + '. Copy it exactly. Keep the SMS on the ' + veh + ' and the visit.'
+           : '\n- SEND THE SEARCH LINK: no vehicle is picked out on this lead, so give them ' + rng + ' to browse: ' + link + ' — in BOTH the SMS (on its own line, before the signature) and the email. Copy it exactly; do not shorten or change it.')
+    : '\n- If they ask what else is in that range, this is the search for ' + rng + ': ' + link + ' (copy it exactly).';
+  if (o.firstTouch && !o.noAppt) {
+    var see = isPre ? (veh ? 'the ' + veh + ' and the others ' + (cap ? 'under ' + cap : 'in that range') : rng + ' in person')
+      : isNew ? (veh && !used ? 'the ' + veh : 'the new models') : (veh ? 'the ' + veh : 'what the offer covers');
+    g += '\n- OFFER A VISIT (first reach-out, required): invite them in to see ' + see + ', using the appointment times in this prompt. Make it the main ask of the message'
+      + (isPre && !veh ? ', and ask what they want in one (size, features, budget) so you can have a few ready that fit.' : '.');
+  }
+  return g;
 }
 // (v9.7.715) IS THE LEAD'S VEHICLE THE ONE WE SOLD THIS CUSTOMER? log242's lead: a lease-end
 // customer whose lead vehicle is "2024 Toyota RAV4" and whose Sales history (priorSoldVehicle) holds
@@ -21282,8 +21306,14 @@ function buildUserPrompt(data) {
       ? 'TASK: IdentityMax lead with PRIOR OUTREACH already made. Read the transcript and continue naturally.'
       : 'TASK: IdentityMax lead — customer responded to a targeted offer from the dealer website (e.g. a pop-up incentive or conquest offer).';
     // (v9.7.721) What the claimed offer MEANS depends on which one it is; see _lpImxOfferGuidance.
+    // (v9.7.722) The agent's "no appointment" (one-shot or sticky for this lead) turns the visit line off.
+    var _imxNoAppt = false;
+    try {
+      var _imxLead = String((data && data.autoLeadId) || (typeof lastScrapedData !== 'undefined' && lastScrapedData && lastScrapedData.autoLeadId) || window._activeLeadId || '');
+      _imxNoAppt = !!window._lpSuppressApptChip || !!(window._lpNoApptLeadId && _imxLead && window._lpNoApptLeadId === _imxLead);
+    } catch (eIa) {}
     var _imxGuide = _lpImxOfferGuidance(String((data && data.context) || '') + ' ' + String((data && data.conversationBrief) || ''),
-      (data && data.condition) || '', (data && data.vehicle) || '');
+      (data && data.condition) || '', (data && data.vehicle) || '', { dealerId: (data && data.dealerId) || '', firstTouch: !imFollowUp, noAppt: _imxNoAppt });
     scenarioRules = imFollowUp
       ? '- Follow-up: read the transcript and continue naturally from where things left off.'
         + (_imxGuide ? '\n- HOW THIS LEAD BEGAN (background for a follow-up: use it if it still fits where the conversation is, and do not restart the pitch if they have moved on):\n' + _imxGuide : '')
@@ -26430,6 +26460,10 @@ async function generateAll() {
       outboundSends: lastScrapedData ? (lastScrapedData.outboundSends || []) : [],
       _lpNamedModel: lastScrapedData ? (lastScrapedData._lpNamedModel || null) : null,   // (v9.7.716)
       store, vehicle: vehicleForPrompt, leadSource,
+      // (v9.7.722) The VOI's condition. v9.7.721's IdentityMax offer guidance reads data.condition to keep the
+      // new-car offer off a pre-owned vehicle, and this literal never carried it: on the panel it was always
+      // empty, and only a vehicle name that said "used" tripped the guard.
+      condition: lastScrapedData ? (lastScrapedData.condition || '') : '',
       context: leadContext,
       convState: leadConvState,
       // (v9.7.505) Carries the live-inventory stock-number match through to classifyScenario's
