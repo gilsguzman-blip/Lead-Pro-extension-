@@ -8,7 +8,7 @@ cd "$(dirname "$0")/.."
 
 DEV=builds/dev/popup.js
 COMM=builds/commercial/popup.js
-PROXY=${1:-worker/cloudflare-worker-v7.80.js}
+PROXY=${1:-worker/cloudflare-worker-v7.81.js}
 REPORTER=${2:-worker/leadpro-reporter-v1.22.js}
 DASH=$(ls dashboard*.html dashboard/*.html 2>/dev/null | head -1)
 
@@ -82,6 +82,7 @@ run worker-v777.test.js              "$PROXY" worker/cloudflare-worker-v7.76.js
 run worker-v778.test.js              "$PROXY"
 run worker-v779.test.js              "$PROXY"
 run worker-v780.test.js              "$PROXY"
+run worker-v781.test.js              "$PROXY" "$DEV" "$COMM"
 run dashboard-explicit-down.test.js  "$PROXY"
 run feedback-export-join.test.js     "$PROXY"
 run degenerate-samples.test.js       "$PROXY"
