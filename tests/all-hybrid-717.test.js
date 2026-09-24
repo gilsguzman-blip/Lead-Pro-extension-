@@ -4,7 +4,7 @@
 // TU350975), the customer's TrueCar build a "2026 Toyota Camry Hybrid SE". The variant check read the
 // missing word as a different powertrain and the draft said "the 2026 Camry SE we have is not a Hybrid".
 // Gil: "All 2026 and above Toyota Camrys are Hybrids now as well as RAV4 and Siennas."
-// Rule: Camry from 2025, Sienna from 2021, RAV4 from 2026 are hybrid-only; a name with no marker is a
+// Rule (v9.7.719): Camry, Sienna and RAV4 from 2026 are hybrid-only; a name with no marker is a
 // hybrid for them. Executes the shipped _lpPowertrainOf, _lpMatchByModel (the incentive gate) and
 // populateFromData.
 //
@@ -26,11 +26,12 @@ for (const f of BUILDS) {
   const pt = (s) => vm.runInContext('_lpPowertrainOf', sb)(s);
 
   console.log(' 1. the powertrain of a name with no marker:');
-  check('2026 Camry SE, 2025 Camry LE, a yearless "Camry" program line -> Hybrid',
-    () => ['2026 Toyota Camry SE', '2025 Toyota Camry LE', 'Camry'].map(pt), ['Hybrid', 'Hybrid', 'Hybrid']);
-  check('2022 Sienna XLE and 2026 RAV4 XLE -> Hybrid', () => ['2022 Toyota Sienna XLE', '2026 Toyota RAV4 XLE'].map(pt), ['Hybrid', 'Hybrid']);
-  check('control: the gas years stay Gas (2024 Camry, 2020 Sienna, 2025 RAV4)',
-    () => ['2024 Toyota Camry SE', '2020 Toyota Sienna LE', '2025 Toyota RAV4 XLE'].map(pt), ['Gas', 'Gas', 'Gas']);
+  // (v9.7.719) Gil: all three are hybrid-only from 2026 (was Camry 2025 / Sienna 2021 in v9.7.717).
+  check('2026 Camry SE and a yearless "Camry" program line -> Hybrid',
+    () => ['2026 Toyota Camry SE', 'Camry'].map(pt), ['Hybrid', 'Hybrid']);
+  check('2026 Sienna XLE and 2026 RAV4 XLE -> Hybrid', () => ['2026 Toyota Sienna XLE', '2026 Toyota RAV4 XLE'].map(pt), ['Hybrid', 'Hybrid']);
+  check('control: before 2026 a name with no marker is judged by its marker (2025 Camry, 2022 Sienna, 2025 RAV4)',
+    () => ['2025 Toyota Camry LE', '2022 Toyota Sienna XLE', '2025 Toyota RAV4 XLE'].map(pt), ['Gas', 'Gas', 'Gas']);
   check('control: a plug-in stays a plug-in, and other nameplates are untouched',
     () => ['2026 Toyota RAV4 Plug-in Hybrid XSE', '2026 Honda Accord SE', '2026 Toyota Corolla LE'].map(pt), ['Plug-in Hybrid', 'Gas', 'Gas']);
 
@@ -50,15 +51,16 @@ for (const f of BUILDS) {
       conversationBrief: 'CUSTOMER\'S INQUIRY — the customer\'s own words:\n"LEAD: BUILD (NEW) BUILD: ' + build + ' Search ZIP is 77578"\n' });
     return vm.runInContext('leadContext', sb);
   };
-  check('2026 Camry SE vs a "2026 Toyota Camry Hybrid SE" build: no VARIANT MISMATCH, and the hybrid fact is stated', () => {
+  // (v9.7.719) Gil: no "THIS VEHICLE IS A HYBRID" talking point -- background reference only.
+  check('2026 Camry SE vs a "2026 Toyota Camry Hybrid SE" build: no VARIANT MISMATCH, and no hybrid talking point', () => {
     const c = run('2026 Toyota Camry SE', '2026 Toyota Camry Hybrid SE');
-    return [/VEHICLE VARIANT MISMATCH/.test(c), /THIS VEHICLE IS A HYBRID: every 2025 and newer Toyota Camry is a hybrid/.test(c)]; }, [false, true]);
+    return [/VEHICLE VARIANT MISMATCH/.test(c), /THIS VEHICLE IS A HYBRID/.test(c), /BACKGROUND — powertrain reference[^\n]*Toyota Camry 2026 and newer are hybrid-only/.test(c)]; }, [false, false, true]);
   check('control: a 2023 Camry SE vs a Camry Hybrid build still flags the different powertrain', () => {
     const c = run('2023 Toyota Camry SE', '2023 Toyota Camry Hybrid SE');
-    return [/VEHICLE VARIANT MISMATCH[^\n]*"hybrid"/.test(c), /THIS VEHICLE IS A HYBRID/.test(c)]; }, [true, false]);
+    return /VEHICLE VARIANT MISMATCH[^\n]*"hybrid"/.test(c); }, true);
   check('control: a Honda Accord SE vs an Accord Hybrid build still flags it (Accord has a gas model)', () =>
     /VEHICLE VARIANT MISMATCH[^\n]*"hybrid"/.test(run('2026 Honda Accord SE', '2026 Honda Accord Hybrid Sport')), true);
-  check('control: a listing that already says Hybrid gets no extra line', () => /THIS VEHICLE IS A HYBRID/.test(run('2026 Toyota Camry Hybrid SE', '2026 Toyota Camry Hybrid SE')), false);
+  check('control: a listing that already says Hybrid gets no mismatch either', () => /VEHICLE VARIANT MISMATCH/.test(run('2026 Toyota Camry Hybrid SE', '2026 Toyota Camry Hybrid SE')), false);
 }
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);

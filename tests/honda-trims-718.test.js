@@ -50,12 +50,13 @@ for (const f of BUILDS) {
       conversationBrief: 'CUSTOMER\'S INQUIRY — the customer\'s own words:\n"I am interested in the ' + build + '"\n' });
     return vm.runInContext('leadContext', sb);
   };
-  check('a 2026 Accord Sport-L listing vs an "Accord Hybrid Sport-L" request: no mismatch, and the hybrid fact is stated', () => {
+  // (v9.7.719) Gil: no "THIS VEHICLE IS A HYBRID" talking point -- background reference only.
+  check('a 2026 Accord Sport-L listing vs an "Accord Hybrid Sport-L" request: no mismatch, and the trim split is background only', () => {
     const c = run('2026 Honda Accord Sport-L', '2026 Honda Accord Hybrid Sport-L');
-    return [/VEHICLE VARIANT MISMATCH/.test(c), /THIS VEHICLE IS A HYBRID: every new \(2026 and newer\) Honda Accord Sport, EX-L, Sport-L and Touring is a hybrid/.test(c)]; }, [false, true]);
+    return [/VEHICLE VARIANT MISMATCH/.test(c), /THIS VEHICLE IS A HYBRID/.test(c), /BACKGROUND — powertrain reference[^\n]*New Honda Accord: LX and SE are gas; Sport, EX-L, Sport-L and Touring are hybrid/.test(c)]; }, [false, false, true]);
   check('control: a 2026 Accord SE vs an Accord Hybrid request is still flagged as a different powertrain', () => {
     const c = run('2026 Honda Accord SE', '2026 Honda Accord Hybrid Sport');
-    return [/VEHICLE VARIANT MISMATCH[^\n]*"hybrid"/.test(c), /THIS VEHICLE IS A HYBRID/.test(c)]; }, [true, false]);
+    return /VEHICLE VARIANT MISMATCH[^\n]*"hybrid"/.test(c); }, true);
   check('a 2026 Civic Sport vs a Civic Sport Hybrid request is flagged ("hybrid" is the third word, the scan read only the first)', () =>
     /VEHICLE VARIANT MISMATCH[^\n]*"hybrid"/.test(run('2026 Honda Civic Sport', '2026 Honda Civic Sport Hybrid')), true);
 }
