@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.711 (Commercial. EIGHT RULES THAT TURNED TEXT INTO A DIRECTIVE ON EVIDENCE THAT WAS NOT THE CUSTOMER'S, FROM THE TRIGGER INVENTORY. Extension only; proxy v7.80 and reporter v1.22 unchanged. The inventory (TRIGGER_INVENTORY_REPORT.md, tools/trigger-inventory/) ran every text-derived directive against 54 captures (25 leads) and 56 logs; these are its eight live findings. (1) THE LATEST-MESSAGE QUOTE CARRIED THE CRM ROUTING. CONVERSATION STATE and MOST RECENT CUSTOMER MESSAGE -- the line the prompt says the reply MUST address -- were built from the raw note, so on 10 of the 13 replied leads they opened 'Received from: (phone) Received by: <agent or the automated assistant>' or 'Subject: Re:... By: <agent>': the customer's phone number and a staff name as the customer's words. The inbound collector now runs the transcript's own _lpStripNoteMeta; a note that is only a header is not quoted at all; the trivial-confirmation check still reads the raw text. (2) 'LEAD WITH THEIR STATED NUMBER' NEEDS A NUMBER. The budget flag was customer-scoped in v9.7.616 but still keyword-only, so 'what incentives do you all offer?' and 'just need the out the door cost' set it. It now needs a figure in the customer's line: a dollar sign, or a bare amount (21k, 33,000, 5000 cash) in a line about money; mileage, a credit score, a percentage and a model year are not amounts. New [LP BUDGET FIGURE DIAG] names a declined line at 160 chars. On the 13 logged hits: 6 carry a figure and still fire, the 2 asks no longer do, 5 are unclassifiable from the 90-char log. (3) TRIM/CONFIG PREFERENCE read our text. 'Customer referenced EX-L' scanned allTranscriptText (notes, call notes); 3 of the 6 capture fires were our own 'CR-V EX-L'. It now reads _lpCustomerSaid() (customer-authored, quoted replies and tapbacks removed), falling back to customer-only lines; [LP TRIM SCOPE DIAG] says when a trim was ours only. Re-run on the captures: 3 fires, 0 not from customer lines. (4) VARIANT MISMATCH named 'awaits' (3 leads), 'https' and the year '2022'. v9.7.641 dropped entries we sent; our subject line still arrived on the CUSTOMER'S reply entry ('Subject: Re:Your 2022 INFINITI QX50 Awaits ...') and inside 'On <date> ... wrote:' tails. Subject headers up to By:, quoted-reply tails and URLs are cut before the scan, and an all-digit or web-fragment token is never a configuration. the v9.7.505 note-borne 4xe and both real 'hybrid' fires are unaffected. (5) OPEN THREADS: A LINK IS NOT A QUESTION. A pasted listing link's query string and domain made 'com%2fsearch/one-owner-used/?' an unanswered customer question (9/20, two Toyota captures). Links are removed before sentence splitting. (6) ONE AVAILABILITY ANSWER. With VinSolutions' 'no longer in your active inventory' flag present, VEHICLE ON LEAD hedged 'sold, pending, or in transit' beside 'VEHICLE STATUS: SOLD' (3 leads). It now names the flag and defers to the VEHICLE STATUS line; the SOLD pivot, the Audi all-available policy and the pending-sale wording are unchanged. (7) A 2023 VISIT IS NOT 'THE VISIT HAPPENED'. VISIT OVERRIDE had no age limit (log242, a lease-end reply in 2026). Past 30 days -- the SHOWROOM FOLLOW-UP window -- it becomes a dated 'PRIOR VISIT ON RECORD ... NOT recent' line; [LP VISIT AGE DIAG]. Undated records keep the override. (8) RECURRING TOPICS quoted 'Subject: Let's Get You Behind the Wheel' as Vehicle configuration (9/16). Its source, EMAIL FAILURE notices echoing our subject, has been dropped since v9.7.697 -- which is why later captures were clean; the path still open, a customer's reply carrying our subject header, is closed with the same strip. TESTS: new inventory-711 (17 per build: 9 new, 8 controls) executes the lifted scraper slices and populateFromData; lead-boundary, open-thread-resolver, own-words-topics and variant-token extended (+5, +4, +3, +12). Two v9.7.616 pins in lead-boundary asserted the defect in (2) -- a customer ASKING for OTD 'DOES fire it' -- and are flipped with the reason stated; open-thread-resolver's 'one of them is the URL fragment' neuter assertion now expects the link cut to hold. NON-VACUITY against v9.7.710: inventory-711 fails 11 (the 9 new, plus the 2 trim controls whose slice does not exist there) and passes its 6 other controls; variant-token fails 5; lead-boundary 4; open-thread-resolver 3; own-words-topics 1, with its Email Failure control passing on both builds. VERIFIED: run-all 137 suites, 6,367 assertions, 0 failed (+58). node --check both builds; manifests parse; every changed region byte-compared dev vs commercial. Builds on v9.7.710.)
 // Lead Pro -- popup.js  v9.7.710 (Commercial. A BOT-ONLY LEAD WAS TOLD A PERSON HAD WRITTEN, GIVEN TIMES IT WAS FORBIDDEN TO NAME, AND AN EMPTY FORM FIELD AS THE CUSTOMER'S WORDS. Extension only; proxy v7.80 and reporter v1.22 unchanged. log244, Community Kia Baytown (capture 5e2c36ea): a fresh Click & Go lead for a 2026 K5 GT-Line whose only two outbound messages came from the automated assistant. (The signer mix-up on the same capture is the lead having no agent assigned; Gil: ignore it. Not changed.) (1) THE SENDS NEVER REACHED THE PROMPT. buildUserPrompt reads data.outboundSends in three places -- _lpFirstHumanTouch (the anchor sentence and the FIRST HUMAN TOUCH light ask) and the source-acknowledgement check -- and generateAll's prompt-input object never carried the field, so on the real panel all three saw an empty list: every bot-only lead read 'A PERSON HAS ALREADY WRITTEN TO THIS CUSTOMER on this lead', and the FIRST HUMAN TOUCH light ask Gil designed has never fired from the panel. The voicemail path spreads lastScrapedData and always had it; the tests passed because they hand buildUserPrompt data with the field already on it. Carried now. (2) TIMES THE PROMPT HAD FORBIDDEN. The automated-assistant block says 'do not name a day, a time or a slot ... let THEM say when' and FIRST HUMAN TOUCH says 'no times', and the appointment chain then printed SUGGESTED APPOINTMENT TIMES and 'SMS: would 9:15 AM or 10:30 AM Thursday ... work?'. Both blocks now record that they withheld times (_lpTimesWithheld, declared in buildUserPrompt's scope because ageBlock is built in its own function), and the chain gets one new arm: 'APPOINTMENT TIMES WITHHELD ON THIS LEAD (...): ask them in, and let them say when'. The visit is still asked for; only the slots go. [LP TIMES WITHHELD DIAG]. (3) 'Comments ///' was quoted as 'the customer's own words ... address it directly', became lastInboundMsg and counted as an inbound. The inquiry filter now rejects a field that is nothing but a web-form label ('Comments', 'Questions', 'Message', 'Notes', 'Additional Comments', 'N/A') and punctuation. LEFT ALONE: the signer resolution, the bot detectors, every other appointment arm, the Click & Go steps block. VERIFIED: tests/log244-710.test.js evaluates generateAll's prompt-input object literal inside the popup's sandbox, runs buildUserPrompt on the whole popup.js, and lifts the inquiry-rejection expression verbatim: 9 per build, 18 total; against v9.7.709 5 fail and the 4 that pass are labelled controls (given the sends, buildUserPrompt already knew no person had written; a lead a person wrote to still gets suggested times; a real comment after the label and a plain question are kept). bot-visit-angle, which lifts the anchor block on its own, stays green: the flag writes are guarded. run-all: 136 suites, 6,309 assertions, 0 failed. Mirrors DEV v9.7.710-dev.)
 // Lead Pro -- popup.js  v9.7.709 (Commercial. THE DRAFT SAID 'YES' TO A PRICE WE NEVER QUOTED, ON A PROMPT CARRYING FOUR OTHER FALSE FACTS. Extension only; proxy v7.80 and reporter v1.22 unchanged. log243, Community Honda Baytown (capture 57e67434, dump 037f879b): a remote buyer negotiating a used BMW asked 'Just to confirm your offer now is 41,019? Is that correct?' and the SMS answered 'Yes, $41,019 is the current proposal'. The dump shows 41,019 only in the customer's own message: our figures were $44,358.34 (bottom line) and $39,907 (price), then 'reduced by $1,000', and 41,019 is their own 8/27 arithmetic ('you're taxing a base of $42,019') less the $1,000. (1) A FIGURE WE NEVER QUOTED: _lpUnquotedFigure reads the customer's latest message for a confirm-this-number question and checks each dollar figure against everything WE wrote -- messages, notes and call notes, taken by positive selection of their tagged blocks (_lpOurText), phone numbers excluded (_lpMoneyFigures). When none of ours contains it, a HARD CONSTRAINT says: do not answer yes, do not call it correct, do not answer with a different total; the updated itemized proposal is what answers it. [LP UNQUOTED FIGURE DIAG] logs the figure and ours. (2) NO TRADE: the customer wrote 'I won't be trading in my old vehicle though. Long story' (8/24), and the prompt said 'The customer wants to know what their TRADE is worth' and 'TRADE-IN CONCERN ... lead with it in BOTH the SMS and email'. Both triggers matched 'payoff' in '3) the title/lien payoff timeline' -- the lien on the car they are BUYING. A lien/title payoff is no longer a trade (LP_TRADE_LIEN_RE), and a customer who told us they are not trading (LP_NO_TRADE_RE, straight or curly apostrophe -- the real message used ’) vetoes the TRADE-IN CONCERN, the TRADE-worth block and the TRADE DISCUSSED guard, unless their newest message raises a trade of their own. The scraper keeps its own copy of both patterns (it runs in the page); the test asserts they are identical. (3) 'THE CUSTOMER HAS DESCRIBED THEIR TRADE': the inquiry subject '2024 BMW M440i' counted as a named trade because it is not a prefix of the VOI '2024 BMW 4 Series M440i xDrive'. A year+make+model whose every word is in the VOI is now the VOI. A no-trade customer gets '⚠ NO TRADE' instead. (4) 'CREDIT CHALLENGE DISCLOSED: Customer explicitly stated they have credit difficulties': the pattern had a bare 'repo', which matched 'report' -- 'on the AutoCheck report', and every Carfax/AutoCheck report any customer mentions. Now \brepo\b|repossess. (5) 'Call note: customer verbally confirmed': our own TEXT 'If anything changes, we will be here' matched 'will be here'. The rule now reads call notes only, and never 'we will be here'. LEFT ALONE: the model's reading of the negotiation, the remote-buyer block, the OTD discipline, FINANCING CONCERN (financing is real on this lead), every other trade path. VERIFIED: tests/log243-709.test.js runs the popup helpers, buildUserPrompt and populateFromData on the whole popup.js and the scraper's concern block and verbal-confirm condition lifted verbatim: 21 per build, 42 total; against v9.7.708 15 fail and the 6 that pass are labelled controls (a figure we sent is not flagged, a real trade-value ask still fires, a customer's own trade still is a TRADE-IN CONCERN, bad credit and a repo still are credit challenges, a real call-note confirmation still counts, a genuinely different vehicle is still a named trade). run-all: 135 suites, 6,291 assertions, 0 failed. Mirrors DEV v9.7.709-dev.)
 // Lead Pro -- popup.js  v9.7.708 (Commercial. A 2023 SALE WAS WRITTEN UP AS TODAY'S DELIVERY, AND EVERY SOLD LEAD WAS A 'SERVICE CONCERN'. Extension only; proxy v7.79 and reporter v1.22 unchanged. log242, Toyota Baytown (capture bc558f2f, dump ed87d87f): an owner who bought a RAV4 on 11/18/23 answered a 9/23/2026 lease-end text with 'What are the options?', and the prompt said '🎉 SOLD/DELIVERED ... Warm congratulations only. No vehicle pitch' with the scenario 'Sold customer has a post-sale service concern'. The model ignored both and answered the question; the fix is so it no longer has to. (1) THE SALE DATE WAS KNOWN AND OVERRULED. The scraper's Sale Info path read 'Deal #: 66721 | Sold: 11/18/23' and correctly declined a 1,040-day-old sale (only a sale within 30 days is congratulations territory, its own comment says), and then the Lead Info 'Status: Sold' fallback set isSoldDelivered anyway -- that label, like the status dropdown, is the LEAD's status and stays Sold for ever; the sold date is when it happened. A Sale Info sold date older than 30 days now stands down all three fallbacks (the dropdown, the Status label, the Delivered badge). With no Sale Info date they behave exactly as before. New [LP SOLD DELIVERED DIAG] line: the sold date and its age, deal #, the label, and 'a past customer, not a delivery to congratulate' when it applies. Without the flag this lead takes the ordinary follow-up path, which already carries 'Customer's current vehicle (confirmed from service/sales history): 2024 Toyota RAV4'; the SHOWROOM FOLLOW-UP block needs a visit within 30 days and does not fire. (2) THE SERVICE SCAN MATCHED OUR OWN SENTENCE. hasPostSaleService scanned the first 800 characters of data.context, which is leadContext, which OPENS with the sold block -- whose second line is 'Set expectation for follow-up service/ownership experience'. So it was true on EVERY sold lead: the congratulations branch could never run, and any sold customer who wrote 20+ characters was handed a 'post-sale service concern'. The scan now starts at the first dated note. LEFT ALONE: the 30-day window, the Sale Info + Deal # primary path, currentLeadIsActive, the three sold scenario branches and their wording. VERIFIED: tests/sold-708.test.js executes the shipped sold-detection block (lifted verbatim) over Lead Info / Sale Info text shaped like the dump, and buildUserPrompt on the whole popup.js with the sold block read from the build: 12 per build, 24 total; against v9.7.707 5 fail and the 7 that pass are labelled controls (a 10-day sale with a Deal # is still sold, Status: Sold with no Sale Info date still is, an active lead is not, a real service note and a customer-named problem still reach the service branch, a bare 'Hi' still gets the warm reply). run-all: 133 suites, 6,241 assertions, 0 failed. Mirrors DEV v9.7.708-dev.)
@@ -5879,9 +5880,17 @@ function populateFromData(d) {
     // (_lpFeedUnitCheck). It used to be "a stock number exists and nothing says otherwise", which
     // turned every stray or stale stock number into "it's here".
     var _confirmedPresent = _lpFeedUnitCheck(d).confirmed && !d.isInTransit && !d.inventoryWarning && !d.vehiclePendingSale && !_agentSaidNotAvailPres;
+    // (v9.7.711) ONE ANSWER, NOT A MENU OF FOUR. When VinSolutions itself flags the unit as out of
+    // active inventory, the VEHICLE STATUS block below states it (SOLD, or the store's policy line)
+    // and this line used to hedge the same unit as "sold, pending, or in transit" beside it -- the
+    // same prompt saying "may not be sold" and "SOLD" on 3 leads in the trigger inventory. With the
+    // warning present this line now names the flag and defers to that block; the generic hedge is
+    // kept for the case it is actually for, a unit that is simply not confirmed by the feed.
     var _stkStatus = _confirmedPresent
       ? ' — confirmed in stock'
-      : ' — NOT confirmed available (not in today\'s live inventory feed as this vehicle, or sold, pending, or in transit). Do NOT tell the customer it is here';
+      : (d.inventoryWarning && !d.vehiclePendingSale && !d.isInTransit)
+        ? ' — VinSolutions flags this unit as NO LONGER IN ACTIVE INVENTORY; the VEHICLE STATUS line below says how to handle that. Do NOT tell the customer it is here'
+        : ' — NOT confirmed available (not in today\'s live inventory feed as this vehicle, or sold, pending, or in transit). Do NOT tell the customer it is here';
     vehicleExtras.push(_stkName
       ? 'VEHICLE ON LEAD: ' + _stkName + _stkStatus + '. Name it to the customer by year/make/model ("' + _stkName + '"). Stock #' + d.stockNum + ' is an INTERNAL identifier for matching only — NEVER put a stock number in a customer-facing message.'
       : 'Stock #' + d.stockNum + ' identifies a specific unit — INTERNAL reference only, NEVER shown to the customer.' + (_confirmedPresent ? ' It is confirmed in stock.' : ' Its availability is NOT confirmed.') + ' Name the vehicle by year/make/model from the lead or what the customer said in the arc; do not use the stock number as the vehicle name.');
@@ -7251,6 +7260,22 @@ function populateFromData(d) {
         if (_vmInOurs) { _vmDropped++; return false; }
         return true;
       }).join('\n');
+      // ── (v9.7.711) AND NOT FROM OUR WORDS QUOTED INSIDE THEIRS ─────────────────────────────
+      // v9.7.641 dropped the entries we SENT. Production diags after it still named "awaits" on
+      // three leads (Wrangler, QX50, Stinger), "https" on a Carnival and the model year "2022" on
+      // a Seltos. The QX50 capture shows the path: the customer's own reply entry opens
+      //   Subject: Re:Your 2022 INFINITI QX50 Awaits at Audi Lafayette By: <our assistant> Hi, ...
+      // -- OUR subject line, carried on THEIR entry, so the authorship filter keeps it. The same
+      // holds for the "On <date> ... wrote:" tail of a reply, which is our message quoted back.
+      // Three structural cuts, then a shape test on the token itself: a CRM Subject label up to
+      // its By:, any quoted-reply tail, and any URL. A token that is only digits (a year, a stock
+      // or zip) or a web fragment is not a configuration whatever text it came from.
+      _vmCtx = _vmCtx.split('\n').map(function (l) {
+        return l.replace(/\bSubject:[^\n]*?(?:\bBy:\s*|$)/gi, ' ')
+                .replace(/\bOn\s+(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)[a-z]*,?\s[^\n]{0,120}?\bwrote:[\s\S]*$/i, ' ')
+                .replace(/\b(?:https?:\/\/|www\.)\S+/gi, ' ');
+      }).join('\n');
+      var _vmNotAShape = function (t) { return /^\d+$/.test(t) || /^(?:https?|www|com|net|org|html?)$/.test(t); };
       var _vmFamRe = new RegExp('\\b((?:19|20)\\d{2}\\s+)?' + _vmParts[0] + '\\s+' + _vmParts[1] + '\\s+([a-z0-9][a-z0-9\\-]*)', 'gi');
       var _vmFm;
       while ((_vmFm = _vmFamRe.exec(_vmCtx.toLowerCase()))) {
@@ -7258,7 +7283,7 @@ function populateFromData(d) {
         // (v9.7.628) An ordinary English word is not a configuration. Rejecting one candidate
         // must NOT end the scan — the v9.7.537 lesson — so this skips and keeps looking, and a
         // real trim sitting behind a function word is still found.
-        if (_vmTok && _vmTok.length > 1 && !_LP_NOT_A_TRIM[_vmTok]
+        if (_vmTok && _vmTok.length > 1 && !_LP_NOT_A_TRIM[_vmTok] && !_vmNotAShape(_vmTok)
             && _voiTrimTail.indexOf(_vmTok) === -1) {
           _vmOtherVariant = _vmTok;
           break;
@@ -13070,6 +13095,7 @@ function _lpScraperBotAuthor(msg) {
     var contextNoteLines = [];
     var _hasPostVisitNote = false;
     var _hasReturnVisitNote = false;
+    var _lpVisitNewestMs = 0;   // (v9.7.711) date of the newest showroom-visit record, for the override's age
 
     // 1. General Notes — scan for post-visit and return-visit signals and tag them explicitly
     transcript.filter(function(t){
@@ -13145,13 +13171,29 @@ function _lpScraperBotAuthor(msg) {
         // (v9.7.285) A real showroom-visit note flips post-visit directly (override previously read
         // only General-Note text).
         _hasPostVisitNote = true;
+        try { var _vMs = new Date(date).getTime(); if (_vMs > _lpVisitNewestMs) _lpVisitNewestMs = _vMs; } catch (eVd) {}
       }
     });
+    // ── (v9.7.711) A VISIT FROM A PREVIOUS YEAR IS NOT "THE VISIT HAPPENED" ────────────────────
+    // The override below had no age limit. log242 (a lease-end reply in 2026) carried "⚠ VISIT
+    // OVERRIDE: ... the customer has already visited ... your message should follow from that"
+    // from a showroom-visit record dated 2023. The SHOWROOM FOLLOW-UP block already stops at 30
+    // days; past that the visit is history, not the current situation, and the line now says so
+    // with its date. A record with no parseable date keeps today's wording.
+    var _lpVisitAgeDays = _lpVisitNewestMs > 0 ? Math.floor((Date.now() - _lpVisitNewestMs) / 86400000) : -1;
+    var _lpVisitStaleLine = (_lpVisitAgeDays > 30)
+      ? '\n⚠ PRIOR VISIT ON RECORD: the newest showroom-visit record is from ' + new Date(_lpVisitNewestMs).toLocaleDateString('en-US')
+        + ' (' + _lpVisitAgeDays + ' days ago). They have been to the store before, but that visit is NOT recent -- do not write as if they were just here or as if this message follows from that visit. The current conversation is the live one.\n'
+      : '';
+    if (_hasPostVisitNote) _lpD('[LP VISIT AGE DIAG] newest visit record ' + (_lpVisitAgeDays < 0 ? 'undated' : _lpVisitAgeDays + ' days old')
+      + (_lpVisitStaleLine ? ' -- older than 30 days, PRIOR VISIT line instead of VISIT OVERRIDE' : ''));
 
     if(contextNoteLines.length) {
       var _overrideWarning0 = '';
       if (_hasReturnVisitNote) {
         _overrideWarning0 = '\n⚠⚠ RETURN VISIT OVERRIDE: An agent note indicates the customer has already visited AND has a plan to return (bringing someone back, coming back tomorrow, etc.). Do NOT write as if the first visit hasn\'t happened. Write a CONFIRMATION message for the return visit.\n';
+      } else if (_hasPostVisitNote && _lpVisitStaleLine) {
+        _overrideWarning0 = _lpVisitStaleLine;
       } else if (_hasPostVisitNote) {
         _overrideWarning0 = '\n⚠ VISIT OVERRIDE: An agent note indicates the customer has already visited. Do NOT write as if they haven\'t been in yet.\n';
       }
@@ -13256,13 +13298,37 @@ function _lpScraperBotAuthor(msg) {
     // _lpCustomerSaid() above, which already routes through the tapback/quoted-reply guard, so
     // a price sheet the customer thumbs-up'd back to us is excluded too. The pattern itself is
     // unchanged character for character -- this changes only WHOSE words it reads.
+    // (v9.7.711) AND "THEIR STATED NUMBER" NEEDS A NUMBER. The keyword pattern above was scoped to
+    // the customer in v9.7.616 but it was still a keyword pattern, so it read a customer ASKING FOR
+    // OUR number as the customer stating theirs: "what kind of incentives and warranty do you all
+    // offer?" and "Just would need the out the door cost" both set it, and the directive then told
+    // the model to "lead with their stated number" -- there was none. Of the 13 distinct customer
+    // messages that set it in the logs, 5 carried a figure of the customer's own and 2 were such
+    // questions. A request for our price is already handled by PRICE/PAYMENT CONCERN.
+    // Now a customer line must carry a FIGURE: a dollar sign, or a bare amount ("21k", "33,000",
+    // "450 a month") in a line that is about money. Mileage ("45k miles") and phone numbers are not
+    // amounts; a model year is never matched (no comma, no k, no $).
+    var _lpBudgetFigure = function (t) {
+      var x = String(t || '').replace(/\(?\d{3}\)?[\s.-]\d{3}[\s.-]\d{4}/g, ' ')
+        .replace(/\bscore\s*(?:is|of|:)?\s*\d{3}\b/gi, ' ')     // a credit score is not an amount
+        .replace(/\b(?:19|20)\d{2}\b/g, ' ');                   // nor is a model year
+      if (/\$\s?\d/.test(x)) return true;
+      var fig = /\b\d{1,3}(?:\.\d{1,2})?\s?k\b(?!\s*(?:mi|km))|\b\d{1,3}(?:,\d{3})+\b(?!\s*(?:miles|mi\b|km))|\b\d{3,6}\b(?!\s*(?:miles|mi\b|km|%))/i;
+      var ctx = /\bcash\b|\boffer|\bOTD\b|out[\s-]the[\s-]door|budget|payment|\bdown\b|price|afford|\bpay\b|\bpaying\b|spend|month|\btotal\b/i;
+      return fig.test(x) && ctx.test(x);
+    };
     var _lpCustSaidMoney = false;
     try {
       var _moneyRx = /\bcash\b|\boffer\b|\$\s?\d|\bOTD\b|out the door/i;
-      var _moneyHit = null;
+      var _moneyHit = null, _moneyAsked = null;
       _lpCustomerSaid().forEach(function (o) {
-        if (!_moneyHit && o && _moneyRx.test(o.text)) _moneyHit = o.text;
+        if (!o || !_moneyRx.test(o.text)) return;
+        if (!_moneyHit && _lpBudgetFigure(o.text)) _moneyHit = o.text;
+        else if (!_moneyAsked) _moneyAsked = o.text;
       });
+      if (_moneyAsked && !_moneyHit)
+        _lpD('[LP BUDGET FIGURE DIAG] money words with no figure of the customer\'s own -- not a stated budget | "'
+          + String(_moneyAsked).replace(/\s+/g, ' ').slice(0, 160) + '"');
       _lpCustSaidMoney = !!_moneyHit;
       _lpD('[LP BUDGET SCOPE DIAG] customerSaidMoney:' + _lpCustSaidMoney
         + ' | customerLines:' + _lpCustomerSaid().length
@@ -13334,7 +13400,16 @@ function _lpScraperBotAuthor(msg) {
           var kTitle = ((noteEls[ki].querySelector('.legacy-notes-and-history-title')||{}).innerText||'').trim();
           var kText = ((noteEls[ki].querySelector('.notes-and-history-item-content')||{}).innerText||'').trim();
           var isRealReply = /inbound text|inbound sms|text message|email reply from prospect|email from prospect|inbound phone|inbound call/i.test(kTitle);
-          if(kText && kText.length > 3 && isRealReply){ inboundMsgs.push(sanitize(kText)); inboundRaw.push({ raw: kText, clean: sanitize(kText).trim(), ms: kDateMs }); }
+          // (v9.7.711) QUOTE THE MESSAGE, NOT THE CRM ROUTING AROUND IT. These two lists feed the
+          // CONVERSATION STATE / MOST RECENT CUSTOMER MESSAGE quote -- the line the prompt tells the
+          // model it MUST address -- and they were built from the raw note. On 10 of the 13 replied
+          // leads in the 54-capture trigger inventory that quote opened "Received from: (phone)
+          // Received by: <agent or the automated assistant>" or "Subject: Re:... By: <agent>", i.e.
+          // the customer's phone number and a staff name presented as the customer's own words. The
+          // transcript already strips this (v9.7.623/634); the same helper is applied here. The raw
+          // text is still what the trivial-confirmation check reads, as before.
+          var _kBody = _lpStripNoteMeta(kText).trim();
+          if(kText && kText.length > 3 && isRealReply && _kBody){ inboundMsgs.push(sanitize(_kBody)); inboundRaw.push({ raw: kText, clean: sanitize(_kBody).trim(), ms: kDateMs }); }
         }
       }
       if(inboundMsgs.length > 0){
@@ -13744,7 +13819,17 @@ function _lpScraperBotAuthor(msg) {
                             : ''));
       } catch (eCd) {}
       var colorMatch = _statedColor ? [_statedColor] : null;
-      var trimMatch = allTranscriptText.match(/\b(ex-?l|sport|touring|lx|ex|elite|awd|fwd|4wd|hybrid|plug-?in)\b/i);
+      // (v9.7.711) "Customer referenced EX-L" -- READ FROM THE CUSTOMER. This scanned
+      // allTranscriptText, which carries agent notes and call notes, and on 3 of the 6 leads where
+      // it fired in the trigger inventory the customer never wrote the trim: it came from the
+      // vehicle's own name in our text ("CR-V EX-L"). The shipped _lpCustomerSaid() is the
+      // customer's authored text with quoted replies and tapbacks removed -- the same source the
+      // budget flag reads -- so a trim in our quoted email under their reply does not count either.
+      var _lpTrimSrc = '';
+      try { _lpTrimSrc = _lpCustomerSaid().map(function (o) { return o && o.text || ''; }).join(' '); } catch (eTs) { _lpTrimSrc = (typeof customerOnlyText === 'string') ? customerOnlyText : ''; }
+      var trimMatch = _lpTrimSrc.match(/\b(ex-?l|sport|touring|lx|ex|elite|awd|fwd|4wd|hybrid|plug-?in)\b/i);
+      try { if (!trimMatch) { var _tmAll = allTranscriptText.match(/\b(ex-?l|sport|touring|lx|ex|elite|awd|fwd|4wd|hybrid|plug-?in)\b/i);
+        if (_tmAll) _lpD('[LP TRIM SCOPE DIAG] "' + _tmAll[0] + '" appears only in our text or notes -- not the customer\'s; no TRIM/CONFIG PREFERENCE'); } } catch (eTd) {}
       // (v9.7.614) UNSHIFTED to the FRONT and stated as outranking. This layer prints under
       // "lead with these, do not bury them", and on Pranav it printed EIGHT entries — price,
       // timing, colour, trim, trade, financing, feature uncertainty — which is not prioritisation,
@@ -13924,6 +14009,8 @@ function _lpScraperBotAuthor(msg) {
         var _overrideWarning = '';
         if (_hasReturnVisitNote) {
           _overrideWarning = '\n⚠⚠ RETURN VISIT OVERRIDE: An agent note indicates the customer has already visited AND has a plan to return (bringing someone back, coming back tomorrow, etc.). The customer\'s last text message is OLD NEWS — the situation has moved forward. Do NOT re-reference logistics already resolved (address confirmations, pricing already agreed to). Write a CONFIRMATION message for the return visit: confirm the day and offer two time options. If the note mentions bringing a specific person (daughter, wife, spouse), name them naturally — e.g. "bring her by" not "bring it back." If the note mentions comparing vehicles, confirm both will be available.\n';
+        } else if (_hasPostVisitNote && _lpVisitStaleLine) {
+          _overrideWarning = _lpVisitStaleLine;
         } else if (_hasPostVisitNote) {
           _overrideWarning = '\n⚠ VISIT OVERRIDE: An agent note indicates the customer has already visited. Do NOT write as if they are still en route or haven\'t been in yet. The visit happened — your message should follow from that.\n';
         }
@@ -14880,8 +14967,16 @@ function _lpScraperBotAuthor(msg) {
         // a real sentence sitting under it still counts.
         // Scoped to this block deliberately: the customer-commitment scan below reads `body` too,
         // and changing what IT sees is a separate decision that is not being made here.
-        var _topicBody = String(body || '').split('\n')
-          .filter(function (l) { return !_lpIsRoutingLine(l); })
+        // (v9.7.711) AND NOT OUR SUBJECT LINE CARRIED ON THEIR ENTRY. One Kia lead (9/16, the
+        // 9fbf1bb7 dump) was told 'Vehicle configuration has come up 3 time(s): "Subject: Let's Get
+        // You Behind the Wheel at Community Kia"' -- from three EMAIL FAILURE notices echoing our
+        // subject. Those have been dropped since v9.7.697 put "email failure" in _lpIsOurOwnSend,
+        // which is why later captures are clean. The same subject still reached this scan on a
+        // customer's email REPLY ("Subject: Re:<our subject> / By: ..."), which is theirs and so
+        // passes the guard; its leading header is now dropped by the transcript's own strip plus a
+        // plain-subject line cut, and "Wheel" no longer scores a configuration topic.
+        var _topicBody = String(_lpStripNoteMeta(String(body || '')) || '').split('\n')
+          .filter(function (l, i) { return !_lpIsRoutingLine(l) && !(i < 3 && /^\s*Subject:/i.test(l)); })
           .join('\n').trim();
         if (_topicBody && _topicBody.length > 0 && !_topicOurOwnSend) {
           var topicPatterns = {
@@ -15083,6 +15178,13 @@ function _lpScraperBotAuthor(msg) {
           // survive reads correctly. A LOOKAHEAD rather than a consumed second character, so a run
           // of them all convert; lowercase-only on the right, so a real "available?Thanks" is safe.
           qbody = qbody.replace(/([A-Za-z])\?(?=[a-z])/g, "$1'");
+          // (v9.7.711) A WEB ADDRESS IS NOT A QUESTION. A link the customer pasted carries '?' (a
+          // query string) and '.' (the domain), so the splitter below cut it into "questions":
+          // OPEN THREADS on 9/20 told the model the customer had asked, verbatim,
+          // "com%2fsearch/one-owner-used/?" and was still waiting for an answer. Links are removed
+          // before splitting -- whole tokens only, so the words around them are untouched.
+          qbody = qbody.replace(/\S*(?:https?:\/\/|www\.|%2[fF]|%3[aAfF])\S*/g, ' ')
+                       .replace(/\b[\w-]+\.(?:com|net|org|us|io|ly)\/\S*/gi, ' ');
           // Find sentences ending with ? (explicit questions)
           var qs = qbody.match(/[^.!?\n]{8,200}\?/g) || [];
           // ── (v9.7.666) A QUESTION WITHOUT A QUESTION MARK IS STILL A QUESTION ──────────────

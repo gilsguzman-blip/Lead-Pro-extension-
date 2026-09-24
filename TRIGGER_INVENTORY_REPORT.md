@@ -1,5 +1,9 @@
 # Lead Pro: trigger inventory
 
+> **Status (v9.7.711):** all eight findings below are fixed; see the v9.7.711 build header for each.
+> - **Item 8:** its main source (Email Failure notices) had already been dropped by v9.7.697. v9.7.711 closes the remaining path, a customer's reply carrying our subject line.
+> - **Item 6:** fixed by making the availability line agree with VEHICLE STATUS. The SOLD pivot itself is unchanged.
+
 **Question:** which rules that turn lead text into an instruction for the model fire on evidence that isn't there?
 
 **Built on:** extension v9.7.710 (`builds/dev`) and all captures uploaded to date.

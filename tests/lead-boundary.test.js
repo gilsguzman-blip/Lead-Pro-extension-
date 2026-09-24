@@ -280,10 +280,23 @@ check('...nor is our "$750 deposit + $5000 finance rebate" EV9 blast',
 check('all nineteen blasts together still say nothing about what she wants to pay',
   i => money(i, BLASTS.map((d, n) => '[' + d + '] [AGENT] ' + SHARON_BLAST)).said, false);
 
-check('a customer actually asking for an OTD number DOES fire it',
-  i => money(i, [SHARON_BLAST, REAL_ASK]).said, true);
-check('...and so does a customer naming cash down',
+// (v9.7.711) CHANGED, deliberately. v9.7.616 pinned a customer ASKING for our OTD number as a
+// stated budget. The trigger inventory found that is the defect: the directive then says "lead with
+// their stated number" and there is none. Asking for our price is PRICE/PAYMENT CONCERN's job.
+check('v9.7.711: a customer ASKING for our OTD number is not stating one (was pinned true in v9.7.616)',
+  i => money(i, [SHARON_BLAST, REAL_ASK]).said, false);
+check('v9.7.711: nor is "what incentives do you all offer?"',
+  i => money(i, ['[09/04/2026 9:30 AM] [CUSTOMER] what kind of incentives and warranty do you all offer?']).said, false);
+check('...and the budget-figure diag names the line it declined',
+  i => /\[LP BUDGET FIGURE DIAG\].*out the door price be on the Sportage/.test(money(i, [REAL_ASK]).logs.join(' ')), true);
+check('a customer naming cash down DOES fire it',
   i => money(i, [TRICIA_TRUECAR, REAL_CASH]).said, true);
+check('v9.7.711: a credit score and a percentage are not a stated number',
+  i => money(i, ['[09/04/2026 9:30 AM] [CUSTOMER] Credit score 590 I only have the 10% down']).said, false);
+check('v9.7.711: nor is mileage beside a money word',
+  i => money(i, ['[09/04/2026 9:30 AM] [CUSTOMER] my trade has 45k miles, what would you offer']).said, false);
+check('v9.7.711: "21k-21.5k OTD" is',
+  i => money(i, ['[09/04/2026 9:30 AM] [CUSTOMER] I am looking to be at 21k-21.5k OTD']).said, true);
 check('our own price sheet thumbs-up\'d back to us is still ours, not hers',
   i => money(i, [TAPBACK_SHEET]).said, false);
 check('a lead with no customer text at all cannot have stated a budget',
@@ -292,14 +305,15 @@ check('a lead with no customer text at all cannot have stated a budget',
 check('the diagnostic reports the verdict and how many customer lines it read',
   i => /customerSaidMoney:false \| customerLines:0/.test(money(i, [SHARON_BLAST]).logs.join(' ')), true);
 check('...and quotes the customer line when it DOES fire, so a fire is checkable',
-  i => /hit:"What would my out the door price be on the Sportage\?"/
-        .test(money(i, [REAL_ASK]).logs.join(' ')), true);
+  i => /hit:"I have about 5000 cash to put down"/
+        .test(money(i, [REAL_CASH]).logs.join(' ')), true);
 
-// The pattern itself must be untouched — this build changes whose words are read, not what counts.
-console.log('\nthe money pattern is unchanged — only whose words it reads:');
-for (const [label, text] of [['cash', 'I can pay cash'], ['offer', 'what is your best offer'],
-                             ['a dollar figure', 'can you do $28,000'], ['OTD', 'what is the OTD'],
-                             ['out the door', 'my out the door budget is tight']]) {
+// v9.7.616 changed whose words are read. v9.7.711 adds that the words carry a figure, so each
+// keyword is now exercised with one; the "WE say it" half is unchanged.
+console.log('\nthe money pattern — the customer\'s words, with a figure of their own:');
+for (const [label, text] of [['cash', 'I can pay 5000 cash'], ['offer', 'my offer is 21k'],
+                             ['a dollar figure', 'can you do $28,000'], ['OTD', 'OTD 30,000 is my max'],
+                             ['out the door', 'my out the door budget is 25k']]) {
   check('  "' + label + '" still counts when the CUSTOMER says it',
     i => money(i, ['[09/04/2026 9:30 AM] [CUSTOMER] ' + text]).said, true);
   check('  ...and no longer counts when WE say it',

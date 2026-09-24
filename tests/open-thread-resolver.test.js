@@ -535,10 +535,27 @@ const NO_APOS = c => c.replace(/\n\s*qbody = qbody\.replace\([^\n]*\n/, '\n');
 check('neuter C actually removed the apostrophe repair', i => NO_APOS(i.code) !== i.code, true);
 check('C: the CarGurus body manufactures questions again',
   i => run(i, [item('Inbound', '09/06/2026 5:38 PM', CARGURUS_BODY)], NO_APOS).open.length > 0, true);
-check('C: and one of them is the URL fragment the model was shown',
-  i => run(i, [item('Inbound', '09/06/2026 5:38 PM', CARGURUS_BODY)], NO_APOS).open.some(q => /1y864y/.test(q)), true);
+// (v9.7.711) Was "one of them is the URL fragment": since v9.7.711 links are cut before the split,
+// independently of the apostrophe repair, so the fragment stays out even with the repair removed.
+check('C: v9.7.711 — even then, the URL fragment is not among them (links are cut first)',
+  i => run(i, [item('Inbound', '09/06/2026 5:38 PM', CARGURUS_BODY)], NO_APOS).open.some(q => /1y864y/.test(q)), false);
 check('C (control): the shipped resolver produces none',
   i => run(i, [item('Inbound', '09/06/2026 5:38 PM', CARGURUS_BODY)]).open.length, 0);
+
+// ── (9b) A WEB ADDRESS IS NOT A QUESTION (v9.7.711) ─────────────────────────
+// LIVE, 9/20, a Toyota lead (captures 67173f32, bf740cfc): OPEN THREADS told the model the customer
+// had asked "com%2fsearch/one-owner-used/?" and was waiting for an answer. The customer had pasted
+// a listing link; its query string supplied the '?' and its domain the '.'.
+console.log('\n(9b) a pasted link is not a question (v9.7.711):');
+const LINK_BODY = 'Received from: (555) 010-0199\nhttps://www.example.com/used/2023-toyota-rav4-hybrid-for-sale/?utm=x example.com%2fsearch/one-owner-used/?sort=price';
+const NO_LINKCUT = c => c.replace(/\n\s*\/\/ \(v9\.7\.711\) A WEB ADDRESS IS NOT A QUESTION[\s\S]*?\.replace\(\/\\b\[\\w-\]\+[^\n]*\n/, '\n');
+check('neuter 9b actually removed the link cut', i => NO_LINKCUT(i.code) !== i.code, true);
+check('9b: with the link cut removed, the link becomes an "unanswered question" again',
+  i => run(i, [item('Inbound', '09/20/2026 11:58 AM', LINK_BODY)], NO_LINKCUT).open.some(q => /%2fsearch|one-owner-used/.test(q)), true);
+check('9b (shipped): no open thread from a pasted link',
+  i => run(i, [item('Inbound', '09/20/2026 11:58 AM', LINK_BODY)]).open.length, 0);
+check('9b (control): a real question beside a link is still caught',
+  i => run(i, [item('Inbound', '09/20/2026 11:58 AM', 'https://www.example.com/used/x/?a=1 Is this one still available?')]).open.some(q => /still available/.test(q)), true);
 
 // ── (10) A QUESTION WITHOUT A QUESTION MARK (v9.7.666) ──────────────────────
 // LIVE, 9/16. Aimee Williams, Community Kia Baytown. She had just been sent an exterior photo and

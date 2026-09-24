@@ -106,6 +106,27 @@ for (const file of BUILDS) {
       B.run('2018 Ford Expedition Platinum', 'ford|expedition',
         'the 2018 Ford Expedition ' + w + ' something'), ''));
 
+  // (v9.7.711) Production diags after v9.7.641 still named "awaits" (3 leads), "https" (1) and
+  // the model year "2022" (the Seltos lead). Each shape below is the one the dumps show.
+  console.log('\nv9.7.711 — our words quoted inside theirs, links and years:');
+  check('a customer reply carrying OUR subject line ("... QX50 Awaits at ...") yields no variant',
+    B.run('2022 INFINITI QX50 Luxe', 'infiniti|qx50',
+      '[09/10/2026 6:45 PM] [CUSTOMER] Email reply from prospect\n  Subject: Re:Your 2022 INFINITI QX50 Awaits at Audi Lafayette By: Vinessa Virtual Assistant Audi Lafayette Hi, do you work Monday afternoon?'), '');
+  check('...nor does our message quoted under "On <date> ... wrote:"',
+    B.run('2025 Jeep Wrangler Willys', 'jeep|wrangler',
+      '[09/12/2026 9:00 AM] [CUSTOMER] Email reply from prospect\n  Is it still there? On Thu, Sep 10, 2026, 8:01 AM Community <x@example.com> wrote: Your 2025 Jeep Wrangler Awaits at Audi Lafayette'), '');
+  check('a model year after the nameplate ("kia seltos 2022") is not a configuration',
+    B.run('2023 Kia Seltos S', 'kia|seltos',
+      '[09/13/2026 8:57 AM] [CUSTOMER] Hello I have a kia seltos 2022 I bought from you'), '');
+  check('a link after the nameplate is not a configuration',
+    B.run('2024 Kia Carnival LX', 'kia|carnival',
+      '[09/12/2026 8:57 AM] [CUSTOMER] this Kia Carnival https://www.example.com/listing/123'), '');
+  check('a real trim in the customer\'s own words on that entry is found, not our subject word before it',
+    B.run('2022 INFINITI QX50 Luxe', 'infiniti|qx50',
+      '[09/10/2026 6:45 PM] [CUSTOMER] Email reply from prospect\n  Subject: Re:Your 2022 INFINITI QX50 Awaits at Audi Lafayette By: Vinessa Virtual Assistant Audi Lafayette Do you have the INFINITI QX50 Sensory instead?'), 'sensory');
+  check('control: "hybrid" (both production fires of it were real) still fires',
+    B.run('2026 Honda Accord EX', 'honda|accord', '[09/20/2026 1:00 PM] [CUSTOMER] do you have the Honda Accord hybrid'), 'hybrid');
+
   console.log('\nit never throws:');
   check('empty brief', B.run('2018 Ford Expedition Platinum', 'ford|expedition', ''), '');
   check('no family key', B.run('2018 Ford Expedition Platinum', '', 'anything'), '');

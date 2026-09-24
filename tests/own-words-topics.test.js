@@ -103,7 +103,8 @@ function extract(file) {
     }
     throw new Error(name + ' has no close in ' + file);
   }
-  const shared = lift('_lpIsOurOwnSend') + '\n' + lift('_lpIsRoutingLine') + '\n';
+  // (v9.7.711) and _lpStripNoteMeta, the transcript's header strip, now applied to the topic body.
+  const shared = lift('_lpIsOurOwnSend') + '\n' + lift('_lpIsRoutingLine') + '\n' + lift('_lpStripNoteMeta') + '\n';
 
   const sb = { String, RegExp, Date, Math, parseInt, parseFloat };
   vm.createContext(sb);
@@ -361,6 +362,26 @@ check('  ...so a Honda mention at a Honda store is inside the set',
   () => marqueSet(null, '2020 Volkswagen Tiguan', 'Community Honda Baytown').indexOf('honda') >= 0, true);
 check('  ...and a Subaru mention is still outside it',
   () => marqueSet(null, '2020 Volkswagen Tiguan', 'Community Honda Baytown').indexOf('subaru') >= 0, false);
+
+// ── (v9.7.711) A MAIL SERVER ECHOING OUR SUBJECT IS NOT THE CUSTOMER ─────────────────────────
+// Kia lead, 9/16 (dump 9fbf1bb7): 'Vehicle configuration has come up 3 time(s): "Subject: Let's Get
+// You Behind the Wheel at Community Kia"', from EMAIL FAILURE notices echoing our subject -- fixed
+// by v9.7.697. The path still open was a customer's reply carrying the same subject header.
+console.log('\nv9.7.711 — delivery-failure notices and subject headers:');
+const FAIL_NOTE = (d) => ({ dir: 'inbound', title: 'Email Failure', date: d,
+  body: "Subject: Let's Get You Behind the Wheel at Community Kia\nBy: System\n554 5.2.2 mailbox full; STOREDRV.Deliver.Exception:QuotaExceededException" });
+const THREE_FAILS = [FAIL_NOTE('09/16/2026 8:58 AM'), FAIL_NOTE('09/15/2026 8:57 AM'), FAIL_NOTE('09/13/2026 8:57 AM')];
+// Control: already dropped since v9.7.697 ("email failure" in _lpIsOurOwnSend); passes on 710 too.
+check('control (since v9.7.697): three Email Failure notices score no configuration topic',
+  i => i.scan(THREE_FAILS).topicMentions.configuration.count, 0);
+check('a customer reply carrying our subject line does not score it either',
+  i => i.scan([{ dir: 'inbound', title: 'Email reply from prospect', date: '09/16/2026 9:00 AM',
+    body: "Subject: Re:Let's Get You Behind the Wheel at Community Kia\nBy: Vinessa Virtual Assistant Community Kia\nok thanks" },
+    { dir: 'inbound', title: 'Email reply from prospect', date: '09/16/2026 9:05 AM',
+    body: "Subject: Re:Let's Get You Behind the Wheel at Community Kia\nBy: Vinessa Virtual Assistant Community Kia\nsee you then" }]).topicMentions.configuration.count, 0);
+check('control: the customer asking about wheels twice still scores it',
+  i => i.scan([{ dir: 'inbound', title: 'Inbound Text Message', date: '09/16/2026 9:00 AM', body: 'Received from: (555) 010-0199\nDoes it have the 19 inch wheels?' },
+               { dir: 'inbound', title: 'Inbound Text Message', date: '09/16/2026 9:10 AM', body: 'Received from: (555) 010-0199\nAnd what color is the interior' }]).topicMentions.configuration.count, 2);
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);
