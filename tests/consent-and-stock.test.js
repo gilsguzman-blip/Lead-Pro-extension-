@@ -220,8 +220,10 @@ console.log('\n"confirmed in stock" now answers to the same predicate as the pre
 check('the claim is no longer unconditional on a stock number',
   i => /_stkName \+ ' — confirmed in stock\. Name it/.test(strip(i.src)), false);
 
+// (v9.7.715) The customer's own vehicle is named first; the in-stock claim is still chosen by
+// _confirmedPresent and by nothing else.
 check('it is chosen by _confirmedPresent',
-  i => /var _stkStatus = _confirmedPresent/.test(strip(i.src)), true);
+  i => /var _stkStatus = _stkOwn\s*\?[\s\S]{0,400}?:\s*_confirmedPresent\s*\?\s*' — confirmed in stock'/.test(strip(i.src)), true);
 
 check('...and the NOT-confirmed branch tells the model plainly not to claim it is here',
   i => /NOT confirmed available[\s\S]{0,120}Do NOT tell the customer it is here/.test(strip(i.src)), true);

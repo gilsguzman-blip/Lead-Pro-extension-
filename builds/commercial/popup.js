@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.715 (Commercial. PRE-RELEASE DEEP DIVE: THE REAL SCRAPER OVER THE REAL DUMPS, AND WHAT IT FOUND. Extension only; proxy v7.80 and reporter v1.22 unchanged. Gil, before pushing to the Chrome store: 'Do a deep dive'. METHOD. The shipped inlineScraper of v9.7.710 and v9.7.714 run in Chromium (Playwright) over all 11 uploaded VinSolutions dumps, then populateFromData + buildUserPrompt, and every prompt diffed; the two Lead Pro lead dumps replayed the same way. Every difference 710 -> 714 was an intended fix: routing headers gone from 3 latest-message quotes, log242's 2023 visit now dated, a URL no longer an open question, our subject lines out of the topic counts, two false VARIANT MISMATCH lines gone ('2022' on a Seltos, 'lease' on log242's RAV4) and the item-6 availability wording. No other line moved. (1) THE CUSTOMER'S OWN CAR WAS 'SOLD'. log242's lead (dump ed87d87f): a lease-end customer whose lead vehicle, a 2024 Toyota RAV4, is the vehicle their Sales history says we sold them. VinSolutions flags it out of active inventory because they drive it, and the prompt said 'VEHICLE STATUS: SOLD ... Tell the customer once, plainly, and pivot to comparable options' plus 'TASK: The specific vehicle of interest has been sold' -- to a customer asking 'What are the options?' about their lease. The v9.7.238 loyalty guard exists for exactly this and keys on the lead SOURCE; this lead's source is 'Showroom'. New _lpVoiIsPriorSale: same year and same make+model family as priorSoldVehicle. It joins the loyalty guard, gates classifyScenario's vehicleSold, and a new branch -- ahead of the Audi show-as-available policy, so the customer's car is never presented as inventory -- says it is the customer's own vehicle. [LP OWN VEHICLE DIAG]. On the replay only that lead changes: the SOLD pivot becomes the standard follow-up. (2) MY OWN v9.7.711 WORDING pointed loyalty leads at 'the VEHICLE STATUS line below', which does not exist there -- the LOYALTY VEHICLE banner owns them. VEHICLE ON LEAD now names the customer's own vehicle first for loyalty sources and prior-sale matches. (3) _lpIsOurOwnSend did not know three of our own automated sends: Marketing Campaign Email (29 in 2 dumps), Email auto response (22 in 4) and Email Price Change. Added in both copies; it feeds only exclusions (variant scan, concern lines, topic scan). No prompt changed on the 11 dumps -- protection, not a measured fix. (4) The SOLD SIGNAL 'REJECTED' diagnostic Gil saw as an error on v9.7.708 is benign and is now a log line. The remaining warnings fire only on real failures (notes not loaded, frames disagreeing on an address). ALSO CHECKED, NO CHANGE: the commercial zip holds the 11 runtime files only; manifest v3, permissions and host list unchanged; dev vs commercial differ only in the dev-only stability diagnostics, the DEV badge and header comments; 164 logged generations all finish STOP with no SAFE_FALLBACK; one runtime error in all logs, on v9.7.531; the SMS refine's source drops in the logs all predate the v9.7.697/712/713 guards. TESTS: new own-vehicle-715 (11 per build: 5 new, 6 controls). fences-fallback, sold-scan and consent-and-stock run the classifier and stock block in isolated sandboxes, so the new helper is called behind a typeof guard; consent-and-stock's pin re-anchored. NON-VACUITY against v9.7.714: 5 fail, 6 controls pass. VERIFIED: run-all 140 suites, 6,457 assertions, 0 failed (+22). node --check both builds; manifests parse; changed lines identical dev vs commercial except the SOLD diag line, whose dev-only wording predates this build; the 11-dump replay identical between the tested and final code. Builds on v9.7.714.)
 // Lead Pro -- popup.js  v9.7.714 (Commercial. KBB ON TOYOTA.COM. Extension only; proxy v7.80 and reporter v1.22 unchanged. Gil, 9/24, on the v9.7.713 question: 'KBB on Toyota.com would be the most correct.' The 'Toyota.Com-Kbb Trade-In' source is KBB's trade tool hosted on toyota.com, and was told 'you may say the customer came through Kelley Blue Book'. It now has its own entry in the customer-facing source table, ahead of the general KBB entry: name 'KBB on Toyota.com', shape place. It is still the KBB Trade-In Advisor scenario. HOW THIS LEAD REACHED US names 'KBB on Toyota.com', and the NAMED SOURCE block has a Toyota.com form: MUST mention 'KBB on Toyota.com' once in SMS and email, never 'came through Kelley Blue Book' or KBB's site. THE TABLE GAINS AN OPTIONAL FOURTH COLUMN: the pattern that recognises the source in a DRAFT when it differs from the label pattern. v9.7.712 used the label pattern for both; for this entry a draft saying just 'KBB' or 'Toyota.com' has still named where they came from, so the SMS refine guard and its KEEP WHERE THEY CAME FROM block protect all three forms. Every other entry is unchanged and falls back to its label pattern. NOT CHANGED: 'Kbb Ico Dealer Website' (KBB's tool on our own site) keeps 'Kelley Blue Book' until Gil rules on it. TESTS: kbb-variants-713 extended to 24 per build (+4): the Toyota label's full reading, the three draft forms through the refine guard, and the refine prompt's wording; the nine other labels still pinned to 'Kelley Blue Book'. NON-VACUITY against v9.7.713: 3 fail (the label reading, a draft saying only 'Toyota.com', and the refine prompt's name); the 'KBB on Toyota.com' and 'KBB' draft forms already held there through the KBB pattern. VERIFIED: run-all 139 suites, 6,435 assertions, 0 failed (+8). node --check both builds; manifests parse; changed lines identical dev vs commercial. Builds on v9.7.713.)
 // Lead Pro -- popup.js  v9.7.713 (Commercial. EVERY KBB VARIANT, BOTH KINDS. Extension only; proxy v7.80 and reporter v1.22 unchanged. Gil, after log245: 'What about all the KBB variations?' (A) THE SOURCE LABELS WERE ALREADY CONSISTENT, NOW PINNED. Ten distinct KBB lead-source strings appear across the uploaded logs, captures and dumps: Kbb Ico Kelley Blue Book, its '- Mobile', '(Internet)' and '- Mobile (Internet)' forms, Toyota.Com-Kbb Trade-In, Kelley Blue Book - Trade In, Kelley Blue Book Trade-In, Kbb Ico Dealer Website - Mobile, KBB ICO Lead and KBB ICO - Internet. Run through the shipped classifyScenario, _lpSourceAckPhrase and buildUserPrompt, every one already got the KBB Trade-In Advisor task, the NAMED SOURCE -- KBB block and 'Kelley Blue Book' as the one allowed name. AutoTrader-KBB stays an AutoTrader purchase lead. (B) THE WAYS IT GETS WRITTEN WERE NOT. v9.7.712's refine guard recognises a draft's mention with the source table's pattern, which knew 'KBB' and 'Kelley Blue Book' only: a first draft saying 'Kelly Blue Book', 'Blue Book' or 'K.B.B.' could lose it to the rewrite unguarded. The misspelling is real -- a customer in the corpus wrote 'Kelly Blue Book would not give me a...'. The source table entry now reads /kbb|k.b.b|kel+e?y blue book|blue book/; the scenario classifier (isKBB), the trade flag from the source, the newer-lead trade test, the incentive source exclusion, the fresh-source list, the relationship trade topic, the intent table and the trade-value ask all accept 'kelly' (and, where it is customer text, a bare 'blue book'). The CRM's own system-note detectors are unchanged; the CRM spells its own notes correctly. NOT CHANGED, a question for Gil: two labels are KBB's tool hosted somewhere else -- 'Toyota.Com-Kbb Trade-In' (the customer was on toyota.com) and 'Kbb Ico Dealer Website' (on our own site). Both are told 'the customer came through Kelley Blue Book'. The value they saw IS a KBB value, so 'your KBB value' is true; 'came through Kelley Blue Book' is the v9.7.639 Perkspot question in another form. TESTS: new kbb-variants-713 (20 per build: 4 new, 16 pins and controls, including 'blue' alone and 'book' alone not counting). NON-VACUITY against v9.7.712: the 4 new fail (the 'Kelly Blue Book Trade-In' source and the Kelly / Blue Book / K.B.B. drafts); the 16 pass on both. VERIFIED: run-all 139 suites, 6,427 assertions, 0 failed (+40). node --check both builds; manifests parse; changed lines identical dev vs commercial. Builds on v9.7.712.)
 // Lead Pro -- popup.js  v9.7.712 (Commercial. KBB WAS NAMED IN THE DRAFT AND THE REWRITE TOOK IT OUT; AND 'CUSTOMER REPLIED' ON A CUSTOMER WHO NEVER DID. Extension only; proxy v7.80 and reporter v1.22 unchanged. log245, Community Honda Lafayette (capture 3d7bf33d), a KBB Trade-In Advisor lead with no vehicle of interest and a 2015 Accord trade. Gil: 'was a KBB and wasn't called out as source'. (1) THE PROMPT WAS RIGHT AND THE FIRST DRAFT OBEYED IT. NAMED SOURCE -- KBB said 'MUST mention KBB or Kelley Blue Book once in BOTH the SMS and the email', and pass 1 opened 'thanks for using KBB to value your 2015 Accord Sport'. The SMS refine pass rewrote it without the source and its version shipped ([LP SMS REFINE DIAG] shipped:pass2). v9.7.697 built exactly this guard -- keep the first pass if it named the source and the rewrite dropped it -- and the refine prompt's KEEP WHERE THEY CAME FROM block with it; both tested for the DISPLAY NAME 'kelley blue book' only, so a draft that wrote 'KBB' had nothing to protect. _lpSourceAckPhrase now also returns the source table's own pattern (the one that recognised the source: /kbb|kelley blue book/), and both the guard and the prompt block recognise a mention by it or by the name. The email is never refined and carried 'Kelley Blue Book' throughout. (2) 'LIVE CONVERSATION: Customer replied within the last few hours ... references exactly what the customer said' on a lead whose facts section said 'No dated customer reply is on file'. v9.7.642 split this block on hasOutbound; here the automated assistant had emailed, so it read 'replied', while the only inbound was the KBB lead arriving (hasCustomerReply:false). Three-way now: the assistant or we wrote and the customer has not answered gets its own FRESH INQUIRY, NOT REPLIED wording (hot, nothing of theirs to quote); replied and never-written-to are unchanged; an absent hasCustomerReply keeps the old two-way reading. New [LP LIVE CONVERSATION DIAG]. NOT CHANGED, noted: the SMS signature on this grab rendered without an agent name (enforceSmsSig agent:'' -- the lead's BD Agent and the signed-in profile's store differ); the same signer question Gil ruled out on log244. TESTS: new log245-712 (10 per build: 4 new, 6 controls) executes the shipped _lpRefineSms with the network stubbed, _lpBuildSmsRefinePrompt and populateFromData. appointment-hours re-anchored to the three-way branch (same count; HOT-lead wording count 2 -> 3). NON-VACUITY against v9.7.711: 4 fail, 6 controls pass. VERIFIED: run-all 138 suites, 6,387 assertions, 0 failed (+20). node --check both builds; manifests parse; changed regions byte-identical dev vs commercial. Builds on v9.7.711.)
@@ -5100,7 +5101,7 @@ function _lpGuessModelFromCustomerText(text, vfc) {
 // place a second copy is the right call rather than the recurring mistake.
 function _lpIsOurOwnSend(text) {
   var t = String(text || '');
-  return /outbound text message|email reply to prospect|email sent to prospect|email failure/i.test(t)
+  return /outbound text message|email reply to prospect|email sent to prospect|email failure|marketing campaign email|email auto response|email price change/i.test(t)
       || /^\s*(?:sent\s+to|sent\s+by)\s*:/im.test(t);
 }
 
@@ -5140,6 +5141,23 @@ function _lpFeedUnitCheck(d) {
   return out;
 }
 
+// (v9.7.715) IS THE LEAD'S VEHICLE THE ONE WE SOLD THIS CUSTOMER? log242's lead: a lease-end
+// customer whose lead vehicle is "2024 Toyota RAV4" and whose Sales history (priorSoldVehicle) holds
+// the same 2024 Toyota RAV4. VinSolutions flags it "no longer in your active inventory" -- because
+// the customer drives it -- and the prompt read that as a sold unit: "VEHICLE STATUS: SOLD ... Tell
+// the customer once, plainly, and pivot to comparable options", "TASK: The specific vehicle of
+// interest has been sold". The loyalty guard (v9.7.238) exists for exactly this and keys on the lead
+// SOURCE; this lead's source is "Showroom". Same year and same make+model family as the prior sale.
+function _lpVoiIsPriorSale(d) {
+  try {
+    var a = String((d && d.priorSoldVehicle) || ''), b = String((d && d.vehicle) || '');
+    if (!a || !b) return false;
+    var ya = a.match(/\b(?:19|20)\d{2}\b/), yb = b.match(/\b(?:19|20)\d{2}\b/);
+    if (!ya || !yb || ya[0] !== yb[0]) return false;
+    var ka = _lpModelFamilyKey(a), kb = _lpModelFamilyKey(b);
+    return !!ka && ka === kb;
+  } catch (e) { return false; }
+}
 function _lpModelFamilyKey(v){
   // Year- and trim-insensitive vehicle identity: make + first model token. "2025 Honda CR-V EX"
   // and "2026 Honda CR-V Sport" collapse to the same key (NOT a conflict); "Toyota RAV4" vs
@@ -5902,7 +5920,13 @@ function populateFromData(d) {
     // same prompt saying "may not be sold" and "SOLD" on 3 leads in the trigger inventory. With the
     // warning present this line now names the flag and defers to that block; the generic hedge is
     // kept for the case it is actually for, a unit that is simply not confirmed by the feed.
-    var _stkStatus = _confirmedPresent
+    // (v9.7.715) The customer's own vehicle is named as such, before any stock wording.
+    var _stkOwn = (typeof _lpVoiIsPriorSale === 'function' && _lpVoiIsPriorSale(d))
+      || /afs|kmf|luv|off ?lease|off ?loan|maturity|lease end|kfa|loyalty/i.test(d.leadSource || '')
+      || /loyalty lead created|account type[:\s]*leas/i.test(typeof _lpCtxAll === 'string' ? _lpCtxAll : '');
+    var _stkStatus = _stkOwn
+      ? ' — this is the CUSTOMER\'S OWN vehicle (sold, leased or financed to them), NOT a unit for sale; an inventory flag on it is expected. Never say it is here, available, or sold'
+      : _confirmedPresent
       ? ' — confirmed in stock'
       : (d.inventoryWarning && !d.vehiclePendingSale && !d.isInTransit)
         ? ' — VinSolutions flags this unit as NO LONGER IN ACTIVE INVENTORY; the VEHICLE STATUS line below says how to handle that. Do NOT tell the customer it is here'
@@ -6475,7 +6499,12 @@ function populateFromData(d) {
   // make the model tell the customer their own car "has been sold" + pivot to comparables. Suppress
   // the inventory-warning sold path entirely for these leads; the loyalty guard owns the framing.
   var _isLoyaltyVeh = /afs|kmf|luv|off ?lease|off ?loan|maturity|lease end|kfa|loyalty/i.test(d.leadSource || '')
-    || /loyalty lead created|account type[:\s]*leas/i.test(_lpCtxAll); // (v9.7.516/512) was d.context — always empty
+    || /loyalty lead created|account type[:\s]*leas/i.test(_lpCtxAll) // (v9.7.516/512) was d.context — always empty
+    || _lpVoiIsPriorSale(d);   // (v9.7.715) or the Sales history says we sold them this very vehicle
+  var _lpOwnBySale = _lpVoiIsPriorSale(d) && !/afs|kmf|luv|off ?lease|off ?loan|maturity|lease end|kfa|loyalty/i.test(d.leadSource || '')
+    && !/loyalty lead created|account type[:\s]*leas/i.test(_lpCtxAll);
+  try { if (_lpVoiIsPriorSale(d)) console.log('[LP OWN VEHICLE DIAG] lead vehicle "' + (d.vehicle || '') + '" matches the Sales-history sale "' + (d.priorSoldVehicle || '')
+    + '" -- the customer\'s own vehicle; no SOLD pivot' + (_lpOwnBySale ? ', own-vehicle line issued' : ', loyalty guard already owns it')); } catch (eOv) {}
   var _audiAllAvail = (String(d.dealerId) === '21135'); // Audi Lafayette — GM policy: never disclose a unit as sold/unavailable
   // (v9.7.505 correction, same day — Gil caught it before it shipped: "if a note says it's
   // been sold... like a car sold hours ago" — the first version was unconditional and would
@@ -6622,6 +6651,10 @@ function populateFromData(d) {
           + ' The colour is NOT settled, so nothing is asserted either way — observed, deliberately not built'); } catch (eLc) {}
       }
     }
+  } else if (_lpOwnBySale) {
+    // (v9.7.715) Ahead of the Audi all-available policy on purpose: the customer's own car must never
+    // be presented as inventory, available or sold.
+    vehicleExtras.push('🔑 THE CUSTOMER\'S OWN VEHICLE: "' + d.vehicle + '" is the vehicle they bought or leased from us (it is in their Sales history) — it is what they drive now, NOT dealership inventory. Never say it sold, is available, or is on the lot, and never pivot them to "comparable options" for it. Talk about what comes next for them from it.');
   } else if (_audiAllAvail && (d.vehiclePendingSale || d.inventoryWarning)) {
     vehicleExtras.push('🟢 VEHICLE STATUS (store policy): present this vehicle as AVAILABLE. Do NOT tell the customer it is sold, on hold, pending, spoken for, or out of inventory, and do NOT pivot to other units on availability grounds — even if an internal note or the inventory snapshot says otherwise. Lead with this vehicle and move toward getting them in to see it. (Actual stock status is handled by the agent off-message.)');
   } else if (d.vehiclePendingSale) {
@@ -8912,7 +8945,7 @@ function _lpScraperBotAuthor(msg) {
     // absurd.
     function _lpIsOurOwnSend(text) {
       var t = String(text || '');
-      return /outbound text message|email reply to prospect|email sent to prospect|email failure/i.test(t)
+      return /outbound text message|email reply to prospect|email sent to prospect|email failure|marketing campaign email|email auto response|email price change/i.test(t)
           || /^\s*(?:sent\s+to|sent\s+by)\s*:/im.test(t);
     }
     var lastInboundMsg='';  // (v9.7.248) single declaration; only the inbound-note loop below populates it. No pre-loop last-message extraction.
@@ -16084,7 +16117,7 @@ function _lpScraperBotAuthor(msg) {
                 // panel can mark a vehicle sold/pending.
                 if (d[k] && d._voiFromPanel) { m[k] = true; }
                 else if (d[k] && !d._voiFromPanel) {
-                  console.warn('[LP SOLD SIGNAL DIAG] REJECTED — frame supplied ' + k + ':true without a real vehicle panel (_voiFromPanel:false); not trusted.');
+                  console.log('[LP SOLD SIGNAL DIAG] REJECTED — frame supplied ' + k + ':true without a real vehicle panel (_voiFromPanel:false); not trusted.');
                 }
               } else if (k === 'store') {
                 // Handled separately via bestStore
@@ -18341,6 +18374,7 @@ function classifyScenario(data) {
     }
   } catch (eCs) { _ctxSold = ctx; _csScope = 'full-context (scope derivation threw)'; }
   s.vehicleSold        = !_inTransitNow && !data._lpInvConfirmedAvailable && !s.isLoyalty && !_isLeaseMatureEarly && !_audiAllAvail
+    && !(typeof _lpVoiIsPriorSale === 'function' && _lpVoiIsPriorSale(data))   // (v9.7.715) the customer's own car cannot be "the vehicle of interest has been sold"
     && !!String(data.vehicle || '').trim() && (
     ctx.includes('vehicle status: sold')
     || /the vehicle (?:has |I sent you has )?sold|vehicle sold|that (?:car|vehicle|unit) (?:has been |is )?sold|sorry.*(?:vehicle|car|it).*sold|unfortunately.*sold|no longer available/i.test(_ctxSold)
