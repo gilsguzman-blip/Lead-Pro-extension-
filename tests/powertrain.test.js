@@ -102,7 +102,10 @@ for (const file of BUILDS) {
 
   // ── THE SAME DEFECT, THREE MORE ROOFTOPS ───────────────────────────────────
   console.log('\nHonda — four nameplates carry a hybrid twin:');
-  check('Accord EX-L takes the gas Accord',        pick('2026 Honda Accord EX-L', HONDA),        ['Accord']);
+  // (v9.7.718) Was "Accord EX-L takes the gas Accord". Gil, 9/24: a NEW Accord EX-L is a hybrid (LX and SE
+  // are the gas trims), so it takes the hybrid program; the gas case is pinned on the SE instead.
+  check('a new Accord EX-L is a hybrid and takes the hybrid program', pick('2026 Honda Accord EX-L', HONDA), ['Accord Hybrid']);
+  check('Accord SE takes the gas Accord',          pick('2026 Honda Accord SE', HONDA),          ['Accord']);
   check('Accord Hybrid takes the hybrid program',  pick('2026 Honda Accord Hybrid Sport', HONDA),['Accord Hybrid']);
   check('CR-V EX takes the gas CR-V',              pick('2026 Honda CR-V EX', HONDA),            ['CR-V']);
   check('CR-V Hybrid takes the hybrid program',    pick('2026 Honda CR-V Hybrid Sport', HONDA),  ['CR-V Hybrid']);
