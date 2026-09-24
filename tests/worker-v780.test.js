@@ -1,8 +1,13 @@
 #!/usr/bin/env node
 'use strict';
-require('./lib/fatal-guard.js')('worker-v779.test.js');
+require('./lib/fatal-guard.js')('worker-v780.test.js');
 
 /**
+ * worker-v780.test.js — proxy v7.80: /perf draftsByEffort counts FULL drafts only; perf rows carry
+ * fullDraft; the refine pass and translation are reported separately. Harness copied from
+ * worker-v779.test.js (below), unchanged.
+ *
+ * (harness notes from worker-v779.test.js)
  * worker-v779.test.js — proxy v7.79 (Gil, 9/24: "if none holds up, ship it as v7.79").
  *   1  a FULL DRAFT with no requested effort goes to gpt-6-luna at 'none' (its draftEffort);
  *      everything else keeps the effort it had: explicit efforts, the recovery tiers, the SMS refine
@@ -22,7 +27,7 @@ const vm = require('vm');
 const path = require('path');
 
 const PROXY = process.argv[2];
-if (!PROXY) { console.error('usage: worker-v779.test.js <cloudflare-worker.js>'); process.exit(2); }
+if (!PROXY) { console.error('usage: worker-v780.test.js <cloudflare-worker.js>'); process.exit(2); }
 const src = fs.readFileSync(PROXY, 'utf8');
 
 let pass = 0, fail = 0;
@@ -109,99 +114,43 @@ function run({ script, effort, sys, user, contract, classifyAs, kv }) {
     return { calls, logs, kv, perf, text, draft, tier: res.headers.get('X-Tier'), fallback: !!(c && c._fallback), box, env };
   });
 }
-const efforts = r => r.calls.map(c => [c.model, c.payload.reasoning_effort || null]);
 
 (async function () {
-  console.log('\n' + path.relative(process.cwd(), PROXY) + ' — proxy v7.79, drafts at "none" on GPT-6 Luna');
+  console.log('\n' + path.relative(process.cwd(), PROXY) + ' — proxy v7.80, full drafts counted apart');
+  const TRANSLATE_SYS = 'You are a professional automotive BDC translator. Translate to natural Mexican Spanish.';
+  const perfOf = async (opts) => (await run(opts)).perf[0] || {};
 
-  console.log('\n1. which requests go to "none":');
-  {
-    const r = await run({});
-    check('[new] a full draft with no requested effort: gpt-6-luna at "none"', efforts(r), [['gpt-6-luna', 'none']]);
-    check('[new] ...and the log says why', r.logs.some(l => /\[EFFORT\] primary gpt-6-luna: no effort requested on a full draft → "none" \(tier draftEffort, v7\.79\)/.test(l)), true);
-    check('[control] ...on the ordinary 12000ms primary budget, not the escalated one', r.calls[0].timeoutMs, 12000);
-    check('[control] the START line still reads effort=low and ends at contract= (the v7.76 shape)',
-      r.logs.filter(l => / START tokens=/.test(l)).map(l => / effort=low /.test(l) && / contract=\w+$/.test(l)), [true]);
-  }
-  {
-    const r = await run({ script: [{ status: 500, error: { message: 'x' } }, { status: 500, error: { message: 'x' } }, 'ok'] });
-    check('[new] the recovery tiers keep "low" — only gpt-6-luna was measured at "none"', efforts(r),
-      [['gpt-6-luna', 'none'], ['gpt-5.6-luna', 'low'], ['gpt-5.4-nano-2026-03-17', 'low']]);
-  }
-  {
-    const r = await run({ effort: 'low' });
-    check('[control] an explicit "low" is honoured', efforts(r), [['gpt-6-luna', 'low']]);
-  }
-  {
-    const r = await run({ effort: 'none', script: [{ status: 500, error: { message: 'x' } }, 'ok'] });
-    check('[control] an explicit "none" goes to every tier, as before', efforts(r), [['gpt-6-luna', 'none'], ['gpt-5.6-luna', 'none']]);
-  }
-  {
-    const r = await run({ sys: REFINE_SYS });
-    check('[control] the SMS refine pass (its own prompt, no cache sentinel) stays on "low" — not in the test',
-      [efforts(r), r.logs.some(l => /tier draftEffort/.test(l))], [[['gpt-6-luna', 'low']], false]);
-  }
-  {
-    const r = await run({ contract: 'fact', script: [JSON.stringify({ kind: 'none', quote: '' })] });
-    check('[control] a fact probe with no effort field stays on "low" (the probes send "none" themselves)', efforts(r), [['gpt-6-luna', 'low']]);
-  }
+  console.log('\n1. the perf: row says which calls are full drafts:');
+  check('[new] a full draft (draft contract + cache sentinel) is fullDraft:true', (await perfOf({})).fullDraft, true);
+  check('[new] the SMS refine pass is fullDraft:false', (await perfOf({ sys: REFINE_SYS })).fullDraft, false);
+  check('[control] ...and still goes out at "low" (the efforts sent are unchanged)', (await perfOf({ sys: REFINE_SYS })).effort, 'low');
 
-  console.log('\n2. the phone-ask regen:');
-  {
-    const asks = JSON.stringify({ sms: SMS + ' What is the best number to reach you?', subject: 'Your Accord', email: BODY, voicemail: VM });
-    const r = await run({ user: USER_PHONE, classifyAs: 'YES', script: [asks, 'ok'] });
-    check('[new] the regen edits at the effort of the draft it edits', efforts(r), [['gpt-6-luna', 'none'], ['gpt-6-luna', 'none']]);
-  }
-
-  console.log('\n3. a subject in the wrong place is kept:');
-  {
-    const noTop = JSON.stringify({ sms: SMS, email: 'subject: Your Accord and next step\n\n' + BODY, voicemail: VM });
-    const r = await run({ script: [noTop] });
-    check('[new] a leading "subject:" line (any case) becomes the top-level subject', r.draft && r.draft.subject, 'Your Accord and next step');
-    check('[control] ...and the email itself is returned exactly as the model wrote it', r.draft && r.draft.email, 'subject: Your Accord and next step\n\n' + BODY);
-    check('[new] ...logged with the source and the length only', r.logs.filter(l => /SUBJECT-LIFTED/.test(l)).map(l => l.replace(/^\[[^\]]+\] /, '')), ['SUBJECT-LIFTED from=line chars=25']);
-    check('[new] ...and counted on the perf: row', r.perf.map(p => [p.effort, p.subjectLifted]), [['none', true]]);
-  }
-  {
-    const obj = JSON.stringify({ sms: SMS, email: { subject: 'Your RAV4 search', body: BODY }, voicemail: VM });
-    const r = await run({ script: [obj] });
-    check('[new] an email OBJECT with its own subject: lifted too, the object left as it was',
-      [r.draft && r.draft.subject, r.draft && typeof r.draft.email], ['Your RAV4 search', 'object']);
-  }
-  {
-    const r = await run({});
-    check('[control] a draft that already has a top-level subject is returned byte for byte', r.text, GOOD);
-    check('[control] ...no lift logged', r.logs.some(l => /SUBJECT-LIFTED/.test(l)), false);
-  }
-  {
-    const none = JSON.stringify({ sms: SMS, email: BODY, voicemail: VM });
-    const r = await run({ script: [none] });
-    check('[control] no subject anywhere → nothing invented', [r.text, r.draft && 'subject' in r.draft], [none, false]);
-  }
-  {
-    const mid = JSON.stringify({ sms: SMS, email: BODY + '\nsubject: not a header', voicemail: VM });
-    const r = await run({ script: [mid] });
-    check('[control] a "subject:" that is not the first line is not a header and is not lifted', r.draft && 'subject' in r.draft, false);
-  }
-
-  console.log('\n4. /perf:');
-  {
-    const kv = makeKV();
-    await run({ kv });
-    await run({ kv, effort: 'low' });
-    await run({ kv, script: [JSON.stringify({ sms: SMS, email: 'Subject: X\n\n' + BODY, voicemail: VM })] });
-    const L = await run({ kv, sys: REFINE_SYS });
-    const date = new Date(1758650000000).toLocaleDateString('en-CA', { timeZone: 'America/Chicago' });
-    const res = await L.box.__WORKER.fetch(new Request('https://p.test/perf?date=' + date + '&key=TESTDIRECTORKEY'), L.env,
-      { waitUntil: () => {}, passThroughOnException: () => {} });
-    const b = await res.json();
-    const t = b.tallies || b;
-    // (v7.80) Only the "none" bucket is pinned here. This run's "low" bucket holds one full draft and one
-    // refine pass; v7.79 counted both as drafts, v7.80 counts the refine pass apart (worker-v780 pins it).
-    check('[new] primary-tier drafts split by the effort actually sent, with a latency median each',
-      t.draftsByEffort && t.draftsByEffort.none, { calls: 2, latencyMedian: 3000 });
-    check('[new] ...and the lifted subjects counted', t.subjectLifted, 1);
-  }
+  console.log('\n2. /perf:');
+  const kv = makeKV();
+  await run({ kv });                        // full draft, no effort -> none
+  await run({ kv });                        // full draft -> none
+  await run({ kv, effort: 'low' });         // full draft, explicit low
+  await run({ kv, sys: REFINE_SYS });       // refine pass -> low
+  await run({ kv, sys: TRANSLATE_SYS });    // translation -> low
+  // a row as v7.79 wrote it: effort, no fullDraft flag (the 9/23 02:32 refine pass, sizes as logged)
+  kv.store.set('perf:2026-09-23T15:00:00.000Z:legacy-refine', JSON.stringify({ ts: '2026-09-23T15:00:00.000Z', requestId: 'legacy-refine',
+    contract: 'draft', tier: 'primary', model: 'gpt-6-luna', latency: 3669, effort: 'low', sysChars: 7411, subjectLifted: false }));
+  kv.store.set('perf:2026-09-23T15:01:00.000Z:legacy-full', JSON.stringify({ ts: '2026-09-23T15:01:00.000Z', requestId: 'legacy-full',
+    contract: 'draft', tier: 'primary', model: 'gpt-6-luna', latency: 4275, effort: 'none', sysChars: 33128, subjectLifted: false }));
+  const L = await run({ kv, contract: 'fact', script: [JSON.stringify({ kind: 'none', quote: '' })] });
+  const q = async (date) => { const res = await L.box.__WORKER.fetch(new Request('https://p.test/perf?date=' + date + '&key=TESTDIRECTORKEY'), L.env,
+    { waitUntil: () => {}, passThroughOnException: () => {} }); const b = await res.json(); return b.tallies || b; };
+  const today = await q(new Date(1758650000000).toLocaleDateString('en-CA', { timeZone: 'America/Chicago' }));
+  check('[new] draftsByEffort holds the full drafts only: 2 at none, 1 at explicit low',
+    today.draftsByEffort && { low: (today.draftsByEffort.low || {}).calls, none: (today.draftsByEffort.none || {}).calls }, { low: 1, none: 2 });
+  check('[new] the refine pass and translation are reported beside it, not in it',
+    today.otherDraftCallsByEffort && { low: (today.otherDraftCallsByEffort.low || {}).calls }, { low: 2 });
+  const legacy = await q('2026-09-23');
+  check('[control] fact probes are in neither', [JSON.stringify(today.draftsByEffort).includes('fact'), (today.byContract || {}).fact], [false, 1]);
+  check('[control] ...and every generation is still counted once in byTier', (today.byTier || {}).primary, 6);
+  check('[new] a v7.79 row with no fullDraft flag is sorted by its prompt size (7,411 chars = refine, 33,128 = full)',
+    [legacy.draftsByEffort, legacy.otherDraftCallsByEffort],
+    [{ none: { calls: 1, latencyMedian: 4275 } }, { low: { calls: 1, latencyMedian: 3669 } }]);
 
   console.log('\n' + pass + ' passed, ' + fail + ' failed');
   process.exit(fail ? 1 : 0);
