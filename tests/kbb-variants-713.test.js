@@ -47,7 +47,16 @@ const P2 = 'Test, I can have a real appraisal ready for your 2015 Accord Sport. 
         /HOW THIS LEAD REACHED US: you may say the customer came through Kelley Blue Book/.test(p)];
     };
     console.log(' A. every KBB source label seen in the field gets the KBB treatment:');
-    for (const ls of LABELS) await check('"' + ls + '"', () => reading(ls), [true, 'Kelley Blue Book', true, true, true]);
+    for (const ls of LABELS.filter(l => !/toyota/i.test(l))) await check('"' + ls + '"', () => reading(ls), [true, 'Kelley Blue Book', true, true, true]);
+    // (v9.7.714) Gil: "KBB on Toyota.com would be the most correct." Still the KBB scenario; its own
+    // name, its own NAMED SOURCE wording, and never "came through Kelley Blue Book".
+    await check('v9.7.714: "Toyota.Com-Kbb Trade-In" is the KBB scenario, named "KBB on Toyota.com"', () => {
+      const r = reading('Toyota.Com-Kbb Trade-In');
+      vm.runInContext('leadContext = "";', sb);
+      const p = sb.__lp.buildUserPrompt(lead('Toyota.Com-Kbb Trade-In'));
+      return [r[0], r[1], r[2], /NAMED SOURCE — KBB ON TOYOTA\.COM:/.test(p), /MUST mention "KBB on Toyota\.com" once/.test(p),
+        /HOW THIS LEAD REACHED US: you may say the customer came through KBB on Toyota\.com/.test(p), /customer came (?:in )?through Kelley Blue Book/.test(p)]; },
+      [true, 'KBB on Toyota.com', true, true, true, true, false]);
     await check('a source spelled "Kelly Blue Book Trade-In" is KBB too', () => reading('Kelly Blue Book Trade-In'), [true, 'Kelley Blue Book', true, true, true]);
     await check('control: AutoTrader-KBB stays an AutoTrader purchase lead (v9.7 rule)', () => !!vm.runInContext('classifyScenario', sb)(lead('AutoTrader KBB')).isKBB, false);
 
@@ -63,6 +72,16 @@ const P2 = 'Test, I can have a real appraisal ready for your 2015 Accord Sport. 
       await check('first draft says "' + form + '", rewrite drops it -> the first draft ships', () => refine(p1), null);
     }
     await check('control: a first draft with no mention -> the rewrite ships', () => refine('Test, what are you shopping for next?'), P2);
+    // (v9.7.714) On the Toyota.com source, "KBB on Toyota.com", a bare "KBB" and a bare "Toyota.com"
+    // are all mentions the rewrite may not drop.
+    const refineT = async (pass1) => { sb.__p2 = P2;
+      return vm.runInContext('_lpRefineSms', sb)(pass1, EMAIL, { leadSource: 'Toyota.Com-Kbb Trade-In', relationshipSignals: {} }); };
+    for (const form of ['KBB on Toyota.com', 'KBB', 'Toyota.com']) {
+      await check('v9.7.714: Toyota.com source, first draft says "' + form + '", rewrite drops it -> the first draft ships',
+        () => refineT('Test, thanks for getting a value with ' + form + ' on your 2015 Accord Sport. What are you shopping for?'), null);
+    }
+    await check('v9.7.714: the refine prompt names it as "KBB on Toyota.com"',
+      () => /The first draft names KBB on Toyota\.com/.test(vm.runInContext('_lpBuildSmsRefinePrompt', sb)('Test, your KBB value on Toyota.com is in.', EMAIL, { leadSource: 'Toyota.Com-Kbb Trade-In' })), true);
     await check('control: "blue" alone is not a mention (a blue Accord)', async () => {
       const ack = vm.runInContext('_lpSourceAckPhrase', sb)('Kbb Ico Kelley Blue Book');
       return [ack.rx.test('the blue Accord you asked about'), ack.rx.test('a book value')]; }, [false, false]);
