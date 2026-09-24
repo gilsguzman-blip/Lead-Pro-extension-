@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.720-dev (Dev. THE IDENTITYMAX OFFER, AND 'NO APPOINTMENT' THAT STAYS ON. Extension only; proxy v7.81 and reporter v1.22 unchanged. Lead 2089026834, Community Honda Lafayette, 9/24: an IdentityMax lead regenerated 14 times in three minutes (12:39-12:42 CT), 13 rated down -- chips 'no appointment' x6, 'more direct' x6, 'shorter', 'lead with trade'. The worker log for that window shows every call answered on Luna 6; the churn was the content. (1) THE OFFER NEVER REACHED THE PROMPT. The lead-received note (dump c40bfb63) reads 'Customer claimed IdentityMax offer:' and then, on the following lines, 'Pre-owned and Certified Vehicles under $25,000!' (twice) and 'An exclusive offer for you!'. The generic 'Customer ...: <text>' inquiry match kept only the label line, so the prompt's inquiry read 'claimed IdentityMax offer:' -- the vendor's name and no offer -- and the drafts hedged about 'the IdentityMax offer'. Now the offer is read up to the record IDs, repeated lines dropped, the profile link and vendor name never passed on: 'claimed the website offer "Pre-owned and Certified Vehicles under $25,000! An exclusive offer for you!"'. A label with nothing after it yields no inquiry. [LP IDENTITYMAX DIAG]. The IdentityMax first-touch rules now say to lead with THAT offer in its own words and add no amount, term, model or eligibility it does not state. Each lead carries its own claimed offer, so nothing has to be entered monthly. (2) 'NO APPOINTMENT' WAS ONE-SHOT. The chip set a flag the next generation cleared, so 'more direct' after 'no appointment' rebuilt with the times back in -- the reason it was pressed six times. It now records the lead it was pressed on, and the AGENT OVERRIDE -- NO APPOINTMENT ASK block holds for that lead on every later generation until a different lead is grabbed. [LP NO-APPT DIAG]. REPLAYED: the shipped v9.7.719 scraper and this build in Chromium over the lead's own dump: exactly one prompt line changes, the inquiry. TESTS: new imx-noappt-720 (11 per build: 8 new, 3 controls). NON-VACUITY against v9.7.719: the 8 new fail; of the controls the two prompt controls pass and the parser control fails because its slice does not exist there. VERIFIED: run-all 146 suites, 6,580 assertions, 0 failed (+22). node --check both builds; manifests parse; changed lines identical dev vs commercial. Builds on v9.7.719.)
 // Lead Pro -- popup.js  v9.7.719-dev (Dev. TOYOTA HYBRID-ONLY FROM 2026, AND POWERTRAIN FACTS AS BACKGROUND, NOT A TALKING POINT. Extension only; proxy v7.81 and reporter v1.22 unchanged. Gil, 9/24: 'The toyotas are 2026 and up for the Camry and Rav4 and Sienna as Hybrid only vehicles. I just want the model to know when it comes up and to be able to distinguish in a convo' -- then, on seeing the draft of this build: 'I don't need it to throw out a random fact "this vehicle is a hybrid" I just want it to know for when and if it comes up'. (1) Camry and Sienna now start at 2026 like the RAV4 (v9.7.717 had Camry 2025 and Sienna 2021). A 2025-or-earlier listing is judged by its marker as before. (2) v9.7.717's '🔋 THIS VEHICLE IS A HYBRID' directive is REMOVED -- it turned a reference fact into something the model would say. (3) In its place, ONE background line, carried only when a Camry, RAV4, Sienna, Accord or Civic is named somewhere on the lead (its vehicle, the customer's words or ours), and framed as reference: 'BACKGROUND -- powertrain reference (new vehicles). Do NOT bring this up on your own; use it only if gas vs hybrid or trims come up, so the answer is right: ...'. It lists only the models named -- the Toyota hybrid-only rule, the new Accord split (LX/SE gas; Sport, EX-L, Sport-L, Touring hybrid) and the new Civic Sedan split (LX/Sport gas; Sport Hybrid, Sport Touring Hybrid hybrid). A lead that names none of them carries nothing. [LP MODEL FACTS DIAG]. UNCHANGED, and they need no prompt text: the variant check no longer flags 'hybrid' against these units (the log247 'not a Hybrid'), and the incentive gate pairs them with the right program. TESTS: new model-facts-719 (8 per build: 7 new, 1 control). all-hybrid-717 and honda-trims-718 now assert NO 'THIS VEHICLE IS A HYBRID' line and the background reference instead, and all-hybrid-717's year pins move to 2026. NON-VACUITY against v9.7.718: 7 fail, the control passes. VERIFIED: run-all 145 suites, 6,558 assertions, 0 failed (+16). node --check both builds; manifests parse; changed lines identical dev vs commercial. Builds on v9.7.718.)
 // Lead Pro -- popup.js  v9.7.718-dev (Dev. HONDA HYBRID-ONLY TRIMS (ACCORD, CIVIC), AND 'HYBRID' A FEW WORDS IN. Extension only; proxy v7.81 and reporter v1.22 unchanged. Gil, 9/24, for NEW inquiries: Accord LX and SE are gas; Sport, EX-L, Sport-L and Touring are hybrid. Civic Sedan LX and Sport are gas; Sport Hybrid and Sport Touring Hybrid are hybrid. 'this is for new vehicle inquires only, same for the Toyotas 2026 and up models'. (1) THE TRIM TABLE joins v9.7.717's all-hybrid nameplates as trim-level entries: an entry with `trims` applies only when that trim is named. A 2026-or-newer 'Accord Sport / EX-L / Sport-L / Touring' with no marker reads as Hybrid; 'Accord LX / SE' as Gas; 'Civic Sport Touring' as Hybrid; 'Civic LX / Sport' as Gas, because a Sport Hybrid also exists and 'Sport' alone is the gas car. Scoped to 2026+ model years: older Accords used the same trim names on gas cars (2022 Sport, Touring 2.0T, 2021 EX-L all stay Gas). A bare 'Accord' / 'Civic' program line is the gas program. Listings that say Hybrid are unchanged. The model-facing line now carries each entry's own wording: 'THIS VEHICLE IS A HYBRID: every new (2026 and newer) Honda Accord Sport, EX-L, Sport-L and Touring is a hybrid'. (2) 'HYBRID' A FEW WORDS IN. The variant scan reads ONE word after the model, so a gas '2026 Honda Civic Sport' against a request for the 'Civic Sport Hybrid' found 'sport' -- the listing's own trim -- and saw no difference; exactly the split in Gil's table. When the unit reads as gas and the customer's words put 'hybrid' within three words of the model, it is now a different powertrain. Plug-in wording excluded. TESTS: new honda-trims-718 (12 per build: 5 new, 7 controls). powertrain.test.js pinned 'Accord EX-L takes the gas Accord' -- the opposite of Gil's table for a new EX-L; it now takes the hybrid program and the gas case is pinned on the SE (+1). NON-VACUITY against v9.7.717: the 5 new fail, the 7 controls pass. VERIFIED: run-all 144 suites, 6,542 assertions, 0 failed (+26). node --check both builds; manifests parse; changed lines identical dev vs commercial. Builds on v9.7.717.)
 // Lead Pro -- popup.js  v9.7.717-dev (Dev. ALL-HYBRID NAMEPLATES: 'THE 2026 CAMRY SE WE HAVE IS NOT A HYBRID' WAS FALSE. Extension only; proxy v7.81 and reporter v1.22 unchanged. log247, Community Toyota Baytown: the unit on the lead was the listing '2026 Toyota Camry SE' (stock TU350975); the customer's TrueCar build was a '2026 Toyota Camry Hybrid SE'. The variant check found 'hybrid' in the customer's words and not in the listing name, marked it a different powertrain (powertrainDiff:true), and the draft told the customer 'the 2026 Camry SE we have is not a Hybrid ... I don't want you expecting the Hybrid you requested'. Gil: 'All 2026 and above Toyota Camrys are Hybrids now as well as RAV4 and Siennas. if we want to make this a rule'. THE RULE, in the one place powertrain is decided (_lpPowertrainOf): Camry from model year 2025, Sienna from 2021 and RAV4 from 2026 are hybrid-only, so a name with no marker reads as Hybrid. The start years are when each went hybrid-only (Camry's ninth generation is 2025, Sienna's fourth 2021, RAV4's sixth 2026); a name with an EARLIER year is judged by its marker as before, and a name with no year -- an incentive or program line -- is a current program and reads as Hybrid. Plug-in Hybrid and Electric are matched first and are unchanged. WHERE IT LANDS. (1) The variant check skips 'hybrid' against a hybrid-only VOI ([LP ALL-HYBRID DIAG]). (2) The incentive gate: a '2026 Toyota Camry SE' lead no longer loses a 'Camry Hybrid' program as gas-vs-hybrid, and a gas-era 2024 Camry still does not take it. (3) The model is told outright: 'THIS VEHICLE IS A HYBRID: every 2025 and newer Toyota Camry is a hybrid -- the listing name simply leaves the word out', only when the listing carries a year and no powertrain word. TESTS: new all-hybrid-717 (11 per build: 4 new, 7 controls -- gas years, plug-ins, other nameplates, the Accord which has a gas model, a listing that already says Hybrid). variant-token runs the variant scan in a sandbox without the powertrain helper, so the new call sits behind a typeof guard. powertrain.test.js unchanged and green, including 'a 2026 RAV4 XLE lead keeps the RAV4 line'. NON-VACUITY against v9.7.716: 4 fail, 7 pass. VERIFIED: run-all 143 suites, 6,516 assertions, 0 failed (+22). node --check both builds; manifests parse; changed lines identical dev vs commercial (the fact line sits above differently-worded comments in the two builds; the code is byte-identical). Builds on v9.7.716.)
@@ -11343,6 +11344,30 @@ function _lpScraperBotAuthor(msg) {
           : (custInstruction && custInstruction[1])
           ? custInstruction[0].trim()
           : '';
+        // ── (v9.7.720) IDENTITYMAX: THE OFFER IS ON THE LINES AFTER THE LABEL. Lead 2089026834 (Honda
+        // Lafayette, 9/24). The lead-received note reads
+        //     Customer claimed IdentityMax offer:
+        //     Pre-owned and Certified Vehicles under $25,000!
+        //     Pre-owned and Certified Vehicles under $25,000!
+        //     An exclusive offer for you!
+        // and the generic "Customer ...: <text>" match above kept only the label line, so the prompt's
+        // inquiry read "claimed IdentityMax offer:" -- the vendor's name and no offer. Fourteen drafts in
+        // three minutes hedged about "the IdentityMax offer" with nothing to say about it. The offer is
+        // read up to the record IDs, repeated lines dropped, and the vendor name never passed on.
+        try {
+          var _imxM = String(content || '').match(/Customer\s+claimed\s+IdentityMax\s+offer\s*:\s*([\s\S]{0,500}?)(?=\s*(?:Customer\s*ID|Lead\s*ID|Dealer\s*ID)\s*:|$)/i);
+          if (_imxM) {
+            var _imxSeen = {}, _imxParts = [];
+            String(_imxM[1] || '').split(/\n+|(?<=[!.?])\s+(?=[A-Z])/).forEach(function (p) {
+              p = String(p || '').replace(/\s+/g, ' ').trim();
+              var k = p.toLowerCase();
+              if (p.length >= 3 && !_imxSeen[k] && !/^(?:https?:|www\.|click for)/i.test(p)) { _imxSeen[k] = 1; _imxParts.push(p); }
+            });
+            var _imxOffer = _imxParts.join(' ').slice(0, 300);
+            extractedCustQ = _imxOffer ? 'claimed the website offer "' + _imxOffer + '"' : '';
+            _lpD('[LP IDENTITYMAX DIAG] offer claimed: ' + (_imxOffer ? '"' + _imxOffer + '"' : '(none in the note)'));
+          }
+        } catch (eImx) {}
         // Fallback: catch short freeform vehicle interest statements ("looking for a honda pilot", "interested in tacoma trd")
         // These appear as standalone text in simple lead notes (CarPro, basic website leads)
         if(!extractedCustQ && content && content.trim().length < 300) {
@@ -21659,6 +21684,8 @@ function buildUserPrompt(data) {
       ? '- Follow-up: read the transcript and continue naturally from where things left off.'
       : [
         '- Customer responded to a specific offer shown on the website — likely a conquest incentive, trade offer, or model-specific promotion.',
+        // (v9.7.720) The lead carries the offer they actually claimed; it reaches the prompt as the inquiry line.
+        '- THE OFFER THEY CLAIMED is quoted in the inquiry line ("claimed the website offer ..."). Lead with THAT offer in its own words, and add no amount, term, model or eligibility it does not state. If the inquiry line has no offer, say they claimed an offer on our site and do not guess what it was.',
         '- The vehicle shown in the lead is what triggered the offer. Reference it specifically.',
         '- Do NOT say "IdentityMax" or reference any data tool. Frame it as: they saw an offer on the website and responded.',
         '- Lead with the offer that brought them in. Confirm it is still available. Move to appointment.',
@@ -25849,7 +25876,14 @@ function buildUserPrompt(data) {
   // (v9.7.290) "Drop Appt Ask" chip: previously only set the flag (silent no-op downstream — the
   // override block exists only for the LP-command path), so the chip injected nothing and drafts kept
   // offering times against reschedule/appointment-history context. Inject the explicit directive.
-  if (window._lpSuppressApptChip) {
+  // (v9.7.720) Sticky for the lead the agent pressed it on (see the chip handler).
+  var _lpNoApptSticky = false;
+  try {
+    var _lpCurLead = String((data && data.autoLeadId) || (typeof lastScrapedData !== 'undefined' && lastScrapedData && lastScrapedData.autoLeadId) || window._activeLeadId || '');
+    _lpNoApptSticky = !!(window._lpNoApptLeadId && _lpCurLead && window._lpNoApptLeadId === _lpCurLead);
+    if (_lpNoApptSticky && !window._lpSuppressApptChip) console.log('[LP NO-APPT DIAG] still on for lead ' + _lpCurLead + ' -- the agent chose no appointment ask on this lead');
+  } catch (eNs) {}
+  if (window._lpSuppressApptChip || _lpNoApptSticky) {
     lpSuppressAppointment = true;
     lines.push('');
     lines.push('\ud83d\udeab AGENT OVERRIDE \u2014 NO APPOINTMENT ASK IN THIS MESSAGE: The agent has explicitly chosen to send this message WITHOUT asking for an appointment. This wins over everything else in this prompt that pulls toward scheduling \u2014 including a reschedule request, appointment history, or a missed appointment.');
@@ -29303,6 +29337,13 @@ document.querySelectorAll('.regen-chip').forEach(function(chip) {
     // Linda/Camaro auction case). Set the suppression flag the prompt builder checks so the times
     // block is actually skipped — same pattern as the distance-flag activation above. One-shot.
     if (key === 'no-appt') window._lpSuppressApptChip = true;
+    // (v9.7.720) AND IT STAYS ON FOR THIS LEAD. The chip used to be one-shot, so the next chip -- "more
+    // direct", "shorter" -- rebuilt without it and the times came straight back. Lead 2089026834 (9/24):
+    // "no appointment" was pressed 6 times in 3 minutes because each "more direct" undid it. It now holds
+    // for this lead until a different lead is grabbed.
+    if (key === 'no-appt') {
+      try { window._lpNoApptLeadId = String((lastScrapedData && lastScrapedData.autoLeadId) || window._activeLeadId || ''); } catch (eNa) {}
+    }
     // Chip clicks always bypass edge cache — agent explicitly wants fresh output.
     window._lpBypassEdgeCache = true;
     // Feedback: track chip usage
