@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.709-dev (Dev. THE DRAFT SAID 'YES' TO A PRICE WE NEVER QUOTED, ON A PROMPT CARRYING FOUR OTHER FALSE FACTS. Extension only; proxy v7.80 and reporter v1.22 unchanged. log243, Community Honda Baytown (capture 57e67434, dump 037f879b): a remote buyer negotiating a used BMW asked 'Just to confirm your offer now is 41,019? Is that correct?' and the SMS answered 'Yes, $41,019 is the current proposal'. The dump shows 41,019 only in the customer's own message: our figures were $44,358.34 (bottom line) and $39,907 (price), then 'reduced by $1,000', and 41,019 is their own 8/27 arithmetic ('you're taxing a base of $42,019') less the $1,000. (1) A FIGURE WE NEVER QUOTED: _lpUnquotedFigure reads the customer's latest message for a confirm-this-number question and checks each dollar figure against everything WE wrote -- messages, notes and call notes, taken by positive selection of their tagged blocks (_lpOurText), phone numbers excluded (_lpMoneyFigures). When none of ours contains it, a HARD CONSTRAINT says: do not answer yes, do not call it correct, do not answer with a different total; the updated itemized proposal is what answers it. [LP UNQUOTED FIGURE DIAG] logs the figure and ours. (2) NO TRADE: the customer wrote 'I won't be trading in my old vehicle though. Long story' (8/24), and the prompt said 'The customer wants to know what their TRADE is worth' and 'TRADE-IN CONCERN ... lead with it in BOTH the SMS and email'. Both triggers matched 'payoff' in '3) the title/lien payoff timeline' -- the lien on the car they are BUYING. A lien/title payoff is no longer a trade (LP_TRADE_LIEN_RE), and a customer who told us they are not trading (LP_NO_TRADE_RE, straight or curly apostrophe -- the real message used ’) vetoes the TRADE-IN CONCERN, the TRADE-worth block and the TRADE DISCUSSED guard, unless their newest message raises a trade of their own. The scraper keeps its own copy of both patterns (it runs in the page); the test asserts they are identical. (3) 'THE CUSTOMER HAS DESCRIBED THEIR TRADE': the inquiry subject '2024 BMW M440i' counted as a named trade because it is not a prefix of the VOI '2024 BMW 4 Series M440i xDrive'. A year+make+model whose every word is in the VOI is now the VOI. A no-trade customer gets '⚠ NO TRADE' instead. (4) 'CREDIT CHALLENGE DISCLOSED: Customer explicitly stated they have credit difficulties': the pattern had a bare 'repo', which matched 'report' -- 'on the AutoCheck report', and every Carfax/AutoCheck report any customer mentions. Now \brepo\b|repossess. (5) 'Call note: customer verbally confirmed': our own TEXT 'If anything changes, we will be here' matched 'will be here'. The rule now reads call notes only, and never 'we will be here'. LEFT ALONE: the model's reading of the negotiation, the remote-buyer block, the OTD discipline, FINANCING CONCERN (financing is real on this lead), every other trade path. VERIFIED: tests/log243-709.test.js runs the popup helpers, buildUserPrompt and populateFromData on the whole popup.js and the scraper's concern block and verbal-confirm condition lifted verbatim: 21 per build, 42 total; against v9.7.708 15 fail and the 6 that pass are labelled controls (a figure we sent is not flagged, a real trade-value ask still fires, a customer's own trade still is a TRADE-IN CONCERN, bad credit and a repo still are credit challenges, a real call-note confirmation still counts, a genuinely different vehicle is still a named trade). run-all: 135 suites, 6,291 assertions, 0 failed. Mirrors COMMERCIAL v9.7.709.)
 // Lead Pro -- popup.js  v9.7.708-dev (Dev. A 2023 SALE WAS WRITTEN UP AS TODAY'S DELIVERY, AND EVERY SOLD LEAD WAS A 'SERVICE CONCERN'. Extension only; proxy v7.79 and reporter v1.22 unchanged. log242, Toyota Baytown (capture bc558f2f, dump ed87d87f): an owner who bought a RAV4 on 11/18/23 answered a 9/23/2026 lease-end text with 'What are the options?', and the prompt said '🎉 SOLD/DELIVERED ... Warm congratulations only. No vehicle pitch' with the scenario 'Sold customer has a post-sale service concern'. The model ignored both and answered the question; the fix is so it no longer has to. (1) THE SALE DATE WAS KNOWN AND OVERRULED. The scraper's Sale Info path read 'Deal #: 66721 | Sold: 11/18/23' and correctly declined a 1,040-day-old sale (only a sale within 30 days is congratulations territory, its own comment says), and then the Lead Info 'Status: Sold' fallback set isSoldDelivered anyway -- that label, like the status dropdown, is the LEAD's status and stays Sold for ever; the sold date is when it happened. A Sale Info sold date older than 30 days now stands down all three fallbacks (the dropdown, the Status label, the Delivered badge). With no Sale Info date they behave exactly as before. New [LP SOLD DELIVERED DIAG] line: the sold date and its age, deal #, the label, and 'a past customer, not a delivery to congratulate' when it applies. Without the flag this lead takes the ordinary follow-up path, which already carries 'Customer's current vehicle (confirmed from service/sales history): 2024 Toyota RAV4'; the SHOWROOM FOLLOW-UP block needs a visit within 30 days and does not fire. (2) THE SERVICE SCAN MATCHED OUR OWN SENTENCE. hasPostSaleService scanned the first 800 characters of data.context, which is leadContext, which OPENS with the sold block -- whose second line is 'Set expectation for follow-up service/ownership experience'. So it was true on EVERY sold lead: the congratulations branch could never run, and any sold customer who wrote 20+ characters was handed a 'post-sale service concern'. The scan now starts at the first dated note. LEFT ALONE: the 30-day window, the Sale Info + Deal # primary path, currentLeadIsActive, the three sold scenario branches and their wording. VERIFIED: tests/sold-708.test.js executes the shipped sold-detection block (lifted verbatim) over Lead Info / Sale Info text shaped like the dump, and buildUserPrompt on the whole popup.js with the sold block read from the build: 12 per build, 24 total; against v9.7.707 5 fail and the 7 that pass are labelled controls (a 10-day sale with a Deal # is still sold, Status: Sold with no Sale Info date still is, an active lead is not, a real service note and a customer-named problem still reach the service branch, a bare 'Hi' still gets the warm reply). run-all: 133 suites, 6,241 assertions, 0 failed. Mirrors COMMERCIAL v9.7.708.)
 // Lead Pro -- popup.js  v9.7.707-dev (Dev. A GMAIL SPAM BLOCK ON THE STORE'S MAIL WAS READ AS THE CUSTOMER'S DEAD ADDRESS. Extension only; proxy v7.79 and reporter v1.22 unchanged. log242, Toyota Baytown (capture bc558f2f, dump ed87d87f): the customer replied 'What are the options?' to a lease-end text and the SMS answered 'Our email bounced, so what's a good email address to use?' -- which was not true. v9.7.697 N3 counted every 'Email Failure' note on the lead (this 1,040-day-old lead has no current-lead marker, so all 68 notes), and the only one was 08/29/2025: '421 4.7.0 ... Gmail has detected that this message is suspicious due to the very low reputation of the sending domain' -- Gmail refusing the STORE'S bulk mail that night, a temporary reply about the sender, not the address. The store then sent that address 20+ emails through 9/22/2026 with no failure. The prompt said BOUNCING (latest 08/29/2025) and the capture's transcript window (6/24/2026 on) did not show the note, which is why it could not be found. TWO RULES, both read off the notes themselves: (1) TEMPORARY -- a failure carrying a 4xx SMTP reply and no 5xx is not counted; a 5xx (the 554 5.2.2 mailbox-full failures on the 9/11-9/16 Kia dump), a 'Bounced Address' notice (the 9/23 Audi lead N3 was built for) and a failure with no code at all still count. (2) SUPERSEDED -- if an outbound email went out AFTER the latest counted failure with nothing failing behind it, the address has worked since and the bounce is history. A failure is logged at or after its own send (8:57 send, 8:58 failure, every day on the Kia lead), so an address that is still bouncing always has its newest failure at or after its newest send. Inbound emails and texts never supersede. [LP EMAIL BOUNCE DIAG] now reports the temporary failures it skipped and the email that superseded a bounce. LEFT ALONE: the marker scope, the prompt line and the SMS ask on a real bounce, the refine pass's keep-the-ask guard. NOT CHANGED, FLAGGED: the same prompt also told the model this is a SOLD customer owed 'warm congratulations only' with a 'post-sale service concern' scenario, from a 2023 showroom sale, while the customer was answering a lease-end offer; the model ignored both, but they are wrong for this lead. VERIFIED: tests/bounce-707.test.js executes the shipped scan, lifted verbatim, over notes shaped like both real dumps with their failure texts verbatim: 12 per build, 24 total; against v9.7.706 6 fail and the 6 that pass are labelled controls (the Kia and Audi bounces still count, the marker rule, inbound and texts never supersede, a 4xx+5xx counts). step2-697's N3 checks unchanged and green. run-all: 132 suites, 6,217 assertions, 0 failed. Mirrors COMMERCIAL v9.7.707.)
 // Lead Pro -- popup.js  v9.7.706-dev (Dev. THE EXTENSION HALF OF PROXY v7.77. Pairs with proxy v7.77 (items 4 and 7 of that build); either can deploy first, and reporter v1.22 is unchanged. (4) THE BUILD THAT ASKED: _lpAttachLicense now stamps extensionVersion on every generate-shaped body -- the drafts, the SMS rewrite pass, the fact probes, the voicemail and the translation all pass through it -- read from the manifest exactly as the feedback row has been since v9.7.684 (version_name, else 'v' + version), clamped to 24 characters; a body without system_instruction is untouched and no manifest means no field. Proxy v7.77 logs it on the START line and stores it on degen: and perf: rows; an older proxy ignores it. (7) A FAILED GENERATION SAYS SO AND LEAVES NOTHING TO COPY: when the proxy answers with a _fallback envelope (every model tier failed), the panel used to refuse to render it and say so in a status line that faded after 12 seconds, with the Copy buttons left live. New _lpShowFallbackNotice empties the panes that failure owns (all three for a draft, only the voicemail pane for the voicemail button, so the agent's SMS and email survive a voicemail failure), disables their Copy buttons until the next generation, and puts a notice before the output that stays put: 'Draft generation failed. Try again.' with a Try again button that re-runs the same generation. [LP FALLBACK DIAG] logs the tier, model, error, request id and time the proxy reported -- no draft text. generateAll and generateVoicemail clear the notice and re-enable Copy first thing. The node-removal loop is bounded so it can never spin on a non-DOM. VERIFIED: new fallback-notice-706.test.js (15 per build, 30), executing _lpAttachLicense against a stubbed manifest, _lpShowFallbackNotice against a small fake DOM, and generateAll's own fallback branch lifted verbatim; NON-VACUITY against v9.7.705: 11 of 15 fail, the 4 that pass are labelled controls. Worker side: worker-v777.test.js, 52 assertions against the shipped v7.77 handlers. run-all: 129 suites, 6152 assertions, 0 failed. node --check clean on both builds; both manifests parse; version AND version_name bumped; DEV vs COMMERCIAL differences unchanged. Builds on v9.7.705. Mirrors COMMERCIAL v9.7.706.)
@@ -796,6 +797,80 @@ function _lpCustomerText(d){
     }
   } catch (e) {}
   return out;
+}
+
+// ── (v9.7.709) log243, Community Honda Baytown (capture 57e67434) ─────────────────────────────
+// A remote buyer negotiating a used BMW. The prompt carried FIVE false facts, and the helpers below
+// are the popup-side half of the fixes (the scraper keeps its own copy of the no-trade pattern,
+// because it runs in the page and cannot see this file's globals; tests/log243-709.test.js asserts
+// the two copies agree).
+// NO TRADE: "I won't be trading in my old vehicle though. Long story" (8/24) -- and the prompt still
+// said "The customer wants to know what their TRADE is worth" and "TRADE-IN CONCERN ... lead with it
+// in BOTH the SMS and email". The trigger was "payoff", in "3) the title/lien payoff timeline" -- the
+// lien on the car they are BUYING. A lien/title payoff is not a trade, and a customer who told us
+// they are not trading vetoes every trade directive unless their NEWEST message raises one.
+var LP_NO_TRADE_RE = /\b(?:won['’]?t|will\s+not|not|no\s+longer|don['’]?t|do\s+not|am\s+not|i['’]?m\s+not)\s+(?:be\s+|going\s+to\s+be\s+|planning\s+(?:on|to)\s+)?(?:trading(?:\s+in)?|trade\s+in|have\s+(?:a|any)\s+trade)\b|\bno\s+trade(?:[-\s]?in)?s?\b(?!\s*(?:value|number|offer|appraisal|quote))|\bwithout\s+(?:a\s+)?trade(?:[-\s]?in)?\b/i;
+var LP_TRADE_LIEN_RE = /\b(?:title\s*\/\s*)?lien\s+pay\s*-?off\b|\btitle\s+pay\s*-?off\b/gi;
+function _lpCustomerDeclinedTrade(d) {
+  try {
+    var t = _lpCustomerText(d).replace(LP_TRADE_LIEN_RE, ' ');
+    var m = t.match(LP_NO_TRADE_RE);
+    if (!m) return '';
+    var last = String((d && d.lastInboundMsg) || '').replace(LP_TRADE_LIEN_RE, ' ');
+    if (!LP_NO_TRADE_RE.test(last) && /trade.?(in|value|worth|get|offer)|how much.*trade|owe on|\bmy trade\b/i.test(last)
+        && /\b(i|i'm|im|my|me|we|our)\b/i.test(last)) return '';   // they have raised one since
+    return m[0];
+  } catch (e) { return ''; }
+}
+// A FIGURE WE NEVER QUOTED: "Just to confirm your offer now is 41,019? Is that correct?" -- and the
+// draft answered "Yes, $41,019 is the current proposal". We never sent $41,019. Our figures were
+// $44,358.34 (bottom line) and $39,907 (price), then "reduced by $1,000"; $41,019 is the customer's
+// own 8/27 arithmetic ("you're taxing a base of $42,019") less that $1,000. A written "yes" to a
+// total the store never quoted is a price commitment nobody made.
+function _lpMoneyFigures(text) {
+  var s = String(text || '').replace(/\(?\d{3}\)?[\s.-]\d{3}[\s.-]\d{4}/g, ' ');   // phone numbers are not money
+  var out = [];
+  var re = /\$\s?\d[\d,]*(?:\.\d{1,2})?|\b\d{1,3}(?:,\d{3})+(?:\.\d{1,2})?\b|\b\d{5,6}(?:\.\d{1,2})?\b/g, m;
+  while ((m = re.exec(s))) {
+    var v = Math.floor(parseFloat(m[0].replace(/[$,\s]/g, '')));
+    if (isFinite(v) && v >= 1000) out.push({ text: m[0].replace(/^\$\s?/, ''), value: v });
+  }
+  return out;
+}
+// Everything on the lead that is NOT the customer talking: our messages, notes and call notes, taken
+// by positive selection of their tagged blocks (never "the context minus the customer", which would
+// keep Lead Pro's own directive text and any line quoting the customer).
+function _lpOurText(d) {
+  var out = [String((d && d.lastOutboundMsg) || ''), String((d && d.lastSubstantiveOutboundMsg) || '')];
+  try {
+    [String((d && d.conversationBrief) || ''), String((d && d.context) || '')].forEach(function (src) {
+      var inBlock = false;
+      src.split('\n').forEach(function (ln) {
+        var tag = ln.match(/^\s*\[[^\]]*\d[^\]]*\]\s*\[([^\]]+)\]/);
+        if (tag) { inBlock = !/^CUSTOMER$/i.test(tag[1].trim()); if (inBlock) out.push(ln); return; }
+        if (/^\s*\d+\.\s*\[[^\]]+\]\s*(?:US|NOTE)\s*:/.test(ln)) { inBlock = false; out.push(ln); return; }
+        if (inBlock && /^\s{2,}\S/.test(ln)) { out.push(ln); return; }
+        inBlock = false;
+      });
+    });
+  } catch (e) {}
+  return out.join('\n');
+}
+function _lpUnquotedFigure(d) {
+  try {
+    var last = String((d && d.lastInboundMsg) || '');
+    if (last.indexOf('?') < 0) return null;
+    if (!/\b(confirm|correct|right\?|is that|is it|so (?:it'?s|your|the)|your (?:offer|price|number)|you'?re (?:at|offering)|the price is|is the price|out the door|otd)\b/i.test(last)) return null;
+    var theirs = _lpMoneyFigures(last);
+    if (!theirs.length) return null;
+    var ours = _lpMoneyFigures(_lpOurText(d)).map(function (f) { return f.value; });
+    for (var i = 0; i < theirs.length; i++) {
+      if (ours.indexOf(theirs[i].value) < 0) {
+        return { figure: theirs[i].text, ours: ours.filter(function (v, k, a) { return a.indexOf(v) === k; }).slice(0, 6) };
+      }
+    }
+  } catch (e) {}
+  return null;
 }
 
 // ── (v9.7.557) ONE WAY TO WALK CRM ENTRIES ─────────────────────────────────────
@@ -6020,6 +6095,10 @@ function populateFromData(d) {
         for (var _tvi = 0; _tvi < _tvCands.length; _tvi++) {
           var _tvC = _tvCands[_tvi].toLowerCase().replace(/\s+/g, ' ').trim();
           if (_tvVoi && (_tvVoi.indexOf(_tvC) === 0 || _tvC.indexOf(_tvVoi) === 0)) continue; // that's the VOI
+          // (v9.7.709) ...and so is the VOI written shorter. log243: the inquiry subject "2024 BMW M440i" against
+          // the VOI "2024 BMW 4 Series M440i xDrive" -- neither is a prefix of the other, so it counted as a
+          // NAMED TRADE and the prompt said "the customer HAS described their trade in their own words".
+          if (_tvVoi && _tvC.split(' ').every(function (w) { return (' ' + _tvVoi + ' ').indexOf(' ' + w + ' ') > -1; })) continue;
           _tvNamed = true; break;
         }
       } catch (eTvN) { _tvNamed = false; }
@@ -6048,7 +6127,11 @@ function populateFromData(d) {
       } catch (eTvC) { _tvConflated = false; }
       var _tvNick = _tvShort ? ' — INCLUDING THE SHORT NAME "' + _tvShort + '". Writing "a trade value on the ' + _tvShort + '", "your ' + _tvShort + ' trade", or "verify the ' + _tvShort + '" is the SAME ERROR as writing the full name and is equally wrong' : '';
       var _tvBase = '⚠ TRADE DISCUSSED, BUT NO TRADE VEHICLE IS IN THE STRUCTURED CRM RECORD (Trades is empty — authoritative, not an unrendered panel). CRITICAL: "' + d.vehicle + '" is the vehicle they want to BUY. It is NOT their trade. Never attach that vehicle to the word trade in any form' + _tvNick + '. THE ONLY CORRECT PHRASING IS "your trade" or "your trade-in" WITH NO VEHICLE NAME ATTACHED AT ALL — if you need to talk about appraising it, say "verify it in person" or "get eyes on it", never "verify the ' + (_tvShort || d.vehicle) + '".' + (_tvConflated ? ' IF AN EARLIER NOTE OR MESSAGE IN THIS THREAD ALREADY MAKES THAT MISTAKE, DO NOT REPEAT IT — earlier notes in this thread DO contain it, they are WRONG, and continuing the conversation does not mean inheriting their error.' : '');
-      if (_tvNamed) {
+      // (v9.7.709) A customer who told us they are not trading gets that fact, not a trade directive.
+      var _tvNo = ''; try { _tvNo = _lpCustomerDeclinedTrade(d); } catch (eTvNo) { _tvNo = ''; }
+      if (_tvNo) {
+        vehicleExtras.push('⚠ NO TRADE: the customer told us they are not trading a vehicle ("' + _tvNo + '"). The empty Trades record is correct. Do not raise a trade, a trade value or an appraisal, and never call "' + d.vehicle + '" a trade: it is the vehicle they want to buy.');
+      } else if (_tvNamed) {
         vehicleExtras.push(_tvBase + ' NOTE: the customer HAS described their trade in their own words elsewhere in this prompt (their lead submission or the transcript). Use THAT vehicle — do not ask them to repeat it, and do not treat the empty CRM record as though they never told us.');
       } else {
         vehicleExtras.push(_tvBase + ' No trade vehicle has been named anywhere in this conversation either, so if they are asking for a trade number, ask what they are trading (year, make, model, mileage) or offer the appraisal — never name a vehicle we do not have on file.' + (_tvConflated ? ' THE TRANSCRIPT ITSELF CARRIES THIS ERROR: an earlier note or voicemail in this thread attaches the ' + (_tvShort || d.vehicle) + ' to the word trade. That is wrong. Continuing the thread does NOT mean repeating it — write about "your trade" or "your trade-in" with no vehicle name attached.' : ''));
@@ -14057,23 +14140,37 @@ function _lpScraperBotAuthor(msg) {
       var _tradeRx  = /trade.?(in|value|worth|get|offer)|what.*get for|how much.*trade|payoff|owe on/i;
       var _tradeOwn = /\b(i|i'm|im|i've|ive|my|mine|we|we're|our|ours|us|me)\b/i;
       var _tradeSaid = false, _tradeEchoOnly = false;
+      // (v9.7.709) A LIEN PAYOFF IS NOT A TRADE, AND "NO TRADE" IS AN ANSWER. log243: "3) the title/lien
+      // payoff timeline" -- the lien on the car they are BUYING -- matched `payoff`, next to a "we", so a
+      // customer who had written "I won't be trading in my old vehicle" was told to lead with their trade.
+      // Same patterns as LP_NO_TRADE_RE / LP_TRADE_LIEN_RE (popup side); this runs in the page and keeps
+      // its own copy, and tests/log243-709 asserts the two agree. A newer message that raises a trade of
+      // their own lifts the veto.
+      var _tradeLienRx = /\b(?:title\s*\/\s*)?lien\s+pay\s*-?off\b|\btitle\s+pay\s*-?off\b/gi;
+      var _tradeNoRx = /\b(?:won['’]?t|will\s+not|not|no\s+longer|don['’]?t|do\s+not|am\s+not|i['’]?m\s+not)\s+(?:be\s+|going\s+to\s+be\s+|planning\s+(?:on|to)\s+)?(?:trading(?:\s+in)?|trade\s+in|have\s+(?:a|any)\s+trade)\b|\bno\s+trade(?:[-\s]?in)?s?\b(?!\s*(?:value|number|offer|appraisal|quote))|\bwithout\s+(?:a\s+)?trade(?:[-\s]?in)?\b/i;
+      var _tradeNoSaid = '', _tradeNoMs = -1, _tradeYesMs = -1;
       _lpCustomerSaid().forEach(function (s) {
-        if (!_tradeRx.test(s.text)) return;
-        if (_tradeOwn.test(s.text)) _tradeSaid = true; else _tradeEchoOnly = true;
+        var _tx = String(s.text || '').replace(_tradeLienRx, ' ');
+        var _nm = _tx.match(_tradeNoRx);
+        if (_nm) { if (s.ms >= _tradeNoMs) { _tradeNoMs = s.ms; _tradeNoSaid = _nm[0]; } return; }
+        if (!_tradeRx.test(_tx)) return;
+        if (_tradeOwn.test(_tx)) { _tradeSaid = true; if (s.ms > _tradeYesMs) _tradeYesMs = s.ms; } else _tradeEchoOnly = true;
       });
+      var _tradeDeclined = !!_tradeNoSaid && !(_tradeYesMs > _tradeNoMs);
       try {
-        if (_tradeSaid || _tradeEchoOnly) _lpD('[LP TRADE SCOPE DIAG] customerStatedTrade:' + _tradeSaid
+        if (_tradeSaid || _tradeEchoOnly || _tradeNoSaid) _lpD('[LP TRADE SCOPE DIAG] customerStatedTrade:' + _tradeSaid
           + (_tradeEchoOnly && !_tradeSaid
               ? ' — the only match is text with no first-person reference (a pasted sheet, quote or footer), NOT a trade they told us about; directive suppressed'
-              : ''));
+              : '')
+          + (_tradeNoSaid ? ' | customerSaidNoTrade:"' + _tradeNoSaid + '"' + (_tradeDeclined ? ' — TRADE-IN CONCERN suppressed' : ' — but a newer message raises a trade; that wins') : ''));
       } catch (eTr) {}
-      if(_tradeSaid){
+      if(_tradeSaid && !_tradeDeclined){
         customerConcerns.push('TRADE-IN CONCERN: Customer mentioned their trade-in. This is THE hook -- lead with it in BOTH the SMS and email. Do not bury it. Do not default to a generic vehicle check-in. Example SMS opener: "Angel, still want to get your trade appraised -- took 10 min to pull values, just need to confirm before I send."');
       }
       if(/\bcredit\b|financing|pre.?approv|interest rate|down payment|how much down/i.test(allTranscriptText)){
         customerConcerns.push('FINANCING CONCERN: Customer raised credit or financing. Acknowledge that the visit is the easiest way to get real numbers - keep it low pressure.');
       }
-      if(/don.t have (good|great|perfect|the best)? credit|bad credit|no credit|poor credit|credit (is|isn.t|aint)|low credit score|been denied|got denied|bankruptcy|repo|repossession|it is what it is.*credit/i.test(customerOnlyText)){
+      if(/don.t have (good|great|perfect|the best)? credit|bad credit|no credit|poor credit|credit (is|isn.t|aint)|low credit score|been denied|got denied|bankruptcy|\brepo\b|repossess|it is what it is.*credit/i.test(customerOnlyText)){
         customerConcerns.push('CREDIT CHALLENGE DISCLOSED: Customer explicitly stated they have credit difficulties. Handle with empathy - NEVER say "no problem" or "we work with all credit" (sounds dismissive). Say: "We work through situations like this every day - let us look at the options together." Position the visit as where real answers happen, not a pre-approval guarantee.');
       }
       if(/co.?sign|cosign|co.?buyer|adding.*someone|need.*someone.*on.*loan|second.*person.*sign/i.test(customerOnlyText)){
@@ -14613,7 +14710,11 @@ function _lpScraperBotAuthor(msg) {
           hasApptSet = false;
         }
         // Customer confirmed appointment verbally (call note)
-        else if (anDir === 'outbound' && /will be here|will come in|confirmed.*monday|confirmed.*appointment/i.test(anContent)) {
+        // (v9.7.709) CALL NOTES ONLY. log243: our own TEXT "If anything changes, we will be here" was
+        // read as a call note in which the customer verbally confirmed an appointment. A text or email
+        // we sent is never a call note, and "we will be here" is us, not the customer.
+        else if (anDir === 'outbound' && /phone call|call note|\bcall\b/i.test(anTitle) && !/text message|e-?mail/i.test(anTitle)
+                 && /will be here|will come in|confirmed.*monday|confirmed.*appointment/i.test(anContent) && !/\bwe\s+will\s+be\s+here\b/i.test(anContent)) {
           isApptRelated = true;
           apptEvent = 'Call note: customer verbally confirmed (' + anLabel + '): "' + anContent.substring(0, 100).replace(/[\r\n]+/g, ' ') + '"';
           if (anDays <= 7) hasApptSet = true;
@@ -23343,8 +23444,11 @@ function buildUserPrompt(data) {
             if (_ddAttrRx.test(_ddL)) _ddTradeHay += ' ' + _ddL;
           });
         } catch (eDdT) {}
-        var _ddTradeM = _ddCustSpoke ? _ddTradeHay.match(_ddTradeRx) : null;
-        var _ddTradeValue = !!_ddTradeM;
+        var _ddTradeM = _ddCustSpoke ? _ddTradeHay.replace(LP_TRADE_LIEN_RE, ' ').match(_ddTradeRx) : null;   // (v9.7.709) a lien payoff is not a trade
+        // (v9.7.709) and never on a customer who told us they are not trading (see LP_NO_TRADE_RE).
+        var _ddNoTrade = _lpCustomerDeclinedTrade(data);
+        var _ddTradeValue = !!_ddTradeM && !_ddNoTrade;
+        if (_ddTradeM && _ddNoTrade) { try { console.log('[LP DEAL-TRIGGER DIAG] tradeValue SUPPRESSED — matched "' + _ddTradeM[0] + '", but the customer said "' + _ddNoTrade + '"'); } catch (eNt) {} }
         // DISTANCE / REMOTE buyer: customer is far / out of state / wants info before traveling, or
         // wants it handled remotely (video/numbers). Agents reject same-day showroom slots here.
         // (NEG10 "driving 57 miles", NEG8 in-transit "before you plan a visit", James RX/cash/OOS).
@@ -24243,6 +24347,18 @@ function buildUserPrompt(data) {
     // (v9.7.700) AUDIT M4: the twelve lead-independent constraints that stood here moved, verbatim, to
     // _LP_STANDING_RULES above the cache breakpoint. Only the lines that vary by lead remain below.
     '- Every STANDING RULE in your system prompt applies to this message. The constraints below are specific to this lead.',
+    // (v9.7.709) A FIGURE WE NEVER QUOTED IS NOT OURS TO CONFIRM. See _lpUnquotedFigure. Here, among the
+    // hard constraints, because every lead reaches this block; the open-question digest is conditional.
+    ...((function () {
+      var _uqf = null;
+      try { _uqf = _lpUnquotedFigure(data); } catch (eUqf) { _uqf = null; }
+      try {
+        console.log('[LP UNQUOTED FIGURE DIAG] ' + (_uqf
+          ? 'customer asks us to confirm ' + _uqf.figure + ' — no message or note of ours contains it | ours: ' + (_uqf.ours.join(', ') || '(none)')
+          : 'no confirm-this-figure question, or the figure is one we sent'));
+      } catch (eUqfD) {}
+      return _uqf ? ['- ⚠ THEY ARE ASKING YOU TO CONFIRM ' + _uqf.figure + ', AND WE NEVER QUOTED THAT FIGURE. No message or note of ours on this lead contains it: it is their own arithmetic from the numbers we did send. Do NOT answer "yes", do NOT call it correct, and do NOT answer with a different total of your own. Tell them you want them to have the exact figures in writing and that the updated itemized proposal is what answers this; if they asked for that sheet and have not had it, say you are sending it. Keep the rest of the message on where things stand, not on the number.'] : [];
+    })()),
     // (v9.7.596) The sanitiser covers the two prompt lines that printed data.leadSource verbatim,
     // but the likelier path on Jordyn's lead is the TRANSCRIPT -- the routing label sits in the CRM
     // notes, and nothing told the model those words are ours rather than the customer's. Stated as
