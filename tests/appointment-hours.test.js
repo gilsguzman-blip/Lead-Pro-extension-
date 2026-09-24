@@ -274,8 +274,10 @@ for (const file of BUILDS) {
   const code = fs.readFileSync(file, 'utf8').split('\n').filter(l => !/^\s*\/\//.test(l)).join('\n');
   const joined = code.replace(/'\s*\n\s*\+\s*'/g, '');
   console.log('\n' + path.relative(process.cwd(), file) + ' — replied vs inquired');
+  // (v9.7.712) Three-way now: not-replied (the assistant wrote, the customer did not) comes first,
+  // then the v9.7.642 split on prior outbound. log245-712 owns the new arm.
   check('the live-conversation block branches on prior outbound',
-    /if \(d\.isLiveConversation\) vehicleExtras\.push\(d\.hasOutbound/.test(code), true);
+    /if \(d\.isLiveConversation\) vehicleExtras\.push\(_lpLiveNoReply[\s\S]{0,1500}?: d\.hasOutbound/.test(code), true);
   check('  ...the replied wording survives for a lead we HAVE written to',
     /LIVE CONVERSATION: Customer replied within the last few hours/.test(joined), true);
   check('  ...and a first inquiry gets its own wording instead',
@@ -289,10 +291,10 @@ for (const file of BUILDS) {
   // EXECUTED, same reason as the soonest-first branch above.
   const liveFor = (hasOutbound) => {
     const src = fs.readFileSync(file, 'utf8');
-    const a = src.indexOf('  if (d.isLiveConversation) vehicleExtras.push(d.hasOutbound');
+    const a = src.indexOf('  var _lpLiveNoReply = ');
     if (a < 0) bail('the live-conversation branch is not where this suite expects it in ' + file);
     const b = src.indexOf("\n", src.indexOf("getting them in soon is the goal.');", a));
-    const sb = { vehicleExtras: [], d: { isLiveConversation: true, hasOutbound: hasOutbound } };
+    const sb = { vehicleExtras: [], console: { log() {} }, d: { isLiveConversation: true, hasOutbound: hasOutbound } };
     vm.createContext(sb);
     vm.runInContext(src.slice(a, b), sb);
     return sb.vehicleExtras[0] || '';
@@ -309,8 +311,8 @@ for (const file of BUILDS) {
   check('  ...while the lead we wrote to still may reference what they said',
     /references exactly what the customer said/.test(liveFor(true)), true);
 
-  check('both branches still treat it as hot',
-    (joined.match(/This is a HOT lead/g) || []).length, 2);
+  check('every branch still treats it as hot (three since v9.7.712)',
+    (joined.match(/This is a HOT lead/g) || []).length, 3);
 }
 
 if (BUILDS.length > 1) {
