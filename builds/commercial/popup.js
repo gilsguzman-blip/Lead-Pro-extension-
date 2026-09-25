@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.726 (Commercial. AN INCENTIVE WAITS WHILE THE CUSTOMER IS WAITING ON US, AND LOYALTY VS CONQUEST FOLLOWS THE TRADE. Extension only; proxy v7.81 and reporter v1.22 unchanged. log251, Community Kia Baytown, 9/25 (dump 39babb78, capture effee1f9): the BD agent had written on 9/23; on 9/24 the customer replied with trade photos, a finance application and the trim they want (light trim, captain's chairs), and the virtual assistant answered a minute later. The agent's 9:02 AM draft answered all of it AND added '$750 Conquest Cash and $750 Owner Loyalty Cash through September 30'. Gil: 'I thought we had that saved for subsequent follow up'. The first-reach rail (v9.7.296/658/696) had behaved as built: a person had already written, so this read as follow-up. Gil agreed the rule: (1) New _lpCustomerAwaitingHuman: the customer is waiting on us when their newest transcript entry is newer than our newest send by a PERSON (the automated assistant's instant replies do not count). While that holds, the store-incentive gate holds the incentive (reason customer_live) unless the customer asked about price, payment or deals (_incCustomerAsked). A follow-up they have not answered gets the incentive as before. Fails closed: no dated customer entry or no visible human send leaves the gate unchanged (the assistant-only case stays with v9.7.658). (2) PROGRAM FIT: when the incentives shown include owner loyalty or conquest and the trade's make is known, the prompt says which fits: a trade of another brand gets 'do NOT offer the loyalty cash unless they tell you there is a [brand] in the household' and names conquest; a trade of the store's brand gets 'do NOT offer conquest'. Replayed on the dump with the two Telluride programs loaded: v9.7.725 injects both; this build holds them, logging customer 9/24 11:48 AM vs our last person 9/23 1:46 PM; with the reply removed it injects both plus the program-fit line. Tests: new incentive-hold-726 (10 per build; 7 fail on v9.7.725 -- the 4 helper-level checks only because the helper does not exist there; the 3 prompt-level checks pass on both). run-all: 148 suites, 6,686 assertions, 0 failed.)
 // Lead Pro -- popup.js  v9.7.725 (Commercial. THE MODEL THE CUSTOMER NAMED IS USED ON ANY SOURCE, AND THE PRE-OWNED OFFER DOES NOT ASK 'NEW OR PRE-OWNED'. Extension only; proxy v7.81 and reporter v1.22 unchanged. log250, Community Honda Lafayette, 9/24 (capture 33807dda): an IdentityMax lead with no vehicle on file; the customer texted 'I'm looking for an Accord'. The prompt still carried three lines arguing with it: 'NO VEHICLE IS ATTACHED TO THIS LEAD. Do NOT reference or name any vehicle from the conversation history as the one they want', 'CRM CONFIRMS ... Ask directly and confidently what they are shopping for' and 'Ask what they are looking for instead'. The draft got it right anyway; Gil: 'let's fix 3'. v9.7.716's named-model reading ran on chat leads only and needed the make in the phrase; the pivot detector found 'Accord' but acts only when the lead has a vehicle to pivot from. (1) New _lpOwnWordsModel: a model of the STORE'S OWN brand (Honda, Toyota, Kia, Audi lists), named in the CUSTOMER's own entries on the CURRENT lead (above the current-lead marker, plus the inquiry line), newest mention first. Plain-English model words (pilot, passport, insight, soul, crown, carnival, forte) need the make or a year in front. Our own texts, older leads, a missing marker and another brand's models do not count. populateFromData sets d._lpNamedModel from it on any source when no vehicle is on file (the v9.7.716 chat path runs first and is unchanged); never promotes a unit. (2) With a named model the CRM CONFIRMS line, the NO VEHICLE IS ATTACHED Vehicle line and the 'ask what they are looking for' constraint give way to the named-model lines. The named-model line states stock only when the feed shows it ('do NOT say we have one here' otherwise), and on a pre-owned lead drops 'new or pre-owned' as the narrowing question. (3) Gil, on the draft asking 'new or pre-owned Accord?' after the customer claimed the pre-owned offer: '2 is fair'. The pre-owned IdentityMax guidance now says they claimed the PRE-OWNED offer: do not ask new or pre-owned, and read a model they name as a pre-owned one in the range. Replayed on dump df7d4efa with the customer's Accord text added: the three lines are replaced; without it, the prompt is unchanged apart from (3). Tests: new named-model-725 (19 per build; 17 fail on v9.7.724 -- the 5 helper-level controls only because the helper does not exist there; the 2 prompt-level controls pass on both). run-all: 147 suites, 6,666 assertions, 0 failed.)
 // Lead Pro -- popup.js  v9.7.724 (Commercial. AN IDENTITYMAX LEAD WE HAVE ALREADY WRITTEN TO IS A FOLLOW-UP, EVEN ON DAY ZERO. Extension only; proxy v7.81 and reporter v1.22 unchanged. log249, Community Honda Lafayette, 9/24 (dump df7d4efa, capture e6330ae3): the agent texted the pre-owned offer, the bit.ly link and two times at 9:42 PM; regenerated at 9:54 PM with no reply, the draft sent the offer and the link again. Gil: 'the messaging is repeating the offer and link'. CAUSE, MINE (v9.7.722): the lead was created that day with no customer reply, so convState stayed first-touch and isFollowUp was false, and the IdentityMax branch keyed its first-touch script on that: 'SEND THE SEARCH LINK' and 'OFFER A VISIT (first reach-out, required)' sat in the same prompt as EARLY FOLLOW-UP and THE LAST SUBSTANTIVE MESSAGE telling the model not to repeat it, and the model followed the specific instruction. (1) A PERSON having written on the lead (hasOutbound and not only the automated assistant, per _lpFirstHumanTouch) makes it a follow-up here: the offer goes under HOW THIS LEAD BEGAN, now worded 'the offer has already been put in front of them, so do NOT present it again'; no link or visit script. Only the automated assistant having written still gives the first human message the offer, the link and the visit. (2) When a link already went out (any URL in our last outbound or the visible sends), the follow-up line says so and not to send one again unless they ask what else is in the range. Replayed on the dump: v9.7.723 printed the first-touch script; this build prints the follow-up rules and the link-already-sent line. Tests: imx-noappt-720 at 70 assertions per build, 5 new: 3 fail on v9.7.723; the two controls (automated assistant only; nothing sent) pass on both. run-all: 146 suites, 6,628 assertions, 0 failed.)
 // Lead Pro -- popup.js  v9.7.723 (Commercial. THE PRE-OWNED SEARCH LINK IS THE FULL $25,000 URL. Extension only; proxy v7.81 and reporter v1.22 unchanged. Gil, 9/25: 'change the link to https://www.communityhondalafayette.com/search/used/?pr=469:25000&tp=used the bitly link has issues'. _LP_IMX_OFFER_LINKS['24399'].preowned is now that URL (the bit.ly link resolved to a $25,469 cap; this one matches the offer's $25,000). Nothing else changes: same placement rules as v9.7.722. Tests: imx-noappt-720 at 60 assertions per build, 1 new (full URL, no bit.ly); the 7 link-bearing checks fail on v9.7.722. TEST FIX (no product change): log244-710 dated its sends 9/23 ~9:20 PM, so 24 hours later the lead read as STALLED (correctly: a text a day old with no reply) and offered no times; 6 assertions failed on v9.7.722 as well. The sends are now dated relative to the run's clock; run-all is green with the clock pinned a week ahead too. run-all: 146 suites, 6,618 assertions, 0 failed.)
@@ -7304,6 +7305,17 @@ function populateFromData(d) {
         + ' the automated assistant, so this is the first HUMAN touch and an incentive is not the'
         + ' opener for it'); } catch (e) {}
     }
+    // (v9.7.726) THE CUSTOMER IS WAITING ON US: answer them; the incentive waits for a follow-up they have not
+    // answered (see _lpCustomerAwaitingHuman). A customer who ASKED about price, payment or deals still gets it.
+    if (!_incFirstTouch && !_incCustomerAsked) {
+      var _incLive = _lpCustomerAwaitingHuman(d);
+      if (_incLive.live) {
+        _incFirstTouch = true; _incFirstTouchReason = 'customer_live';
+        try { console.log('[LP INCENTIVE DIAG] suppressed — the customer\'s latest message (' + new Date(_incLive.custMs).toLocaleString()
+          + ') is newer than our last message from a person (' + new Date(_incLive.humanMs).toLocaleString()
+          + '); this message answers them, and an incentive waits for a follow-up they have not answered'); } catch (e) {}
+      }
+    }
     // (v9.7.241) Used-VOI gate: store incentives are new-car programs (lease/APR/cash on current MY).
     // Don't surface them on a used/CPO vehicle of interest — they don't apply to the used unit the
     // customer asked about, and quoting a new-Q7 lease on a $19k used Q7 inquiry is a wrong fact.
@@ -7324,7 +7336,7 @@ function populateFromData(d) {
     } else if (_incAdversarial) {
       console.log('[LP INCENTIVE DIAG] suppressed — adversarial state (' + _incState + ')');
     } else if (_incFirstTouch) {
-      console.log('[LP INCENTIVE DIAG] suppressed — first-touch, no customer-asked override matched');
+      if (_incFirstTouchReason !== 'customer_live') console.log('[LP INCENTIVE DIAG] suppressed — first-touch, no customer-asked override matched');
     } else if (_incUsed) {
       console.log('[LP INCENTIVE DIAG] suppressed — used/CPO vehicle of interest');
     } else if (_soldPivotIncentiveUsed) {
@@ -7367,6 +7379,28 @@ function populateFromData(d) {
           }
         }
       });
+      // (v9.7.726) PROGRAM FIT. log251 offered "$750 Conquest Cash and $750 Owner Loyalty Cash" to a customer
+      // trading a 2016 Lincoln Navigator: loyalty programs are for current owners of the store's brand, conquest
+      // for owners of another brand. When the trade's make is known, say which one fits.
+      try {
+        var _pfTxt = _inc.map(function (x) { return _lpModelLine(x.model, x.line); }).join(' | ');
+        var _pfTrade = String(d.tradeDescription || d.ownedVehicle || '').split(/\n/)[0].trim();   // "2016 Lincoln Navigator Select RWD\n\t101,000 miles"
+        var _pfMkM = _pfTrade.match(_LP_MAKE_RX);
+        var _pfMk = _pfMkM ? _lpNormMake(_pfMkM[1]) : '';
+        var _pfBrand = _LP_STORE_BRAND[String(d.dealerId)] || '';
+        var _pfCap = function (w) { return w ? w.charAt(0).toUpperCase() + w.slice(1) : w; };
+        if (_pfMk && _pfBrand && /loyalty|conquest/i.test(_pfTxt)) {
+          if (_pfMk !== _pfBrand) {
+            if (/loyalty/i.test(_pfTxt)) vehicleExtras.push('🏷 PROGRAM FIT: their trade is a ' + _pfTrade.trim() + ', not a ' + _pfCap(_pfBrand) + '. An OWNER LOYALTY program is for current ' + _pfCap(_pfBrand)
+              + ' owners, so do NOT offer the loyalty cash unless they tell you there is a ' + _pfCap(_pfBrand) + ' in the household.'
+              + (/conquest/i.test(_pfTxt) ? ' CONQUEST cash is for owners of another brand: their ' + _pfCap(_pfMk) + ' likely qualifies (program terms apply), so that is the one to mention.' : ''));
+          } else if (/conquest/i.test(_pfTxt)) {
+            vehicleExtras.push('🏷 PROGRAM FIT: their trade is a ' + _pfTrade.trim() + '. CONQUEST cash is for owners of ANOTHER brand, so do NOT offer it to them'
+              + (/loyalty/i.test(_pfTxt) ? '; the OWNER LOYALTY cash is the one that fits (program terms apply).' : '.'));
+          }
+          console.log('[LP PROGRAM FIT DIAG] trade make:' + _pfMk + ' | store brand:' + _pfBrand + ' | programs: ' + _pfTxt.slice(0, 160));
+        }
+      } catch (ePf) {}
       if (_incStallPhase) {
         vehicleExtras.push('↻ RE-ENGAGEMENT HOOK: this customer has gone quiet (or this is a reactivation touch) — the incentive above is a genuine, specific reason to reach back out, stronger than a generic check-in. If you are choosing between secondary-touch angles for this message, favor the incentive here.');
       }
@@ -20257,6 +20291,34 @@ function _lpFirstHumanTouch(d) {
     }
     return seen > 0;
   } catch (e) { return false; }
+}
+
+// ── (v9.7.726) IS THE CUSTOMER'S LATEST MESSAGE WAITING ON A PERSON? log251, Kia Baytown, 9/25: the BD
+// agent had written on 9/23; on 9/24 the customer replied with three concrete things (trade photos, a finance
+// application, a light-trim Telluride with captain's chairs) and the virtual assistant answered a minute
+// later. The agent's next draft answered all three AND added "$750 Conquest Cash and $750 Owner Loyalty
+// Cash through September 30". Gil: "I thought we had that saved for subsequent follow up." What he agreed
+// to: a proactive incentive is for a follow-up the customer has not answered, or for a customer who asked
+// about price, payment or deals -- never on the message that answers what they just told us.
+// Live = the newest CUSTOMER entry in the transcript is newer than the newest send by a PERSON (the
+// automated assistant's instant replies do not count as having answered them). Fails closed: no dated
+// customer entry or no visible human send -> not live, and the gate is exactly as before.
+function _lpCustomerAwaitingHuman(d) {
+  var out = { live: false, custMs: 0, humanMs: 0 };
+  try {
+    var rx = /^\s*\[(\d{1,2}\/\d{1,2}\/\d{4} \d{1,2}:\d{2} ?[AP]M)\]\s*\[CUSTOMER\]/gim, m;
+    var brief = String((d && d.conversationBrief) || '');
+    while ((m = rx.exec(brief))) { var t = new Date(m[1]).getTime(); if (t > out.custMs) out.custMs = t; }
+    var sends = (d && d.outboundSends) || [];
+    for (var i = 0; i < sends.length; i++) {
+      var s = sends[i] || {}, body = String(s.body || '');
+      if (!body || !(s.ms > 0)) continue;
+      if (typeof _lpIsBotAuthor === 'function' && _lpIsBotAuthor(body)) continue;
+      if (s.ms > out.humanMs) out.humanMs = s.ms;
+    }
+    out.live = out.custMs > 0 && out.humanMs > 0 && out.custMs > out.humanMs;
+  } catch (e) {}
+  return out;
 }
 
 function _lpTouchHold(d) {
