@@ -7,6 +7,8 @@
 // "good speaking with you / continue from where the call left off", the call-only block said the team called
 // "with no answer", and the second-touch block's example was "sorry we missed your call earlier".
 // Now what we say about the customer's call follows what its note records: missed, documented, or nothing.
+// (v9.7.730) Gil: "Thanks for calling" can mislead too -- with nothing recorded, the call is not mentioned at all,
+//     and it does not drive the SECOND TOUCH block.
 // Executes the shipped _lpInboundCallOutcome, populateFromData, buildUserPrompt, and the scraper's
 // newest-customer-signal loop against stub notes.
 //
@@ -49,8 +51,13 @@ for (const f of BUILDS) {
     return (vm.runInContext('leadContext', sb).match(/☎ PHONE LEAD[^\n]*/) || [''])[0];
   };
   const pu = phone(AUTO);
-  check('nothing recorded: no "good speaking with you", no missed call, "thanks for calling" at most', () =>
-    [/do NOT say we spoke with them \("good speaking with you"/.test(pu), /do NOT say we missed their call/.test(pu), /Acknowledge the call itself — "thanks for calling", "good speaking with you"/.test(pu)], [true, true, false]);
+  // (v9.7.730) Gil: "Thanks for calling can be deceiving as it may have just been us adding the lead into the system
+  // ... just ignore it and pick up the convo to move it forward." Nothing recorded -> the call is not mentioned at all.
+  check('v9.7.730 nothing recorded: the call is not mentioned at all ("thanks for calling" included); pick up and move forward', () =>
+    [/Do NOT mention a call at all: no "thanks for calling", no "good speaking with you", no "sorry we missed your call"\. Pick up from here and move the conversation forward/.test(pu),
+     /Acknowledge the call itself/.test(pu)], [true, false]);
+  check('v9.7.730 ...and the block no longer asserts the customer CALLED the store', () =>
+    [/^☎ PHONE LEAD — this lead was entered as a phone lead, not a web form\./.test(pu), /this customer CALLED the store/.test(pu)], [true, false]);
   check('documented miss: "sorry we missed your call" is the acknowledgment', () => /note on their call says it did not connect, so acknowledge that plainly \("sorry we missed your call"\)/.test(phone(MISSED)), true);
   check('control: a call note with what was discussed keeps the original wording', () => /Acknowledge the call itself — "thanks for calling", "good speaking with you", or simply continue from where the call left off/.test(phone(TALKED)), true);
 
@@ -61,10 +68,10 @@ for (const f of BUILDS) {
       leadSource: 'Kia Digital', convState: 'active-follow-up', leadAgeDays: 6, totalNoteCount: 6, hasOutbound: true, hasCustomerReply: false,
       relationshipSignals: {}, context: call(AUTO), hasFreshCustomerSignal: true, newestCustomerSignalType: 'call', newestCustomerSignalDesc: desc, lastInboundMsg: '' });
   };
-  const UNKNOWN_DESC = 'An inbound call is logged, but nothing records what happened on it: it may have been answered, or it may only be how the customer was entered into the system. Do NOT say we missed their call and do NOT say we spoke with them.';
-  check('an unrecorded call: acknowledge they reached out, no "sorry we missed your call earlier" example', () => {
+  const UNKNOWN_DESC = 'An inbound call is logged, but nothing records what happened on it: it may have been answered, or it may only be how the customer was entered into the system. Do NOT mention the call at all (not "thanks for calling", not "sorry we missed your call", not a conversation).';
+  check('an unrecorded call reaching the block (an older scrape): do NOT mention the call, no "sorry we missed your call earlier" example', () => {
     const p = second(UNKNOWN_DESC);
-    return [/Acknowledge that they reached out, without saying how the call went/.test(p), /e\.g\. "sorry we missed your call earlier"/.test(p)]; }, [true, false]);
+    return [/- Do NOT mention the call: nothing records what happened on it/.test(p), /e\.g\. "sorry we missed your call earlier"/.test(p)]; }, [true, false]);
   check('control: a documented miss keeps the "sorry we missed your call earlier" example', () =>
     /e\.g\. "sorry we missed your call earlier"/.test(second('Customer called the dealership but did not connect (missed / short call), per the note on the call.')), true);
   check('the call-only block says those are OUR calls, not one the customer made', () =>
@@ -78,8 +85,16 @@ for (const f of BUILDS) {
     const s = { noteEls: [el], transcriptCutoffMs: 0, vehicle: '', _inboundBody: (x) => x, Date, String };
     vm.createContext(s); vm.runInContext(src.slice(a, b), s); return s.newestCustomerSignalDesc;
   };
+  const fresh = (body) => {
+    const b2 = src.indexOf('    // (v9.7.192) STALE-PRE-VISIT FACT', a);
+    const el = { getAttribute: () => 'inbound', querySelector: (sel) => ({ innerText: /title/.test(sel) ? 'Inbound phone call' : /content/.test(sel) ? body : /date/.test(sel) ? '09/25/2026 8:51 AM' : '' }) };
+    const s = { noteEls: [el], transcriptCutoffMs: 0, vehicle: '', _inboundBody: (x) => x, Date, String, lastSubstantiveOutboundMs: 0 };
+    vm.createContext(s); vm.runInContext(src.slice(a, b2), s); return s.hasFreshCustomerSignal;
+  };
   check('the 9/25 Kia Baytown shape (auto-generated call note) -> "nothing records what happened on it", not "Customer called the dealership."', () => /^An inbound call is logged, but nothing records what happened on it/.test(signal('By: Agent Name\nAuto generated from adding customer.')), true);
   check('a documented miss -> did not connect', () => /did not connect \(missed \/ short call\), per the note on the call/.test(signal(MISSED)), true);
+  check('v9.7.730 an unrecorded call is not a fresh customer action (the SECOND TOUCH block stands down)', () => fresh('By: Agent Name\nAuto generated from adding customer.'), false);
+  check('control: a documented miss is still a fresh customer action', () => fresh(MISSED), true);
   check('a documented conversation -> the note is quoted', () => /^Customer called the dealership\. The note on the call says: "Spoke with her, wants a Sorento EX/.test(signal(TALKED)), true);
 }
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
