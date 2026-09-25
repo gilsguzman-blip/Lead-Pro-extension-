@@ -13,6 +13,9 @@
 // (v9.7.722) Gil: "https://bit.ly/4AxRv4A pre-owned/CPO 25k or less maybe send link definitely offer a visit on
 //     first reach out. Especially when there's no VOI." The store's search link for the pre-owned offer, and a
 //     required visit ask on the first touch (off when the agent chose no appointment).
+// (v9.7.724) log249: once a PERSON has written on the lead, even on day zero with no reply, it is a follow-up: the
+//     offer is background, and a link that already went out is not sent again. Only the automated assistant
+//     having written still leaves the first human message its offer, link and visit.
 // Executes the shipped extraction slice, _lpImxOfferGuidance, buildUserPrompt, and the shipped chip-handler line.
 //
 // Usage: node tests/imx-noappt-720.test.js <dev popup.js> <commercial popup.js>
@@ -130,6 +133,26 @@ for (const f of BUILDS) {
   check('generateAll\'s prompt-input object carries the vehicle\'s condition (v9.7.721 read data.condition and it was never passed)', () => {
     const a = src.indexOf('    var _lpPromptInputData = {'), b = src.indexOf('\n    };\n', a);
     return /\n\s+condition: lastScrapedData \? \(lastScrapedData\.condition \|\| ''\) : '',/.test(src.slice(a, b)); }, true);
+
+  console.log(' 2d. v9.7.724 -- log249: a person already sent the offer, the link and times; day zero, no reply:');
+  const SENT = (bodies) => bodies.map((b, i) => ({ title: 'outbound text message', ms: 1790000000000 + i, body: b }));
+  const OURS = 'Sent to: (555) 010-0199 Sent by: Agent Name Test, the under-$25,000 pre-owned and certified offer is real. Here is where you can browse the vehicles: https://bit.ly/XXXXXXX Would 9:15 AM or 10:30 AM Friday work?';
+  const BOT = 'Sent to: (555) 010-0199 Sent by: Vinessa Virtual Assistant Community Honda Welcome to Community Honda. Reply YES to receive text messages. Reply STOP to cancel.';
+  const log249 = (sends, last) => {
+    vm.runInContext('leadContext = ""; window._lpSuppressApptChip = false; window._lpNoApptLeadId = "";', sb);
+    return sb.__lp.buildUserPrompt(Object.assign(lead('2000000005'), { vehicle: '', stockNum: '', hasOutbound: true, hasCustomerReply: false, convState: 'first-touch',
+      outboundSends: SENT(sends), lastOutboundMsg: last, lastSubstantiveOutboundMsg: last,
+      context: '[09/24/2026 9:42 PM] [AGENT] Outbound Text Message\n  ' + last + '\n[09/24/2026 9:37 PM] [=== CURRENT LEAD SUBMITTED HERE ===]\n[CUSTOMER REQUEST FROM INQUIRY] claimed the website offer "' + PRE + '"\n' }));
+  };
+  const shape = (p) => [/IdentityMax lead with PRIOR OUTREACH/.test(p), /SEND THE SEARCH LINK/.test(p), /OFFER A VISIT/.test(p), /HOW THIS LEAD BEGAN[^\n]*do NOT present it again/.test(p)];
+  check('our text already went out: follow-up rules, no "send the link", no first-reach-out visit, offer as background only', () => shape(log249([OURS], OURS)), [true, false, false, true]);
+  check('...and it says the link already went out, and not to send one again unless they ask', () =>
+    /A browse link already went out on this lead\. Do NOT send a link again unless they ask/.test(log249([OURS], OURS)), true);
+  check('a follow-up where no link went out yet keeps the "if they ask" line instead', () => {
+    const t = 'Sent to: (555) 010-0199 Sent by: Agent Name Test, thanks for claiming the pre-owned offer. What are you shopping for?';
+    const p = log249([t], t); return [/A browse link already went out/.test(p), /If they ask what else is in that range/.test(p)]; }, [false, true]);
+  check('control: only the store\'s automated assistant has written -> the first human message still gets the link and the visit', () => shape(log249([BOT], BOT)), [false, true, true, false]);
+  check('control: nothing sent yet -> first touch, as in v9.7.722', () => { const p = imxP(''); return [/PRIOR OUTREACH/.test(p), /SEND THE SEARCH LINK/.test(p), /OFFER A VISIT/.test(p)]; }, [false, true, true]);
 
   console.log(' 3. the IdentityMax first-touch rules point at the claimed offer:');
   check('"Lead with THAT offer in its own words, and add no amount, term, model or eligibility it does not state"', () =>
