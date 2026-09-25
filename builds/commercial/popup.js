@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.727 (Commercial. DECLINING A TIME THE ASSISTANT OFFERED IS NOT A MISSED APPOINTMENT. Extension only; proxy v7.81 and reporter v1.22 unchanged. log251/252, Community Kia Baytown, 9/25 (dump 39babb78): the virtual assistant texted 'come in for a test drive today (Thursday) at 12:00 PM or Friday at 10:00 AM?', the customer answered 'I can't make it to Houston today', and the scraper's appointment timeline read it as 'Customer requested reschedule' -> hasMissedAppt and customerRepliedReschedule. The prompt then carried an APPOINTMENT HISTORY entry and a '🔄 RESCHEDULE REQUESTED: The customer replied "R" to your message that said "Reply C to confirm or R to reschedule"' block, and the persona switched to MANAGER (missed appt), on a lead where nothing had ever been booked. Gil: 'especially with the AI agent pushing all the time' -- its every message offers two times. Now the timeline tracks whether an appointment was BOOKED (the loop runs oldest to newest): a reminder, a system confirmation email, a call note where the customer confirmed, our message saying the appointment is set/confirmed/scheduled/booked ('you're set for', 'see you tomorrow'), or the customer taking a time ('works for me', 'see you then', 'I'll be there'). 'Can't make it' / 'need to reschedule' is a reschedule only after a booking; otherwise it is declining an offered time and stays in the transcript, where the logistical-constraint rule reads it ([LP APPT DIAG] says so). The automated assistant's 'we can reschedule at a more convenient time' with nothing booked is no longer a missed-appointment re-engagement; a person's still is. 'R' to a reminder is unchanged. Replayed on the dump: v9.7.726 had hasMissedAppt and the RESCHEDULE REQUESTED block with persona manager; this build has neither, and the persona resolves to sales (trade/high-intent). Tests: new appt-booked-727 (8 per build; 3 fail on v9.7.726; the 5 booked-appointment checks pass on both). run-all: 149 suites, 6,702 assertions, 0 failed.)
 // Lead Pro -- popup.js  v9.7.726 (Commercial. AN INCENTIVE WAITS WHILE THE CUSTOMER IS WAITING ON US, AND LOYALTY VS CONQUEST FOLLOWS THE TRADE. Extension only; proxy v7.81 and reporter v1.22 unchanged. log251, Community Kia Baytown, 9/25 (dump 39babb78, capture effee1f9): the BD agent had written on 9/23; on 9/24 the customer replied with trade photos, a finance application and the trim they want (light trim, captain's chairs), and the virtual assistant answered a minute later. The agent's 9:02 AM draft answered all of it AND added '$750 Conquest Cash and $750 Owner Loyalty Cash through September 30'. Gil: 'I thought we had that saved for subsequent follow up'. The first-reach rail (v9.7.296/658/696) had behaved as built: a person had already written, so this read as follow-up. Gil agreed the rule: (1) New _lpCustomerAwaitingHuman: the customer is waiting on us when their newest transcript entry is newer than our newest send by a PERSON (the automated assistant's instant replies do not count). While that holds, the store-incentive gate holds the incentive (reason customer_live) unless the customer asked about price, payment or deals (_incCustomerAsked). A follow-up they have not answered gets the incentive as before. Fails closed: no dated customer entry or no visible human send leaves the gate unchanged (the assistant-only case stays with v9.7.658). (2) PROGRAM FIT: when the incentives shown include owner loyalty or conquest and the trade's make is known, the prompt says which fits: a trade of another brand gets 'do NOT offer the loyalty cash unless they tell you there is a [brand] in the household' and names conquest; a trade of the store's brand gets 'do NOT offer conquest'. Replayed on the dump with the two Telluride programs loaded: v9.7.725 injects both; this build holds them, logging customer 9/24 11:48 AM vs our last person 9/23 1:46 PM; with the reply removed it injects both plus the program-fit line. Tests: new incentive-hold-726 (10 per build; 7 fail on v9.7.725 -- the 4 helper-level checks only because the helper does not exist there; the 3 prompt-level checks pass on both). run-all: 148 suites, 6,686 assertions, 0 failed.)
 // Lead Pro -- popup.js  v9.7.725 (Commercial. THE MODEL THE CUSTOMER NAMED IS USED ON ANY SOURCE, AND THE PRE-OWNED OFFER DOES NOT ASK 'NEW OR PRE-OWNED'. Extension only; proxy v7.81 and reporter v1.22 unchanged. log250, Community Honda Lafayette, 9/24 (capture 33807dda): an IdentityMax lead with no vehicle on file; the customer texted 'I'm looking for an Accord'. The prompt still carried three lines arguing with it: 'NO VEHICLE IS ATTACHED TO THIS LEAD. Do NOT reference or name any vehicle from the conversation history as the one they want', 'CRM CONFIRMS ... Ask directly and confidently what they are shopping for' and 'Ask what they are looking for instead'. The draft got it right anyway; Gil: 'let's fix 3'. v9.7.716's named-model reading ran on chat leads only and needed the make in the phrase; the pivot detector found 'Accord' but acts only when the lead has a vehicle to pivot from. (1) New _lpOwnWordsModel: a model of the STORE'S OWN brand (Honda, Toyota, Kia, Audi lists), named in the CUSTOMER's own entries on the CURRENT lead (above the current-lead marker, plus the inquiry line), newest mention first. Plain-English model words (pilot, passport, insight, soul, crown, carnival, forte) need the make or a year in front. Our own texts, older leads, a missing marker and another brand's models do not count. populateFromData sets d._lpNamedModel from it on any source when no vehicle is on file (the v9.7.716 chat path runs first and is unchanged); never promotes a unit. (2) With a named model the CRM CONFIRMS line, the NO VEHICLE IS ATTACHED Vehicle line and the 'ask what they are looking for' constraint give way to the named-model lines. The named-model line states stock only when the feed shows it ('do NOT say we have one here' otherwise), and on a pre-owned lead drops 'new or pre-owned' as the narrowing question. (3) Gil, on the draft asking 'new or pre-owned Accord?' after the customer claimed the pre-owned offer: '2 is fair'. The pre-owned IdentityMax guidance now says they claimed the PRE-OWNED offer: do not ask new or pre-owned, and read a model they name as a pre-owned one in the range. Replayed on dump df7d4efa with the customer's Accord text added: the three lines are replaced; without it, the prompt is unchanged apart from (3). Tests: new named-model-725 (19 per build; 17 fail on v9.7.724 -- the 5 helper-level controls only because the helper does not exist there; the 2 prompt-level controls pass on both). run-all: 147 suites, 6,666 assertions, 0 failed.)
 // Lead Pro -- popup.js  v9.7.724 (Commercial. AN IDENTITYMAX LEAD WE HAVE ALREADY WRITTEN TO IS A FOLLOW-UP, EVEN ON DAY ZERO. Extension only; proxy v7.81 and reporter v1.22 unchanged. log249, Community Honda Lafayette, 9/24 (dump df7d4efa, capture e6330ae3): the agent texted the pre-owned offer, the bit.ly link and two times at 9:42 PM; regenerated at 9:54 PM with no reply, the draft sent the offer and the link again. Gil: 'the messaging is repeating the offer and link'. CAUSE, MINE (v9.7.722): the lead was created that day with no customer reply, so convState stayed first-touch and isFollowUp was false, and the IdentityMax branch keyed its first-touch script on that: 'SEND THE SEARCH LINK' and 'OFFER A VISIT (first reach-out, required)' sat in the same prompt as EARLY FOLLOW-UP and THE LAST SUBSTANTIVE MESSAGE telling the model not to repeat it, and the model followed the specific instruction. (1) A PERSON having written on the lead (hasOutbound and not only the automated assistant, per _lpFirstHumanTouch) makes it a follow-up here: the offer goes under HOW THIS LEAD BEGAN, now worded 'the offer has already been put in front of them, so do NOT present it again'; no link or visit script. Only the automated assistant having written still gives the first human message the offer, the link and the visit. (2) When a link already went out (any URL in our last outbound or the visible sends), the follow-up line says so and not to send one again unless they ask what else is in the range. Replayed on the dump: v9.7.723 printed the first-touch script; this build prints the follow-up rules and the link-already-sent line. Tests: imx-noappt-720 at 70 assertions per build, 5 new: 3 fail on v9.7.723; the two controls (automated assistant only; nothing sent) pass on both. run-all: 146 suites, 6,628 assertions, 0 failed.)
@@ -14796,6 +14797,16 @@ function _lpScraperBotAuthor(msg) {
 
       // Scan last 20 notes for appointment-related events, build a chronological timeline
       var apptNotes = [];
+      // (v9.7.727) WAS AN APPOINTMENT EVER BOOKED? log251/252, Kia Baytown: the virtual assistant texted "come in
+      // for a test drive today at 12:00 PM or Friday at 10:00 AM?", the customer answered "I can't make it to Houston
+      // today", and that read as "Customer requested reschedule" -> hasMissedAppt -> the MANAGER persona and the
+      // missed-appointment block, on a lead where nothing had ever been booked. Gil: "especially with the AI agent
+      // pushing all the time" -- its every message offers two times. Declining an OFFERED time is not missing an
+      // appointment. The loop runs oldest -> newest, so this is set before any later note is read. Booked = a
+      // reminder or confirmation (the branches below), our message saying it is set/confirmed/scheduled, or the
+      // customer agreeing to a time.
+      var _apptBooked = false;
+      var _apptBotRe = /\b(?:virtual|automated|auto|ai|digital|robo)[\s-]*(?:assistant|agent|coordinator|concierge|advisor|responder)\b|\bchat\s?bot\b|\bauto[\s-]?responder\b/i;   // copy of _LP_BOT_AUTHOR_RE (page context)
       for (var ani = Math.min(noteEls.length, 20) - 1; ani >= 0; ani--) {
         var anEl = noteEls[ani];
         var anDir = (anEl.getAttribute('data-direction') || '').toLowerCase();
@@ -14830,16 +14841,21 @@ function _lpScraperBotAuthor(msg) {
         if (anDir === 'outbound' && /quick reminder.*appointment|reminder of our appointment|your appointment.*(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)|reply c to confirm/i.test(anContent)) {
           isApptRelated = true;
           apptEvent = 'Agent sent appointment reminder (' + anLabel + '): "' + anContent.substring(0, 120).replace(/[\r\n]+/g, ' ') + '"';
+          _apptBooked = true;
           if (anDays <= 3) { hasApptSet = true; apptDetails = anContent.substring(0, 250); }
         }
         // System appointment confirmation email
         else if (/email auto response/i.test(anTitle) && /appointment confirmation|reminder.*appointment/i.test(anContent)) {
           isApptRelated = true;
           apptEvent = 'System sent appointment confirmation email (' + anLabel + ')';
+          _apptBooked = true;
           if (anDays <= 3) hasApptSet = true;
         }
         // Missed appointment re-engagement sent by agent
-        else if (anDir === 'outbound' && /life is busy|sorry you couldn.t make it|couldn.t make it out|missed.*appointment|reschedule.*convenient|sorry.*miss/i.test(anContent)) {
+        // (v9.7.727) Not from the automated assistant when nothing was booked: it says "we can reschedule at a
+        // more convenient time" to a customer who only turned down the times it offered.
+        else if (anDir === 'outbound' && /life is busy|sorry you couldn.t make it|couldn.t make it out|missed.*appointment|reschedule.*convenient|sorry.*miss/i.test(anContent)
+                 && (_apptBooked || !_apptBotRe.test(anContent))) {
           isApptRelated = true;
           apptEvent = 'Agent sent missed-appointment re-engagement (' + anLabel + '): "' + anContent.substring(0, 120).replace(/[\r\n]+/g, ' ') + '"';
           hasMissedAppt = true;
@@ -14860,6 +14876,7 @@ function _lpScraperBotAuthor(msg) {
                  && /will be here|will come in|confirmed.*monday|confirmed.*appointment/i.test(anContent) && !/\bwe\s+will\s+be\s+here\b/i.test(anContent)) {
           isApptRelated = true;
           apptEvent = 'Call note: customer verbally confirmed (' + anLabel + '): "' + anContent.substring(0, 100).replace(/[\r\n]+/g, ' ') + '"';
+          _apptBooked = true;
           if (anDays <= 7) hasApptSet = true;
         }
         // Customer replied R to reschedule
@@ -14871,6 +14888,12 @@ function _lpScraperBotAuthor(msg) {
           hasApptSet = false;
         }
         // Customer inbound with rescheduling language
+        // (v9.7.727) Only when an appointment was booked before it. Otherwise "I can't make it" is declining a
+        // time we OFFERED -- the transcript still carries it, and the logistical-constraint rule still reads it.
+        else if (anDir === 'inbound' && /need to reschedule|can.t make it|cannot make it|want to reschedule/i.test(anContent) && !_apptBooked) {
+          _lpD('[LP APPT DIAG] "' + anContent.replace(/^[\s\S]*?(?:received by:[^\n]*\n)?/i, '').substring(0, 60).replace(/[\r\n]+/g, ' ')
+            + '" (' + anLabel + ') -- no appointment was booked before it; read as declining an offered time, not a reschedule or a missed appointment');
+        }
         else if (anDir === 'inbound' && /need to reschedule|can.t make it|cannot make it|want to reschedule/i.test(anContent)) {
           isApptRelated = true;
           apptEvent = 'Customer requested reschedule (' + anLabel + '): "' + anContent.substring(0, 100).replace(/[\r\n]+/g, ' ') + '"';
@@ -14879,6 +14902,11 @@ function _lpScraperBotAuthor(msg) {
           hasApptSet = false;
         }
 
+        // (v9.7.727) A booking in words: our message says it is set, or the customer takes a time.
+        if (!_apptBooked && ((anDir === 'outbound' && /\b(?:your\s+)?appointment\s+(?:is\s+)?(?:set|confirmed|scheduled|booked)\b|\byou(?:'|\u2019)?re\s+(?:all\s+)?set\s+for\b|\bsee you (?:today|tomorrow|on \w+|at \d)/i.test(anContent))
+            || (anDir === 'inbound' && /\b(?:see you (?:then|at|today|tomorrow)|i(?:'|\u2019)?ll be there|i will be there|that (?:time )?works|works for me)\b/i.test(anContent)))) {
+          _apptBooked = true;
+        }
         if (isApptRelated) { apptNotes.push(apptEvent); if (anDays < _minApptEventDays) _minApptEventDays = anDays; }
       }
 
