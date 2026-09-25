@@ -98,7 +98,9 @@ const SHEET = {
   'tania gonzalez':      ['281-837-3383', '337-205-8315', '337-247-9304'],
   'jolette aguilar':     ['281-837-3627', '337-205-8339', '337-247-9110'],
   'jordyn guzman':       ['281-837-3630', '337-247-9053', '337-901-8079'],
-  'samantha lopez':      ['281-837-3375', '337-541-0253', '337-706-0507']
+  'samantha lopez':      ['281-837-3375', '337-541-0253', '337-706-0507'],
+  // (v9.7.731) added from the 9/25 sheet row
+  'dahize camacho':      ['281-837-3626', '337-706-0756', '337-252-0753']
 };
 const STORE_LINES = { '6189':'281-837-3687', '6190':'281-837-3687', '6191':'281-837-3687',
                       '24399':'337-326-4484', '21135':'337-252-0822' };
@@ -111,7 +113,7 @@ console.log('');
 // ── EVERY SHEET AGENT, EVERY ROOFTOP, THROUGH THE REAL RESOLVER ──────────────
 // This is the check that would have caught v9.7.482's two wrong numbers on the build that
 // shipped them. It runs lookupPhone; it does not read the table.
-console.log('all 14 sheet agents resolve to their sheet number at all 5 rooftops:');
+console.log('all 15 sheet agents resolve to their sheet number at all 5 rooftops:');
 for (const who of Object.keys(SHEET)) {
   const [bay, laf, audi] = SHEET[who];
   check('  ' + who, i => ({
@@ -129,7 +131,7 @@ for (const who of Object.keys(SHEET)) {
 // the surviving key in each pair. The second name of each is removed, not aliased. Roslynn Kelley
 // removed too: she has left the BDC.
 console.log('\nthe four keys Gil removed are gone, and nothing else went with them:');
-check('the directory is the 14 sheet agents + Gil + Samantha Gonzalez + the Aguilar alias',
+check('the directory is the 15 sheet agents + Gil + Samantha Gonzalez + the Aguilar alias',
   i => Object.keys(i.dir()).sort(),
   [...Object.keys(SHEET), 'gil guzman', 'samantha gonzalez', 'veronica aguilar'].sort());
 // (v9.7.607) Three of the four stay removed. The 8/31 export shows VinSolutions emitting the names
