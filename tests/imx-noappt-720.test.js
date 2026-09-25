@@ -102,7 +102,7 @@ for (const f of BUILDS) {
 
   console.log(' 2c. v9.7.722 -- the pre-owned search link and the first-touch visit:');
   const G = (offer, cond, veh, o) => vm.runInContext('_lpImxOfferGuidance', sb)('claimed the website offer "' + offer + '"', cond, veh, o);
-  const LAF = { dealerId: '24399', firstTouch: true }, LINK = 'https://bit.ly/4AxRv4A';
+  const LAF = { dealerId: '24399', firstTouch: true }, LINK = 'https://www.communityhondalafayette.com/search/used/?pr=469:25000&tp=used';   // (v9.7.723) was the bit.ly link
   const has = (t) => [t.includes(LINK), /SEND THE SEARCH LINK[^\n]*in BOTH the SMS[^\n]*and the email/.test(t), /OFFER A VISIT \(first reach-out, required\)/.test(t)];
   check('pre-owned, no vehicle picked out: the link in SMS and email, and the visit, asking what they want', () => {
     const t = G(PRE, '', '', LAF); return has(t).concat(/ask what they want in one \(size, features, budget\)/.test(t)); }, [true, true, true, true]);
@@ -113,9 +113,11 @@ for (const f of BUILDS) {
   check('a year and make alone ("2026 Honda", a Full Line lead) counts as no vehicle picked out', () => has(G(PRE, '', '2026 Honda', LAF)), [true, true, true]);
   check('follow-up: the link is background for if they ask, and no visit line', () => {
     const t = G(PRE, '', '', { dealerId: '24399', firstTouch: false });
-    return [/If they ask what else is in that range[^\n]*https:\/\/bit\.ly\/4AxRv4A/.test(t), /SEND THE SEARCH LINK|OFFER A VISIT/.test(t)]; }, [true, false]);
+    return [/If they ask what else is in that range[^\n]*: (\S+) \(copy it exactly\)/.exec(t)?.[1] === LINK, /SEND THE SEARCH LINK|OFFER A VISIT/.test(t)]; }, [true, false]);
   check('the agent chose no appointment: the visit line is off, the link stays', () => has(G(PRE, '', '', { dealerId: '24399', firstTouch: true, noAppt: true })), [true, true, false]);
   check('control: another store has no link on file -> no link line, the visit still asked', () => has(G(PRE, '', '', { dealerId: '6191', firstTouch: true })), [false, false, true]);
+  check('v9.7.723: the link is the full $25,000 search, not the bit.ly short link', () => {
+    const t = G(PRE, '', '', LAF); return [t.includes(LINK), /bit\.ly/.test(t), /pr=469:25000&tp=used/.test(t)]; }, [true, false, true]);
   check('control: the new-car offer gets no pre-owned link; on a pre-owned car the visit is for the new models', () => {
     const t = G(NEW, 'Used', '2025 Honda Accord Sedan SE', LAF); return [t.includes(LINK), /invite them in to see the new models/.test(t)]; }, [false, true]);
   const imxP = (sticky) => {

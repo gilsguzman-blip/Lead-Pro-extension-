@@ -28,6 +28,12 @@ const BOT_EMAIL = 'Subject: Your 2026 Kia K5 is Ready for a Test Drive By: Vines
 const HUMAN_TEXT = 'Sent to: (555) 010-0199 Sent by: Agent Name Hi, this is Agent at Community Kia. The K5 GT-Line you picked is here.';
 const SENDS = (bodies) => bodies.map((b, i) => ({ title: i ? 'email reply to prospect' : 'outbound text message', ms: 1790000000000 + i, body: b }));
 const ent = (date, tag, title, body) => '[' + date + '] [' + tag + '] ' + title + '\n  ' + body + '\n';
+// The sends are dated relative to NOW (Central), not to the 9/23 capture: a text more than a day old with no
+// reply makes the lead STALLED, and a stalled lead offers no times -- so a fixed date aged this suite into
+// failing 24 hours after it was written (first seen 9/24, 9:48 PM CT).
+const ago = (mins) => { const f = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Chicago', month: '2-digit', day: '2-digit', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })
+  .formatToParts(new Date(Date.now() - mins * 60000)).reduce((o, p) => (o[p.type] = p.value, o), {});
+  return f.month + '/' + f.day + '/' + f.year + ' ' + f.hour + ':' + f.minute + ' ' + f.dayPeriod.toUpperCase(); };
 
 for (const f of BUILDS) {
   const src = fs.readFileSync(f, 'utf8');
@@ -53,7 +59,7 @@ for (const f of BUILDS) {
     vehicle: '2026 Kia K5 GT-Line', stockNum: 'T0000001', dealerId: '6190', store: 'Community Kia Baytown', leadSource: 'Gubagoo - Virtual Retailing',
     convState: 'first-touch', leadAgeDays: 0, hasOutbound: true, hasCustomerReply: false, totalNoteCount: 5, relationshipSignals: {},
     lastOutboundMsg: BOT_EMAIL, lastSubstantiveOutboundMsg: BOT_EMAIL, outboundSends: SENDS([BOT_TEXT, BOT_EMAIL]),
-    context: ent('09/23/2026 9:18 PM', 'AGENT', 'Email reply to prospect', BOT_EMAIL) + ent('09/23/2026 9:18 PM', 'AGENT', 'Outbound Text Message', BOT_TEXT),
+    context: ent(ago(40), 'AGENT', 'Email reply to prospect', BOT_EMAIL) + ent(ago(40), 'AGENT', 'Outbound Text Message', BOT_TEXT),
     lastInboundMsg: '' }, extra || {});
   const prompt = (d) => { vm.runInContext('leadContext = ' + JSON.stringify(d.context) + ';', sb); sb.__logs.length = 0;
     return { p: sb.__lp.buildUserPrompt(d), logs: sb.__logs.slice() }; };
@@ -66,7 +72,7 @@ for (const f of BUILDS) {
   check('...and the diag says which block owned it', () => prompt(K5()).logs.some(l => /^\[LP TIMES WITHHELD DIAG\] /.test(l)), true);
   check('control: a lead a PERSON wrote to last still gets suggested times', () => {
     const d = K5({ lastOutboundMsg: HUMAN_TEXT, lastSubstantiveOutboundMsg: HUMAN_TEXT, outboundSends: SENDS([HUMAN_TEXT]),
-      context: ent('09/23/2026 9:30 PM', 'AGENT', 'Outbound Text Message', HUMAN_TEXT) });
+      context: ent(ago(28), 'AGENT', 'Outbound Text Message', HUMAN_TEXT) });
     const p = prompt(d).p; return [/SUGGESTED APPOINTMENT TIMES/.test(p), /APPOINTMENT TIMES WITHHELD/.test(p)]; }, [true, false]);
 
   console.log(' 3. an empty web-form field is not the customer\'s words:');
