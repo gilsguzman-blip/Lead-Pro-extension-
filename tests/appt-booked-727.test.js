@@ -9,6 +9,9 @@
 // Now "I can't make it" is a reschedule only when an appointment was BOOKED before it (a reminder, a
 // confirmation, our message saying it is set, or the customer taking a time); the assistant's "we can
 // reschedule at a more convenient time" with nothing booked is not a missed-appointment re-engagement.
+// (v9.7.728) log253, Audi Lafayette 9/25: our own "Sorry we missed your call" email matched `sorry.*miss` and read
+//     as a missed-appointment re-engagement. A missed CALL is blanked before that test, and the vague phrases
+//     ("sorry ... miss", "life is busy", "reschedule at a convenient time") now need a booked appointment.
 // Executes the shipped appointment-timeline block from inlineScraper against stub note elements.
 //
 // Usage: node tests/appt-booked-727.test.js <dev popup.js> <commercial popup.js>
@@ -72,6 +75,19 @@ for (const f of BUILDS) {
   const r6 = run([note(2, 'outbound', 'outbound text message', 'Sent by: Agent Name Sorry you couldn’t make it today, want to pick another time?'),
                   note(26, 'outbound', 'outbound text message', 'Sent by: Agent Name Test, your appointment is set for today at 3:00 PM.')]);
   check('control: a person\'s missed-appointment follow-up after a booked appointment still counts', () => r6.hasMissedAppt, true);
+  console.log(' 3. v9.7.728 -- a missed phone call, and vague apologies, are not missed appointments:');
+  const r8 = run([note(1, 'outbound', 'email reply to prospect', 'Subject: Sorry we missed your call, Test By: Agent Name Test, Sorry we missed your call earlier. What are you shopping for?')]);
+  check('log253: "Sorry we missed your call" with nothing booked -> no missed appointment, nothing in the timeline', () => [r8.hasMissedAppt, r8.timeline], [false, []]);
+  const r9 = run([note(1, 'outbound', 'outbound text message', 'Sent by: Agent Name Sorry we missed you today, life is busy. Want to pick another time?')]);
+  check('a vague "sorry we missed you / life is busy" with nothing booked -> no missed appointment', () => r9.hasMissedAppt, false);
+  const r10 = run([note(1, 'outbound', 'outbound text message', 'Sent by: Agent Name Sorry we missed you today, life is busy. Want to pick another time?'),
+                   note(26, 'outbound', 'outbound text message', 'Sent by: Agent Name Test, your appointment is set for today at 3:00 PM.')]);
+  check('...the same message after a booked appointment -> missed appointment', () => r10.hasMissedAppt, true);
+  const r11 = run([note(1, 'outbound', 'outbound text message', 'Sent by: Agent Name Sorry you couldn\u2019t make it in today, want to pick another time?')]);
+  check('control: a person\'s explicit "sorry you couldn\'t make it" still counts without a visible booking (it may have been booked by phone)', () => r11.hasMissedAppt, true);
+  const r12 = run([note(1, 'outbound', 'outbound text message', 'Sent by: Agent Name Sorry we missed your call, and sorry you couldn\u2019t make it to your appointment today.')]);
+  check('control: a missed call AND a missed appointment in one message -> the appointment still counts', () => r12.hasMissedAppt, true);
+
   const r7 = run([note(2, 'inbound', 'inbound text message', 'R'),
                   note(20, 'outbound', 'outbound text message', 'Sent by: Agent Name Quick reminder of our appointment Friday at 10:00 AM. Reply C to confirm or R to reschedule.')]);
   check('control: "R" to a reminder is still a reschedule', () => [r7.reschedule, r7.hasMissedAppt], [true, true]);

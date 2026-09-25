@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.728-dev (Dev. ANOTHER CUSTOMER'S DRAFT STAYED ON SCREEN AND WENT OUT, AND A MISSED PHONE CALL READ AS A MISSED APPOINTMENT. Extension only; proxy v7.81 and reporter v1.22 unchanged. log253 + agent log LOGG222, 9/25: the first message on Pearline Jones's CarGurus lead (Audi Lafayette, 2019 Kia Niro Touring) was a 1:45 PM email 'Sorry we missed your call, Debra ... What are you shopping for?'. The agent log shows where it came from: that exact email is the second draft generated for Debra Billings (Kia Baytown, lead 2089661224, a Repeat Customer record whose only inbound note is an 'Inbound phone call' reading 'auto generated from adding customer'). Pearline's lead then loaded from the storage beacon, not the Grab button, so clearFields never ran; populateFromData cleared the voicemail by its v9.7.604 lead stamp ('[LP VM SCOPE] clearing a voicemail written for lead 2089661224') but the SMS and email had no stamp and stayed on screen, and Debra's email went out on Pearline's lead. (1) DRAFT SCOPE: setOutput stamps each SMS/email with the lead it was generated for; populateFromData clears a draft stamped for another lead, or unstamped, the voicemail's rule ([LP DRAFT SCOPE] names both leads). An unknown current lead leaves a stamped draft alone; the same lead reloading keeps its drafts. (2) Regenerating on Pearline's lead afterwards read that email as 'Agent sent missed-appointment re-engagement' (`sorry.*miss` matched 'Sorry we missed your call') -> hasMissedAppt -> MANAGER persona (Audi state escalation) and 'TIMING — APPOINTMENT FELL THROUGH' in place of the normal times. In the appointment timeline, missed-call wording is blanked before the missed-appointment test; the vague phrases ('sorry ... miss', 'life is busy', 'reschedule at a convenient time') count only after a booked appointment (v9.7.727); a person's explicit 'sorry you couldn't make it' / 'missed ... appointment' still counts without a visible booking. Replayed on dump 2ff0333e: v9.7.727 had hasMissedAppt, the APPOINTMENT HISTORY line and APPOINTMENT FELL THROUGH with persona manager; this build has none of them, offers the normal times, and resolves to bdc. Tests: new draft-scope-728 (8 per build, all 8 fail on v9.7.727 -- the controls too, the block not existing there); appt-booked-727 extended to 13 per build (5 new: 2 fail on v9.7.727, 3 controls pass on both). run-all: 150 suites, 6,728 assertions, 0 failed.)
 // Lead Pro -- popup.js  v9.7.727-dev (Dev. DECLINING A TIME THE ASSISTANT OFFERED IS NOT A MISSED APPOINTMENT. Extension only; proxy v7.81 and reporter v1.22 unchanged. log251/252, Community Kia Baytown, 9/25 (dump 39babb78): the virtual assistant texted 'come in for a test drive today (Thursday) at 12:00 PM or Friday at 10:00 AM?', the customer answered 'I can't make it to Houston today', and the scraper's appointment timeline read it as 'Customer requested reschedule' -> hasMissedAppt and customerRepliedReschedule. The prompt then carried an APPOINTMENT HISTORY entry and a '🔄 RESCHEDULE REQUESTED: The customer replied "R" to your message that said "Reply C to confirm or R to reschedule"' block, and the persona switched to MANAGER (missed appt), on a lead where nothing had ever been booked. Gil: 'especially with the AI agent pushing all the time' -- its every message offers two times. Now the timeline tracks whether an appointment was BOOKED (the loop runs oldest to newest): a reminder, a system confirmation email, a call note where the customer confirmed, our message saying the appointment is set/confirmed/scheduled/booked ('you're set for', 'see you tomorrow'), or the customer taking a time ('works for me', 'see you then', 'I'll be there'). 'Can't make it' / 'need to reschedule' is a reschedule only after a booking; otherwise it is declining an offered time and stays in the transcript, where the logistical-constraint rule reads it ([LP APPT DIAG] says so). The automated assistant's 'we can reschedule at a more convenient time' with nothing booked is no longer a missed-appointment re-engagement; a person's still is. 'R' to a reminder is unchanged. Replayed on the dump: v9.7.726 had hasMissedAppt and the RESCHEDULE REQUESTED block with persona manager; this build has neither, and the persona resolves to sales (trade/high-intent). Tests: new appt-booked-727 (8 per build; 3 fail on v9.7.726; the 5 booked-appointment checks pass on both). run-all: 149 suites, 6,702 assertions, 0 failed.)
 // Lead Pro -- popup.js  v9.7.726-dev (Dev. AN INCENTIVE WAITS WHILE THE CUSTOMER IS WAITING ON US, AND LOYALTY VS CONQUEST FOLLOWS THE TRADE. Extension only; proxy v7.81 and reporter v1.22 unchanged. log251, Community Kia Baytown, 9/25 (dump 39babb78, capture effee1f9): the BD agent had written on 9/23; on 9/24 the customer replied with trade photos, a finance application and the trim they want (light trim, captain's chairs), and the virtual assistant answered a minute later. The agent's 9:02 AM draft answered all of it AND added '$750 Conquest Cash and $750 Owner Loyalty Cash through September 30'. Gil: 'I thought we had that saved for subsequent follow up'. The first-reach rail (v9.7.296/658/696) had behaved as built: a person had already written, so this read as follow-up. Gil agreed the rule: (1) New _lpCustomerAwaitingHuman: the customer is waiting on us when their newest transcript entry is newer than our newest send by a PERSON (the automated assistant's instant replies do not count). While that holds, the store-incentive gate holds the incentive (reason customer_live) unless the customer asked about price, payment or deals (_incCustomerAsked). A follow-up they have not answered gets the incentive as before. Fails closed: no dated customer entry or no visible human send leaves the gate unchanged (the assistant-only case stays with v9.7.658). (2) PROGRAM FIT: when the incentives shown include owner loyalty or conquest and the trade's make is known, the prompt says which fits: a trade of another brand gets 'do NOT offer the loyalty cash unless they tell you there is a [brand] in the household' and names conquest; a trade of the store's brand gets 'do NOT offer conquest'. Replayed on the dump with the two Telluride programs loaded: v9.7.725 injects both; this build holds them, logging customer 9/24 11:48 AM vs our last person 9/23 1:46 PM; with the reply removed it injects both plus the program-fit line. Tests: new incentive-hold-726 (10 per build; 7 fail on v9.7.725 -- the 4 helper-level checks only because the helper does not exist there; the 3 prompt-level checks pass on both). run-all: 148 suites, 6,686 assertions, 0 failed.)
 // Lead Pro -- popup.js  v9.7.725-dev (Dev. THE MODEL THE CUSTOMER NAMED IS USED ON ANY SOURCE, AND THE PRE-OWNED OFFER DOES NOT ASK 'NEW OR PRE-OWNED'. Extension only; proxy v7.81 and reporter v1.22 unchanged. log250, Community Honda Lafayette, 9/24 (capture 33807dda): an IdentityMax lead with no vehicle on file; the customer texted 'I'm looking for an Accord'. The prompt still carried three lines arguing with it: 'NO VEHICLE IS ATTACHED TO THIS LEAD. Do NOT reference or name any vehicle from the conversation history as the one they want', 'CRM CONFIRMS ... Ask directly and confidently what they are shopping for' and 'Ask what they are looking for instead'. The draft got it right anyway; Gil: 'let's fix 3'. v9.7.716's named-model reading ran on chat leads only and needed the make in the phrase; the pivot detector found 'Accord' but acts only when the lead has a vehicle to pivot from. (1) New _lpOwnWordsModel: a model of the STORE'S OWN brand (Honda, Toyota, Kia, Audi lists), named in the CUSTOMER's own entries on the CURRENT lead (above the current-lead marker, plus the inquiry line), newest mention first. Plain-English model words (pilot, passport, insight, soul, crown, carnival, forte) need the make or a year in front. Our own texts, older leads, a missing marker and another brand's models do not count. populateFromData sets d._lpNamedModel from it on any source when no vehicle is on file (the v9.7.716 chat path runs first and is unchanged); never promotes a unit. (2) With a named model the CRM CONFIRMS line, the NO VEHICLE IS ATTACHED Vehicle line and the 'ask what they are looking for' constraint give way to the named-model lines. The named-model line states stock only when the feed shows it ('do NOT say we have one here' otherwise), and on a pre-owned lead drops 'new or pre-owned' as the narrowing question. (3) Gil, on the draft asking 'new or pre-owned Accord?' after the customer claimed the pre-owned offer: '2 is fair'. The pre-owned IdentityMax guidance now says they claimed the PRE-OWNED offer: do not ask new or pre-owned, and read a model they name as a pre-owned one in the range. Replayed on dump df7d4efa with the customer's Accord text added: the three lines are replaced; without it, the prompt is unchanged apart from (3). Tests: new named-model-725 (19 per build; 17 fail on v9.7.724 -- the 5 helper-level controls only because the helper does not exist there; the 2 prompt-level controls pass on both). run-all: 147 suites, 6,666 assertions, 0 failed.)
@@ -5460,6 +5461,31 @@ function populateFromData(d) {
       }
     }
   } catch (eVm) {}
+  // ── (v9.7.728) THE SMS AND EMAIL GET THE SAME GUARD. Agent log LOGG222, 9/25: Dahize generated for Debra
+  // Billings (Kia Baytown, lead 2089661224) -- "Sorry we missed your call, Debra ... What are you shopping for?"
+  // -- then Pearline Jones's lead (Audi Lafayette, 2090015912) loaded from the storage beacon, not the Grab
+  // button, so clearFields never ran. The voicemail was cleared ("[LP VM SCOPE] clearing a voicemail written for
+  // lead 2089661224"); the SMS and email were not, and Debra's email went out on Pearline's lead at 1:45 PM, her
+  // first message. Same rule as the voicemail: a draft stamped for another lead, or not stamped at all, is
+  // cleared when a lead loads; an unknown current lead leaves a stamped draft alone.
+  try {
+    var _odNow = String((d && d.autoLeadId) || '');
+    ['sms', 'email'].forEach(function (k) {
+      var el = document.getElementById('output-' + k);
+      if (!el || !String(el.value || '').trim()) return;
+      var st = '';
+      try { st = String((el.dataset && el.dataset.lpLeadId) || ''); } catch (eDs0) {}
+      if (!st || (_odNow && st !== _odNow)) {
+        console.warn('[LP DRAFT SCOPE] clearing the ' + k.toUpperCase() + ' draft written for lead ' + (st || '(unstamped)')
+          + ' -- now on lead ' + (_odNow || '(unknown)') + '. It belongs to another customer and must not be sent here.');
+        el.value = '';
+        try { el.dataset.lpLeadId = ''; } catch (eDs1) {}
+        var _odTab = (typeof _tabBtnMap === 'object' && _tabBtnMap) ? _tabBtnMap[k] : null;
+        if (_odTab) _odTab.classList.remove('ready-' + k);
+        try { if (typeof updateWordCount === 'function') updateWordCount(k); } catch (eWc) {}
+      }
+    });
+  } catch (eOd) {}
 
   // ── (v9.7.516/512 CONTEXT-SCOPE FIX) ──────────────────────────────────────
   // d.context is NEVER assigned on the object this function receives. The
@@ -15152,6 +15178,10 @@ function _lpScraperBotAuthor(msg) {
 
         var isApptRelated = false;
         var apptEvent = '';
+        // (v9.7.728) A missed PHONE CALL is not a missed appointment. log253, Audi Lafayette 9/25: "Sorry we missed
+        // your call" matched `sorry.*miss` below -> hasMissedAppt -> the manager persona and "APPOINTMENT FELL THROUGH"
+        // on a lead with no appointment. Call mentions are blanked before the missed-appointment test.
+        var _anNoCall = anContent.replace(/\bmiss(?:ed|ing)?\s+(?:your|our|the|a|my|his|her|their)?\s*(?:phone\s+|earlier\s+)?calls?\b/gi, ' ');
 
         // v9.7.206 — Appointment CANCELLATION detection. Catches both the agent
         // acknowledging a cancel ("I saw your appointment was canceled") and the
@@ -15186,8 +15216,11 @@ function _lpScraperBotAuthor(msg) {
         // Missed appointment re-engagement sent by agent
         // (v9.7.727) Not from the automated assistant when nothing was booked: it says "we can reschedule at a
         // more convenient time" to a customer who only turned down the times it offered.
-        else if (anDir === 'outbound' && /life is busy|sorry you couldn.t make it|couldn.t make it out|missed.*appointment|reschedule.*convenient|sorry.*miss/i.test(anContent)
-                 && (_apptBooked || !_apptBotRe.test(anContent))) {
+        // (v9.7.728) The vague phrases ("sorry ... miss", "life is busy", "reschedule at a convenient time") count only
+        // after a booking; the explicit ones ("sorry you couldn't make it", "missed ... appointment") from a person
+        // still count on their own, since a booking made by phone may leave no note.
+        else if (anDir === 'outbound' && /life is busy|sorry you couldn.t make it|couldn.t make it out|missed.*appointment|reschedule.*convenient|sorry.*miss/i.test(_anNoCall)
+                 && (_apptBooked || (!_apptBotRe.test(anContent) && /sorry you couldn.t make it|couldn.t make it out|missed.*appointment/i.test(_anNoCall)))) {
           isApptRelated = true;
           apptEvent = 'Agent sent missed-appointment re-engagement (' + anLabel + '): "' + anContent.substring(0, 120).replace(/[\r\n]+/g, ' ') + '"';
           hasMissedAppt = true;
@@ -28552,6 +28585,8 @@ async function generateAll() {
       const f = document.getElementById('output-' + key);
       if (f) {
         f.value = text;
+        // (v9.7.728) Every draft carries the lead it was written for; populateFromData clears it on another lead.
+        try { f.dataset.lpLeadId = String((lastScrapedData && lastScrapedData.autoLeadId) || ''); } catch (eSt) {}
         f.classList.remove('generating');
         if (text) {
           // Fade-in moment for fresh content
