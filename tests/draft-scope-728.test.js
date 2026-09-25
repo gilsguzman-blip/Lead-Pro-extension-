@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 'use strict';
-// (v9.7.728) Agent log LOGG222, 9/25: the BD agent generated for Debra Billings (Kia Baytown, lead 2089661224)
-// -- "Sorry we missed your call, Debra ... What are you shopping for?" -- then Pearline Jones's lead (Audi
+// (v9.7.728) Agent log LOGG222, 9/25: the BD agent generated for customer A (Kia Baytown, lead 2089661224)
+// -- "Sorry we missed your call, [name] ... What are you shopping for?" -- then customer B's lead (Audi
 // Lafayette, 2090015912) loaded from the storage beacon, not the Grab button, so clearFields never ran. The
 // voicemail was cleared by its v9.7.604 lead stamp; the SMS and email had no stamp and stayed on screen, and
-// Debra's email went out on Pearline's lead at 1:45 PM as her first message.
+// customer A's email went out on customer B's lead at 1:45 PM as her first message.
 // Now every SMS/email draft is stamped with its lead in setOutput, and populateFromData clears a draft stamped
 // for another lead (or unstamped) -- the voicemail's rule. Executes the shipped block against stub fields.
 //
@@ -19,7 +19,7 @@ function check(name, fn, want) {
   if (g === w) { pass++; console.log('  ok   ' + name); }
   else { fail++; console.log('  FAIL ' + name + '\n        expected ' + w + '\n        got      ' + g); }
 }
-const DEBRA = '2000000001', PEARL = '2000000002';
+const PREV = '2000000001', NEXT = '2000000002';
 for (const f of BUILDS) {
   const src = fs.readFileSync(f, 'utf8');
   console.log('\n' + path.basename(path.dirname(f)) + '/' + path.basename(f));
@@ -39,18 +39,18 @@ for (const f of BUILDS) {
     return { sms: els['output-sms'] && els['output-sms'].value, email: els['output-email'] && els['output-email'].value,
       ready: Object.keys(tabs).filter(k => tabs[k].cls.has('ready-' + k)), logs };
   };
-  const SMS = 'Debra, sorry we missed your call.', EMAIL = 'Subject: Sorry we missed your call, Debra';
+  const SMS = 'Test, sorry we missed your call.', EMAIL = 'Subject: Sorry we missed your call, Test';
 
   console.log(' 1. drafts written for another lead do not survive a lead change:');
-  let r1; try { r1 = run({ sms: [SMS, DEBRA], email: [EMAIL, DEBRA] }, PEARL); } catch (e) { r1 = { sms: 'THREW: ' + e.message, email: '', ready: [], logs: [] }; }
-  check('LOGG222: Debra\'s SMS and email are cleared when Pearline\'s lead loads', () => [r1.sms, r1.email, r1.ready], ['', '', []]);
+  let r1; try { r1 = run({ sms: [SMS, PREV], email: [EMAIL, PREV] }, NEXT); } catch (e) { r1 = { sms: 'THREW: ' + e.message, email: '', ready: [], logs: [] }; }
+  check('LOGG222: the previous customer\'s SMS and email are cleared when the next lead loads', () => [r1.sms, r1.email, r1.ready], ['', '', []]);
   check('...and the diag names both leads', () => r1.logs.some(l => /^\[LP DRAFT SCOPE\] clearing the EMAIL draft written for lead 2000000001 -- now on lead 2000000002/.test(l)), true);
-  check('an unstamped draft (from before this build) is cleared too, as the voicemail rule does', () => { const r = run({ sms: [SMS, null], email: [EMAIL, ''] }, PEARL); return [r.sms, r.email]; }, ['', '']);
+  check('an unstamped draft (from before this build) is cleared too, as the voicemail rule does', () => { const r = run({ sms: [SMS, null], email: [EMAIL, ''] }, NEXT); return [r.sms, r.email]; }, ['', '']);
 
   console.log(' 2. and nothing else is touched:');
-  check('control: the same lead reloading keeps its drafts', () => { const r = run({ sms: [SMS, PEARL], email: [EMAIL, PEARL] }, PEARL); return [r.sms, r.email, r.ready]; }, [SMS, EMAIL, ['sms', 'email']]);
-  check('control: an unknown current lead leaves a stamped draft alone', () => { const r = run({ sms: [SMS, DEBRA], email: [EMAIL, DEBRA] }, ''); return [r.sms, r.email]; }, [SMS, EMAIL]);
-  check('control: empty fields stay empty and log nothing', () => { const r = run({ sms: ['', DEBRA], email: ['  ', null] }, PEARL); return [r.logs.length]; }, [0]);
+  check('control: the same lead reloading keeps its drafts', () => { const r = run({ sms: [SMS, NEXT], email: [EMAIL, NEXT] }, NEXT); return [r.sms, r.email, r.ready]; }, [SMS, EMAIL, ['sms', 'email']]);
+  check('control: an unknown current lead leaves a stamped draft alone', () => { const r = run({ sms: [SMS, PREV], email: [EMAIL, PREV] }, ''); return [r.sms, r.email]; }, [SMS, EMAIL]);
+  check('control: empty fields stay empty and log nothing', () => { const r = run({ sms: ['', PREV], email: ['  ', null] }, NEXT); return [r.logs.length]; }, [0]);
 
   console.log(' 3. the writer stamps what it writes:');
   check('setOutput stamps the field with the lead it was generated for', () =>

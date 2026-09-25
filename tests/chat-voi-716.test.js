@@ -32,7 +32,7 @@ const INV = { units: [
   U('TX000005', '2025 Honda Pilot TrailSport', 'Diffused Sky Blue Pearl') ] };
 const ent = (date, tag, title, body) => '[' + date + '] [' + tag + '] ' + title + '\n  ' + body + '\n';
 const FENCE = (t) => 'AGENT CONTEXT — READ THIS FIRST.\nCONVERSATION TRANSCRIPT (newest first):\n---\n' + t + '---\n';
-const OURS = ent('09/24/2026 9:46 AM', 'AGENT', 'Outbound Text Message', 'Enrique, just send me a model name to start. We are open until 8 PM today.');
+const OURS = ent('09/24/2026 9:46 AM', 'AGENT', 'Outbound Text Message', 'Test, just send me a model name to start. We are open until 8 PM today.');
 
 for (const f of BUILDS) {
   const src = fs.readFileSync(f, 'utf8');
