@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.725 (Commercial. THE MODEL THE CUSTOMER NAMED IS USED ON ANY SOURCE, AND THE PRE-OWNED OFFER DOES NOT ASK 'NEW OR PRE-OWNED'. Extension only; proxy v7.81 and reporter v1.22 unchanged. log250, Community Honda Lafayette, 9/24 (capture 33807dda): an IdentityMax lead with no vehicle on file; the customer texted 'I'm looking for an Accord'. The prompt still carried three lines arguing with it: 'NO VEHICLE IS ATTACHED TO THIS LEAD. Do NOT reference or name any vehicle from the conversation history as the one they want', 'CRM CONFIRMS ... Ask directly and confidently what they are shopping for' and 'Ask what they are looking for instead'. The draft got it right anyway; Gil: 'let's fix 3'. v9.7.716's named-model reading ran on chat leads only and needed the make in the phrase; the pivot detector found 'Accord' but acts only when the lead has a vehicle to pivot from. (1) New _lpOwnWordsModel: a model of the STORE'S OWN brand (Honda, Toyota, Kia, Audi lists), named in the CUSTOMER's own entries on the CURRENT lead (above the current-lead marker, plus the inquiry line), newest mention first. Plain-English model words (pilot, passport, insight, soul, crown, carnival, forte) need the make or a year in front. Our own texts, older leads, a missing marker and another brand's models do not count. populateFromData sets d._lpNamedModel from it on any source when no vehicle is on file (the v9.7.716 chat path runs first and is unchanged); never promotes a unit. (2) With a named model the CRM CONFIRMS line, the NO VEHICLE IS ATTACHED Vehicle line and the 'ask what they are looking for' constraint give way to the named-model lines. The named-model line states stock only when the feed shows it ('do NOT say we have one here' otherwise), and on a pre-owned lead drops 'new or pre-owned' as the narrowing question. (3) Gil, on the draft asking 'new or pre-owned Accord?' after the customer claimed the pre-owned offer: '2 is fair'. The pre-owned IdentityMax guidance now says they claimed the PRE-OWNED offer: do not ask new or pre-owned, and read a model they name as a pre-owned one in the range. Replayed on dump df7d4efa with the customer's Accord text added: the three lines are replaced; without it, the prompt is unchanged apart from (3). Tests: new named-model-725 (19 per build; 17 fail on v9.7.724 -- the 5 helper-level controls only because the helper does not exist there; the 2 prompt-level controls pass on both). run-all: 147 suites, 6,666 assertions, 0 failed.)
 // Lead Pro -- popup.js  v9.7.724 (Commercial. AN IDENTITYMAX LEAD WE HAVE ALREADY WRITTEN TO IS A FOLLOW-UP, EVEN ON DAY ZERO. Extension only; proxy v7.81 and reporter v1.22 unchanged. log249, Community Honda Lafayette, 9/24 (dump df7d4efa, capture e6330ae3): the agent texted the pre-owned offer, the bit.ly link and two times at 9:42 PM; regenerated at 9:54 PM with no reply, the draft sent the offer and the link again. Gil: 'the messaging is repeating the offer and link'. CAUSE, MINE (v9.7.722): the lead was created that day with no customer reply, so convState stayed first-touch and isFollowUp was false, and the IdentityMax branch keyed its first-touch script on that: 'SEND THE SEARCH LINK' and 'OFFER A VISIT (first reach-out, required)' sat in the same prompt as EARLY FOLLOW-UP and THE LAST SUBSTANTIVE MESSAGE telling the model not to repeat it, and the model followed the specific instruction. (1) A PERSON having written on the lead (hasOutbound and not only the automated assistant, per _lpFirstHumanTouch) makes it a follow-up here: the offer goes under HOW THIS LEAD BEGAN, now worded 'the offer has already been put in front of them, so do NOT present it again'; no link or visit script. Only the automated assistant having written still gives the first human message the offer, the link and the visit. (2) When a link already went out (any URL in our last outbound or the visible sends), the follow-up line says so and not to send one again unless they ask what else is in the range. Replayed on the dump: v9.7.723 printed the first-touch script; this build prints the follow-up rules and the link-already-sent line. Tests: imx-noappt-720 at 70 assertions per build, 5 new: 3 fail on v9.7.723; the two controls (automated assistant only; nothing sent) pass on both. run-all: 146 suites, 6,628 assertions, 0 failed.)
 // Lead Pro -- popup.js  v9.7.723 (Commercial. THE PRE-OWNED SEARCH LINK IS THE FULL $25,000 URL. Extension only; proxy v7.81 and reporter v1.22 unchanged. Gil, 9/25: 'change the link to https://www.communityhondalafayette.com/search/used/?pr=469:25000&tp=used the bitly link has issues'. _LP_IMX_OFFER_LINKS['24399'].preowned is now that URL (the bit.ly link resolved to a $25,469 cap; this one matches the offer's $25,000). Nothing else changes: same placement rules as v9.7.722. Tests: imx-noappt-720 at 60 assertions per build, 1 new (full URL, no bit.ly); the 7 link-bearing checks fail on v9.7.722. TEST FIX (no product change): log244-710 dated its sends 9/23 ~9:20 PM, so 24 hours later the lead read as STALLED (correctly: a text a day old with no reply) and offered no times; 6 assertions failed on v9.7.722 as well. The sends are now dated relative to the run's clock; run-all is green with the clock pinned a week ahead too. run-all: 146 suites, 6,618 assertions, 0 failed.)
 // Lead Pro -- popup.js  v9.7.722 (Commercial. THE PRE-OWNED OFFER GETS THE STORE'S SEARCH LINK, AND THE FIRST TOUCH ASKS FOR A VISIT. Extension only; proxy v7.81 and reporter v1.22 unchanged. Gil, 9/24: 'https://bit.ly/4AxRv4A pre-owned/CPO 25k or less maybe send link definitely offer a visit on first reach out. Especially when there's no VOI.' (1) _LP_IMX_OFFER_LINKS: per store, per offer kind; Community Honda Lafayette (24399) pre-owned -> https://bit.ly/4AxRv4A (resolves to the store's used search, price to $25,469). On the pre-owned IdentityMax offer, first touch: with NO vehicle picked out (none, or only a year and make such as a Full Line lead's '2026 Honda') the link goes in BOTH the SMS (own line, before the signature) and the email; with a vehicle on the lead it is optional and email-only, and the SMS stays on that car. Follow-up: the link is background, used only if they ask what else is in the range. A store with no entry gets no link line. The new-car offer never gets the pre-owned link. (2) OFFER A VISIT (first reach-out, required) on every claimed IdentityMax offer: the lead's car and the others in the range; with no vehicle, the range in person plus what they want in one (size, features, budget); the new models for the new-car offer on a pre-owned car. v9.7.721's guided first touch had dropped the old 'Move to appointment' line. Off when the agent chose no appointment (one-shot or sticky for this lead). (3) FIX to v9.7.721: generateAll's prompt-input literal never carried 'condition', so on the panel the guard keeping the new-car offer off a pre-owned vehicle only fired when the vehicle NAME said used. It is carried now. Tests: imx-noappt-720 extended, 58 assertions per build, 10 new, all 10 fail on v9.7.721 (the two controls there only because v9.7.721 has no visit line). run-all: 146 suites, 6,616 assertions, 0 failed.)
@@ -5018,6 +5019,55 @@ function _lpNormMake(m){
   var t = String(m || '').trim().toLowerCase().replace(/[^a-z\-]/g, '');
   return _LP_MAKE_ALIAS[t] || t;
 }
+// ── (v9.7.725) THE CUSTOMER NAMED A MODEL ON THIS LEAD, WHATEVER THE SOURCE. log250, Honda Lafayette,
+// 9/24: an IdentityMax lead with no vehicle on file; the customer texted "I'm looking for an Accord". The
+// prompt still said "NO VEHICLE IS ATTACHED TO THIS LEAD. Do NOT reference or name any vehicle from the
+// conversation history as the one they want", "Ask directly and confidently what they are shopping for",
+// and "Ask what they are looking for instead" -- three lines arguing with the one thing the customer had
+// just told us. v9.7.716's named-model reading ran on chat leads only and needed the make in the phrase.
+// Read here: the CUSTOMER's own entries on the CURRENT lead (above the current-lead marker, plus the
+// inquiry line), matched against model names of the STORE'S OWN brand only -- a model another brand
+// makes is the off-franchise path's business, not this one. Words that are also plain English (pilot,
+// passport, insight, soul, crown, carnival, forte) count only with the make or a year in front of them.
+// Returns the model as written in the lexicon, or ''. Never promotes a unit.
+var _LP_BRAND_MODELS = {
+  honda:  ['accord', 'civic', 'cr-v', 'hr-v', 'pilot', 'odyssey', 'ridgeline', 'passport', 'insight', 'prologue'],
+  toyota: ['camry', 'corolla', 'rav4', 'tacoma', 'tundra', 'highlander', 'grand highlander', 'sequoia', 'sienna', 'venza', 'prius', '4runner', 'crown', 'gr86', 'supra', 'land cruiser', 'bz4x', 'c-hr'],
+  kia:    ['telluride', 'sorento', 'sportage', 'carnival', 'k5', 'k4', 'ev6', 'ev9', 'niro', 'soul', 'forte', 'seltos', 'stinger'],
+  audi:   ['a3', 'a4', 'a5', 'a6', 'a7', 'a8', 'q3', 'q4', 'q5', 'q6', 'q7', 'q8', 'e-tron', 's4', 's5', 'sq5', 'rs5', 'rs q8']
+};
+var _LP_MODEL_PLAIN_WORDS = { pilot: 1, passport: 1, insight: 1, soul: 1, crown: 1, carnival: 1, forte: 1 };
+function _lpOwnWordsModel(brief, dealerId) {
+  try {
+    var brand = _LP_STORE_BRAND[String(dealerId || '')] || '';
+    var models = _LP_BRAND_MODELS[brand];
+    if (!models) return '';
+    var t = String(brief || ''), mk = t.indexOf('[=== CURRENT LEAD SUBMITTED HERE ===]');
+    if (mk < 0) return '';
+    var cur = t.slice(0, mk), own = [], inCust = false;
+    cur.split('\n').forEach(function (l) {
+      if (/^\s*\[[^\]]*\]\s*\[/.test(l)) { inCust = /\]\s*\[CUSTOMER\]/.test(l); return; }
+      if (/^\s*-{3,}\s*$/.test(l)) { inCust = false; return; }
+      if (inCust) own.push(l);
+    });
+    var inq = t.slice(mk).match(/\[CUSTOMER REQUEST FROM INQUIRY\]([^\n]*)/);
+    if (inq) own.push(inq[1]);
+    var s = own.join('\n');
+    if (!s.trim()) return '';
+    var best = '', at = -1;
+    models.forEach(function (m) {
+      var esc = m.replace(/[-]/g, '[- ]?').replace(/ /g, '\\s+');
+      var rx = _LP_MODEL_PLAIN_WORDS[m]
+        ? new RegExp('\\b(?:' + brand + '|(?:19|20)\\d{2})\\s+' + esc + '\\b', 'i')
+        : new RegExp('(?:^|[^a-z0-9])' + esc + '(?![a-z0-9])', 'i');
+      var hit = s.search(rx);
+      // the customer's NEWEST mention wins: entries run newest-first, so the earliest index
+      if (hit > -1 && (at < 0 || hit < at || (hit === at && m.length > best.length))) { best = m; at = hit; }
+    });
+    return best;
+  } catch (e) { return ''; }
+}
+
 var _LP_CHAT_MAKES = ['lexus','toyota','honda','kia','audi','nissan','ford','chevrolet','chevy','gmc','jeep','ram','dodge','chrysler','hyundai','subaru','mazda','volkswagen','vw','bmw','mercedes','benz','acura','infiniti','lincoln','cadillac','buick','volvo','tesla','genesis','mitsubishi','porsche','jaguar','mini','fiat'];
 function _lpChatVehicleCandidates(text){
   if (!text) return [];
@@ -5223,7 +5273,7 @@ function _lpImxOfferGuidance(text, condition, vehicle, opts) {
     g = '- THE OFFER THEY CLAIMED: "' + offer + '". This is a PRICE RANGE for pre-owned and certified vehicles, not a discount on one car — '
       + 'they were most likely looking at a vehicle ' + (cap ? 'under ' + cap : 'in that range') + (veh ? ' (the ' + veh + ' on this lead is probably the one they picked)' : '') + '. '
       + 'Say it the way it is: they were looking at our pre-owned and certified vehicles' + (cap ? ' under ' + cap : '') + ', and you can work on finding the ones that fit what they want'
-      + (veh ? ', starting with the ' + veh : '') + '. Do NOT invent a discount, and do NOT state any vehicle\'s price or that it is ' + (cap ? 'under ' + cap : 'in range') + ' unless its listed price in this prompt shows it.';
+      + (veh ? ', starting with the ' + veh : '') + '. They claimed the PRE-OWNED offer: do NOT ask whether they want new or pre-owned, and read a model they name as a pre-owned one in that range. Do NOT invent a discount, and do NOT state any vehicle\'s price or that it is ' + (cap ? 'under ' + cap : 'in range') + ' unless its listed price in this prompt shows it.';
   }
   else if (isNew) {
     g = '- THE OFFER THEY CLAIMED: "' + offer + '". This is a discount on NEW vehicles only'
@@ -5929,6 +5979,27 @@ function populateFromData(d) {
     } catch (e) {}
   }
 
+  // (v9.7.725) Any source: a model the customer named on THIS lead in their own words (see _lpOwnWordsModel).
+  if (!d._lpNamedModel && (!d.vehicle || !String(d.vehicle).trim())) {
+    try {
+      var _owM = _lpOwnWordsModel(d.conversationBrief, d.dealerId);
+      if (_owM) {
+        var _owUnits = (_lpValueFactCache[d.dealerId] && _lpValueFactCache[d.dealerId].inv && _lpValueFactCache[d.dealerId].inv.units) || null;
+        var _owRx = new RegExp('(?:^|[^a-z0-9])' + _owM.replace(/[-]/g, '[- ]?').replace(/ /g, '\\s+') + '(?![a-z0-9])', 'i');
+        var _owHits = _owUnits ? _owUnits.filter(function (u) { return _owRx.test(String(u.model || '') + ' ' + String(u.vehicle || '')); }) : [];
+        var _owSeen = {}, _owSample = [];
+        _owHits.forEach(function (u) {
+          var s = (u.vehicle || ((u.year ? u.year + ' ' : '') + (u.make || '') + ' ' + (u.model || '')).trim()) + (u.condition ? ' (' + String(u.condition).toLowerCase() + ')' : '');
+          if (!_owSeen[s] && _owSample.length < 4) { _owSeen[s] = 1; _owSample.push(s); }
+        });
+        d._lpNamedModel = { phrase: _owM.replace(/\b[a-z]/g, function (c) { return c.toUpperCase(); }).replace(/^(Cr|Hr)-(v)$/i, function (x, a) { return a.toUpperCase() + '-V'; }),
+          count: _owHits.length, sample: _owSample, stockKnown: !!_owUnits, ownWords: true };
+        console.log('[LP NAMED-MODEL DIAG] the customer named "' + _owM + '" on this lead (source "' + (d.leadSource || '') + '"); '
+          + (_owUnits ? _owHits.length + ' unit(s) in stock match' : 'inventory not loaded -- stock not stated') + '; no unit promoted');
+      }
+    } catch (eOw) {}
+  }
+
   // (v9.7.410/408 AGENT LP VOI DECLARATION \u2014 deterministic override for duplicate-lead vehicle
   // chaos). An agent note like "[LP: 2025 Honda CR-V is the VOI]" is a runtime FACT the model
   // cannot infer from a customer record carrying N duplicate leads with N vehicles. When present
@@ -6394,10 +6465,16 @@ function populateFromData(d) {
   // for confidently instead of hedging around a vehicle that might exist.
   // (v9.7.716) The customer named a model in their own words; no single unit is theirs.
   if (!d.vehicle && d._lpNamedModel) {
+    // (v9.7.725) From the customer's own words on any source: stock is stated only when the feed shows it, and
+    // "new or pre-owned" is not asked when the lead already says pre-owned.
+    var _nmHave = d._lpNamedModel.count > 0, _nmUsed = /used|pre-?owned|certified|cpo/i.test(String(d.condition || ''));
     vehicleExtras.push('🚗 THE CUSTOMER NAMED A MODEL, NOT A UNIT: in their own words they want "' + d._lpNamedModel.phrase + '". No vehicle is on file, and '
-      + d._lpNamedModel.count + ' units in stock match that model (for example: ' + d._lpNamedModel.sample.join('; ') + '). None of them is one THEY chose. '
+      + (_nmHave ? d._lpNamedModel.count + ' units in stock match that model (for example: ' + d._lpNamedModel.sample.join('; ') + '). None of them is one THEY chose. '
+                 : (d._lpNamedModel.stockKnown === false ? 'stock for that model is not shown in this prompt, so do NOT say we have one here. ' : 'no unit of that model shows in the stock feed right now, so do NOT say we have one here. '))
       + 'Do NOT write "the one you asked about" and do NOT give a trim, powertrain, colour or single unit as theirs. They have already told you what they are '
-      + 'shopping for, so do not ask that again: build on it — we have them in stock — and ask the one thing that narrows it (new or pre-owned, a trim, what matters most), or offer to send a few options.');
+      + 'shopping for, so do not ask that again: build on it' + (_nmHave ? ' — we have them in stock —' : '') + ' and ask the one thing that narrows it ('
+      + (_nmUsed ? 'this lead is for a PRE-OWNED vehicle, so do not ask new or pre-owned: a year range, a trim, what matters most' : 'new or pre-owned, a trim, what matters most')
+      + '), or offer to send a few options.');
   }
   if (!d.vehicle && !d._lpNamedModel && !stageActive && d.pdPresent && !d.pdHasLeadVehicle && (d.pdVoiCount || 0) === 0) {
     // (v9.7.651) BRANCHES ON WHETHER WE HAVE ALREADY ASKED. The "ask directly and confidently"
@@ -24346,7 +24423,10 @@ function buildUserPrompt(data) {
     // DIRECTIVE, and on a lead where that question has already gone out unanswered it argues with
     // the anti-restate rules three lines below it. The prohibition — never name a vehicle that is
     // not in this prompt — is unconditional and unchanged; only the fallback instruction moves.
-    (_lpQualifyingAsked(data)
+    // (v9.7.725) The customer has told us the model: the question this constraint falls back on is already answered.
+    (data._lpNamedModel && data._lpNamedModel.phrase)
+      ? '- NEVER mention a specific vehicle model, trim, or name that does not appear in this prompt. No vehicle is on file, but the customer has told you the model they want ("' + data._lpNamedModel.phrase + '"): work from that, and do NOT ask what they are looking for. Do not pick a trim, colour or unit for them.'
+      : (_lpQualifyingAsked(data)
       ? '- NEVER mention a specific vehicle model, trim, or name that does not appear in this prompt. If no vehicle of interest is listed on the lead, do NOT invent one. Do NOT simply ask what they are looking for either — that question has already been sent on this lead and went unanswered, so repeating it is the restate failure. Make the ask SMALLER than the one that failed. A different lever is allowed only where it asks LESS of them than the question that went unanswered — never a heavier lift such as a two-option appointment close.'
       + (_lpSoftReEngage(data)
           ? ' The relationship read on this lead says soft re-engage and not to press for an appointment: do not end this message on a time-close.'
