@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.732 (Commercial. THE CUSTOMER'S NAME NEVER GOES OUT IN SQUARE BRACKETS. Extension only; proxy v7.81 and reporter v1.22 unchanged. 9/26, Audi Lafayette, Drive By lead 2090426084: the draft opened 'Hi [Firstname], this is Dahize, your Audi Concierge at Audi Lafayette.' -- the Audi opener template reads 'Hi [Name], this is ...' and the model kept the brackets around the real name. The feedback export showed it as '[[NAME]]', the scrub masking the name inside the model's own brackets. (That draft was not needed -- the sales rep's note asked that no one contact the customer -- but the same slip can happen on a lead that is sent.) (1) New _lpUnbracketName, deterministic, after the model: brackets (single or double) around the customer's first or full name are removed, and an unfilled name placeholder ('[Name]', '[Customer]', '[First Name]', '[Customer Name]') becomes their first name, or 'there' when no name is on the lead. Other bracketed text (a stock number, a model) is untouched. Runs on the SMS, subject and email right after parsing, on the SMS again after the refine pass, and on the voicemail. [LP NAME BRACKET DIAG] logs when it changes anything. (2) The Audi opener template now says that [Name] stands for the customer's first name, written plainly, never in brackets. Tests: new name-bracket-732 (11 per build; all 11 fail on v9.7.731 -- the controls too, the helper not existing there). run-all: 152 suites, 6,785 assertions, 0 failed. Note: log244-710 fails one check in the minute before Kia Baytown closes (7:58-7:59 PM CT; identical on v9.7.731, passes at 8:00) -- a clock-window quirk in that test, not this build.)
 // Lead Pro -- popup.js  v9.7.731 (Commercial. DAHIZE CAMACHO IN THE PHONE DIRECTORY. Extension only; proxy v7.81 and reporter v1.22 unchanged. Gil, 9/25, from the BDC contact sheet: add Dahize Camacho with her number for each store. log253 and the agent log LOGG222 both showed '[LP PHONE MISS] "Dahize Camacho" is NOT in PHONE_DIR -- this message will sign with the store line', so her drafts signed with the store switchboard. PHONE_DIR gains 'dahize camacho': Audi Lafayette 337-252-0753, Honda Lafayette 337-706-0756, the three Baytown stores 281-837-3626. Her mobile number is not stored, as for every agent. Her Baytown line is the desk extension Roslynn Kelley had (recorded as a historical number in the v9.7.482 header); it is hers now. Tests: phone-directory carries her row through the real resolver at all five rooftops, and the directory key set is 15 sheet agents + Gil + Samantha Gonzalez + the Aguilar alias (2 checks fail on v9.7.730). run-all: 151 suites, 6,763 assertions, 0 failed.)
 // Lead Pro -- popup.js  v9.7.730 (Commercial. AN UNRECORDED CALL IS NOT MENTIONED AT ALL. Extension only; proxy v7.81 and reporter v1.22 unchanged. Gil, 9/25, on v9.7.729's 'thanks for calling at most' for a call whose note records nothing: 'Thanks for calling can be deceiving as it may have just been us adding the lead into the system. Can we reword this or just ignore it and pick up the convo to move it forward from that point without dwelling on the phone call record?' (1) PHONE LEAD, when _lpInboundCallOutcome is 'unknown': the block no longer asserts 'this customer CALLED the store' (it says the lead was entered as a phone lead, not a web form), and it says do NOT mention a call at all -- no 'thanks for calling', no 'good speaking with you', no 'sorry we missed your call' -- pick up from here and move the conversation forward. The web-form phrasing ban stays. (2) The scraper no longer treats an unrecorded inbound call as a fresh customer action (hasFreshCustomerSignal false), so the SECOND TOUCH block, which builds the message around the customer's newest action, stands down and the lead takes the normal follow-up rules. If an older scrape still reaches that block with an unrecorded call, its line now says not to mention the call. A documented miss and a documented conversation are unchanged from v9.7.729. Replayed on dump 50f9051e: hasFreshCustomerSignal false, and the PHONE LEAD line carries the no-mention wording. Tests: inbound-call-729 at 17 per build (3 new; 4 fail on v9.7.729: the 3 new and the reworded second-touch line). run-all: 151 suites, 6,762 assertions, 0 failed.)
 // Lead Pro -- popup.js  v9.7.729 (Commercial. AN INBOUND CALL IS NOT A MISSED CALL UNLESS SOMEONE WROTE THAT IT WAS. Extension only; proxy v7.81 and reporter v1.22 unchanged. Gil, 9/25, on Kia Baytown lead 2089661224 (dumps 50f9051e and the agent log LOGG222), whose only inbound note reads 'Inbound phone call -- Auto generated from adding customer': 'An inbound call should not count as a missed call. A lot of times that's used to input a lead into the system and at times it's an actual call. We should [not] assume it was missed unless an agent documents outcome of call activity.' The drafts on that lead opened 'Sorry we missed your call'. Three of our lines led there: the PHONE LEAD block offered 'good speaking with you, or continue from where the call left off'; the call-only block said the team called 'with no answer' (our calls, which the model read as theirs); and the second-touch block, when it fires, gave 'sorry we missed your call earlier' as its example while the scraper described every inbound call as 'Customer called the dealership.' (1) New _lpInboundCallOutcome reads the newest [CUSTOMER] Inbound phone call entry: 'missed' when the note says so (no answer, hung up, voicemail, left a message, missed), 'documented' when it records anything else, 'unknown' when it records nothing (the author only, or 'Auto generated from adding customer'). The author is stripped by name only, since entries are often flattened onto one line. (2) PHONE LEAD: unknown -> 'thanks for calling' at most, do NOT say we spoke with them and do NOT say we missed their call; missed -> 'sorry we missed your call'; documented or no inbound call -> the original wording. [LP INBOUND CALL DIAG] logs the outcome. (3) The scraper's newest-customer-signal description follows the same three readings, and the second-touch block gives the 'sorry we missed your call earlier' example only for a documented miss; for an unrecorded call it says to acknowledge they reached out without saying how the call went. (4) The call-only block now says those are OUR calls to them and not a call the customer made. Replayed on dump 50f9051e: the PHONE LEAD line takes the 'nothing records how it went' wording and the call-only line carries the clarification; the scraper describes the call as logged with no recorded outcome. Tests: new inbound-call-729 (14 per build; 12 fail on v9.7.728, the 2 controls pass on both). run-all: 151 suites, 6,756 assertions, 0 failed.)
@@ -20435,6 +20436,27 @@ function _lpInboundCallOutcome(brief) {
   } catch (e) { return ''; }
 }
 
+// ── (v9.7.732) THE CUSTOMER'S NAME NEVER GOES OUT IN SQUARE BRACKETS. 9/26, Audi Lafayette, a Drive By lead
+// (2090426084): the draft opened "Hi [Firstname], this is Dahize, your Audi Concierge at Audi Lafayette." --
+// the Audi opener template reads 'Hi [Name], this is ...' and the model kept the brackets around the real
+// name. The feedback export showed it as "[[NAME]]" (the scrub masks the name inside the model's brackets).
+// Several scenario openers carry the same "[Name]" pattern. Deterministic, after the model: brackets around
+// the customer's first or full name are removed, and an unfilled name placeholder ("[Name]", "[Customer]",
+// "[First Name]", "[Customer Name]") becomes their first name, or "there" when no name is on the lead.
+function _lpUnbracketName(text, fullName) {
+  var t = String(text == null ? '' : text);
+  if (!t || t.indexOf('[') < 0) return t;
+  var full = String(fullName || '').replace(/\s+/g, ' ').trim(), first = full.split(' ')[0] || '';
+  var esc = function (s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); };
+  var out = t;
+  [full, first].forEach(function (n) {
+    if (!n || n.length < 2) return;
+    out = out.replace(new RegExp('\\[{1,2}\\s*(' + esc(n) + ')\\s*\\]{1,2}', 'gi'), '$1');
+  });
+  out = out.replace(/\[{1,2}\s*(?:customer(?:'s)?\s*)?(?:first\s*)?name\s*\]{1,2}|\[{1,2}\s*customer\s*\]{1,2}/gi, first || 'there');
+  return out;
+}
+
 function _lpTouchHold(d) {
   try {
     var c = String((d && d.convState) || '').toLowerCase();
@@ -22315,7 +22337,8 @@ function buildUserPrompt(data) {
       // THE SAME FIELD rather than deciding again. It does not re-derive, and it does not hedge.
       data.hasOutbound
         ? '- OPENINGS — OUTREACH HAS ALREADY GONE OUT ON THIS LEAD, so this is a continuing thread and not a first meeting. Do NOT open by introducing yourself: no "this is ' + agentFirst + ', your Audi Concierge at Audi Lafayette" as though they have not met you, in any of the three formats. Open on what the conversation is actually about. YOUR Concierge title still belongs in the message (see the next line) — carry it as YOUR OWN role, in your own voice ("as your Concierge, I can ..."), never by pinning it on anybody else. Email openings still never use "I hope this email finds you well."'
-        : '- SMS opening: "Hi [Name], this is ' + agentFirst + ', your Audi Concierge at Audi Lafayette."\n'
+        : '- In the three openings below, [Name] stands for the customer\'s first name, written plainly: never in brackets (v9.7.732).\n'
+          + '- SMS opening: "Hi [Name], this is ' + agentFirst + ', your Audi Concierge at Audi Lafayette."\n'
           + '- Email opening: "Hi [Name], this is ' + agentFirst + ', your Audi Concierge at Audi Lafayette." — NOT "I hope this email finds you well."\n'
           + '- Voicemail opening: "Hi [Name], this is ' + agentFirst + ', your Audi Concierge at Audi Lafayette."',
       // (v9.7.646) A MANDATE WITH NO OWNER GETS ATTACHED TO WHOEVER IS NEAREST. v9.7.645 removed
@@ -27641,6 +27664,13 @@ async function generateAll() {
     var rawSms   = flattenField(parsed.sms,   'sms');
     var rawSubject = parsed.subject ? parsed.subject.trim() : '';
     var rawEmail = flattenField(parsed.email, 'email');
+    // (v9.7.732) No bracketed name or unfilled name placeholder reaches the agent (see _lpUnbracketName).
+    try {
+      var _ubName = (lastScrapedData && lastScrapedData.name) || '';
+      var _ub0 = rawSms + '\u0000' + rawSubject + '\u0000' + rawEmail;
+      rawSms = _lpUnbracketName(rawSms, _ubName); rawSubject = _lpUnbracketName(rawSubject, _ubName); rawEmail = _lpUnbracketName(rawEmail, _ubName);
+      if (_ub0 !== rawSms + '\u0000' + rawSubject + '\u0000' + rawEmail) console.log('[LP NAME BRACKET DIAG] removed square brackets from the customer\'s name, or filled a name placeholder, in the draft');
+    } catch (eUb) {}
     // (v9.7.58) Strip ALL leading Subject: lines from email body before prepending
     // canonical subject. Models occasionally return "Subject: ..." embedded in the
     // email field itself -- sometimes more than one (e.g. "Subject: Re: prior thread"
@@ -27784,6 +27814,7 @@ async function generateAll() {
     try {
       var _rfSms = await _lpRefineSms(rawSms, rawEmail, lastScrapedData);
       if (_rfSms) rawSms = _rfSms;
+      try { rawSms = _lpUnbracketName(rawSms, (lastScrapedData && lastScrapedData.name) || ''); } catch (eUbR) {}   // (v9.7.732) the refine pass writes the SMS again
     } catch (eRf) {
       try { console.log('[LP SMS REFINE DIAG] kept the first pass \u2014 call site threw: ' + (eRf && eRf.message || eRf)); } catch (eRf2) {}
     }
@@ -28467,6 +28498,7 @@ async function generateVoicemail() {
     try {
       const parsed = JSON.parse(rawText.replace(/^```json\s*/i,'').replace(/\s*```\s*$/,'').trim());
       vmText = parsed.voicemail || parsed.vm || parsed.message || rawText;
+      try { vmText = _lpUnbracketName(vmText, (lastScrapedData && lastScrapedData.name) || ''); } catch (eUbV) {}   // (v9.7.732)
     } catch(e) {
       // If not JSON, use raw text
       vmText = rawText;
