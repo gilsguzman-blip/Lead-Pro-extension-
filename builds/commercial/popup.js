@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.734 (Commercial. AN OUT-THE-DOOR FIGURE WE ALREADY SENT IS PICKED UP, NOT EXPLAINED AWAY. Extension only; proxy v7.81 and reporter v1.22 unchanged. Honda Lafayette lead 2090083618, 9/28 (log256, capture 2756ab1e, dump 8db4807f): on the call the customer asked for the line-item drive-out by text, and on 9/26 a text of ours said '36800 is the out the door price when can you come in ?'. The store's OTD policy block still told the draft to explain why we do not quote a total, so the 9/28 draft said 'the total depends on your registration parish, eligible incentives, and whether you have a trade'. Gil: 'This message doesn't flow like a follow up from the last message sent about OTD for the unit.' (1) New _lpOtdFigureSent(d): the newest current-lead message or note of ours (above the lead marker, never a CUSTOMER entry, only the entry's indented body) whose own sentence pairs an out-the-door phrase with a figure of $5,000 or more; mileage and ZIP codes are not figures. (2) Honda/Audi Lafayette OTD policy: with a figure sent, the block quotes our message and says not to re-explain the parish/incentives/trade, not to state a different total or add figures, to pick up from the number with the line-by-line breakdown in person with the sales rep, and to close with one clear ask; the no-figure steps (explain, two times) drop out. The distance-buyer variant keeps its call-based steps and adds the same override. No figure sent: unchanged. [LP OTD SENT DIAG] logs the decision. Replayed on the dump: only the policy block changes, and it quotes the 9/26 text. Tests: new otd-sent-734 (15 per build; 13 fail on v9.7.733, the 2 prompt controls pass on both). run-all: 154 suites, 6,833 assertions, 0 failed.)
 // Lead Pro -- popup.js  v9.7.733 (Commercial. THE NEW-CAR OFFER ON A LEAD WITH NO VEHICLE: A 'USED' CONDITION IS A DEFAULT. Extension only; proxy v7.81 and reporter v1.22 unchanged. Honda Lafayette lead 2090666084, 9/28 (log254, capture 1626b7e2, dump bb327649): the customer claimed '$1,000 OFF MSRP on All New Hondas!' and the vehicle panel read '(Used)' with no vehicle behind it. The 8:41 AM text said 'the $1,000 offer is for new Hondas, so it won't apply to a pre-owned one', and after the customer named an HR-V EX-L in white the 9:12 AM draft called it a 'white pre-owned HR-V EX-L'. Gil: 'The customer's VOI just said used initially which I think was just a default and not the actual choice. The message should be more about taking advantage of the $1000 off on a new car's MSRP and finding out what model/trim they are looking for.' (1) _lpImxOfferGuidance: 'the vehicle on this lead is PRE-OWNED, so the offer does NOT apply' now needs an actual vehicle on the lead; a condition field alone never triggers it. With no vehicle, the new-car guidance says the $1,000 is theirs on the new [make] they choose (final eligibility confirmed in person), to lead with that and find out the model and trim, and not to say it does not apply to pre-owned. (2) New _lpImxOfferKind classifies the claimed offer (new / pre / other). In populateFromData, with no vehicle on file and the NEW-car offer claimed, a used/pre-owned condition is flagged as the lead's default: the Condition line says so and says not to call what they want pre-owned, and the named-model line (v9.7.725) treats a model they name as a new one instead of 'this lead is for a PRE-OWNED vehicle'. The pre-owned offer and non-IdentityMax leads are unchanged. Replayed on the dump with the condition set back to Pre-Owned: v9.7.731 printed 'Condition: Pre-Owned' and 'the vehicle on this lead (pre-owned) is PRE-OWNED, so the offer does NOT apply'; this build prints the default note and 'the $1,000 is theirs on the new Honda they choose'. Tests: new imx-newoffer-733 (9 per build; the 5 new fail on v9.7.732, the 4 controls pass on both); imx-noappt-720 unchanged and green. run-all: 153 suites, 6,803 assertions, 0 failed.)
 // Lead Pro -- popup.js  v9.7.732 (Commercial. THE CUSTOMER'S NAME NEVER GOES OUT IN SQUARE BRACKETS. Extension only; proxy v7.81 and reporter v1.22 unchanged. 9/26, Audi Lafayette, Drive By lead 2090426084: the draft opened 'Hi [Firstname], this is Dahize, your Audi Concierge at Audi Lafayette.' -- the Audi opener template reads 'Hi [Name], this is ...' and the model kept the brackets around the real name. The feedback export showed it as '[[NAME]]', the scrub masking the name inside the model's own brackets. (That draft was not needed -- the sales rep's note asked that no one contact the customer -- but the same slip can happen on a lead that is sent.) (1) New _lpUnbracketName, deterministic, after the model: brackets (single or double) around the customer's first or full name are removed, and an unfilled name placeholder ('[Name]', '[Customer]', '[First Name]', '[Customer Name]') becomes their first name, or 'there' when no name is on the lead. Other bracketed text (a stock number, a model) is untouched. Runs on the SMS, subject and email right after parsing, on the SMS again after the refine pass, and on the voicemail. [LP NAME BRACKET DIAG] logs when it changes anything. (2) The Audi opener template now says that [Name] stands for the customer's first name, written plainly, never in brackets. Tests: new name-bracket-732 (11 per build; all 11 fail on v9.7.731 -- the controls too, the helper not existing there). run-all: 152 suites, 6,785 assertions, 0 failed. Note: log244-710 fails one check in the minute before Kia Baytown closes (7:58-7:59 PM CT; identical on v9.7.731, passes at 8:00) -- a clock-window quirk in that test, not this build.)
 // Lead Pro -- popup.js  v9.7.731 (Commercial. DAHIZE CAMACHO IN THE PHONE DIRECTORY. Extension only; proxy v7.81 and reporter v1.22 unchanged. Gil, 9/25, from the BDC contact sheet: add Dahize Camacho with her number for each store. log253 and the agent log LOGG222 both showed '[LP PHONE MISS] "Dahize Camacho" is NOT in PHONE_DIR -- this message will sign with the store line', so her drafts signed with the store switchboard. PHONE_DIR gains 'dahize camacho': Audi Lafayette 337-252-0753, Honda Lafayette 337-706-0756, the three Baytown stores 281-837-3626. Her mobile number is not stored, as for every agent. Her Baytown line is the desk extension Roslynn Kelley had (recorded as a historical number in the v9.7.482 header); it is hers now. Tests: phone-directory carries her row through the real resolver at all five rooftops, and the directory key set is 15 sheet agents + Gil + Samantha Gonzalez + the Aguilar alias (2 checks fail on v9.7.730). run-all: 151 suites, 6,763 assertions, 0 failed.)
@@ -951,6 +952,41 @@ function _lpUnquotedFigure(d) {
     for (var i = 0; i < theirs.length; i++) {
       if (ours.indexOf(theirs[i].value) < 0) {
         return { figure: theirs[i].text, ours: ours.filter(function (v, k, a) { return a.indexOf(v) === k; }).slice(0, 6) };
+      }
+    }
+  } catch (e) {}
+  return null;
+}
+
+// (v9.7.734) AN OUT-THE-DOOR FIGURE WE ALREADY SENT. Honda Lafayette lead 2090083618, 9/28 (log256, capture
+// 2756ab1e): on the call the customer asked for the line-item drive-out by text, and on 9/26 a text of ours
+// said "36800 is the out the door price when can you come in ?". The store's OTD policy block still told the
+// draft to explain why we do not quote a total, so two days after the customer had the number the draft said
+// "the total depends on your registration parish". Returns the newest current-lead message or note of ours
+// whose own sentence pairs an out-the-door phrase with a figure, or null. Only the entry's indented body is
+// read (never Lead Pro scaffold glued after it), and customer entries never count: a total they typed is
+// theirs, not ours (see _lpUnquotedFigure).
+var LP_OTD_PHRASE_RE = /out[- ]?the[- ]?door|\botd\b|drive[- ]?out|total (?:price|cost|amount)|precio total|total de salida/i;
+function _lpOtdFigureSent(d) {
+  try {
+    var src = String((d && d.conversationBrief) || '') + '\n' + String((d && d.context) || '');
+    var cut = src.indexOf('=== CURRENT LEAD SUBMITTED HERE ===');
+    if (cut >= 0) src = src.slice(0, cut);
+    var ents = _lpWalkCrmEntries(src);
+    for (var i = 0; i < ents.length; i++) {
+      var lines = ents[i].text.split('\n');
+      var tag = lines[0].match(/^\s*\[[^\]]*\d[^\]]*\]\s*\[([^\]]+)\]\s*(.*)$/);
+      if (!tag || /^CUSTOMER$/i.test(tag[1].trim()) || /CURRENT LEAD/i.test(tag[1])) continue;
+      var body = [];
+      for (var k = 1; k < lines.length && /^\s{2,}\S/.test(lines[k]); k++) body.push(lines[k].trim());
+      body = body.join(' ').replace(/\b[A-Z]{2}\s+\d{5}(?:-\d{4})?\b/g, ' ');   // a ZIP code is not a price
+      var sents = body.split(/(?<=[.!?])\s+/);
+      for (var s = 0; s < sents.length; s++) {
+        if (!LP_OTD_PHRASE_RE.test(sents[s])) continue;
+        var figs = _lpMoneyFigures(sents[s].replace(/\$?\d[\d,]*\s*(?:miles|mi\b|k miles)/gi, ' '))
+          .filter(function (f) { return f.value >= 5000; });
+        if (!figs.length) continue;
+        return { figure: figs[0].text, value: figs[0].value, date: ents[i].date, title: tag[2].trim(), text: body.slice(0, 240) };
       }
     }
   } catch (e) {}
@@ -22430,6 +22466,20 @@ function buildUserPrompt(data) {
     // For these, the in-store close is wrong — they physically can't visit.
     // Deflect to a phone call to go over numbers instead, but still do not
     // quote the actual OTD over text.
+    // (v9.7.734) A figure already sent changes the job: the customer has a number, so re-explaining why we do
+    // not quote one reads as taking it back. See _lpOtdFigureSent.
+    var _otdSent = null;
+    try { _otdSent = _lpOtdFigureSent(data); } catch (eOs) { _otdSent = null; }
+    try {
+      console.log('[LP OTD SENT DIAG] ' + (_otdSent
+        ? 'figure already sent: ' + _otdSent.figure + ' | ' + _otdSent.date + ' ' + _otdSent.title + ' | policy switched to follow-up mode'
+        : 'no out-the-door figure in our current-lead messages or notes | standard policy'));
+    } catch (eOsD) {}
+    var _otdSentLines = _otdSent
+      ? 'ON THIS LEAD A FIGURE HAS ALREADY GONE OUT. Our ' + (_otdSent.title || 'message').toLowerCase() + ' of ' + _otdSent.date + ' said: "' + _otdSent.text.replace(/"/g, "'") + '". The customer has that number, so the steps for a customer who has none do not apply:\n'
+        + '  (1) Do NOT re-explain why we do not quote a total (the parish, incentives, a trade), and do NOT write as though they are still waiting for a number. After we sent one, that reads as taking it back.\n'
+        + '  (2) Do NOT state a different total, and do not add a payment, tax or fee figure of your own. Naming the figure exactly as it was sent is not quoting a new one.\n'
+      : '';
     var _isDistanceBuyer = !!(sc.isDistanceBuyer || sc.distanceBuyer ||
       /\bout of state\b|\bout-of-state\b|\bship(ping|ped)?\b|\bdeliver(y|ed)?\b|\btransport\b/i.test(data.context || '') && /\b(TX|texas|MS|mississippi|AL|alabama|GA|georgia|FL|florida|AR|arkansas|OK|oklahoma)\b/i.test(data.context || ''));
 
@@ -22442,7 +22492,14 @@ function buildUserPrompt(data) {
         + '  (3) HAND OFF: ' + _srRef + ' can put together the full breakdown and walk them through it on a call.\n'
         + '  (4) Close by offering to set up a phone call (offer two time windows) OR to send a detailed quote by email after a quick info-gathering call \u2014 NOT an in-person appointment.\n'
         + 'It is fine to discuss what is possible remotely (photos, video walkaround, remote paperwork, transport coordination) once the deal is moving.\n'
-        + 'NEVER quote a specific dollar OTD total or tax/fee breakdown over text \u2014 move it to the call.';
+        + 'NEVER quote a specific dollar OTD total or tax/fee breakdown over text \u2014 move it to the call.'
+        + (_otdSent ? '\n' + _otdSentLines + 'This overrides step (2) above; the call is where they get the line-by-line breakdown behind that figure.' : '');
+    } else if (_otdSent) {
+    _lafOTDPolicy = 'STORE POLICY \u2014 OUT-THE-DOOR PRICING: This store does not build out-the-door or drive-out totals over text or phone.\n'
+      + _otdSentLines
+      + '  (3) Pick up from it. What they do not have yet is the line-by-line breakdown behind that total (price, tax, title and fees). ' + _srRef.charAt(0).toUpperCase() + _srRef.slice(1) + ' will walk them through it in person, and that visit is where the number is confirmed.\n'
+      + '  (4) Close toward that visit with one clear ask. Do not ask it in the same words our last message used.\n'
+      + 'Attribute the figure to us ("we", "the number we sent"), not to a named person, unless the message itself was signed.';
     } else {
     _lafOTDPolicy = 'STORE POLICY \u2014 OUT-THE-DOOR PRICING: This store does NOT provide out-the-door or drive-out totals over text or phone.\n'
       + 'Reason: Louisiana parish tax rates vary by where the vehicle will be registered, and the total also depends on applicable incentives, rebates, financing terms, and trade-in value. A number given before verifying all of these would be inaccurate.\n'
