@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.733 (Commercial. THE NEW-CAR OFFER ON A LEAD WITH NO VEHICLE: A 'USED' CONDITION IS A DEFAULT. Extension only; proxy v7.81 and reporter v1.22 unchanged. Honda Lafayette lead 2090666084, 9/28 (log254, capture 1626b7e2, dump bb327649): the customer claimed '$1,000 OFF MSRP on All New Hondas!' and the vehicle panel read '(Used)' with no vehicle behind it. The 8:41 AM text said 'the $1,000 offer is for new Hondas, so it won't apply to a pre-owned one', and after the customer named an HR-V EX-L in white the 9:12 AM draft called it a 'white pre-owned HR-V EX-L'. Gil: 'The customer's VOI just said used initially which I think was just a default and not the actual choice. The message should be more about taking advantage of the $1000 off on a new car's MSRP and finding out what model/trim they are looking for.' (1) _lpImxOfferGuidance: 'the vehicle on this lead is PRE-OWNED, so the offer does NOT apply' now needs an actual vehicle on the lead; a condition field alone never triggers it. With no vehicle, the new-car guidance says the $1,000 is theirs on the new [make] they choose (final eligibility confirmed in person), to lead with that and find out the model and trim, and not to say it does not apply to pre-owned. (2) New _lpImxOfferKind classifies the claimed offer (new / pre / other). In populateFromData, with no vehicle on file and the NEW-car offer claimed, a used/pre-owned condition is flagged as the lead's default: the Condition line says so and says not to call what they want pre-owned, and the named-model line (v9.7.725) treats a model they name as a new one instead of 'this lead is for a PRE-OWNED vehicle'. The pre-owned offer and non-IdentityMax leads are unchanged. Replayed on the dump with the condition set back to Pre-Owned: v9.7.731 printed 'Condition: Pre-Owned' and 'the vehicle on this lead (pre-owned) is PRE-OWNED, so the offer does NOT apply'; this build prints the default note and 'the $1,000 is theirs on the new Honda they choose'. Tests: new imx-newoffer-733 (9 per build; the 5 new fail on v9.7.732, the 4 controls pass on both); imx-noappt-720 unchanged and green. run-all: 153 suites, 6,803 assertions, 0 failed.)
 // Lead Pro -- popup.js  v9.7.732 (Commercial. THE CUSTOMER'S NAME NEVER GOES OUT IN SQUARE BRACKETS. Extension only; proxy v7.81 and reporter v1.22 unchanged. 9/26, Audi Lafayette, Drive By lead 2090426084: the draft opened 'Hi [Firstname], this is Dahize, your Audi Concierge at Audi Lafayette.' -- the Audi opener template reads 'Hi [Name], this is ...' and the model kept the brackets around the real name. The feedback export showed it as '[[NAME]]', the scrub masking the name inside the model's own brackets. (That draft was not needed -- the sales rep's note asked that no one contact the customer -- but the same slip can happen on a lead that is sent.) (1) New _lpUnbracketName, deterministic, after the model: brackets (single or double) around the customer's first or full name are removed, and an unfilled name placeholder ('[Name]', '[Customer]', '[First Name]', '[Customer Name]') becomes their first name, or 'there' when no name is on the lead. Other bracketed text (a stock number, a model) is untouched. Runs on the SMS, subject and email right after parsing, on the SMS again after the refine pass, and on the voicemail. [LP NAME BRACKET DIAG] logs when it changes anything. (2) The Audi opener template now says that [Name] stands for the customer's first name, written plainly, never in brackets. Tests: new name-bracket-732 (11 per build; all 11 fail on v9.7.731 -- the controls too, the helper not existing there). run-all: 152 suites, 6,785 assertions, 0 failed. Note: log244-710 fails one check in the minute before Kia Baytown closes (7:58-7:59 PM CT; identical on v9.7.731, passes at 8:00) -- a clock-window quirk in that test, not this build.)
 // Lead Pro -- popup.js  v9.7.731 (Commercial. DAHIZE CAMACHO IN THE PHONE DIRECTORY. Extension only; proxy v7.81 and reporter v1.22 unchanged. Gil, 9/25, from the BDC contact sheet: add Dahize Camacho with her number for each store. log253 and the agent log LOGG222 both showed '[LP PHONE MISS] "Dahize Camacho" is NOT in PHONE_DIR -- this message will sign with the store line', so her drafts signed with the store switchboard. PHONE_DIR gains 'dahize camacho': Audi Lafayette 337-252-0753, Honda Lafayette 337-706-0756, the three Baytown stores 281-837-3626. Her mobile number is not stored, as for every agent. Her Baytown line is the desk extension Roslynn Kelley had (recorded as a historical number in the v9.7.482 header); it is hers now. Tests: phone-directory carries her row through the real resolver at all five rooftops, and the directory key set is 15 sheet agents + Gil + Samantha Gonzalez + the Aguilar alias (2 checks fail on v9.7.730). run-all: 151 suites, 6,763 assertions, 0 failed.)
 // Lead Pro -- popup.js  v9.7.730 (Commercial. AN UNRECORDED CALL IS NOT MENTIONED AT ALL. Extension only; proxy v7.81 and reporter v1.22 unchanged. Gil, 9/25, on v9.7.729's 'thanks for calling at most' for a call whose note records nothing: 'Thanks for calling can be deceiving as it may have just been us adding the lead into the system. Can we reword this or just ignore it and pick up the convo to move it forward from that point without dwelling on the phone call record?' (1) PHONE LEAD, when _lpInboundCallOutcome is 'unknown': the block no longer asserts 'this customer CALLED the store' (it says the lead was entered as a phone lead, not a web form), and it says do NOT mention a call at all -- no 'thanks for calling', no 'good speaking with you', no 'sorry we missed your call' -- pick up from here and move the conversation forward. The web-form phrasing ban stays. (2) The scraper no longer treats an unrecorded inbound call as a fresh customer action (hasFreshCustomerSignal false), so the SECOND TOUCH block, which builds the message around the customer's newest action, stands down and the lead takes the normal follow-up rules. If an older scrape still reaches that block with an unrecorded call, its line now says not to mention the call. A documented miss and a documented conversation are unchanged from v9.7.729. Replayed on dump 50f9051e: hasFreshCustomerSignal false, and the PHONE LEAD line carries the no-mention wording. Tests: inbound-call-729 at 17 per build (3 new; 4 fail on v9.7.729: the 3 new and the reworded second-touch line). run-all: 151 suites, 6,762 assertions, 0 failed.)
@@ -5265,6 +5266,16 @@ var _LP_IMX_OFFER_LINKS = {
   // (v9.7.723) Gil, 9/25: the full search URL, capped at $25,000 to match the offer; the bit.ly link had issues.
   '24399': { preowned: 'https://www.communityhondalafayette.com/search/used/?pr=469:25000&tp=used' }   // Community Honda Lafayette: pre-owned + certified search, price range to $25,000
 };
+// (v9.7.733) Which IdentityMax offer did the lead claim? 'new' | 'pre' | 'other' | '' (none). Shared by the
+// offer guidance and the no-vehicle condition handling in populateFromData.
+function _lpImxOfferKind(text) {
+  var m = String(text || '').match(/claimed the website offer "([^"]{3,300})"/i);
+  if (!m) return '';
+  var offer = m[1];
+  if (/pre-?owned|\bused\b|certified/i.test(offer)) return 'pre';
+  if (/(?:^|\W)new\b/i.test(offer) && /msrp|all new|new inventory|new (?:honda|toyota|kia|audi)/i.test(offer)) return 'new';
+  return 'other';
+}
 function _lpImxOfferGuidance(text, condition, vehicle, opts) {
   var m = String(text || '').match(/claimed the website offer "([^"]{3,300})"/i);
   if (!m) return '';
@@ -5272,7 +5283,14 @@ function _lpImxOfferGuidance(text, condition, vehicle, opts) {
   var offer = m[1], veh = String(vehicle || '').trim();
   // (v9.7.722) A year and make alone ("2026 Honda", what a Full Line lead becomes) is not a vehicle picked out.
   if (!/^(?:(?:19|20)\d{2}\s+)?[A-Za-z][A-Za-z-]*\s+\S/.test(veh)) veh = '';
-  var used = /used|pre-?owned|certified|cpo/i.test(String(condition || '') + ' ' + veh);
+  // (v9.7.733) Gil, 9/28, Honda Lafayette lead 2090666084: "The customer's VOI just said 'used' initially which
+  // I think was just a default and not the actual choice. The message should be more about taking advantage of
+  // the $1000 off on a new car's MSRP and finding out what model/trim they are looking for." The panel read
+  // "(Used)" with NO vehicle, and the draft told them the offer "won't apply to a pre-owned one". A condition
+  // with no vehicle behind it is a default: only an actual vehicle on the lead can be pre-owned here.
+  var used = !!veh && /used|pre-?owned|certified|cpo/i.test(String(condition || '') + ' ' + veh);
+  var _nmk = ((offer.match(/new\s+(honda|toyota|kia|audi)s?\b/i) || [])[1] || '');
+  var newWhat = _nmk ? 'new ' + _nmk.charAt(0).toUpperCase() + _nmk.slice(1).toLowerCase() : 'new vehicle';
   var isNew = /(?:^|\W)new\b/i.test(offer) && /msrp|all new|new inventory|new (?:honda|toyota|kia|audi)/i.test(offer) && !/pre-?owned|used|certified/i.test(offer);
   var isPre = /pre-?owned|\bused\b|certified/i.test(offer);
   if (isPre) {
@@ -5286,7 +5304,7 @@ function _lpImxOfferGuidance(text, condition, vehicle, opts) {
     g = '- THE OFFER THEY CLAIMED: "' + offer + '". This is a discount on NEW vehicles only'
       + (used ? ' — and the vehicle on this lead (' + (veh || 'pre-owned') + ') is PRE-OWNED, so the offer does NOT apply to it. Do not attach it to that car; say the offer they claimed is for new models and ask which new one they have in mind (or whether that pre-owned one is still the one they want).'
               : veh ? ' — it applies to new models like the ' + veh + '; mention it for that one, final eligibility confirmed in person.'
-                    : ' — ask which new model they have in mind.')
+                    : ' — the $1,000 is theirs on the ' + newWhat + ' they choose (final eligibility confirmed in person). Lead with that, and find out which model and trim they are looking at. Do NOT tell them it does not apply to pre-owned: no vehicle is on this lead, and a condition field on its own is only a default.')
       + ' It says "limited time": do NOT invent an end date.';
   }
   else g = '- THE OFFER THEY CLAIMED: "' + offer + '". Lead with THAT offer in its own words, and add no amount, term, model or eligibility it does not state.';
@@ -6134,7 +6152,13 @@ function populateFromData(d) {
       }
     }
   } catch(e) {}
-  if (d.condition && !d.vehicle) vehicleExtras.push('Condition: ' + d.condition);
+  // (v9.7.733) No vehicle on file + the IdentityMax NEW-car offer claimed: a "Pre-Owned"/"Used" condition is the
+  // lead's default, not what they are shopping for (lead 2090666084: "white pre-owned HR-V EX-L" came from it).
+  var _imxNewNoVeh = false;
+  try { _imxNewNoVeh = !d.vehicle && _lpImxOfferKind(d.conversationBrief) === 'new' && /used|pre-?owned|certified|cpo/i.test(String(d.condition || '')); } catch (eInv) {}
+  if (d.condition && !d.vehicle) vehicleExtras.push(_imxNewNoVeh
+    ? 'Condition: the lead\'s condition field reads "' + d.condition + '", but no vehicle is on file and they claimed the offer for NEW vehicles. Treat that field as a default, not what they are shopping for: do NOT call what they want pre-owned.'
+    : 'Condition: ' + d.condition);
   if (d.color && !d.noSpecificVehicle) vehicleExtras.push('Color: ' + d.color);
   if (d.color &&  d.noSpecificVehicle) vehicleExtras.push('Color: ' + d.color + ' (expressed interest — specific unit not confirmed)');
   if (d.stockNum) {
@@ -6511,13 +6535,15 @@ function populateFromData(d) {
   if (!d.vehicle && d._lpNamedModel) {
     // (v9.7.725) From the customer's own words on any source: stock is stated only when the feed shows it, and
     // "new or pre-owned" is not asked when the lead already says pre-owned.
-    var _nmHave = d._lpNamedModel.count > 0, _nmUsed = /used|pre-?owned|certified|cpo/i.test(String(d.condition || ''));
+    var _nmHave = d._lpNamedModel.count > 0, _nmUsed = /used|pre-?owned|certified|cpo/i.test(String(d.condition || '')) && !_imxNewNoVeh;   // (v9.7.733)
     vehicleExtras.push('🚗 THE CUSTOMER NAMED A MODEL, NOT A UNIT: in their own words they want "' + d._lpNamedModel.phrase + '". No vehicle is on file, and '
       + (_nmHave ? d._lpNamedModel.count + ' units in stock match that model (for example: ' + d._lpNamedModel.sample.join('; ') + '). None of them is one THEY chose. '
                  : (d._lpNamedModel.stockKnown === false ? 'stock for that model is not shown in this prompt, so do NOT say we have one here. ' : 'no unit of that model shows in the stock feed right now, so do NOT say we have one here. '))
       + 'Do NOT write "the one you asked about" and do NOT give a trim, powertrain, colour or single unit as theirs. They have already told you what they are '
       + 'shopping for, so do not ask that again: build on it' + (_nmHave ? ' — we have them in stock —' : '') + ' and ask the one thing that narrows it ('
-      + (_nmUsed ? 'this lead is for a PRE-OWNED vehicle, so do not ask new or pre-owned: a year range, a trim, what matters most' : 'new or pre-owned, a trim, what matters most')
+      + (_nmUsed ? 'this lead is for a PRE-OWNED vehicle, so do not ask new or pre-owned: a year range, a trim, what matters most'
+         : _imxNewNoVeh ? 'they claimed the new-car offer, so treat it as a new one: a trim, what matters most'
+         : 'new or pre-owned, a trim, what matters most')
       + '), or offer to send a few options.');
   }
   if (!d.vehicle && !d._lpNamedModel && !stageActive && d.pdPresent && !d.pdHasLeadVehicle && (d.pdVoiCount || 0) === 0) {
