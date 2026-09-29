@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.745 (Commercial. PUSHBACK ON A PRICE WE SENT IS WORKED BEFORE ANY HANDOFF. Extension only; proxy v7.81 and reporter v1.23 unchanged. Community Kia Baytown lead 2086487722, 9/29 (log267, dump eccf99da). v9.7.744 worked live ([LP EMAIL EXPAND DIAG] expanded:2, failed:0, 559ms) and the model saw our full 4:25 breakdown ending 'Drive Out with all Incentives $33,998.74'. The customer: 'We are bit off on the Drive out price, It this your final price?'. The draft: 'I can't confirm $33,998.74 as your final drive-out price yet ... I'll review the figures with my manager'. Gil: 'yes build the stronger price reply rule. I think we'd be better served to push before passing to a manager or sales.' FIX: _lpPricePushback reads the customer's own words in their newest message (the thread quoted under an email reply cut off) for push-back on price: a clear ask ('final price', 'can you do better', 'come down', 'negotiable') on its own, a loose phrase ('a bit off', 'too much', 'beat that') only beside a price word. It fires only when one of our current-lead messages from the last 14 days carries a figure of $5,000+, and not when the customer has been quiet 14+ days. It returns our drive-out (or price) and the conditional items in that breakdown (lines marked * ^ + with a negative amount). The prompt then says, after the store's OTD policy and outranking its handoff steps for this message: (1) stand behind our number, never 'unconfirmed' or 'not final yet', no manager, desk or salesperson in this message; (2) answer 'is it final' straight; (3) name what depends on them from our breakdown, with a no-trade-on-the-lead note that keeps the trade item a statement; no new discount, total or payment; (4) one ask: where do they need to be. Logged as [LP PRICE PUSHBACK DIAG]. REPLAYED on the real grab (the dump's own lastScrapedData and inventory): v9.7.744 -> v9.7.745 adds exactly the five lines of that block, naming $33,998.74 and the rebate, repeat-customer and trade-assistance items; nothing else moves. TESTS: new price-pushback-745 (11 per build) executes the shipped _lpPricePushback and buildUserPrompt on placeholder conversations. NON-VACUITY against v9.7.744: the 4 new-behaviour checks fail, the 2 prompt-level controls pass; the 5 helper controls need the new helper and cannot run on 744. VERIFIED: run-all 166 suites, 7,038 assertions, 0 failed (+22). node --check both builds; manifests parse; changed lines identical dev vs commercial. Builds on v9.7.744.)
 // Lead Pro -- popup.js  v9.7.744 (Commercial. THE WHOLE EMAIL, NOT VINSOLUTIONS' PREVIEW. Extension only; proxy v7.81 and reporter v1.23 unchanged. Community Kia Baytown lead 2086487722, 9/29 (log266, page dump feb47adc, saved ViewEmail page fbaf8739). The notes panel shows each email only as a preview cut at a fixed length; our 4:25 email stopped at '...Community Value Price$31,000.00 Nitro Wheel Locks, D...', so the drive-out total ($33,998.74), the rest of the breakdown and the Wednesday 9:15/10:30 times we offered never reached the model, and the draft called the figure not a confirmed drive-out and asked for this evening. MEASURED on the 24 page dumps on file: 85 of 146 of our emails and 13 of 37 of the customer's are cut this way, on 19 of 24 leads; on 2 leads the customer's own words are cut mid-question. Gil: 'Drive out isn't given out on the regular but if it helps in other capacities then it's worth the build.' FIX: each note carries the email's message id (data-unique-identifier-value), which is the RecordID of the ViewEmail page VinSolutions opens on click. _lpExpandEmails, in the grab's wait step once the notes are there, fetches that page (same origin, the agent's own session) for the newest 6 cut-off emails, 3s for all of them, reads #ContentPlaceHolder1__body (table rows kept as lines, the store's legal footer dropped, dashes as '-'), and swaps it in for the preview in place, so every existing reader sees it unchanged. A customer's email keeps only their own words: the thread quoted under it is ours. A fetched body is used only when it contains the preview's own opening; a different email, an error or a login page leaves the preview as it was. inlineScraper logs [LP EMAIL EXPAND DIAG] and puts every preview back as soon as its read finishes, so the agent's notes panel is left as VinSolutions drew it. Rescue re-reads run without it and see previews, as before. REPLAYED on the real page dump in Chromium with the real saved ViewEmail page answering its RecordID: the 4:25 entry now carries the full breakdown to 'Drive Out with all Incentives $33,998.74' and the Wednesday times; the prompt changes in that entry only (+1,751 chars); the 5 other fetches, answered with a different email, kept their previews; the panel was restored byte for byte. NOT VERIFIED LIVE: the fetch with a real VinSolutions session needs one grab; the diag line says what happened. TESTS: new email-expand-744 (11 per build) runs the shipped _lpExpandEmails and inlineScraper in Chromium on a placeholder lead page with placeholder ViewEmail pages. NON-VACUITY against v9.7.743: the 5 new-behaviour checks fail, the 6 controls pass. VERIFIED: run-all 165 suites, 7,016 assertions, 0 failed (+22). node --check both builds; manifests parse; changed lines identical dev vs commercial. Builds on v9.7.743.)
 // Lead Pro -- popup.js  v9.7.743 (Commercial. OUR EMAIL QUOTED UNDER THEIR REPLY IS NOT THEM ASKING FOR A COLOUR. Extension only; proxy v7.81 and reporter v1.23 unchanged. Community Kia Baytown lead 2086487722, 9/29 (log266, dump b154f2e7, page dump feb47adc). The customer replied at 4:37 'We are bit off on the Drive out price, It this your final price? Regards From: <agent> ... Sent: ... Subject: Subject:Black 2026 Sorento S availability'. The 'Black' is OUR 4:25 subject line, quoted back by their mail client. The v9.7.613 colour detector reads whole customer lines, so it took that as a fresh ask, newer than our reply naming Panthera Metal: the colour the v9.7.741/742 settlement had closed reopened ([LP COLOR ASK DIAG] mismatch, not SETTLED, while [LP VOI SWAP DIAG] fired), and the draft offered a black S again. Gil: 'customer replied back and the Drive out is in the conversation but the response is still dwelling on the Black option.' FIX: the colour detector, and the listing-link check beside it, read only the customer-authored part of each line via _lpCustomerAuthoredPart, the cutter the other customer-text readers here already use (Outlook From:/Sent: block, 'On ... wrote:', forwarded and original-message dividers, '>' quotes, client signatures). REPLAYED on the real page dump with the real scraper and the dump's inventory: v9.7.742 reproduces the MOVED OFF / asked-for-Black lines, the fix swaps exactly those for the SETTLED lines. The log265 page dump is unchanged apart from a clock-relative line. NOT FIXED HERE, reported: the 4:25 email appears on the page only as VinSolutions' preview, cut at 'Nitro Wheel Locks, D...', so the drive-out figure below the $31,000 price is not in what Lead Pro reads. TESTS: new quoted-color-743 (5 per build: 2 new, 3 controls) executes the shipped detector slice with the shipped _lpCustomerAuthoredPart. NON-VACUITY against v9.7.742: the 2 new fail, the 3 controls pass. VERIFIED: run-all 164 suites, 6,994 assertions, 0 failed (+10). node --check both builds; manifests parse; changed lines identical dev vs commercial. Builds on v9.7.742.)
 // Lead Pro -- popup.js  v9.7.742 (Commercial. THE STORE CHANGED THE VEHICLE ON THE LEAD, AND LEAD PRO NOW SEES IT. Extension only; proxy v7.81 and reporter v1.23 unchanged. Community Kia Baytown lead 2086487722, 9/29 (log265, page dump fe3da16e). PageData's LeadVehicle holds the unit on the lead now (DealerStockNum TG491576, ExternalColorName Panthera Metal, InteriorColorName Gray) and the unit the lead came in on (StockNumber TG473588, Color Midnight Lake Blue, InteriorColor Black). Lead Pro read only the first, so the prompt carried our 9/19 'the Midnight Lake Blue 2026 Kia Sorento S is here' as a commitment on record, with nothing saying the vehicle had changed. Gil: 'Isn't the change inferred? when the agent emailed the customer with the correct color scheme and then the color changed as the customer's VOI on the lead.' FIX: (1) the scraper reports a swap when both stock numbers are present and differ ([LP VOI SWAP DIAG]); an empty StockNumber is a lead that came in without a unit, not a swap. Exported as voiSwap. (2) The prompt says the store changed the vehicle, from what to what, that the current one is the car to work, and that earlier talk of the old one is not to be repeated unless the customer raises it. (3) In WHAT WE HAVE ALREADY TOLD THIS CUSTOMER, a claim naming the old unit's stock or colour is marked as about the original vehicle and not a commitment about the car on the lead now. (4) The v9.7.741 colour settlement now also accepts a swap in place of the customer's listing link: the agent correcting the colour in writing and the lead's vehicle changing to match is the agent's decision. Our reply alone still does not settle it (the v9.7.613 re-pitch never swaps). REPLAYED on the real page dump with the real scraper and the dump's inventory: v9.7.741 -> v9.7.742 swaps the colour concern and the stock-colour line for versions that name the vehicle change, adds the change line, and marks the 9/19 claim; nothing else moves. Of the 21 page dumps on file carrying LeadVehicle, this is the only swap; another dump (037f879b, no original stock number) scrapes identically. TESTS: new voi-swap-742 (11 per build) executes the shipped swap slice, the shipped colour detector and the shipped popup block. NON-VACUITY against v9.7.741: the 5 new-behaviour checks fail and the 2 controls that can run without the new code pass; the other 4 controls exercise the new code and cannot run on 741. VERIFIED: run-all 163 suites, 6,984 assertions, 0 failed (+22). node --check both builds; manifests parse; changed lines identical dev vs commercial. Builds on v9.7.741.)
@@ -995,6 +996,57 @@ function _lpQuietFreshReason(ctx) {
          || String(ctx || '').match(/ALTERNATE CONDITION AVAILABLE[^:]*:[^:]*:\s*([^\n]*?)\.\s*Mention this ONLY/);
     return m ? m[1].trim() : '';
   } catch (e) { return ''; }
+}
+// ── (v9.7.745) THEY PUSHED BACK ON A PRICE WE SENT: WORK IT BEFORE ANY HANDOFF ───────────────────────────────
+// Community Kia Baytown lead 2086487722, 9/29 (log267). Our 4:25 email gave a full breakdown ending "Drive Out with
+// all Incentives $33,998.74"; the customer answered "We are bit off on the Drive out price, It this your final
+// price?". The draft: "I can't confirm $33,998.74 as your final drive-out price yet ... I'll review the figures
+// with my manager". Accurate about the fine print, but it backed away from our own number and handed off at the
+// first push. Gil: "I think we'd be better served to push before passing to a manager or sales."
+// Fires on the customer's OWN words in their newest message (the quoted thread under an email reply is cut off
+// first), only when one of our messages from the last 14 days carries a price, and only while they are current.
+// A clear ask about the number fires on its own; a loose phrase ("a bit off", "too much") needs a price word beside
+// it, so "the color is a bit off" does not.
+var LP_PRICE_PUSHBACK_RE = /\b(?:final|best|lowest|bottom[- ]?line)\s+(?:price|number|offer|deal|figure)\b|\bcan\s+you\s+do\s+(?:any\s+)?(?:better|lower|more|less)\b|\b(?:lower|better)\s+(?:the\s+)?(?:price|number|offer)\b|\bcome\s+down\b|\b(?:any|some)\s+(?:wiggle|room|flexibility)\b|\bnegotiable\b/i;
+var LP_PRICE_PUSHBACK_LOOSE_RE = /\b(?:a\s+)?(?:bit|little|way|lot|kind\s+of|kinda)\s+(?:off|high|much|steep|expensive|pricey)\b|\btoo\s+(?:high|much|expensive|steep|pricey)\b|\b(?:over|above|out\s+of)\s+(?:my|our)\s+(?:budget|range)\b|\bbeat\s+(?:that|this|it)\b|\bhigher\s+than\s+(?:i|we)\s+(?:expected|thought|wanted)\b/i;
+var LP_PRICE_WORD_RE = /\$|\b(?:price|pricing|priced|number|numbers|drive[- ]?out|out[- ]the[- ]door|otd|payment|offer|deal|quote|budget|cost|total|figure)\b/i;
+function _lpOwnWords(msg) {
+  var s = String(msg || '');
+  var q = s.search(/\bOn\b[\s\S]{0,200}?\bwrote:|\bFrom:[\s\S]{0,160}?\bSent:\s|-{3,}\s*Original Message\s*-{3,}|\bBegin forwarded message:|_{10,}/i);
+  return (q >= 0 ? s.slice(0, q) : s).trim();
+}
+function _lpPricePushback(d) {
+  try {
+    if (!d) return null;
+    var said = _lpOwnWords(d.lastInboundMsg);
+    var pm = said.match(LP_PRICE_PUSHBACK_RE) || (LP_PRICE_WORD_RE.test(said) ? said.match(LP_PRICE_PUSHBACK_LOOSE_RE) : null);
+    if (!pm) return null;
+    var age = d.relationshipSignals ? d.relationshipSignals.lastInboundAgeDays : null;
+    if (typeof age === 'number' && age >= 14) return null;
+    var src = String(d.conversationBrief || '') + '\n' + String(d.context || '');
+    var cut = src.indexOf('=== CURRENT LEAD SUBMITTED HERE ===');
+    if (cut >= 0) src = src.slice(0, cut);
+    var ents = _lpWalkCrmEntries(src);
+    for (var i = 0; i < ents.length; i++) {
+      var lines = ents[i].text.split('\n');
+      var tag = lines[0].match(/^\s*\[[^\]]*\d[^\]]*\]\s*\[([^\]]+)\]\s*(.*)$/);
+      if (!tag || /^CUSTOMER$/i.test(tag[1].trim()) || /CURRENT LEAD/i.test(tag[1])) continue;
+      var when = Date.parse(ents[i].date);
+      if (isFinite(when) && (Date.now() - when) / 86400000 >= 14) continue;
+      var body = [];
+      for (var k = 1; k < lines.length && /^\s{2,}\S/.test(lines[k]); k++) body.push(lines[k].trim());
+      body = body.join(' ');
+      var clean = body.replace(/\b[A-Z]{2}\s+\d{5}(?:-\d{4})?\b/g, ' ').replace(/\$?\d[\d,]*\s*(?:miles|mi\b|k miles)/gi, ' ');
+      var figs = _lpMoneyFigures(clean).filter(function (f) { return f.value >= 5000; });
+      if (!figs.length) continue;
+      var otd = body.match(/(?:out[- ]?the[- ]?door|\botd\b|drive[- ]?out)[^$\d\n]{0,40}\$?\s?(\d{1,3}(?:,\d{3})+(?:\.\d{2})?|\d{5,6}(?:\.\d{2})?)/i);
+      var items = [], im, ire = /([A-Z][A-Za-z&'\/ -]{2,45}?)\s*([\^+*†]+)\s*-\s*\$\s?(\d[\d,]*(?:\.\d{2})?)/g;
+      while ((im = ire.exec(body)) && items.length < 6) items.push(im[1].trim() + ' (-$' + im[3] + ')');
+      return { said: said.slice(0, 200), trigger: pm[0], date: ents[i].date, title: tag[2].trim(),
+               otd: otd ? '$' + otd[1] : '', figure: '$' + figs[figs.length - 1].text, items: items };
+    }
+  } catch (e) {}
+  return null;
 }
 function _lpOtdFigureSent(d) {
   try {
@@ -25252,6 +25304,28 @@ function buildUserPrompt(data) {
   // out-the-door number" still counts as volunteering it — do not do that.
   // (v9.7.700) AUDIT M4: the OTD / PAYMENT DISCIPLINE line moved to _LP_STANDING_RULES in the system prompt.
   if (_lafOTDPolicy)  lines.push(_lafOTDPolicy, '');
+  // (v9.7.745) THEY PUSHED BACK ON A PRICE WE SENT (_lpPricePushback). Pushed after the store's OTD policy and
+  // stated as outranking its handoff steps for this one message: Gil wants the push made before a hand to sales.
+  try {
+    var _pp = _lpPricePushback(data);
+    if (_pp) {
+      var _ppNoTrade = !(data.vrTradeIn || data.pdTradeCount) && _pp.items.some(function (x) { return /trade/i.test(x); });
+      lines.push('💬 THEY PUSHED BACK ON THE PRICE WE SENT — WORK IT IN THIS MESSAGE, BEFORE ANY HANDOFF: their newest message says "'
+        + _pp.said.replace(/"/g, "'") + '". Our ' + (_pp.title || 'message').toLowerCase() + ' of ' + _pp.date + ' gave them '
+        + (_pp.otd ? 'a drive-out of ' + _pp.otd : 'a price of ' + _pp.figure) + '. This outranks any step above that hands the numbers to someone else.\n'
+        + '  (1) STAND BEHIND OUR NUMBER. It is the real figure we sent. Do NOT call it unconfirmed, preliminary or "not final yet", do NOT say you need to check or review it, '
+        + 'and do NOT pass them to a manager, the desk or a salesperson in this message. That comes after this, once you know their number.\n'
+        + '  (2) If they asked whether it is final, answer it straight: it is our number on this car as it stands, and say plainly what it depends on.\n'
+        + (_pp.items.length
+            ? '  (3) NAME WHAT DEPENDS ON THEM, from the breakdown we sent: ' + _pp.items.join('; ') + '. The fine print in that message says what each one needs. '
+              + (_ppNoTrade ? 'No trade-in is recorded on this lead: say the trade item applies only with a trade, as a statement, not a second question. ' : '')
+              + 'Say which ones hold or would change for them. Do NOT invent a new discount, a new total or a payment.\n'
+            : '  (3) Do NOT invent a new discount, a new total or a payment.\n')
+        + '  (4) ONE ASK: where do they need to be? The drive-out number that works for them is what the next step is built on. Ask it plainly, not as a trade for a visit.',
+        '');
+      console.log('[LP PRICE PUSHBACK DIAG] fired | trigger:"' + _pp.trigger + '" | our figure: ' + (_pp.otd || _pp.figure) + ' (' + _pp.date + ' ' + _pp.title + ') | conditional items:' + _pp.items.length + (_ppNoTrade ? ' | no trade on the lead' : ''));
+    }
+  } catch (ePp) {}
 
   // ── NAMED SOURCE ACKNOWLEDGMENT (v9.7.16) ──
   // Customers who came through a recognized third-party source (CarGurus, Cars.com,
