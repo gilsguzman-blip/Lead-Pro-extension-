@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.741 (Commercial. THE COLOUR THE ARC SETTLED BEATS THE COLOUR THEY FIRST NAMED. Extension only; proxy v7.81 and reporter v1.23 unchanged. Community Kia Baytown lead 2086487722, 9/29 (log265, dump 1f5fae06, page dump fe3da16e). The customer asked for a Black 2026 Sorento S with a white interior; the agent replied white is not an interior option; the customer sent the store's listing for the unit they wanted; the agent replied that car is Panthera Metal with a Gray interior, with its price, and the VOI was updated to it. The v9.7.613 colour detector still read 'Black' as the ask, so the prompt said the Panthera Metal unit is 'NOT what they are asking for now ... never fall back to it' and the stock-colour block said 'This customer asked for Black'; the draft offered a black S. Gil: 'The customer was incorrect that it was Black with white. The model didn't pick up on the change in the arc and kept the Black track.' FIX: the colour ask is SETTLED when, after the customer named the colour, they sent a vehicle listing link AND a later reply of ours names the paint on the lead's unit, with no colour named by them since. Our reply alone does not settle it: an agent re-pitching the lead unit to a customer who asked for another colour is the v9.7.613 case and the ask still drives the message. Settled: the COLOR concern becomes 'SETTLED ON THE UNIT ON THE LEAD' (work the lead unit, do not go back to the old colour or offer one, do not reopen colour unless they raise it); customerStatedColor is exported empty and colorAskSettled carries the old ask, so the stock-colour block says the colour question is closed and how, instead of 'This customer asked for Black'. [LP COLOR ASK DIAG] logs SETTLED with both timestamps. REPLAYED on the real page dump with the real scraper and the dump's own inventory: v9.7.740 reproduces the MOVED OFF / asked-for-Black lines, the fix swaps exactly those three prompt lines. TESTS: new color-settled-741 (9 per build: 4 new, 5 controls) executes the shipped detector slice and the shipped popup colour block. NON-VACUITY against v9.7.740: the 4 new fail, the 5 controls pass. VERIFIED: run-all 162 suites, 6,962 assertions, 0 failed (+18). node --check both builds; manifests parse; changed lines identical dev vs commercial. Builds on v9.7.740.)
 // Lead Pro -- popup.js  v9.7.740 (Commercial. ONE DUMP COMMAND, EVERYTHING. Extension only, diagnostics only: nothing a customer sees changes. Proxy v7.81 and reporter v1.23 unchanged. Gil, 9/29: 'yes add the rewrite capture to the dump ... Can I combine all these commands into one prompt?' _lpDumpPrompt() keeps its name and file name and now writes one file with: a header line naming the lead and dealer; the system and user prompts as before; the model's raw response (window._lpLastRawResponse); the SMS rewrite step end to end -- result (pass 2 shipped / pass 1 kept), first-pass text, the text that shipped (after the v9.7.732 bracket cleanup), the rewrite's raw reply and its system and user prompts (window._lpLastRefine, reset on every call so a dump never shows another lead's); what Lead Pro read off the page (lastScrapedData); the dealer's inventory and incentive snapshot as held at dump time (_lpValueFactCache); and the fact-check verdicts (window._lpFactVerdicts). Each section is independent. The dump carries the customer's contact details, as the VinSolutions dump already does. Along the way: name-bracket-732 pins the bracket cleanup directly after the rewrite result, so the capture sits after it. Tests: new dump-all-740 (4 per build, executing the shipped _lpDumpPrompt with a stubbed download and _lpRefineSms with a stubbed worker; all 4 fail on v9.7.739, new behaviour with no control). run-all: 161 suites, 6,944 assertions, 0 failed.)
 // Lead Pro -- popup.js  v9.7.739 (Commercial. A USED VEHICLE OF A MAKE WE STOCK IS WORKED AS PRE-OWNED, NOT PIVOTED. Extension only; proxy v7.81 and reporter v1.23 unchanged. Toyota Baytown lead 2091436932, 9/29 (log263, capture 214583f3, dump ff3719d8): the lead's vehicle is 'Chevrolet Silverado (Used)', the Pam phone-agent note says 'a new Chevrolet Silverado', and the store holds four used Silverados (2024 2500HD High Country, 2024 1500 RST, 2023 1500 RST, 2021 1500 LT). The OFF-FRANCHISE block listed the first two used Chevrolets it found (a Malibu and an Impala) and said not to ask year or trim; the BRAND MISMATCH block said 'NEVER offer to show them the Chevrolet -- we do not carry it'; the draft pivoted to a Tundra. Gil: 'VOI is a used Silverado. message is trying to pivot incorrectly instead of working pre-owned angle.' (1) Off-franchise: when used units of the requested MODEL are on the lot, the block becomes 'PRE-OWNED <MAKE MODEL> IN STOCK -- THIS IS THE ANGLE', listing up to four of them (from today's feed, not the lead record), offered as pre-owned, year/configuration/budget may be asked, no pivot to the store brand, and honest that a new one cannot be had if they want new. No model match: the original block, unchanged. One fence site, as fact-comprehension requires. (2) Brand mismatch: a vehicle not marked New, of a make the store holds used units of, is not a mismatch (the _lpOffFranchiseGate rule); a New-marked vehicle, or a make we do not stock, gets the mismatch rules as before. Replayed on the dump with the live feed: the mismatch block and the Malibu/Impala list are gone and the four Silverados lead; six other captured leads produce byte-identical prompts. Tests: new used-offbrand-739 (6 per build; 3 fail on v9.7.738, the 3 controls pass on both). run-all: 160 suites, 6,936 assertions, 0 failed.)
 // Lead Pro -- popup.js  v9.7.738 (Commercial. THE SMS REWRITE KEEPS THE CONCIERGE TITLE. Extension only; proxy v7.81 and reporter v1.23 unchanged. Audi Lafayette lead 2049511947, 9/29 (log261, capture 4e36d49c): v9.7.737 produced the right message, but the first-pass text's 'As your Audi Concierge, I can check on the...' was dropped by the SMS rewrite, and the rewrite shipped -- while the Audi persona block says 'Concierge' must appear in every format. Gil: 'let's add Concierge protection.' (1) _lpBuildSmsRefinePrompt: when pass 1 carries the title, the rewrite is told it is required and to keep it as the agent's own role. (2) _lpRefineSms: if pass 1 carried 'Concierge' and the rewrite does not, pass 1 ships, logged 'kept the first pass -- it carried the Concierge title and the rewrite dropped it'; the source-name guard's shape. Stores without the title are untouched. Tests: new concierge-refine-738 (5 per build; 2 fail on v9.7.737, the 3 controls pass on both). run-all: 159 suites, 6,924 assertions, 0 failed.)
@@ -7051,7 +7052,10 @@ function populateFromData(d) {
       }
       if (_lcSame) {
         vehicleExtras.push('\ud83c\udfa8 THE COLOUR IS ALREADY SETTLED — USE IT, DO NOT ASK ABOUT IT: the unit confirmed above is ' + _lpStockColor
-          + ', and the customer has not raised colour, trim or configuration anywhere in this conversation. None of it is an open question. Use the colour as a DETAIL that shows you are looking at THEIR car — "the ' + _lpStockColor
+          + (d.colorAskSettled
+              ? ', and the colour question is closed: they first asked for ' + d.colorAskSettled + ', then sent us the listing for this car, and our reply told them it is ' + _lpStockColor + '. They have not asked for ' + d.colorAskSettled + ' since, so do not offer or look for a ' + d.colorAskSettled + ' one.'
+              : ', and the customer has not raised colour, trim or configuration anywhere in this conversation.')
+          + ' None of it is an open question. Use the colour as a DETAIL that shows you are looking at THEIR car — "the ' + _lpStockColor
           + ' one" — and never as something for them to confirm. IT IS A DETAIL, NOT THE OPENING LINE: if the customer has said anything of their own — what they want, what they liked, what they just asked — THAT opens the message and the colour sits further in. A message that opens on the paint when the customer has just asked you something has put our fact ahead of their words. Do NOT ask whether that colour is the one they want, do NOT ask them to confirm the trim or the build, and do NOT make confirming the specification the point of this message: on a car we have already confirmed, that reads as though we are not sure what they asked for, and it moves the conversation backwards rather than forward. The rule about asking a qualifying question on trim or colour is written for a unit we CANNOT confirm — this one is confirmed, so it does not apply here and must not be used as this message\'s angle. If you need a different angle because you have written to them before, take one that moves them toward the visit.');
       } else {
         try { console.log('[LP STOCK COLOR DIAG] withheld — the lead records "' + _lcLead
@@ -14374,12 +14378,45 @@ function _lpScraperBotAuthor(msg) {
       try { if (typeof color === 'string') _voiColor = color; } catch (eVc) { _voiColor = ''; }
       var _colorMismatch = !!(_statedColor && _voiColor
         && String(_voiColor).toLowerCase().indexOf(String(_statedColor).toLowerCase()) === -1);
+      // (v9.7.741) A COLOUR THE CONVERSATION HAS ALREADY MOVED PAST. Community Kia Baytown lead
+      // 2086487722, 9/29 (log265). At 10:16 the customer asked for a Black S with a white interior.
+      // At 3:48 they sent the store's own listing for the unit they want, and at 4:25 the agent
+      // replied that that car is Panthera Metal with a Gray interior, with its price. The detector
+      // still read "Black" as the ask, and the COLOR block told the model the Panthera Metal unit is
+      // "NOT what they are asking for now ... never fall back to it"; the draft offered a black S.
+      // Gil: "The customer was incorrect that it was Black with white."
+      // SETTLED needs BOTH halves, after the colour was named, with no colour named by them since:
+      // the customer pointed at a specific listing, AND our reply names the paint on the lead's unit.
+      // Our reply alone is not enough -- an agent re-pitching the lead's unit to a customer who asked
+      // for another colour is the v9.7.613 case, and that ask must still drive the message.
+      var _colorSettled = null;
+      try {
+        if (_colorMismatch && _statedWhen > 0) {
+          var _vcWords = String(_voiColor).toLowerCase().match(/[a-z]{4,}/g) || [];
+          _vcWords = _vcWords.filter(function (w) { return !/^(?:metal|metallic|pearl|tricoat|matte|clearcoat|mica|paint|color|colour|with|roof|interior)$/.test(w); });
+          var _linkAt = 0, _namedAt = 0;
+          concernScanLines.forEach(function (line) {
+            var s = String(line);
+            var dm = s.match(/^\[(\d{1,2}\/\d{1,2}\/\d{2,4}[^\]]*)\]/);
+            var t = dm ? new Date(dm[1]).getTime() : 0;
+            if (!(t > _statedWhen)) return;
+            if (s.indexOf('[CUSTOMER]') !== -1) {
+              if (/https?:\/\/\S*\/(?:auto|vehicle|vehicles|inventory|new|used|vdp|detail)[\/-]\S*\d{4,}/i.test(s) && t > _linkAt) _linkAt = t;
+            } else if (_vcWords.length && _vcWords.every(function (w) { return new RegExp('\\b' + w + '\\b', 'i').test(s); }) && t > _namedAt) {
+              _namedAt = t;
+            }
+          });
+          if (_linkAt && _namedAt) _colorSettled = { asked: _statedColor, unit: _voiColor, linkAt: _linkAt, namedAt: _namedAt };
+        }
+      } catch (eCs) { _colorSettled = null; }
       try {
         _lpD('[LP COLOR ASK DIAG] customerStated:' + (_statedColor || '(none)')
           + ' | voiColor:' + (_voiColor || '(none)')
           + (_colorTradeSkip ? ' | SKIPPED a colour stated about the TRADE (' + _colorTradeSkip + ')' : '')
           + ' | mismatch:' + _colorMismatch
-          + (_colorMismatch ? ' — the customer\'s colour drives the message; the VOI colour is the ORIGINAL unit, not the target'
+          + (_colorSettled ? ' | SETTLED — since naming it they sent a listing (' + new Date(_colorSettled.linkAt).toLocaleString()
+                + ') and our reply named ' + _voiColor + ' (' + new Date(_colorSettled.namedAt).toLocaleString() + '); the lead\'s unit is the target'
+            : _colorMismatch ? ' — the customer\'s colour drives the message; the VOI colour is the ORIGINAL unit, not the target'
                             : ''));
       } catch (eCd) {}
       var colorMatch = _statedColor ? [_statedColor] : null;
@@ -14421,7 +14458,14 @@ function _lpScraperBotAuthor(msg) {
               + 'to say where things stand, and ask for nothing else — no time, no visit, nothing they would have to do.';
         customerConcerns.unshift(_fricHead + _fricBody);
       }
-      if (colorMatch && _colorMismatch) {
+      if (colorMatch && _colorSettled) {
+        customerConcerns.push('COLOR — SETTLED ON THE UNIT ON THE LEAD: they first asked for ' + colorMatch[0]
+          + ', but since then they sent us the listing for the car they want, and our reply told them that car is '
+          + _voiColor + '. That exchange is newer than the colour they named, and they have not asked for '
+          + colorMatch[0] + ' again. The ' + _voiColor + ' unit on the lead IS the car. Work it: do NOT go back to '
+          + colorMatch[0] + ', do NOT say a ' + colorMatch[0] + ' one is here or offer to look for one, and do NOT '
+          + 'reopen the colour question. Only if they raise ' + colorMatch[0] + ' again is it back on the table.');
+      } else if (colorMatch && _colorMismatch) {
         // The strong form. The soft "match or acknowledge" wording below was no match for a VOI
         // block that states a colour as fact and forbids substitution, so on a mismatch the
         // customer's colour is stated as the target and the VOI colour is named as history.
@@ -16173,7 +16217,9 @@ function _lpScraperBotAuthor(msg) {
       // function. The inventory feed lives popup-side, so the one comparison that matters (does
       // the unit we confirmed actually wear the colour they asked for) had nowhere to happen.
       // Exported rather than re-derived: a second detector would drift from this one.
-      customerStatedColor: (typeof _statedColor === 'string' ? _statedColor : ''),
+      customerStatedColor: (typeof _statedColor === 'string' && !(typeof _colorSettled !== 'undefined' && _colorSettled) ? _statedColor : ''),
+      // (v9.7.741) the colour they named, when the conversation has since settled on the lead's unit.
+      colorAskSettled: (typeof _colorSettled !== 'undefined' && _colorSettled) ? _colorSettled.asked : '',
       scrapedAt:Date.now(),
       // (v9.7.51) Frame freshness signals -- used to identify which iframe was
       // most recently loaded. When VinSolutions SPA shell holds multiple
