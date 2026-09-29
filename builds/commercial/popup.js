@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.744 (Commercial. THE WHOLE EMAIL, NOT VINSOLUTIONS' PREVIEW. Extension only; proxy v7.81 and reporter v1.23 unchanged. Community Kia Baytown lead 2086487722, 9/29 (log266, page dump feb47adc, saved ViewEmail page fbaf8739). The notes panel shows each email only as a preview cut at a fixed length; our 4:25 email stopped at '...Community Value Price$31,000.00 Nitro Wheel Locks, D...', so the drive-out total ($33,998.74), the rest of the breakdown and the Wednesday 9:15/10:30 times we offered never reached the model, and the draft called the figure not a confirmed drive-out and asked for this evening. MEASURED on the 24 page dumps on file: 85 of 146 of our emails and 13 of 37 of the customer's are cut this way, on 19 of 24 leads; on 2 leads the customer's own words are cut mid-question. Gil: 'Drive out isn't given out on the regular but if it helps in other capacities then it's worth the build.' FIX: each note carries the email's message id (data-unique-identifier-value), which is the RecordID of the ViewEmail page VinSolutions opens on click. _lpExpandEmails, in the grab's wait step once the notes are there, fetches that page (same origin, the agent's own session) for the newest 6 cut-off emails, 3s for all of them, reads #ContentPlaceHolder1__body (table rows kept as lines, the store's legal footer dropped, dashes as '-'), and swaps it in for the preview in place, so every existing reader sees it unchanged. A customer's email keeps only their own words: the thread quoted under it is ours. A fetched body is used only when it contains the preview's own opening; a different email, an error or a login page leaves the preview as it was. inlineScraper logs [LP EMAIL EXPAND DIAG] and puts every preview back as soon as its read finishes, so the agent's notes panel is left as VinSolutions drew it. Rescue re-reads run without it and see previews, as before. REPLAYED on the real page dump in Chromium with the real saved ViewEmail page answering its RecordID: the 4:25 entry now carries the full breakdown to 'Drive Out with all Incentives $33,998.74' and the Wednesday times; the prompt changes in that entry only (+1,751 chars); the 5 other fetches, answered with a different email, kept their previews; the panel was restored byte for byte. NOT VERIFIED LIVE: the fetch with a real VinSolutions session needs one grab; the diag line says what happened. TESTS: new email-expand-744 (11 per build) runs the shipped _lpExpandEmails and inlineScraper in Chromium on a placeholder lead page with placeholder ViewEmail pages. NON-VACUITY against v9.7.743: the 5 new-behaviour checks fail, the 6 controls pass. VERIFIED: run-all 165 suites, 7,016 assertions, 0 failed (+22). node --check both builds; manifests parse; changed lines identical dev vs commercial. Builds on v9.7.743.)
 // Lead Pro -- popup.js  v9.7.743 (Commercial. OUR EMAIL QUOTED UNDER THEIR REPLY IS NOT THEM ASKING FOR A COLOUR. Extension only; proxy v7.81 and reporter v1.23 unchanged. Community Kia Baytown lead 2086487722, 9/29 (log266, dump b154f2e7, page dump feb47adc). The customer replied at 4:37 'We are bit off on the Drive out price, It this your final price? Regards From: <agent> ... Sent: ... Subject: Subject:Black 2026 Sorento S availability'. The 'Black' is OUR 4:25 subject line, quoted back by their mail client. The v9.7.613 colour detector reads whole customer lines, so it took that as a fresh ask, newer than our reply naming Panthera Metal: the colour the v9.7.741/742 settlement had closed reopened ([LP COLOR ASK DIAG] mismatch, not SETTLED, while [LP VOI SWAP DIAG] fired), and the draft offered a black S again. Gil: 'customer replied back and the Drive out is in the conversation but the response is still dwelling on the Black option.' FIX: the colour detector, and the listing-link check beside it, read only the customer-authored part of each line via _lpCustomerAuthoredPart, the cutter the other customer-text readers here already use (Outlook From:/Sent: block, 'On ... wrote:', forwarded and original-message dividers, '>' quotes, client signatures). REPLAYED on the real page dump with the real scraper and the dump's inventory: v9.7.742 reproduces the MOVED OFF / asked-for-Black lines, the fix swaps exactly those for the SETTLED lines. The log265 page dump is unchanged apart from a clock-relative line. NOT FIXED HERE, reported: the 4:25 email appears on the page only as VinSolutions' preview, cut at 'Nitro Wheel Locks, D...', so the drive-out figure below the $31,000 price is not in what Lead Pro reads. TESTS: new quoted-color-743 (5 per build: 2 new, 3 controls) executes the shipped detector slice with the shipped _lpCustomerAuthoredPart. NON-VACUITY against v9.7.742: the 2 new fail, the 3 controls pass. VERIFIED: run-all 164 suites, 6,994 assertions, 0 failed (+10). node --check both builds; manifests parse; changed lines identical dev vs commercial. Builds on v9.7.742.)
 // Lead Pro -- popup.js  v9.7.742 (Commercial. THE STORE CHANGED THE VEHICLE ON THE LEAD, AND LEAD PRO NOW SEES IT. Extension only; proxy v7.81 and reporter v1.23 unchanged. Community Kia Baytown lead 2086487722, 9/29 (log265, page dump fe3da16e). PageData's LeadVehicle holds the unit on the lead now (DealerStockNum TG491576, ExternalColorName Panthera Metal, InteriorColorName Gray) and the unit the lead came in on (StockNumber TG473588, Color Midnight Lake Blue, InteriorColor Black). Lead Pro read only the first, so the prompt carried our 9/19 'the Midnight Lake Blue 2026 Kia Sorento S is here' as a commitment on record, with nothing saying the vehicle had changed. Gil: 'Isn't the change inferred? when the agent emailed the customer with the correct color scheme and then the color changed as the customer's VOI on the lead.' FIX: (1) the scraper reports a swap when both stock numbers are present and differ ([LP VOI SWAP DIAG]); an empty StockNumber is a lead that came in without a unit, not a swap. Exported as voiSwap. (2) The prompt says the store changed the vehicle, from what to what, that the current one is the car to work, and that earlier talk of the old one is not to be repeated unless the customer raises it. (3) In WHAT WE HAVE ALREADY TOLD THIS CUSTOMER, a claim naming the old unit's stock or colour is marked as about the original vehicle and not a commitment about the car on the lead now. (4) The v9.7.741 colour settlement now also accepts a swap in place of the customer's listing link: the agent correcting the colour in writing and the lead's vehicle changing to match is the agent's decision. Our reply alone still does not settle it (the v9.7.613 re-pitch never swaps). REPLAYED on the real page dump with the real scraper and the dump's inventory: v9.7.741 -> v9.7.742 swaps the colour concern and the stock-colour line for versions that name the vehicle change, adds the change line, and marks the 9/19 claim; nothing else moves. Of the 21 page dumps on file carrying LeadVehicle, this is the only swap; another dump (037f879b, no original stock number) scrapes identically. TESTS: new voi-swap-742 (11 per build) executes the shipped swap slice, the shipped colour detector and the shipped popup block. NON-VACUITY against v9.7.741: the 5 new-behaviour checks fail and the 2 controls that can run without the new code pass; the other 4 controls exercise the new code and cannot run on 741. VERIFIED: run-all 163 suites, 6,984 assertions, 0 failed (+22). node --check both builds; manifests parse; changed lines identical dev vs commercial. Builds on v9.7.741.)
 // Lead Pro -- popup.js  v9.7.741 (Commercial. THE COLOUR THE ARC SETTLED BEATS THE COLOUR THEY FIRST NAMED. Extension only; proxy v7.81 and reporter v1.23 unchanged. Community Kia Baytown lead 2086487722, 9/29 (log265, dump 1f5fae06, page dump fe3da16e). The customer asked for a Black 2026 Sorento S with a white interior; the agent replied white is not an interior option; the customer sent the store's listing for the unit they wanted; the agent replied that car is Panthera Metal with a Gray interior, with its price, and the VOI was updated to it. The v9.7.613 colour detector still read 'Black' as the ask, so the prompt said the Panthera Metal unit is 'NOT what they are asking for now ... never fall back to it' and the stock-colour block said 'This customer asked for Black'; the draft offered a black S. Gil: 'The customer was incorrect that it was Black with white. The model didn't pick up on the change in the arc and kept the Black track.' FIX: the colour ask is SETTLED when, after the customer named the colour, they sent a vehicle listing link AND a later reply of ours names the paint on the lead's unit, with no colour named by them since. Our reply alone does not settle it: an agent re-pitching the lead unit to a customer who asked for another colour is the v9.7.613 case and the ask still drives the message. Settled: the COLOR concern becomes 'SETTLED ON THE UNIT ON THE LEAD' (work the lead unit, do not go back to the old colour or offer one, do not reopen colour unless they raise it); customerStatedColor is exported empty and colorAskSettled carries the old ask, so the stock-colour block says the colour question is closed and how, instead of 'This customer asked for Black'. [LP COLOR ASK DIAG] logs SETTLED with both timestamps. REPLAYED on the real page dump with the real scraper and the dump's own inventory: v9.7.740 reproduces the MOVED OFF / asked-for-Black lines, the fix swaps exactly those three prompt lines. TESTS: new color-settled-741 (9 per build: 4 new, 5 controls) executes the shipped detector slice and the shipped popup colour block. NON-VACUITY against v9.7.740: the 4 new fail, the 5 controls pass. VERIFIED: run-all 162 suites, 6,962 assertions, 0 failed (+18). node --check both builds; manifests parse; changed lines identical dev vs commercial. Builds on v9.7.740.)
@@ -9187,6 +9188,19 @@ function _lpScraperBotAuthor(msg) {
         _lpDiag.push(parts.join(' '));
       } catch (e) {}
     }
+    // (v9.7.744) The email fetch before this read (_lpExpandEmails in the grab's wait step) left its outcome on the
+    // page and swapped whole emails in for VinSolutions' previews. Log the outcome, and put every preview back the
+    // moment this synchronous read has finished, so the agent's notes panel is left as VinSolutions drew it.
+    try {
+      var _lpExOut = document.documentElement.getAttribute('data-lp-email-expand');
+      if (_lpExOut) { _lpD('[LP EMAIL EXPAND DIAG] ' + _lpExOut); document.documentElement.removeAttribute('data-lp-email-expand'); }
+      if (document.querySelector('[data-lp-preview-html]')) setTimeout(function () {
+        try {
+          var _lpPv = document.querySelectorAll('[data-lp-preview-html]');
+          for (var _pv = 0; _pv < _lpPv.length; _pv++) { _lpPv[_pv].innerHTML = _lpPv[_pv].getAttribute('data-lp-preview-html'); _lpPv[_pv].removeAttribute('data-lp-preview-html'); }
+        } catch (eRv) {}
+      }, 0);
+    } catch (eEx) {}
     function gid(id) {
       try { const e=document.getElementById(id); return e?(e.innerText||e.textContent||e.value||'').trim():''; } catch(x){return '';}
     }
@@ -16363,6 +16377,107 @@ function _lpScraperBotAuthor(msg) {
       // Fix: require BOTH a lead-info marker (we're on a lead) AND notes
       // hydration (the data is loaded). Timeout cap unchanged at 4s.
       var maxWait = 4000, interval = 150, elapsed = 0;
+      // ── (v9.7.744) THE WHOLE EMAIL, NOT VINSOLUTIONS' PREVIEW ─────────────────────────────────────
+      // Community Kia Baytown lead 2086487722, 9/29 (log266). The notes panel shows an email only as a preview
+      // cut at a fixed length: our 4:25 email ended "...Community Value Price$31,000.00 Nitro Wheel Locks, D..." and
+      // the drive-out total ($33,998.74), the rest of the breakdown and the two times we offered (9:15 or 10:30 AM
+      // Wednesday) were below the cut. The draft told the customer the figure "isn't a confirmed final drive-out
+      // total" and asked for this evening. Across the 24 page dumps on file, 85 of 146 of our emails and 13 of 37 of
+      // the customer's were cut this way. Gil: "Drive out isn't given out on the regular but if it helps in other
+      // capacities then it's worth the build."
+      // Each note carries the email's message id (data-unique-identifier-value), which is the RecordID of the
+      // ViewEmail page VinSolutions opens when the email is clicked. That page is fetched here, same origin, with the
+      // agent's own session. The full body replaces the preview IN PLACE, so every reader in inlineScraper sees it
+      // with no change of its own; inlineScraper puts the preview back as soon as it has read the page.
+      // SAFE BY CONSTRUCTION: the newest 6 cut-off emails only, 3s for all of them, and a fetched body is used only
+      // when it contains the preview's own opening -- anything else (an error, a login page, another email) leaves
+      // the preview exactly as it was. The outcome is left on the page for inlineScraper to log.
+      function _lpExpandEmails() {
+        var t0 = Date.now(), st = { cut: 0, tried: 0, expanded: 0, same: 0, mismatch: 0, failed: 0, why: '' };
+        function mark() {
+          try {
+            if (!st.cut) return;
+            document.documentElement.setAttribute('data-lp-email-expand', 'cut-off email previews:' + st.cut + ' | fetched:' + st.tried
+              + ' | expanded:' + st.expanded + ' | nothing more to add:' + st.same + ' | not the same email (kept preview):' + st.mismatch + ' | failed (kept preview):' + st.failed
+              + (st.why ? ' (' + st.why + ')' : '') + ' | ' + (Date.now() - t0) + 'ms');
+          } catch (eM) {}
+        }
+        function norm(s) { return String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ''); }
+        function textOf(root) {
+          var out = [];
+          (function walk(n) {
+            if (n.nodeType === 3) { out.push(n.nodeValue); return; }
+            if (n.nodeType !== 1) return;
+            var tg = n.tagName;
+            if (/^(SCRIPT|STYLE|HEAD|TITLE|NOSCRIPT)$/.test(tg)) return;
+            if (tg === 'BR') { out.push('\n'); return; }
+            var blk = /^(P|DIV|TR|TABLE|TBODY|LI|UL|OL|H[1-6]|BLOCKQUOTE|HR)$/.test(tg);
+            if (blk) out.push('\n');
+            for (var k = n.firstChild; k; k = k.nextSibling) walk(k);
+            if (tg === 'TD' || tg === 'TH') out.push(' ');
+            if (blk) out.push('\n');
+          })(root);
+          return out.join('').replace(/[ \t ]+/g, ' ').replace(/ *\n */g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+        }
+        try {
+          if (!window.fetch || !window.DOMParser) return Promise.resolve();
+          var todo = [];
+          var items = document.querySelectorAll('.notes-and-history-item[data-unique-identifier-type="AutoLeadMessageID"]');
+          for (var i = 0; i < items.length; i++) {
+            var it = items[i];
+            if (!/Email/i.test(it.getAttribute('data-tags') || '')) continue;
+            var c = it.querySelector('.notes-and-history-item-content');
+            if (!c || c.hasAttribute('data-lp-preview-html')) continue;
+            if (!/(?:\.\.\.|…)$/.test(String(c.textContent || '').replace(/\s+$/, ''))) continue;
+            st.cut++;
+            var id = it.getAttribute('data-unique-identifier-value') || '';
+            if (/^\d{6,15}$/.test(id) && todo.length < 6) todo.push({ c: c, id: id, inbound: /inbound/i.test(it.getAttribute('data-direction') || '') });
+          }
+          if (!todo.length) { mark(); return Promise.resolve(); }
+          var ctl = (typeof AbortController === 'function') ? new AbortController() : null;
+          var jobs = todo.map(function (job) {
+            st.tried++;
+            return fetch('/CarDashboard/LeadManagement/ViewEmail.aspx?source=customerpanel&RecordID=' + encodeURIComponent(job.id),
+                         { credentials: 'same-origin', signal: ctl ? ctl.signal : undefined })
+              .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+              .then(function (html) {
+                var doc = new DOMParser().parseFromString(html, 'text/html');
+                var body = doc.getElementById('ContentPlaceHolder1__body');
+                if (!body) throw new Error('no email body on the page');
+                var full = textOf(body);
+                // The store's standing legal footer adds nothing the model can use and ~1,400 characters a message.
+                var _ft = full.search(/\n[^\n]*(?:All Prices \+ Registration|By submitting my (?:cell )?phone number)/i);
+                if (_ft > 200) full = full.slice(0, _ft).trim();
+                // Dashes become "-": the transcript cleanup drops them, and "30\u201345 minutes" read as "3045 minutes".
+                full = full.replace(/[\u2012-\u2015]/g, '-');
+                // A customer's email carries our earlier thread quoted under it. Only their own words go in: the
+                // quoted part is ours, and readers that scan the customer's raw text would take it as theirs.
+                if (job.inbound) {
+                  var _q = full.search(/\bOn\b[\s\S]{0,200}?\bwrote:|\bFrom:[\s\S]{0,160}?\bSent:\s|-{3,}\s*Original Message\s*-{3,}|\bBegin forwarded message:|_{10,}|\n\s*>/i);
+                  if (_q >= 0) full = full.slice(0, _q).trim();
+                }
+                // The preview is everything after the header rows (Subject, By:), less its trailing "...".
+                var kids = Array.prototype.slice.call(job.c.childNodes), cutAt = 0;
+                for (var k = 0; k < kids.length; k++) if (kids[k].nodeType === 1 && kids[k].tagName === 'DIV') cutAt = k + 1;
+                var prev = kids.slice(cutAt).map(function (n) { return n.textContent || ''; }).join('').replace(/(?:\.\.\.|…)\s*$/, '');
+                var head = norm(prev).slice(0, 40);
+                if (head.length < 12 || norm(full).indexOf(head) === -1) { st.mismatch++; return; }
+                if (norm(full).length <= norm(prev).length) { st.same++; return; }
+                job.c.setAttribute('data-lp-preview-html', job.c.innerHTML);
+                for (var r = kids.length - 1; r >= cutAt; r--) job.c.removeChild(kids[r]);
+                var sp = document.createElement('span');
+                sp.style.whiteSpace = 'pre-line';
+                sp.textContent = full.length > 4000 ? full.slice(0, 4000) : full;
+                job.c.appendChild(sp);
+                st.expanded++;
+              })
+              .catch(function (e) { st.failed++; if (!st.why) st.why = String((e && e.message) || e).slice(0, 60); });
+          });
+          var all = Promise.all(jobs);
+          var cap = new Promise(function (res) { setTimeout(function () { if (ctl) { try { ctl.abort(); } catch (eA) {} } if (!st.why) st.why = 'timed out'; res(); }, 3000); });
+          return Promise.race([all, cap]).then(mark, mark);
+        } catch (eX) { st.why = String((eX && eX.message) || eX).slice(0, 60); mark(); return Promise.resolve(); }
+      } // end _lpExpandEmails
       function wait(resolve) {
         var noteCount = document.querySelectorAll('.notes-and-history-item').length;
         var hasLeadInfo = !!(
@@ -16381,7 +16496,9 @@ function _lpScraperBotAuthor(msg) {
         // lead data to wait for and will return their empty state on timeout.
         // Frames that DO have lead markers wait for both to be present.
         var bothReady = (noteCount > 0 && hasLeadInfo);
-        if (bothReady || elapsed >= maxWait) { resolve(); }
+        // (v9.7.744) Once the notes are there, pull in the whole of any email cut to a preview, then read.
+        if (bothReady) { _lpExpandEmails().then(function () { resolve(); }, function () { resolve(); }); }
+        else if (elapsed >= maxWait) { resolve(); }
         else { elapsed += interval; setTimeout(function(){ wait(resolve); }, interval); }
       }
       return new Promise(function(resolve) { wait(resolve); });
