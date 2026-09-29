@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.735 (Commercial. A CONVERSATION THAT WENT QUIET IN JULY IS NOT ANSWERED AS IF IT WERE THIS MORNING. Extension only; proxy v7.81 and reporter v1.23 unchanged. Audi Lafayette lead 2049511947, 9/29 (log258, capture faeb4120, dump 7d489fc3): the customer last wrote 76 days ago and 20 of our messages followed, yet the text that shipped opened 'no worries about this afternoon' (his 7/15 postponement) and said 'I don't have an AM or PM appointment time to confirm yet' (our own 7/14 question, quoted under his reply). Gil: 'a lot of nothing has gone by since last contact but the message reads from an exchange back in July.' (1) _lpOtdFigureSent (v9.7.734, my own misfire): a figure framed as the customer's (target, budget, 'your', 'you mentioned') that they wrote themselves is not a price we sent, and a price we sent 14+ days ago no longer switches the OTD policy to follow-up mode. Accepting their number still counts. (2) DEAL/INFO trigger: with the customer's last message 14+ days old, the deal-condition and deadline hard rules do not fire ([LP DEAL-TRIGGER DIAG] STALE). (3) SMS refine pass: a last message 14+ days old is shown with its age as background, with instructions not to answer it or treat its day words as current. (4) Open-question collector (scraper): the quoted tail of a reply ('On <date> ... wrote:', spaced or run together; '<address> wrote:'; Outlook 'Original Message') is cut before questions are looked for, and once the customer's latest message is 14+ days old their unanswered questions are logged STALE-14d+ and not surfaced. The test is the customer's last message, not the question's age: a customer who asked two weeks ago and wrote today is still live (open-thread-resolver's Carlos fixture caught the first version, which used the question's age). Replayed on the dump: the deal-condition hard rule, the false 'AM appt or PM appt?' open thread and the already-sent OTD block are gone; the standard OTD policy returns. Tests: new stale-thread-735 (14 per build; 8 fail on v9.7.734, the 6 controls pass on both); otd-sent-734 dates made relative to the clock. run-all: 156 suites, 6,868 assertions, 0 failed.)
 // Lead Pro -- popup.js  v9.7.734 (Commercial. AN OUT-THE-DOOR FIGURE WE ALREADY SENT IS PICKED UP, NOT EXPLAINED AWAY. Extension only; proxy v7.81 and reporter v1.22 unchanged. Honda Lafayette lead 2090083618, 9/28 (log256, capture 2756ab1e, dump 8db4807f): on the call the customer asked for the line-item drive-out by text, and on 9/26 a text of ours said '36800 is the out the door price when can you come in ?'. The store's OTD policy block still told the draft to explain why we do not quote a total, so the 9/28 draft said 'the total depends on your registration parish, eligible incentives, and whether you have a trade'. Gil: 'This message doesn't flow like a follow up from the last message sent about OTD for the unit.' (1) New _lpOtdFigureSent(d): the newest current-lead message or note of ours (above the lead marker, never a CUSTOMER entry, only the entry's indented body) whose own sentence pairs an out-the-door phrase with a figure of $5,000 or more; mileage and ZIP codes are not figures. (2) Honda/Audi Lafayette OTD policy: with a figure sent, the block quotes our message and says not to re-explain the parish/incentives/trade, not to state a different total or add figures, to pick up from the number with the line-by-line breakdown in person with the sales rep, and to close with one clear ask; the no-figure steps (explain, two times) drop out. The distance-buyer variant keeps its call-based steps and adds the same override. No figure sent: unchanged. [LP OTD SENT DIAG] logs the decision. Replayed on the dump: only the policy block changes, and it quotes the 9/26 text. Tests: new otd-sent-734 (15 per build; 13 fail on v9.7.733, the 2 prompt controls pass on both). run-all: 154 suites, 6,833 assertions, 0 failed.)
 // Lead Pro -- popup.js  v9.7.733 (Commercial. THE NEW-CAR OFFER ON A LEAD WITH NO VEHICLE: A 'USED' CONDITION IS A DEFAULT. Extension only; proxy v7.81 and reporter v1.22 unchanged. Honda Lafayette lead 2090666084, 9/28 (log254, capture 1626b7e2, dump bb327649): the customer claimed '$1,000 OFF MSRP on All New Hondas!' and the vehicle panel read '(Used)' with no vehicle behind it. The 8:41 AM text said 'the $1,000 offer is for new Hondas, so it won't apply to a pre-owned one', and after the customer named an HR-V EX-L in white the 9:12 AM draft called it a 'white pre-owned HR-V EX-L'. Gil: 'The customer's VOI just said used initially which I think was just a default and not the actual choice. The message should be more about taking advantage of the $1000 off on a new car's MSRP and finding out what model/trim they are looking for.' (1) _lpImxOfferGuidance: 'the vehicle on this lead is PRE-OWNED, so the offer does NOT apply' now needs an actual vehicle on the lead; a condition field alone never triggers it. With no vehicle, the new-car guidance says the $1,000 is theirs on the new [make] they choose (final eligibility confirmed in person), to lead with that and find out the model and trim, and not to say it does not apply to pre-owned. (2) New _lpImxOfferKind classifies the claimed offer (new / pre / other). In populateFromData, with no vehicle on file and the NEW-car offer claimed, a used/pre-owned condition is flagged as the lead's default: the Condition line says so and says not to call what they want pre-owned, and the named-model line (v9.7.725) treats a model they name as a new one instead of 'this lead is for a PRE-OWNED vehicle'. The pre-owned offer and non-IdentityMax leads are unchanged. Replayed on the dump with the condition set back to Pre-Owned: v9.7.731 printed 'Condition: Pre-Owned' and 'the vehicle on this lead (pre-owned) is PRE-OWNED, so the offer does NOT apply'; this build prints the default note and 'the $1,000 is theirs on the new Honda they choose'. Tests: new imx-newoffer-733 (9 per build; the 5 new fail on v9.7.732, the 4 controls pass on both); imx-noappt-720 unchanged and green. run-all: 153 suites, 6,803 assertions, 0 failed.)
 // Lead Pro -- popup.js  v9.7.732 (Commercial. THE CUSTOMER'S NAME NEVER GOES OUT IN SQUARE BRACKETS. Extension only; proxy v7.81 and reporter v1.22 unchanged. 9/26, Audi Lafayette, Drive By lead 2090426084: the draft opened 'Hi [Firstname], this is Dahize, your Audi Concierge at Audi Lafayette.' -- the Audi opener template reads 'Hi [Name], this is ...' and the model kept the brackets around the real name. The feedback export showed it as '[[NAME]]', the scrub masking the name inside the model's own brackets. (That draft was not needed -- the sales rep's note asked that no one contact the customer -- but the same slip can happen on a lead that is sent.) (1) New _lpUnbracketName, deterministic, after the model: brackets (single or double) around the customer's first or full name are removed, and an unfilled name placeholder ('[Name]', '[Customer]', '[First Name]', '[Customer Name]') becomes their first name, or 'there' when no name is on the lead. Other bracketed text (a stock number, a model) is untouched. Runs on the SMS, subject and email right after parsing, on the SMS again after the refine pass, and on the voicemail. [LP NAME BRACKET DIAG] logs when it changes anything. (2) The Audi opener template now says that [Name] stands for the customer's first name, written plainly, never in brackets. Tests: new name-bracket-732 (11 per build; all 11 fail on v9.7.731 -- the controls too, the helper not existing there). run-all: 152 suites, 6,785 assertions, 0 failed. Note: log244-710 fails one check in the minute before Kia Baytown closes (7:58-7:59 PM CT; identical on v9.7.731, passes at 8:00) -- a clock-window quirk in that test, not this build.)
@@ -977,6 +978,10 @@ function _lpOtdFigureSent(d) {
       var lines = ents[i].text.split('\n');
       var tag = lines[0].match(/^\s*\[[^\]]*\d[^\]]*\]\s*\[([^\]]+)\]\s*(.*)$/);
       if (!tag || /^CUSTOMER$/i.test(tag[1].trim()) || /CURRENT LEAD/i.test(tag[1])) continue;
+      // (v9.7.735) A price sent 14+ days ago is not one they just received. On lead 2049511947 our
+      // 7/14 "$16,500 drive out" is 77 days old; picking up from it is the July thread again.
+      var _osWhen = Date.parse(ents[i].date);
+      if (isFinite(_osWhen) && (Date.now() - _osWhen) / 86400000 >= 14) continue;
       var body = [];
       for (var k = 1; k < lines.length && /^\s{2,}\S/.test(lines[k]); k++) body.push(lines[k].trim());
       body = body.join(' ').replace(/\b[A-Z]{2}\s+\d{5}(?:-\d{4})?\b/g, ' ');   // a ZIP code is not a price
@@ -985,6 +990,18 @@ function _lpOtdFigureSent(d) {
         if (!LP_OTD_PHRASE_RE.test(sents[s])) continue;
         var figs = _lpMoneyFigures(sents[s].replace(/\$?\d[\d,]*\s*(?:miles|mi\b|k miles)/gi, ' '))
           .filter(function (f) { return f.value >= 5000; });
+        // (v9.7.735) THEIR NUMBER, SAID BACK TO THEM, IS NOT A PRICE WE QUOTED. Audi Lafayette lead
+        // 2049511947 (log258): the customer asked for "around $16,000" out the door on 7/13, and our 8/13
+        // email said "your $16,000 drive-out target". v9.7.734 read that as a figure we had sent. A figure
+        // framed as theirs (a target, a budget, "you mentioned") does not count, nor does one the customer
+        // wrote themselves when our sentence attributes it to them. Accepting their number ("36,800 out
+        // the door works") carries no such framing and still counts.
+        var _osAttr = /\byour\b|\byou\s+(?:mentioned|gave|said|asked|wanted|need|named|set)\b/i.test(sents[s]);
+        var _osTarget = /\b(?:target|budget|goal)\b/i.test(sents[s]);
+        if (_osTarget || _osAttr) {
+          var _osTheirs = _lpMoneyFigures(_lpCustomerText(d)).map(function (f) { return f.value; });
+          figs = figs.filter(function (f) { return !_osTarget && _osTheirs.indexOf(f.value) < 0; });
+        }
         if (!figs.length) continue;
         return { figure: figs[0].text, value: figs[0].value, date: ents[i].date, title: tag[2].trim(), text: body.slice(0, 240) };
       }
@@ -15702,6 +15719,18 @@ function _lpScraperBotAuthor(msg) {
           var qdir = (qn.getAttribute('data-direction')||'').toLowerCase();
           if (qdir !== 'inbound') continue;
           var qbody = ((qn.querySelector('.notes-and-history-item-content')||{}).innerText||'').trim();
+          // (v9.7.735) OUR MESSAGE, QUOTED UNDER THEIR REPLY, IS NOT THEIR QUESTION. Audi Lafayette lead
+          // 2049511947 (log258): "...would be around 1:30pm.On Tue, Jul 14, 2026 at 8:32PM <our address>
+          // wrote: Sure. What time were you thinking? AM appt or PM appt?" surfaced "AM appt or PM appt?"
+          // as the customer's open question. The quoted tail is cut before any question is looked for:
+          // an "On <day|month|date> ... wrote:" header (spaced or run together), an "<address> ... wrote:"
+          // header, or an Outlook "Original Message" separator.
+          qbody = qbody
+            .replace(/(^|[^A-Za-z])On\s+(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|\d{1,2}\/)[^\n]{0,200}?\bwrote:[\s\S]*$/i, '$1')
+            .replace(/([a-z])On\s+(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[^\n]{0,200}?\bwrote:[\s\S]*$/, '$1')
+            .replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}[^\n]{0,80}?\bwrote:[\s\S]*$/i, '')
+            .replace(/-{2,}\s*Original Message\s*-{2,}[\s\S]*$/i, '')
+            .trim();
           if (!qbody || qbody.length < 8) continue;
           // ── (v9.7.654) A QUESTION MARK WITH LETTERS TIGHT ON BOTH SIDES IS AN APOSTROPHE ─────
           // Antonio Cadena (Kia Baytown, lead 2079566626, 9/10). VinSolutions stores the CarGurus
@@ -15967,13 +15996,20 @@ function _lpScraperBotAuthor(msg) {
               if (hits >= _need) { answered = true; _closedBy = _isNote ? 'note' : 'outbound'; break; }
             }
           }
-          if (!answered) {
+          // (v9.7.735) ONCE THE CUSTOMER HAS GONE QUIET, THEIR OLD QUESTIONS ARE BACKGROUND. Audi Lafayette
+          // lead 2049511947 (log258): the customer last wrote 76 days ago, 20 of our messages followed, and
+          // the prompt still named a July question as "the highest-leverage move this message can make".
+          // The test is the customer's LATEST message being 14+ days old, not the question's own age: a
+          // customer who asked two weeks ago and wrote again today is still in a live conversation. The
+          // transcript keeps the question; the OPEN THREADS line and the SMS rewrite no longer push it.
+          var _uqStale = !answered && typeof sig.lastInboundAgeDays === 'number' && sig.lastInboundAgeDays >= 14;
+          if (!answered && !_uqStale) {
             sig.unansweredQuestions.push({ date: iq.date, question: iq.question, isObjection: iq.isObjection });
           }
           // (v9.7.654) A SILENT RESOLVER IS HOW A FALSE OPEN SHIPPED FOR MONTHS WITHOUT BEING SEEN.
           // One row per question carrying the verdict, the bar it had to clear and what cleared it,
           // so the next one is readable from a log instead of costing a prompt capture and a CRM dump.
-          _uqDiag.push((answered ? 'CLOSED-by-' + _closedBy : 'OPEN')
+          _uqDiag.push((answered ? 'CLOSED-by-' + _closedBy : (_uqStale ? 'STALE-14d+' : 'OPEN'))
             + ' need:' + (iq.isObjection ? 'customer-reply' : (qWords.length <= 3 ? 1 : 2))
             + ' words:' + qWords.length
             + ' "' + String(iq.question).slice(0, 60) + '"');
@@ -19684,7 +19720,20 @@ function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
   out.push('');
 
   var lastIn = String(d.lastInboundMsg || '').trim();
-  if (lastIn) {
+  // (v9.7.735) Audi Lafayette lead 2049511947 (log258): this pass was handed a 76-day-old "I need to
+  // postpone coming up there this afternoon" with no date on it, and the text that shipped opened "no
+  // worries about this afternoon". Past 14 days the message is shown as background, with its age.
+  var _rfAge = null;
+  try { _rfAge = d.relationshipSignals ? d.relationshipSignals.lastInboundAgeDays : null; } catch (eRfA) { _rfAge = null; }
+  var _rfOld = (typeof _rfAge === 'number') && _rfAge >= 14;
+  if (lastIn && _rfOld) {
+    out.push('\u2501\u2501\u2501 WHAT THE CUSTOMER LAST SAID \u2014 ' + Math.round(_rfAge) + ' DAYS AGO, BACKGROUND ONLY \u2501\u2501\u2501');
+    out.push('"' + lastIn.replace(/"/g, "'").slice(0, 400) + '"');
+    out.push('That was ' + Math.round(_rfAge) + ' days ago and we have written to them since. The moment it was about has passed: '
+      + 'do NOT answer it, do NOT refer to its day or time words ("this afternoon", "tomorrow") as current, and do NOT '
+      + 'pick up its thread as if it were live. The email above is the message this text goes with.');
+    out.push('');
+  } else if (lastIn) {
     out.push('\u2501\u2501\u2501 WHAT THE CUSTOMER LAST SAID, IN THEIR OWN WORDS \u2501\u2501\u2501');
     out.push('"' + lastIn.replace(/"/g, "'").slice(0, 400) + '"');
     out.push('');
@@ -23745,7 +23794,19 @@ function buildUserPrompt(data) {
         // next step. (v9.7.429/427) Bare "i'm good" (a brush-off, not a condition) and "we
         // might be able to work" (classic agent copy) removed; the conditional
         // "then i'm good/done/in" form still matches the real case.
+        // (v9.7.735) A CONDITION IS LIVE ONLY WHILE IT IS RECENT. Audi Lafayette lead 2049511947 (log258):
+        // "I would be a buyer if you could keep the price out the door around $16,000" was written on 7/13,
+        // the customer last wrote 76 days ago, and 20 of our messages followed. The trigger still told the
+        // model "they are waiting on a YES/NO answer to THAT" and forbade the visit ask. With no customer
+        // message in 14 days, neither trigger fires; the arc still carries what they said.
+        var _ddAge = null;
+        try { _ddAge = data && data.relationshipSignals ? data.relationshipSignals.lastInboundAgeDays : null; } catch (eDdA) { _ddAge = null; }
+        var _ddStale = (typeof _ddAge === 'number') && _ddAge >= 14;
         var _ddDealCondition = !_ddExitPause && /(if\s+you\s+(guys\s+)?can\s+(beat|match|get|do|come)|unless\s+you\s+can|beat\s+(that|it|this)\s+by|out\s*the\s*door\s+(then|or)|then\s+(i.?m|we.?re|we\s+might)\s+(good|done|in))/i.test(_ddCustArc);
+        if (_ddStale && (_ddDealCondition || _ddDeadline)) {
+          try { console.log('[LP DEAL-TRIGGER DIAG] STALE — the customer last wrote ' + _ddAge + 'd ago (14d limit); dealCondition:' + _ddDealCondition + ' deadline:' + _ddDeadline + ' not fired'); } catch (eDdS) {}
+          _ddDealCondition = false; _ddDeadline = false;
+        }
         // (v9.7.364 — Finding 1) TRADE-VALUE request: customer wants to know what their trade is
         // worth. Agents reject "come in for an appraisal" when the customer asked for a NUMBER.
         // (NEG2 Mustang, NEG4 Terrain). Require a trade/value cue AND a request-for-number cue so we

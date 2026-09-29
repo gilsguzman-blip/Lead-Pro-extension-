@@ -22,15 +22,20 @@ function check(name, fn, want) {
   else { fail++; console.log('  FAIL ' + name + '\n        expected ' + w + '\n        got      ' + g); }
 }
 const OTD = '36800 is the out the door price when can you come in ?';
+// (v9.7.735) Dates are relative to the clock: a figure 14+ days old no longer counts as just sent, so a
+// fixed 9/26 date would age this suite out of what it tests. Same fix as log244-710 (v9.7.723).
+const ago = (days, hm) => { const t = new Date(Date.now() - days * 86400000);
+  return String(t.getMonth() + 1).padStart(2, '0') + '/' + String(t.getDate()).padStart(2, '0') + '/' + t.getFullYear() + ' ' + hm; };
+const D0 = ago(0.1, '9:43 AM'), D2 = ago(2, '12:51 PM'), D2b = ago(2, '1:10 PM'), D2c = ago(2, '12:40 PM'), D3 = ago(3, '4:45 PM'), D3b = ago(3, '4:36 PM'), D3c = ago(3, '4:22 PM');
 // newest first, the way the brief is built; entries above the marker are the current lead
 const brief = (above, below) => 'CONVERSATION TRANSCRIPT (newest first):\n---\n'
-  + '[09/28/2026 9:43 AM] [AGENT] Outbound phone call (Machine)\n  By: Rep Name Left message\n'
+  + '[' + D0 + '] [AGENT] Outbound phone call (Machine)\n  By: Rep Name Left message\n'
   + (above || '')
-  + '[09/25/2026 4:45 PM] [CUSTOMER] Inbound Text Message\n  I need to see the numbers\n'
-  + '[09/25/2026 4:36 PM] [CALL NOTE] Outbound phone call (Contacted)\n  By: Agent Name Wants line item drive out sent via text\n'
-  + '[09/25/2026 4:22 PM] [=== CURRENT LEAD SUBMITTED HERE ===]\n'
+  + '[' + D3 + '] [CUSTOMER] Inbound Text Message\n  I need to see the numbers\n'
+  + '[' + D3b + '] [CALL NOTE] Outbound phone call (Contacted)\n  By: Agent Name Wants line item drive out sent via text\n'
+  + '[' + D3c + '] [=== CURRENT LEAD SUBMITTED HERE ===]\n'
   + (below || '') + '---\n';
-const text = (body, who) => '[09/26/2026 12:51 PM] [' + (who || 'AGENT') + '] ' + (who === 'CUSTOMER' ? 'Inbound' : 'Outbound') + ' Text Message\n  ' + body + '\n';
+const text = (body, who) => '[' + D2 + '] [' + (who || 'AGENT') + '] ' + (who === 'CUSTOMER' ? 'Inbound' : 'Outbound') + ' Text Message\n  ' + body + '\n';
 
 for (const f of BUILDS) {
   console.log('\n' + path.basename(path.dirname(f)) + '/' + path.basename(f));
@@ -40,7 +45,7 @@ for (const f of BUILDS) {
   console.log(' 1. an out-the-door figure of ours on this lead:');
   check('the lead-2090083618 text: "36800 is the out the door price" -> 36800', () => sent(brief(text(OTD))), '36800');
   check('a call note of ours that records a quoted OTD counts too', () =>
-    sent(brief('[09/26/2026 1:10 PM] [CALL NOTE] Outbound phone call (Contacted)\n  By: Rep Name Gave him 29,900 OTD, he will think it over\n')), '29,900');
+    sent(brief('[' + D2b + '] [CALL NOTE] Outbound phone call (Contacted)\n  By: Rep Name Gave him 29,900 OTD, he will think it over\n')), '29,900');
   check('the figure next to the phrase, not a mileage in the same sentence', () => sent(brief(text('It has 21,400 miles and the out the door is $31,500.'))), '31,500');
   check('control: the customer typing a total is not ours', () => sent(brief(text('Is it 36800 out the door?', 'CUSTOMER'))), null);
   check('control: an out-the-door promise with no figure', () => sent(brief(text('I can get you an exact out the door total when you come in.'))), null);
@@ -61,7 +66,7 @@ for (const f of BUILDS) {
   const policy = (s) => (s.match(/STORE POLICY — OUT-THE-DOOR PRICING[\s\S]*?(?=\n\n)/) || [''])[0];
   const pp = policy(p);
   check('the policy says a figure already went out and quotes our message', () =>
-    [/ON THIS LEAD A FIGURE HAS ALREADY GONE OUT\. Our outbound text message of 09\/26\/2026 12:51 PM said: "36800 is the out the door price/.test(pp)], [true]);
+    [pp.indexOf('ON THIS LEAD A FIGURE HAS ALREADY GONE OUT. Our outbound text message of ' + D2 + ' said: "36800 is the out the door price') >= 0], [true]);
   check('...no re-explaining, no different total, pick up from it with the line-by-line breakdown in person', () =>
     [/Do NOT re-explain why we do not quote a total/.test(pp), /Do NOT state a different total/.test(pp),
      /line-by-line breakdown behind that total/.test(pp), /Your Sales Representative, Rep will walk them through it in person/.test(pp)], [true, true, true, true]);
@@ -71,7 +76,7 @@ for (const f of BUILDS) {
     const q = policy(prompt(brief()));
     return [/\(2\) Explain: The exact total depends on the parish/.test(q), /\(5\) Close with two specific appointment times/.test(q), /ALREADY GONE OUT/.test(q)]; }, [true, true, false]);
   check('distance buyer with a figure sent: the call-based policy stays, with the already-sent override', () => {
-    const b = brief(text(OTD) + '[09/26/2026 12:40 PM] [NOTE] General Note\n  By: Agent Name Customer asked about delivery to Houston, TX\n');
+    const b = brief(text(OTD) + '[' + D2c + '] [NOTE] General Note\n  By: Agent Name Customer asked about delivery to Houston, TX\n');
     const q = policy(prompt(b));
     return [/\(DISTANCE BUYER\)/.test(q), /ALREADY GONE OUT/.test(q), /This overrides step \(2\) above/.test(q)]; }, [true, true, true]);
   check('control: a store without the OTD policy gets no policy block either way', () =>
