@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.736-dev (Dev. A CUSTOMER QUIET FOR 14+ DAYS: THE REST OF THE PROMPT STOPS POINTING AT WHAT THEY SAID BEFORE. Extension only; proxy v7.81 and reporter v1.23 unchanged. Audi Lafayette lead 2049511947, 9/29 (log259, capture d90b6e6c): v9.7.735's four gates all fired (deal trigger STALE, no already-sent OTD, no open questions), and the draft still opened on the customer's July $16,000 target, explained the parish and offered two times today. Gil: 'Still a bad miss.' Four more places fed July in, none aware he last wrote 76 days ago. (1) RELATIONSHIP READING, FRICTION: 'lead with their stated number as the goal' (budget) and the pricing-concern line are replaced, once the customer is quiet 14+ days, by one line saying the target or concern is background and not to lead with or restate it. (2) OPEN THREADS: customer and agent commitments dated 14+ days ago are not listed once the customer is quiet 14+ days (his 7/15 'I will email you later today'). (3) Honda/Audi Lafayette OTD policy: with the customer quiet 14+ days, the short form -- the store does not quote OTD, nobody is asking now, do not raise it -- replaces the 'when a customer asks' steps; the full policy returns the moment they write. (4) TOUCH POSITION: one plain line, 'THEIR LAST MESSAGE WAS N DAYS AGO', saying what they asked, offered or planned before then is background, and to close on an easy question rather than a pair of times; only on a customer who has written. Same 14-day line as v9.7.735. Replayed on the dump: the four July directives are gone and the three new lines are in. Not verified against a live generation from here. Tests: new quiet-customer-736 (9 per build; 4 fail on v9.7.735, the 5 controls pass on both). run-all: 157 suites, 6,886 assertions, 0 failed.)
 // Lead Pro -- popup.js  v9.7.735-dev (Dev. A CONVERSATION THAT WENT QUIET IN JULY IS NOT ANSWERED AS IF IT WERE THIS MORNING. Extension only; proxy v7.81 and reporter v1.23 unchanged. Audi Lafayette lead 2049511947, 9/29 (log258, capture faeb4120, dump 7d489fc3): the customer last wrote 76 days ago and 20 of our messages followed, yet the text that shipped opened 'no worries about this afternoon' (his 7/15 postponement) and said 'I don't have an AM or PM appointment time to confirm yet' (our own 7/14 question, quoted under his reply). Gil: 'a lot of nothing has gone by since last contact but the message reads from an exchange back in July.' (1) _lpOtdFigureSent (v9.7.734, my own misfire): a figure framed as the customer's (target, budget, 'your', 'you mentioned') that they wrote themselves is not a price we sent, and a price we sent 14+ days ago no longer switches the OTD policy to follow-up mode. Accepting their number still counts. (2) DEAL/INFO trigger: with the customer's last message 14+ days old, the deal-condition and deadline hard rules do not fire ([LP DEAL-TRIGGER DIAG] STALE). (3) SMS refine pass: a last message 14+ days old is shown with its age as background, with instructions not to answer it or treat its day words as current. (4) Open-question collector (scraper): the quoted tail of a reply ('On <date> ... wrote:', spaced or run together; '<address> wrote:'; Outlook 'Original Message') is cut before questions are looked for, and once the customer's latest message is 14+ days old their unanswered questions are logged STALE-14d+ and not surfaced. The test is the customer's last message, not the question's age: a customer who asked two weeks ago and wrote today is still live (open-thread-resolver's Carlos fixture caught the first version, which used the question's age). Replayed on the dump: the deal-condition hard rule, the false 'AM appt or PM appt?' open thread and the already-sent OTD block are gone; the standard OTD policy returns. Tests: new stale-thread-735 (14 per build; 8 fail on v9.7.734, the 6 controls pass on both); otd-sent-734 dates made relative to the clock. run-all: 156 suites, 6,868 assertions, 0 failed.)
 // Lead Pro -- popup.js  v9.7.734-dev (Dev. AN OUT-THE-DOOR FIGURE WE ALREADY SENT IS PICKED UP, NOT EXPLAINED AWAY. Extension only; proxy v7.81 and reporter v1.22 unchanged. Honda Lafayette lead 2090083618, 9/28 (log256, capture 2756ab1e, dump 8db4807f): on the call the customer asked for the line-item drive-out by text, and on 9/26 a text of ours said '36800 is the out the door price when can you come in ?'. The store's OTD policy block still told the draft to explain why we do not quote a total, so the 9/28 draft said 'the total depends on your registration parish, eligible incentives, and whether you have a trade'. Gil: 'This message doesn't flow like a follow up from the last message sent about OTD for the unit.' (1) New _lpOtdFigureSent(d): the newest current-lead message or note of ours (above the lead marker, never a CUSTOMER entry, only the entry's indented body) whose own sentence pairs an out-the-door phrase with a figure of $5,000 or more; mileage and ZIP codes are not figures. (2) Honda/Audi Lafayette OTD policy: with a figure sent, the block quotes our message and says not to re-explain the parish/incentives/trade, not to state a different total or add figures, to pick up from the number with the line-by-line breakdown in person with the sales rep, and to close with one clear ask; the no-figure steps (explain, two times) drop out. The distance-buyer variant keeps its call-based steps and adds the same override. No figure sent: unchanged. [LP OTD SENT DIAG] logs the decision. Replayed on the dump: only the policy block changes, and it quotes the 9/26 text. Tests: new otd-sent-734 (15 per build; 13 fail on v9.7.733, the 2 prompt controls pass on both). run-all: 154 suites, 6,833 assertions, 0 failed.)
 // Lead Pro -- popup.js  v9.7.733-dev (Dev. THE NEW-CAR OFFER ON A LEAD WITH NO VEHICLE: A 'USED' CONDITION IS A DEFAULT. Extension only; proxy v7.81 and reporter v1.22 unchanged. Honda Lafayette lead 2090666084, 9/28 (log254, capture 1626b7e2, dump bb327649): the customer claimed '$1,000 OFF MSRP on All New Hondas!' and the vehicle panel read '(Used)' with no vehicle behind it. The 8:41 AM text said 'the $1,000 offer is for new Hondas, so it won't apply to a pre-owned one', and after the customer named an HR-V EX-L in white the 9:12 AM draft called it a 'white pre-owned HR-V EX-L'. Gil: 'The customer's VOI just said used initially which I think was just a default and not the actual choice. The message should be more about taking advantage of the $1000 off on a new car's MSRP and finding out what model/trim they are looking for.' (1) _lpImxOfferGuidance: 'the vehicle on this lead is PRE-OWNED, so the offer does NOT apply' now needs an actual vehicle on the lead; a condition field alone never triggers it. With no vehicle, the new-car guidance says the $1,000 is theirs on the new [make] they choose (final eligibility confirmed in person), to lead with that and find out the model and trim, and not to say it does not apply to pre-owned. (2) New _lpImxOfferKind classifies the claimed offer (new / pre / other). In populateFromData, with no vehicle on file and the NEW-car offer claimed, a used/pre-owned condition is flagged as the lead's default: the Condition line says so and says not to call what they want pre-owned, and the named-model line (v9.7.725) treats a model they name as a new one instead of 'this lead is for a PRE-OWNED vehicle'. The pre-owned offer and non-IdentityMax leads are unchanged. Replayed on the dump with the condition set back to Pre-Owned: v9.7.731 printed 'Condition: Pre-Owned' and 'the vehicle on this lead (pre-owned) is PRE-OWNED, so the offer does NOT apply'; this build prints the default note and 'the $1,000 is theirs on the new Honda they choose'. Tests: new imx-newoffer-733 (9 per build; the 5 new fail on v9.7.732, the 4 controls pass on both); imx-noappt-720 unchanged and green. run-all: 153 suites, 6,803 assertions, 0 failed.)
@@ -20598,6 +20599,22 @@ function renderRelationshipReading(data) {
     });
     frictionBits.push('Customer has expressed frustration before: ' + frustExamples.join(' / ') + '. Lead with empathy, never push, do not match heat.');
   }
+  // (v9.7.736) ONCE THE CUSTOMER HAS BEEN QUIET 14+ DAYS, WHAT THEY SAID BEFORE IS BACKGROUND. Audi Lafayette
+  // lead 2049511947 (log259): 76 days after his last message, this section still said to "lead with their
+  // stated number as the goal", and OPEN THREADS listed his 7/15 "I will email you later today". The draft
+  // led with the $16,000 again. Same 14-day line as v9.7.735 (deal trigger, refine pass, open questions).
+  var _rrQuietDays = (typeof s.lastInboundAgeDays === 'number' && s.lastInboundAgeDays >= 14) ? Math.round(s.lastInboundAgeDays) : 0;
+  var _rrFresh = function (c) {
+    if (!_rrQuietDays) return true;
+    var t = Date.parse(String((c && c.date) || ''));
+    return !(isFinite(t) && (Date.now() - t) / 86400000 >= 14);
+  };
+  var _rrMoneyBackground = 'Customer stated a budget, price or OTD target, or raised a pricing concern, before they went quiet '
+    + _rrQuietDays + ' days ago. It is background from a conversation that stalled, not this message\'s subject: do NOT lead with '
+    + 'their number, restate it, or open on the pricing question.';
+  if (_rrQuietDays && (s.hasPricingFriction || (window._leadProMentionsCashOrOffer && ['first-touch','active-follow-up','call-follow-up'].indexOf(data.convState) !== -1))) {
+    frictionBits.push(_rrMoneyBackground);
+  } else
   if (s.hasPricingFriction) {
     var poExamples = s.priorPricingObjections.slice(0,2).map(function(p){
       return '"' + p.sentence.replace(/"/g,"'").substring(0,100) + '"' + (p.date ? ' (' + p.date + ')' : '');
@@ -20605,7 +20622,7 @@ function renderRelationshipReading(data) {
     frictionBits.push('Customer has raised a PRICING concern that is still open: ' + poExamples.join(' / ') + '. Read which kind it is. If they cannot afford it / want a lower payment, do not pile on price pressure — frame value and offer to work numbers in person. If they are challenging the price against market/book value (e.g. above KBB, more than it is worth), that is a VALUATION question they want ANSWERED, not avoided — engage it directly (what makes this unit worth it: trim, equipment, condition, recent reduction) before pivoting to a visit. Either way, do not ignore it.');
   }
   // (v9.7.315) BUDGET-STATED FRAMING
-  if (window._leadProMentionsCashOrOffer && ['first-touch','active-follow-up','call-follow-up'].indexOf(data.convState) !== -1) {
+  if (!_rrQuietDays && window._leadProMentionsCashOrOffer && ['first-touch','active-follow-up','call-follow-up'].indexOf(data.convState) !== -1) {
     frictionBits.push('Customer has stated a specific budget, payment, or OTD target. Agents cannot commit to exact numbers over text — keep the hedge — but lead with their stated number as the goal before explaining it needs to be confirmed in person. Do not open with a clarifying question about the number or pivot straight to scheduling as if the number was not mentioned. Acknowledge their target first, then move toward confirming it in person.');
   }
   if (frictionBits.length) {
@@ -20686,14 +20703,15 @@ function renderRelationshipReading(data) {
   // (v9.7.81) FORWARD -- open commitments and unanswered questions. These are
   // the threads the conversation expected to continue but may not have.
   var forwardBits = [];
-  if (s.customerCommitments.length > 0) {
-    var ccExamples = s.customerCommitments.slice(-2).map(function(c){
+  var _rrCc = s.customerCommitments.filter(_rrFresh), _rrAc = s.agentCommitments.filter(_rrFresh);
+  if (_rrCc.length > 0) {
+    var ccExamples = _rrCc.slice(-2).map(function(c){
       return '"' + c.sentence.replace(/"/g,"'").substring(0,100) + '"' + (c.date ? ' (' + c.date + ')' : '');
     });
     forwardBits.push('Customer said they would do something: ' + ccExamples.join(' / ') + '. If this never followed through, the conversation has an open loop on their side.');
   }
-  if (s.agentCommitments.length > 0) {
-    var acExamples = s.agentCommitments.slice(-2).map(function(c){
+  if (_rrAc.length > 0) {
+    var acExamples = _rrAc.slice(-2).map(function(c){
       return '"' + c.sentence.replace(/"/g,"'").substring(0,100) + '"' + (c.date ? ' (' + c.date + ')' : '');
     });
     forwardBits.push('Agent committed to do something: ' + acExamples.join(' / ') + '. Check if this commitment was fulfilled in subsequent outbound. If not, address it or honor it before asking for anything new.');
@@ -22955,6 +22973,8 @@ function buildUserPrompt(data) {
         ? 'figure already sent: ' + _otdSent.figure + ' | ' + _otdSent.date + ' ' + _otdSent.title + ' | policy switched to follow-up mode'
         : 'no out-the-door figure in our current-lead messages or notes | standard policy'));
     } catch (eOsD) {}
+    var _otdQuietDays = 0;
+    try { var _oqA = data.relationshipSignals ? data.relationshipSignals.lastInboundAgeDays : null; if (typeof _oqA === 'number' && _oqA >= 14) _otdQuietDays = Math.round(_oqA); } catch (eOq) {}
     var _otdSentLines = _otdSent
       ? 'ON THIS LEAD A FIGURE HAS ALREADY GONE OUT. Our ' + (_otdSent.title || 'message').toLowerCase() + ' of ' + _otdSent.date + ' said: "' + _otdSent.text.replace(/"/g, "'") + '". The customer has that number, so the steps for a customer who has none do not apply:\n'
         + '  (1) Do NOT re-explain why we do not quote a total (the parish, incentives, a trade), and do NOT write as though they are still waiting for a number. After we sent one, that reads as taking it back.\n'
@@ -22974,6 +22994,12 @@ function buildUserPrompt(data) {
         + 'It is fine to discuss what is possible remotely (photos, video walkaround, remote paperwork, transport coordination) once the deal is moving.\n'
         + 'NEVER quote a specific dollar OTD total or tax/fee breakdown over text \u2014 move it to the call.'
         + (_otdSent ? '\n' + _otdSentLines + 'This overrides step (2) above; the call is where they get the line-by-line breakdown behind that figure.' : '');
+    } else if (_otdQuietDays) {
+    // (v9.7.736) The steps below are for a customer asking now. 14+ days after their last message nobody is,
+    // and on lead 2049511947 they walked a 76-day-old request through "explain the parish, close with two times".
+    _lafOTDPolicy = 'STORE POLICY \u2014 OUT-THE-DOOR PRICING: This store does not provide out-the-door or drive-out totals over text or phone. '
+      + 'The customer has not written in ' + _otdQuietDays + ' days, so nobody is asking for one now: do NOT raise out-the-door pricing, the parish, '
+      + 'incentives or a breakdown yourself in this message. If they ask again, answer that reply under the full policy.';
     } else if (_otdSent) {
     _lafOTDPolicy = 'STORE POLICY \u2014 OUT-THE-DOOR PRICING: This store does not build out-the-door or drive-out totals over text or phone.\n'
       + _otdSentLines
@@ -24793,6 +24819,18 @@ function buildUserPrompt(data) {
       ageBlock.push('Phase: ' + _phase);
       ageBlock.push('Attempt density: ' + _attemptDensity);
       if (_touchRole) ageBlock.push('Touch role: ' + _touchRole + ' (apply the TOUCH ROLE definition for this role from your system prompt — it defines what THIS message is for)');
+      // (v9.7.736) THE ONE PLACE THAT SAYS HOW OLD THE CONVERSATION IS. Lead 2049511947 (log259): the
+      // customer last wrote 76 days ago and every draft still answered July. The helpers that fed July in
+      // are gated at 14 days (v9.7.735/736); this line says so to the model in plain words.
+      try {
+        var _tpQuiet = data.relationshipSignals ? data.relationshipSignals.lastInboundAgeDays : null;
+        if (data.hasCustomerReply && typeof _tpQuiet === 'number' && _tpQuiet >= 14) {
+          ageBlock.push('⏳ THEIR LAST MESSAGE WAS ' + Math.round(_tpQuiet) + ' DAYS AGO. Everything they asked, offered or planned before then '
+            + '(a price target, an appointment time, a question, a promise to get back to us) is background from a conversation that went quiet. '
+            + 'Do NOT make any of it this message\'s subject, restate it, or answer it as though it were still pending. Write the touch this '
+            + 'phase and role call for: one fresh, current reason to reply, closed with an easy question rather than a pair of appointment times.');
+        }
+      } catch (eTpQ) {}
       // (v9.7.356) Arc-first: do not assert reply-state as a fact the model must obey. Point it at
       // the transcript to read engagement directly — the conversation is the ground truth, not this
       // derived flag (which has misfired: empty/partial scrapes, agent-note pollution, late renders).
