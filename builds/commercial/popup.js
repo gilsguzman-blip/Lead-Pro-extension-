@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.737 (Commercial. THE QUIET-CUSTOMER SWEEP: ONE CLOCK, ONE OWNER RULE AT THE TOP, AND EVERY BLOCK THAT POINTED AT THE PAST STANDS DOWN. Extension only; proxy v7.81 and reporter v1.23 unchanged. Audi Lafayette lead 2049511947, 9/29 (log260, capture dcb48525): the fourth build on this lead, customer 76 days quiet, and the draft opened 'Click & Go gives us a useful starting point for finding the right Corolla to match your payment' -- the Click & Go block said 'ACKNOWLEDGE THEM' and 'LEAD WITH WHAT THEY ALREADY DID ... the substance of this message', and v9.7.736's quiet line sat below it. Gil: 'build the full sweep ... This has taken too many builds to resolve.' Method: the lead's whole prompt was rebuilt from the dump and read end to end, and every block that pointed at the past or pushed a booking was gated on one clock. (1) _lpQuietDays(d): the customer's newest message 14+ days old (their clock, not ours -- the old long-dormant close rule keyed on days since OUR contact and never fired on a lead we kept calling). (2) OWNER RULE first in the prompt, after DATE/LEAD AGE: they last wrote N days ago and M of our messages went unanswered; everything before is background, by category (online session, source, price or target, question, appointment plan, promises); any block below saying lead with / acknowledge / answer / honor / mention stands down; the job is one true current reason to reply -- the in-stock alternative the vehicle block surfaced (_lpQuietFreshReason), offered alongside the car they asked about, else whether they are still looking -- closed on one easy question, with no appointment times at 30+ days. Replaces v9.7.736's touch-position line. (3) Click & Go: the session becomes one background line, the figures are not shown, and the LEAD WITH / progress-angle rules are filtered where the rules render. (4) At 30+ days: suggested times, the urgency/timing script and 'today is the default' are withheld (APPOINTMENT TIMES WITHHELD). (5) Customer-engagement line, RULES #1, relationship-reading interpretations (pricing, commitments, recurring topic), the variant-mismatch warning and the scraper's CONCERNS/COMMITMENTS headers all read the same clock; the scraper scans every note for the newest inbound, since a quiet customer's last message sits under our unanswered sends. (6) The SMS rewrite is told the same. Replayed: every July directive gone from lead 2049511947's prompt (the $16,000 remains only in the transcript); five other captured live leads (df7d4efa, 39babb78, 2ff0333e, bb327649, 50f9051e) produce byte-identical prompts. Along the way: call sites guarded with typeof (variant-token and arc-dedupe slice code into sandboxes); refine-prohibitions caught a 'short' size word in the owner rule (Gil, 9/22), removed. Not verified against a live generation from here. Tests: new quiet-sweep-737 (14 per build; 10 fail on v9.7.736, the 4 controls pass on both); quiet-customer-736 updated for the moved line. run-all: 158 suites, 6,914 assertions, 0 failed.)
 // Lead Pro -- popup.js  v9.7.736 (Commercial. A CUSTOMER QUIET FOR 14+ DAYS: THE REST OF THE PROMPT STOPS POINTING AT WHAT THEY SAID BEFORE. Extension only; proxy v7.81 and reporter v1.23 unchanged. Audi Lafayette lead 2049511947, 9/29 (log259, capture d90b6e6c): v9.7.735's four gates all fired (deal trigger STALE, no already-sent OTD, no open questions), and the draft still opened on the customer's July $16,000 target, explained the parish and offered two times today. Gil: 'Still a bad miss.' Four more places fed July in, none aware he last wrote 76 days ago. (1) RELATIONSHIP READING, FRICTION: 'lead with their stated number as the goal' (budget) and the pricing-concern line are replaced, once the customer is quiet 14+ days, by one line saying the target or concern is background and not to lead with or restate it. (2) OPEN THREADS: customer and agent commitments dated 14+ days ago are not listed once the customer is quiet 14+ days (his 7/15 'I will email you later today'). (3) Honda/Audi Lafayette OTD policy: with the customer quiet 14+ days, the short form -- the store does not quote OTD, nobody is asking now, do not raise it -- replaces the 'when a customer asks' steps; the full policy returns the moment they write. (4) TOUCH POSITION: one plain line, 'THEIR LAST MESSAGE WAS N DAYS AGO', saying what they asked, offered or planned before then is background, and to close on an easy question rather than a pair of times; only on a customer who has written. Same 14-day line as v9.7.735. Replayed on the dump: the four July directives are gone and the three new lines are in. Not verified against a live generation from here. Tests: new quiet-customer-736 (9 per build; 4 fail on v9.7.735, the 5 controls pass on both). run-all: 157 suites, 6,886 assertions, 0 failed.)
 // Lead Pro -- popup.js  v9.7.735 (Commercial. A CONVERSATION THAT WENT QUIET IN JULY IS NOT ANSWERED AS IF IT WERE THIS MORNING. Extension only; proxy v7.81 and reporter v1.23 unchanged. Audi Lafayette lead 2049511947, 9/29 (log258, capture faeb4120, dump 7d489fc3): the customer last wrote 76 days ago and 20 of our messages followed, yet the text that shipped opened 'no worries about this afternoon' (his 7/15 postponement) and said 'I don't have an AM or PM appointment time to confirm yet' (our own 7/14 question, quoted under his reply). Gil: 'a lot of nothing has gone by since last contact but the message reads from an exchange back in July.' (1) _lpOtdFigureSent (v9.7.734, my own misfire): a figure framed as the customer's (target, budget, 'your', 'you mentioned') that they wrote themselves is not a price we sent, and a price we sent 14+ days ago no longer switches the OTD policy to follow-up mode. Accepting their number still counts. (2) DEAL/INFO trigger: with the customer's last message 14+ days old, the deal-condition and deadline hard rules do not fire ([LP DEAL-TRIGGER DIAG] STALE). (3) SMS refine pass: a last message 14+ days old is shown with its age as background, with instructions not to answer it or treat its day words as current. (4) Open-question collector (scraper): the quoted tail of a reply ('On <date> ... wrote:', spaced or run together; '<address> wrote:'; Outlook 'Original Message') is cut before questions are looked for, and once the customer's latest message is 14+ days old their unanswered questions are logged STALE-14d+ and not surfaced. The test is the customer's last message, not the question's age: a customer who asked two weeks ago and wrote today is still live (open-thread-resolver's Carlos fixture caught the first version, which used the question's age). Replayed on the dump: the deal-condition hard rule, the false 'AM appt or PM appt?' open thread and the already-sent OTD block are gone; the standard OTD policy returns. Tests: new stale-thread-735 (14 per build; 8 fail on v9.7.734, the 6 controls pass on both); otd-sent-734 dates made relative to the clock. run-all: 156 suites, 6,868 assertions, 0 failed.)
 // Lead Pro -- popup.js  v9.7.734 (Commercial. AN OUT-THE-DOOR FIGURE WE ALREADY SENT IS PICKED UP, NOT EXPLAINED AWAY. Extension only; proxy v7.81 and reporter v1.22 unchanged. Honda Lafayette lead 2090083618, 9/28 (log256, capture 2756ab1e, dump 8db4807f): on the call the customer asked for the line-item drive-out by text, and on 9/26 a text of ours said '36800 is the out the door price when can you come in ?'. The store's OTD policy block still told the draft to explain why we do not quote a total, so the 9/28 draft said 'the total depends on your registration parish, eligible incentives, and whether you have a trade'. Gil: 'This message doesn't flow like a follow up from the last message sent about OTD for the unit.' (1) New _lpOtdFigureSent(d): the newest current-lead message or note of ours (above the lead marker, never a CUSTOMER entry, only the entry's indented body) whose own sentence pairs an out-the-door phrase with a figure of $5,000 or more; mileage and ZIP codes are not figures. (2) Honda/Audi Lafayette OTD policy: with a figure sent, the block quotes our message and says not to re-explain the parish/incentives/trade, not to state a different total or add figures, to pick up from the number with the line-by-line breakdown in person with the sales rep, and to close with one clear ask; the no-figure steps (explain, two times) drop out. The distance-buyer variant keeps its call-based steps and adds the same override. No figure sent: unchanged. [LP OTD SENT DIAG] logs the decision. Replayed on the dump: only the policy block changes, and it quotes the 9/26 text. Tests: new otd-sent-734 (15 per build; 13 fail on v9.7.733, the 2 prompt controls pass on both). run-all: 154 suites, 6,833 assertions, 0 failed.)
@@ -969,6 +970,25 @@ function _lpUnquotedFigure(d) {
 // read (never Lead Pro scaffold glued after it), and customer entries never count: a total they typed is
 // theirs, not ours (see _lpUnquotedFigure).
 var LP_OTD_PHRASE_RE = /out[- ]?the[- ]?door|\botd\b|drive[- ]?out|total (?:price|cost|amount)|precio total|total de salida/i;
+// (v9.7.737) HOW LONG THE CUSTOMER HAS BEEN QUIET, ON THE CUSTOMER'S CLOCK. 0 unless they have written to us
+// and their newest message is 14+ days old. The one reading every "is this still live?" gate in the prompt uses:
+// v9.7.735/736 each carried their own copy of this test, and lead 2049511947 needed four builds because the
+// blocks that never asked it kept pointing the draft at July. Our own sends do not reset it: the old
+// long-dormant close rule keyed on days since OUR last contact and never fired on a lead we kept calling.
+function _lpQuietDays(d) {
+  try {
+    var a = d && d.relationshipSignals ? d.relationshipSignals.lastInboundAgeDays : null;
+    return (d && d.hasCustomerReply && typeof a === 'number' && a >= 14) ? Math.round(a) : 0;
+  } catch (e) { return 0; }
+}
+// The one current fact this lead can offer a quiet customer: an in-stock alternative the vehicle block surfaced.
+function _lpQuietFreshReason(ctx) {
+  try {
+    var m = String(ctx || '').match(/SIMILAR VEHICLES IN STOCK[^:]*:\s*([^\n]*?)\.\s*Use this ONLY/)
+         || String(ctx || '').match(/ALTERNATE CONDITION AVAILABLE[^:]*:[^:]*:\s*([^\n]*?)\.\s*Mention this ONLY/);
+    return m ? m[1].trim() : '';
+  } catch (e) { return ''; }
+}
 function _lpOtdFigureSent(d) {
   try {
     var src = String((d && d.conversationBrief) || '') + '\n' + String((d && d.context) || '');
@@ -7758,6 +7778,8 @@ function populateFromData(d) {
         }
       }
     }
+    // (v9.7.737) On a customer quiet 14+ days, what they called the car back then is background.
+    if (_vmOtherVariant && (typeof _lpQuietDays === 'function' ? _lpQuietDays(d) : 0)) { try { console.log('[LP VARIANT-MISMATCH DIAG] suppressed — customer quiet ' + (typeof _lpQuietDays === 'function' ? _lpQuietDays(d) : 0) + 'd; "' + _vmOtherVariant + '" is background'); } catch (eVmQ) {} _vmOtherVariant = ''; }
     if (_vmOtherVariant) {
       var _vmPowertrainRx = /\b(4xe|phev|plug-?in|hybrid|ev|electric|diesel)\b/i;
       var _vmIsPowertrain = _vmPowertrainRx.test(_vmOtherVariant) || _vmPowertrainRx.test(_voiTrimTail);
@@ -14484,12 +14506,29 @@ function _lpScraperBotAuthor(msg) {
         || recentInboundText.match(/need to (check|talk|ask|think|discuss).{0,40}/i);
       if(pendingDecision) customerCommitments.push('PENDING DECISION: Customer said - "' + pendingDecision[0].trim().substring(0,80) + '". Acknowledge where they left off. Do not skip past this - ask if they had a chance to [check/talk/decide].');
 
+      // (v9.7.737) Once the customer's newest message is 14+ days old these are background, not the opening.
+      // Lead 2049511947: "PRICE/PAYMENT CONCERN ... Open by addressing this directly" from July, 76 days on.
+      var _ccQuiet = 0;
+      try {
+        // every note, not the 10-note window above: a quiet customer's last message sits under our unanswered sends
+        var _ccNewest = 0;
+        for (var _cci = 0; _cci < noteEls.length; _cci++) {
+          if ((noteEls[_cci].getAttribute('data-direction') || '').toLowerCase() !== 'inbound') continue;
+          var _ccT = new Date(((noteEls[_cci].querySelector('.notes-and-hsitory-item-date') || {}).innerText || '').trim()).getTime();
+          if (_ccT > _ccNewest) _ccNewest = _ccT;
+        }
+        if (_ccNewest && (Date.now() - _ccNewest) / 86400000 >= 14) _ccQuiet = Math.round((Date.now() - _ccNewest) / 86400000);
+      } catch (eCcQ) { _ccQuiet = 0; }
       var commitmentBlock = customerCommitments.length > 0
-        ? '\n! CUSTOMER COMMITMENTS / OPEN ITEMS - address these FIRST:\n' + customerCommitments.join('\n')
+        ? (_ccQuiet
+            ? '\n! CUSTOMER COMMITMENTS / OPEN ITEMS - BACKGROUND ONLY: raised before the customer went quiet ' + _ccQuiet + ' days ago; not this message\'s subject:\n'
+            : '\n! CUSTOMER COMMITMENTS / OPEN ITEMS - address these FIRST:\n') + customerCommitments.join('\n')
         : '';
 
       var concernBlock = customerConcerns.length > 0
-        ? '\nIDENTIFIED CUSTOMER CONCERNS - lead with these, do not bury them:\n' + customerConcerns.join('\n')
+        ? (_ccQuiet
+            ? '\nIDENTIFIED CUSTOMER CONCERNS - BACKGROUND ONLY: raised before the customer went quiet ' + _ccQuiet + ' days ago; do not lead with them:\n'
+            : '\nIDENTIFIED CUSTOMER CONCERNS - lead with these, do not bury them:\n') + customerConcerns.join('\n')
         : '';
 
       // (v9.7.629) The fenced region now comes from _lpFencedTranscript — same characters, one
@@ -19733,6 +19772,9 @@ function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
     out.push('That was ' + Math.round(_rfAge) + ' days ago and we have written to them since. The moment it was about has passed: '
       + 'do NOT answer it, do NOT refer to its day or time words ("this afternoon", "tomorrow") as current, and do NOT '
       + 'pick up its thread as if it were live. The email above is the message this text goes with.');
+    // (v9.7.737) and nothing else from before comes back in the rewrite either
+    out.push('The same holds for everything else from before they went quiet (what they did online when the lead came in, a price or target, '
+      + 'an old question or plan): keep the first draft\'s one current reason to reply and its easy closing question, and bring none of that back.');
     out.push('');
   } else if (lastIn) {
     out.push('\u2501\u2501\u2501 WHAT THE CUSTOMER LAST SAID, IN THEIR OWN WORDS \u2501\u2501\u2501');
@@ -20329,20 +20371,20 @@ function renderRelationshipReading(data) {
   if (s.hasFrustrationHistory) {
     interp.push('Customer has been irritated in this thread before. Stay calm, acknowledge it if the most recent message hints at it, never escalate energy.');
   }
-  if (s.hasPricingFriction) {
+  if (s.hasPricingFriction && !_rrQuietDays) {
     interp.push('Pricing is an open friction point. If it is an affordability concern, avoid leading with payment math and frame value first. If it is a valuation challenge (price vs KBB/market/book), the customer wants the price justified — address why the unit is priced where it is before moving to a visit. Match the response to the kind of objection.');
   }
   // (v9.7.81) New interpretation rules for the new categories
   if (s.hasUnansweredQuestions) {
     interp.push('There are open questions from the customer that may not have been answered. Read the transcript carefully — if any are still unanswered, addressing them is the highest-leverage move this message can make. The customer is more likely to be silent because we did not answer than because they lost interest.');
   }
-  if (s.agentCommitments.length > 0) {
+  if (_rrAc.length > 0) {
     interp.push('The agent made commitments to the customer that may or may not have been fulfilled. If the agent said "I will send pics" or "I will call you back" and no follow-up is visible in the outbound history, honoring that commitment now (or acknowledging the slip honestly) is the right move. Do NOT ask for new commitments while owing the customer an old one.');
   }
-  if (s.customerCommitments.length > 0 && s.lastInboundAgeDays !== null && s.lastInboundAgeDays >= 3) {
+  if (_rrCc.length > 0 && s.lastInboundAgeDays !== null && s.lastInboundAgeDays >= 3) {
     interp.push('The customer said they would do something (think it over, come by, get back to you) but has gone quiet since. Soft re-open — acknowledge their last commitment without naming it accusatorily. "Wanted to make sure we did not lose touch" lands better than "you said you would come by."');
   }
-  if (s.hasRecurringTopic) {
+  if (s.hasRecurringTopic && !_rrQuietDays) {
     var topTopic = null;
     var topCount = 0;
     for (var tk2 in s.topicMentions) {
@@ -20933,7 +20975,16 @@ function buildUserPrompt(data) {
     if (data.vrTradeIn)         drSteps.push('entered a trade-in');
     if (data.vrDroppedOff && data.vrDroppedOffPage) drSteps.push('stopped on the ' + data.vrDroppedOffPage + ' page');
     else if (data.vrDroppedOff) drSteps.push('stopped before finishing');
-    var drSessionBlock = drSteps.length
+    // (v9.7.737) Lead 2049511947 (log260): 81 days and 39 outreaches in, this block ("ACKNOWLEDGE THEM",
+    // "LEAD WITH WHAT THEY ALREADY DID ... the substance of this message") wrote the draft: "Click & Go gives
+    // us a useful starting point for finding the right Corolla to match your payment". On a customer quiet
+    // 14+ days the session is one line of background, the figures are not shown, and the angle rules go.
+    var _drQuiet = (typeof _lpQuietDays === 'function' ? _lpQuietDays(data) : 0);
+    if (_drQuiet && drSteps.length) { vrDealContext = ''; }
+    var drSessionBlock = (_drQuiet && drSteps.length)
+      ? '\n\nBACKGROUND ONLY: when the lead came in, their Click & Go session recorded: ' + drSteps.join('; ') + '. The customer has been quiet '
+        + _drQuiet + ' days since; do NOT lead with it, acknowledge it or build the message on it (see the rule at the top).'
+      : drSteps.length
       ? '\n\nSTEPS THIS CUSTOMER ALREADY TOOK IN THEIR CLICK & GO SESSION — ACKNOWLEDGE THEM: '
         + drSteps.join('; ') + '.'
         + ' These are things they DID, recorded by the tool, and they are the most concrete facts on this lead.'
@@ -23242,7 +23293,9 @@ function buildUserPrompt(data) {
     }
 
     digestLines.push('RULES FOR THIS RESPONSE:');
-    digestLines.push('1. Answer every unanswered customer question above — do not skip any.');
+    digestLines.push((typeof _lpQuietDays === 'function' ? _lpQuietDays(data) : 0)
+      ? '1. Questions from before the customer went quiet are background (see the rule at the top); do not answer them as if they were pending.'
+      : '1. Answer every unanswered customer question above — do not skip any.');
     digestLines.push('2. Do NOT re-ask what the customer already answered.');
     digestLines.push('3. Do NOT re-send information the agent already sent.');
     digestLines.push('4. If the customer asked about a different vehicle than the lead vehicle, respond about THAT vehicle.');
@@ -23677,6 +23730,32 @@ function buildUserPrompt(data) {
       var lad = (data.leadAgeDays || 0);
       ageBlock.push('LEAD AGE: ' + (lad === 0 ? 'submitted today' : lad === 1 ? 'submitted yesterday' : 'submitted ' + lad + ' days ago'));
       ageBlock.push('');
+      // (v9.7.737) THE OWNER RULE FOR A QUIET CUSTOMER, FIRST IN THE PROMPT. Lead 2049511947 (log260): with the
+      // customer 76 days quiet, v9.7.736's line sat in TOUCH POSITION below the Click & Go block, which said
+      // "LEAD WITH WHAT THEY ALREADY DID ... the substance of this message", and the draft followed the more
+      // specific block. This states the job first and says, by category, which instructions below stand down.
+      try {
+        var _qd = (typeof _lpQuietDays === 'function' ? _lpQuietDays(data) : 0);
+        if (_qd) {
+          var _qN = (data.relationshipSignals && data.relationshipSignals.consecutiveOutboundNoReply) || 0;
+          var _qFresh = _lpQuietFreshReason(data.context);
+          ageBlock.push('\u23f3 THIS CUSTOMER LAST WROTE ' + _qd + ' DAYS AGO' + (_qN ? ', AND ' + _qN + ' OF OUR MESSAGES HAVE GONE UNANSWERED SINCE' : '')
+            + '. THIS RULE OUTRANKS ANY BLOCK BELOW THAT SAYS OTHERWISE.');
+          ageBlock.push('Everything from before they went quiet is BACKGROUND: what they submitted or did online when the lead came in, the site they came through, '
+            + 'a price, payment or target, a question, an appointment plan, a promise either side made. Any block below that tells you to lead with, acknowledge, '
+            + 'answer, honor or mention one of those things was written for a live conversation and does not apply to this message. Do not recap the history '
+            + 'and do not dwell on the gap.');
+          ageBlock.push('THIS MESSAGE HAS ONE JOB: give them one true, current reason to reply. '
+            + (_qFresh
+                ? 'The current reason on this lead: we have ' + _qFresh + ' in stock now. Offer ONE as an extra option alongside the vehicle they asked about '
+                  + '(do not say that one is gone).'
+                : 'If nothing new is listed below, ask simply whether they are still looking, tied to what they were shopping for.')
+            + ' Keep it warm, and close with one easy question they can answer in a word'
+            + (_qd >= 30 ? ' \u2014 no appointment times in this message.' : '.'));
+          ageBlock.push('');
+          try { console.log('[LP QUIET CUSTOMER DIAG] quiet ' + _qd + 'd | unanswered ' + _qN + ' | fresh reason: ' + (_qFresh || '(none listed)') + ' | times ' + (_qd >= 30 ? 'withheld' : 'allowed')); } catch (eQd) {}
+        }
+      } catch (eQ) {}
       ageBlock.push('━━━ TIME & DATE CONTEXT ━━━');
       ageBlock.push('Every transcript message has a date in brackets. Use them.');
       ageBlock.push('');
@@ -24057,6 +24136,9 @@ function buildUserPrompt(data) {
                 }
               }
             }
+            // (v9.7.737) "today is the default: lead with a today time" is a booking instruction; a customer quiet
+            // 30+ days is not being booked (see the owner rule). Keep the open/close fact, drop the directive.
+            if (_statusLine && (typeof _lpQuietDays === 'function' ? _lpQuietDays(data) : 0) >= 30) _statusLine = _statusLine.replace(/\s*OFFER THE SOONEST REAL OPENING FIRST[\s\S]*$/, '');
             if (_statusLine) {
               ageBlock.push(_statusLine);
               // ── (v9.7.658) A LIGHT ASK ON THE FIRST HUMAN TOUCH ─────────────────────────────
@@ -24219,6 +24301,14 @@ function buildUserPrompt(data) {
     ageBlock.push('━━━ SCENARIO ━━━');
     ageBlock.push(scenarioDirective);
   }
+  // (v9.7.737) On a customer quiet 14+ days the Click & Go arm's two angle rules stand down ("LEAD WITH WHAT THEY
+  // ALREADY DID" and the progress angle); the session itself is one background line (see drSessionBlock).
+  // Filtered here, where the rules render, so the arm's own expression is unchanged.
+  if (scenarioRules && sc.isClickAndGo && (typeof _lpQuietDays === 'function' ? _lpQuietDays(data) : 0)) {
+    scenarioRules = String(scenarioRules).split('\n').filter(function (l) {
+      return !/^- LEAD WITH WHAT THEY ALREADY DID\./.test(l) && !/\. Use that angle unless the transcript gives you a better one\.$/.test(l);
+    }).join('\n');
+  }
   if (scenarioRules) {
     // (v9.7.462/457 fix) stripped a source branch's "CLOSE: Two specific appointment times." line
     // here when the deal-condition/deadline trigger suppressed the appointment scaffolding.
@@ -24377,22 +24467,13 @@ function buildUserPrompt(data) {
       ageBlock.push('Phase: ' + _phase);
       ageBlock.push('Attempt density: ' + _attemptDensity);
       if (_touchRole) ageBlock.push('Touch role: ' + _touchRole + ' (apply the TOUCH ROLE definition for this role from your system prompt — it defines what THIS message is for)');
-      // (v9.7.736) THE ONE PLACE THAT SAYS HOW OLD THE CONVERSATION IS. Lead 2049511947 (log259): the
-      // customer last wrote 76 days ago and every draft still answered July. The helpers that fed July in
-      // are gated at 14 days (v9.7.735/736); this line says so to the model in plain words.
-      try {
-        var _tpQuiet = data.relationshipSignals ? data.relationshipSignals.lastInboundAgeDays : null;
-        if (data.hasCustomerReply && typeof _tpQuiet === 'number' && _tpQuiet >= 14) {
-          ageBlock.push('⏳ THEIR LAST MESSAGE WAS ' + Math.round(_tpQuiet) + ' DAYS AGO. Everything they asked, offered or planned before then '
-            + '(a price target, an appointment time, a question, a promise to get back to us) is background from a conversation that went quiet. '
-            + 'Do NOT make any of it this message\'s subject, restate it, or answer it as though it were still pending. Write the touch this '
-            + 'phase and role call for: one fresh, current reason to reply, closed with an easy question rather than a pair of appointment times.');
-        }
-      } catch (eTpQ) {}
+      // (v9.7.737) v9.7.736's quiet-customer line moved to the top of the prompt as the owner rule.
       // (v9.7.356) Arc-first: do not assert reply-state as a fact the model must obey. Point it at
       // the transcript to read engagement directly — the conversation is the ground truth, not this
       // derived flag (which has misfired: empty/partial scrapes, agent-note pollution, late renders).
-      ageBlock.push('Customer engagement: determine this yourself from the CONVERSATION ARC below — read the full thread and see whether the customer has replied, what they last said, and where the deal actually stands. Do not assume a one-sided or silent lead unless the arc shows no customer messages. If the customer has raised a price, a competing offer, a deposit, a deadline, or any specific ask, THAT is the live conversation — respond to it.');
+      ageBlock.push('Customer engagement: determine this yourself from the CONVERSATION ARC below — read the full thread and see whether the customer has replied, what they last said, and where the deal actually stands. Do not assume a one-sided or silent lead unless the arc shows no customer messages.' + ((typeof _lpQuietDays === 'function' ? _lpQuietDays(data) : 0)
+        ? ' Anything they raised before they went quiet is background (see the rule at the top).'
+        : ' If the customer has raised a price, a competing offer, a deposit, a deadline, or any specific ask, THAT is the live conversation — respond to it.'));
       if (_cad > 0 && !_freshLeadActive) ageBlock.push('Days since last contact: ' + _cad.toFixed(0));
       // (v9.7.327) Reactivation/long-dormant appointment suppression.
       // (v9.7.698) AUDIT M5 -- one owner per question. On a zero-contact stalled lead the STALLED LEAD
@@ -26005,6 +26086,11 @@ function buildUserPrompt(data) {
     } else if (lpSuppressAppointment) {
       // LP command suppresses appointment engine — already injected override block above
       // Do not inject times, duration, or urgency language
+    } else if ((typeof _lpQuietDays === 'function' ? _lpQuietDays(data) : 0) >= 30) {
+      // (v9.7.737) The owner rule at the top says no appointment times for a customer quiet 30+ days; this chain
+      // printed "Option: 1:45 PM today" and "Convey that today is better than waiting" beneath it.
+      lines.push('', 'APPOINTMENT TIMES WITHHELD: the customer has not written in ' + (typeof _lpQuietDays === 'function' ? _lpQuietDays(data) : 0) + ' days. This message is for a reply, not a booking; if they answer wanting to come in, times come then.');
+      try { console.log('[LP TIMES WITHHELD DIAG] customer quiet ' + (typeof _lpQuietDays === 'function' ? _lpQuietDays(data) : 0) + 'd — SUGGESTED APPOINTMENT TIMES and the timing script not printed'); } catch (eTwQ) {}
     } else if (_lpTimesWithheld) {
       // (v9.7.710) A BLOCK ABOVE ALREADY OWNS "NO TIMES" ON THIS LEAD. log244 (Kia K5): the automated-
       // assistant block said "do not name a day, a time or a slot ... let THEM say when", and this chain

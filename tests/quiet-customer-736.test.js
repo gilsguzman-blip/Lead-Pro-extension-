@@ -63,10 +63,11 @@ for (const f of BUILDS) {
   check('control: quiet 2 days, the full policy', () => /\(2\) Explain: The exact total depends on the parish/.test(up(2)), true);
 
   console.log(' 4. one plain line on how old the conversation is:');
-  check('quiet 76 days: "THEIR LAST MESSAGE WAS 76 DAYS AGO ... background"', () =>
-    /⏳ THEIR LAST MESSAGE WAS 76 DAYS AGO\. Everything they asked, offered or planned before then/.test(up(76)), true);
-  check('control: quiet 2 days, no such line', () => /THEIR LAST MESSAGE WAS/.test(up(2)), false);
-  check('control: a customer who never wrote gets no such line', () => /THEIR LAST MESSAGE WAS/.test(up(76, { hasCustomerReply: false, lastInboundMsg: '' })), false);
+  // (v9.7.737) The line moved to the top of the prompt as the quiet-customer owner rule (quiet-sweep-737).
+  check('quiet 76 days: the owner rule says they last wrote 76 days ago and what came before is background', () => {
+    const p = up(76); return [/⏳ THIS CUSTOMER LAST WROTE 76 DAYS AGO/.test(p), /Everything from before they went quiet is BACKGROUND/.test(p)]; }, [true, true]);
+  check('control: quiet 2 days, no such line', () => /THIS CUSTOMER LAST WROTE/.test(up(2)), false);
+  check('control: a customer who never wrote gets no such line', () => /THIS CUSTOMER LAST WROTE/.test(up(76, { hasCustomerReply: false, lastInboundMsg: '' })), false);
 }
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);
