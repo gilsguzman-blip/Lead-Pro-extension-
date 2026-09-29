@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.739-dev (Dev. A USED VEHICLE OF A MAKE WE STOCK IS WORKED AS PRE-OWNED, NOT PIVOTED. Extension only; proxy v7.81 and reporter v1.23 unchanged. Toyota Baytown lead 2091436932, 9/29 (log263, capture 214583f3, dump ff3719d8): the lead's vehicle is 'Chevrolet Silverado (Used)', the Pam phone-agent note says 'a new Chevrolet Silverado', and the store holds four used Silverados (2024 2500HD High Country, 2024 1500 RST, 2023 1500 RST, 2021 1500 LT). The OFF-FRANCHISE block listed the first two used Chevrolets it found (a Malibu and an Impala) and said not to ask year or trim; the BRAND MISMATCH block said 'NEVER offer to show them the Chevrolet -- we do not carry it'; the draft pivoted to a Tundra. Gil: 'VOI is a used Silverado. message is trying to pivot incorrectly instead of working pre-owned angle.' (1) Off-franchise: when used units of the requested MODEL are on the lot, the block becomes 'PRE-OWNED <MAKE MODEL> IN STOCK -- THIS IS THE ANGLE', listing up to four of them (from today's feed, not the lead record), offered as pre-owned, year/configuration/budget may be asked, no pivot to the store brand, and honest that a new one cannot be had if they want new. No model match: the original block, unchanged. One fence site, as fact-comprehension requires. (2) Brand mismatch: a vehicle not marked New, of a make the store holds used units of, is not a mismatch (the _lpOffFranchiseGate rule); a New-marked vehicle, or a make we do not stock, gets the mismatch rules as before. Replayed on the dump with the live feed: the mismatch block and the Malibu/Impala list are gone and the four Silverados lead; six other captured leads produce byte-identical prompts. Tests: new used-offbrand-739 (6 per build; 3 fail on v9.7.738, the 3 controls pass on both). run-all: 160 suites, 6,936 assertions, 0 failed.)
 // Lead Pro -- popup.js  v9.7.738-dev (Dev. THE SMS REWRITE KEEPS THE CONCIERGE TITLE. Extension only; proxy v7.81 and reporter v1.23 unchanged. Audi Lafayette lead 2049511947, 9/29 (log261, capture 4e36d49c): v9.7.737 produced the right message, but the first-pass text's 'As your Audi Concierge, I can check on the...' was dropped by the SMS rewrite, and the rewrite shipped -- while the Audi persona block says 'Concierge' must appear in every format. Gil: 'let's add Concierge protection.' (1) _lpBuildSmsRefinePrompt: when pass 1 carries the title, the rewrite is told it is required and to keep it as the agent's own role. (2) _lpRefineSms: if pass 1 carried 'Concierge' and the rewrite does not, pass 1 ships, logged 'kept the first pass -- it carried the Concierge title and the rewrite dropped it'; the source-name guard's shape. Stores without the title are untouched. Tests: new concierge-refine-738 (5 per build; 2 fail on v9.7.737, the 3 controls pass on both). run-all: 159 suites, 6,924 assertions, 0 failed.)
 // Lead Pro -- popup.js  v9.7.737-dev (Dev. THE QUIET-CUSTOMER SWEEP: ONE CLOCK, ONE OWNER RULE AT THE TOP, AND EVERY BLOCK THAT POINTED AT THE PAST STANDS DOWN. Extension only; proxy v7.81 and reporter v1.23 unchanged. Audi Lafayette lead 2049511947, 9/29 (log260, capture dcb48525): the fourth build on this lead, customer 76 days quiet, and the draft opened 'Click & Go gives us a useful starting point for finding the right Corolla to match your payment' -- the Click & Go block said 'ACKNOWLEDGE THEM' and 'LEAD WITH WHAT THEY ALREADY DID ... the substance of this message', and v9.7.736's quiet line sat below it. Gil: 'build the full sweep ... This has taken too many builds to resolve.' Method: the lead's whole prompt was rebuilt from the dump and read end to end, and every block that pointed at the past or pushed a booking was gated on one clock. (1) _lpQuietDays(d): the customer's newest message 14+ days old (their clock, not ours -- the old long-dormant close rule keyed on days since OUR contact and never fired on a lead we kept calling). (2) OWNER RULE first in the prompt, after DATE/LEAD AGE: they last wrote N days ago and M of our messages went unanswered; everything before is background, by category (online session, source, price or target, question, appointment plan, promises); any block below saying lead with / acknowledge / answer / honor / mention stands down; the job is one true current reason to reply -- the in-stock alternative the vehicle block surfaced (_lpQuietFreshReason), offered alongside the car they asked about, else whether they are still looking -- closed on one easy question, with no appointment times at 30+ days. Replaces v9.7.736's touch-position line. (3) Click & Go: the session becomes one background line, the figures are not shown, and the LEAD WITH / progress-angle rules are filtered where the rules render. (4) At 30+ days: suggested times, the urgency/timing script and 'today is the default' are withheld (APPOINTMENT TIMES WITHHELD). (5) Customer-engagement line, RULES #1, relationship-reading interpretations (pricing, commitments, recurring topic), the variant-mismatch warning and the scraper's CONCERNS/COMMITMENTS headers all read the same clock; the scraper scans every note for the newest inbound, since a quiet customer's last message sits under our unanswered sends. (6) The SMS rewrite is told the same. Replayed: every July directive gone from lead 2049511947's prompt (the $16,000 remains only in the transcript); five other captured live leads (df7d4efa, 39babb78, 2ff0333e, bb327649, 50f9051e) produce byte-identical prompts. Along the way: call sites guarded with typeof (variant-token and arc-dedupe slice code into sandboxes); refine-prohibitions caught a 'short' size word in the owner rule (Gil, 9/22), removed. Not verified against a live generation from here. Tests: new quiet-sweep-737 (14 per build; 10 fail on v9.7.736, the 4 controls pass on both); quiet-customer-736 updated for the moved line. run-all: 158 suites, 6,914 assertions, 0 failed.)
 // Lead Pro -- popup.js  v9.7.736-dev (Dev. A CUSTOMER QUIET FOR 14+ DAYS: THE REST OF THE PROMPT STOPS POINTING AT WHAT THEY SAID BEFORE. Extension only; proxy v7.81 and reporter v1.23 unchanged. Audi Lafayette lead 2049511947, 9/29 (log259, capture d90b6e6c): v9.7.735's four gates all fired (deal trigger STALE, no already-sent OTD, no open questions), and the draft still opened on the customer's July $16,000 target, explained the parish and offered two times today. Gil: 'Still a bad miss.' Four more places fed July in, none aware he last wrote 76 days ago. (1) RELATIONSHIP READING, FRICTION: 'lead with their stated number as the goal' (budget) and the pricing-concern line are replaced, once the customer is quiet 14+ days, by one line saying the target or concern is background and not to lead with or restate it. (2) OPEN THREADS: customer and agent commitments dated 14+ days ago are not listed once the customer is quiet 14+ days (his 7/15 'I will email you later today'). (3) Honda/Audi Lafayette OTD policy: with the customer quiet 14+ days, the short form -- the store does not quote OTD, nobody is asking now, do not raise it -- replaces the 'when a customer asks' steps; the full policy returns the moment they write. (4) TOUCH POSITION: one plain line, 'THEIR LAST MESSAGE WAS N DAYS AGO', saying what they asked, offered or planned before then is background, and to close on an easy question rather than a pair of times; only on a customer who has written. Same 14-day line as v9.7.735. Replayed on the dump: the four July directives are gone and the three new lines are in. Not verified against a live generation from here. Tests: new quiet-customer-736 (9 per build; 4 fail on v9.7.735, the 5 controls pass on both). run-all: 157 suites, 6,886 assertions, 0 failed.)
@@ -6642,6 +6643,40 @@ function populateFromData(d) {
             + ' | ' + (_ofGate.fires ? 'FIRES' : 'suppressed') + ' — ' + _ofGate.reason
             + ' | reader:regex');
         } catch (eG) {}
+        // (v9.7.739) THE MODEL THEY ASKED FOR, USED, ON OUR LOT, IS THE ANGLE. Toyota Baytown lead 2091436932,
+        // 9/29 (log263): the lead's vehicle is "Chevrolet Silverado (Used)", the Pam phone-agent note says "a new
+        // Chevrolet Silverado", and we hold FOUR used Silverados. This block listed the first two used Chevrolets
+        // it found (a Malibu and an Impala), told the model not to ask year or trim, and the draft pivoted to a
+        // Tundra. Units of the requested model are listed first; when any exist the block leads with them.
+        var _ofModelUnits = [];
+        try {
+          if (_ofHit.model && _ofHit.model.length >= 3) {
+            _ofModelUnits = _ofMatch.filter(function (u) {
+              return String((u.model || '') + ' ' + (u.vehicle || '')).toLowerCase().indexOf(_ofHit.model) > -1;
+            });
+          }
+        } catch (eOfM) { _ofModelUnits = []; }
+        var _ofModelCap = _ofHit.model ? _ofHit.model.charAt(0).toUpperCase() + _ofHit.model.slice(1) : '';
+        var _ofLeadUsed = /used|pre-?owned|certified|cpo/i.test(String(d.condition || '') + ' ' + String(d.vehicleCondition || ''));
+        var _ofPreMsg = '';
+        if (_ofGate.fires && _ofModelUnits.length) {
+          var _ofMList = _ofModelUnits.slice(0, 4).map(function(u){
+            return (u.vehicle || ((u.year ? u.year + ' ' : '') + (u.make || '') + ' ' + (u.model || '')).trim())
+              + (u.stock || u.stockNum ? ' (stock ' + (u.stock || u.stockNum) + ')' : '');
+          }).join('; ');
+          var _ofPre = '🚗 PRE-OWNED ' + (_ofMakeCap + ' ' + _ofModelCap).toUpperCase() + ' IN STOCK — THIS IS THE ANGLE. The customer asked about a '
+            + (_ofSaidNew ? 'NEW ' : '') + _ofHit.phrase.toUpperCase() + (_ofLeadUsed ? ' (the lead\'s vehicle field says pre-owned)' : '')
+            + '. We hold ' + _ofModelUnits.length + ' pre-owned ' + _ofMakeCap + ' ' + _ofModelCap + (_ofModelUnits.length === 1 ? '' : 's')
+            + ' right now: ' + _ofMList + '. These are in today\'s inventory feed; the "no stock number or VIN" notes elsewhere describe the '
+            + 'lead record, not these units. Lead with them, offered as pre-owned (never as new), and ask which fits: year, configuration '
+            + 'or budget is a fair question here because we can actually match it. Do NOT pivot them to a ' + _ofBrandCap + ' instead; a '
+            + 'comparable ' + _ofBrandCap + ' is only a fallback if none of these fit.'
+            + (_ofSaidNew ? ' If they want it new, be straight that this is a ' + _ofBrandCap + ' store and cannot get a new ' + _ofMakeCap
+                + ', and that these pre-owned ones are what we can offer.' : '')
+            + (d.tradeDescription ? ' We will also appraise their ' + d.tradeDescription + ' either way.' : '');
+          _ofPreMsg = _ofPre;
+          console.log('[LP OFF-FRANCHISE DIAG] arm:PRE-OWNED-MODEL-IN-STOCK | inStockOfModel:' + _ofModelUnits.length);
+        }
         if (_ofGate.fires) {
           var _ofMsg = '🚧 OFF-FRANCHISE REQUEST — READ BEFORE PROMISING ANYTHING. The customer asked about a '
             + (_ofSaidNew ? 'NEW ' : '') + _ofHit.phrase.toUpperCase() + '. This store is a ' + _ofBrandCap
@@ -6668,6 +6703,7 @@ function populateFromData(d) {
             + _ofBrandCap + ' in the same segment as a real alternative worth a look. Do not name a specific unit or stock '
             + 'number unless one is confirmed elsewhere in this prompt. Be straight with them that we are a ' + _ofBrandCap
             + ' store — honesty here earns the appraisal appointment; a vague "let me check" loses the customer when nothing turns up.';
+          if (_ofPreMsg) _ofMsg = _ofPreMsg;   // (v9.7.739) the requested model is on the lot used: that block replaces this one
           // (v9.7.566) Fenced for the same reason as the day-lock block above.
           vehicleExtras.push(LP_FACT_FENCE_OPEN + LP_FACT_IDS.OFFFRANCHISE + '⟧');
           vehicleExtras.push(_ofMsg);
@@ -19454,6 +19490,20 @@ function classifyScenario(data) {
       var storeMatches = storeBrand.includes(brand) || (brand === 'chevy' && storeBrand.includes('chevrolet')) || (brand === 'vw' && storeBrand.includes('volkswagen'));
       // If stock number or VIN is present, the vehicle is in inventory — never a mismatch
       var hasInventoryConfirmation = !!(data.stockNum || data.vin);
+      // (v9.7.739) A PRE-OWNED vehicle of a make we hold used is something we sell. Toyota Baytown lead 2091436932:
+      // "Chevrolet Silverado (Used)" with eight used Chevrolets (four Silverados) on the lot drew "NEVER offer to
+      // show them the Chevrolet -- we do not carry it" and a Tundra pivot. Same rule as _lpOffFranchiseGate: a make
+      // we actually stock is not off-brand. A lead marked NEW still gets the mismatch rules.
+      if (!storeMatches && !hasInventoryConfirmation && !/\bnew\b/i.test(String(data.condition || ''))) {
+        try {
+          var _bmStock = (typeof _lpOffFranchiseGate === 'function') ? _lpOffFranchiseGate(brand, '', data.dealerId) : null;
+          if (_bmStock && _bmStock.inventoryKnown && _bmStock.units.length) {
+            console.log('[LP BRAND MISMATCH DIAG] suppressed — "' + (data.vehicle || '') + '" is not marked new and we hold '
+              + _bmStock.units.length + ' used ' + brand + ' unit(s)');
+            hasInventoryConfirmation = true;
+          }
+        } catch (eBm) {}
+      }
       if(!storeMatches && !hasInventoryConfirmation){
         s.isBrandMismatch = true;
         s.competitorBrand = brand.charAt(0).toUpperCase() + brand.slice(1);
