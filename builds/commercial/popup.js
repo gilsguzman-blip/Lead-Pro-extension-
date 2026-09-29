@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.740 (Commercial. ONE DUMP COMMAND, EVERYTHING. Extension only, diagnostics only: nothing a customer sees changes. Proxy v7.81 and reporter v1.23 unchanged. Gil, 9/29: 'yes add the rewrite capture to the dump ... Can I combine all these commands into one prompt?' _lpDumpPrompt() keeps its name and file name and now writes one file with: a header line naming the lead and dealer; the system and user prompts as before; the model's raw response (window._lpLastRawResponse); the SMS rewrite step end to end -- result (pass 2 shipped / pass 1 kept), first-pass text, the text that shipped (after the v9.7.732 bracket cleanup), the rewrite's raw reply and its system and user prompts (window._lpLastRefine, reset on every call so a dump never shows another lead's); what Lead Pro read off the page (lastScrapedData); the dealer's inventory and incentive snapshot as held at dump time (_lpValueFactCache); and the fact-check verdicts (window._lpFactVerdicts). Each section is independent. The dump carries the customer's contact details, as the VinSolutions dump already does. Along the way: name-bracket-732 pins the bracket cleanup directly after the rewrite result, so the capture sits after it. Tests: new dump-all-740 (4 per build, executing the shipped _lpDumpPrompt with a stubbed download and _lpRefineSms with a stubbed worker; all 4 fail on v9.7.739, new behaviour with no control). run-all: 161 suites, 6,944 assertions, 0 failed.)
 // Lead Pro -- popup.js  v9.7.739 (Commercial. A USED VEHICLE OF A MAKE WE STOCK IS WORKED AS PRE-OWNED, NOT PIVOTED. Extension only; proxy v7.81 and reporter v1.23 unchanged. Toyota Baytown lead 2091436932, 9/29 (log263, capture 214583f3, dump ff3719d8): the lead's vehicle is 'Chevrolet Silverado (Used)', the Pam phone-agent note says 'a new Chevrolet Silverado', and the store holds four used Silverados (2024 2500HD High Country, 2024 1500 RST, 2023 1500 RST, 2021 1500 LT). The OFF-FRANCHISE block listed the first two used Chevrolets it found (a Malibu and an Impala) and said not to ask year or trim; the BRAND MISMATCH block said 'NEVER offer to show them the Chevrolet -- we do not carry it'; the draft pivoted to a Tundra. Gil: 'VOI is a used Silverado. message is trying to pivot incorrectly instead of working pre-owned angle.' (1) Off-franchise: when used units of the requested MODEL are on the lot, the block becomes 'PRE-OWNED <MAKE MODEL> IN STOCK -- THIS IS THE ANGLE', listing up to four of them (from today's feed, not the lead record), offered as pre-owned, year/configuration/budget may be asked, no pivot to the store brand, and honest that a new one cannot be had if they want new. No model match: the original block, unchanged. One fence site, as fact-comprehension requires. (2) Brand mismatch: a vehicle not marked New, of a make the store holds used units of, is not a mismatch (the _lpOffFranchiseGate rule); a New-marked vehicle, or a make we do not stock, gets the mismatch rules as before. Replayed on the dump with the live feed: the mismatch block and the Malibu/Impala list are gone and the four Silverados lead; six other captured leads produce byte-identical prompts. Tests: new used-offbrand-739 (6 per build; 3 fail on v9.7.738, the 3 controls pass on both). run-all: 160 suites, 6,936 assertions, 0 failed.)
 // Lead Pro -- popup.js  v9.7.738 (Commercial. THE SMS REWRITE KEEPS THE CONCIERGE TITLE. Extension only; proxy v7.81 and reporter v1.23 unchanged. Audi Lafayette lead 2049511947, 9/29 (log261, capture 4e36d49c): v9.7.737 produced the right message, but the first-pass text's 'As your Audi Concierge, I can check on the...' was dropped by the SMS rewrite, and the rewrite shipped -- while the Audi persona block says 'Concierge' must appear in every format. Gil: 'let's add Concierge protection.' (1) _lpBuildSmsRefinePrompt: when pass 1 carries the title, the rewrite is told it is required and to keep it as the agent's own role. (2) _lpRefineSms: if pass 1 carried 'Concierge' and the rewrite does not, pass 1 ships, logged 'kept the first pass -- it carried the Concierge title and the rewrite dropped it'; the source-name guard's shape. Stores without the title are untouched. Tests: new concierge-refine-738 (5 per build; 2 fail on v9.7.737, the 3 controls pass on both). run-all: 159 suites, 6,924 assertions, 0 failed.)
 // Lead Pro -- popup.js  v9.7.737 (Commercial. THE QUIET-CUSTOMER SWEEP: ONE CLOCK, ONE OWNER RULE AT THE TOP, AND EVERY BLOCK THAT POINTED AT THE PAST STANDS DOWN. Extension only; proxy v7.81 and reporter v1.23 unchanged. Audi Lafayette lead 2049511947, 9/29 (log260, capture dcb48525): the fourth build on this lead, customer 76 days quiet, and the draft opened 'Click & Go gives us a useful starting point for finding the right Corolla to match your payment' -- the Click & Go block said 'ACKNOWLEDGE THEM' and 'LEAD WITH WHAT THEY ALREADY DID ... the substance of this message', and v9.7.736's quiet line sat below it. Gil: 'build the full sweep ... This has taken too many builds to resolve.' Method: the lead's whole prompt was rebuilt from the dump and read end to end, and every block that pointed at the past or pushed a booking was gated on one clock. (1) _lpQuietDays(d): the customer's newest message 14+ days old (their clock, not ours -- the old long-dormant close rule keyed on days since OUR contact and never fired on a lead we kept calling). (2) OWNER RULE first in the prompt, after DATE/LEAD AGE: they last wrote N days ago and M of our messages went unanswered; everything before is background, by category (online session, source, price or target, question, appointment plan, promises); any block below saying lead with / acknowledge / answer / honor / mention stands down; the job is one true current reason to reply -- the in-stock alternative the vehicle block surfaced (_lpQuietFreshReason), offered alongside the car they asked about, else whether they are still looking -- closed on one easy question, with no appointment times at 30+ days. Replaces v9.7.736's touch-position line. (3) Click & Go: the session becomes one background line, the figures are not shown, and the LEAD WITH / progress-angle rules are filtered where the rules render. (4) At 30+ days: suggested times, the urgency/timing script and 'today is the default' are withheld (APPOINTMENT TIMES WITHHELD). (5) Customer-engagement line, RULES #1, relationship-reading interpretations (pricing, commitments, recurring topic), the variant-mismatch warning and the scraper's CONCERNS/COMMITMENTS headers all read the same clock; the scraper scans every note for the newest inbound, since a quiet customer's last message sits under our unanswered sends. (6) The SMS rewrite is told the same. Replayed: every July directive gone from lead 2049511947's prompt (the $16,000 remains only in the transcript); five other captured live leads (df7d4efa, 39babb78, 2ff0333e, bb327649, 50f9051e) produce byte-identical prompts. Along the way: call sites guarded with typeof (variant-token and arc-dedupe slice code into sandboxes); refine-prohibitions caught a 'short' size word in the owner rule (Gil, 9/22), removed. Not verified against a live generation from here. Tests: new quiet-sweep-737 (14 per build; 10 fail on v9.7.736, the 4 controls pass on both); quiet-customer-736 updated for the moved line. run-all: 158 suites, 6,914 assertions, 0 failed.)
@@ -19998,6 +19999,9 @@ function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
 // because a refine pass that can blank an agent's draft is worse than one that does nothing.
 async function _lpRefineSms(pass1, emailText, d) {
   var t0 = Date.now();
+  // (v9.7.740) Kept for _lpDumpPrompt(): the rewrite step's own prompt and reply were never captured, and the
+  // log shows only 220 characters of each draft. Reset on every call so a dump never shows a previous lead's.
+  try { window._lpLastRefine = { at: new Date().toISOString(), pass1: String(pass1 || ''), system: '', user: '', raw: '', result: '', shipped: '' }; } catch (eLr0) {}
   try {
     if (window.LEADPRO_SMS_REFINE === false) { console.log('[LP SMS REFINE DIAG] skipped \u2014 turned off (window.LEADPRO_SMS_REFINE === false)'); return null; }
     if (!pass1) { console.log('[LP SMS REFINE DIAG] skipped \u2014 no first-pass SMS to replace (suppressed or empty)'); return null; }
@@ -20013,6 +20017,7 @@ async function _lpRefineSms(pass1, emailText, d) {
       ctx.storeName || (d && d.storeName) || '',
       sgn.phone || '');
     var usrText = _lpBuildSmsRefinePrompt(pass1, emailText, d);
+    try { window._lpLastRefine.system = sysText; window._lpLastRefine.user = usrText; } catch (eLr1) {}
 
     var ctrl = new AbortController();
     var timer = setTimeout(function () { try { ctrl.abort(); } catch (e) {} }, 25000);
@@ -20041,6 +20046,7 @@ async function _lpRefineSms(pass1, emailText, d) {
     }
     var txt = '';
     try { txt = data.candidates[0].content.parts[0].text || ''; } catch (eP) { txt = ''; }
+    try { window._lpLastRefine.raw = txt; } catch (eLr2) {}
     if (!txt) { console.log('[LP SMS REFINE DIAG] kept the first pass \u2014 empty response'); return null; }
 
     var obj = null;
@@ -27354,6 +27360,31 @@ async function generateAll() {
         var usr = window._lpLastUserPrompt || '(none captured yet — generate a response first)';
         var out = '=== SYSTEM PROMPT (' + sys.length + ' chars) ===\n\n' + sys +
                    '\n\n\n=== USER PROMPT (' + usr.length + ' chars) ===\n\n' + usr;
+        // (v9.7.740) ONE COMMAND, EVERYTHING. Gil, 9/29: "Can I combine all these commands into one prompt?" The
+        // same file now also carries what the model sent back, the SMS rewrite step end to end, and the three
+        // in-memory records a diagnosis otherwise has to rebuild from the VinSolutions dump: what Lead Pro read
+        // off the page, the dealer's inventory/incentive snapshot at that moment, and the fact-check verdicts.
+        // Each section is independent: one that cannot be read says so and the rest still write.
+        var _dj = function (v) { try { return JSON.stringify(v, null, 2); } catch (eJ) { return '(could not serialise: ' + (eJ && eJ.message) + ')'; } };
+        var _sec = function (title, body) { out += '\n\n\n=== ' + title + ' ===\n\n' + body; };
+        try {
+          var _lsd = (typeof lastScrapedData !== 'undefined') ? lastScrapedData : null;
+          out = '=== LEAD ' + ((_lsd && _lsd.autoLeadId) || '(unknown)') + ' | dealer ' + ((_lsd && _lsd.dealerId) || '(unknown)')
+            + ' | dumped ' + new Date().toISOString() + ' ===\n\n' + out;
+          _sec('MODEL RAW RESPONSE', window._lpLastRawResponse || '(none captured yet)');
+          var _rf = window._lpLastRefine;
+          _sec('SMS REWRITE STEP', !_rf ? '(did not run on this generation)'
+            : 'RESULT: ' + (_rf.result || '(no result recorded)') + '\n\n--- first-pass text ---\n' + _rf.pass1
+              + '\n\n--- text that shipped ---\n' + (_rf.shipped || '(none)')
+              + '\n\n--- rewrite reply (raw) ---\n' + (_rf.raw || '(none)')
+              + '\n\n--- rewrite system prompt ---\n' + (_rf.system || '(none)')
+              + '\n\n--- rewrite user prompt ---\n' + (_rf.user || '(none)'));
+          _sec('WHAT LEAD PRO READ OFF THE PAGE (lastScrapedData)', _lsd ? _dj(_lsd) : '(none)');
+          var _vfc = null;
+          try { _vfc = (typeof _lpValueFactCache !== 'undefined' && _lsd) ? _lpValueFactCache[String(_lsd.dealerId)] : null; } catch (eV) { _vfc = null; }
+          _sec('INVENTORY AND INCENTIVES FOR THIS DEALER, AS HELD AT DUMP TIME', _vfc ? _dj(_vfc) : '(none)');
+          _sec('FACT CHECK VERDICTS', window._lpFactVerdicts ? _dj(window._lpFactVerdicts) : '(none)');
+        } catch (eDx) { out += '\n\n(extended dump sections failed: ' + (eDx && eDx.message) + ')'; }
         var blob = new Blob([out], { type: 'text/plain' });
         var url = URL.createObjectURL(blob);
         var ts = new Date().toISOString().replace(/[:.]/g, '-').replace(/T/, '_').substring(0, 19);
@@ -27492,6 +27523,7 @@ async function generateAll() {
 
     const rawText = data.candidates[0].content.parts[0].text.trim();
     console.log('[Lead Pro] Raw response length:', rawText.length, '| finish:', finishReason, '| First 200:', rawText.substring(0,200));
+    try { window._lpLastRawResponse = rawText; } catch (eLrr) {}   // (v9.7.740) for _lpDumpPrompt()
     let parsed;
     var _cleanSnapshot = ''; // (v9.7.429/427) the parse-failure position is an offset into the CLEANED text, not rawText
     try {
@@ -28150,6 +28182,10 @@ async function generateAll() {
       var _rfSms = await _lpRefineSms(rawSms, rawEmail, lastScrapedData);
       if (_rfSms) rawSms = _rfSms;
       try { rawSms = _lpUnbracketName(rawSms, (lastScrapedData && lastScrapedData.name) || ''); } catch (eUbR) {}   // (v9.7.732) the refine pass writes the SMS again
+      try {
+        window._lpLastRefine.result = _rfSms ? 'pass 2 shipped' : 'pass 1 kept (the [LP SMS REFINE DIAG] line in the console log says why)';
+        window._lpLastRefine.shipped = String(rawSms || '');
+      } catch (eLr3) {}
     } catch (eRf) {
       try { console.log('[LP SMS REFINE DIAG] kept the first pass \u2014 call site threw: ' + (eRf && eRf.message || eRf)); } catch (eRf2) {}
     }
