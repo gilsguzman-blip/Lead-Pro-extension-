@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.746 (Commercial. A GRAB CLAIMS STOCK ONLY FROM INVENTORY IT HAS JUST READ. Extension only; proxy v7.81 and reporter v1.23 unchanged. Kia Baytown lead 2091863573, 9/30 (log269, dump 50a1f7eb; log270, dump 6431bf75). The customer texted 'I was looking at the Kia Telluride Ex in Jade Green'; the draft said 'the 2027 Kia Telluride EX in Jade Green is here'. VG053284, the one Telluride EX in the panel's inventory, sold 9/28. Gil: 'I refreshed the feed today just before the grab ... I even shift/ctrl/R and refreshed and grabbed again and it still says it's available.' CAUSE: the side panel loaded Kia's inventory at 10:00 (185 units, VG053284 in it). The feed was re-uploaded after that (186 units, no VG053284: inventory_normalized_2026-09-30), but _lpPrefetchValueFacts only re-reads a snapshot older than 30 minutes, so the 10:23 grab used the 10:00 list; the chat-VOI promotion pinned 'Kia Telluride Ex' to the sold unit and the prompt said 'confirmed in stock'. Ctrl+Shift+R reloads VinSolutions, not the side panel. Reloading Lead Pro re-read the feed and the next grab (log270, 186 units) matched 10 units, pinned none, and the draft said it would confirm availability. v9.7.606's _lpInvFreshness passed the stale list because its test is 'settled after the last request', and this grab had sent none. FIX: (1) the GRAB button stamps window._lpGrabStartedAt and re-reads every store's inventory and incentives more than a minute old (_lpPrefetchValueFacts takes a max age; the load-time warm keeps 30 minutes). (2) _lpInvBehindGrab: a dealer's inventory that settled before the grab began is behind it. Such a unit is not 'confirmed' (_lpFeedUnitCheck, so the VEHICLE ON LEAD line says not confirmed), the chat-VOI promotion pins nothing from it ([LP CHAT-VOI DIAG] says why), and _lpInvFreshness reports it not fresh. With no grab under way nothing changes. The grab spends seconds reading the page, so the re-read normally lands first; if it has not, the lead reads as not confirmed rather than as in stock. NOT VERIFIED LIVE: the timing on a real grab; [LP STOCK CLAIM DIAG] feed: says which way it went. TESTS: new inv-grab-fresh-746 (10 per build) executes the shipped _lpPrefetchValueFacts, _lpFeedUnitCheck, _lpInvFreshness and populateFromData. NON-VACUITY against v9.7.745: the 6 new checks fail, the 4 controls pass. inventory-freshness, which slices _lpInvFreshness alone, needed typeof guards on the new helper. VERIFIED: run-all 167 suites, 7,058 assertions, 0 failed (+20). node --check both builds; manifests parse; changed lines identical dev vs commercial. Builds on v9.7.745.)
 // Lead Pro -- popup.js  v9.7.745 (Commercial. PUSHBACK ON A PRICE WE SENT IS WORKED BEFORE ANY HANDOFF. Extension only; proxy v7.81 and reporter v1.23 unchanged. Community Kia Baytown lead 2086487722, 9/29 (log267, dump eccf99da). v9.7.744 worked live ([LP EMAIL EXPAND DIAG] expanded:2, failed:0, 559ms) and the model saw our full 4:25 breakdown ending 'Drive Out with all Incentives $33,998.74'. The customer: 'We are bit off on the Drive out price, It this your final price?'. The draft: 'I can't confirm $33,998.74 as your final drive-out price yet ... I'll review the figures with my manager'. Gil: 'yes build the stronger price reply rule. I think we'd be better served to push before passing to a manager or sales.' FIX: _lpPricePushback reads the customer's own words in their newest message (the thread quoted under an email reply cut off) for push-back on price: a clear ask ('final price', 'can you do better', 'come down', 'negotiable') on its own, a loose phrase ('a bit off', 'too much', 'beat that') only beside a price word. It fires only when one of our current-lead messages from the last 14 days carries a figure of $5,000+, and not when the customer has been quiet 14+ days. It returns our drive-out (or price) and the conditional items in that breakdown (lines marked * ^ + with a negative amount). The prompt then says, after the store's OTD policy and outranking its handoff steps for this message: (1) stand behind our number, never 'unconfirmed' or 'not final yet', no manager, desk or salesperson in this message; (2) answer 'is it final' straight; (3) name what depends on them from our breakdown, with a no-trade-on-the-lead note that keeps the trade item a statement; no new discount, total or payment; (4) one ask: where do they need to be. Logged as [LP PRICE PUSHBACK DIAG]. REPLAYED on the real grab (the dump's own lastScrapedData and inventory): v9.7.744 -> v9.7.745 adds exactly the five lines of that block, naming $33,998.74 and the rebate, repeat-customer and trade-assistance items; nothing else moves. TESTS: new price-pushback-745 (11 per build) executes the shipped _lpPricePushback and buildUserPrompt on placeholder conversations. NON-VACUITY against v9.7.744: the 4 new-behaviour checks fail, the 2 prompt-level controls pass; the 5 helper controls need the new helper and cannot run on 744. VERIFIED: run-all 166 suites, 7,038 assertions, 0 failed (+22). node --check both builds; manifests parse; changed lines identical dev vs commercial. Builds on v9.7.744.)
 // Lead Pro -- popup.js  v9.7.744 (Commercial. THE WHOLE EMAIL, NOT VINSOLUTIONS' PREVIEW. Extension only; proxy v7.81 and reporter v1.23 unchanged. Community Kia Baytown lead 2086487722, 9/29 (log266, page dump feb47adc, saved ViewEmail page fbaf8739). The notes panel shows each email only as a preview cut at a fixed length; our 4:25 email stopped at '...Community Value Price$31,000.00 Nitro Wheel Locks, D...', so the drive-out total ($33,998.74), the rest of the breakdown and the Wednesday 9:15/10:30 times we offered never reached the model, and the draft called the figure not a confirmed drive-out and asked for this evening. MEASURED on the 24 page dumps on file: 85 of 146 of our emails and 13 of 37 of the customer's are cut this way, on 19 of 24 leads; on 2 leads the customer's own words are cut mid-question. Gil: 'Drive out isn't given out on the regular but if it helps in other capacities then it's worth the build.' FIX: each note carries the email's message id (data-unique-identifier-value), which is the RecordID of the ViewEmail page VinSolutions opens on click. _lpExpandEmails, in the grab's wait step once the notes are there, fetches that page (same origin, the agent's own session) for the newest 6 cut-off emails, 3s for all of them, reads #ContentPlaceHolder1__body (table rows kept as lines, the store's legal footer dropped, dashes as '-'), and swaps it in for the preview in place, so every existing reader sees it unchanged. A customer's email keeps only their own words: the thread quoted under it is ours. A fetched body is used only when it contains the preview's own opening; a different email, an error or a login page leaves the preview as it was. inlineScraper logs [LP EMAIL EXPAND DIAG] and puts every preview back as soon as its read finishes, so the agent's notes panel is left as VinSolutions drew it. Rescue re-reads run without it and see previews, as before. REPLAYED on the real page dump in Chromium with the real saved ViewEmail page answering its RecordID: the 4:25 entry now carries the full breakdown to 'Drive Out with all Incentives $33,998.74' and the Wednesday times; the prompt changes in that entry only (+1,751 chars); the 5 other fetches, answered with a different email, kept their previews; the panel was restored byte for byte. NOT VERIFIED LIVE: the fetch with a real VinSolutions session needs one grab; the diag line says what happened. TESTS: new email-expand-744 (11 per build) runs the shipped _lpExpandEmails and inlineScraper in Chromium on a placeholder lead page with placeholder ViewEmail pages. NON-VACUITY against v9.7.743: the 5 new-behaviour checks fail, the 6 controls pass. VERIFIED: run-all 165 suites, 7,016 assertions, 0 failed (+22). node --check both builds; manifests parse; changed lines identical dev vs commercial. Builds on v9.7.743.)
 // Lead Pro -- popup.js  v9.7.743 (Commercial. OUR EMAIL QUOTED UNDER THEIR REPLY IS NOT THEM ASKING FOR A COLOUR. Extension only; proxy v7.81 and reporter v1.23 unchanged. Community Kia Baytown lead 2086487722, 9/29 (log266, dump b154f2e7, page dump feb47adc). The customer replied at 4:37 'We are bit off on the Drive out price, It this your final price? Regards From: <agent> ... Sent: ... Subject: Subject:Black 2026 Sorento S availability'. The 'Black' is OUR 4:25 subject line, quoted back by their mail client. The v9.7.613 colour detector reads whole customer lines, so it took that as a fresh ask, newer than our reply naming Panthera Metal: the colour the v9.7.741/742 settlement had closed reopened ([LP COLOR ASK DIAG] mismatch, not SETTLED, while [LP VOI SWAP DIAG] fired), and the draft offered a black S again. Gil: 'customer replied back and the Drive out is in the conversation but the response is still dwelling on the Black option.' FIX: the colour detector, and the listing-link check beside it, read only the customer-authored part of each line via _lpCustomerAuthoredPart, the cutter the other customer-text readers here already use (Outlook From:/Sent: block, 'On ... wrote:', forwarded and original-message dividers, '>' quotes, client signatures). REPLAYED on the real page dump with the real scraper and the dump's inventory: v9.7.742 reproduces the MOVED OFF / asked-for-Black lines, the fix swaps exactly those for the SETTLED lines. The log265 page dump is unchanged apart from a clock-relative line. NOT FIXED HERE, reported: the 4:25 email appears on the page only as VinSolutions' preview, cut at 'Nitro Wheel Locks, D...', so the drive-out figure below the $31,000 price is not in what Lead Pro reads. TESTS: new quoted-color-743 (5 per build: 2 new, 3 controls) executes the shipped detector slice with the shipped _lpCustomerAuthoredPart. NON-VACUITY against v9.7.742: the 2 new fail, the 3 controls pass. VERIFIED: run-all 164 suites, 6,994 assertions, 0 failed (+10). node --check both builds; manifests parse; changed lines identical dev vs commercial. Builds on v9.7.742.)
@@ -4508,7 +4509,7 @@ function decodeShowroomVisit(rawNotes) {
 // Race-tolerant: if the prefetch hasn't resolved when the block builds, store facts are simply
 // omitted that round (lead-level Tier-A facts still resolve) and appear on the next generation.
 var _lpValueFactCache = {};
-function _lpPrefetchValueFacts(dealerId) {
+function _lpPrefetchValueFacts(dealerId, maxAgeMs) {
   if (!dealerId) return;
   // (v9.7.379/377 F7) TTL + failure retry. fetchedAt was recorded but never checked — this is a
   // long-lived SIDE PANEL, so a 7 AM inventory snapshot served comparables at 6 PM, and one
@@ -4526,7 +4527,9 @@ function _lpPrefetchValueFacts(dealerId) {
     if (_lpVfExisting.pending) return;
     var _lpVfAge = Date.now() - (_lpVfExisting.fetchedAt || 0);
     var _lpVfBothEmpty = !_lpVfExisting.vf && !_lpVfExisting.inv;
-    if (_lpVfAge < 1800000 && !_lpVfBothEmpty) return;
+    // (v9.7.746) The age that counts as fresh is the caller's to set: 30 minutes for the load-time warm, a minute
+    // for a GRAB, which is the moment a unit is about to be called in stock.
+    if (_lpVfAge < (typeof maxAgeMs === 'number' ? maxAgeMs : 1800000) && !_lpVfBothEmpty) return;
   }
   var base = (typeof window !== 'undefined' && window._leadProWorkerBase) ? window._leadProWorkerBase : '';
   if (!base && typeof LEADPRO_PROXY_URL !== 'undefined' && LEADPRO_PROXY_URL) {
@@ -5055,6 +5058,23 @@ function _lpUnitInTransit(u){
 //
 // This does not guess at the feed's semantics or filter units. It answers one question — did the
 // data behind this claim arrive during THIS grab cycle — and lets the caller phrase accordingly.
+// (v9.7.746) DID THE INVENTORY IN HAND ARRIVE DURING THIS GRAB? Kia Baytown lead 2091863573, 9/30 (log269, dump
+// 50a1f7eb). The side panel loaded Kia's inventory at 10:00 (185 units, still carrying VG053284, a 2027 Telluride EX
+// that sold 9/28). The feed was re-uploaded after that (186 units, no VG053284), but the snapshot was under the 30-
+// minute age limit, so the 10:23 grab never asked again: the customer's "Kia Telluride Ex in Jade Green" was pinned to
+// the sold unit and the draft said "the 2027 Kia Telluride EX in Jade Green is here". Reloading VinSolutions does not
+// reload the side panel; reloading Lead Pro did, and the next grab (log270) matched 10 units and claimed nothing.
+// _lpFreshness's own test ("settled after the last request") passed, because no request had gone out for this grab.
+// True only when a grab is under way (window._lpGrabStartedAt) and this dealer's inventory settled before it began.
+function _lpInvBehindGrab(dealerId) {
+  try {
+    var g = (typeof window !== 'undefined' && window._lpGrabStartedAt) || 0;
+    if (!g) return false;
+    var c = _lpValueFactCache[dealerId];
+    if (!c || !c.inv) return false;
+    return !(c.invSettledAt >= g);
+  } catch (e) { return false; }
+}
 function _lpInvFreshness(dealerId) {
   try {
     var c = _lpValueFactCache[dealerId];
@@ -5064,6 +5084,8 @@ function _lpInvFreshness(dealerId) {
     var age = Date.now() - c.invSettledAt;
     // Fresh means: the inventory in hand settled at or after this cycle's request went out.
     var fresh = c.invSettledAt >= (c.fetchedAt || 0);
+    if (fresh && typeof _lpInvBehindGrab === 'function' && _lpInvBehindGrab(dealerId)) return { fresh: false, settled: true, ageMs: age,
+      reason: 'inventory in hand arrived ' + Math.round(age / 1000) + 's ago, before this grab began — not re-checked for this grab' };
     return { fresh: fresh, settled: true, ageMs: age,
       reason: fresh ? 'inventory for this grab is in hand'
                     : 'inventory in hand predates this grab\'s request by ' + ((c.fetchedAt || 0) - c.invSettledAt) + 'ms' };
@@ -5379,6 +5401,11 @@ function _lpFeedUnitCheck(d) {
         : ('in feed but it is a DIFFERENT vehicle (feed:"' + uv + '" vs lead:"' + voi + '")');
     }
     out.confirmed = out.inFeed && out.matchesVoi;
+    // (v9.7.746) A unit is only "confirmed" from inventory that arrived during this grab (see _lpInvBehindGrab).
+    if (out.confirmed && typeof _lpInvBehindGrab === 'function' && _lpInvBehindGrab(d.dealerId)) {
+      out.confirmed = false;
+      out.why += ', but the inventory in hand predates this grab, so it is NOT confirmed';
+    }
   } catch (e) { out.why = 'check threw: ' + ((e && e.message) || e); }
   return out;
 }
@@ -6117,6 +6144,11 @@ function populateFromData(d) {
       var _cvIsChat = /gubagoo|m-chat|chat lead|live chat/i.test(d.leadSource || '');
       var _cvInv = _lpValueFactCache[d.dealerId] && _lpValueFactCache[d.dealerId].inv;
       var _cvUnits = _cvInv && _cvInv.units;
+      // (v9.7.746) Pinning a unit from the customer's words asserts it is on the lot; not from an old snapshot.
+      if (_cvIsChat && _cvUnits && _cvUnits.length && d.conversationBrief && typeof _lpInvBehindGrab === 'function' && _lpInvBehindGrab(d.dealerId)) {
+        console.log('[LP CHAT-VOI DIAG] NOT promoted -- the inventory in hand predates this grab (its refresh had not landed), so no unit is pinned from it');
+        _cvUnits = null;
+      }
       if (_cvIsChat && _cvUnits && _cvUnits.length && d.conversationBrief) {
         var _cvSrc = String(d.conversationBrief);
         if (!/\[GUBAGOO CHAT\]|CHAT TRANSCRIPT|CUSTOMER'?S? INQUIRY/i.test(_cvSrc)) {
@@ -29838,7 +29870,16 @@ function updatePersonaBar(leadData) {
 })();
 // ─── End Commercial Boot ──────────────────────────────────────────────────────
 
-document.getElementById('btnGrab').addEventListener('click', function() { _grabRetryCount = 0; grabLead(); });
+document.getElementById('btnGrab').addEventListener('click', function() {
+  _grabRetryCount = 0;
+  // (v9.7.746) Every GRAB re-reads any store inventory more than a minute old, before the page is read, so a feed
+  // uploaded since the panel opened reaches this lead. See _lpInvBehindGrab.
+  try {
+    window._lpGrabStartedAt = Date.now();
+    Object.keys(DEALER_ID_MAP).forEach(function (_gd) { _lpPrefetchValueFacts(_gd, 60000); });
+  } catch (_eGr) {}
+  grabLead();
+});
 var _btnGenerate = document.getElementById('btnGenerate');
 _btnGenerate.addEventListener('click', function() {
   // Manual Generate clears any stale regen directive — fresh start
