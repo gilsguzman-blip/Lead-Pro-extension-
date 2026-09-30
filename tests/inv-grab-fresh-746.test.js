@@ -80,7 +80,7 @@ for (const f of BUILDS) {
   check('a 2-minute-old snapshot, asked with the grab\'s one-minute limit -> inventory fetched again', () => fetched(120000, 60000), 1);
   check('control: the same snapshot under the load-time 30-minute limit -> not fetched (as before)', () => fetched(120000, null), 0);
   check('the GRAB button stamps the grab and refreshes every store with the one-minute limit', () =>
-    /window\._lpGrabStartedAt = Date\.now\(\);\s*Object\.keys\(DEALER_ID_MAP\)\.forEach\(function \(_gd\) \{ _lpPrefetchValueFacts\(_gd, 60000\); \}\);\s*\} catch \(_eGr\) \{\}\s*grabLead\(\);/.test(src), true);
+    /window\._lpGrabStartedAt = Date\.now\(\);\s*Object\.keys\(DEALER_ID_MAP\)\.forEach\(function \(_gd\) \{ _lpPrefetchValueFacts\(_gd, (?:60000|LP_GRAB_INV_MAX_AGE)\); \}\);\s*\} catch \(_eGr\) \{\}\s*grabLead\(\);/.test(src), true);
 }
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);
