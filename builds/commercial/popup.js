@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.748 (Commercial. A PRESSED CHIP SURVIVES THE TEXT REWRITE, AND A COUNTER IS WORKED BEFORE A HANDOFF. Extension only; proxy v7.81 and reporter v1.23 unchanged. Kia Baytown lead 2086487722, 9/30 (log271, dump 2d800a4a). (1) 'Shorter' cut the first-pass text from 648 to 472 characters (email 1,012 to 784), and the SMS rewrite shipped 586, putting back the loyalty line and the APR explanation: _lpRefineSms was never told a chip was pressed, and its prompt says 'LENGTH IS YOURS TO JUDGE'. That holds for every chip. Gil: 'yes build the chip fix. fix it for all chips effected.' (2) The customer answered our $33,998.74 with 'My Drive out price is $32,250 ... I don't want to drive all to way to your location before agreeing on the terms', and the draft went back to 'I can't confirm $32,250 ... the $33,998.74 isn't confirmed for you'. v9.7.745's push-back rule did not fire: a counter is not push-back wording. Gil: 'keep working the counter before handing off. Maybe something acknowledging the counter and that we will look into it'. FIX (1): the chip handler stamps window._lpRegenChipKey for the version it builds. _lpActiveChips (that chip, plus a no-appointment chip held on this lead since v9.7.720) reaches the rewrite prompt as 'THE AGENT ASKED FOR THIS ON THIS VERSION', with the chip's own directive and what to keep (LP_CHIP_KEEP, all nine chips). _lpChipBroken checks what can be measured, and when the rewrite undid what the first pass did, the first pass ships: shorter (came back longer), expand (cut by more than 15%), no-appt (a time put back), lead-distance (the drive named), lead-credit (approval language), lead-trade (trade dropped). warmer, direct and add-urgency are tone, carried by the instruction only. FIX (2): _lpPricePushback reads a counter: a $5,000+ figure in the customer's own words, in a sentence about price, not one of ours and not a trade, payoff, down-payment or monthly figure. The newest figure message sets our number ('the $33,998.74 drive-out' now read figure-first) and the newest breakdown in the 14-day window supplies the conditional items. THEY COUNTERED WITH THEIR OWN NUMBER: acknowledge it by the figure, neither accepted nor refused; our number stands; you are taking theirs to your manager and will come back with an answer, first person; line up what they told you against our conditions, never as a promise; at most one question, no appointment ask until there is an answer, outranking the visit asks below. [LP PRICE PUSHBACK DIAG] COUNTER. REPLAYED on log271's page data: the counter block is the only prompt change ('$32,250 ($1,748.74 apart)', three conditions from the 9/29 breakdown). TESTS: new chip-counter-748 (13 per build) executes the shipped refine prompt and _lpRefineSms with the worker stubbed, and _lpPricePushback and buildUserPrompt. NON-VACUITY against v9.7.747: the 8 new checks fail, the 4 controls pass; one further control reads the new field and cannot run on 747. VERIFIED: run-all 169 suites, 7,108 assertions, 0 failed (+26). node --check both builds; manifests parse; changed lines identical dev vs commercial. Builds on v9.7.747.)
 // Lead Pro -- popup.js  v9.7.747 (Commercial. THE CUSTOMER'S WORDS FOR THE COLOUR, AND OUR NAME FOR THE PAINT. Extension only; proxy v7.81 and reporter v1.23 unchanged. Kia Baytown lead 2091863573, 9/30 (log269, dump 50a1f7eb). 'I was looking at the Kia Telluride Ex in Jade Green' reached the prompt as 'This customer asked for Green', and the draft wrote our Black Jade Green unit up in the customer's words: 'the 2027 Kia Telluride EX in Jade Green is here'. Gil: 'can't we leave it open enough for the model to interpret colors if possible. Customer mentions green - Jade Green is the feed color we name it'. The model keeps that leeway: it still judges whether a paint name is the colour they mean, and nothing here makes the match stricter. FIX: (1) the scraper's colour detector keeps the customer's own phrase beside the base word it compares on: up to two words before the colour word and a finish after it ('Jade Green', 'Midnight Lake Blue', 'snow white pearl'), stopping at filler, makes, trims and the lead's own vehicle words. _statedColor and every comparison on it are unchanged; the COLOR PREFERENCE line and a new customerStatedColorPhrase export carry the phrase (blank when the colour is settled). (2) The stock-colour block shows the model their phrase ('This customer asked for Jade Green') and adds: when you name this car's paint, use our name as the feed writes it ('we have one in Black Jade Green'), never their words for it, even when you judge it is their colour; a different name for a particular shade they named is theirs to judge. An older scrape without the phrase reads as before. REPLAYED on log269's page data with the phrase supplied: the stock-colour line is the only prompt change. TESTS: new color-phrase-747 (12 per build) executes the shipped detector slice and the shipped popup colour block. NON-VACUITY against v9.7.746: the 8 new checks fail, the 3 controls pass; one further control exercises the new helper and cannot run on 746. VERIFIED: run-all 168 suites, 7,082 assertions, 0 failed (+24). node --check both builds; manifests parse; changed lines identical dev vs commercial. Builds on v9.7.746.)
 // Lead Pro -- popup.js  v9.7.746 (Commercial. A GRAB CLAIMS STOCK ONLY FROM INVENTORY IT HAS JUST READ. Extension only; proxy v7.81 and reporter v1.23 unchanged. Kia Baytown lead 2091863573, 9/30 (log269, dump 50a1f7eb; log270, dump 6431bf75). The customer texted 'I was looking at the Kia Telluride Ex in Jade Green'; the draft said 'the 2027 Kia Telluride EX in Jade Green is here'. VG053284, the one Telluride EX in the panel's inventory, sold 9/28. Gil: 'I refreshed the feed today just before the grab ... I even shift/ctrl/R and refreshed and grabbed again and it still says it's available.' CAUSE: the side panel loaded Kia's inventory at 10:00 (185 units, VG053284 in it). The feed was re-uploaded after that (186 units, no VG053284: inventory_normalized_2026-09-30), but _lpPrefetchValueFacts only re-reads a snapshot older than 30 minutes, so the 10:23 grab used the 10:00 list; the chat-VOI promotion pinned 'Kia Telluride Ex' to the sold unit and the prompt said 'confirmed in stock'. Ctrl+Shift+R reloads VinSolutions, not the side panel. Reloading Lead Pro re-read the feed and the next grab (log270, 186 units) matched 10 units, pinned none, and the draft said it would confirm availability. v9.7.606's _lpInvFreshness passed the stale list because its test is 'settled after the last request', and this grab had sent none. FIX: (1) the GRAB button stamps window._lpGrabStartedAt and re-reads every store's inventory and incentives more than a minute old (_lpPrefetchValueFacts takes a max age; the load-time warm keeps 30 minutes). (2) _lpInvBehindGrab: a dealer's inventory that settled before the grab began is behind it. Such a unit is not 'confirmed' (_lpFeedUnitCheck, so the VEHICLE ON LEAD line says not confirmed), the chat-VOI promotion pins nothing from it ([LP CHAT-VOI DIAG] says why), and _lpInvFreshness reports it not fresh. With no grab under way nothing changes. The grab spends seconds reading the page, so the re-read normally lands first; if it has not, the lead reads as not confirmed rather than as in stock. NOT VERIFIED LIVE: the timing on a real grab; [LP STOCK CLAIM DIAG] feed: says which way it went. TESTS: new inv-grab-fresh-746 (10 per build) executes the shipped _lpPrefetchValueFacts, _lpFeedUnitCheck, _lpInvFreshness and populateFromData. NON-VACUITY against v9.7.745: the 6 new checks fail, the 4 controls pass. inventory-freshness, which slices _lpInvFreshness alone, needed typeof guards on the new helper. VERIFIED: run-all 167 suites, 7,058 assertions, 0 failed (+20). node --check both builds; manifests parse; changed lines identical dev vs commercial. Builds on v9.7.745.)
 // Lead Pro -- popup.js  v9.7.745 (Commercial. PUSHBACK ON A PRICE WE SENT IS WORKED BEFORE ANY HANDOFF. Extension only; proxy v7.81 and reporter v1.23 unchanged. Community Kia Baytown lead 2086487722, 9/29 (log267, dump eccf99da). v9.7.744 worked live ([LP EMAIL EXPAND DIAG] expanded:2, failed:0, 559ms) and the model saw our full 4:25 breakdown ending 'Drive Out with all Incentives $33,998.74'. The customer: 'We are bit off on the Drive out price, It this your final price?'. The draft: 'I can't confirm $33,998.74 as your final drive-out price yet ... I'll review the figures with my manager'. Gil: 'yes build the stronger price reply rule. I think we'd be better served to push before passing to a manager or sales.' FIX: _lpPricePushback reads the customer's own words in their newest message (the thread quoted under an email reply cut off) for push-back on price: a clear ask ('final price', 'can you do better', 'come down', 'negotiable') on its own, a loose phrase ('a bit off', 'too much', 'beat that') only beside a price word. It fires only when one of our current-lead messages from the last 14 days carries a figure of $5,000+, and not when the customer has been quiet 14+ days. It returns our drive-out (or price) and the conditional items in that breakdown (lines marked * ^ + with a negative amount). The prompt then says, after the store's OTD policy and outranking its handoff steps for this message: (1) stand behind our number, never 'unconfirmed' or 'not final yet', no manager, desk or salesperson in this message; (2) answer 'is it final' straight; (3) name what depends on them from our breakdown, with a no-trade-on-the-lead note that keeps the trade item a statement; no new discount, total or payment; (4) one ask: where do they need to be. Logged as [LP PRICE PUSHBACK DIAG]. REPLAYED on the real grab (the dump's own lastScrapedData and inventory): v9.7.744 -> v9.7.745 adds exactly the five lines of that block, naming $33,998.74 and the rebate, repeat-customer and trade-assistance items; nothing else moves. TESTS: new price-pushback-745 (11 per build) executes the shipped _lpPricePushback and buildUserPrompt on placeholder conversations. NON-VACUITY against v9.7.744: the 4 new-behaviour checks fail, the 2 prompt-level controls pass; the 5 helper controls need the new helper and cannot run on 744. VERIFIED: run-all 166 suites, 7,038 assertions, 0 failed (+22). node --check both builds; manifests parse; changed lines identical dev vs commercial. Builds on v9.7.744.)
@@ -1022,13 +1023,29 @@ function _lpPricePushback(d) {
     if (!d) return null;
     var said = _lpOwnWords(d.lastInboundMsg);
     var pm = said.match(LP_PRICE_PUSHBACK_RE) || (LP_PRICE_WORD_RE.test(said) ? said.match(LP_PRICE_PUSHBACK_LOOSE_RE) : null);
-    if (!pm) return null;
+    // (v9.7.748) THEY COUNTERED WITH THEIR OWN NUMBER. Same lead, log271: after our $33,998.74 the customer wrote
+    // "My Drive out price is $32,250 ... I don't want to drive all to way to your location before agreeing on the
+    // terms", and the draft went back to "I can't confirm $32,250 as the final drive-out price yet ... the
+    // $33,998.74 isn't confirmed for you". Gil: "keep working the counter before handing off. Maybe something
+    // acknowledging the counter and that we will look into it". A figure of $5,000+ in their own words, in a
+    // sentence about price, that is not one of ours and not a trade or payoff figure, is their counter.
+    var counter = null;
+    try {
+      var cs = said.split(/(?<=[.!?])\s+/);
+      for (var ci = 0; ci < cs.length && !counter; ci++) {
+        if (!LP_PRICE_WORD_RE.test(cs[ci]) || /\b(?:owe|payoff|pay\s*off|trade|worth|appraise\w*|down\s+payment|put\s+down|per\s+month|a\s+month|\/mo)\b/i.test(cs[ci])) continue;
+        var cf = _lpMoneyFigures(cs[ci]).filter(function (f) { return f.value >= 5000; });
+        if (cf.length) counter = cf[0];
+      }
+    } catch (eCt) { counter = null; }
+    if (!pm && !counter) return null;
     var age = d.relationshipSignals ? d.relationshipSignals.lastInboundAgeDays : null;
     if (typeof age === 'number' && age >= 14) return null;
     var src = String(d.conversationBrief || '') + '\n' + String(d.context || '');
     var cut = src.indexOf('=== CURRENT LEAD SUBMITTED HERE ===');
     if (cut >= 0) src = src.slice(0, cut);
     var ents = _lpWalkCrmEntries(src);
+    var res = null;
     for (var i = 0; i < ents.length; i++) {
       var lines = ents[i].text.split('\n');
       var tag = lines[0].match(/^\s*\[[^\]]*\d[^\]]*\]\s*\[([^\]]+)\]\s*(.*)$/);
@@ -1041,12 +1058,22 @@ function _lpPricePushback(d) {
       var clean = body.replace(/\b[A-Z]{2}\s+\d{5}(?:-\d{4})?\b/g, ' ').replace(/\$?\d[\d,]*\s*(?:miles|mi\b|k miles)/gi, ' ');
       var figs = _lpMoneyFigures(clean).filter(function (f) { return f.value >= 5000; });
       if (!figs.length) continue;
-      var otd = body.match(/(?:out[- ]?the[- ]?door|\botd\b|drive[- ]?out)[^$\d\n]{0,40}\$?\s?(\d{1,3}(?:,\d{3})+(?:\.\d{2})?|\d{5,6}(?:\.\d{2})?)/i);
+      var otd = body.match(/(?:out[- ]?the[- ]?door|\botd\b|drive[- ]?out)[^$\d\n]{0,40}\$?\s?(\d{1,3}(?:,\d{3})+(?:\.\d{2})?|\d{5,6}(?:\.\d{2})?)/i)
+        || body.match(/\$\s?(\d{1,3}(?:,\d{3})+(?:\.\d{2})?)\s*(?:drive[- ]?out|out[- ]the[- ]door|otd)\b/i);   // (v9.7.748) "the $33,998.74 drive-out"
       var items = [], im, ire = /([A-Z][A-Za-z&'\/ -]{2,45}?)\s*([\^+*†]+)\s*-\s*\$\s?(\d[\d,]*(?:\.\d{2})?)/g;
       while ((im = ire.exec(body)) && items.length < 6) items.push(im[1].trim() + ' (-$' + im[3] + ')');
-      return { said: said.slice(0, 200), trigger: pm[0], date: ents[i].date, title: tag[2].trim(),
-               otd: otd ? '$' + otd[1] : '', figure: '$' + figs[figs.length - 1].text, items: items };
+      // (v9.7.748) The newest figure message sets the figure; if it lists no conditional items (a follow-up that
+      // describes them in sentences), the newest breakdown in the window supplies them.
+      if (res) { if (items.length) { res.items = items; break; } continue; }
+      // A figure that is one of ours, said back, is not their counter.
+      if (counter && figs.some(function (f) { return f.value === counter.value; })) counter = null;
+      if (!pm && !counter) return null;
+      res = { said: said.slice(0, 300), trigger: pm ? pm[0] : 'their own number', date: ents[i].date, title: tag[2].trim(),
+               otd: otd ? '$' + otd[1] : '', figure: '$' + figs[figs.length - 1].text, items: items,
+               counter: !!counter, counterValue: counter ? counter.value : 0, counterText: counter ? counter.text : '' };
+      if (items.length) break;
     }
+    return res;
   } catch (e) {}
   return null;
 }
@@ -20145,6 +20172,50 @@ function buildSystemPromptSmsRefine(agentFirst, storeName, phone) {
 
 // The user turn. Deliberately small -- the whole point of this pass is that the rule is not
 // drowned. Everything here is something the first pass already had; none of it is re-scraped.
+// ── (v9.7.748) A CHIP THE AGENT PRESSED MUST SURVIVE THE TEXT REWRITE ─────────────────────────────────────
+// Kia Baytown lead 2086487722, 9/30 (log271, dump 2d800a4a). "Shorter" cut the first-pass text from 648 to 472
+// characters; the rewrite step (_lpRefineSms) then shipped 586, putting back the loyalty line and the APR
+// explanation the chip had removed. The rewrite was never told a chip was pressed -- its own prompt says "LENGTH IS
+// YOURS TO JUDGE" -- and that holds for every chip, not just this one. Gil: "fix it for all chips effected."
+// The rewrite is now told which chip is active and what it asked for, and where the chip's effect can be checked
+// mechanically and the rewrite undid what the first pass did, the first pass ships.
+function _lpActiveChips(d) {
+  var keys = [];
+  try {
+    var k = (typeof window !== 'undefined' && window._lpRegenChipKey) || '';
+    if (k) keys.push(String(k));
+    var na = (typeof window !== 'undefined' && window._lpNoApptLeadId) || '';
+    var lid = String((d && d.autoLeadId) || (typeof window !== 'undefined' && window._activeLeadId) || '');
+    if (na && lid && String(na) === lid && keys.indexOf('no-appt') < 0) keys.push('no-appt');
+  } catch (e) {}
+  return keys;
+}
+var LP_CHIP_KEEP = {
+  'shorter': 'Do not make it any longer than the first draft. This outranks "length is yours to judge".',
+  'expand': 'Do not make it thinner than the first draft: keep the substance it added.',
+  'warmer': 'Keep the warmer tone the first draft took.',
+  'direct': 'Keep it as direct as the first draft: no hedging back in.',
+  'lead-trade': 'Keep the trade-in as the leading element of the text.',
+  'lead-distance': 'Do not name the distance, the drive or the trip.',
+  'lead-credit': 'No approval or qualification language.',
+  'no-appt': 'No appointment time and no ask to come in at a set time: close with a question that invites a reply.',
+  'add-urgency': 'Keep the real reason to act that the first draft gave, and do not invent one.'
+};
+var LP_CHIP_TIME_RE = /\b\d{1,2}(?::\d{2})?\s?(?:a\.?m\.?|p\.?m\.?)(?![a-z])/i;
+var LP_CHIP_DIST_RE = /\b(?:the|your|a long|long)\s+(?:drive|trip)\b|\bmiles?\s+away\b|\bdistance\b|\bhow far\b/i;
+var LP_CHIP_CREDIT_RE = /\b(?:pre-?)?approv\w*|\bqualif\w*/i;
+function _lpChipBody(t) { return String(t || '').replace(/(\n[^\n]{0,45})+\s*$/, '').trim(); }
+// Returns why the rewrite broke the chip, or ''.
+function _lpChipBroken(key, pass1, out) {
+  var a = _lpChipBody(pass1), b = _lpChipBody(out);
+  if (key === 'shorter' && b.length > a.length) return 'the agent asked for it shorter and the rewrite came back longer (' + a.length + ' -> ' + b.length + ' chars)';
+  if (key === 'expand' && b.length < a.length * 0.85) return 'the agent asked for more substance and the rewrite cut it (' + a.length + ' -> ' + b.length + ' chars)';
+  if (key === 'no-appt' && LP_CHIP_TIME_RE.test(b) && !LP_CHIP_TIME_RE.test(a)) return 'the agent dropped the appointment ask and the rewrite put a time back';
+  if (key === 'lead-distance' && LP_CHIP_DIST_RE.test(b) && !LP_CHIP_DIST_RE.test(a)) return 'the rewrite named the drive or the distance';
+  if (key === 'lead-credit' && LP_CHIP_CREDIT_RE.test(b) && !LP_CHIP_CREDIT_RE.test(a)) return 'the rewrite put approval or qualification language back';
+  if (key === 'lead-trade' && /\btrade\b/i.test(a) && !/\btrade\b/i.test(b)) return 'the agent asked to lead with the trade and the rewrite dropped it';
+  return '';
+}
 function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
   d = d || {};
   var out = [];
@@ -20197,6 +20268,18 @@ function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
       + '("as your Concierge, ..."), never attached to anyone else.');
     out.push('');
   }
+  // (v9.7.748) The chip the agent pressed for this version, which the first draft already applies.
+  try {
+    var _rfChips = _lpActiveChips(d);
+    if (_rfChips.length) {
+      out.push('\u2501\u2501\u2501 THE AGENT ASKED FOR THIS ON THIS VERSION \u2014 THE FIRST DRAFT ALREADY DOES IT, AND YOUR TEXT MUST TOO \u2501\u2501\u2501');
+      _rfChips.forEach(function (k) {
+        var dir = (typeof _regenDirectives !== 'undefined' && _regenDirectives[k]) || '';
+        out.push('- ' + (dir ? dir + ' ' : '') + (LP_CHIP_KEEP[k] || ''));
+      });
+      out.push('');
+    }
+  } catch (eRfCh) {}
 
   // \u2500\u2500 (v9.7.689) THE PROHIBITIONS THE FIRST DRAFT WAS WRITTEN UNDER \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   // LIVE, 9/22, lead 2059585201, the SECOND generation of the session. pass1 obeyed the ban and
@@ -20476,6 +20559,17 @@ async function _lpRefineSms(pass1, emailText, d) {
       }
     } catch (eRfC) {}
 
+    // (v9.7.748) A chip the rewrite undid: the first pass, which applied it, ships.
+    try {
+      var _rfCk = _lpActiveChips(d);
+      for (var _rci = 0; _rci < _rfCk.length; _rci++) {
+        var _rfWhy = _lpChipBroken(_rfCk[_rci], pass1, out);
+        if (_rfWhy) {
+          console.log('[LP SMS REFINE DIAG] kept the first pass \u2014 chip "' + _rfCk[_rci] + '": ' + _rfWhy + ' | ' + (Date.now() - t0) + 'ms');
+          return null;
+        }
+      }
+    } catch (eRfCk) {}
     console.log('[LP SMS REFINE DIAG] ran | ' + (Date.now() - t0) + 'ms | shipped:pass2'
       + '\n    pass1: ' + JSON.stringify(String(pass1).slice(0, 220))
       + '\n    pass2: ' + JSON.stringify(out.slice(0, 220)));
@@ -25370,7 +25464,23 @@ function buildUserPrompt(data) {
   // stated as outranking its handoff steps for this one message: Gil wants the push made before a hand to sales.
   try {
     var _pp = _lpPricePushback(data);
-    if (_pp) {
+    // (v9.7.748) They named their own number: acknowledge it, hold ours, take it to the desk, keep it moving.
+    if (_pp && _pp.counter) {
+      var _ctOurs = parseFloat(String(_pp.otd || _pp.figure).replace(/[$,]/g, ''));
+      var _ctGap = (isFinite(_ctOurs) && _ctOurs > _pp.counterValue) ? ' (' + '$' + (_ctOurs - _pp.counterValue).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' apart)' : '';
+      lines.push('\ud83d\udcac THEY COUNTERED WITH THEIR OWN NUMBER \u2014 WORK IT IN THIS MESSAGE BEFORE ANY HANDOFF: their newest message says "'
+        + _pp.said.replace(/"/g, "'") + '". Our ' + (_pp.title || 'message').toLowerCase() + ' of ' + _pp.date + ' gave them '
+        + (_pp.otd ? 'a drive-out of ' + _pp.otd : 'a price of ' + _pp.figure) + '; their number is $' + _pp.counterText + _ctGap + '. This outranks any step above that hands the numbers to someone else.\n'
+        + '  (1) ACKNOWLEDGE THEIR NUMBER by the figure, as a real offer we are taking seriously. Do NOT accept it or say we can do it, and do NOT turn it down or say it cannot be done.\n'
+        + '  (2) OUR NUMBER STANDS until we come back to them: never call it unconfirmed, preliminary or "not final", and do not re-explain it.\n'
+        + '  (3) SAY WHAT YOU ARE DOING WITH IT: you are taking their $' + _pp.counterText + ' to your manager to see what can be done, and you will come back to them with an answer. That is you working their deal, not a handoff: write it in the first person.\n'
+        + (_pp.items.length
+            ? '  (4) LINE UP WHAT THEY TOLD YOU against the conditions in the breakdown we sent: ' + _pp.items.join('; ') + '. Where their own words meet one (financing with us, a past purchase, a trade), say it is part of what you are bringing to your manager with their number \u2014 never as a promise of a figure.\n'
+            : '  (4) Where anything they told you (how they are paying, a past purchase, a trade) bears on the price, say it is part of what you are bringing with their number \u2014 never as a promise of a figure.\n')
+        + '  (5) AT MOST ONE QUESTION, and only one that helps the answer (for example the term they want if they are financing). No appointment time and no ask to come in until we have an answer for them; for this message that outranks any visit ask in the blocks below.',
+        '');
+      console.log('[LP PRICE PUSHBACK DIAG] COUNTER | their number: $' + _pp.counterText + ' | our figure: ' + (_pp.otd || _pp.figure) + ' (' + _pp.date + ' ' + _pp.title + ')' + _ctGap + ' | conditional items:' + _pp.items.length);
+    } else if (_pp) {
       var _ppNoTrade = !(data.vrTradeIn || data.pdTradeCount) && _pp.items.some(function (x) { return /trade/i.test(x); });
       lines.push('💬 THEY PUSHED BACK ON THE PRICE WE SENT — WORK IT IN THIS MESSAGE, BEFORE ANY HANDOFF: their newest message says "'
         + _pp.said.replace(/"/g, "'") + '". Our ' + (_pp.title || 'message').toLowerCase() + ' of ' + _pp.date + ' gave them '
@@ -29953,6 +30063,7 @@ document.querySelectorAll('.regen-chip').forEach(function(chip) {
     var directive = _regenDirectives[key];
     if (!directive) return;
     window._lpRegenDirective = directive;
+    window._lpRegenChipKey = key;   // (v9.7.748) so the SMS rewrite knows which chip this version carries
     // (v9.7.228) "Address Distance" button: the regen directive set only tone; it
     // alone never set activeFlags, so the REMOTE block (suppress-visit, numbers-first,
     // conditional-visit) never fired and the message kept pushing an appointment. Treat
@@ -29989,6 +30100,7 @@ document.querySelectorAll('.regen-chip').forEach(function(chip) {
       // Re-enable chips + clear the directive (one-shot per click)
       document.querySelectorAll('.regen-chip').forEach(function(c) { c.classList.remove('regen-loading'); });
       window._lpRegenDirective = '';
+      window._lpRegenChipKey = '';
       window._lpBypassEdgeCache = false;
       window._lpSuppressApptChip = false;
       if (_addedDistanceFlag) activeFlags.delete('distance');
