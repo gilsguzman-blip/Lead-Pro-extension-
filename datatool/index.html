@@ -548,18 +548,36 @@ function ipChunkAudiOffers(fullText, models) {
     const yLookback = blockText.slice(Math.max(0, modelM.index - 12), modelM.index);
     let yM = yLookback.match(/(20\d{2})\s*$/);
     if (!yM) yM = yLookback.match(/(20\d{2})\s+Audi\s*$/i);
-    chunks.push({ model: modelM[1], year: yM ? yM[1] : null, text: blockText });
+    // (10/1) THE TRIM THE OFFER IS FOR. Audi's October page carries two Q7 leases -- "2026 Audi Q7 45 TFSI quattro
+    // Premium ... $629" and "2026 Audi Q7 S line 55 TFSI quattro Premium Plus ... $739" -- and the line kept only "Q7",
+    // so an agent's draft could quote $629 on a Premium Plus. The text between the model code and "MSRP" names it.
+    const trimM = blockText.slice(modelM.index).match(/^([^$]{2,80}?)\s+MSRP\b/i);
+    const trim = trimM ? trimM[1].replace(/\s+/g, ' ').trim() : '';
+    chunks.push({ model: modelM[1], year: yM ? yM[1] : null, text: blockText, trim: (trim && trim.toLowerCase() !== modelM[1].toLowerCase()) ? trim : '' });
   }
   return chunks;
 }
 
-const MAX_LINE_LEN = 120;
+const MAX_LINE_LEN = 160; // (10/1) room for the trim the offer applies to (ipTrimNote)
 function ipTruncate(s) { return s.length <= MAX_LINE_LEN ? s : s.slice(0, MAX_LINE_LEN - 1).trimEnd() + '…'; }
 
 // Trusts classifyOffer's category as the primary signal — NOT "whichever
 // field happened to parse." Confirmed real bug: a lease line's /mo figure
 // was getting grabbed by parseCash and mislabeled "Customer Cash".
-function ipBuildLine(model, category, cash, finance, lease) {
+// (10/1) Appended to a line when the page names the specific trim an offer is for, so two payments on one
+// model ("Q7 — $629/mo" and "Q7 — $739/mo") say which is which. The line still opens with the model, which is
+// what the extension matches on. "Applies to 5 trims" / "All trims" names nothing and adds nothing.
+function ipTrimNote(trim) {
+  const t = String(trim || '').replace(/^applies\s+to\s+/i, '').replace(/\s+/g, ' ').trim();
+  if (!t || /^(?:\d+\s+trims?|all(?:\s+trims)?|select\s+trims?)$/i.test(t)) return '';
+  return ' — applies to ' + t;
+}
+function ipBuildLine(model, category, cash, finance, lease, trim) {
+  if (!model) return null;
+  const _line = ipBuildLineCore(model, category, cash, finance, lease);
+  return _line ? ipTruncate(_line.replace(/…$/, '') + ipTrimNote(trim)) : null;
+}
+function ipBuildLineCore(model, category, cash, finance, lease) {
   if (!model) return null;
   const cashLabel = () => ({
     Military: 'Military Appreciation Cash', College: 'College Grad Cash',
@@ -729,7 +747,14 @@ function parseToyotaSSRStateOffers(html, dealerId, manualExpiresOverride) {
       const term = offer.apr.duration ? ' for ' + offer.apr.duration + ' mos' : '';
       line = model + ' — ' + offer.apr.rate + '% APR' + term;
     } else if (offer.type === 'cash' && offer.cash && offer.cash.cashAmount) {
-      const label = offer.cash.label || 'Customer Cash';
+      // (10/1) The 2027 bZ and bZ Woodland cards carry cash.label "Cash" -- the word printed under the amount --
+      // while the program, "TFS Lease Cash", is the offer's own title (offerTitle). "$2,250 Cash" reads as money off
+      // for anyone. A bare "Cash" (or no label) takes the title when the title names a cash program.
+      let label = String(offer.cash.label || '').trim();
+      if (!label || /^cash$/i.test(label)) {
+        const title = String(offer.offerTitle || '').trim();
+        label = /\bcash\b/i.test(title) ? title : 'Customer Cash';
+      }
       line = model + ' — $' + ipCommaNum(offer.cash.cashAmount) + ' ' + label;
     } else if (offer.type === 'lease' && offer.lease && offer.lease.monthlyPayment) {
       const parts = [model, '—', '$' + ipCommaNum(offer.lease.monthlyPayment) + '/mo'];
@@ -738,7 +763,8 @@ function parseToyotaSSRStateOffers(html, dealerId, manualExpiresOverride) {
       line = parts.join(' ');
     }
     if (!line) continue;
-    line = ipTruncate(line);
+    // (10/1) The trim the offer is for: "Tundra — $399/mo 36 mo lease" is the SR5's, not every Tundra's.
+    line = ipTruncate(line + ipTrimNote(offer.includedTrim || offer.trimLabel));
 
     let expires = null;
     if (offer.endDate && offer.endDate.fullYear && offer.endDate.month && offer.endDate.day) {
@@ -848,7 +874,7 @@ function parseManufacturerPage(html, manufacturer, dealerId, manualExpiresOverri
     const today = new Date().toISOString().slice(0, 10);
     if (expires < today) continue; // never publish an already-expired fact
 
-    const line = ipBuildLine(chunk.model, category, cash, finance, lease);
+    const line = ipBuildLine(chunk.model, category, cash, finance, lease, chunk.trim);
     if (!line) continue;
 
     // (year capture) chunk.year included in the dedup key -- two DIFFERENT model years that

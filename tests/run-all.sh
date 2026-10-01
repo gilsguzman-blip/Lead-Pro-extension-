@@ -74,6 +74,7 @@ run probe-label.test.js              "$PROXY"
 run valuefact-freshness.test.js      "$PROXY"
 run live-check.test.js
 run datatool-integrity.test.js
+run datatool-trim-cash.test.js
 run incentive-year-capture.test.js
 run regen-guard.test.js              "$PROXY"
 run worker-smoke.test.js             "$PROXY"
