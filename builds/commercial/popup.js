@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.751 (Commercial. FOUR THINGS MADE A CONFIRMED TRUCK READ UNSURE. Extension only; proxy v7.81 and reporter v1.23 unchanged. Toyota Baytown lead 2092976040, 10/1 (log274, dump 02786a32; regrab log275), a new lead source (Edmunds) Gil was checking. The store moved the lead onto stock TX455588, a 2026 Tundra 1794 Edition that arrived the day before, and the draft said 'I can confirm the exact unit's status before you make plans ... Are you still interested in coming in?'. (1) VINSOLUTIONS' OWN 'ACTIVE INVENTORY' NOW CONFIRMS A UNIT WHEN THE FEED HAS NOT CAUGHT UP. The 124-unit feed in hand did not have the truck yet; PageData on the same grab said Status 'A'. Gil: 'the Vin lead panel shows it as in stock ... Does the model not check that info and only rely on the feed data?' It did not: Status was only ever read in the SOLD direction ('I' = the 'no longer in your active inventory' banner, 6/6 agreement in v9.7.490; across the 24 page dumps on hand every 'A' carried no sold signal and every 'I' carried the banner or its PageData twin). _lpFeedUnitCheck -- the one presence predicate every 'it's here' line reads -- now confirms from VinSolutions when the feed does not, only for the stock PageData itself puts on this lead (new _pdUnitStock export; never a stock found elsewhere on the page, the v9.7.696 trap), only with no banner, no sold note, not pending, not in transit, and never when the feed holds that stock as a different vehicle. The confirmation line says where it came from ('CONFIRMED IN STOCK BY VINSOLUTIONS ... today's inventory feed has not caught up to it yet'); the feed's own wording is unchanged when the feed confirms. The v9.7.660 rule holds: a feed verdict is still computed from the captured unit. (2) THE CRM'S RECORD OF A VEHICLE CHANGE IS NOBODY'S WORDS. 'By: System Primary vehicle changed from 2026 Toyota Tundra SR 4dr ... to 2026 Toyota Tundra 4WD 1794 Edition' put 'VEHICLE VARIANT MISMATCH ... sr' in front of the model as the customer's ask. The variant scan now cuts that record (not every system note: some chat transcripts arrive as system notes and carry real words); an agent's note of what the customer asked for still raises it. (3) A MISSED APPOINTMENT FROM AN EARLIER LEAD DOES NOT SET THIS LEAD'S TIMING. August's miss on another lead printed 'TIMING -- APPOINTMENT FELL THROUGH ... confirm they still want to come in' on a lead submitted that afternoon, though the persona's fresh-lead guard had already set it aside. New _lpMissedApptIsPrior: when every appointment event is older than the lead (freshestApptEventDays > leadAgeDays) the block does not print; the history still reaches the model as background. (4) A LISTING SITE'S PRICE FIELDS ARE NOT THE CUSTOMER'S WORDS. Edmunds' 'Base MSRP: 43260.0 Base TMV: 39663.0 ...' went out as 'CUSTOMER'S INQUIRY -- the customer's own words ... address it directly', and was the lead's 'last inbound message'. _lpIsToolFieldBlob's colon-field rule read every '.0' as a full stop; a run of three fields with no sentence punctuation between neighbours (decimals ignored) is now a record. Price fields are labelled 'LISTING-SITE PRICE DATA -- NOT THE CUSTOMER'S WORDS', never quoted; when the store has changed the vehicle on the lead (the $43,260 was the SR's, the 1794 is $73,800) they are withheld and only the form's timeframe the customer chose ('Week') is kept. Across all 24 page dumps the scraper output changes on this lead only. NEW SUITE vinsolutions-active-751.test.js, 46 assertions executing the shipped _lpFeedUnitCheck, populateFromData, buildUserPrompt, _lpIsToolFieldBlob and the price-data block; NON-VACUITY: v9.7.750 fails 9 by name (one labelled new field). VERIFIED: run-all 174 suites green, 7,199 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.750-dev.)
 // Lead Pro -- popup.js  v9.7.750 (Commercial. A CAR THE CUSTOMER OWNS OR HAS SOLD IS NOT ONE THEY WANT. Extension only; proxy v7.81 and reporter v1.23 unchanged. Toyota Baytown lead 2079679068, 10/1 (log of 10/1, dump 2a2c8460, page dump 5b29520d). A TradePending lead on the customer's 2022 Corolla XSE with no vehicle of interest. Her only Tundra mention: 'I sold my 2018 Camary & my 2013 Tundra in past to Freeman when we lived in DFW'. _lpOwnWordsModel (v9.7.725) read 'Tundra' as the model she wants: the prompt said 'in their own words they want "Tundra"' (named-model block, rule line and Vehicle line), and the draft asked 'are you still considering a Tundra?'. The pivot guard on the same grab already read it as owned ('my 2013 Tundra'). Gil: 'Agent was confused because the VOI of a Tundra was introduced and we can't see any reference to that other than her 2022 Corolla trade.' FIX: _lpOwnWordsModel tests the clause in front of (and just after) every mention of a model and skips one that is theirs: 'my/our [year] X', 'I/we drive/own/have/had/bought/sold/traded ... X', 'sold/traded in ... X', 'X we bought'. The pivot guard's own discriminators carry over: a possessive followed by an article or a desire verb ('my wife wants an Accord') is desire, and the ownership span stops at 'and/but/or' and at want/looking/need/prefer, so 'I have a 2019 Camry and want a Tundra' still reads Tundra. REPLAYED on the real page dump with the real scraper and the dump's inventory: v9.7.749's three 'they want Tundra' lines are replaced by the no-vehicle lines; nothing else moves. TESTS: new owned-model-750 (7 per build) executes the shipped _lpOwnWordsModel. NON-VACUITY against v9.7.749: the 4 new checks fail, the 3 controls pass. named-model-725 unchanged and green. VERIFIED: run-all 171 suites, 7,136 assertions, 0 failed (+14). node --check both builds; manifests parse; changed lines identical dev vs commercial. Builds on v9.7.749.)
 // Lead Pro -- popup.js  v9.7.749 (Commercial. TWO FAULTS ON A GENERATION GIL CALLED STRONG: A STOCK CHECK OF MINE, AND THE TEXT REWRITE HEDGING THE COUNTER. Extension only; proxy v7.81 and reporter v1.23 unchanged. Kia Baytown lead 2086487722, 9/30 (log272, dump 44d65e8e). The v9.7.748 counter block fired and the email was what Gil asked for ('I'll take your $32,250 drive-out target to my manager and come back to you with an answer'). (1) MY v9.7.746 FAULT: [LP STOCK CLAIM DIAG] said 'in feed and matches the lead vehicle, but the inventory in hand predates this grab, so it is NOT confirmed'. The popup opened at 11:57:03 and read the feed; the GRAB click moments later rightly did not re-read a snapshot under a minute old; _lpInvBehindGrab then compared against the click itself and called that snapshot stale. The email hedged 'I'll also confirm the exact vehicle'. In popup mode that is nearly every grab. FIX: behind the grab now means older than the same minute the click re-reads within (LP_GRAB_INV_MAX_AGE, shared by both). The log269 case (23 minutes old) is still caught. (2) The SMS rewrite turned the first pass's 'I'll take your $32,250 drive-out target to my manager' into 'I can't confirm yet whether $32,250 is our final drive-out price' -- the hedge v9.7.745/748 took out of the draft, put back the way v9.7.748's chips were. FIX: when _lpPricePushback fires, the rewrite prompt gets 'THE PRICE: KEEP WHAT THE FIRST DRAFT DOES' (counter: acknowledge their figure, taking it to the manager; push-back: stand behind ours; no 'can't confirm' or 'not final' either way), and if the rewrite hedges on the number where the first pass did not, the first pass ships. TESTS: new grab-window-749 (7 per build) executes the shipped _lpFeedUnitCheck and _lpRefineSms (full popup sandbox, worker stubbed). NON-VACUITY against v9.7.748: the 3 new checks fail, the 4 controls pass. inv-grab-fresh-746's source check now accepts the named constant. VERIFIED: run-all 170 suites, 7,122 assertions, 0 failed (+14). node --check both builds; manifests parse; changed lines identical dev vs commercial. Builds on v9.7.748.)
 // Lead Pro -- popup.js  v9.7.748 (Commercial. A PRESSED CHIP SURVIVES THE TEXT REWRITE, AND A COUNTER IS WORKED BEFORE A HANDOFF. Extension only; proxy v7.81 and reporter v1.23 unchanged. Kia Baytown lead 2086487722, 9/30 (log271, dump 2d800a4a). (1) 'Shorter' cut the first-pass text from 648 to 472 characters (email 1,012 to 784), and the SMS rewrite shipped 586, putting back the loyalty line and the APR explanation: _lpRefineSms was never told a chip was pressed, and its prompt says 'LENGTH IS YOURS TO JUDGE'. That holds for every chip. Gil: 'yes build the chip fix. fix it for all chips effected.' (2) The customer answered our $33,998.74 with 'My Drive out price is $32,250 ... I don't want to drive all to way to your location before agreeing on the terms', and the draft went back to 'I can't confirm $32,250 ... the $33,998.74 isn't confirmed for you'. v9.7.745's push-back rule did not fire: a counter is not push-back wording. Gil: 'keep working the counter before handing off. Maybe something acknowledging the counter and that we will look into it'. FIX (1): the chip handler stamps window._lpRegenChipKey for the version it builds. _lpActiveChips (that chip, plus a no-appointment chip held on this lead since v9.7.720) reaches the rewrite prompt as 'THE AGENT ASKED FOR THIS ON THIS VERSION', with the chip's own directive and what to keep (LP_CHIP_KEEP, all nine chips). _lpChipBroken checks what can be measured, and when the rewrite undid what the first pass did, the first pass ships: shorter (came back longer), expand (cut by more than 15%), no-appt (a time put back), lead-distance (the drive named), lead-credit (approval language), lead-trade (trade dropped). warmer, direct and add-urgency are tone, carried by the instruction only. FIX (2): _lpPricePushback reads a counter: a $5,000+ figure in the customer's own words, in a sentence about price, not one of ours and not a trade, payoff, down-payment or monthly figure. The newest figure message sets our number ('the $33,998.74 drive-out' now read figure-first) and the newest breakdown in the 14-day window supplies the conditional items. THEY COUNTERED WITH THEIR OWN NUMBER: acknowledge it by the figure, neither accepted nor refused; our number stands; you are taking theirs to your manager and will come back with an answer, first person; line up what they told you against our conditions, never as a promise; at most one question, no appointment ask until there is an answer, outranking the visit asks below. [LP PRICE PUSHBACK DIAG] COUNTER. REPLAYED on log271's page data: the counter block is the only prompt change ('$32,250 ($1,748.74 apart)', three conditions from the 9/29 breakdown). TESTS: new chip-counter-748 (13 per build) executes the shipped refine prompt and _lpRefineSms with the worker stubbed, and _lpPricePushback and buildUserPrompt. NON-VACUITY against v9.7.747: the 8 new checks fail, the 4 controls pass; one further control reads the new field and cannot run on 747. VERIFIED: run-all 169 suites, 7,108 assertions, 0 failed (+26). node --check both builds; manifests parse; changed lines identical dev vs commercial. Builds on v9.7.747.)
@@ -5426,39 +5427,79 @@ function _lpIsOurOwnSend(text) {
 // model check exists because the stock and the VOI can come from different places — the 8/18 Audi
 // case paired an S6 e-tron's number with a Q6 e-tron VOI. Year must agree when both carry one; the
 // make+model family must agree when the lead names a vehicle. No feed loaded = not confirmed.
+// (v9.7.751) A MISSED APPOINTMENT FROM AN EARLIER LEAD IS HISTORY, NOT THIS LEAD'S TIMING. Toyota lead 2092976040, 10/1:
+// a fresh Edmunds lead on a customer who missed an appointment in August on another lead. The persona's fresh-lead
+// guard already set that miss aside ("historical missed appointment from prior lead"), but the TIMING block read the
+// same flag unguarded and printed "APPOINTMENT FELL THROUGH ... confirm they still want to come in" -- the source of the
+// draft's "Are you still interested in coming in?" on a lead submitted that afternoon. The miss belongs to an earlier
+// lead when every appointment event on the record is older than this lead (freshestApptEventDays > leadAgeDays). The
+// appointment history itself still reaches the model as background.
+function _lpMissedApptIsPrior(d) {
+  var f = d && d.freshestApptEventDays, a = d ? parseFloat(d.leadAgeDays) : NaN;
+  return typeof f === 'number' && isFinite(f) && isFinite(a) && f > a;
+}
+// (v9.7.751) THE CRM'S OWN "IN ACTIVE INVENTORY", WHEN THE FEED HAS NOT CAUGHT UP. Toyota Baytown lead 2092976040,
+// 10/1 (log274): an Edmunds lead the store moved onto stock TX455588, a 2026 Tundra 1794 Edition that arrived the day
+// before. The 124-unit feed Lead Pro held did not have it yet, so the prompt said "NOT confirmed available" and the draft
+// hedged: "I can confirm the exact unit's status before you make plans". The same grab carried VinSolutions' own record
+// of the unit -- PageData LeadVehicle Status "A", active inventory -- the typed twin of the "no longer in your active
+// inventory" banner (Status "I"), which agreed with that banner on 6/6 dumps (v9.7.490) and has only ever been read in
+// the SOLD direction. Gil: "the Vin lead panel shows it as in stock ... Does the model not check that info and only rely
+// on the feed data?" Regrabbed after the feed upload, it confirmed (log275). Now: when the feed does not confirm the
+// unit, VinSolutions' Status "A" does -- but only for the stock PageData itself puts on THIS lead (never a stock found
+// elsewhere on the page, the v9.7.696 trap), only when nothing says otherwise (no banner, no sold note, not pending, not
+// in transit), and never when the feed holds that stock as a DIFFERENT vehicle.
 function _lpFeedUnitCheck(d) {
-  var out = { unit: null, inFeed: false, matchesVoi: false, confirmed: false, why: '' };
+  var out = _lpFeedUnitCheckFeed(d);
   try {
-    if (!d || !d.stockNum) { out.why = 'no stock number'; return out; }
-    var inv = (typeof _lpValueFactCache !== 'undefined') && _lpValueFactCache[d.dealerId] && _lpValueFactCache[d.dealerId].inv;
-    if (!inv || !inv.units || !inv.units.length) { out.why = 'no live feed loaded for dealer ' + (d.dealerId || '?'); return out; }
-    var want = String(d.stockNum).toUpperCase();
-    for (var i = 0; i < inv.units.length; i++) {
-      var u = inv.units[i];
-      if (u && u.stock && String(u.stock).toUpperCase() === want) { out.unit = u; break; }
-    }
-    out.inFeed = !!out.unit;
-    if (!out.inFeed) { out.why = 'stock not in the live feed'; return out; }
-    var voi = String(d.vehicle || d.vehicleRaw || '').trim();
-    if (!voi) { out.matchesVoi = true; out.why = 'in feed; lead names no vehicle to compare'; }
-    else {
-      var uv = String(out.unit.vehicle || [out.unit.year, out.unit.make, out.unit.model].filter(Boolean).join(' '));
-      var vy = (voi.match(/\b(19|20)\d{2}\b/) || [])[0] || '';
-      var uy = String(out.unit.year || (uv.match(/\b(19|20)\d{2}\b/) || [])[0] || '');
-      var yearOk = !vy || !uy || vy === uy;
-      var famOk = _lpSameModelFamily(uv, voi);
-      out.matchesVoi = yearOk && famOk;
-      out.why = out.matchesVoi ? 'in feed and matches the lead vehicle'
-        : ('in feed but it is a DIFFERENT vehicle (feed:"' + uv + '" vs lead:"' + voi + '")');
-    }
-    out.confirmed = out.inFeed && out.matchesVoi;
-    // (v9.7.746) A unit is only "confirmed" from inventory that arrived during this grab (see _lpInvBehindGrab).
-    if (out.confirmed && typeof _lpInvBehindGrab === 'function' && _lpInvBehindGrab(d.dealerId)) {
-      out.confirmed = false;
-      out.why += ', but the inventory in hand predates this grab, so it is NOT confirmed';
-    }
-  } catch (e) { out.why = 'check threw: ' + ((e && e.message) || e); }
+    if (!out.confirmed && !(out.inFeed && !out.matchesVoi) && _lpVinSolutionsActive(d)) {
+      out.confirmed = true;
+      out.source = 'vinsolutions';
+      out.why = (out.why ? out.why + '; ' : '') + 'VinSolutions lists this unit in its active inventory (Status A) and nothing says otherwise -- confirmed';
+    } else if (out.confirmed) out.source = 'feed';
+  } catch (e) {}
   return out;
+  // The two checks live inside so the whole predicate travels as one function (suites lift it by name).
+  function _lpVinSolutionsActive(d) {
+    if (!d || !d.stockNum || !d._pdUnitStock) return false;
+    if (String(d._pdUnitStock).toUpperCase() !== String(d.stockNum).toUpperCase()) return false;
+    if (String(d._pdStatus || '').trim().toUpperCase() !== 'A') return false;
+    return !d.inventoryWarning && !d._rgxInventoryWarning && !d.inventoryWarningFromNotes && !d.vehiclePendingSale && !d.isInTransit;
+  }
+  function _lpFeedUnitCheckFeed(d) {
+    var out = { unit: null, inFeed: false, matchesVoi: false, confirmed: false, why: '' };
+    try {
+      if (!d || !d.stockNum) { out.why = 'no stock number'; return out; }
+      var inv = (typeof _lpValueFactCache !== 'undefined') && _lpValueFactCache[d.dealerId] && _lpValueFactCache[d.dealerId].inv;
+      if (!inv || !inv.units || !inv.units.length) { out.why = 'no live feed loaded for dealer ' + (d.dealerId || '?'); return out; }
+      var want = String(d.stockNum).toUpperCase();
+      for (var i = 0; i < inv.units.length; i++) {
+        var u = inv.units[i];
+        if (u && u.stock && String(u.stock).toUpperCase() === want) { out.unit = u; break; }
+      }
+      out.inFeed = !!out.unit;
+      if (!out.inFeed) { out.why = 'stock not in the live feed'; return out; }
+      var voi = String(d.vehicle || d.vehicleRaw || '').trim();
+      if (!voi) { out.matchesVoi = true; out.why = 'in feed; lead names no vehicle to compare'; }
+      else {
+        var uv = String(out.unit.vehicle || [out.unit.year, out.unit.make, out.unit.model].filter(Boolean).join(' '));
+        var vy = (voi.match(/\b(19|20)\d{2}\b/) || [])[0] || '';
+        var uy = String(out.unit.year || (uv.match(/\b(19|20)\d{2}\b/) || [])[0] || '');
+        var yearOk = !vy || !uy || vy === uy;
+        var famOk = _lpSameModelFamily(uv, voi);
+        out.matchesVoi = yearOk && famOk;
+        out.why = out.matchesVoi ? 'in feed and matches the lead vehicle'
+          : ('in feed but it is a DIFFERENT vehicle (feed:"' + uv + '" vs lead:"' + voi + '")');
+      }
+      out.confirmed = out.inFeed && out.matchesVoi;
+      // (v9.7.746) A unit is only "confirmed" from inventory that arrived during this grab (see _lpInvBehindGrab).
+      if (out.confirmed && typeof _lpInvBehindGrab === 'function' && _lpInvBehindGrab(d.dealerId)) {
+        out.confirmed = false;
+        out.why += ', but the inventory in hand predates this grab, so it is NOT confirmed';
+      }
+    } catch (e) { out.why = 'check threw: ' + ((e && e.message) || e); }
+    return out;
+  }
 }
 
 // ── (v9.7.721) THE TWO IDENTITYMAX OFFERS ARE DIFFERENT THINGS. Gil, 9/24, with both lead notes:
@@ -7095,14 +7136,18 @@ function populateFromData(d) {
   // daysOnLot,price,stockNum -- so the colour of the car we are confirming has been in hand on
   // every one of these grabs and has never been read. The verdict below is computed from the
   // capture so the two cannot disagree.
+  var _lpInvByVs = false;
   var _lpInvUnit = null;
   try {
     var _lpInvCk = _lpValueFactCache[d.dealerId] && _lpValueFactCache[d.dealerId].inv;
-    if (d.stockNum && _lpInvCk && _lpInvCk.units && _lpInvCk.units.length && !d._rgxInventoryWarning && !d.inventoryWarningFromNotes) {
+    // (v9.7.751) No longer gated on a feed being loaded: _lpFeedUnitCheck also confirms from VinSolutions' own active status.
+    if (d.stockNum && !d._rgxInventoryWarning && !d.inventoryWarningFromNotes) {
       // (v9.7.696) Same predicate as the presence lines: the feed unit must BE the lead's vehicle.
       var _lpFuc = _lpFeedUnitCheck(d);
       _lpInvUnit = _lpFuc.confirmed ? _lpFuc.unit : null;
-      _lpInvConfirmedAvailable = !!_lpInvUnit;
+      // The feed verdict is still computed from the captured record (v9.7.660); VinSolutions' is the only other way in.
+      _lpInvByVs = !!_lpFuc.confirmed && _lpFuc.source === 'vinsolutions';
+      _lpInvConfirmedAvailable = !!_lpInvUnit || _lpInvByVs;
       if (_lpFuc.inFeed && !_lpFuc.matchesVoi) {
         try { console.log('[LP SOLD SIGNAL DIAG] feed has stock ' + d.stockNum + ' but ' + _lpFuc.why + ' — NOT treated as confirmation'); } catch (eFuc) {}
       }
@@ -7173,7 +7218,10 @@ function populateFromData(d) {
                             : ' — no colour in the feed for this unit, the confirmation line ships unchanged')
             : ''));
     } catch (eSc) {}
-    vehicleExtras.push('✅ CONFIRMED IN TODAY\u2019S LIVE INVENTORY LOAD: stock ' + d.stockNum + ' is present in the current dealer inventory feed — this vehicle IS in stock right now. Treat this as more current and more reliable than any other status signal on this lead. Do not say or imply it sold, moved, is no longer available, or pivot to '
+    vehicleExtras.push(((typeof _lpInvByVs !== 'undefined' && _lpInvByVs)
+        ? '✅ CONFIRMED IN STOCK BY VINSOLUTIONS: stock ' + d.stockNum + ' is in the store\u2019s active inventory in VinSolutions, the CRM\u2019s own live record for this unit; today\u2019s inventory feed has not caught up to it yet. This vehicle IS in stock right now. Treat'
+        : '✅ CONFIRMED IN TODAY\u2019S LIVE INVENTORY LOAD: stock ' + d.stockNum + ' is present in the current dealer inventory feed — this vehicle IS in stock right now. Treat')
+      + ' this as more current and more reliable than any other status signal on this lead. Do not say or imply it sold, moved, is no longer available, or pivot to '
       + (_lpColorLive ? 'a different unit on availability grounds.' : 'alternate colors/units on availability grounds.'));
     if (_lpColorLive) {
       vehicleExtras.push('🎨 WHAT COLOUR THAT CONFIRMED UNIT ACTUALLY IS: stock ' + d.stockNum + ' is ' + _lpStockColor
@@ -7955,7 +8003,12 @@ function populateFromData(d) {
       // its By:, any quoted-reply tail, and any URL. A token that is only digits (a year, a stock
       // or zip) or a web fragment is not a configuration whatever text it came from.
       _vmCtx = _vmCtx.split('\n').map(function (l) {
-        return l.replace(/\bSubject:[^\n]*?(?:\bBy:\s*|$)/gi, ' ')
+        // (v9.7.751) The CRM's own record of a vehicle change ("By: System Primary vehicle changed from 2026 Toyota
+        // Tundra SR 4dr ... to 2026 Toyota Tundra 4WD 1794 Edition", Toyota lead 2092976040) is nobody's words: it
+        // put "sr" in front of the model as the customer's ask. Only the record is cut, not every system note --
+        // some chat transcripts arrive as system notes and carry the customer's real words.
+        return l.replace(/\b(?:primary\s+)?vehicle(?:\s+of\s+interest)?\s+(?:changed|added|removed|updated)\b[^\n]*/gi, ' ')
+                .replace(/\bSubject:[^\n]*?(?:\bBy:\s*|$)/gi, ' ')
                 .replace(/\bOn\s+(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)[a-z]*,?\s[^\n]{0,120}?\bwrote:[\s\S]*$/i, ' ')
                 .replace(/\b(?:https?:\/\/|www\.)\S+/gi, ' ');
       }).join('\n');
@@ -9596,6 +9649,16 @@ function _lpScraperBotAuthor(msg) {
       if (_tfPairs.length >= 3) {
         var _tfSpan = t.slice(_tfPairs[0], _tfPairs[_tfPairs.length - 1]);
         if (!/[.?!]/.test(_tfSpan)) return true;
+        // (v9.7.751) THREE FIELDS IN A ROW, AND A DECIMAL POINT IS NOT A SENTENCE. Edmunds' lead note (Toyota lead
+        // 2092976040, 10/1): "Base MSRP: 43260.0 Base TMV: 39663.0 Total MSRP Price with Options: 45455.0 Total TMV
+        // Price with Options: 41858.0 Edmunds TMV includes options, regional adjustment and destination charge.
+        // Timeframe: Week." The ".0" of every figure read as a full stop and the closing sentence put one in the span,
+        // so it reached the prompt as "the customer's own words ... address it directly". Any run of three pairs with
+        // no sentence punctuation between neighbours is a record, wherever in the text it sits.
+        for (var _tfi = 1, _tfRun = 1; _tfi < _tfPairs.length; _tfi++) {
+          _tfRun = /[.?!]/.test(t.slice(_tfPairs[_tfi - 1], _tfPairs[_tfi]).replace(/\d\.\d/g, '')) ? 1 : _tfRun + 1;
+          if (_tfRun >= 3) return true;
+        }
       }
       // An explicit system authorship stamp is its own sufficient signal — nobody types this.
       if (/^\s*By:\s*System\b/i.test(t) || /\bCUSTOMER INSIGHTS-/i.test(t)) return true;
@@ -13993,6 +14056,29 @@ function _lpScraperBotAuthor(msg) {
     // outranked it. Restoring the rule is what this does; whether to deliberately SURFACE negative
     // equity to a customer is a separate decision, still Gil's, and would be an added directive
     // rather than a change to this one.
+    // (v9.7.751) A LISTING SITE'S PRICES ARE NOT A TRADE ESTIMATE, AND THEY ARE ONLY ABOUT THE CAR THEY WERE QUOTED ON.
+    // Edmunds attaches MSRP and TMV figures for the vehicle the customer viewed. They are the site's numbers -- labelled
+    // as such, never quoted, never a target. And when the store has since changed the vehicle on the lead (lead
+    // 2092976040: an SR at $43,260 became a 1794 Edition at $73,800) they describe a car this lead is no longer about, so
+    // they are withheld; the form's timeframe, which the customer did choose, is kept.
+    var _lpToolIsPrice = !!_lpToolFieldData && /\b(?:MSRP|TMV|invoice|price)\b/i.test(_lpToolFieldData) && !/\btrade/i.test(_lpToolFieldData);
+    if (_lpToolIsPrice) {
+      var _lpTfVehChanged = !!(typeof _voiSwap !== 'undefined' && _voiSwap) || /\b(?:primary\s+)?vehicle\s+changed\s+from\b/i.test(TEXT);
+      var _lpTfClean = _lpToolFieldData.replace(/\bShow (?:Less|More)\b/gi, ' ').replace(/\s{2,}/g, ' ').trim();
+      var _lpTfTime = (_lpTfClean.match(/\bTime\s?frame\s*:\s*([A-Za-z0-9 -]{2,30}?)\s*(?:[.;]|$)/i) || [])[1] || '';
+      var _lpPriceBlock = _lpTfVehChanged
+        ? (_lpTfTime ? 'LEAD FORM TIMEFRAME — chosen by the customer on the listing site\'s form: "' + _lpTfTime + '". (The site\'s price figures on that form were for the vehicle the lead came in on, which the store has since changed, so they are not shown.)' : '')
+        : 'LISTING-SITE PRICE DATA — NOT THE CUSTOMER\'S WORDS. The site that sent this lead attached these figures for the '
+          + 'vehicle the customer was viewing; the customer did not type them and has not raised price with us:\n"' + _lpTfClean + '"\n'
+          + 'Do NOT quote them back, do NOT treat any of them as the customer\'s target or as a price this store has agreed to, '
+          + 'and do NOT build the message around them. Price follows the OTD / PAYMENT DISCIPLINE rules exactly as if these '
+          + 'figures were not here.';
+      if (_lpPriceBlock) conversationBrief = conversationBrief ? _lpPriceBlock + '\n\n' + conversationBrief : _lpPriceBlock;
+      _lpD('[LP TOOL DATA DIAG] listing-site price fields REFUSED as the customer\'s inquiry -- ' + _lpTfClean.length + ' chars | '
+        + (_lpTfVehChanged ? 'WITHHELD: the vehicle on the lead changed since they were quoted' + (_lpTfTime ? ' (timeframe "' + _lpTfTime + '" kept)' : '')
+                           : 'labelled as the site\'s figures, not to be quoted'));
+      _lpToolFieldData = '';
+    }
     if (_lpToolFieldData) {
       var toolDataBlock = 'TOOL-SUPPLIED DEAL DATA — NOT THE CUSTOMER\'S WORDS. The online tool wrote these '
         + 'fields when the customer used it. The customer did not type them, has not quoted them to us, and '
@@ -16426,7 +16512,7 @@ function _lpScraperBotAuthor(msg) {
       customerDeclinedAlternative, customerDeclinedAlternativeText, customerChannelPref, customerSaidNotTodayExplicit, emailBounce,
       email: (isMaskedEmail ? '' : buyerEmail),
       emailRaw: buyerEmail, // (v9.7.459 fix) unmasked email preserved for consumers (Appointment Invite tab) that need the actual on-record address even when it's a marketplace relay — AI generation paths still read the masked `email` field above so the "ask for direct email" directive is unaffected.
-      isInTransit, hasApptSet, apptDetails, isSoldDelivered, hasMissedAppt, customerRepliedReschedule: customerRepliedRescheduleFlag, apptTimeline, freshestApptEventDays: (_minApptEventDays === Infinity ? null : _minApptEventDays), hasMissedCallBackPromise, missedCallBackDetail, vrCreditApp, vrPaymentSelected, vrTradeIn, vrCompleted, vrDroppedOff, vrDroppedOffPage, vrMonthlyPayment, vrDownPayment, vrCreditScore, vrAPR, vrTerm, vrLender, noVehicleAtAll, agentLPCommands, contactRecoveryPhone, contactRecoveryEmail, isMaskedEmail, isSRPVehicle, isVelocityResponse, isLandline, engagementStrength, hasBereavementSignal, leadIntakeReq: _leadIntakeReq, onPremise: _onPremise, recordCorrected: _crAnnotated, newerLead: (typeof _newerLead !== 'undefined' ? _newerLead : null), selfClaims: _selfClaims, isHotLead: _pdHot, daysOnLot: _pdDaysOnLot, leadTypeName: _pdLeadTypeH, _pdStatus: _pdStatusH, _rgxInventoryWarning, _pdInventoryWarning, _pdDiag, pdPresent: !!_pdHoist, pdTradeCount: _pdTradeCt, pdVoiCount: _pdVoiCt, pdVoiList: _pdVoiList, pdHasLeadVehicle: _pdHasLeadVehicle, isCertifiedUnit,
+      isInTransit, hasApptSet, apptDetails, isSoldDelivered, hasMissedAppt, customerRepliedReschedule: customerRepliedRescheduleFlag, apptTimeline, freshestApptEventDays: (_minApptEventDays === Infinity ? null : _minApptEventDays), hasMissedCallBackPromise, missedCallBackDetail, vrCreditApp, vrPaymentSelected, vrTradeIn, vrCompleted, vrDroppedOff, vrDroppedOffPage, vrMonthlyPayment, vrDownPayment, vrCreditScore, vrAPR, vrTerm, vrLender, noVehicleAtAll, agentLPCommands, contactRecoveryPhone, contactRecoveryEmail, isMaskedEmail, isSRPVehicle, isVelocityResponse, isLandline, engagementStrength, hasBereavementSignal, leadIntakeReq: _leadIntakeReq, onPremise: _onPremise, recordCorrected: _crAnnotated, newerLead: (typeof _newerLead !== 'undefined' ? _newerLead : null), selfClaims: _selfClaims, isHotLead: _pdHot, daysOnLot: _pdDaysOnLot, leadTypeName: _pdLeadTypeH, _pdStatus: _pdStatusH, _pdUnitStock: (LP_PD_PRIMARY && _pdStockH && (typeof _pdOwnsUnit === 'undefined' || _pdOwnsUnit)) ? _pdStockH : '', _rgxInventoryWarning, _pdInventoryWarning, _pdDiag, pdPresent: !!_pdHoist, pdTradeCount: _pdTradeCt, pdVoiCount: _pdVoiCt, pdVoiList: _pdVoiList, pdHasLeadVehicle: _pdHasLeadVehicle, isCertifiedUnit,
       // (v9.7.617) A TRI-STATE STRING, NOT A BOOLEAN, BECAUSE false LOSES THE MERGE. v9.7.616
       // shipped this as a boolean and it never once survived: the frame merge is first-truthy-wins,
       // so `false` -- the answer on every lead where the customer never mentioned money, which is
@@ -26699,7 +26785,7 @@ function buildUserPrompt(data) {
       lines.push('INSTEAD: Ask what day and time works best for them this week.');
       lines.push('Example SMS: "What day works best for you this week?"');
       lines.push('Example email: "What day works best for you? Just let me know and I will have everything ready."');
-    } else if (data.hasMissedAppt && !(data.customerScheduleConstraint && data.customerScheduleConstraint.length > 0)) {
+    } else if (data.hasMissedAppt && !_lpMissedApptIsPrior(data) && !(data.customerScheduleConstraint && data.customerScheduleConstraint.length > 0)) {
       // v9.7.206 — Cancelled/missed appointment with NO new timing established by the
       // customer. The Larissa/William cases: a cancelled appointment routed into the
       // generic suggested-times fallback, which only offers TODAY slots → the message
