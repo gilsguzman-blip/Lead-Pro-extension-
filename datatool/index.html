@@ -166,7 +166,7 @@
         <p class="big">Drop the incentives .xlsx here</p>
         <p class="small">or click · columns <code>dealer_id · category(=model) · line · expires</code></p>
         <input type="file" id="inc-file" accept=".xls,.xlsx">
-        <div class="files" id="inc-filelist"><span class="chip"><b>Audi AUG26.html</b> · 107 total rows staged (spreadsheet + webpage uploads)</span></div>
+        <div class="files" id="inc-filelist"></div>
       </label>
     </div>
 
@@ -195,19 +195,19 @@
         <p class="big">Drop the saved offers page here (.html)</p>
         <p class="small">Right-click the real offers page → Save As → <code>Webpage, Complete</code>, then drop the .html file here</p>
         <input type="file" id="inc-page-file" accept=".html,.htm">
-        <div class="files" id="inc-page-filelist"><span class="chip"><b>Audi AUG26.html</b> · 15 offers extracted for Audi (21135)</span></div>
+        <div class="files" id="inc-page-filelist"></div>
       </label>
-      <div id="inc-page-msg"><div class="note warn"><span>2 exact duplicate offer(s) collapsed into one (the same model-wide fact repeated across multiple trims).</span></div></div>
+      <div id="inc-page-msg"></div>
     </div>
 
     <div class="actions">
-      <button class="act b-go" id="inc-go">Normalize</button>
-      <button class="act b-dl" id="inc-dl">Download JSON</button>
+      <button class="act b-go" id="inc-go" disabled="">Normalize</button>
+      <button class="act b-dl" id="inc-dl" disabled="">Download JSON</button>
     </div>
-    <div id="inc-msg"><div class="note "><span>Uploaded to Lead Pro ✓</span></div></div>
-    <div class="summary show" id="inc-summary">
-      <div class="statline" id="inc-statline"><div class="stat"><div class="n">107</div><div class="l">Rows read</div></div><div class="stat"><div class="n gr">107</div><div class="l">Lines kept</div></div><div class="stat"><div class="n ">0</div><div class="l">Dropped (expiry)</div></div><div class="stat"><div class="n">0</div><div class="l">Other dealers</div></div><div class="stat"><div class="n g">4</div><div class="l">Stores</div></div></div>
-      <table><thead><tr><th>Store</th><th>Dealer ID</th><th style="text-align:right">Incentive lines</th><th style="text-align:right">Models</th><th>Earliest expiry</th></tr></thead><tbody id="inc-rows"><tr><td class="store">Toyota Baytown</td><td class="cond">6189</td><td class="num">14</td><td class="num">6</td><td class="cond">2026-08-31</td></tr><tr><td class="store">Honda Baytown</td><td class="cond">6191</td><td class="num">39</td><td class="num">14</td><td class="cond">2026-09-08</td></tr><tr><td class="store">Audi Lafayette</td><td class="cond">21135</td><td class="num">15</td><td class="num">11</td><td class="cond">2026-08-31</td></tr><tr><td class="store">Honda Lafayette</td><td class="cond">24399</td><td class="num">39</td><td class="num">14</td><td class="cond">2026-09-08</td></tr></tbody></table>
+    <div id="inc-msg"></div>
+    <div class="summary" id="inc-summary">
+      <div class="statline" id="inc-statline"></div>
+      <table><thead><tr><th>Store</th><th>Dealer ID</th><th style="text-align:right">Incentive lines</th><th style="text-align:right">Models</th><th>Earliest expiry</th></tr></thead><tbody id="inc-rows"></tbody></table>
       <div class="note warn" id="inc-warn" style="display:none"></div>
       <div class="note"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#33b06a" stroke-width="1.6"><path d="M12 2 4 5v6c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V5z" stroke-linejoin="round"></path><path d="M12 8v5M12 16.5v.5" stroke-linecap="round"></path></svg>
         <span><b>Expiry is the kill-switch — enforced twice.</b> Nothing without a real, future <code>expires</code> date is published from here. From extension <b>v9.7.530-dev / v9.7.528</b> onward Lead Pro also re-checks the date at send time and drops any line that expired after it was published, so the message simply goes out with no incentive rather than a stale one. Lines kept here are matched to a lead's model at send time. <b>On extension builds older than that, expiry was only ever checked at publish time</b> — those builds keep quoting whatever is in this sheet, so re-publish before dates lapse.</span></div>
@@ -364,7 +364,22 @@ function ipParseFinance(text) {
   let termLow = null, termHigh = null, termLabel = null;
   if (rangeM) { termLow = parseInt(rangeM[1], 10); termHigh = parseInt(rangeM[2], 10); termLabel = termLow + '-' + termHigh + ' mos'; }
   else if (singleM) { termLow = termHigh = parseInt(singleM[1], 10); termLabel = termLow + ' mos'; }
-  return { apr, termLow, termHigh, termLabel };
+  // (10/1) A rate that steps up for longer terms. Honda's October cards: "3.99% APR 24-60 mos 4.99% APR 61-72 mos" --
+  // only the first rate was kept, so a 72-month Accord buyer read 3.99%. Only a second rate printed right after the
+  // first, whose term starts where the first one ends, counts as the next tier -- never an APR from another offer.
+  const tiers = [];
+  const tierRx = /(\d{1,2}(?:\.\d+)?)\s*%\s*APR\s+(?:for\s+)?(\d+)\s*(?:-|to)\s*(\d+)\s*mo(?:s|nths)?\b/gi;
+  let tm, lastEnd = -1;
+  while ((tm = tierRx.exec(t))) {
+    const lo = parseInt(tm[2], 10), hi = parseInt(tm[3], 10);
+    if (tiers.length) {
+      const prev = tiers[tiers.length - 1];
+      if (tm.index - lastEnd > 3 || lo !== prev.hi + 1) break;
+    } else if (tm[1] + '%' !== apr) break;
+    tiers.push({ apr: tm[1] + '%', lo, hi });
+    lastEnd = tm.index + tm[0].length;
+  }
+  return { apr, termLow, termHigh, termLabel, tiers: tiers.length > 1 ? tiers : null };
 }
 
 function ipParseLease(text) {
@@ -436,6 +451,9 @@ const IP_CATEGORY_RULES = [
   // mislabeling a real lease payment as "Customer Cash" on a live Kia page. Removed the trailing
   // \b from just this classifier rule; the months-extraction regex elsewhere keeps its guard.
   ['Lease', /\/\s*mo|\blease\b/i],
+  // (10/1) Honda's cash program is "Sales Credit" -- no word "cash" on the card, so it fell through to Unclassified
+  // and was written "Customer Cash", a name the store's own page never uses for it.
+  ['Sales Credit', /\bsales\s*credit\b/i],
   ['Cash', /\bcash\b|\$[\d,]+\s*(customer\s*)?cash\b/i],
 ];
 function ipClassifyOffer(text) {
@@ -567,27 +585,29 @@ function ipTruncate(s) { return s.length <= MAX_LINE_LEN ? s : s.slice(0, MAX_LI
 // (10/1) Appended to a line when the page names the specific trim an offer is for, so two payments on one
 // model ("Q7 — $629/mo" and "Q7 — $739/mo") say which is which. The line still opens with the model, which is
 // what the extension matches on. "Applies to 5 trims" / "All trims" names nothing and adds nothing.
-function ipTrimNote(trim) {
+function ipTrimNote(trim, shownOnly) {
   const t = String(trim || '').replace(/^applies\s+to\s+/i, '').replace(/\s+/g, ' ').trim();
   if (!t || /^(?:\d+\s+trims?|all(?:\s+trims)?|select\s+trims?)$/i.test(t)) return '';
-  return ' — applies to ' + t;
+  return (shownOnly ? ' — shown on ' : ' — applies to ') + t;
 }
-function ipBuildLine(model, category, cash, finance, lease, trim) {
+// shownOnly: the page shows the offer on one trim without saying it is limited to it (Honda's Special Program
+// cards picture one trim for a loyalty offer) -- "shown on", never "applies to", so no draft narrows it.
+function ipBuildLine(model, category, cash, finance, lease, trim, shownOnly) {
   if (!model) return null;
   const _line = ipBuildLineCore(model, category, cash, finance, lease);
-  return _line ? ipTruncate(_line.replace(/…$/, '') + ipTrimNote(trim)) : null;
+  return _line ? ipTruncate(_line.replace(/…$/, '') + ipTrimNote(trim, shownOnly)) : null;
 }
 function ipBuildLineCore(model, category, cash, finance, lease) {
   if (!model) return null;
   const cashLabel = () => ({
     Military: 'Military Appreciation Cash', College: 'College Grad Cash',
     'Owner Loyalty': 'Owner Loyalty Cash', Loyalty: 'Loyalty Cash',
-    'Competitive Bonus': 'Conquest Cash', 'Dealer Cash': 'Dealer Cash',
+    'Competitive Bonus': 'Conquest Cash', 'Dealer Cash': 'Dealer Cash', 'Sales Credit': 'Sales Credit',
   }[category] || 'Customer Cash');
 
   const isLease = category === 'Lease';
   const isFinance = category === 'APR Subvention' || category === 'APR Bonus Cash';
-  const isCash = ['Cash','Military','College','Owner Loyalty','Loyalty','Competitive Bonus','Dealer Cash'].includes(category);
+  const isCash = ['Cash','Military','College','Owner Loyalty','Loyalty','Competitive Bonus','Dealer Cash','Sales Credit'].includes(category);
 
   if (isLease && lease && (lease.payment || lease.months)) {
     const parts = [model, '—'];
@@ -596,10 +616,7 @@ function ipBuildLineCore(model, category, cash, finance, lease) {
     if (lease.dueAtSigning) parts.push('(' + lease.dueAtSigning + ' due at signing)');
     return ipTruncate(parts.join(' '));
   }
-  if (isFinance && finance && finance.apr) {
-    const term = finance.termLabel ? ' for ' + finance.termLabel : '';
-    return ipTruncate(model + ' — ' + finance.apr + ' APR' + term);
-  }
+  if (isFinance && finance && finance.apr) return ipTruncate(model + ' — ' + ipFinanceText(finance));
   if (isCash && cash && cash.amount != null) {
     return ipTruncate(model + ' — ' + cash.raw + ' ' + cashLabel());
   }
@@ -611,11 +628,12 @@ function ipBuildLineCore(model, category, cash, finance, lease) {
     if (lease.dueAtSigning) parts.push('(' + lease.dueAtSigning + ' due at signing)');
     return ipTruncate(parts.join(' '));
   }
-  if (finance && finance.apr) {
-    const term = finance.termLabel ? ' for ' + finance.termLabel : '';
-    return ipTruncate(model + ' — ' + finance.apr + ' APR' + term);
-  }
+  if (finance && finance.apr) return ipTruncate(model + ' — ' + ipFinanceText(finance));
   return null;
+}
+function ipFinanceText(finance) {
+  if (finance.tiers) return finance.tiers.map(x => x.apr + ' APR for ' + x.lo + '-' + x.hi + ' mos').join(', ');
+  return finance.apr + ' APR' + (finance.termLabel ? ' for ' + finance.termLabel : '');
 }
 
 // Browser-native HTML -> visible text. Deliberately does NOT use
@@ -834,6 +852,17 @@ function parseManufacturerPage(html, manufacturer, dealerId, manualExpiresOverri
       // nav text (confirmed real false-positive risk). "All Vehicles" chunks
       // are dropped — no single vehicle to attach a clean line to.
       chunks = chunks.filter(c => c.model !== 'All Vehicles' && /See All Offers/i.test(c.text));
+      // (10/1) THE TRIM. Every Honda card reads "<model> See All Offers <label> <year> <drivetrain trim> $<amount>" --
+      // "CR-V See All Offers Featured Special Lease 2026 AWD LX $279/mo" -- and the line kept only "CR-V", so the AWD
+      // and 2WD LX leases ($4,899 vs $4,199 due) read as two prices for one car. Finance cards print a rate straight
+      // after the year and name no trim. A lease is that trim's payment ("applies to"); a Special Program card
+      // pictures one trim for an offer it does not say is limited to it ("shown on").
+      chunks.forEach(c => {
+        const h = c.text.match(/^.{0,40}?See All Offers\s+((?:[A-Za-z]+\s+){0,4}?)20\d{2}\s+([A-Za-z0-9][^$%¹]{0,40}?)\s*\$/);
+        if (!h) return;
+        c.trim = h[2].replace(/\s+/g, ' ').trim();
+        c.trimShownOnly = /\bProgram\b/i.test(h[1]);
+      });
     }
   }
 
@@ -874,7 +903,7 @@ function parseManufacturerPage(html, manufacturer, dealerId, manualExpiresOverri
     const today = new Date().toISOString().slice(0, 10);
     if (expires < today) continue; // never publish an already-expired fact
 
-    const line = ipBuildLine(chunk.model, category, cash, finance, lease, chunk.trim);
+    const line = ipBuildLine(chunk.model, category, cash, finance, lease, chunk.trim, chunk.trimShownOnly);
     if (!line) continue;
 
     // (year capture) chunk.year included in the dedup key -- two DIFFERENT model years that
