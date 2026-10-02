@@ -259,6 +259,13 @@ check('the five rungs are still the five rungs, in order',
   ['PHASE 1 -- VALUE / OPTIONS', 'PHASE 2 -- MICRO QUESTION', 'PHASE 3 -- TIMING CHECK',
    'PHASE 4 -- PATTERN INTERRUPT', 'PHASE 5 -- GRACEFUL CLOSE-OUT']);
 
+// (v9.7.754) Gil: "make the channel ask the default close-out wording." Executed, not read from source.
+check('rung 5 starts with the channel ask -- text, email, or not at all -- and keeps the other three as the rotation',
+  i => { const a = i.run(ctx(5), 40, ELIGIBLE_DATA).approach;
+         const ch = a.indexOf('(A) THE CHANNEL -- THE DEFAULT'), rec = a.indexOf('(B) THE RECORD');
+         return [ch > -1 && rec > ch, /text, email, or not at all/.test(a), /START WITH \(A\)/.test(a), /Use \(B\), \(C\) or \(D\) only when the channel question has already been put to them/.test(a)]; },
+  [true, true, true, true]);
+
 // (v9.7.753) Rung 4's own wording changed on purpose: it carried a close-out example ("Should I keep this on my radar
 // or close it out?") on a rung that can never be eligible for one, and a guess ("did you already pick something up")
 // rung 5 bans. It is now the move the gated rung 4 already made. The rung, its name and its boundary are unchanged.

@@ -278,12 +278,13 @@ const p5 = body => body.slice(body.indexOf("stalledPhase = 'PHASE 5 -- GRACEFUL 
 check('the single "e.g." template that every draft landed on is GONE',
   i => /e\.g\. "I have not heard back, so I will stop filling your inbox/.test(p5(i.body)), false);
 
-check('four lettered moves are offered',
-  i => ['(A) THE RECORD', '(B) THE TIMING', '(C) THE LAST USEFUL THING', '(D) THE CHANNEL']
+// (v9.7.754) Gil: the channel ask is the default -- it is now (A), and the model starts there.
+check('four lettered moves are offered, the channel first',
+  i => ['(A) THE CHANNEL', '(B) THE RECORD', '(C) THE TIMING', '(D) THE LAST USEFUL THING']
          .every(m => p5(i.body).indexOf(m) >= 0), true);
 
-check('they are named as alternatives, and the model is told to pick one',
-  i => /FOUR DIFFERENT MOVES DO THAT, AND THEY ARE ALTERNATIVES -- PICK ONE/.test(p5(i.body)), true);
+check('they are named as alternatives, and the model is told to pick one, starting with the channel',
+  i => /FOUR DIFFERENT MOVES DO THAT, AND THEY ARE ALTERNATIVES -- PICK ONE, AND START WITH \(A\)/.test(p5(i.body)), true);
 
 check('it says rewording a move already used is what the agent just rejected',
   i => /rewording the same move is what the agent just rejected/.test(p5(i.body)), true);
