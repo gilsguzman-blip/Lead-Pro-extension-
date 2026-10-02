@@ -259,10 +259,13 @@ check('the five rungs are still the five rungs, in order',
   ['PHASE 1 -- VALUE / OPTIONS', 'PHASE 2 -- MICRO QUESTION', 'PHASE 3 -- TIMING CHECK',
    'PHASE 4 -- PATTERN INTERRUPT', 'PHASE 5 -- GRACEFUL CLOSE-OUT']);
 
-check('phase 4 still offers the pattern interrupt verbatim',
-  i => i.run(ctx(4), 40, ELIGIBLE_DATA).approach,
-  'Break the script. Try: "Quick one -- did you already pick something up or still weighing options?"'
-  + ' or "Should I keep this on my radar or close it out?"');
+// (v9.7.753) Rung 4's own wording changed on purpose: it carried a close-out example ("Should I keep this on my radar
+// or close it out?") on a rung that can never be eligible for one, and a guess ("did you already pick something up")
+// rung 5 bans. It is now the move the gated rung 4 already made. The rung, its name and its boundary are unchanged.
+check('phase 4 pattern-interrupts without offering a close-out or guessing what they did (v9.7.753)',
+  i => { const a = i.run(ctx(4), 40, ELIGIBLE_DATA).approach;
+         return [/^Break the pattern\./.test(a), /close it out|keep this on my radar|pick something up/i.test(a), /Do NOT offer to close the file/.test(a)]; },
+  [true, false, true]);
 
 check('the boundary is still 4→5 at the fifth touch, not moved',
   i => [i.run(ctx(4), 40, ELIGIBLE_DATA).phase.slice(0, 7), i.run(ctx(5), 40, ELIGIBLE_DATA).phase.slice(0, 7)],

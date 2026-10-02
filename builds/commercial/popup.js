@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.753 (Commercial. A 5-DAY-OLD LEAD WAS TOLD 'I'LL STOP REACHING OUT', AND A BOUNCING ADDRESS WAS TOLD ABOUT ITS INBOX. Extension only; proxy v7.81 and reporter v1.23 unchanged. From the 10/1 feedback export; no dump could be taken, so both were fixed from the code. (1) Community Honda Lafayette lead 2090131196, 5 days old, never eligible to be closed out (_lpCloseOutEligible: 21 days AND 5 outreaches). The text that shipped: 'I'll stop reaching out. If you decide you'd like to continue, we can assess your Tacoma in person...'. The email from the SAME generation: 'Would a quick call or a text be easier for you to continue?'. Only the text goes through the rewrite (_lpRefineSms), and that pass was never told the ban: 'DO NOT OFFER TO CLOSE THIS LEAD OUT' lived only in the main prompt -- the v9.7.689 shape, a rule enforced on the draft nobody sees. FIXES: the ban has one wording (_lpCloseOutBanText) used by the main prompt and the rewrite prompt; a rewrite that offers to stop or close out (LP_WITHDRAW_RX) where the first pass did not, on a lead not eligible for it, loses to the first pass and logs why. Two places that offered the move to the model themselves: the arc state listed 'stepback' as an angle 'not raised with this customer yet' -- read as still open to try, and on a regenerate the one reached for -- now withheld while the lead is not eligible; and stalled rung 4 (by count) carried 'Should I keep this on my radar or close it out?' and 'did you already pick something up' on a rung that can never be eligible (4 touches or fewer, eligibility needs 5), now the same move the gated rung 4 already made. A customer's own exit still wins at any age. (2) Lead 2079616544 (Facebook, address bouncing): the v9.7.697 ask for a good address held on all three drafts, but the text said 'I'll step back rather than keep filling your inbox' and an email was drafted to the dead address with nothing telling the agent. The LEAD line and the rewrite now say they have not been receiving our emails, so no inbox talk; the panel notice says 'This customer's email address is bouncing -- the email draft will not reach them' (joined with the opt-out notice when both apply). stalled-phase and sms-optout-evidence updated for the two wordings changed on purpose. NEW SUITE closeout-refine-753.test.js, 24 assertions executing the shipped _lpCloseOutEligible, _lpBuildSmsRefinePrompt, _lpRefineSms (worker stubbed), _lpBuildArcState and buildUserPrompt; v9.7.752 fails 6 by name and ships lead 2090131196's exact text. VERIFIED: run-all 176 suites green, 7,231 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.752-dev.)
 // Lead Pro -- popup.js  v9.7.752 (Commercial. THE MISSED-APPOINTMENT FIX IN v9.7.751 NEVER REACHED THE LIVE PROMPT. Extension only; proxy v7.81 and reporter v1.23 unchanged. Toyota Baytown lead 2092976040, 10/1 (log276, on v9.7.751). Three of v9.7.751's four fixes held live: the feed confirmed TX455588, the variant scan found nothing, the Edmunds price fields were withheld with the 'Week' timeframe kept, and _pdUnitStock reached the lead data for the VinSolutions fallback. The fourth did not: 'TIMING -- APPOINTMENT FELL THROUGH ... confirm they still want to come in' printed again, and the draft said 'Are you still interested in coming in?'. _lpMissedApptIsPrior reads data.freshestApptEventDays; generateAll builds buildUserPrompt's input by hand (_lpPromptInputData) and carried hasMissedAppt but not the appointment's age, so the check saw none and fell back to printing the block. v9.7.751's test handed buildUserPrompt the field directly and so could not see the gap -- the v9.7.618 lesson, and mine to have caught. FIX: _lpPromptInputData carries freshestApptEventDays from lastScrapedData. NEW SUITE appt-wiring-752.test.js, 8 assertions: builds the object the way generateAll does and runs buildUserPrompt on that object alone; v9.7.751 fails 2 by name (the field, and the block on log276's shape). VERIFIED: run-all 175 suites green, 7,207 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.751-dev.)
 // Lead Pro -- popup.js  v9.7.751 (Commercial. FOUR THINGS MADE A CONFIRMED TRUCK READ UNSURE. Extension only; proxy v7.81 and reporter v1.23 unchanged. Toyota Baytown lead 2092976040, 10/1 (log274, dump 02786a32; regrab log275), a new lead source (Edmunds) Gil was checking. The store moved the lead onto stock TX455588, a 2026 Tundra 1794 Edition that arrived the day before, and the draft said 'I can confirm the exact unit's status before you make plans ... Are you still interested in coming in?'. (1) VINSOLUTIONS' OWN 'ACTIVE INVENTORY' NOW CONFIRMS A UNIT WHEN THE FEED HAS NOT CAUGHT UP. The 124-unit feed in hand did not have the truck yet; PageData on the same grab said Status 'A'. Gil: 'the Vin lead panel shows it as in stock ... Does the model not check that info and only rely on the feed data?' It did not: Status was only ever read in the SOLD direction ('I' = the 'no longer in your active inventory' banner, 6/6 agreement in v9.7.490; across the 24 page dumps on hand every 'A' carried no sold signal and every 'I' carried the banner or its PageData twin). _lpFeedUnitCheck -- the one presence predicate every 'it's here' line reads -- now confirms from VinSolutions when the feed does not, only for the stock PageData itself puts on this lead (new _pdUnitStock export; never a stock found elsewhere on the page, the v9.7.696 trap), only with no banner, no sold note, not pending, not in transit, and never when the feed holds that stock as a different vehicle. The confirmation line says where it came from ('CONFIRMED IN STOCK BY VINSOLUTIONS ... today's inventory feed has not caught up to it yet'); the feed's own wording is unchanged when the feed confirms. The v9.7.660 rule holds: a feed verdict is still computed from the captured unit. (2) THE CRM'S RECORD OF A VEHICLE CHANGE IS NOBODY'S WORDS. 'By: System Primary vehicle changed from 2026 Toyota Tundra SR 4dr ... to 2026 Toyota Tundra 4WD 1794 Edition' put 'VEHICLE VARIANT MISMATCH ... sr' in front of the model as the customer's ask. The variant scan now cuts that record (not every system note: some chat transcripts arrive as system notes and carry real words); an agent's note of what the customer asked for still raises it. (3) A MISSED APPOINTMENT FROM AN EARLIER LEAD DOES NOT SET THIS LEAD'S TIMING. August's miss on another lead printed 'TIMING -- APPOINTMENT FELL THROUGH ... confirm they still want to come in' on a lead submitted that afternoon, though the persona's fresh-lead guard had already set it aside. New _lpMissedApptIsPrior: when every appointment event is older than the lead (freshestApptEventDays > leadAgeDays) the block does not print; the history still reaches the model as background. (4) A LISTING SITE'S PRICE FIELDS ARE NOT THE CUSTOMER'S WORDS. Edmunds' 'Base MSRP: 43260.0 Base TMV: 39663.0 ...' went out as 'CUSTOMER'S INQUIRY -- the customer's own words ... address it directly', and was the lead's 'last inbound message'. _lpIsToolFieldBlob's colon-field rule read every '.0' as a full stop; a run of three fields with no sentence punctuation between neighbours (decimals ignored) is now a record. Price fields are labelled 'LISTING-SITE PRICE DATA -- NOT THE CUSTOMER'S WORDS', never quoted; when the store has changed the vehicle on the lead (the $43,260 was the SR's, the 1794 is $73,800) they are withheld and only the form's timeframe the customer chose ('Week') is kept. Across all 24 page dumps the scraper output changes on this lead only. NEW SUITE vinsolutions-active-751.test.js, 46 assertions executing the shipped _lpFeedUnitCheck, populateFromData, buildUserPrompt, _lpIsToolFieldBlob and the price-data block; NON-VACUITY: v9.7.750 fails 9 by name (one labelled new field). VERIFIED: run-all 174 suites green, 7,199 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.750-dev.)
 // Lead Pro -- popup.js  v9.7.750 (Commercial. A CAR THE CUSTOMER OWNS OR HAS SOLD IS NOT ONE THEY WANT. Extension only; proxy v7.81 and reporter v1.23 unchanged. Toyota Baytown lead 2079679068, 10/1 (log of 10/1, dump 2a2c8460, page dump 5b29520d). A TradePending lead on the customer's 2022 Corolla XSE with no vehicle of interest. Her only Tundra mention: 'I sold my 2018 Camary & my 2013 Tundra in past to Freeman when we lived in DFW'. _lpOwnWordsModel (v9.7.725) read 'Tundra' as the model she wants: the prompt said 'in their own words they want "Tundra"' (named-model block, rule line and Vehicle line), and the draft asked 'are you still considering a Tundra?'. The pivot guard on the same grab already read it as owned ('my 2013 Tundra'). Gil: 'Agent was confused because the VOI of a Tundra was introduced and we can't see any reference to that other than her 2022 Corolla trade.' FIX: _lpOwnWordsModel tests the clause in front of (and just after) every mention of a model and skips one that is theirs: 'my/our [year] X', 'I/we drive/own/have/had/bought/sold/traded ... X', 'sold/traded in ... X', 'X we bought'. The pivot guard's own discriminators carry over: a possessive followed by an article or a desire verb ('my wife wants an Accord') is desire, and the ownership span stops at 'and/but/or' and at want/looking/need/prefer, so 'I have a 2019 Camry and want a Tundra' still reads Tundra. REPLAYED on the real page dump with the real scraper and the dump's inventory: v9.7.749's three 'they want Tundra' lines are replaced by the no-vehicle lines; nothing else moves. TESTS: new owned-model-750 (7 per build) executes the shipped _lpOwnWordsModel. NON-VACUITY against v9.7.749: the 4 new checks fail, the 3 controls pass. named-model-725 unchanged and green. VERIFIED: run-all 171 suites, 7,136 assertions, 0 failed (+14). node --check both builds; manifests parse; changed lines identical dev vs commercial. Builds on v9.7.749.)
@@ -3199,7 +3200,14 @@ function _lpBuildArcState(d, opts) {
       });
       s.lines.push('Angles your own prior messages have already used — ' + parts.join('; ') + '.');
     }
-    if (ang.unused.length) s.lines.push('Not raised with this customer yet: ' + ang.unused.join(', ') + '.');
+    // (v9.7.753) "Not raised yet: ... stepback" reads as an angle still open to try -- on a regenerate, the one the
+    // model reaches for. On a lead not eligible to be closed out it is not open, so it is not listed.
+    var _unusedShown = ang.unused;
+    try {
+      var _arcCo = (typeof _lpCloseOutEligible === 'function') ? _lpCloseOutEligible(d) : null;
+      if (_arcCo && !_arcCo.eligible) { _unusedShown = ang.unused.filter(function (x) { return x !== 'stepback'; }); s.facts.stepbackWithheld = _unusedShown.length !== ang.unused.length; }
+    } catch (eArcCo) {}
+    if (_unusedShown.length) s.lines.push('Not raised with this customer yet: ' + _unusedShown.join(', ') + '.');
     if (ang.capped) s.lines.push('(Only the ' + ang.read + ' most recent outbound messages were read, '
       + 'so an angle used earlier than those may not appear above.)');
   } catch (e) { s.error = (e && e.message) || 'arc state threw'; }
@@ -3975,6 +3983,22 @@ function _lpRung2Examples(ctx) {
            fitCount: fit.length, freshCount: fresh.length, offset: off, exhausted: !fresh.length };
 }
 
+// (v9.7.753) ONE WORDING OF THE BAN, AND ONE TEST FOR A WITHDRAWAL. Community Honda Lafayette lead 2090131196, 10/1,
+// 5 days old, never eligible to be closed out (needs 21 days AND 5 outreaches). The text that shipped said "I'll stop
+// reaching out. If you decide you'd like to continue..." while the email from the SAME generation asked "Would a quick
+// call or a text be easier for you to continue?". Only the text goes through the rewrite pass (_lpRefineSms), and that
+// pass was never told the ban -- it lived only in the main prompt (the v9.7.689 shape: a rule enforced at one stage of a
+// two-stage pipeline). The ban now reaches the rewrite in these exact words, and a rewrite that withdraws where the
+// first pass did not loses to the first pass.
+function _lpCloseOutBanText(reason) {
+  return 'This lead is not at a point where withdrawing is the right move (' + reason + '). '
+    + 'Do NOT write "should I close this out", "I will stop reaching out", "I will take you off my list", '
+    + '"last time I will bother you", or any variation that hands them an exit. Several outreaches in a '
+    + 'few days is OUR cadence running, not the customer going cold — do not treat it as a dead lead. '
+    + 'Acknowledging that it has been quiet is fine; withdrawing is not. Move the conversation forward '
+    + 'with one specific, easy thing to respond to.';
+}
+var LP_WITHDRAW_RX = /\b(?:i(?:'|\u2019)?ll|i will|we(?:'|\u2019)?ll|we will|i(?:'|\u2019)?m going to|i am going to)\s+(?:stop\b|step back\b|leave you (?:alone|be)\b|close (?:out )?(?:your|the|this)\b|take you off\b|stop (?:reaching|following|texting|contacting))|\bclose (?:out )?(?:your|this|the) (?:file|inquiry|request|lead)\b|\bstop reaching out\b|\btake you off (?:my|our|the) list\b|\bno (?:more|further) (?:follow-?ups?|contact|messages)\b|\b(?:keep|leave) (?:your file|it|this) open\b/i;
 function _lpCloseOutEligible(d) {
   d = d || {};
   var sig  = d.relationshipSignals || {};
@@ -20435,6 +20459,16 @@ function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
     }
   } catch (eRfP) {}
 
+  // (v9.7.753) The close-out ban, in the main prompt's own words (_lpCloseOutBanText). Lead 2090131196.
+  try {
+    var _rfCo = (typeof _lpCloseOutEligible === 'function') ? _lpCloseOutEligible(d) : null;
+    if (_rfCo && !_rfCo.eligible) {
+      out.push('\u2501\u2501\u2501 DO NOT OFFER TO CLOSE THIS LEAD OUT \u2501\u2501\u2501');
+      out.push(_lpCloseOutBanText(_rfCo.reason));
+      out.push('');
+    }
+  } catch (eRfCo) {}
+
   // (v9.7.553) An agent LP command is the one thing in this whole pipeline a human typed by hand
   // for this specific lead, and the shape rule already says it is never what gets cut. It has to
   // survive a pass whose entire job is cutting.
@@ -20469,7 +20503,8 @@ function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
   try {
     if (d && d.emailBounce && d.emailBounce.count && /e-?mail/i.test(String(pass1 || ''))) {
       out.push('\u2501\u2501\u2501 KEEP THE EMAIL ASK \u2501\u2501\u2501');
-      out.push('Emails to this customer are bouncing, and the first draft asks them for a good email address. Keep that ask in your version.');
+      out.push('Emails to this customer are bouncing, and the first draft asks them for a good email address. Keep that ask in your version. '
+        + 'They have not been receiving our emails, so do not mention their inbox or filling it.');
       out.push('');
     }
   } catch (eRsE) {}
@@ -20682,6 +20717,15 @@ async function _lpRefineSms(pass1, emailText, d) {
       }
     } catch (eRfC) {}
 
+    // (v9.7.753) A withdrawal the first pass did not make, on a lead not eligible for one: the first pass ships.
+    try {
+      var _rfCoE = (typeof _lpCloseOutEligible === 'function') ? _lpCloseOutEligible(d) : null;
+      if (_rfCoE && !_rfCoE.eligible && LP_WITHDRAW_RX.test(out) && !LP_WITHDRAW_RX.test(String(pass1 || ''))) {
+        console.log('[LP SMS REFINE DIAG] kept the first pass \u2014 the rewrite offered to stop or close out ("'
+          + (out.match(LP_WITHDRAW_RX) || [''])[0] + '") on a lead not eligible for that (' + _rfCoE.reason + ') | ' + (Date.now() - t0) + 'ms');
+        return null;
+      }
+    } catch (eRfCoE) {}
     // (v9.7.749) The price hedge the first pass kept out and the rewrite put back: the first pass ships.
     try {
       var _rfHedge = /\b(?:can(?:'|\u2019)?t|cannot|can not|unable to)\s+(?:yet\s+)?confirm\b|\bis(?:n't|n\u2019t|\s+not)\s+(?:yet\s+)?(?:confirmed|final)\b|\bnot\s+(?:yet\s+)?(?:a\s+)?(?:confirmed|final)\b/i;
@@ -25433,12 +25477,7 @@ function buildUserPrompt(data) {
         + ' replied:' + _coElig.replied + ' sinceReply:' + _coElig.sinceReply);
       if (!_coElig.eligible) {
         ageBlock.push('DO NOT OFFER TO CLOSE THIS LEAD OUT:');
-        ageBlock.push('This lead is not at a point where withdrawing is the right move (' + _coElig.reason + '). '
-          + 'Do NOT write "should I close this out", "I will stop reaching out", "I will take you off my list", '
-          + '"last time I will bother you", or any variation that hands them an exit. Several outreaches in a '
-          + 'few days is OUR cadence running, not the customer going cold — do not treat it as a dead lead. '
-          + 'Acknowledging that it has been quiet is fine; withdrawing is not. Move the conversation forward '
-          + 'with one specific, easy thing to respond to.');
+        ageBlock.push(_lpCloseOutBanText(_coElig.reason));
         ageBlock.push('');
       }
       // (v9.7.697) N1: a one-day-old lead with the auto-responder's burst is not a one-sided conversation.
@@ -26360,7 +26399,7 @@ function buildUserPrompt(data) {
     // (v9.7.697) N3: a bouncing address is not "on file" in any useful sense.
     data.email
       ? (data.emailBounce && data.emailBounce.count
-          ? 'Email:      ' + data.email + '  ← ⚠ BOUNCING: ' + data.emailBounce.count + ' email' + (data.emailBounce.count === 1 ? '' : 's') + ' sent to this address on this lead came back undeliverable' + (data.emailBounce.lastDate ? ' (latest ' + data.emailBounce.lastDate + ')' : '') + '. Treat it as NOT a working address. In the SMS, ask them once, plainly, for a good email address — as part of the message, not the opener. The email draft may not reach them.'
+          ? 'Email:      ' + data.email + '  ← ⚠ BOUNCING: ' + data.emailBounce.count + ' email' + (data.emailBounce.count === 1 ? '' : 's') + ' sent to this address on this lead came back undeliverable' + (data.emailBounce.lastDate ? ' (latest ' + data.emailBounce.lastDate + ')' : '') + '. Treat it as NOT a working address. In the SMS, ask them once, plainly, for a good email address — as part of the message, not the opener. The email draft may not reach them. They have NOT been receiving our emails, so do not mention their inbox, filling it, or our emails reaching them, in either the text or the email.'
           : 'Email:      ' + data.email + '  ← customer email already on file. Do NOT ask for their email address.')
       : '',
     // (v9.7.82) UNIVERSAL PHONE-ASK FIX: Mirror the email rule. When the customer's
@@ -26511,8 +26550,15 @@ function buildUserPrompt(data) {
       stalledPhase = 'PHASE 3 -- TIMING CHECK';
       stalledApproach = 'Acknowledge their silence respectfully and check timing: "Did your timeline shift or just been busy?"';
     } else if (_rgFinal <= 4 && _rgCount <= 4) {
+      // (v9.7.753) WAS: 'Try: "did you already pick something up or still weighing options?" or "Should I keep this on my
+      // radar or close it out?"' -- a close-out offer on a rung that can never be eligible for one (4 touches or fewer;
+      // eligibility needs 5), in the same prompt as "DO NOT OFFER TO CLOSE THIS LEAD OUT", plus a guess at what they did
+      // that rung 5 bans by name. Now the same move the gated rung 4 below already makes.
       stalledPhase = 'PHASE 4 -- PATTERN INTERRUPT';
-      stalledApproach = 'Break the script. Try: "Quick one -- did you already pick something up or still weighing options?" or "Should I keep this on my radar or close it out?"';
+      stalledApproach = 'Break the pattern. Do something different from every prior message -- a genuinely new '
+        + 'piece of information, a smaller ask, or one specific detail from THIS customer\'s file you have not '
+        + 'used. Do NOT offer to close the file, stop contact, or ask whether to keep it open, and do NOT guess at '
+        + 'what they did or why they went quiet.';
     } else {
       // (v9.7.583) WAS 'PHASE 5 -- ASSUMPTION CLOSE', instructing: 'Gently assume they moved on:
       // "I am guessing you found something already -- did you end up going with something similar?"'
@@ -29265,11 +29311,15 @@ async function generateAll() {
       // (v9.7.696) The agent decides whether to text. When THIS lead carries live opt-out evidence,
       // say so where they will see it — a notice, never a block. One statement to delete if unwanted.
       try {
-        if (lastScrapedData && lastScrapedData.smsOptOutEvidence) {
+        // (v9.7.753) And when the address is bouncing, the email draft will not arrive -- said where the agent looks.
+        var _ooMsgs = [];
+        if (lastScrapedData && lastScrapedData.smsOptOutEvidence) _ooMsgs.push('⚠ SMS drafted — this lead has opt-out evidence on record. Your call whether to text.');
+        if (lastScrapedData && lastScrapedData.emailBounce && lastScrapedData.emailBounce.count) _ooMsgs.push('⚠ This customer\'s email address is bouncing — the email draft will not reach them. The text asks for a good address.');
+        if (_ooMsgs.length) {
           var _ooNoticeEl = document.getElementById('crm-status') || document.querySelector('.crm-status');
           if (_ooNoticeEl) {
             _ooNoticeEl.className = 'crm-status notice';
-            _ooNoticeEl.textContent = '⚠ SMS drafted — this lead has opt-out evidence on record. Your call whether to text.';
+            _ooNoticeEl.textContent = _ooMsgs.join(' ');
           }
         }
       } catch (_eOoN) {}

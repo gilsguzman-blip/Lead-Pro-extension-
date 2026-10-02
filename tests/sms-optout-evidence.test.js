@@ -140,7 +140,7 @@ for (const f of files) {
   const outside = (needle) => { const i = src.indexOf(needle); return i > -1 && (i < isA || i > isB); };
   ok(outside('function _lpSmsOptOutDiagLine(') && outside("_lpSmsOptOutDiagLine(m, '(grab)')") && outside("_lpSmsOptOutDiagLine(lastScrapedData, '(render)')"),
      '  [LP SMS OPT-OUT EVIDENCE DIAG] is defined and called outside inlineScraper (popup console)');
-  ok(/if \(lastScrapedData && lastScrapedData\.smsOptOutEvidence\) \{[\s\S]{0,300}Your call whether to text\./.test(code),
+  ok(/if \(lastScrapedData && lastScrapedData\.smsOptOutEvidence\)[\s\S]{0,300}Your call whether to text\./.test(code),   // (v9.7.753) now one of the notices joined in _ooMsgs
      '  a notice (never a block) tells the agent when this lead has live opt-out evidence');
   ok(/smsOptOutEvidence:\s+lastScrapedData \? !!lastScrapedData\.smsOptOutEvidence : false/.test(code), '  the flag is bridged to the prompt-data object');
   try {
