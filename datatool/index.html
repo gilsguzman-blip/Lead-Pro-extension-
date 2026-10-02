@@ -676,7 +676,8 @@ const IP_MODEL_LISTS = {
   Honda: ['HR-V','CR-V Hybrid','CR-V','Prologue','Pilot','Passport','CR-V e:FCEV','Civic Sedan Hybrid','Civic Sedan',
     'Accord Hybrid','Accord','Civic Si Sedan','Civic Hatchback Hybrid','Civic Hatchback','Prelude','Civic Type R',
     'Ridgeline','Odyssey','All Vehicles'],
-  Kia: ['Telluride','Sportage','Sorento','Seltos','Soul','Carnival','K5','K4','Forte','Stinger','EV9','EV6','EV4','Niro EV','Niro'],
+  Kia: ['Sportage Plug-in Hybrid','Sorento Plug-in Hybrid','Sportage Hybrid','Sorento Hybrid','Carnival Hybrid','Telluride Hybrid',
+    'K4 Hatchback','Telluride','Sportage','Sorento','Seltos','Soul','Carnival','K5','K4','Forte','Stinger','EV9','EV6','EV4','EV3','Niro EV','Niro'],
   Toyota: ['Corolla Cross','Corolla Hatchback','Corolla','Camry','Toyota Crown','Prius Plug-in Hybrid','Prius','Tacoma',
     'Tundra','RAV4 Plug-in Hybrid','RAV4','Highlander','Grand Highlander','4Runner','Sequoia','Venza','Sienna','bZ',
     'GR86','GR Corolla','GR Supra','Land Cruiser','C-HR','Mirai'],
@@ -810,6 +811,61 @@ function parseToyotaSSRStateOffers(html, dealerId, manualExpiresOverride) {
 }
 
 
+// (10/2) KIA READS ITS OWN CARDS. The October kia.com page prints every offer as one card --
+// "LEASE 2026 Sorento Hybrid EX FWD $409/month 24 Months $3,999 Due at Signing" -- type, year, the
+// full vehicle with its trim, then the offer. The model-name chunker matched "Sorento" inside
+// "Sorento Hybrid" and "Sorento Plug-in Hybrid", so all three became one "Sorento": twelve
+// unlabeled lease prices, $3,000 AND $3,500 cash, and the 2027 Sportage read as both 1.99% (gas)
+// and 0.90% (Hybrid). The trim was never kept, the Carnival's $2,500 lost "SX Prestige", the EV3
+// was not in the model list at all, and a proximity mix-up wrote "Telluride — 0.90% APR for 24 mos",
+// an offer Kia's page does not carry. Reading each card whole gives every fact its own vehicle.
+// Returns null when the page has no such cards, so a redesign falls back to the chunker below.
+const IP_KIA_CARD_MODELS = ['Sportage Plug-in Hybrid','Sorento Plug-in Hybrid','Niro Plug-in Hybrid','Sportage Hybrid',
+  'Sorento Hybrid','Carnival Hybrid','Telluride Hybrid','Niro Hybrid','K4 Hatchback','Niro EV','Telluride','Sportage',
+  'Sorento','Seltos','Soul','Carnival','K5','K4','Forte','Stinger','EV9','EV6','EV5','EV4','EV3','Niro'];
+function ipParseKiaCards(fullText, dealerId, manualExpiresOverride) {
+  // Upper-case type labels only: the "Cash Offer 2026 EV6 ..." detail overlay repeats a card and is skipped.
+  const cardRx = /\b(CASH|LEASE|FINANCE)\s+(20\d{2})\s+([A-Za-z0-9][A-Za-z0-9 .:\-]{0,60}?)\s+(\$\s*[\d,]+\s*\/\s*month\s+\d+\s+Months?\s+\$[\d,]+\s+Due at Signing|[\d.]+\s*%\s*APR\s+\d+\s+Months?(?:,\s*Including\s+\$[\d,]+\s+APR Bonus Cash)?|\$[\d,]+\s+[A-Za-z][A-Za-z ]{1,40}?(?=\s+(?:available toward purchase|For Qualified Customers)))/g;
+  const rows = [], warnings = [], seenRows = new Set(), unknown = new Set();
+  let cards = 0, missingDateCount = 0, duplicateCount = 0, m;
+  const today = new Date().toISOString().slice(0, 10);
+  while ((m = cardRx.exec(fullText))) {
+    cards++;
+    const [, type, year, vehicleRaw, offer] = m;
+    const vehicle = vehicleRaw.replace(/\s+MPV\b/i, '').replace(/\s+/g, ' ').trim();
+    const model = IP_KIA_CARD_MODELS.find(n => vehicle.toLowerCase() === n.toLowerCase() || vehicle.toLowerCase().startsWith(n.toLowerCase() + ' '));
+    if (!model) { unknown.add(year + ' ' + vehicle); continue; }
+    const trim = vehicle.slice(model.length).trim();
+    let line;
+    if (type === 'LEASE') {
+      const l = offer.match(/\$\s*([\d,]+)\s*\/\s*month\s+(\d+)\s+Months?\s+\$([\d,]+)/);
+      line = model + ' — $' + l[1] + '/mo ' + l[2] + ' mo lease ($' + l[3] + ' due at signing)';
+    } else if (type === 'FINANCE') {
+      const f = offer.match(/([\d.]+)\s*%\s*APR\s+(\d+)\s+Months?(?:,\s*Including\s+(\$[\d,]+)\s+APR Bonus Cash)?/);
+      line = model + ' — ' + f[1] + '% APR for ' + f[2] + ' mos' + (f[3] ? ', including ' + f[3] + ' APR Bonus Cash' : '');
+    } else {
+      // The program's own printed name ("Owner Loyalty Bonus", "Competitive Bonus Program"), never a renamed one.
+      line = model + ' — ' + offer.replace(/\s+/g, ' ').trim();
+    }
+    line = ipTruncate(line + ipTrimNote(trim));
+    let expires = ipDetectExpiration(m[0]);
+    if (!expires) {
+      if (!manualExpiresOverride) { missingDateCount++; continue; }
+      expires = manualExpiresOverride;
+    }
+    if (expires < today) continue; // never publish an already-expired fact
+    const dupeKey = model + '|' + year + '|' + line + '|' + expires;
+    if (seenRows.has(dupeKey)) { duplicateCount++; continue; }
+    seenRows.add(dupeKey);
+    rows.push({ dealer_id: dealerId, category: model, year, line, expires });
+  }
+  if (!cards) return null;
+  if (unknown.size) warnings.push(`${unknown.size} Kia vehicle(s) not in the model list, skipped — add them to IP_KIA_CARD_MODELS: ${[...unknown].join(', ')}.`);
+  if (duplicateCount) warnings.push(`${duplicateCount} exact duplicate offer(s) collapsed into one (the same card repeated on the page).`);
+  if (missingDateCount) warnings.push(`${missingDateCount} offer(s) had no date on the page and no manual "valid through" date was supplied — dropped rather than published without a real expiry.`);
+  return { rows, warnings, totalChunks: cards, source: 'kia-cards' };
+}
+
 // Main entry point. Returns rows already shaped for the Incentives tab's
 // existing incRows format: {dealer_id, category (=model string), line,
 // expires}. No 6-per-store cap — every valid, non-expired, concretely-
@@ -838,6 +894,11 @@ function parseManufacturerPage(html, manufacturer, dealerId, manualExpiresOverri
   const fullText = ipExtractVisibleText(html);
   if (fullText.length < 500) {
     throw new Error(`Extracted visible text was suspiciously short (${fullText.length} chars) — check this is the real rendered offers page, not a login/error page or an incomplete save.`);
+  }
+
+  if (manufacturer === 'Kia') {
+    const kiaResult = ipParseKiaCards(fullText, dealerId, manualExpiresOverride);
+    if (kiaResult) return kiaResult;
   }
 
   let chunks;

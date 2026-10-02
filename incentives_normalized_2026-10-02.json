@@ -1,7 +1,7 @@
 {
   "generated": "2026-10-02",
   "type": "incentives",
-  "source": "incentives sheet (browser); Kia Baytown rebuilt from kia.com offers page (Oct 2026)",
+  "source": "incentives sheet (browser)",
   "storeCounts": {
     "6189": {
       "store": "Toyota Baytown",
@@ -582,7 +582,7 @@
         {
           "model": "Carnival",
           "year": "2026",
-          "line": "Carnival — $2,500 Customer Cash — SX Prestige only",
+          "line": "Carnival — $2,500 Customer Cash — applies to SX Prestige",
           "expires": "2026-11-02"
         },
         {
@@ -798,7 +798,7 @@
         {
           "model": "Niro EV",
           "year": "2026",
-          "line": "Niro EV — 0% APR for 72 mos, including $3,500 APR Bonus Cash (not stackable with Customer Cash)",
+          "line": "Niro EV — 0% APR for 72 mos, including $3,500 APR Bonus Cash",
           "expires": "2026-11-02"
         },
         {
@@ -966,7 +966,7 @@
         {
           "model": "EV9",
           "year": "2026",
-          "line": "EV9 — 0% APR for 60 mos, including $5,000 APR Bonus Cash (not stackable with Customer Cash)",
+          "line": "EV9 — 0% APR for 60 mos, including $5,000 APR Bonus Cash",
           "expires": "2026-11-02"
         },
         {
@@ -1044,7 +1044,7 @@
         {
           "model": "Telluride Hybrid",
           "year": "2027",
-          "line": "Telluride Hybrid — $750 Owner Loyalty Bonus — current Kia owners, qualified customers",
+          "line": "Telluride Hybrid — $750 Owner Loyalty Bonus",
           "expires": "2026-11-02"
         },
         {
@@ -1062,7 +1062,7 @@
         {
           "model": "Telluride Hybrid",
           "year": "2027",
-          "line": "Telluride Hybrid — $750 Competitive Bonus Program — qualified customers coming from a competitive brand",
+          "line": "Telluride Hybrid — $750 Competitive Bonus Program",
           "expires": "2026-11-02"
         },
         {
@@ -1086,7 +1086,7 @@
         {
           "model": "Telluride",
           "year": "2027",
-          "line": "Telluride — $750 Owner Loyalty Bonus — current Kia owners, qualified customers",
+          "line": "Telluride — $750 Owner Loyalty Bonus",
           "expires": "2026-11-02"
         },
         {
@@ -1104,7 +1104,7 @@
         {
           "model": "Telluride",
           "year": "2027",
-          "line": "Telluride — $750 Competitive Bonus Program — qualified customers coming from a competitive brand",
+          "line": "Telluride — $750 Competitive Bonus Program",
           "expires": "2026-11-02"
         },
         {
