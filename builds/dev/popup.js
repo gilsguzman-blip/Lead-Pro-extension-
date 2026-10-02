@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.755-dev (Dev. THE 10/2 FEEDBACK, ITEM BY ITEM. Extension; dashboard v1.7; proxy v7.81 and reporter v1.23 unchanged. No dumps were taken, so each fix is at the code that made the draft. (1) TEXT 'GONE', EMAIL 'HERE'. Honda Baytown lead 2093398081 (TrueCar/Lifecare, 2013 Civic LX, stock VM713431A -- in that day's feed): all three texts said 'the 2013 Civic you asked about is gone' while the email and voicemail said 'here and available'; the day's one explicit thumbs-down, and the third was sent. What pushed the text there is not known without a dump. Now: the text rewrite is told the unit is confirmed in stock, a rewrite saying it is gone (LP_GONE_RX) on a confirmed unit loses to the first pass, and if the text that ships still says gone while the email does not, the panel tells the agent to fix it before sending. (2) RULES NARRATED TO THE CUSTOMER: 'rather than assuming it's available', 'so I can't say it's approved', 'without sharing her credit information in writing'. Both system prompts (main and text rewrite) now say: RULES ARE FOR YOU, NOT FOR THE CUSTOMER -- follow them silently. (3) OFFERS FOR A DESCRIBED BODY TYPE. Honda Baytown chat lead 2093797981 asked for lease offers on 'an affordable, reliable four-door sedan'; no model on file, so the matcher had nothing to match and four drafts said 'I'll check the current lease offers' against 60 live lines. New _lpOfferAskByBody / _lpOffersForBody: an offer question plus a body type (sedan, SUV, truck, minivan; read from the model names, hatchbacks are not sedans) gives the store's current offers on those models -- lease lines when they asked about leases -- one per model, up to four. The first-touch 'customer asked' override now also reads 'lease offers', 'any leases', 'current offers'. (4) The same lead's voicemail said 'this is Melanie at Community Auto Group': the voicemail now signs the lead's store (DEALER_ID_MAP first, as the text and email signatures have since v9.7.570). (5) Toyota lead 2093389062 (CarGurus, no phone on file): the TEXT asked 'What's the best number to reach you?'. The NO PHONE line and the rewrite now keep that ask in the email. (6) A translated email left 'Internet Sales Coordinator' in English under Spanish: the translate prompt now translates the job title. Spanish itself was the Translate button, used on purpose. DASHBOARD v1.7: 'Today' read '10-02 -> 10-03, 1 of 2 days' -- fetchRange added a day to every range, a holdover from UTC-keyed rows; the worker's days are Central since v7.77. dashboard-version's neuter now bumps whichever block is newest. NOT CODE: Kia Baytown's incentives all lapsed 9/09 and need republishing. NEW SUITES feedback-1002-755.test.js (38 assertions; v9.7.754 fails 15 by name, two labelled new helper) and dashboard-range-v17.test.js (2; dashboard v1.6 fails both). VERIFIED: run-all 178 suites green, 7,272 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.754-dev.)
 // Lead Pro -- popup.js  v9.7.754-dev (Dev. THE CHANNEL ASK IS THE DEFAULT CLOSE-OUT. Extension only; proxy v7.81 and reporter v1.23 unchanged. 10/1 feedback export, Community Honda Lafayette: on six stalled leads (24-87 days) the agents regenerated past the first close-out draft ('close your file or leave it open?'), and the version most often sent was the channel one -- 'would you prefer text, email, or no more follow-up?'. Gil: 'make the channel ask the default close-out wording.' Rung 5 (PHASE 5 -- GRACEFUL CLOSE-OUT) still offers four moves, but the channel is now (A) THE DEFAULT and the model starts there; (B) the record, (C) the timing and (D) the last useful thing are used only when the channel question has already been put to them, by a previous draft in this session or one of our earlier messages on the lead -- so a regenerate still rotates to a different move. Eligibility (v9.7.595), the assert-nothing rule (v9.7.583) and the rewrite guard (v9.7.753) are unchanged. stalled-phase gains an executing check (rung 5 starts with the channel ask); regen-variance updated for the new order. v9.7.753 fails 3 by name. VERIFIED: run-all 176 suites green, 7,232 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.753-dev.)
 // Lead Pro -- popup.js  v9.7.753-dev (Dev. A 5-DAY-OLD LEAD WAS TOLD 'I'LL STOP REACHING OUT', AND A BOUNCING ADDRESS WAS TOLD ABOUT ITS INBOX. Extension only; proxy v7.81 and reporter v1.23 unchanged. From the 10/1 feedback export; no dump could be taken, so both were fixed from the code. (1) Community Honda Lafayette lead 2090131196, 5 days old, never eligible to be closed out (_lpCloseOutEligible: 21 days AND 5 outreaches). The text that shipped: 'I'll stop reaching out. If you decide you'd like to continue, we can assess your Tacoma in person...'. The email from the SAME generation: 'Would a quick call or a text be easier for you to continue?'. Only the text goes through the rewrite (_lpRefineSms), and that pass was never told the ban: 'DO NOT OFFER TO CLOSE THIS LEAD OUT' lived only in the main prompt -- the v9.7.689 shape, a rule enforced on the draft nobody sees. FIXES: the ban has one wording (_lpCloseOutBanText) used by the main prompt and the rewrite prompt; a rewrite that offers to stop or close out (LP_WITHDRAW_RX) where the first pass did not, on a lead not eligible for it, loses to the first pass and logs why. Two places that offered the move to the model themselves: the arc state listed 'stepback' as an angle 'not raised with this customer yet' -- read as still open to try, and on a regenerate the one reached for -- now withheld while the lead is not eligible; and stalled rung 4 (by count) carried 'Should I keep this on my radar or close it out?' and 'did you already pick something up' on a rung that can never be eligible (4 touches or fewer, eligibility needs 5), now the same move the gated rung 4 already made. A customer's own exit still wins at any age. (2) Lead 2079616544 (Facebook, address bouncing): the v9.7.697 ask for a good address held on all three drafts, but the text said 'I'll step back rather than keep filling your inbox' and an email was drafted to the dead address with nothing telling the agent. The LEAD line and the rewrite now say they have not been receiving our emails, so no inbox talk; the panel notice says 'This customer's email address is bouncing -- the email draft will not reach them' (joined with the opt-out notice when both apply). stalled-phase and sms-optout-evidence updated for the two wordings changed on purpose. NEW SUITE closeout-refine-753.test.js, 24 assertions executing the shipped _lpCloseOutEligible, _lpBuildSmsRefinePrompt, _lpRefineSms (worker stubbed), _lpBuildArcState and buildUserPrompt; v9.7.752 fails 6 by name and ships lead 2090131196's exact text. VERIFIED: run-all 176 suites green, 7,231 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.752-dev.)
 // Lead Pro -- popup.js  v9.7.752-dev (Dev. THE MISSED-APPOINTMENT FIX IN v9.7.751 NEVER REACHED THE LIVE PROMPT. Extension only; proxy v7.81 and reporter v1.23 unchanged. Toyota Baytown lead 2092976040, 10/1 (log276, on v9.7.751). Three of v9.7.751's four fixes held live: the feed confirmed TX455588, the variant scan found nothing, the Edmunds price fields were withheld with the 'Week' timeframe kept, and _pdUnitStock reached the lead data for the VinSolutions fallback. The fourth did not: 'TIMING -- APPOINTMENT FELL THROUGH ... confirm they still want to come in' printed again, and the draft said 'Are you still interested in coming in?'. _lpMissedApptIsPrior reads data.freshestApptEventDays; generateAll builds buildUserPrompt's input by hand (_lpPromptInputData) and carried hasMissedAppt but not the appointment's age, so the check saw none and fell back to printing the block. v9.7.751's test handed buildUserPrompt the field directly and so could not see the gap -- the v9.7.618 lesson, and mine to have caught. FIX: _lpPromptInputData carries freshestApptEventDays from lastScrapedData. NEW SUITE appt-wiring-752.test.js, 8 assertions: builds the object the way generateAll does and runs buildUserPrompt on that object alone; v9.7.751 fails 2 by name (the field, and the block on log276's shape). VERIFIED: run-all 175 suites green, 7,207 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.751-dev.)
@@ -5358,6 +5359,49 @@ function _lpNormVehicleStr(v){
 // current data behind it. Longest-name-first (Grand Highlander before Highlander, same
 // protection the Data Tool's own chunker uses for this exact collision); trailing s? handles
 // ordinary pluralization ("Highlanders", "Camrys", "4Runners").
+// (v9.7.755) THE TEXT AND THE EMAIL DISAGREED ABOUT WHETHER THE CAR IS HERE. Community Honda Baytown lead 2093398081,
+// 10/2 (TrueCar/Lifecare, 2013 Civic LX, stock VM713431A -- in that day's feed, 62 days on the lot). All three
+// generations: the text "the 2013 Civic you asked about is gone", the email and voicemail "here and available to see".
+// Kristen sent the third. The one explicit thumbs-down of the day. No dump, so what pushed the text there is not known;
+// what IS known is that the unit was confirmed in stock. A text claiming it is gone on a confirmed unit is caught at
+// the rewrite (the first pass ships, or the agent is told) rather than sent.
+var LP_GONE_RX = /\b(?:is|was|has been|are)\s+(?:now\s+)?(?:gone|sold|no longer available|no longer (?:here|on (?:the|our) lot|in stock))\b|\bhas (?:already )?sold\b|\bno longer available\b/i;
+// (v9.7.755) A CUSTOMER WHO DESCRIBED A KIND OF CAR AND ASKED ABOUT OFFERS. Community Honda Baytown lead 2093797981,
+// 10/2, Gubagoo chat: a customer asked whether Honda has lease offers for "an affordable, reliable four-door sedan"
+// (2-3 years, 10,000+ miles). No model on file, so the incentive matcher had nothing to match ("no lead vehicle known")
+// and four generations said "I'll check the current lease offers" while the store held 60 live lines, Accord's
+// among them. Now: when the customer asks about offers and names a body type, the store's current offers on its
+// models of that type are given. Body type is read from the model NAME (the five stores' nameplates); hatchbacks are
+// not sedans.
+var LP_BODY_TYPES = [
+  ['truck',   /\b(?:truck|pick-?up)s?\b/i,                              /\b(?:ridgeline|tundra|tacoma)\b/i],
+  ['minivan', /\b(?:mini-?vans?|vans?)\b/i,                               /\b(?:odyssey|sienna|carnival)\b/i],
+  ['SUV',     /\b(?:suvs?|crossovers?)\b/i,                               /\b(?:cr-v|hr-v|pilot|passport|prologue|rav4|highlander|grand highlander|4runner|sequoia|land cruiser|bz|c-hr|corolla cross|venza|sq\d|q\d|rs q\d|e-tron|sorento|sportage|telluride|seltos|soul|niro|ev\d)\b/i],
+  ['sedan',   /\b(?:sedans?|four[\s-]door|4[\s-]door)\b/i,               /^(?!.*\b(?:hatchback|cross|sportback)\b).*\b(?:accord|civic|camry|corolla|crown|prius|k5|k4|forte|a3|a4|a6|a8|s3|s4|s6|s8)\b/i]
+];
+function _lpOfferAskByBody(text) {
+  var t = String(text || '');
+  var asked = /\b(?:lease|leasing|finance|financing|apr|offers?|deals?|specials?|incentives?|rebates?|payments?)\b/i.test(t)
+    && /\b(?:offers?|deals?|specials?|incentives?|rebates?|options?|programs?|rates?|any\s+leases?|lease|leasing|finance|financing|payment)\b/i.test(t);
+  if (!asked) return null;
+  for (var i = 0; i < LP_BODY_TYPES.length; i++) {
+    if (LP_BODY_TYPES[i][1].test(t)) {
+      return { body: LP_BODY_TYPES[i][0], modelRx: LP_BODY_TYPES[i][2],
+               kind: /\blease|leasing\b/i.test(t) ? 'lease' : (/\b(?:finance|financing|apr|rate)\b/i.test(t) ? 'finance' : '') };
+    }
+  }
+  return null;
+}
+function _lpOffersForBody(ask, incentives, storeLabel) {
+  if (!ask || !Array.isArray(incentives)) return [];
+  var live = (typeof _lpExpiryFilterIncentives === 'function') ? _lpExpiryFilterIncentives(incentives, storeLabel) : incentives;
+  var fit = live.filter(function (x) { return x && x.model && ask.modelRx.test(String(x.model)); });
+  if (ask.kind === 'lease') { var l = fit.filter(function (x) { return /lease/i.test(String(x.line || '')); }); if (l.length) fit = l; }
+  else if (ask.kind === 'finance') { var f = fit.filter(function (x) { return /\bAPR\b/i.test(String(x.line || '')); }); if (f.length) fit = f; }
+  var out = [], perModel = {};
+  fit.forEach(function (x) { var k = String(x.model); if ((perModel[k] || 0) < 1 && out.length < 4) { perModel[k] = 1; out.push(x); } });
+  return out;
+}
 function _lpGuessModelFromCustomerText(text, vfc) {
   if (!text || !vfc || !Array.isArray(vfc.incentives) || !vfc.incentives.length) return '';
   var models = [];
@@ -7588,7 +7632,7 @@ function populateFromData(d) {
     // "unprompted exposure," it's just answering. Conservative regex, low-risk on a false positive
     // (worst case: incentive surfaces one touch earlier than the default), so no downside to being
     // reasonably inclusive.
-    var _incCustomerAsked = /\b(any (deals?|specials?|discounts?|rebates?|incentives?|promos?)|discount|rebate|incentive|promo|0\s*%\s*(apr|financing)|special (financing|apr|lease)|financing options?|lease special|cash back|how much off|best price|out.?the.?door|\botd\b|what.?s the (payment|apr|rate))\b/i.test(d.lastInboundMsg || '');
+    var _incCustomerAsked = /\b(any (deals?|specials?|discounts?|rebates?|incentives?|promos?)|discount|rebate|incentive|promo|0\s*%\s*(apr|financing)|special (financing|apr|lease)|financing options?|lease special|(?:lease|leasing|finance|financing) (?:offers?|deals?|specials?|options?)|any leases?|current offers?|cash back|how much off|best price|out.?the.?door|\botd\b|what.?s the (payment|apr|rate))\b/i.test(d.lastInboundMsg || '');
     var _incFirstTouchReason = null;
     if (_incFirstTouch && _incCustomerAsked) { _incFirstTouch = false; _incFirstTouchReason = 'asked'; }
     // (v9.7.424/422 GENERIC-VOI FIRST-TOUCH OVERRIDE) Gil's read: a lead with no VIN and no stock
@@ -7726,6 +7770,24 @@ function populateFromData(d) {
     // tell from the log whether the fact was never injected or was injected and the model chose
     // not to use it (two very different situations that need different fixes). Logs the gate
     // decision and, if the gate passed, whether a model match was actually found.
+    // (v9.7.755) No model on file, but the customer described a kind of car and asked about offers (_lpOfferAskByBody).
+    try {
+      if (!_lvInc && !_incAdversarial && !d.isSoldDelivered && _vfc && _vfc.incentives && _vfc.incentives.length) {
+        var _bdTxt = [String(d.lastInboundMsg || '')].concat(String(d.conversationBrief || '').split('\n').filter(function (l) {
+          return /^\s*(?:\[CUSTOMER(?: CHAT SUMMARY| REQUEST FROM INQUIRY)?\]|Guest:)/.test(l); })).join('\n');
+        var _bdAsk = _lpOfferAskByBody(_bdTxt);
+        var _bdLines = _bdAsk ? _lpOffersForBody(_bdAsk, _vfc.incentives, (d.store || ('dealer ' + (d.dealerId || '?')))) : [];
+        if (_bdLines.length) {
+          var _bdKind = _bdAsk.kind ? _bdAsk.kind + ' ' : '';
+          vehicleExtras.push('💲 STORE OFFERS FOR WHAT THEY DESCRIBED (no model is on file; they asked about ' + _bdKind + 'offers on a ' + _bdAsk.body
+            + ') — the store\'s current ' + _bdKind + 'offers on its ' + _bdAsk.body + ' models (real & current — offer only to well-qualified buyers; '
+            + 'subject to credit approval and program terms, so frame it as "for qualified buyers" and never promise the rate): '
+            + _bdLines.map(function (x) { return _lpModelLine(x.model, x.line); }).join(' | ')
+            + '. Answer their question with one or two of these that fit what they described, and ask which model they want to look at. Do NOT say you will "check the offers" -- these are the offers.');
+          console.log('[LP INCENTIVE DIAG] no model on file — they asked about ' + _bdKind + 'offers on a ' + _bdAsk.body + '; ' + _bdLines.length + ' line(s) given: ' + _bdLines.map(function (x) { return x.model; }).join(', '));
+        }
+      }
+    } catch (eBd) {}
     if (!_vfc || !_vfc.incentives || !_vfc.incentives.length) {
       console.log('[LP INCENTIVE DIAG] no incentive data cached for dealer ' + (d.dealerId || '?') + ' — nothing to match against');
     } else if (!_lvInc) {
@@ -8401,7 +8463,7 @@ function populateFromData(d) {
   }
   if (d.contactRecoveryPhone) {
     vehicleExtras.push('');
-    vehicleExtras.push('📞 NO PHONE ON FILE: Customer has no phone number. In the email, request their best number as the CLOSE — replace the appointment ask entirely. Example: "What is the best number to reach you on?" Do NOT add appointment times after asking for the number.');
+    vehicleExtras.push('📞 NO PHONE ON FILE: Customer has no phone number. In the email, request their best number as the CLOSE — replace the appointment ask entirely. Example: "What is the best number to reach you on?" Do NOT add appointment times after asking for the number. Do NOT ask for their number in the SMS -- a text cannot reach someone whose number we do not have, so asking for it there makes no sense.');
   }
 
   // ── (v9.7.642) THEY CANNOT HAVE REPLIED IF WE NEVER WROTE ────────────────────────────────────
@@ -8865,6 +8927,8 @@ document.getElementById('btnTranslate').addEventListener('click', async function
     const prompt = [
       'Translate this dealership BDC ' + label + ' message to conversational Mexican Spanish.',
       'Keep tone warm and natural. Keep names, phone numbers, store names, and times exactly as-is.',
+      // (v9.7.755) 10/2: one translated email turned "Internet Sales Coordinator" into Spanish, the next left it in English.
+      'Translate the job title in the signature too (for example "Internet Sales Coordinator" -> "Coordinador(a) de Ventas por Internet", "Audi Concierge" stays "Audi Concierge"), so no English line is left under a Spanish message.',
       'CRITICAL: Preserve ALL line breaks exactly as they appear in the original. The email signature must remain stacked on separate lines — do NOT join signature lines with commas.',
       'Return ONLY a JSON object with this exact shape: {"translation": "<the translated text>"}. The translation field must contain the full translated message including all line breaks (use \\n for line breaks within the string). Return ONLY this JSON — no markdown, no commentary, no other fields.',
       '',
@@ -20370,6 +20434,10 @@ var _LP_STANDING_RULES = [
   '- DO NOT introduce topics the customer has not engaged with simply because a prior agent message touched on them. Outbound agent text often includes generic offers ("trade numbers", "financing options", "incentives") that the customer never asked about. Anchor your message on what the CUSTOMER has actually said or what is explicitly listed in the LEAD section — not on what a prior agent volunteered.',
   '- LOGISTICAL CONSTRAINTS — CHECK THE FULL ARC BEFORE OFFERING TIMES: Before you offer any come-in or appointment time, scan the ENTIRE conversation (not just the latest message) for a logistical constraint the customer stated — e.g. "I can\'t come in," "I work late," "only weekends," "evenings only," "I\'m out of town." A constraint stated earlier in the arc remains binding wherever it appears, UNLESS the customer themselves later lifted it (e.g. they then agreed to a time). If one still stands, honor it: offer times that fit (such as an evening slot near close) or a remote next step (phone, text, or email) instead of daytime come-in times. Never offer a time the customer already told you they cannot make.',
   '- NEVER use the sales rep name as the signer — sign as the BD Agent only.',
+  // (v9.7.755) 10/2 feedback: drafts told customers about our own rules -- "I'm checking on the 2026 Camry LE rather than
+  // assuming it's available", "I don't have the manager's answer yet, so I can't say it's approved", "we can discuss what
+  // may apply without sharing her credit information in writing". Two of those leads were abandoned.
+  '- RULES ARE FOR YOU, NOT FOR THE CUSTOMER: follow every rule in this prompt silently. Never tell the customer what you are not assuming, what you cannot say, confirm or approve, or what you will not put in writing, and never explain why you are not saying something. Say what you CAN do and move on. ("I\'m checking on the LE rather than assuming it\'s available", "so I can\'t say it\'s approved" and "without sharing her credit information in writing" are this failure.)',
   '- LANGUAGE: ALL responses are written in English, regardless of what language the customer used. The dealership uses an in-CRM translation tool for delivery to non-English-speaking customers. NEVER write any portion of the SMS, email, or voicemail in Spanish, French, or any non-English language. NEVER mix languages in a single message. Even if the customer\'s most recent message is in Spanish ("hola," "gracias," "cuando este") OR a prior agent has been replying in Spanish, your output must be 100% English. Do not translate phrases for them. Do not include Spanish greetings, closings, or filler phrases ("hola," "saludos," "que tenga buen dia"). The translation step happens after Lead Pro generates the message, not inside it.',
   '- EMOTIONAL CALIBRATION: If the customer\'s most recent message is emotionally elevated — urgency ("I need this NOW", "TODAY"), frustration, anger, profanity, or aggressive demand — do NOT match that energy. Respond with calm, grounded, professional tone. Acknowledge what they said directly without dismissing it, but never escalate, never use exclamation points to mirror their intensity, never adopt their urgency framing, and never use words in all caps. The dealership voice that earns trust under pressure is steady, not amplified. Mirroring heat reads as performative or unprofessional; staying calm reads as competent.',
   '',
@@ -20725,6 +20793,8 @@ function buildSystemPromptSmsRefine(agentFirst, storeName, phone) {
       + 'inside the CRM after this step, on the agent\'s command, and an agent who does not read '
       + 'that language cannot check what you wrote. Never write any part of the text in Spanish, '
       + 'French or any other language, and never mix languages in one message.',
+    '  \u2022 RULES ARE FOR YOU, NOT FOR THE CUSTOMER. Follow them silently: never tell the customer what you are not '
+      + 'assuming, cannot say or confirm, or will not put in writing, and never explain why. Say what you can do.',
     '  \u2022 THE TEXT OPENS WITH THE CUSTOMER\'S FIRST NAME, and it is specific and substantive, '
       + 'never a generic check-in. A refined text that has dropped the name has not been refined.',
     '  \u2022 YOU ARE THE PERSON NAMED ABOVE and you sign as them. Never sign as anyone else whose '
@@ -20891,6 +20961,12 @@ function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
     }
   } catch (eRfP) {}
 
+  // (v9.7.755) The unit is confirmed in stock (lead 2093398081): the text may not say it is gone.
+  if (d && d._lpInvConfirmedAvailable && d.vehicle) {
+    out.push('\u2501\u2501\u2501 THE VEHICLE IS IN STOCK \u2501\u2501\u2501');
+    out.push('The ' + String(d.vehicle) + ' is confirmed in stock today, and the email says it is here. Your text must agree: do NOT say it is gone, sold or no longer available.');
+    out.push('');
+  }
   // (v9.7.753) The close-out ban, in the main prompt's own words (_lpCloseOutBanText). Lead 2090131196.
   try {
     var _rfCo = (typeof _lpCloseOutEligible === 'function') ? _lpCloseOutEligible(d) : null;
@@ -20931,6 +21007,14 @@ function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
     }
   } catch (eRsP) {}
 
+  // (v9.7.755) No phone on file: the email asks for the number; the text must not (Toyota lead 2093389062, 10/2).
+  try {
+    if (d && !String(d.phone || '').replace(/\D/g, '')) {
+      out.push('\u2501\u2501\u2501 NO PHONE NUMBER ON FILE \u2501\u2501\u2501');
+      out.push('The email asks for their best number. Your text must NOT ask for it -- a text only reaches someone whose number we already have.');
+      out.push('');
+    }
+  } catch (eRfPh) {}
   // (v9.7.697) N3: the email-address ask survives the rewrite on a bouncing lead.
   try {
     if (d && d.emailBounce && d.emailBounce.count && /e-?mail/i.test(String(pass1 || ''))) {
@@ -21149,6 +21233,14 @@ async function _lpRefineSms(pass1, emailText, d) {
       }
     } catch (eRfC) {}
 
+    // (v9.7.755) "It's gone" about a unit confirmed in stock: the rewrite does not ship.
+    try {
+      if (d && d._lpInvConfirmedAvailable && LP_GONE_RX.test(out) && !LP_GONE_RX.test(String(emailText || ''))) {
+        console.log('[LP SMS REFINE DIAG] kept the first pass \u2014 the rewrite says the vehicle is gone ("' + (out.match(LP_GONE_RX) || [''])[0]
+          + '") but it is confirmed in stock and the email says it is here | ' + (Date.now() - t0) + 'ms');
+        return null;
+      }
+    } catch (eRfG) {}
     // (v9.7.753) A withdrawal the first pass did not make, on a lead not eligible for one: the first pass ships.
     try {
       var _rfCoE = (typeof _lpCloseOutEligible === 'function') ? _lpCloseOutEligible(d) : null;
@@ -21201,7 +21293,8 @@ function buildSystemPromptVoicemailOnly(personaId, agentFirst, storeName, phone)
   var persona = personaId || (window._leadProResolvedContext && window._leadProResolvedContext.persona) || (window._leadProResolvedPersona) || 'bdc';
   var base = buildSystemPrompt(persona);
   var _first = agentFirst || (window._leadProResolvedSigner && window._leadProResolvedSigner.firstName) || '';
-  var _store = storeName  || (window._leadProResolvedContext && window._leadProResolvedContext.storeName) || '';
+  var _store = storeName  || ((typeof lastScrapedData !== 'undefined' && lastScrapedData && lastScrapedData.dealerId && typeof DEALER_ID_MAP === 'object') ? (DEALER_ID_MAP[String(lastScrapedData.dealerId)] || '') : '')
+    || (window._leadProResolvedContext && window._leadProResolvedContext.storeName) || '';   // (v9.7.755) lead's store first
   var _ph    = phone      || (window._leadProResolvedSigner && window._leadProResolvedSigner.phone) || '';
   var vm = [
     '',
@@ -29814,6 +29907,12 @@ async function generateAll() {
         // (v9.7.753) And when the address is bouncing, the email draft will not arrive -- said where the agent looks.
         var _ooMsgs = [];
         if (lastScrapedData && lastScrapedData.smsOptOutEvidence) _ooMsgs.push('⚠ SMS drafted — this lead has opt-out evidence on record. Your call whether to text.');
+        // (v9.7.755) Lead 2093398081: the text said the car was gone; it was in stock and the email said so.
+        try {
+          var _gSms = (document.getElementById('output-sms') || {}).value || '', _gEm = (document.getElementById('output-email') || {}).value || '';
+          if (lastScrapedData && lastScrapedData._lpInvConfirmedAvailable && LP_GONE_RX.test(_gSms) && !LP_GONE_RX.test(_gEm))
+            _ooMsgs.push('⚠ The text says the vehicle is gone, but it is confirmed in stock today and the email says it is here. Fix the text before sending.');
+        } catch (eGn) {}
         if (lastScrapedData && lastScrapedData.emailBounce && lastScrapedData.emailBounce.count) _ooMsgs.push('⚠ This customer\'s email address is bouncing — the email draft will not reach them. The text asks for a good address.');
         if (_ooMsgs.length) {
           var _ooNoticeEl = document.getElementById('crm-status') || document.querySelector('.crm-status');
@@ -29981,7 +30080,10 @@ async function generateVoicemail() {
     // has no post-send signature enforcement the way SMS does, so we hand it the real digits.
     const _vmPersona   = window._leadProPersonaOverride || window._leadProResolvedPersona || 'bdc';
     const vmAgentFirst = (window._leadProResolvedSigner && window._leadProResolvedSigner.firstName) || '';
-    const vmStoreName  = (window._leadProResolvedContext && window._leadProResolvedContext.storeName) || (lastScrapedData && lastScrapedData.storeName) || '';
+    // (v9.7.755) The lead's own store first, as the text and email signatures do since v9.7.570. Lead 2093797981 (Honda
+    // Baytown, 10/2): the voicemail said "this is Melanie at Community Auto Group" -- an agent-level name.
+    const vmStoreName  = (lastScrapedData && lastScrapedData.dealerId && typeof DEALER_ID_MAP === 'object' && DEALER_ID_MAP[String(lastScrapedData.dealerId)])
+                         || (window._leadProResolvedContext && window._leadProResolvedContext.storeName) || (lastScrapedData && lastScrapedData.storeName) || '';
     const vmPhone      = (window._leadProResolvedSigner && window._leadProResolvedSigner.phone) || '';
     const vmSystemPrompt = buildSystemPromptVoicemailOnly(_vmPersona, vmAgentFirst, vmStoreName, vmPhone);
 

@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LeadPro Dashboard — Community Auto Group</title>
 <!--
+  v1.7 — "TODAY" IS ONE DAY. 10/2: the Today view read "10-02 → 10-03 · 1 of 2 days". fetchRange added a day to
+  every range's end -- a holdover from when /feedback/range keyed rows by UTC date, so an evening Central row
+  sat under the next UTC day. Since proxy v7.77 the worker builds its day list in CENTRAL days (W3), so the
+  extra day now asked for tomorrow: an empty day in the list, a "2 days" denominator, and a range label one day
+  long. The range is sent as asked. Requires proxy v7.77+ (live: v7.81).
+
   v1.6 — THE PAGE STATES ITS OWN VERSION. A footer marker plus a suite assertion tying it to the
   newest block in this header. Written because on 9/17 a stale deploy of this page was mistaken for
   a live defect in the reporter: the deployed tiles read "Explicit 👍 479 / 👎 16" against the
@@ -265,7 +271,7 @@ const PROXY = 'https://leadpro-proxy.gilsguzman.workers.dev';
 // This is the cheapest possible instrument: a version in the footer, asserted by the suite to
 // match the newest vN.N block in this header, so bumping one without the other fails a test
 // rather than shipping a page that misreports its own age.
-const DASH_VERSION = 'v1.6';
+const DASH_VERSION = 'v1.7';
 
 // (v1.1 — director-key patch, 7/7/26) The proxy's /feedback/* GET endpoints now require a
 // director key (worker v7.30, W3). This dashboard is a static Pages site with no server side,
@@ -371,9 +377,9 @@ function fmtDate(n) {
 function posColor(r) { return r >= 90 ? '#34d399' : r >= 75 ? '#fbbf24' : '#f87171'; }
 
 async function fetchRange(from, to) {
-  const extTo = new Date(new Date(to).getTime() + 864e5).toISOString().slice(0,10);
+  // (v1.7) Sent as asked: the worker's days are Central days since v7.77, so no extra day (see header).
   // (v1.1) key= appended — see DIRECTOR_KEY note above.
-  const res = await fetch(`${PROXY}/feedback/range?from=${from}&to=${extTo}&key=${encodeURIComponent(DIRECTOR_KEY)}`);
+  const res = await fetch(`${PROXY}/feedback/range?from=${from}&to=${to}&key=${encodeURIComponent(DIRECTOR_KEY)}`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }

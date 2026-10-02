@@ -74,7 +74,9 @@ eq('DASH_VERSION equals the newest block in the page header', decl && decl[1], n
 
 // The point of the pairing: bumping one without the other must fail here rather than ship a page
 // that misreports its own age, which is the exact failure this file exists for.
-const bumpedHeaderOnly = html.replace(/^  v1\.6 — /m, '  v1.7 — ');
+// (dashboard v1.7) Bumps whichever block is newest, so the neuter does not go stale with each release.
+const _nv = blocks[blocks.length - 1];
+const bumpedHeaderOnly = html.replace(new RegExp('^  v' + _nv[0] + '\\.' + _nv[1] + ' — ', 'm'), '  v' + _nv[0] + '.' + (_nv[1] + 1) + ' — ');
 const nb = [...bumpedHeaderOnly.matchAll(/^  v(\d+)\.(\d+) — /gm)].map(m => [+m[1], +m[2]])
   .sort((a, b) => a[0] - b[0] || a[1] - b[1]);
 eq('neuter: a header bumped without the constant would now disagree',
