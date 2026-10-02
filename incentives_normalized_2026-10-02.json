@@ -1,0 +1,2019 @@
+{
+  "generated": "2026-10-02",
+  "type": "incentives",
+  "source": "incentives sheet (browser); Kia Baytown rebuilt from kia.com offers page (Oct 2026)",
+  "storeCounts": {
+    "6189": {
+      "store": "Toyota Baytown",
+      "lines": 53,
+      "models": 25,
+      "earliestExpiry": "2026-11-02"
+    },
+    "6190": {
+      "store": "Kia Baytown",
+      "lines": 131,
+      "models": 19,
+      "earliestExpiry": "2026-11-02"
+    },
+    "6191": {
+      "store": "Honda Baytown",
+      "lines": 60,
+      "models": 13,
+      "earliestExpiry": "2026-11-02"
+    },
+    "21135": {
+      "store": "Audi Lafayette",
+      "lines": 21,
+      "models": 12,
+      "earliestExpiry": "2026-11-02"
+    },
+    "24399": {
+      "store": "Honda Lafayette",
+      "lines": 60,
+      "models": 13,
+      "earliestExpiry": "2026-11-02"
+    }
+  },
+  "stores": {
+    "6189": {
+      "store": "Toyota Baytown",
+      "count": 53,
+      "incentives": [
+        {
+          "model": "Tundra",
+          "year": "2026",
+          "line": "Tundra — 2.99% APR for 72 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Tundra",
+          "year": "2026",
+          "line": "Tundra — $399/mo 36 mo lease ($4,999 due at signing) — applies to SR5",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Tundra",
+          "year": "2026",
+          "line": "Tundra — $1,000 Customer Cash on Gas trims",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Camry",
+          "year": "2026",
+          "line": "Camry — 4.99% APR for 48 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Camry",
+          "year": "2026",
+          "line": "Camry — $289/mo 36 mo lease ($3,999 due at signing) — applies to LE",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Grand Highlander",
+          "year": "2026",
+          "line": "Grand Highlander — 4.99% APR for 48 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Grand Highlander",
+          "year": "2026",
+          "line": "Grand Highlander — $439/mo 36 mo lease ($3,999 due at signing) — applies to XLE",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "RAV4",
+          "year": "2026",
+          "line": "RAV4 — 4.99% APR for 48 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "RAV4",
+          "year": "2026",
+          "line": "RAV4 — $299/mo 36 mo lease ($3,999 due at signing) — applies to LE",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Tacoma",
+          "year": "2026",
+          "line": "Tacoma — 4.99% APR for 60 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Tacoma",
+          "year": "2026",
+          "line": "Tacoma — $289/mo 36 mo lease ($3,999 due at signing) — applies to SR5",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Corolla",
+          "year": "2026",
+          "line": "Corolla — 4.99% APR for 48 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Corolla",
+          "year": "2027",
+          "line": "Corolla — 4.99% APR for 48 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Corolla",
+          "year": "2027",
+          "line": "Corolla — $289/mo 36 mo lease ($1,999 due at signing) — applies to LE",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "RAV4 Plug-in Hybrid",
+          "year": "2026",
+          "line": "RAV4 Plug-in Hybrid — 4.99% APR for 48 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Highlander",
+          "year": "2026",
+          "line": "Highlander — 4.99% APR for 48 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Highlander",
+          "year": "2026",
+          "line": "Highlander — $499/mo 36 mo lease ($3,999 due at signing) — applies to XLE",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Corolla Hatchback",
+          "year": "2026",
+          "line": "Corolla Hatchback — 4.99% APR for 48 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Corolla Hatchback",
+          "year": "2027",
+          "line": "Corolla Hatchback — 4.99% APR for 48 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "4Runner",
+          "year": "2026",
+          "line": "4Runner — 4.99% APR for 48 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "4Runner i-FORCE MAX",
+          "year": "2026",
+          "line": "4Runner i-FORCE MAX — 4.99% APR for 48 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Corolla Cross",
+          "year": "2026",
+          "line": "Corolla Cross — $369/mo 36 mo lease ($1,999 due at signing) — applies to LE",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Corolla Cross Hybrid",
+          "year": "2026",
+          "line": "Corolla Cross Hybrid — $389/mo 36 mo lease ($1,999 due at signing) — applies to Hybrid S",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Tundra i-FORCE MAX",
+          "year": "2026",
+          "line": "Tundra i-FORCE MAX — 2.99% APR for 72 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Tundra i-FORCE MAX",
+          "year": "2026",
+          "line": "Tundra i-FORCE MAX — $1,000 Customer Cash on Hybrid Trims",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Tacoma i-FORCE MAX",
+          "year": "2026",
+          "line": "Tacoma i-FORCE MAX — 5.99% APR for 72 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Tacoma i-FORCE MAX",
+          "year": "2026",
+          "line": "Tacoma i-FORCE MAX — $459/mo 36 mo lease ($3,999 due at signing) — applies to TRD Off-Road i-FORCE MAX",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Prius",
+          "year": "2026",
+          "line": "Prius — 4.99% APR for 48 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Prius",
+          "year": "2027",
+          "line": "Prius — 4.99% APR for 48 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Prius Plug-in Hybrid",
+          "year": "2026",
+          "line": "Prius Plug-in Hybrid — 1.99% APR for 72 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Prius Plug-in Hybrid",
+          "year": "2027",
+          "line": "Prius Plug-in Hybrid — 3.99% APR for 72 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Land Cruiser",
+          "year": "2026",
+          "line": "Land Cruiser — 4.99% APR for 48 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Land Cruiser",
+          "year": "2027",
+          "line": "Land Cruiser — 4.99% APR for 48 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Toyota Crown",
+          "year": "2026",
+          "line": "Toyota Crown — 4.99% APR for 48 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Toyota Crown",
+          "year": "2027",
+          "line": "Toyota Crown — 4.99% APR for 48 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Highlander Hybrid",
+          "year": "2026",
+          "line": "Highlander Hybrid — 4.99% APR for 48 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Grand Highlander Hybrid",
+          "year": "2026",
+          "line": "Grand Highlander Hybrid — 4.99% APR for 48 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Grand Highlander Hybrid",
+          "year": "2026",
+          "line": "Grand Highlander Hybrid — $479/mo 36 mo lease ($3,999 due at signing) — applies to Hybrid XLE",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Corolla Hybrid",
+          "year": "2026",
+          "line": "Corolla Hybrid — 4.99% APR for 48 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Corolla Hybrid",
+          "year": "2027",
+          "line": "Corolla Hybrid — 4.99% APR for 48 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Corolla Hybrid",
+          "year": "2027",
+          "line": "Corolla Hybrid — $329/mo 36 mo lease ($1,999 due at signing) — applies to Hybrid LE",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "bZ",
+          "year": "2026",
+          "line": "bZ — 1.99% APR for 72 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "bZ",
+          "year": "2026",
+          "line": "bZ — $3,250 TFS Lease Cash",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "bZ",
+          "year": "2027",
+          "line": "bZ — 3.49% APR for 72 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "bZ",
+          "year": "2027",
+          "line": "bZ — $2,250 TFS Lease Cash",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "bZ Woodland",
+          "year": "2026",
+          "line": "bZ Woodland — 2.25% APR for 72 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "bZ Woodland",
+          "year": "2026",
+          "line": "bZ Woodland — $2,250 TFS Lease Cash",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "bZ Woodland",
+          "year": "2027",
+          "line": "bZ Woodland — 3.75% APR for 72 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "bZ Woodland",
+          "year": "2027",
+          "line": "bZ Woodland — $1,250 TFS Lease Cash",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "C-HR",
+          "year": "2026",
+          "line": "C-HR — 2.75% APR for 72 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "C-HR",
+          "year": "2026",
+          "line": "C-HR — $1,750 TFS Lease Cash",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "C-HR",
+          "year": "2027",
+          "line": "C-HR — 4.99% APR for 72 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "C-HR",
+          "year": "2027",
+          "line": "C-HR — $750 TFS Lease Cash",
+          "expires": "2026-11-02"
+        }
+      ]
+    },
+    "6190": {
+      "store": "Kia Baytown",
+      "count": 131,
+      "incentives": [
+        {
+          "model": "EV6",
+          "year": "2026",
+          "line": "EV6 — $5,000 Customer Cash",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "EV6",
+          "year": "2026",
+          "line": "EV6 — $419/mo 36 mo lease ($4,499 due at signing) — applies to Light Long Range",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "EV6",
+          "year": "2026",
+          "line": "EV6 — $419/mo 24 mo lease ($4,499 due at signing) — applies to Light Long Range",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "EV6",
+          "year": "2026",
+          "line": "EV6 — $469/mo 24 mo lease ($4,499 due at signing) — applies to Light Long Range",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "EV6",
+          "year": "2026",
+          "line": "EV6 — $469/mo 36 mo lease ($4,499 due at signing) — applies to Light Long Range",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "EV6",
+          "year": "2026",
+          "line": "EV6 — 0% APR for 60 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Niro",
+          "year": "2026",
+          "line": "Niro — $2,000 Customer Cash",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Niro",
+          "year": "2026",
+          "line": "Niro — $289/mo 36 mo lease ($3,499 due at signing) — applies to LX FWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Niro",
+          "year": "2026",
+          "line": "Niro — 1.90% APR for 48 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Niro",
+          "year": "2026",
+          "line": "Niro — $289/mo 24 mo lease ($3,499 due at signing) — applies to LX FWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Niro",
+          "year": "2026",
+          "line": "Niro — $319/mo 24 mo lease ($3,499 due at signing) — applies to EX FWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Niro",
+          "year": "2026",
+          "line": "Niro — $319/mo 36 mo lease ($3,499 due at signing) — applies to EX FWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Niro",
+          "year": "2027",
+          "line": "Niro — $309/mo 36 mo lease ($3,799 due at signing) — applies to LX FWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Niro",
+          "year": "2027",
+          "line": "Niro — 2.90% APR for 48 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Niro",
+          "year": "2027",
+          "line": "Niro — $309/mo 24 mo lease ($3,799 due at signing) — applies to LX FWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Niro",
+          "year": "2027",
+          "line": "Niro — $319/mo 36 mo lease ($3,799 due at signing) — applies to S FWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Niro",
+          "year": "2027",
+          "line": "Niro — $319/mo 24 mo lease ($3,799 due at signing) — applies to S FWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Sportage",
+          "year": "2026",
+          "line": "Sportage — $750 Customer Cash",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Sportage",
+          "year": "2026",
+          "line": "Sportage — $259/mo 24 mo lease ($3,999 due at signing) — applies to LX FWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Sportage",
+          "year": "2026",
+          "line": "Sportage — 0% APR for 48 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Sportage",
+          "year": "2026",
+          "line": "Sportage — $269/mo 36 mo lease ($3,999 due at signing) — applies to LX FWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Sportage",
+          "year": "2026",
+          "line": "Sportage — $279/mo 24 mo lease ($3,999 due at signing) — applies to LX AWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Sportage",
+          "year": "2026",
+          "line": "Sportage — $289/mo 36 mo lease ($3,999 due at signing) — applies to LX AWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Sportage",
+          "year": "2027",
+          "line": "Sportage — $289/mo 36 mo lease ($3,999 due at signing) — applies to LX FWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Sportage",
+          "year": "2027",
+          "line": "Sportage — 1.99% APR for 48 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Sportage",
+          "year": "2027",
+          "line": "Sportage — $289/mo 24 mo lease ($3,999 due at signing) — applies to LX FWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Sportage",
+          "year": "2027",
+          "line": "Sportage — $309/mo 24 mo lease ($3,999 due at signing) — applies to LX AWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Sportage",
+          "year": "2027",
+          "line": "Sportage — $309/mo 36 mo lease ($3,999 due at signing) — applies to LX AWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Sorento",
+          "year": "2026",
+          "line": "Sorento — $3,000 Customer Cash",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Sorento",
+          "year": "2026",
+          "line": "Sorento — $329/mo 24 mo lease ($3,999 due at signing) — applies to LX FWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Sorento",
+          "year": "2026",
+          "line": "Sorento — 0% APR for 48 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Sorento",
+          "year": "2026",
+          "line": "Sorento — $339/mo 36 mo lease ($3,999 due at signing) — applies to LX FWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Sorento",
+          "year": "2026",
+          "line": "Sorento — $369/mo 24 mo lease ($3,999 due at signing) — applies to S FWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Sorento",
+          "year": "2026",
+          "line": "Sorento — $379/mo 36 mo lease ($3,999 due at signing) — applies to S FWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Sorento",
+          "year": "2026",
+          "line": "Sorento — $389/mo 24 mo lease ($3,999 due at signing) — applies to S AWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Sorento",
+          "year": "2026",
+          "line": "Sorento — $399/mo 36 mo lease ($3,999 due at signing) — applies to S AWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Carnival",
+          "year": "2026",
+          "line": "Carnival — $2,500 Customer Cash — SX Prestige only",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Carnival",
+          "year": "2026",
+          "line": "Carnival — $399/mo 36 mo lease ($3,999 due at signing) — applies to LX FWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Carnival",
+          "year": "2026",
+          "line": "Carnival — $1,500 Customer Cash",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Carnival",
+          "year": "2026",
+          "line": "Carnival — $399/mo 24 mo lease ($3,999 due at signing) — applies to LX FWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Carnival",
+          "year": "2026",
+          "line": "Carnival — $429/mo 24 mo lease ($3,999 due at signing) — applies to LXS FWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Carnival",
+          "year": "2026",
+          "line": "Carnival — $429/mo 36 mo lease ($3,999 due at signing) — applies to LXS FWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Carnival",
+          "year": "2026",
+          "line": "Carnival — 1.90% APR for 48 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Carnival",
+          "year": "2027",
+          "line": "Carnival — $409/mo 36 mo lease ($3,999 due at signing) — applies to LX",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Carnival",
+          "year": "2027",
+          "line": "Carnival — 2.90% APR for 48 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Carnival",
+          "year": "2027",
+          "line": "Carnival — $409/mo 24 mo lease ($3,999 due at signing) — applies to LX",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Carnival",
+          "year": "2027",
+          "line": "Carnival — $439/mo 24 mo lease ($3,999 due at signing) — applies to LXS",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Carnival",
+          "year": "2027",
+          "line": "Carnival — $439/mo 36 mo lease ($3,999 due at signing) — applies to LXS",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "K4 Hatchback",
+          "year": "2026",
+          "line": "K4 Hatchback — $269/mo 36 mo lease ($3,499 due at signing) — applies to EX FWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "K4 Hatchback",
+          "year": "2026",
+          "line": "K4 Hatchback — 2.90% APR for 48 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "K4 Hatchback",
+          "year": "2026",
+          "line": "K4 Hatchback — $269/mo 24 mo lease ($3,499 due at signing) — applies to EX FWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "K4",
+          "year": "2026",
+          "line": "K4 — $239/mo 36 mo lease ($3,499 due at signing) — applies to LXS",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "K4",
+          "year": "2026",
+          "line": "K4 — 2.90% APR for 48 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "K4",
+          "year": "2026",
+          "line": "K4 — $239/mo 24 mo lease ($3,499 due at signing) — applies to LXS",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "K4",
+          "year": "2026",
+          "line": "K4 — $259/mo 24 mo lease ($3,499 due at signing) — applies to EX",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "K4",
+          "year": "2026",
+          "line": "K4 — $259/mo 36 mo lease ($3,499 due at signing) — applies to EX",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "K5",
+          "year": "2026",
+          "line": "K5 — $750 Customer Cash",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "K5",
+          "year": "2026",
+          "line": "K5 — $299/mo 36 mo lease ($3,499 due at signing) — applies to LXS FWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "K5",
+          "year": "2026",
+          "line": "K5 — 1.90% APR for 48 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "K5",
+          "year": "2026",
+          "line": "K5 — $299/mo 24 mo lease ($3,499 due at signing) — applies to LXS FWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "K5",
+          "year": "2027",
+          "line": "K5 — $319/mo 36 mo lease ($3,499 due at signing) — applies to LXS FWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "K5",
+          "year": "2027",
+          "line": "K5 — 2.90% APR for 48 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "K5",
+          "year": "2027",
+          "line": "K5 — $319/mo 24 mo lease ($3,499 due at signing) — applies to LXS FWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Carnival Hybrid",
+          "year": "2026",
+          "line": "Carnival Hybrid — $459/mo 36 mo lease ($3,999 due at signing) — applies to LXS FWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Carnival Hybrid",
+          "year": "2026",
+          "line": "Carnival Hybrid — 1.90% APR for 48 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Carnival Hybrid",
+          "year": "2026",
+          "line": "Carnival Hybrid — $459/mo 24 mo lease ($3,999 due at signing) — applies to LXS FWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Carnival Hybrid",
+          "year": "2027",
+          "line": "Carnival Hybrid — $469/mo 36 mo lease ($3,999 due at signing) — applies to LXS FWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Carnival Hybrid",
+          "year": "2027",
+          "line": "Carnival Hybrid — 2.90% APR for 48 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Carnival Hybrid",
+          "year": "2027",
+          "line": "Carnival Hybrid — $469/mo 24 mo lease ($3,999 due at signing) — applies to LXS FWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Niro EV",
+          "year": "2026",
+          "line": "Niro EV — $10,000 Customer Cash",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Niro EV",
+          "year": "2026",
+          "line": "Niro EV — $269/mo 24 mo lease ($3,999 due at signing) — applies to Wind FWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Niro EV",
+          "year": "2026",
+          "line": "Niro EV — $299/mo 36 mo lease ($3,999 due at signing) — applies to Wind FWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Niro EV",
+          "year": "2026",
+          "line": "Niro EV — 0% APR for 72 mos, including $3,500 APR Bonus Cash (not stackable with Customer Cash)",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Sorento Hybrid",
+          "year": "2026",
+          "line": "Sorento Hybrid — $3,000 Customer Cash",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Sorento Hybrid",
+          "year": "2026",
+          "line": "Sorento Hybrid — $409/mo 24 mo lease ($3,999 due at signing) — applies to EX FWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Sorento Hybrid",
+          "year": "2026",
+          "line": "Sorento Hybrid — 0% APR for 48 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Sorento Hybrid",
+          "year": "2026",
+          "line": "Sorento Hybrid — $419/mo 36 mo lease ($3,999 due at signing) — applies to EX FWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Sorento Hybrid",
+          "year": "2026",
+          "line": "Sorento Hybrid — $429/mo 24 mo lease ($3,999 due at signing) — applies to EX AWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Sorento Hybrid",
+          "year": "2026",
+          "line": "Sorento Hybrid — $439/mo 36 mo lease ($3,999 due at signing) — applies to EX AWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Sportage Hybrid",
+          "year": "2026",
+          "line": "Sportage Hybrid — $750 Customer Cash",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Sportage Hybrid",
+          "year": "2026",
+          "line": "Sportage Hybrid — $279/mo 24 mo lease ($3,999 due at signing) — applies to LX FWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Sportage Hybrid",
+          "year": "2026",
+          "line": "Sportage Hybrid — 0% APR for 48 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Sportage Hybrid",
+          "year": "2026",
+          "line": "Sportage Hybrid — $289/mo 36 mo lease ($3,999 due at signing) — applies to LX FWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Sportage Hybrid",
+          "year": "2026",
+          "line": "Sportage Hybrid — $309/mo 24 mo lease ($3,999 due at signing) — applies to S AWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Sportage Hybrid",
+          "year": "2026",
+          "line": "Sportage Hybrid — $319/mo 36 mo lease ($3,999 due at signing) — applies to S AWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Sportage Hybrid",
+          "year": "2027",
+          "line": "Sportage Hybrid — $299/mo 36 mo lease ($3,999 due at signing) — applies to LX FWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Sportage Hybrid",
+          "year": "2027",
+          "line": "Sportage Hybrid — 0.90% APR for 48 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Sportage Hybrid",
+          "year": "2027",
+          "line": "Sportage Hybrid — $299/mo 24 mo lease ($3,999 due at signing) — applies to LX FWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Sportage Hybrid",
+          "year": "2027",
+          "line": "Sportage Hybrid — $309/mo 24 mo lease ($3,999 due at signing) — applies to S FWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Sportage Hybrid",
+          "year": "2027",
+          "line": "Sportage Hybrid — $309/mo 36 mo lease ($3,999 due at signing) — applies to S FWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Sportage Hybrid",
+          "year": "2027",
+          "line": "Sportage Hybrid — $329/mo 36 mo lease ($3,999 due at signing) — applies to S AWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Sportage Hybrid",
+          "year": "2027",
+          "line": "Sportage Hybrid — $329/mo 24 mo lease ($3,999 due at signing) — applies to S AWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Sportage Plug-in Hybrid",
+          "year": "2026",
+          "line": "Sportage Plug-in Hybrid — $349/mo 24 mo lease ($3,999 due at signing) — applies to X-Line AWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Sportage Plug-in Hybrid",
+          "year": "2026",
+          "line": "Sportage Plug-in Hybrid — 0% APR for 48 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Sportage Plug-in Hybrid",
+          "year": "2026",
+          "line": "Sportage Plug-in Hybrid — $359/mo 36 mo lease ($3,999 due at signing) — applies to X-Line AWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Sportage Plug-in Hybrid",
+          "year": "2027",
+          "line": "Sportage Plug-in Hybrid — $369/mo 24 mo lease ($3,999 due at signing) — applies to X-Line AWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Sportage Plug-in Hybrid",
+          "year": "2027",
+          "line": "Sportage Plug-in Hybrid — 1.99% APR for 48 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Sportage Plug-in Hybrid",
+          "year": "2027",
+          "line": "Sportage Plug-in Hybrid — $379/mo 36 mo lease ($3,999 due at signing) — applies to X-Line AWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "EV9",
+          "year": "2026",
+          "line": "EV9 — $10,000 Customer Cash",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "EV9",
+          "year": "2026",
+          "line": "EV9 — $439/mo 36 mo lease ($4,999 due at signing) — applies to Light Long Range RWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "EV9",
+          "year": "2026",
+          "line": "EV9 — 0% APR for 60 mos, including $5,000 APR Bonus Cash (not stackable with Customer Cash)",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "EV9",
+          "year": "2026",
+          "line": "EV9 — $439/mo 24 mo lease ($4,999 due at signing) — applies to Light Long Range RWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "EV9",
+          "year": "2026",
+          "line": "EV9 — $489/mo 24 mo lease ($4,999 due at signing) — applies to Wind AWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "EV9",
+          "year": "2026",
+          "line": "EV9 — $489/mo 36 mo lease ($4,999 due at signing) — applies to Wind AWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Sorento Plug-in Hybrid",
+          "year": "2026",
+          "line": "Sorento Plug-in Hybrid — $3,500 Customer Cash",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Sorento Plug-in Hybrid",
+          "year": "2026",
+          "line": "Sorento Plug-in Hybrid — $459/mo 24 mo lease ($3,999 due at signing) — applies to EX AWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Sorento Plug-in Hybrid",
+          "year": "2026",
+          "line": "Sorento Plug-in Hybrid — 0% APR for 48 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Sorento Plug-in Hybrid",
+          "year": "2026",
+          "line": "Sorento Plug-in Hybrid — $469/mo 36 mo lease ($3,999 due at signing) — applies to EX AWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Seltos",
+          "year": "2027",
+          "line": "Seltos — $259/mo 36 mo lease ($3,799 due at signing) — applies to LX FWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Seltos",
+          "year": "2027",
+          "line": "Seltos — 3.99% APR for 48 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Seltos",
+          "year": "2027",
+          "line": "Seltos — $259/mo 24 mo lease ($3,799 due at signing) — applies to LX FWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Seltos",
+          "year": "2027",
+          "line": "Seltos — $279/mo 24 mo lease ($3,799 due at signing) — applies to LX AWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Seltos",
+          "year": "2027",
+          "line": "Seltos — $279/mo 36 mo lease ($3,799 due at signing) — applies to LX AWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Telluride Hybrid",
+          "year": "2027",
+          "line": "Telluride Hybrid — $750 Owner Loyalty Bonus — current Kia owners, qualified customers",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Telluride Hybrid",
+          "year": "2027",
+          "line": "Telluride Hybrid — $499/mo 36 mo lease ($3,999 due at signing) — applies to EX FWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Telluride Hybrid",
+          "year": "2027",
+          "line": "Telluride Hybrid — 3.99% APR for 48 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Telluride Hybrid",
+          "year": "2027",
+          "line": "Telluride Hybrid — $750 Competitive Bonus Program — qualified customers coming from a competitive brand",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Telluride Hybrid",
+          "year": "2027",
+          "line": "Telluride Hybrid — $499/mo 24 mo lease ($3,999 due at signing) — applies to EX FWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Telluride Hybrid",
+          "year": "2027",
+          "line": "Telluride Hybrid — $519/mo 24 mo lease ($3,999 due at signing) — applies to EX AWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Telluride Hybrid",
+          "year": "2027",
+          "line": "Telluride Hybrid — $519/mo 36 mo lease ($3,999 due at signing) — applies to EX AWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Telluride",
+          "year": "2027",
+          "line": "Telluride — $750 Owner Loyalty Bonus — current Kia owners, qualified customers",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Telluride",
+          "year": "2027",
+          "line": "Telluride — $449/mo 36 mo lease ($3,999 due at signing) — applies to S FWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Telluride",
+          "year": "2027",
+          "line": "Telluride — 3.99% APR for 48 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Telluride",
+          "year": "2027",
+          "line": "Telluride — $750 Competitive Bonus Program — qualified customers coming from a competitive brand",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Telluride",
+          "year": "2027",
+          "line": "Telluride — $449/mo 24 mo lease ($3,999 due at signing) — applies to S FWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Telluride",
+          "year": "2027",
+          "line": "Telluride — $469/mo 36 mo lease ($3,999 due at signing) — applies to S AWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Telluride",
+          "year": "2027",
+          "line": "Telluride — $469/mo 24 mo lease ($3,999 due at signing) — applies to S AWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "EV3",
+          "year": "2027",
+          "line": "EV3 — $1,500 Customer Cash",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "EV3",
+          "year": "2027",
+          "line": "EV3 — $359/mo 36 mo lease ($3,999 due at signing) — applies to Wind FWD",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "EV3",
+          "year": "2027",
+          "line": "EV3 — 0.90% APR for 48 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "EV3",
+          "year": "2027",
+          "line": "EV3 — $409/mo 36 mo lease ($3,999 due at signing) — applies to Wind AWD",
+          "expires": "2026-11-02"
+        }
+      ]
+    },
+    "6191": {
+      "store": "Honda Baytown",
+      "count": 60,
+      "incentives": [
+        {
+          "model": "Accord",
+          "year": "2026",
+          "line": "Accord — $229/mo 36 mo lease ($3,999 due at signing) — applies to FWD LX",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Accord",
+          "year": "2026",
+          "line": "Accord — $209/mo 36 mo lease ($3,999 due at signing) — applies to FWD LX",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Accord",
+          "year": "2026",
+          "line": "Accord — 3.99% APR for 24-60 mos, 4.99% APR for 61-72 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Accord",
+          "year": "2026",
+          "line": "Accord — $750 Loyalty Cash — shown on FWD LX",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Accord Hybrid",
+          "year": "2026",
+          "line": "Accord Hybrid — 3.49% APR for 24-60 mos, 5.49% APR for 61-72 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Accord Hybrid",
+          "year": "2026",
+          "line": "Accord Hybrid — $309/mo 36 mo lease ($3,999 due at signing) — applies to FWD Sport Hybrid",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Accord Hybrid",
+          "year": "2026",
+          "line": "Accord Hybrid — $289/mo 36 mo lease ($3,999 due at signing) — applies to FWD Sport Hybrid",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Accord Hybrid",
+          "year": "2026",
+          "line": "Accord Hybrid — $750 Loyalty Cash — shown on FWD EX-L Hybrid",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Civic Hatchback",
+          "year": "2026",
+          "line": "Civic Hatchback — $249/mo 39 mo lease ($3,999 due at signing) — applies to FWD Sport",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Civic Hatchback Hybrid",
+          "year": "2026",
+          "line": "Civic Hatchback Hybrid — $299/mo 39 mo lease ($4,199 due at signing) — applies to FWD Sport Touring Hybrid",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Civic Sedan Hybrid",
+          "year": "2026",
+          "line": "Civic Sedan Hybrid — $259/mo 39 mo lease ($3,999 due at signing) — applies to 2WD Sport Hybrid",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "CR-V",
+          "year": "2026",
+          "line": "CR-V — 2.99% APR for 24-36 mos, 3.99% APR for 37-60 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "CR-V",
+          "year": "2026",
+          "line": "CR-V — $279/mo 39 mo lease ($4,899 due at signing) — applies to AWD LX",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "CR-V",
+          "year": "2026",
+          "line": "CR-V — $279/mo 39 mo lease ($4,199 due at signing) — applies to 2WD LX",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "CR-V",
+          "year": "2026",
+          "line": "CR-V — $299/mo 39 mo lease ($4,899 due at signing) — applies to AWD LX",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "CR-V",
+          "year": "2026",
+          "line": "CR-V — $299/mo 39 mo lease ($4,199 due at signing) — applies to 2WD LX",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "CR-V",
+          "year": "2027",
+          "line": "CR-V — $349/mo 36 mo lease ($4,899 due at signing) — applies to AWD LX",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "CR-V",
+          "year": "2027",
+          "line": "CR-V — $349/mo 36 mo lease ($4,199 due at signing) — applies to 2WD LX",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "CR-V",
+          "year": "2027",
+          "line": "CR-V — $339/mo 36 mo lease ($4,899 due at signing) — applies to AWD LX",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "CR-V",
+          "year": "2027",
+          "line": "CR-V — $339/mo 36 mo lease ($4,199 due at signing) — applies to 2WD LX",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "CR-V",
+          "year": "2027",
+          "line": "CR-V — 3.99% APR for 24-36 mos, 4.99% APR for 37-60 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "CR-V",
+          "year": "2026",
+          "line": "CR-V — $750 Loyalty Cash — shown on AWD EX-L",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "CR-V",
+          "year": "2027",
+          "line": "CR-V — $500 Loyalty Cash — shown on AWD EX-L",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "CR-V Hybrid",
+          "year": "2026",
+          "line": "CR-V Hybrid — 2.99% APR for 24-36 mos, 3.99% APR for 37-60 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "CR-V Hybrid",
+          "year": "2026",
+          "line": "CR-V Hybrid — $319/mo 39 mo lease ($4,699 due at signing) — applies to AWD Sport Hybrid",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "CR-V Hybrid",
+          "year": "2026",
+          "line": "CR-V Hybrid — $319/mo 39 mo lease ($3,999 due at signing) — applies to 2WD Sport Hybrid",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "CR-V Hybrid",
+          "year": "2026",
+          "line": "CR-V Hybrid — $299/mo 39 mo lease ($4,699 due at signing) — applies to AWD Sport Hybrid",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "CR-V Hybrid",
+          "year": "2026",
+          "line": "CR-V Hybrid — $299/mo 39 mo lease ($3,999 due at signing) — applies to 2WD Sport Hybrid",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "CR-V Hybrid",
+          "year": "2027",
+          "line": "CR-V Hybrid — $379/mo 36 mo lease ($4,699 due at signing) — applies to AWD Sport Hybrid",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "CR-V Hybrid",
+          "year": "2027",
+          "line": "CR-V Hybrid — $379/mo 36 mo lease ($3,999 due at signing) — applies to 2WD Sport Hybrid",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "CR-V Hybrid",
+          "year": "2027",
+          "line": "CR-V Hybrid — $369/mo 36 mo lease ($4,699 due at signing) — applies to AWD Sport Hybrid",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "CR-V Hybrid",
+          "year": "2027",
+          "line": "CR-V Hybrid — $369/mo 36 mo lease ($3,999 due at signing) — applies to 2WD Sport Hybrid",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "CR-V Hybrid",
+          "year": "2027",
+          "line": "CR-V Hybrid — 3.99% APR for 24-36 mos, 4.99% APR for 37-60 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "CR-V Hybrid",
+          "year": "2026",
+          "line": "CR-V Hybrid — $750 Loyalty Cash — shown on AWD Sport Touring Hybrid",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "CR-V Hybrid",
+          "year": "2027",
+          "line": "CR-V Hybrid — $500 Loyalty Cash — shown on AWD Sport Touring Hybrid",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "HR-V",
+          "year": "2027",
+          "line": "HR-V — $259/mo 36 mo lease ($3,599 due at signing) — applies to 2WD LX",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "HR-V",
+          "year": "2027",
+          "line": "HR-V — $259/mo 36 mo lease ($4,199 due at signing) — applies to AWD LX",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "HR-V",
+          "year": "2027",
+          "line": "HR-V — $249/mo 36 mo lease ($4,199 due at signing) — applies to AWD LX",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "HR-V",
+          "year": "2027",
+          "line": "HR-V — $249/mo 36 mo lease ($3,599 due at signing) — applies to 2WD LX",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "HR-V",
+          "year": "2027",
+          "line": "HR-V — 3.99% APR for 24-48 mos, 4.99% APR for 49-60 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "HR-V",
+          "year": "2027",
+          "line": "HR-V — $500 Loyalty Cash — shown on AWD EX-L",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Odyssey",
+          "year": "2026",
+          "line": "Odyssey — $399/mo 39 mo lease ($3,999 due at signing) — applies to FWD EX-L",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Odyssey",
+          "year": "2026",
+          "line": "Odyssey — $369/mo 39 mo lease ($3,999 due at signing) — applies to FWD EX-L",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Odyssey",
+          "year": "2026",
+          "line": "Odyssey — 2.49% APR for 24-48 mos, 3.49% APR for 49-60 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Odyssey",
+          "year": "2026",
+          "line": "Odyssey — $1,250 Loyalty Cash — shown on FWD Touring",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Odyssey",
+          "year": "2026",
+          "line": "Odyssey — $2,000 Sales Credit — shown on FWD Touring",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Passport",
+          "year": "2026",
+          "line": "Passport — $449/mo 36 mo lease ($5,399 due at signing) — applies to AWD RTL",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Passport",
+          "year": "2026",
+          "line": "Passport — 3.99% APR for 24-36 mos, 4.99% APR for 37-60 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Pilot",
+          "year": "2026",
+          "line": "Pilot — 2.99% APR for 24-36 mos, 3.99% APR for 37-60 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Pilot",
+          "year": "2026",
+          "line": "Pilot — $449/mo 36 mo lease ($5,499 due at signing) — applies to AWD EX-L",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Pilot",
+          "year": "2026",
+          "line": "Pilot — $449/mo 36 mo lease ($4,499 due at signing) — applies to 2WD EX-L",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Ridgeline",
+          "year": "2026",
+          "line": "Ridgeline — 1.99% APR for 24-36 mos, 2.99% APR for 37-60 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Ridgeline",
+          "year": "2026",
+          "line": "Ridgeline — $379/mo 36 mo lease ($4,299 due at signing) — applies to AWD RTL",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Ridgeline",
+          "year": "2026",
+          "line": "Ridgeline — $419/mo 36 mo lease ($4,299 due at signing) — applies to AWD RTL",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Ridgeline",
+          "year": "2026",
+          "line": "Ridgeline — $1,500 Loyalty Cash — shown on AWD RTL",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Ridgeline",
+          "year": "2026",
+          "line": "Ridgeline — $2,250 Sales Credit — shown on AWD RTL",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Prologue",
+          "year": "2026",
+          "line": "Prologue — 0.99% APR for 24-60 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Prologue",
+          "year": "2026",
+          "line": "Prologue — $339/mo 36 mo lease ($5,099 due at signing) — applies to AWD Touring",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Prologue",
+          "year": "2026",
+          "line": "Prologue — $279/mo 36 mo lease ($5,099 due at signing) — applies to AWD Touring",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Prologue",
+          "year": "2026",
+          "line": "Prologue — $2,000 Loyalty Cash — shown on AWD Touring",
+          "expires": "2026-11-02"
+        }
+      ]
+    },
+    "21135": {
+      "store": "Audi Lafayette",
+      "count": 21,
+      "incentives": [
+        {
+          "model": "Q3",
+          "year": "2026",
+          "line": "Q3 — $499/mo 36 mo lease ($5,499 due at signing) — applies to Q3 quattro Base",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Q3",
+          "year": "2026",
+          "line": "Q3 — 3.99% APR for 60 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Q5",
+          "year": "2026",
+          "line": "Q5 — $589/mo 36 mo lease ($5,999 due at signing) — applies to Q5 quattro Premium",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Q5",
+          "year": "2026",
+          "line": "Q5 — 4.99% APR for 60 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "SQ5",
+          "year": "2026",
+          "line": "SQ5 — $799/mo 36 mo lease ($7,299 due at signing) — applies to SQ5 Premium Plus",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "SQ5",
+          "year": "2026",
+          "line": "SQ5 — 4.99% APR for 60 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Q7",
+          "year": "2026",
+          "line": "Q7 — $629/mo 36 mo lease ($6,999 due at signing) — applies to Q7 45 TFSI quattro Premium",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Q7",
+          "year": "2026",
+          "line": "Q7 — $739/mo 36 mo lease ($7,999 due at signing) — applies to Q7 S line 55 TFSI quattro Premium Plus",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Q8",
+          "year": "2026",
+          "line": "Q8 — $849/mo 36 mo lease ($7,999 due at signing) — applies to Q8 55 TFSI quattro Premium Plus",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Q8",
+          "year": "2026",
+          "line": "Q8 — 3.99% APR for 60 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "SQ8",
+          "year": "2026",
+          "line": "SQ8 — 3.99% APR for 60 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "A3",
+          "year": "2026",
+          "line": "A3 — $429/mo 36 mo lease ($4,999 due at signing) — applies to A3 Sedan 40 TFSI quattro Premium",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "A5",
+          "year": "2026",
+          "line": "A5 — $489/mo 36 mo lease ($4,999 due at signing) — applies to A5 quattro Premium",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "A5",
+          "year": "2026",
+          "line": "A5 — 3.99% APR for 60 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "S5",
+          "year": "2026",
+          "line": "S5 — $659/mo 36 mo lease ($6,999 due at signing) — applies to S5 Premium Plus",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "S5",
+          "year": "2026",
+          "line": "S5 — 3.99% APR for 60 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "A6",
+          "year": "2026",
+          "line": "A6 — $749/mo 36 mo lease ($6,999 due at signing) — applies to A6 Sedan quattro Premium Plus",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "A6",
+          "year": "2026",
+          "line": "A6 — 3.99% APR for 60 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "A8",
+          "year": "2026",
+          "line": "A8 — $999/mo 36 mo lease ($8,999 due at signing) — applies to A8 55 TFSI quattro Base",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "A8",
+          "year": "2026",
+          "line": "A8 — 3.99% APR for 60 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "S8",
+          "year": "2026",
+          "line": "S8 — 3.99% APR for 60 mos",
+          "expires": "2026-11-02"
+        }
+      ]
+    },
+    "24399": {
+      "store": "Honda Lafayette",
+      "count": 60,
+      "incentives": [
+        {
+          "model": "Accord",
+          "year": "2026",
+          "line": "Accord — $229/mo 36 mo lease ($3,999 due at signing) — applies to FWD LX",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Accord",
+          "year": "2026",
+          "line": "Accord — $209/mo 36 mo lease ($3,999 due at signing) — applies to FWD LX",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Accord",
+          "year": "2026",
+          "line": "Accord — 3.99% APR for 24-60 mos, 4.99% APR for 61-72 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Accord",
+          "year": "2026",
+          "line": "Accord — $750 Loyalty Cash — shown on FWD LX",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Accord Hybrid",
+          "year": "2026",
+          "line": "Accord Hybrid — 3.49% APR for 24-60 mos, 5.49% APR for 61-72 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Accord Hybrid",
+          "year": "2026",
+          "line": "Accord Hybrid — $309/mo 36 mo lease ($3,999 due at signing) — applies to FWD Sport Hybrid",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Accord Hybrid",
+          "year": "2026",
+          "line": "Accord Hybrid — $289/mo 36 mo lease ($3,999 due at signing) — applies to FWD Sport Hybrid",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Accord Hybrid",
+          "year": "2026",
+          "line": "Accord Hybrid — $750 Loyalty Cash — shown on FWD EX-L Hybrid",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Civic Hatchback",
+          "year": "2026",
+          "line": "Civic Hatchback — $249/mo 39 mo lease ($3,999 due at signing) — applies to FWD Sport",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Civic Hatchback Hybrid",
+          "year": "2026",
+          "line": "Civic Hatchback Hybrid — $299/mo 39 mo lease ($4,199 due at signing) — applies to FWD Sport Touring Hybrid",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Civic Sedan Hybrid",
+          "year": "2026",
+          "line": "Civic Sedan Hybrid — $259/mo 39 mo lease ($3,999 due at signing) — applies to 2WD Sport Hybrid",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "CR-V",
+          "year": "2026",
+          "line": "CR-V — 2.99% APR for 24-36 mos, 3.99% APR for 37-60 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "CR-V",
+          "year": "2026",
+          "line": "CR-V — $279/mo 39 mo lease ($4,899 due at signing) — applies to AWD LX",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "CR-V",
+          "year": "2026",
+          "line": "CR-V — $279/mo 39 mo lease ($4,199 due at signing) — applies to 2WD LX",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "CR-V",
+          "year": "2026",
+          "line": "CR-V — $299/mo 39 mo lease ($4,899 due at signing) — applies to AWD LX",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "CR-V",
+          "year": "2026",
+          "line": "CR-V — $299/mo 39 mo lease ($4,199 due at signing) — applies to 2WD LX",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "CR-V",
+          "year": "2027",
+          "line": "CR-V — $349/mo 36 mo lease ($4,899 due at signing) — applies to AWD LX",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "CR-V",
+          "year": "2027",
+          "line": "CR-V — $349/mo 36 mo lease ($4,199 due at signing) — applies to 2WD LX",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "CR-V",
+          "year": "2027",
+          "line": "CR-V — $339/mo 36 mo lease ($4,899 due at signing) — applies to AWD LX",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "CR-V",
+          "year": "2027",
+          "line": "CR-V — $339/mo 36 mo lease ($4,199 due at signing) — applies to 2WD LX",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "CR-V",
+          "year": "2027",
+          "line": "CR-V — 3.99% APR for 24-36 mos, 4.99% APR for 37-60 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "CR-V",
+          "year": "2026",
+          "line": "CR-V — $750 Loyalty Cash — shown on AWD EX-L",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "CR-V",
+          "year": "2027",
+          "line": "CR-V — $500 Loyalty Cash — shown on AWD EX-L",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "CR-V Hybrid",
+          "year": "2026",
+          "line": "CR-V Hybrid — 2.99% APR for 24-36 mos, 3.99% APR for 37-60 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "CR-V Hybrid",
+          "year": "2026",
+          "line": "CR-V Hybrid — $319/mo 39 mo lease ($4,699 due at signing) — applies to AWD Sport Hybrid",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "CR-V Hybrid",
+          "year": "2026",
+          "line": "CR-V Hybrid — $319/mo 39 mo lease ($3,999 due at signing) — applies to 2WD Sport Hybrid",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "CR-V Hybrid",
+          "year": "2026",
+          "line": "CR-V Hybrid — $299/mo 39 mo lease ($4,699 due at signing) — applies to AWD Sport Hybrid",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "CR-V Hybrid",
+          "year": "2026",
+          "line": "CR-V Hybrid — $299/mo 39 mo lease ($3,999 due at signing) — applies to 2WD Sport Hybrid",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "CR-V Hybrid",
+          "year": "2027",
+          "line": "CR-V Hybrid — $379/mo 36 mo lease ($4,699 due at signing) — applies to AWD Sport Hybrid",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "CR-V Hybrid",
+          "year": "2027",
+          "line": "CR-V Hybrid — $379/mo 36 mo lease ($3,999 due at signing) — applies to 2WD Sport Hybrid",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "CR-V Hybrid",
+          "year": "2027",
+          "line": "CR-V Hybrid — $369/mo 36 mo lease ($4,699 due at signing) — applies to AWD Sport Hybrid",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "CR-V Hybrid",
+          "year": "2027",
+          "line": "CR-V Hybrid — $369/mo 36 mo lease ($3,999 due at signing) — applies to 2WD Sport Hybrid",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "CR-V Hybrid",
+          "year": "2027",
+          "line": "CR-V Hybrid — 3.99% APR for 24-36 mos, 4.99% APR for 37-60 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "CR-V Hybrid",
+          "year": "2026",
+          "line": "CR-V Hybrid — $750 Loyalty Cash — shown on AWD Sport Touring Hybrid",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "CR-V Hybrid",
+          "year": "2027",
+          "line": "CR-V Hybrid — $500 Loyalty Cash — shown on AWD Sport Touring Hybrid",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "HR-V",
+          "year": "2027",
+          "line": "HR-V — $259/mo 36 mo lease ($3,599 due at signing) — applies to 2WD LX",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "HR-V",
+          "year": "2027",
+          "line": "HR-V — $259/mo 36 mo lease ($4,199 due at signing) — applies to AWD LX",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "HR-V",
+          "year": "2027",
+          "line": "HR-V — $249/mo 36 mo lease ($4,199 due at signing) — applies to AWD LX",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "HR-V",
+          "year": "2027",
+          "line": "HR-V — $249/mo 36 mo lease ($3,599 due at signing) — applies to 2WD LX",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "HR-V",
+          "year": "2027",
+          "line": "HR-V — 3.99% APR for 24-48 mos, 4.99% APR for 49-60 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "HR-V",
+          "year": "2027",
+          "line": "HR-V — $500 Loyalty Cash — shown on AWD EX-L",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Odyssey",
+          "year": "2026",
+          "line": "Odyssey — $399/mo 39 mo lease ($3,999 due at signing) — applies to FWD EX-L",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Odyssey",
+          "year": "2026",
+          "line": "Odyssey — $369/mo 39 mo lease ($3,999 due at signing) — applies to FWD EX-L",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Odyssey",
+          "year": "2026",
+          "line": "Odyssey — 2.49% APR for 24-48 mos, 3.49% APR for 49-60 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Odyssey",
+          "year": "2026",
+          "line": "Odyssey — $1,250 Loyalty Cash — shown on FWD Touring",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Odyssey",
+          "year": "2026",
+          "line": "Odyssey — $2,000 Sales Credit — shown on FWD Touring",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Passport",
+          "year": "2026",
+          "line": "Passport — $449/mo 36 mo lease ($5,399 due at signing) — applies to AWD RTL",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Passport",
+          "year": "2026",
+          "line": "Passport — 3.99% APR for 24-36 mos, 4.99% APR for 37-60 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Pilot",
+          "year": "2026",
+          "line": "Pilot — 2.99% APR for 24-36 mos, 3.99% APR for 37-60 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Pilot",
+          "year": "2026",
+          "line": "Pilot — $449/mo 36 mo lease ($5,499 due at signing) — applies to AWD EX-L",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Pilot",
+          "year": "2026",
+          "line": "Pilot — $449/mo 36 mo lease ($4,499 due at signing) — applies to 2WD EX-L",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Ridgeline",
+          "year": "2026",
+          "line": "Ridgeline — 1.99% APR for 24-36 mos, 2.99% APR for 37-60 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Ridgeline",
+          "year": "2026",
+          "line": "Ridgeline — $379/mo 36 mo lease ($4,299 due at signing) — applies to AWD RTL",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Ridgeline",
+          "year": "2026",
+          "line": "Ridgeline — $419/mo 36 mo lease ($4,299 due at signing) — applies to AWD RTL",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Ridgeline",
+          "year": "2026",
+          "line": "Ridgeline — $1,500 Loyalty Cash — shown on AWD RTL",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Ridgeline",
+          "year": "2026",
+          "line": "Ridgeline — $2,250 Sales Credit — shown on AWD RTL",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Prologue",
+          "year": "2026",
+          "line": "Prologue — 0.99% APR for 24-60 mos",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Prologue",
+          "year": "2026",
+          "line": "Prologue — $339/mo 36 mo lease ($5,099 due at signing) — applies to AWD Touring",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Prologue",
+          "year": "2026",
+          "line": "Prologue — $279/mo 36 mo lease ($5,099 due at signing) — applies to AWD Touring",
+          "expires": "2026-11-02"
+        },
+        {
+          "model": "Prologue",
+          "year": "2026",
+          "line": "Prologue — $2,000 Loyalty Cash — shown on AWD Touring",
+          "expires": "2026-11-02"
+        }
+      ]
+    }
+  }
+}
