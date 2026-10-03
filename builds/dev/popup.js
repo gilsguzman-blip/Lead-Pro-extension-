@@ -29466,8 +29466,8 @@ async function generateAll() {
       // and a rule that survives only on short prompts is not a rule.
       var hasName = firstName && firstSentence.toLowerCase().indexOf(firstName.toLowerCase()) !== -1;
       // (v9.7.756) THE NAME THEY GO BY. Kia Baytown lead 2093935768, 10/2: the record's first name is not the one the
-      // customer uses, the salesperson's note called her "Wendy", and the draft opened "Wendy, no need to rush...". This
-      // guard did not find the record name, prepended it and lower-cased the model's word: "<record name>, wendy, no
+      // customer uses, the salesperson's note used her nickname, and the draft opened "<nickname>, no need to rush...". This
+      // guard did not find the record name, prepended it and lower-cased the model's word: "<record name>, <nickname>, no
       // need to rush". A draft that already opens on a capitalised name THIS LEAD'S OWN NOTES use is addressed; it is
       // left alone. Common opening words are not names.
       var _opNick = '';
