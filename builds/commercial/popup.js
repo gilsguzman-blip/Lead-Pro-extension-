@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.757 (Commercial. THE 10/3 FEEDBACK. Extension only; proxy v7.81, reporter v1.23 and dashboard v1.7 unchanged. Reps ran 9.7.754 (134 rows) and 9.7.756 (146) today; no 9.7.755 in the fleet, so the 754 half had none of 755's fixes. (1) OFFERS FOR A DESCRIBED BODY TYPE NEVER RAN ON AN 'ANY/ALL' LEAD. Honda Baytown chat lead 2093797981 (follow-up; the page Gil pasted): VOI '2026 Honda Any/All'. v9.7.255 blanks d.vehicle for that placeholder, but the incentive matcher read d.vehicle || d.vehicleRaw, so the lead counted as having a model and the 755 'STORE OFFERS FOR WHAT THEY DESCRIBED' block -- gated on no model -- was skipped on every build. The placeholder no longer counts. The block also read only brief lines STARTING with a customer tag; new _lpCustomerTextOf reads every customer turn (the '[date] [CUSTOMER]' header and the lines under it), same open/close rules as the pivot scan. (2) THE SIGNATURE WITH NO NAME. Honda Baytown lead 2094222132: one person in both BD Agent and Sales Rep (no rep assigned yet -- Gil) and the scraper's agent reader returned '' as 'the DOM gave us the sales rep'; its log fallback never ran. The text signed 'Coordinator' with no name and the email carried two signatures. Now that agent is kept (the newest 'BD Agent Changed' log wins when it names someone else), and resolveSignerForPersona falls back like the panel's agent field (BD agent, Sales Rep) and then the signed-in user, as the system prompt and the email already did. (3) THE AGENT IN THE THIRD PERSON. Honda Lafayette lead 2094092453: the Sales Rep field repeated the agent writing, and the OTD hand-off said 'your Sales Representative, <her name>' -- '<agent> can have the proposal ready' signed by that same agent. A Sales Rep who is the signer (_lpSalesRepIsSigner) is now no Sales Rep yet: 'one of our Sales Representatives', and the Sales Rep line says so. NEW SUITE review-1003-757.test.js (30 assertions; v9.7.756 fails 10 by name, one labelled new helper). VERIFIED: run-all 180 suites, 7,308 assertions passed, 4 failed -- all 4 in the clock-dependent log244-710 and imx-noappt-720 (run Saturday 6:30 PM CT; both fail identically on v9.7.756); dev===comm on every changed region. Builds on v9.7.756.)
 // Lead Pro -- popup.js  v9.7.756 (Commercial. THE NAME THEY GO BY. Extension only; proxy v7.81, reporter v1.23 and dashboard v1.7 unchanged. Kia Baytown lead 2093935768, 10/2 evening (Phone Up, first touch), from the end-of-day feedback export. The record's first name is not the one the customer uses; the salesperson's note used her nickname and the draft opened on it, as the email did. The SMS opener guard (v9.7.667) did not find the RECORD name in the first sentence, prepended it and lower-cased the model's word, so the text read '<record name>, <nickname in lower case>, no need to rush...'. Twice generated, twice left unsent. Now a draft that opens on a capitalised name THIS LEAD'S OWN notes or history use is left alone and [LP SMS OPENER DIAG] says so; a common opening word ('Thanks,', 'Hi,') is never taken for a name, and a name the notes never use is still replaced by the record name as before. NEW SUITE opener-nickname-756.test.js, 10 assertions executing the shipped guard; v9.7.755 fails 2 by name. sms-opener.test.js unchanged and green. VERIFIED: run-all 179 suites green, 7,282 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.755-dev.)
 // Lead Pro -- popup.js  v9.7.755 (Commercial. THE 10/2 FEEDBACK, ITEM BY ITEM. Extension; dashboard v1.7; proxy v7.81 and reporter v1.23 unchanged. No dumps were taken, so each fix is at the code that made the draft. (1) TEXT 'GONE', EMAIL 'HERE'. Honda Baytown lead 2093398081 (TrueCar/Lifecare, 2013 Civic LX, stock VM713431A -- in that day's feed): all three texts said 'the 2013 Civic you asked about is gone' while the email and voicemail said 'here and available'; the day's one explicit thumbs-down, and the third was sent. What pushed the text there is not known without a dump. Now: the text rewrite is told the unit is confirmed in stock, a rewrite saying it is gone (LP_GONE_RX) on a confirmed unit loses to the first pass, and if the text that ships still says gone while the email does not, the panel tells the agent to fix it before sending. (2) RULES NARRATED TO THE CUSTOMER: 'rather than assuming it's available', 'so I can't say it's approved', 'without sharing her credit information in writing'. Both system prompts (main and text rewrite) now say: RULES ARE FOR YOU, NOT FOR THE CUSTOMER -- follow them silently. (3) OFFERS FOR A DESCRIBED BODY TYPE. Honda Baytown chat lead 2093797981 asked for lease offers on 'an affordable, reliable four-door sedan'; no model on file, so the matcher had nothing to match and four drafts said 'I'll check the current lease offers' against 60 live lines. New _lpOfferAskByBody / _lpOffersForBody: an offer question plus a body type (sedan, SUV, truck, minivan; read from the model names, hatchbacks are not sedans) gives the store's current offers on those models -- lease lines when they asked about leases -- one per model, up to four. The first-touch 'customer asked' override now also reads 'lease offers', 'any leases', 'current offers'. (4) The same lead's voicemail said 'this is Melanie at Community Auto Group': the voicemail now signs the lead's store (DEALER_ID_MAP first, as the text and email signatures have since v9.7.570). (5) Toyota lead 2093389062 (CarGurus, no phone on file): the TEXT asked 'What's the best number to reach you?'. The NO PHONE line and the rewrite now keep that ask in the email. (6) A translated email left 'Internet Sales Coordinator' in English under Spanish: the translate prompt now translates the job title. Spanish itself was the Translate button, used on purpose. DASHBOARD v1.7: 'Today' read '10-02 -> 10-03, 1 of 2 days' -- fetchRange added a day to every range, a holdover from UTC-keyed rows; the worker's days are Central since v7.77. dashboard-version's neuter now bumps whichever block is newest. NOT CODE: Kia Baytown's incentives all lapsed 9/09 and need republishing. NEW SUITES feedback-1002-755.test.js (38 assertions; v9.7.754 fails 15 by name, two labelled new helper) and dashboard-range-v17.test.js (2; dashboard v1.6 fails both). VERIFIED: run-all 178 suites green, 7,272 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.754-dev.)
 // Lead Pro -- popup.js  v9.7.754 (Commercial. THE CHANNEL ASK IS THE DEFAULT CLOSE-OUT. Extension only; proxy v7.81 and reporter v1.23 unchanged. 10/1 feedback export, Community Honda Lafayette: on six stalled leads (24-87 days) the agents regenerated past the first close-out draft ('close your file or leave it open?'), and the version most often sent was the channel one -- 'would you prefer text, email, or no more follow-up?'. Gil: 'make the channel ask the default close-out wording.' Rung 5 (PHASE 5 -- GRACEFUL CLOSE-OUT) still offers four moves, but the channel is now (A) THE DEFAULT and the model starts there; (B) the record, (C) the timing and (D) the last useful thing are used only when the channel question has already been put to them, by a previous draft in this session or one of our earlier messages on the lead -- so a regenerate still rotates to a different move. Eligibility (v9.7.595), the assert-nothing rule (v9.7.583) and the rewrite guard (v9.7.753) are unchanged. stalled-phase gains an executing check (rung 5 starts with the channel ask); regen-variance updated for the new order. v9.7.753 fails 3 by name. VERIFIED: run-all 176 suites green, 7,232 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.753-dev.)
@@ -5447,6 +5448,20 @@ function _lpOfferAskByBody(text) {
   }
   return null;
 }
+// (v9.7.757) THE CUSTOMER'S WORDS IN A TRANSCRIPT, ALL OF THEM. The 755 offers check read only lines that START with a
+// customer tag, but a customer turn is "[date] [CUSTOMER] Inbound Text Message" with the words on the lines under it, and
+// an inquiry spills onto continuation lines. Same open/close rules as the pivot scan in buildUserPrompt: a customer tag
+// opens a block; any other uppercase tag, a --- rule or a Lead Pro scaffold header closes it.
+function _lpCustomerTextOf(text) {
+  var out = [], inC = false;
+  String(text || '').split('\n').forEach(function (l) {
+    var open = /\[CUSTOMER(?: CHAT SUMMARY| REQUEST FROM INQUIRY)?\]/i.test(l) || /^\s*Guest\s*:/i.test(l);
+    if (open) inC = true;
+    else if (/\[[A-Z][A-Z0-9 \/&.\-]{1,28}\]/.test(l) || /^---/.test(l) || LP_SCAFFOLD_LINE_RE.test(l)) inC = false;
+    if (inC && l.trim().length > 2) out.push(l);
+  });
+  return out.join('\n');
+}
 function _lpOffersForBody(ask, incentives, storeLabel) {
   if (!ask || !Array.isArray(incentives)) return [];
   var live = (typeof _lpExpiryFilterIncentives === 'function') ? _lpExpiryFilterIncentives(incentives, storeLabel) : incentives;
@@ -7642,7 +7657,10 @@ function populateFromData(d) {
     // CONFIRMED WORKING live (log82): manually setting VOI to "2026 Toyota Grand Highlander"
     // and regrabbing produced the correct 4.99% APR/48mo + $469/mo lease message -- this
     // automates that same manual step.
-    var _lvInc = d.vehicle || d.vehicleRaw || _lpGuessModelFromCustomerText(d.lastInboundMsg, _vfc) || '';
+    // (v9.7.757) An "Any/All" VOI is no vehicle (v9.7.255 blanks d.vehicle for it), but vehicleRaw kept "2026 Honda Any/All",
+    // so chat lead 2093797981 counted as having a model and the 755 offers-by-body-type block below never ran.
+    var _lvRawInc = /\bany\s*\/\s*all\b/i.test(String(d.vehicleRaw || '')) ? '' : d.vehicleRaw;
+    var _lvInc = d.vehicle || _lvRawInc || _lpGuessModelFromCustomerText(d.lastInboundMsg, _vfc) || '';
     var _incState = (leadConvState || '').toLowerCase();
     var _incAdversarial = (_incState === 'negative-reply' || _incState === 'exit');
     // (v9.7.296) First-touch gate: store incentives belong in FOLLOW-UP, not initial contact.
@@ -7804,8 +7822,7 @@ function populateFromData(d) {
     // (v9.7.755) No model on file, but the customer described a kind of car and asked about offers (_lpOfferAskByBody).
     try {
       if (!_lvInc && !_incAdversarial && !d.isSoldDelivered && _vfc && _vfc.incentives && _vfc.incentives.length) {
-        var _bdTxt = [String(d.lastInboundMsg || '')].concat(String(d.conversationBrief || '').split('\n').filter(function (l) {
-          return /^\s*(?:\[CUSTOMER(?: CHAT SUMMARY| REQUEST FROM INQUIRY)?\]|Guest:)/.test(l); })).join('\n');
+        var _bdTxt = String(d.lastInboundMsg || '') + '\n' + _lpCustomerTextOf(d.conversationBrief);   // (v9.7.757) every customer turn
         var _bdAsk = _lpOfferAskByBody(_bdTxt);
         var _bdLines = _bdAsk ? _lpOffersForBody(_bdAsk, _vfc.incentives, (d.store || ('dealer ' + (d.dealerId || '?')))) : [];
         if (_bdLines.length) {
@@ -10167,7 +10184,14 @@ function _lpScraperBotAuthor(msg) {
       // This happens when VinSolutions renders the newly-assigned sales rep in a shared field
       if(a) {
         var srFromLabel = labelValue('Sales Rep') || '';
-        if(srFromLabel && a.trim() === srFromLabel.trim()) return ''; // DOM gave us sales rep - skip, use log fallback
+        // (v9.7.757) ONE PERSON IN BOTH FIELDS IS A REAL ASSIGNMENT. Until a sales rep is assigned, VinSolutions lists the BD
+        // agent in both (Gil, 10/3). This returned '' on the spot -- the "log fallback" below never ran -- so Honda Baytown
+        // lead 2094222132 had no agent: the text signed with no name and the email carried two signatures. Now the newest
+        // "BD Agent Changed From .. to X" log decides when it names someone else; otherwise the field is the agent.
+        if(srFromLabel && a.trim() === srFromLabel.trim()) {
+          var _bdNewest = (TEXT.match(/BD Agent Changed From .+? to ([A-Z][a-zA-Z]+ [A-Z][a-zA-Z]+)/)||[])[1] || '';
+          return (_bdNewest && _bdNewest !== a.trim()) ? _bdNewest : a.trim();
+        }
         // If DOM returned only a single word (first name only), fall through to text-mining for full name
         if(a.trim().indexOf(' ') === -1) { /* single word - fall through */ }
         else return a;
@@ -23354,7 +23378,11 @@ function buildUserPrompt(data) {
     var _srFirst = (sc.salesRep || '').split(' ')[0] || '';
     var _isAudiLaf = (data.dealerId === 21135 || data.dealerId === '21135' || /audi.*lafayette/i.test(data.store || ''));
     var _srTitle = _isAudiLaf ? 'Audi Brand Specialist' : 'Sales Representative';
-    var _srRef = _srFirst
+    // (v9.7.757) Lead 2094092453: the Sales Rep field named the agent writing, so "your Sales Representative, <her name>"
+    // had her name herself in the third person ("<name> can have the proposal ready"). Gil: when no sales rep is assigned
+    // yet, VinSolutions lists the BD agent in both fields -- so a Sales Rep who is the signer is no Sales Rep yet.
+    var _srSelf = _lpSalesRepIsSigner(sc.salesRep, data);
+    var _srRef = (_srFirst && !_srSelf)
       ? ('your ' + _srTitle + ', ' + _srFirst)
       : ('one of our ' + (_isAudiLaf ? 'Audi Brand Specialists' : 'Sales Representatives'));
 
@@ -26509,7 +26537,9 @@ function buildUserPrompt(data) {
       : 'Customer Phone: (no phone on file)  ← genuinely missing. Asking for a phone number IS appropriate.',
     // (v9.7.696) The SMS STATUS line is gone with the suppression it described.
     'BD Agent:   ' + (data.agent || '⚠ AGENT NAME UNKNOWN — CRITICAL: Do NOT invent or guess a name. Use ONLY the phone number in the SMS signature. Sign as the phone number only. Never fabricate a name.') + '  ← THIS IS WHO WRITES AND SIGNS THIS MESSAGE. Use this name in the signature — NOT any sales rep name from prior messages.',
-    'Sales Rep:  ' + (data.salesRep || '(not assigned)') + '  ← may appear in call notes as the person who spoke with customer',
+    'Sales Rep:  ' + (data.salesRep || '(not assigned)') + (_lpSalesRepIsSigner(data.salesRep, data)
+      ? '  ← the same person as the BD Agent: no separate Sales Rep is assigned yet. Do not name a Sales Rep, and never refer to yourself by name or in the third person.'
+      : '  ← may appear in call notes as the person who spoke with customer'),
     'Agent Phone: ' + phone + '  ← CRITICAL: this is the AGENT signature phone (use in signature). Do NOT confuse with Customer Phone above. Do NOT use any other number you may have seen.',
     'Store:      ' + sc.storeGroup,
     'Persona:    ' + sc.persona,
@@ -29465,6 +29495,19 @@ async function generateAll() {
 // generateAll() and generateVoicemail() can call it. Previously defined
 // inside generateAll(), which made it inaccessible to generateVoicemail()
 // and caused "resolveSignerForPersona is not defined" on voicemail generation.
+// (v9.7.757) Is the lead's Sales Rep the person signing? Full names compared when both are full; a single-word name on
+// either side compares on first names. The signer resolved for this generation wins; the lead's BD agent stands in
+// only when none was resolved.
+function _lpSalesRepIsSigner(salesRep, data) {
+  var norm = function (x) { return String(x || '').toLowerCase().replace(/[^a-z\s'-]/g, ' ').replace(/\s+/g, ' ').trim(); };
+  var sr = norm(salesRep);
+  var sg = (typeof window !== 'undefined' && window._leadProResolvedSigner && window._leadProResolvedSigner.name) || (data && data.agent) || '';
+  sg = norm(sg);
+  if (!sr || !sg) return false;
+  if (sr === sg) return true;
+  if (sr.indexOf(' ') < 0 || sg.indexOf(' ') < 0) return sr.split(' ')[0] === sg.split(' ')[0];
+  return false;
+}
 function resolveSignerForPersona() {
   var activePersona  = window._leadProPersonaOverride || window._leadProResolvedPersona || 'bdc';
   var leadData       = lastScrapedData || {};
@@ -29534,13 +29577,17 @@ function resolveSignerForPersona() {
     s.name = rep||(leadData.agent||''); s.firstName = (s.name).split(' ')[0]; s.title = titleFor(s.name,'sales'); s.phone = phoneFor(s.name,leadData.store)||profile.phone||'';
 
   } else if (canImpersonate && activePersona === 'bdc') {
-    var bd2 = leadData.agent||'';
+    var bd2 = leadData.agent||leadData.salesRep||profile.name||'';   // (v9.7.757) the panel's agent-field chain
     s.name = bd2; s.firstName = bd2.split(' ')[0]||''; s.title = titleFor(bd2,'bdc');
     s.phone = phoneFor(bd2,leadData.store)||leadData.agentPhone||(window._leadProResolvedContext&&window._leadProResolvedContext.phone)||profile.phone||'';
 
   } else {
-    var bd = leadData.agent||'';
-    s.name = bd; s.firstName = bd.split(' ')[0]||''; s.title = titleFor(bd, profilePersona);
+    // (v9.7.757) Honda Baytown lead 2094222132 had no BD agent. The system prompt ("You are <profile>") and the email
+    // signature already fell back to the signed-in user; this did not, so the text signed with no name ("Coordinator")
+    // and the email carried two signatures. Now the signer follows the chain the panel's agent field shows (BD agent,
+    // then Sales Rep -- populateFromData) and then the signed-in user, as generateAll does, so all three name one person.
+    var bd = leadData.agent||leadData.salesRep||profile.name||'';
+    s.name = bd; s.firstName = (bd === profile.name && profile.firstName) || bd.split(' ')[0]||''; s.title = titleFor(bd, profilePersona);
     s.phone = phoneFor(bd,leadData.store)||leadData.agentPhone||(window._leadProResolvedContext&&window._leadProResolvedContext.phone)||profile.phone||'';
   }
   return s;
