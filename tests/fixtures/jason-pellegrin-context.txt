@@ -1,0 +1,200 @@
+🚫 ZERO-CONTACT LEAD — APPOINTMENT ENGINE DISABLED
+This customer has NEVER replied to any outreach. Multiple attempts have been made.
+DO NOT include appointment times in ANY format. DO NOT say "would X or Y work". DO NOT mention duration. DO NOT say "get ahead of your schedule".
+EMAIL: Two short paragraphs. Warm reference to what they inquired about. End with ONE easy question about their search or interest. Nothing else.
+SMS: Warm opener, one specific observation about the vehicle or their situation, one easy question. No appointment close.
+VOICEMAIL: If AGENT CONTEXT notes state a different condition/trim/year than the structured Vehicle of Interest, ask the same direct either/or question SMS and email ask -- condensed to one sentence, but the actual distinction must survive, not just the structured Vehicle of Interest by itself. Otherwise reference the vehicle. Say you wanted to connect. Leave number. End.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚠ STALLED LEAD: This lead has been open for 52 days.
+🚫 ZERO CUSTOMER RESPONSE: This customer has NEVER replied — multiple outreach attempts, no engagement. The goal is simply to earn a first reply.
+HARD RULE: Do NOT offer appointment times ("would 9:15 or 10:30 work") to someone who has never responded — it reads tone-deaf and gets ignored. One warm, specific message that references their actual vehicle and asks one low-friction question. Same quality bar for SMS and email; never a lazy "I emailed you earlier" with no standalone value.
+
+AGENT CONTEXT — READ THIS FIRST. These notes may reflect events that happened AFTER the customer's last message (visits, calls, price agreements, plans made in person). If a note post-dates the most recent customer message, that note is the current status — not the customer's last text. If a note states what the customer actually wants — a different condition (new vs. used/CPO), trim, year, or model than the structured Vehicle of Interest on file — that stated preference is the real ask. Build the message around what the note says the customer wants, not around the structured Vehicle of Interest field. Do NOT merge the two into one description (e.g. never say a specific new-model trim name together with an old model-year range as if the same vehicle, like "Premium Plus quattro (2020 or newer)" — that trim name does not span back to that year and the phrase is nonsensical). Do NOT assert either one as the settled answer either. Ask ONE direct question naming both distinctly so the customer tells you which — e.g. "are you set on a 2020+ pre-owned A6, or the 2026 model?" This applies identically to SMS, email, AND voicemail — a format being short is never a reason to drop this distinction down to just the structured Vehicle of Interest field.
+[08/20/2026 7:40 AM] [NOTE] General Note
+  By: Kristen Willis SubmitSENT NEW LEAD Dismiss Edit Assigned To: Kaylee Guzman
+[08/13/2026 12:12 PM] [NOTE] General Note
+  By: Kaylee Guzman
+[08/10/2026 3:26 PM] [NOTE] General Note
+  By: Kaylee Guzman
+[08/03/2026 5:22 PM] [NOTE] General Note
+  By: Kaylee Guzman
+[07/28/2026 4:49 PM] [NOTE] General Note
+  By: Kaylee Guzman  /
+[07/14/2026 11:45 AM] [NOTE] General Note
+  By: Kaylee Guzman
+[07/14/2026 11:39 AM] [NOTE] General Note
+  By: Kaylee Guzman
+[07/07/2026 2:30 PM] [NOTE] General Note
+  By: Kaylee Guzman
+[07/07/2026 2:27 PM] [NOTE] General Note
+  By: Kaylee Guzman
+[07/03/2026 3:33 PM] [NOTE] General Note
+  By: Kaylee Guzman LP: value
+[08/20/2026 11:36 AM] [CALL NOTE] Outbound phone call (Machine)
+  By: Chassica Vincent
+  Left message
+[08/19/2026 4:10 PM] [CALL NOTE] Outbound phone call (Contacted)
+  By: Chassica Vincent
+  will try to come in on sat just to see what her car is worth sent contact info
+[08/17/2026 4:59 PM] [CALL NOTE] Outbound phone call (Machine)
+  By: Kaylee Guzman
+  Left message - Jason, this is Kaylee with Community Honda Lafayette. I’m calling about the value you wanted on your 2023 Kia Sorento S Sport with 50,000 miles. We never connected on the appraisal, and I don’t want to keep filling your phone if that number is no longer useful. Is getting the trade va
+[08/06/2026 12:40 PM] [CALL NOTE] Outbound phone call (Machine)
+  By: Kaylee Guzman
+  Left message - Jason, this is Kaylee at Community Honda Lafayette. I wanted to connect about the trade value on your 2023 Kia Sorento S Sport and see whether that appraisal is still relevant, or if your search went a different direction. Either answer is completely fine. Give me a call back at 337-8
+[08/04/2026 10:22 AM] [CALL NOTE] Outbound phone call (Machine)
+  By: Chassica Vincent
+  Left message
+[07/29/2026 5:25 PM] [CALL NOTE] Outbound phone call (Machine)
+  By: Chassica Vincent
+  Left message
+[07/28/2026 4:57 PM] [CALL NOTE] Outbound phone call (Machine)
+  By: Kaylee Guzman
+  Left message - Jason Pellegrin, this is Kaylee Guzman at Community Honda Lafayette. I’m reaching out about your KBB trade-in request for your 2023 Kia Sorento S Sport, since you haven’t connected with us on the real appraisal number yet. Most people go one of two ways here, either they still want th
+[07/21/2026 1:54 PM] [CALL NOTE] Outbound phone call (Machine)
+  By: Chassica Vincent
+  Left message
+[07/10/2026 12:00 PM] [CALL NOTE] Outbound phone call (Machine)
+  By: Chassica Vincent
+  Left message
+[07/09/2026 1:17 PM] [CALL NOTE] Outbound phone call (Machine)
+  By: Kaylee Guzman
+  Left message - Jason, this is Kaylee Guzman with Community Honda Lafayette. You requested a KBB trade-in value on your 2023 Kia Sorento S Sport, and at this point the only thing that really matters is confirming the real number with a quick in-person appraisal. When people go quiet, it’s usually bec
+[07/09/2026 1:16 PM] [CALL NOTE] Outbound phone call
+  By: System
+  https://www.callmeasurement.com/review_x.cfm?cid=6001631947659&lid=153573
+[07/07/2026 2:26 PM] [CALL NOTE] Outbound phone call (Machine)
+  By: Kaylee Guzman
+  Left message - Jason, this is Kaylee Guzman at Community Honda Lafayette. I’m calling because your KBB trade request for your 2023 Kia Sorento S Sport looks like it went quiet, and I want to make sure the timing didn’t change for you. Did your timeline shift or has it just been busy? Give me a call
+[07/07/2026 2:26 PM] [CALL NOTE] Outbound phone call
+  By: System
+  https://www.callmeasurement.com/review_x.cfm?cid=6001630227024&lid=153573
+[07/03/2026 3:42 PM] [CALL NOTE] Outbound phone call (Machine)
+  By: Chassica Vincent
+  Left message
+[07/02/2026 1:03 PM] [CALL NOTE] Outbound phone call (Machine)
+  By: Kaylee Guzman
+  Left message - Jason, this is Kaylee Guzman at Community Honda Lafayette. I’m calling because you submitted a KBB trade-in for your 2023 Kia Sorento S Sport, and the real question now is whether you want to optimize for best value or keep the payments simpler. If you tell me which one you care about
+[07/02/2026 1:02 PM] [CALL NOTE] Outbound phone call
+  By: System
+  https://www.callmeasurement.com/review_x.cfm?cid=6001626626191&lid=153573
+[06/30/2026 2:17 PM] [CALL NOTE] Outbound phone call (Machine)
+  By: Kaylee Guzman
+  Left message - Hey Jason, this is Kaylee Guzman at Community Honda Lafayette. I saw your KBB request for your 2023 Kia Sorento S Sport (50,000 miles), and the next step is confirming your trade number with a real in-person appraisal—KBB is the starting point, the appraisal is where the number gets f
+[06/30/2026 2:16 PM] [CALL NOTE] Outbound phone call
+  By: System
+  https://www.callmeasurement.com/review_x.cfm?cid=6001624966084&lid=153573
+[06/29/2026 4:10 PM] [CALL NOTE] Outbound phone call (Machine)
+  By: Chassica Vincent
+  Left message
+[06/29/2026 3:16 PM] [CALL NOTE] Outbound phone call (Machine)
+  By: Kaylee Guzman
+  Left message - Hey Jason, this is Kaylee Guzman at Community Honda Lafayette. I’m calling because you submitted a KBB request for your 2023 Kia Sorento S, and the next step is getting you a real in-person trade appraisal number. That’s what lets you move forward with confidence. Give me a call back
+[06/29/2026 3:15 PM] [CALL NOTE] Outbound phone call
+  By: System
+  https://www.callmeasurement.com/review_x.cfm?cid=6001624016059&lid=153573
+[06/29/2026 3:13 PM] [CALL NOTE] Outbound phone call
+  By: System
+  https://www.callmeasurement.com/review_x.cfm?cid=6001624011735&lid=153573
+
+FOLLOW-UP: read the full transcript and write a response that directly continues THIS conversation.
+Total CRM entries: 60
+
+IDENTIFIED CUSTOMER CONCERNS - lead with these, do not bury them:
+TRIM/CONFIG PREFERENCE: Customer referenced Sport. Reference this specifically - do not pitch a different trim without reason.
+TRADE-IN CONCERN: Customer mentioned their trade-in. This is THE hook -- lead with it in BOTH the SMS and email. Do not bury it. Do not default to a generic vehicle check-in. Example SMS opener: "Angel, still want to get your trade appraised -- took 10 min to pull values, just need to confirm before I send."
+CONVERSATION TRANSCRIPT (newest first — read the full thread before responding):
+---
+[08/20/2026 11:36 AM] [AGENT] Outbound phone call (Machine)
+  By: Chassica Vincent Left message
+[08/20/2026 7:40 AM] [NOTE] General Note
+  By: Kristen Willis SubmitSENT NEW LEAD Dismiss Edit Assigned To: Kaylee Guzman
+[08/19/2026 4:10 PM] [AGENT] Outbound phone call (Contacted)
+  By: Chassica Vincent will try to come in on sat just to see what her car is worth sent contact info
+[08/19/2026 4:08 PM] [AGENT] Outbound Text Message
+  Sent to: (337) 256-3478 Sent by: Chassica Vincent Chassica Vincent Community Honda 3378064608
+[08/17/2026 4:59 PM] [AGENT] Outbound phone call (Machine)
+  By: Kaylee Guzman Left message - Jason, this is Kaylee with Community Honda Lafayette. I’m calling about the value you wanted on your 2023 Kia Sorento S Sport with 50,000 miles. We never connected on the appraisal, and I don’t want to keep filling your phone if that number is no longer useful. Is getting the trade va
+[08/16/2026 3:07 PM] [AGENT] Outbound Text Message
+  Sent to: (337) 256-3478 Sent by: Ken Young Jason, Ken, Sales Manager at Community Honda Lafayette. Saw we still haven’t connected on the Carnival. If something’s made this harder than it should be, tell me what it is - I can usually unstick it from my side. If there’s still an opportunity to help, I’m happy to get involved. If not, that’s perfectly okay too.
+[08/13/2026 12:15 PM] [AGENT] Outbound Text Message
+  Sent to: (337) 256-3478 Sent by: Kaylee Guzman Jason, your 2023 Kia Sorento S Sport was the trade you wanted valued. Did you end up going with something similar? Kaylee Reply STOP to cancel.
+[08/10/2026 3:29 PM] [AGENT] Email reply to prospect
+  Subject: Your Sorento trade number By: Kaylee Guzman Hi Jason, You originally reached out for a value on your 2023 Kia Sorento S Sport, but we never connected on the appraisal. I know you’ve received several messages, so I’ll keep this simple. Did you still want a firm trade number, or did your search...
+[08/06/2026 12:40 PM] [AGENT] Outbound phone call (Machine)
+  By: Kaylee Guzman Left message - Jason, this is Kaylee at Community Honda Lafayette. I wanted to connect about the trade value on your 2023 Kia Sorento S Sport and see whether that appraisal is still relevant, or if your search went a different direction. Either answer is completely fine. Give me a call back at 337-8
+[08/04/2026 10:22 AM] [AGENT] Outbound phone call (Machine)
+  By: Chassica Vincent Left message
+[08/03/2026 5:47 PM] [AGENT] Email reply to prospect
+  Subject: Your Sorento trade appraisal By: Kaylee Guzman Hi Jason, You reached out to get a value on your 2023 Kia Sorento S Sport, and I realize we never connected on the actual appraisal. I’ll leave the decision about what you drive next entirely up to you; the trade number is useful either way. Did you...
+[07/29/2026 5:25 PM] [AGENT] Outbound phone call (Machine)
+  By: Chassica Vincent Left message
+[07/28/2026 4:57 PM] [AGENT] Outbound phone call (Machine)
+  By: Kaylee Guzman Left message - Jason Pellegrin, this is Kaylee Guzman at Community Honda Lafayette. I’m reaching out about your KBB trade-in request for your 2023 Kia Sorento S Sport, since you haven’t connected with us on the real appraisal number yet. Most people go one of two ways here, either they still want th
+[07/28/2026 4:55 PM] [AGENT] Outbound Text Message
+  Sent to: (337) 256-3478 Sent by: Kaylee Guzman Jason, I noticed the KBB trade request on your 2023 Kia Sorento S Sport (50,000 miles) has been sitting with no appraisal confirmed yetdid you end up getting a number elsewhere, or are you still working it? Kaylee
+[07/28/2026 4:55 PM] [AGENT] Email reply to prospect
+  Subject: Sorento trade appraisal number By: Kaylee Guzman Jason, I’m seeing your KBB trade request for your 2023 Kia Sorento S Sport (50,000 miles), but we haven’t been able to confirm an in-person trade appraisal number yet. Did your search go a different direction, or are you still looking to get your So...
+[07/21/2026 1:54 PM] [AGENT] Outbound phone call (Machine)
+  By: Chassica Vincent Left message
+[07/20/2026 2:58 PM] [AGENT] Outbound Text Message
+  Sent to: (337) 256-3478 Sent by: Ken Young Jason, this is Ken at Community Honda Lafayette. It’s been a few weeks since we last connected, so I wanted to check in personally. I know things can changetiming, priorities, budget, or even the vehicle itself. If you’re still considering your options, I’d be happy to help. And if your plans have shifted, that’s completely okay too. Either way, a quick update would be appreciated so we can best support you moving forward.
+[07/14/2026 11:45 AM] [AGENT] Outbound Text Message
+  Sent to: (337) 256-3478 Sent by: Kaylee Guzman Jason, for your 2023 Kia Sorento S Sport (50,000 miles) trade-in, did you end up getting a number somewhere else, or are we still confirming it? Kaylee
+[07/14/2026 11:44 AM] [AGENT] Email reply to prospect
+  Subject: A quick note about your inquiry By: Kaylee Guzman Jason, I’ve noticed we haven’t been able to connect yet on your trade-in appraisal for your 2023 Kia Sorento S Sport (50,000 miles). KBB is a starting point, but the in-person appraisal is what confirms the real number. If you decide to stay where y...
+[07/10/2026 12:00 PM] [AGENT] Outbound phone call (Machine)
+  By: Chassica Vincent Left message
+[07/09/2026 1:17 PM] [AGENT] Outbound phone call (Machine)
+  By: Kaylee Guzman Left message - Jason, this is Kaylee Guzman with Community Honda Lafayette. You requested a KBB trade-in value on your 2023 Kia Sorento S Sport, and at this point the only thing that really matters is confirming the real number with a quick in-person appraisal. When people go quiet, it’s usually bec
+[07/09/2026 1:16 PM] [AGENT] Outbound phone call
+  By: System https://www.callmeasurement.com/review_x.cfm?cid=6001631947659&lid=153573
+[07/07/2026 2:32 PM] [AGENT] Email reply to prospect
+  Subject: Sorento S Sport trade appraisal confirmation By: Kaylee Guzman Jason, I know you were looking for a trade number on your 2023 Kia Sorento S Sport (50,000 miles), and the KBB value is only the starting point until we confirm it with an in-person appraisal. Should I keep this on my radar or close it out? Kaylee G...
+[07/07/2026 2:30 PM] [AGENT] Outbound Text Message
+  Sent to: (337) 256-3478 Sent by: Kaylee Guzman Jason, I know you submitted a KBB number for your 2023 Kia Sorento S Sport (50,000 miles), but we haven’t gotten the trade appraisal confirmed yet. Are you still looking to get a number on your Sorento, or did you already decide? Kaylee
+[07/07/2026 2:26 PM] [AGENT] Outbound phone call (Machine)
+  By: Kaylee Guzman Left message - Jason, this is Kaylee Guzman at Community Honda Lafayette. I’m calling because your KBB trade request for your 2023 Kia Sorento S Sport looks like it went quiet, and I want to make sure the timing didn’t change for you. Did your timeline shift or has it just been busy? Give me a call
+[07/07/2026 2:26 PM] [AGENT] Outbound phone call
+  By: System https://www.callmeasurement.com/review_x.cfm?cid=6001630227024&lid=153573
+[07/03/2026 3:42 PM] [AGENT] Outbound phone call (Machine)
+  By: Chassica Vincent Left message
+[07/03/2026 3:35 PM] [AGENT] Email reply to prospect
+  Subject: Sorento S Sport trade number By: Kaylee Guzman Hi Jason, You came in for a number on your trade, the 2023 Kia Sorento S Sport (50,000 miles), and KBB is only the starting point. If you want something accurate, we’ll confirm the trade value with a real in-person appraisal so you’re not guessing. ...
+[07/03/2026 3:33 PM] [NOTE] General Note
+  By: Kaylee Guzman LP: value
+[07/02/2026 2:57 PM] [AGENT] Outbound Text Message
+  Sent to: (337) 256-3478 Sent by: Ken Young Jason, this is Ken, Sales Manager at Community Honda Lafayette. I just wanted to personally reach out and make sure my team has been helpful and that all of your questions have been answered. If there’s anything we’ve missed or if I can assist in any way, feel free to reply directly to me here.
+[07/02/2026 1:03 PM] [AGENT] Outbound phone call (Machine)
+  By: Kaylee Guzman Left message - Jason, this is Kaylee Guzman at Community Honda Lafayette. I’m calling because you submitted a KBB trade-in for your 2023 Kia Sorento S Sport, and the real question now is whether you want to optimize for best value or keep the payments simpler. If you tell me which one you care about
+[07/02/2026 1:02 PM] [AGENT] Outbound phone call
+  By: System https://www.callmeasurement.com/review_x.cfm?cid=6001626626191&lid=153573
+[07/02/2026 1:00 PM] [AGENT] Outbound Text Message
+  Sent to: (337) 256-3478 Sent by: Kaylee Guzman Jason, I’m not seeing a response yet on your KBB number for your 2023 Kia Sorento S Sport (50,000 miles) tradeare you still looking to get it appraised? Kaylee
+[06/30/2026 2:17 PM] [AGENT] Outbound phone call (Machine)
+  By: Kaylee Guzman Left message - Hey Jason, this is Kaylee Guzman at Community Honda Lafayette. I saw your KBB request for your 2023 Kia Sorento S Sport (50,000 miles), and the next step is confirming your trade number with a real in-person appraisalKBB is the starting point, the appraisal is where the number gets f
+[06/30/2026 2:16 PM] [AGENT] Outbound phone call
+  By: System https://www.callmeasurement.com/review_x.cfm?cid=6001624966084&lid=153573
+---
+
+VEHICLE/LEAD DETAILS:
+Vehicle of Interest: Kia Carnival (New)
+PRESENCE LANGUAGE: Do NOT say you'll have the vehicle "pulled up" or imply the specific unit is physically here and waiting — its presence on the lot is NOT confirmed (it may be in transit or at another store). Keep the appointment urgency with readiness language that's true wherever the car is — "have everything ready," "get you in," "set you up" — and do not claim the specific vehicle is ready to view.
+⚠ No stock number or VIN — do not claim availability. Reference the model and ask a qualifying question.
+
+━━ AGENT INSTRUCTIONS (highest priority — follow exactly) ━━
+► curiosity
+These instructions were added by the agent and override default behavior.
+⚠ CUSTOMER NAME SOURCE: use ONLY the customer name given to you above (in the VEHICLE/LEAD DETAILS or as stated elsewhere in this prompt) — never a name found inside an embedded chat transcript in the notes. A chat transcript formatted like "Guest: ... / [Name]: Hi there! My name is [Name]..." is the WIDGET/BOT introducing itself, not the customer; the customer's lines in that format are always labeled "Guest". If no reliable customer name is available, use a generic greeting rather than adopt a name from a chat agent's self-introduction.
+↻ RE-ENGAGEMENT HOOK: this customer has gone quiet (or this is a reactivation touch) — the incentive above is a genuine, specific reason to reach back out, stronger than a generic check-in. If you are choosing between secondary-touch angles for this message, favor the incentive here.
+🎯 ENGAGEMENT-ANGLE DISCIPLINE: If more than one secondary-touch angle is available above (similar vehicles, alternate condition, store incentive), pick AT MOST ONE that best fits this specific touch and where the customer is in the arc. Do NOT combine them in the same message — offering a comparable AND an alternate condition AND an incentive together overwhelms rather than engages. Save the rest for a later touch if this one does not land.
+Manager: Ken Young
+🔄 TRADE-IN: 2023 Kia Sorento S Sport Utility 4D
+	50,000 miles
+TRADE-IN RULES:
+- The trade is often the DECIDING FACTOR — customers need to know what their car is worth before they commit to buying.
+- Lead with the trade angle in SMS and email: "I want to make sure we get your [trade vehicle] appraised so we can build the right deal for you."
+- If trade details are listed (year/make/model/mileage), reference the specific vehicle — not a generic "your trade-in."
+- Position the visit as the step where trade value gets confirmed: "We can do a quick appraisal when you come in — usually takes about 10 minutes."
+- Never make up a trade value or imply you already know what it is worth.

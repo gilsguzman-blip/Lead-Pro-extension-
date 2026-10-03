@@ -1,0 +1,61 @@
+📅 APPOINTMENT HISTORY (read the arc — do not assume the current state):
+Agent sent appointment reminder (96 days ago): "Sent to: (281) XXX-XXXX Sent by: Patricia Galvan Jeffrey quick reminder of our appointment on Thursday, May 14, 2026 at "
+Read these facts and decide what they mean for the current conversation. Do not apply a fixed rule — use judgment.
+⚠ IMPORTANT: The current lead was submitted today as a NEW inquiry. The appointment event(s) above are from a PRIOR relationship months ago (the most recent is 96 days old) — a different, closed visit cycle. Do NOT reference these old appointments in your message. Do NOT say things like "your last appointment didn't work out" or "since you missed your appointment." To this customer, this is a fresh inquiry. Referencing a months-old no-show reads as intrusive record-keeping and kills trust. Treat the old appointment purely as silent background — it does not enter the message.
+
+CUSTOMER'S INQUIRY — the customer's own words when they submitted this lead. This is what they actually asked for; address it directly:
+"The customer is inquiring about the mileage on a 2021 Telluride stk # STOCK# TG466039A VIN5XYP3DHCXMG177649"
+
+AGENT CONTEXT — READ THIS FIRST. These notes may reflect events that happened AFTER the customer's last message (visits, calls, price agreements, plans made in person). If a note post-dates the most recent customer message, that note is the current status — not the customer's last text. If a note states what the customer actually wants — a different condition (new vs. used/CPO), trim, year, or model than the structured Vehicle of Interest on file — that stated preference is the real ask. Build the message around what the note says the customer wants, not around the structured Vehicle of Interest field. Do NOT merge the two into one description (e.g. never say a specific new-model trim name together with an old model-year range as if the same vehicle, like "Premium Plus quattro (2020 or newer)" — that trim name does not span back to that year and the phrase is nonsensical). Do NOT assert either one as the settled answer either. Ask ONE direct question naming both distinctly so the customer tells you which — e.g. "are you set on a 2020+ pre-owned A6, or the 2026 model?" This applies identically to SMS, email, AND voicemail — a format being short is never a reason to drop this distinction down to just the structured Vehicle of Interest field.
+[08/18/2026 9:51 AM] [NOTE] General Note
+  By: Jordyn Guzman dupe but only transfered call Jeffrey Best Eve: (281) XXX-XXXX Cell: (281) XXX-XXXX [email redacted] [street address redacted]
+[08/18/2026 9:54 AM] [CALL NOTE] Outbound phone call (Machine)
+  By: Jordyn Guzman
+  Left message-Hi Jeffrey, this is Jordyn with Community Honda Baytown, calling about your online chat on the certified 2021 Kia Telluride EX. It currently shows 84,065 miles, and I can have the vehicle ready for you to see while we discuss options for your granddaughter. Give me a call back at 281-83
+
+CHAT TRANSCRIPT (customer already spoke with the chat bot - read this before writing):
+[08/18/2026 9:43 AM] [GUBAGOO CHAT] Chat transcript:
+  [CHAT SUBJECT] My name is Jeffrey what is the mileage on the 2021 telluride
+  [CUSTOMER] My name is Jeffrey what is the mileage on the 2021 telluride
+  [CHAT BOT] Sales notification sent
+  [CHAT BOT] Hi, Jeffrey! My name is Mia. I'd be happy to help you!
+  [CHAT BOT] This vehicle has 84,065 MI
+  [CHAT BOT] May I have your last name too, please?
+  [CUSTOMER] Best
+  [CHAT BOT] Thanks Jeffrey, What's the best phone number to contact you on?
+  [CHAT BOT] Just checking if you are still there. I'll be here if you need help.
+  [CHAT BOT] Customer left website
+  [CHAT BOT] Customer returned to website
+  [CUSTOMER] 281XXXXXXX
+  [CHAT BOT] Can you please provide your e-mail as well?
+  [CHAT BOT] Just checking if you are still there. I'll be here if you need help.
+  [CUSTOMER] I am helping my granddaughter by a pre owned suv she doesn’t have much credit history but she has a good job at Exxon Baytown she’s been there for almost two years
+  [CHAT BOT] My apologies, one moment please.
+  [CHAT BOT] I would be happy to help you with the mileage details on the Telluride. Pleasure chatting with you, Jeffrey . Let me get with my team about the mileage details on the Telluride. Thanks, just to finish up, can I have your email address?
+  [CUSTOMER] I apologize I will get back with you
+  [CHAT BOT] Customer left website
+  [CHAT BOT] I am seeing that their is 84,065
+miles listed. Let me check with my team to confirm the mileage details. When would you like to come in to discuss your options?
+
+VEHICLE/LEAD DETAILS:
+Vehicle of Interest: 2021 Kia Telluride EX (Pre-Owned)
+Color: Gravity Grey
+VEHICLE ON LEAD: 2021 Kia Telluride EX — confirmed in stock. Name it to the customer by year/make/model ("2021 Kia Telluride EX"). Stock #TG466039A is an INTERNAL identifier for matching only — NEVER put a stock number in a customer-facing message.
+PRESENCE LANGUAGE: Skip the "pulled up" cliché. This unit's stock is confirmed, so "have it ready for you to see" or "have everything ready" both work — just don't lean on "pulled up."
+THIS UNIT IS CERTIFIED (CPO) per the CRM inventory record — certified warranty, inspection, and program benefits are legitimate selling points. Lead with certified value where natural instead of generic used-car language; do not invent specific warranty terms.
+
+🧾 WHAT WE HAVE ALREADY TOLD THIS CUSTOMER (our own prior outbound messages, oldest first — these are commitments on the record):
+  • [08/18/2026] WE SAID IT WAS AVAILABLE: "It currently shows 84,065 miles, and I can have the vehicle ready for you to see while we discuss options for your grand"
+- Do NOT contradict the MOST RECENT of these without saying so plainly. If the newest thing we told them was that the vehicle sold, you may not now write as though it is available, ask whether they are "still interested in it", or invite them to come see it — to the customer that reads as though nobody here remembers the conversation.
+- If the situation genuinely changed (a sold unit came back when a deal fell through, an appointment moved), SAY THAT explicitly — "it actually came back available" — so the change is visible and honest rather than a silent reversal.
+
+📋 WHAT THE CUSTOMER ACTUALLY ASKED FOR (verbatim from their lead submission — treat as their own words, and as the most reliable statement of intent on this lead):
+"By: System CUSTOMER INSIGHTS- ; CustomerComment : The customer is inquiring about the mileage on a 2021 Telluride stk # STOCK# TG466039A VIN5XYP3DHCXMG177649 Department: Used Vehicle Sales Subject: My name is Jeffrey what is the mileage on the 2021 telluride Guest (08/18/26 09:27:19 am): My name is Jeffrey what is the mileage on the 2021 telluride System (08/18/26 09:27:19 am): Sales notification sent Mia (08/18/26 09:27:19 am): Hi, Jeffrey! My name is Mia. I'd be happy to help you! Mia (08/18/26 09:27:19 am): This vehicle has 84,065 MI Mia (08/18/26 09:27:19 am): May I have your last name too, please? Guest (08/18/26 09:27:50 am): Best Mia (08/18/26 09:27:51 am): Thanks Jeffrey, What's the best phone number to contact you on? Mia (08/18/26 09:29:28 am): Just checking if you are still there. I'll be here if you need help. System (08/18/26 09:32:06 am): Customer left website System (08/18"
+- DO NOT ask them for anything they already stated above. Re-asking for a trade they named, a term they specified, or a time they offered is the fastest way to look like nobody read their request.
+- Answer what they actually asked. If they requested specific figures you cannot put in writing, say plainly how they get them (a call, or in person) and hold the appointment they proposed — do not quietly substitute a generic pitch for the question they asked.
+- If they named a day/time they can come in, treat that as their proposed appointment and respond to it directly rather than offering unrelated slots.
+Customer's current vehicle (confirmed from service/sales history): 2015 Toyota Highlander — This is their CURRENT vehicle, not what they want to buy. Do NOT use it as the vehicle of interest.
+⚠ CUSTOMER NAME SOURCE: use ONLY the customer name given to you above (in the VEHICLE/LEAD DETAILS or as stated elsewhere in this prompt) — never a name found inside an embedded chat transcript in the notes. A chat transcript formatted like "Guest: ... / [Name]: Hi there! My name is [Name]..." is the WIDGET/BOT introducing itself, not the customer; the customer's lines in that format are always labeled "Guest". If no reliable customer name is available, use a generic greeting rather than adopt a name from a chat agent's self-introduction.
+Manager: BJ Wilson
+
+CRM ENGAGEMENT RATING: High (VinSolutions' own engagement-strength score for this lead — context, not a directive).
