@@ -13,6 +13,8 @@ require('./lib/fatal-guard.js')('review-1003-757.test.js');
 //  (3) Honda Lafayette lead 2094092453: the Sales Rep field named the agent writing (no sales rep assigned yet, so
 //      VinSolutions lists the BD agent in both), and the OTD hand-off had her name herself in the third person
 //      ("<name> can have the proposal ready"). Now that reads as no Sales Rep yet: "one of our Sales Representatives".
+//  (4) Kia names its conquest cash "Competitive Bonus Program" (live Kia Baytown file); PROGRAM FIT looked only for
+//      the word "conquest". Gil, 10/4: "Competitive is a conquest." 
 // Executes the shipped agent reader (sliced from inlineScraper), populateFromData, _lpCustomerTextOf, resolveSignerForPersona and buildUserPrompt. Placeholder data only.
 //
 // Usage: node tests/review-1003-757.test.js <dev popup.js> <commercial popup.js>
@@ -110,6 +112,34 @@ for (const f of BUILDS) {
   const p2 = prompt({ salesRep: 'Rep Name' });
   check('control: a different Sales Rep is still named for the hand-off', () =>
     [/your Sales Representative, Rep/.test(p2), /one of our Sales Representatives/.test(p2), /no separate Sales Rep is assigned yet/.test(p2)], [true, false, false]);
+
+  console.log(' 4. Kia\'s "Competitive Bonus" is conquest cash (Gil, 10/4):');
+  const DAY = 86400000, NOW = Date.now();
+  const fmt = (ms) => { const f = new Intl.DateTimeFormat('en-US', { month: '2-digit', day: '2-digit', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })
+    .formatToParts(new Date(ms)).reduce((o, p) => (o[p.type] = p.value, o), {}); return f.month + '/' + f.day + '/' + f.year + ' ' + f.hour + ':' + f.minute + ' ' + f.dayPeriod.toUpperCase(); };
+  const ent = (ms, tag, body) => '[' + fmt(ms) + '] [' + tag + '] ' + (tag === 'CUSTOMER' ? 'Inbound' : 'Outbound') + ' Text Message\n  ' + body + '\n';
+  const T_C = NOW - 0.9 * DAY, T_A = NOW - 0.8 * DAY;
+  const KBRIEF = 'CONVERSATION TRANSCRIPT (newest first):\n---\n' + ent(T_A, 'AGENT', 'Test, send the photos whenever you are ready.')
+    + ent(T_C, 'CUSTOMER', 'I can send photos of my trade in') + '[' + fmt(T_C - DAY) + '] [=== CURRENT LEAD SUBMITTED HERE ===]\n---\n';
+  const KIA = (lines) => ({ incentives: lines.map(l => ({ model: 'Telluride', line: l, expires: '2099-09-30' })) });
+  const fit = (trade, lines) => {
+    sb.__vf = KIA(lines);
+    vm.runInContext('activeFlags = new Set(); leadContext = ""; _lpValueFactCache["6190"] = { vf: globalThis.__vf };', sb);
+    sb.populateFromData({ name: 'Test Buyer', agent: 'Agent Name', vehicle: '2027 Kia Telluride S FWD', condition: 'New', dealerId: '6190', store: 'Community Kia Baytown',
+      leadSource: 'Truecar', convState: 'active-follow-up', leadAgeDays: 2, totalNoteCount: 12, hasOutbound: true, hasCustomerReply: true, relationshipSignals: {},
+      history: '', context: '', conversationBrief: KBRIEF, lastInboundMsg: 'I can send photos of my trade in', tradeDescription: trade, hasTrade: !!trade,
+      outboundSends: [{ title: 'outbound text message', ms: T_A, body: 'Sent by: Agent Name Test, send the photos whenever you are ready.' }] });
+    const m = vm.runInContext('leadContext', sb).match(/🏷 PROGRAM FIT:[^\n]*/); return m ? m[0] : '';
+  };
+  const LIVE = ['Telluride — $750 Competitive Bonus Program', 'Telluride — $750 Owner Loyalty Bonus'];
+  check('live Kia names, a Honda trade: no loyalty; "the COMPETITIVE BONUS (conquest cash)" is the one to mention', () => {
+    const t = fit('2018 Honda Pilot EX', LIVE);
+    return [/do NOT offer the loyalty cash/.test(t), /The COMPETITIVE BONUS \(conquest cash\) is for owners of another brand: their Honda likely qualifies/.test(t)]; }, [true, true]);
+  check('live Kia names, a Kia trade: the Competitive Bonus does not fit; loyalty does', () =>
+    /The COMPETITIVE BONUS \(conquest cash\) is for owners of ANOTHER brand, so do NOT offer it to them; the OWNER LOYALTY cash is the one that fits/.test(fit('2019 Kia Sorento LX', LIVE)), true);
+  check('a Kia trade with only the Competitive Bonus on file -> told not to offer it (v9.7.756 said nothing)', () =>
+    /do NOT offer it to them\.$/.test(fit('2019 Kia Sorento LX', ['Telluride — $750 Competitive Bonus Program'])), true);
+  check('control: "Conquest Cash" by name still reads "CONQUEST cash"', () => /CONQUEST cash is for owners of ANOTHER brand/.test(fit('2019 Kia Sorento LX', ['Telluride — $750 Conquest Cash'])), true);
 }
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);
