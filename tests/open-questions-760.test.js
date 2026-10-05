@@ -11,7 +11,9 @@ require('./lib/fatal-guard.js')('open-questions-760.test.js');
 // Also (v9.7.760) Kia Baytown, 10/5 (log280): on a lead opened 9/25/2026 the open-question resolver listed two questions
 // from 10/07/2023, about the Forte she bought then ("Do we need a steering wheel lock?", "Is this particular model/year
 // susceptible to being stolen?"), and the text opened "I can't confirm whether this model year is susceptible to theft".
-// A question dated before the current-lead marker belongs to an earlier lead and is not open on this one.
+// A question dated before the current-lead marker belongs to an earlier lead and is not open on this one. (v9.7.761) On
+// the same lead the marker was absent (a phone-up lead) and the DOM Created date did not parse; the CRM's LeadCreatedUTC
+// now bounds it too.
 // Executes the shipped buildUserPrompt, _lpBuildSmsRefinePrompt and the scraper's detectUnansweredQuestions (lifted, as
 // open-thread-resolver does). Placeholder data only.
 //
@@ -87,11 +89,12 @@ for (const f of BUILDS) {
   const ia = src.indexOf(HEAD), ib = src.indexOf(TAIL, ia);
   const item = (dir, date, body) => ({ getAttribute: k => (k === 'data-direction' ? dir : null),
     querySelector: sel => sel === '.notes-and-history-item-content' ? { innerText: body } : (sel === '.notes-and-hsitory-item-date' ? { innerText: date } : null) });
-  const resolve = (els, markerMs, createdMs) => {
+  const resolve = (els, markerMs, createdMs, pdCreatedMs) => {
     const s = { unansweredQuestions: [] }, diag = [];
     const box = { noteEls: els, sig: s, parseNoteDate: x => Date.parse(x) || 0, _lpD: function () { diag.push([].join.call(arguments, ' ')); } };
     if (markerMs != null) box._lpMarkerMs = markerMs;
     if (createdMs != null) box.leadCreatedMs = createdMs;
+    if (pdCreatedMs != null) box._lpLeadCreatedMs = pdCreatedMs;
     vm.createContext(box); vm.runInContext(src.slice(ia, ib + TAIL.length), box);
     return { open: s.unansweredQuestions.map(q => q.question), diag: diag.join(' ') };
   };
@@ -107,6 +110,13 @@ for (const f of BUILDS) {
   check('...and the diag says why: PRIOR-LEAD', () => /PRIOR-LEAD[^|]*steering wheel lock/.test(r3.diag), true);
   check('no marker found: the lead\'s Created date (less 2 days) bounds it the same way',
     () => resolve(els('10/07/2023 4:28 PM'), 0, Date.parse('09/25/2026 5:16 PM')).open, []);
+  // (v9.7.761) log281, the same lead on 760: a phone-up lead ("Auto generated from adding customer", no lead-received note)
+  // had no marker and its DOM Created date did not parse -- only the CRM's LeadCreatedUTC was there.
+  const PD = Date.parse('2026-09-25T22:16:00Z');
+  check('log281 shape: no marker, no Created date, only the CRM lead-created time -> nothing open (760 left both OPEN)',
+    () => resolve(els('10/07/2023 4:28 PM'), 0, 0, PD).open, []);
+  check('control: with only the CRM time, a question asked on this lead is still open',
+    () => resolve(els('10/03/2026 9:00 AM'), 0, 0, PD).open.some(q => /steering wheel lock/.test(q)), true);
   check('control: the same question asked on THIS lead (after the marker) is still open',
     () => resolve(els('10/03/2026 9:00 AM'), MARK, 0).open.some(q => /steering wheel lock/.test(q)), true);
   check('control (as before): no marker and no Created date -> unchanged, still open',
