@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.760 (Commercial. OLD QUESTIONS ARE NOT OPEN QUESTIONS. Extension only; proxy v7.83, reporter v1.23 and dashboard v1.8 unchanged. Two drafts on 10/5, one cause: the open-question lists (the main prompt's OPEN THREADS, 'address it directly'; the text rewrite's QUESTIONS STILL OPEN, 'answer it first') carried questions that were no longer live, and the rewrite led with them. (1) A SOLD UNIT'S NUMBERS. Kia Baytown lead 2091734847 (log279): on 9/30 the customer asked to itemize 'the 832.50 in dealer fees' and said 'if you can get the dealer discount to $5,000 ... I'd be ready'; by 10/5 that EV9 had sold and this message was the one telling her. The rewrite opened 'I'll get you an itemized breakdown of the $832.50 in fees', while the SOLD notice in the same prompt said 'do not work it, quote it, or re-run its numbers'. Gil: acknowledging the sale and suggesting the alternative would have been fine. Now, only when the NEWS variant of the sold notice is in the prompt (_lpSoldNoticeInPrompt), questions about that deal's numbers (_LP_DEAL_Q_RX) and the others sent in the same message leave both lists for one line -- moot, do not promise, send or itemize those figures, pivot, offer numbers on the alternative (_lpMootSoldQuestions) -- and the deal trigger's condition/deadline stand down. When the customer was ALREADY TOLD, a later question can be about the alternative, so nothing changes. (2) A QUESTION FROM AN EARLIER LEAD. Kia Baytown, log280: on a lead opened 9/25/2026 the resolver listed 'Do we need a steering wheel lock?' and 'Is this particular model/year susceptible to being stolen?' -- asked 10/07/2023 about the Forte she bought then, and answered that minute -- and the text opened 'I can't confirm whether this model year is susceptible to theft'. detectUnansweredQuestions now skips a question dated before the current-lead marker (or the Created date less 2 days when no marker), the rule the email-bounce scan already used; the diag row says PRIOR-LEAD. The marker variables and the new helper are read through typeof, so the suites that lift these functions alone (open-thread-resolver, sms-refine) still run them. NOT FIXED: the 2023 answer ('You should be okay with the Forte') did not register as one -- the word-overlap bar; moot once the question is out of scope. NEW SUITE open-questions-760.test.js (28 assertions; v9.7.759 fails the 8 targeted checks, the 6 controls pass on both). VERIFIED: run-all 185 suites, 7,400 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.759.)
 // Lead Pro -- popup.js  v9.7.759 (Commercial. THEIR PAYMENT TARGET AGAINST THE STORE'S REAL OFFERS. Extension only; proxy v7.83, reporter v1.23 and dashboard v1.8 unchanged. Kia Baytown, 10/5 (log277, prompt 19-09-42). On a call the customer told the sales rep he wanted a $300 lease payment with no money down, and the rep's General Note said so ('was being very unrealistic with his goal'). His texts then asked 'Lease only, seeking low payment 24, 36, 48-months, 12k mileage' about a 'Sportage or Seltos, SX Prestige Plug In Hybrid'. The store's lowest Sportage Plug-in Hybrid lease was $349/mo with $3,999 due. The drafts promised to 'help find a low payment' and booked a visit: the customer would walk in expecting a number that does not exist. Gil: should it be addressed? THREE GAPS. (1) THE OFFERS WERE HELD BACK. The v9.7.726 rule holds an incentive while the customer waits on us unless they asked about price, payment or deals, and the v9.7.415 customer-asked pattern did not match lease/term/mileage talk, so the log read 'suppressed'. New _LP_PAY_ASK_RX ('lease only', 'low payment', '24/36/48 months', '12k miles', 'payment of/under') now counts. (2) NOTHING READ THE TARGET. Money counts as a budget only when the customer wrote it (by design, since agents' offers were once read as customer requests). New _lpPaymentTarget reads a monthly target and/or no-money-down from the customer's words or a staff NOTE/CALL NOTE on this lead: a figure needs a wanting word and a payment word in the same sentence, and a sentence reading as our offer ('offered', 'quoted', 'sent') is skipped. New _lpLeaseFloor finds the cheapest live lease on their vehicle and the cheapest of each sibling in its family. When the target is below that, or they want nothing down and the offers need money at signing, a 'THEIR PAYMENT TARGET vs THE STORE'S REAL LEASE OFFERS' block says: give the real number, name one closer option, ask which they would move (trim/model, due at signing, term); never promise the target, never 'find a low payment', never call it unrealistic, never mention the note. (3) NO PLUG-IN SELTOS. Both drafts repeated 'Seltos ... Plug-In Hybrid'. The background reference now says there is none (the Sportage and Sorento are), when Seltos and plug-in are both named. Found while testing on the real brief: the note writes 'doesn’t' with a curly apostrophe, so the no-money-down pattern takes both. NEW SUITE payment-target-759.test.js (28 assertions; v9.7.758 fails 10 by name, four labelled new helper); also checked on the real log277 brief locally: target $300, no money down, from the note. VERIFIED: run-all 184 suites, 7,372 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.758.)
 // Lead Pro -- popup.js  v9.7.758 (Commercial. KIA'S COMPETITIVE BONUS IS CONQUEST CASH. Extension only; proxy v7.81, reporter v1.23 and dashboard v1.7 unchanged. Everything in v9.7.757 (not installed; those zips are superseded) plus one change. The live Kia Baytown file names its conquest program '$750 Competitive Bonus Program' beside '$750 Owner Loyalty Bonus'; PROGRAM FIT (v9.7.726) looked only for the word 'conquest', so on a Kia lead with a known trade it never said which of the two fits. Gil, 10/4: 'Competitive is a conquest.' A 'Competitive Bonus/Cash/Program/Rebate' line now counts as conquest, and the line names it as the program reads: 'The COMPETITIVE BONUS (conquest cash)'. NOT CHANGED: Kia lead 2094045233's text asking for the best email address was right -- two Email Failure notes ('The email address used was not valid') and the agent's own 'Email address is invalid' note; the bounce rule (v9.7.697/707) asks for a good address in the text. SUITE review-1003-757.test.js now 38 assertions (v9.7.756 fails 13, v9.7.757 fails the 3 new Competitive Bonus checks; the 'Conquest Cash' control passes on both). VERIFIED: run-all 180 suites, 7,320 assertions, 0 failed (the two clock-dependent suites that failed at 6:30 PM CT on 757 pass at 8:30 PM CT); dev===comm on every changed region. Builds on v9.7.757.)
 // Lead Pro -- popup.js  v9.7.757 (Commercial. THE 10/3 FEEDBACK. Extension only; proxy v7.81, reporter v1.23 and dashboard v1.7 unchanged. Reps ran 9.7.754 (134 rows) and 9.7.756 (146) today; no 9.7.755 in the fleet, so the 754 half had none of 755's fixes. (1) OFFERS FOR A DESCRIBED BODY TYPE NEVER RAN ON AN 'ANY/ALL' LEAD. Honda Baytown chat lead 2093797981 (follow-up; the page Gil pasted): VOI '2026 Honda Any/All'. v9.7.255 blanks d.vehicle for that placeholder, but the incentive matcher read d.vehicle || d.vehicleRaw, so the lead counted as having a model and the 755 'STORE OFFERS FOR WHAT THEY DESCRIBED' block -- gated on no model -- was skipped on every build. The placeholder no longer counts. The block also read only brief lines STARTING with a customer tag; new _lpCustomerTextOf reads every customer turn (the '[date] [CUSTOMER]' header and the lines under it), same open/close rules as the pivot scan. (2) THE SIGNATURE WITH NO NAME. Honda Baytown lead 2094222132: one person in both BD Agent and Sales Rep (no rep assigned yet -- Gil) and the scraper's agent reader returned '' as 'the DOM gave us the sales rep'; its log fallback never ran. The text signed 'Coordinator' with no name and the email carried two signatures. Now that agent is kept (the newest 'BD Agent Changed' log wins when it names someone else), and resolveSignerForPersona falls back like the panel's agent field (BD agent, Sales Rep) and then the signed-in user, as the system prompt and the email already did. (3) THE AGENT IN THE THIRD PERSON. Honda Lafayette lead 2094092453: the Sales Rep field repeated the agent writing, and the OTD hand-off said 'your Sales Representative, <her name>' -- '<agent> can have the proposal ready' signed by that same agent. A Sales Rep who is the signer (_lpSalesRepIsSigner) is now no Sales Rep yet: 'one of our Sales Representatives', and the Sales Rep line says so. NEW SUITE review-1003-757.test.js (30 assertions; v9.7.756 fails 10 by name, one labelled new helper). VERIFIED: run-all 180 suites, 7,308 assertions passed, 4 failed -- all 4 in the clock-dependent log244-710 and imx-noappt-720 (run Saturday 6:30 PM CT; both fail identically on v9.7.756); dev===comm on every changed region. Builds on v9.7.756.)
@@ -16675,13 +16676,23 @@ function _lpScraperBotAuthor(msg) {
           // customer who asked two weeks ago and wrote again today is still in a live conversation. The
           // transcript keeps the question; the OPEN THREADS line and the SMS rewrite no longer push it.
           var _uqStale = !answered && typeof sig.lastInboundAgeDays === 'number' && sig.lastInboundAgeDays >= 14;
-          if (!answered && !_uqStale) {
+          // (v9.7.760) A QUESTION FROM AN EARLIER LEAD IS NOT OPEN ON THIS ONE. Kia Baytown, 10/5 (log280): on a lead
+          // opened 9/25/2026 the prompt carried "Do we need a steering wheel lock?" and "Is this particular model/year
+          // susceptible to being stolen?" -- asked 10/07/2023 about the Forte she bought then, and answered the same
+          // minute ("You should be okay with the Forte") -- and the text opened "I can't confirm whether this model year
+          // is susceptible to theft". Same rule as the email-bounce scan: before the current-lead marker is a prior lead.
+          var _uqQMs = iq.date ? new Date(iq.date).getTime() : NaN;
+          var _uqMk = (typeof _lpMarkerMs === 'number') ? _lpMarkerMs : 0, _uqLc = (typeof leadCreatedMs === 'number') ? leadCreatedMs : 0;
+          var _uqLeadStart = _uqMk > 0 ? _uqMk : (_uqLc > 0 ? _uqLc - 2 * 86400000 : 0);
+          var _uqPrior = !answered && _uqLeadStart > 0 && isFinite(_uqQMs) && _uqQMs < _uqLeadStart;
+          if (_uqPrior) _uqStale = false;
+          if (!answered && !_uqStale && !_uqPrior) {
             sig.unansweredQuestions.push({ date: iq.date, question: iq.question, isObjection: iq.isObjection });
           }
           // (v9.7.654) A SILENT RESOLVER IS HOW A FALSE OPEN SHIPPED FOR MONTHS WITHOUT BEING SEEN.
           // One row per question carrying the verdict, the bar it had to clear and what cleared it,
           // so the next one is readable from a log instead of costing a prompt capture and a CRM dump.
-          _uqDiag.push((answered ? 'CLOSED-by-' + _closedBy : (_uqStale ? 'STALE-14d+' : 'OPEN'))
+          _uqDiag.push((answered ? 'CLOSED-by-' + _closedBy : (_uqPrior ? 'PRIOR-LEAD' : (_uqStale ? 'STALE-14d+' : 'OPEN')))
             + ' need:' + (iq.isObjection ? 'customer-reply' : (qWords.length <= 3 ? 1 : 2))
             + ' words:' + qWords.length
             + ' "' + String(iq.question).slice(0, 60) + '"');
@@ -20557,6 +20568,33 @@ function _lpChipBroken(key, pass1, out) {
   if (key === 'lead-trade' && /\btrade\b/i.test(a) && !/\btrade\b/i.test(b)) return 'the agent asked to lead with the trade and the rewrite dropped it';
   return '';
 }
+// (v9.7.760) A SOLD UNIT'S NUMBERS ARE NOT AN OPEN QUESTION. Kia Baytown lead 2091734847, 10/5 (log279): the customer
+// asked on 9/30 to itemize "the 832.50 in dealer fees" on the EV9 Light Long Range; by 10/5 it had sold. The main prompt
+// listed that question as open ("address it directly") and the text rewrite was told "answer it first", so the text that
+// shipped opened "I'll get you an itemized breakdown of the $832.50 in fees" -- a promise about a car she cannot buy --
+// while the SOLD notice in the same prompt said "do not work it, quote it, or re-run its numbers". Gil: acknowledge it
+// sold and pivot. When that notice is in the prompt, questions about the deal's numbers (and the other questions sent in
+// the same message) leave both open-question lists, and one line says they are moot.
+var _LP_DEAL_Q_RX = /\b(?:fees?|itemi[sz]e[ds]?|itemi[sz]ation|breakdown|discount|price|pricing|otd|out[\s-]?the[\s-]?door|numbers|quote|payments?|apr|rate|financ\w*|rebate|incentives?|tax(?:es)?|doc fee|dealer fees?)\b/i;
+function _lpSoldNoticeInPrompt(d) {
+  var ctx = String((d && d.context) || '') + '\n' + (typeof leadContext === 'string' ? leadContext : '');
+  // Only the NEWS variant: when the customer was already told (the "ALREADY TOLD" variant), a later question can be
+  // about the alternative and stays open.
+  return ctx.indexOf('🔴 VEHICLE STATUS: SOLD — this specific unit is no longer available') > -1;
+}
+function _lpMootSoldQuestions(uq, d) {
+  var out = { keep: uq || [], dropped: [] };
+  try {
+    if (!uq || !uq.length || !_lpSoldNoticeInPrompt(d)) return out;
+    var deal = uq.filter(function (q) { return _LP_DEAL_Q_RX.test(String((q && q.question) || '')); });
+    if (!deal.length) return out;
+    var dates = {}; deal.forEach(function (q) { if (q && q.date) dates[q.date] = 1; });
+    out.dropped = uq.filter(function (q) { return deal.indexOf(q) > -1 || (q && q.date && dates[q.date]); });
+    out.keep = uq.filter(function (q) { return out.dropped.indexOf(q) < 0; });
+  } catch (e) {}
+  return out;
+}
+var _LP_MOOT_SOLD_LINE = 'Their earlier questions about that deal\'s numbers (QUOTED) were about the vehicle that has SOLD, so they are moot: do NOT promise, send or itemize those figures. Tell them it sold and pivot to the alternative; if they want numbers, offer them on the alternative.';
 function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
   d = d || {};
   var out = [];
@@ -20591,6 +20629,13 @@ function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
   // two cannot disagree about what is open.
   try {
     var uq = (d.relationshipSignals && d.relationshipSignals.unansweredQuestions) || [];
+    var _uqMoot = (typeof _lpMootSoldQuestions === 'function') ? _lpMootSoldQuestions(uq, d) : { keep: uq, dropped: [] };   // (v9.7.760) a sold unit's numbers are not open
+    uq = _uqMoot.keep;
+    if (_uqMoot.dropped.length) {
+      out.push('\u2501\u2501\u2501 THE VEHICLE THEY ASKED ABOUT HAS SOLD \u2501\u2501\u2501');
+      out.push(_LP_MOOT_SOLD_LINE.replace('QUOTED', _uqMoot.dropped.slice(-2).map(function (q) { return '"' + String(q.question || '').replace(/"/g, "'").slice(0, 100) + '"'; }).join(' / ')));
+      out.push('');
+    }
     if (uq.length) {
       out.push('\u2501\u2501\u2501 QUESTIONS OF THEIRS THAT ARE STILL OPEN \u2501\u2501\u2501');
       uq.slice(-3).forEach(function (q) {
@@ -21240,8 +21285,13 @@ function renderRelationshipReading(data) {
     });
     forwardBits.push('Agent committed to do something: ' + acExamples.join(' / ') + '. Check if this commitment was fulfilled in subsequent outbound. If not, address it or honor it before asking for anything new.');
   }
-  if (s.unansweredQuestions.length > 0) {
-    var uqExamples = s.unansweredQuestions.slice(-3).map(function(q){
+  var _rrMoot = (typeof _lpMootSoldQuestions === 'function') ? _lpMootSoldQuestions(s.unansweredQuestions, data) : { keep: s.unansweredQuestions, dropped: [] };   // (v9.7.760) a sold unit's numbers are not open
+  if (_rrMoot.dropped.length) {
+    forwardBits.push(_LP_MOOT_SOLD_LINE.replace('QUOTED', _rrMoot.dropped.slice(-2).map(function (q) { return '"' + String(q.question || '').replace(/"/g, "'").substring(0, 100) + '"'; }).join(' / ')));
+    try { console.log('[LP OPEN THREAD DIAG] sold unit: ' + _rrMoot.dropped.length + ' question(s) about its numbers dropped from OPEN THREADS'); } catch (e) {}
+  }
+  if (_rrMoot.keep.length > 0) {
+    var uqExamples = _rrMoot.keep.slice(-3).map(function(q){
       return '"' + q.question.replace(/"/g,"'").substring(0,120) + '"' + (q.date ? ' (' + q.date + ')' : '');
     });
     forwardBits.push('Customer asked question(s) that may not have been answered: ' + uqExamples.join(' / ') + '. Read the surrounding transcript carefully — if the question is still open, address it directly before moving on.');
@@ -24825,6 +24875,13 @@ function buildUserPrompt(data) {
         try { _ddAge = data && data.relationshipSignals ? data.relationshipSignals.lastInboundAgeDays : null; } catch (eDdA) { _ddAge = null; }
         var _ddStale = (typeof _ddAge === 'number') && _ddAge >= 14;
         var _ddDealCondition = !_ddExitPause && /(if\s+you\s+(guys\s+)?can\s+(beat|match|get|do|come)|unless\s+you\s+can|beat\s+(that|it|this)\s+by|out\s*the\s*door\s+(then|or)|then\s+(i.?m|we.?re|we\s+might)\s+(good|done|in))/i.test(_ddCustArc);
+        // (v9.7.760) This message is the one telling them the unit sold, so the condition they put on the table (lead
+        // 2091734847: "if you can get the dealer discount to $5,000") was about that car: it is moot, not a number to
+        // engage. Same NEWS-variant test as the open-question lists (_lpSoldNoticeInPrompt).
+        if (sc.vehicleSold && (_ddDealCondition || _ddDeadline) && _lpSoldNoticeInPrompt(data)) {
+          try { console.log('[LP DEAL-TRIGGER DIAG] SOLD — the unit their condition was about has sold and this message tells them; dealCondition:' + _ddDealCondition + ' deadline:' + _ddDeadline + ' not fired'); } catch (eDdSo) {}
+          _ddDealCondition = false; _ddDeadline = false;
+        }
         if (_ddStale && (_ddDealCondition || _ddDeadline)) {
           try { console.log('[LP DEAL-TRIGGER DIAG] STALE — the customer last wrote ' + _ddAge + 'd ago (14d limit); dealCondition:' + _ddDealCondition + ' deadline:' + _ddDeadline + ' not fired'); } catch (eDdS) {}
           _ddDealCondition = false; _ddDeadline = false;
