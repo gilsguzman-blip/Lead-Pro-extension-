@@ -96,6 +96,7 @@ run reporter-ct-failures.test.js     "$REPORTER"
 [ -n "${DASH:-}" ] && run dashboard-render.test.js "$DASH" "$PROXY"
 [ -n "${DASH:-}" ] && run dashboard-version.test.js "$DASH"
 [ -n "${DASH:-}" ] && run dashboard-range-v17.test.js "$DASH"
+[ -n "${DASH:-}" ] && run dashboard-key-v18.test.js "$DASH"
 
 echo
 echo "───────────────────────────────────────────────────────────"

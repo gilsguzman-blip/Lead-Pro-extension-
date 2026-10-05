@@ -5,6 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LeadPro Dashboard — Community Auto Group</title>
 <!--
+  v1.8 — NO KEY IN THIS FILE. The director key was written into this page's source ("internal, non-public" -- but
+  the repo is public with Pages on, and the deployed page itself ships its source to anyone with the link). Anyone
+  holding it could read feedback and perf, list licenses and mint new ones. The page now asks for the key once,
+  keeps it in this browser only (localStorage), and sends it as the X-LP-Key header instead of in the URL. A 403
+  clears the stored key and asks again, so rotating DIRECTOR_KEYS on the worker needs nothing here but the new
+  value typed once. Any director key works: a DIRECTOR_KEYS value or a KV license with persona "director".
+  Rotate DIRECTOR_KEYS: the old value stays in git history.
+
   v1.7 — "TODAY" IS ONE DAY. 10/2: the Today view read "10-02 → 10-03 · 1 of 2 days". fetchRange added a day to
   every range's end -- a holdover from when /feedback/range keyed rows by UTC date, so an evening Central row
   sat under the next UTC day. Since proxy v7.77 the worker builds its day list in CENTRAL days (W3), so the
@@ -271,15 +279,22 @@ const PROXY = 'https://leadpro-proxy.gilsguzman.workers.dev';
 // This is the cheapest possible instrument: a version in the footer, asserted by the suite to
 // match the newest vN.N block in this header, so bumping one without the other fails a test
 // rather than shipping a page that misreports its own age.
-const DASH_VERSION = 'v1.7';
+const DASH_VERSION = 'v1.8';
 
-// (v1.1 — director-key patch, 7/7/26) The proxy's /feedback/* GET endpoints now require a
-// director key (worker v7.30, W3). This dashboard is a static Pages site with no server side,
-// so the key necessarily ships in this client-side source — same exposure class as it being
-// visible in a URL bar. Acceptable for an internal, non-public dashboard; rotate this value
-// (and the DIRECTOR_KEYS var on the worker) if this file or its deployed URL is ever shared
-// outside the director/ownership group.
-const DIRECTOR_KEY = 'LPDEV-GIL-DIRECTOR-001'; // ← replace with your current DIRECTOR_KEYS value
+// (v1.8) The proxy's /feedback/* GET endpoints require a director key (worker v7.30, W3). It is NOT written in
+// this file: asked for once, kept in this browser only, re-asked on a 403. See the v1.8 header.
+const DIRECTOR_KEY_STORE = 'lp_director_key';
+function directorKey(askAgain) {
+  let k = '';
+  if (!askAgain) { try { k = localStorage.getItem(DIRECTOR_KEY_STORE) || ''; } catch (e) {} }
+  if (!k) {
+    k = String((typeof prompt === 'function' && prompt(askAgain
+      ? 'That director key was refused. Enter the current one (kept in this browser only):'
+      : 'Lead Pro director key (kept in this browser only):')) || '').trim();
+    try { if (k) localStorage.setItem(DIRECTOR_KEY_STORE, k); else localStorage.removeItem(DIRECTOR_KEY_STORE); } catch (e) {}
+  }
+  return k;
+}
 
 // (v1.2) EXPLICIT vs IMPLICIT — the whole point of this build.
 // `rating` cannot carry the distinction. _lpFeedbackDeriveRating in the extension returns 'up'
@@ -378,9 +393,14 @@ function posColor(r) { return r >= 90 ? '#34d399' : r >= 75 ? '#fbbf24' : '#f871
 
 async function fetchRange(from, to) {
   // (v1.7) Sent as asked: the worker's days are Central days since v7.77, so no extra day (see header).
-  // (v1.1) key= appended — see DIRECTOR_KEY note above.
-  const res = await fetch(`${PROXY}/feedback/range?from=${from}&to=${to}&key=${encodeURIComponent(DIRECTOR_KEY)}`);
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  // (v1.8) The key goes in the X-LP-Key header, not the URL, and is never written in this file.
+  const url = `${PROXY}/feedback/range?from=${from}&to=${to}`;
+  let res = await fetch(url, { headers: { 'X-LP-Key': directorKey(false) } });
+  if (res.status === 403) {
+    const k = directorKey(true);
+    if (k) res = await fetch(url, { headers: { 'X-LP-Key': k } });
+  }
+  if (!res.ok) throw new Error(res.status === 403 ? 'HTTP 403 — director key refused' : `HTTP ${res.status}`);
   return res.json();
 }
 

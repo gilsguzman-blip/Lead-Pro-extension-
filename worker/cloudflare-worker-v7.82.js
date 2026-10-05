@@ -210,7 +210,7 @@
  *      uppercase keys. THE REAL HARMS were the rest of that page: ~1,000 minus the license count of
  *      commit:/degen:/invite: rows read and returned as licenses, and invite: rows carry
  *      customerEmail -- customer email addresses in the license list. Now: the 'LP-' prefix, paged with
- *      the cursor. Every writer in this file mints 'LP-' + 8 characters; LPDEV-GIL-DIRECTOR-001 is a
+ *      the cursor. Every writer in this file mints 'LP-' + 8 characters; the DIRECTOR_KEYS value is a
  *      DIRECTOR_KEYS env value, never a KV record. The live namespace could not be read from here, so
  *      instead of assuming, two list-only passes look for anything else: uppercase keys before the first
  *      lowercase byte that are not 'LP-' (an older format), and 'lp-' keys (the pre-v7.37 validate-license
