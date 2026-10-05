@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.759-dev (Dev. THEIR PAYMENT TARGET AGAINST THE STORE'S REAL OFFERS. Extension only; proxy v7.83, reporter v1.23 and dashboard v1.8 unchanged. Kia Baytown, 10/5 (log277, prompt 19-09-42). On a call the customer told the sales rep he wanted a $300 lease payment with no money down, and the rep's General Note said so ('was being very unrealistic with his goal'). His texts then asked 'Lease only, seeking low payment 24, 36, 48-months, 12k mileage' about a 'Sportage or Seltos, SX Prestige Plug In Hybrid'. The store's lowest Sportage Plug-in Hybrid lease was $349/mo with $3,999 due. The drafts promised to 'help find a low payment' and booked a visit: the customer would walk in expecting a number that does not exist. Gil: should it be addressed? THREE GAPS. (1) THE OFFERS WERE HELD BACK. The v9.7.726 rule holds an incentive while the customer waits on us unless they asked about price, payment or deals, and the v9.7.415 customer-asked pattern did not match lease/term/mileage talk, so the log read 'suppressed'. New _LP_PAY_ASK_RX ('lease only', 'low payment', '24/36/48 months', '12k miles', 'payment of/under') now counts. (2) NOTHING READ THE TARGET. Money counts as a budget only when the customer wrote it (by design, since agents' offers were once read as customer requests). New _lpPaymentTarget reads a monthly target and/or no-money-down from the customer's words or a staff NOTE/CALL NOTE on this lead: a figure needs a wanting word and a payment word in the same sentence, and a sentence reading as our offer ('offered', 'quoted', 'sent') is skipped. New _lpLeaseFloor finds the cheapest live lease on their vehicle and the cheapest of each sibling in its family. When the target is below that, or they want nothing down and the offers need money at signing, a 'THEIR PAYMENT TARGET vs THE STORE'S REAL LEASE OFFERS' block says: give the real number, name one closer option, ask which they would move (trim/model, due at signing, term); never promise the target, never 'find a low payment', never call it unrealistic, never mention the note. (3) NO PLUG-IN SELTOS. Both drafts repeated 'Seltos ... Plug-In Hybrid'. The background reference now says there is none (the Sportage and Sorento are), when Seltos and plug-in are both named. Found while testing on the real brief: the note writes 'doesn’t' with a curly apostrophe, so the no-money-down pattern takes both. NEW SUITE payment-target-759.test.js (28 assertions; v9.7.758 fails 10 by name, four labelled new helper); also checked on the real log277 brief locally: target $300, no money down, from the note. VERIFIED: run-all 184 suites, 7,372 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.758-dev.)
 // Lead Pro -- popup.js  v9.7.758-dev (Dev. KIA'S COMPETITIVE BONUS IS CONQUEST CASH. Extension only; proxy v7.81, reporter v1.23 and dashboard v1.7 unchanged. Everything in v9.7.757 (not installed; those zips are superseded) plus one change. The live Kia Baytown file names its conquest program '$750 Competitive Bonus Program' beside '$750 Owner Loyalty Bonus'; PROGRAM FIT (v9.7.726) looked only for the word 'conquest', so on a Kia lead with a known trade it never said which of the two fits. Gil, 10/4: 'Competitive is a conquest.' A 'Competitive Bonus/Cash/Program/Rebate' line now counts as conquest, and the line names it as the program reads: 'The COMPETITIVE BONUS (conquest cash)'. NOT CHANGED: Kia lead 2094045233's text asking for the best email address was right -- two Email Failure notes ('The email address used was not valid') and the agent's own 'Email address is invalid' note; the bounce rule (v9.7.697/707) asks for a good address in the text. SUITE review-1003-757.test.js now 38 assertions (v9.7.756 fails 13, v9.7.757 fails the 3 new Competitive Bonus checks; the 'Conquest Cash' control passes on both). VERIFIED: run-all 180 suites, 7,320 assertions, 0 failed (the two clock-dependent suites that failed at 6:30 PM CT on 757 pass at 8:30 PM CT); dev===comm on every changed region. Builds on v9.7.757-dev.)
 // Lead Pro -- popup.js  v9.7.757-dev (Dev. THE 10/3 FEEDBACK. Extension only; proxy v7.81, reporter v1.23 and dashboard v1.7 unchanged. Reps ran 9.7.754 (134 rows) and 9.7.756 (146) today; no 9.7.755 in the fleet, so the 754 half had none of 755's fixes. (1) OFFERS FOR A DESCRIBED BODY TYPE NEVER RAN ON AN 'ANY/ALL' LEAD. Honda Baytown chat lead 2093797981 (follow-up; the page Gil pasted): VOI '2026 Honda Any/All'. v9.7.255 blanks d.vehicle for that placeholder, but the incentive matcher read d.vehicle || d.vehicleRaw, so the lead counted as having a model and the 755 'STORE OFFERS FOR WHAT THEY DESCRIBED' block -- gated on no model -- was skipped on every build. The placeholder no longer counts. The block also read only brief lines STARTING with a customer tag; new _lpCustomerTextOf reads every customer turn (the '[date] [CUSTOMER]' header and the lines under it), same open/close rules as the pivot scan. (2) THE SIGNATURE WITH NO NAME. Honda Baytown lead 2094222132: one person in both BD Agent and Sales Rep (no rep assigned yet -- Gil) and the scraper's agent reader returned '' as 'the DOM gave us the sales rep'; its log fallback never ran. The text signed 'Coordinator' with no name and the email carried two signatures. Now that agent is kept (the newest 'BD Agent Changed' log wins when it names someone else), and resolveSignerForPersona falls back like the panel's agent field (BD agent, Sales Rep) and then the signed-in user, as the system prompt and the email already did. (3) THE AGENT IN THE THIRD PERSON. Honda Lafayette lead 2094092453: the Sales Rep field repeated the agent writing, and the OTD hand-off said 'your Sales Representative, <her name>' -- '<agent> can have the proposal ready' signed by that same agent. A Sales Rep who is the signer (_lpSalesRepIsSigner) is now no Sales Rep yet: 'one of our Sales Representatives', and the Sales Rep line says so. NEW SUITE review-1003-757.test.js (30 assertions; v9.7.756 fails 10 by name, one labelled new helper). VERIFIED: run-all 180 suites, 7,308 assertions passed, 4 failed -- all 4 in the clock-dependent log244-710 and imx-noappt-720 (run Saturday 6:30 PM CT; both fail identically on v9.7.756); dev===comm on every changed region. Builds on v9.7.756-dev.)
 // Lead Pro -- popup.js  v9.7.756-dev (Dev. THE NAME THEY GO BY. Extension only; proxy v7.81, reporter v1.23 and dashboard v1.7 unchanged. Kia Baytown lead 2093935768, 10/2 evening (Phone Up, first touch), from the end-of-day feedback export. The record's first name is not the one the customer uses; the salesperson's note used her nickname and the draft opened on it, as the email did. The SMS opener guard (v9.7.667) did not find the RECORD name in the first sentence, prepended it and lower-cased the model's word, so the text read '<record name>, <nickname in lower case>, no need to rush...'. Twice generated, twice left unsent. Now a draft that opens on a capitalised name THIS LEAD'S OWN notes or history use is left alone and [LP SMS OPENER DIAG] says so; a common opening word ('Thanks,', 'Hi,') is never taken for a name, and a name the notes never use is still replaced by the record name as before. NEW SUITE opener-nickname-756.test.js, 10 assertions executing the shipped guard; v9.7.755 fails 2 by name. sms-opener.test.js unchanged and green. VERIFIED: run-all 179 suites green, 7,282 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.755-dev.)
@@ -5409,6 +5410,80 @@ function _lpCustomerTextOf(text) {
   });
   return out.join('\n');
 }
+// (v9.7.759) A PAYMENT TARGET, AND WHAT THE STORE ACTUALLY OFFERS. Kia Baytown, 10/5 (log277): on a call the customer
+// told the sales rep he wanted a $300 lease payment with no money down; the rep's note said so. His texts then asked for
+// "lease only, low payment, 24/36/48 months, 12k miles" on a Sportage Plug-in Hybrid SX Prestige. The store's lowest
+// Sportage Plug-in Hybrid lease is $349/mo with $3,999 due. Nothing read the note (customer-authored money only, by
+// design), and the drafts promised to "help find a low payment" and booked a visit.
+// _LP_PAY_ASK_RX: lease/payment talk that the v9.7.415 customer-asked override missed ("lease only", "low payment",
+// "24, 36, 48-months", "12k mileage").
+var _LP_PAY_ASK_RX = /\blease only\b|\b(?:low|lowest|lower|monthly)\s+payments?\b|\b(?:24|36|39|48|60|72)[\s-]*(?:mo|mos|months?)\b|\b\d{1,2}k\s*(?:miles|mileage)\b|\bpayments?\s+(?:of|around|under|below|near)\b/i;
+// _lpPaymentTarget: the customer's stated monthly target and/or no-money-down wish, from the customer's own words or a
+// staff NOTE/CALL NOTE on this lead (above the current-lead marker). A figure must sit in a sentence with a wanting
+// word ("wants", "looking for", "budget", "under", "max"...) and a payment word; a sentence that reads as OUR offer
+// ("offered", "quoted", "sent") is skipped. Newest wins. Returns null or { payment, zeroDown, from, by, date }.
+function _lpPaymentTarget(d) {
+  var brief = String((d && d.conversationBrief) || '');
+  var mk = brief.indexOf('[=== CURRENT LEAD SUBMITTED HERE ===]');
+  if (mk > -1) brief = brief.slice(0, mk);
+  var AMT = /\$\s?(\d{2,4})(?![\d,.])|\b(\d{2,4})\s?(?:\$|dollars?\b|bucks\b)/;
+  var PAYW = /payments?\b|\ba month\b|per month|\/\s?mo\b|monthly|\bmo\b/i;
+  var WANT = /\b(?:wants?|wanting|looking for|looking to|needs?|budget|target|hoping|asking for|asked for|trying to|max(?:imum)?|no more than|under|below|around|afford|comfortable|stay at)\b/i;
+  var OURS = /\b(?:offered|quoted|sent|gave|presented|showed|we (?:can|could) do|told (?:him|her|them) (?:it|the|we))\b/i;
+  var ZERO = /\b(?:no|zero|\$\s?0)\s+(?:money\s+|cash\s+)?down\b|\b(?:doesn['’]?t|does not|don['’]?t|do not|won['’]?t|will not)\s+want\s+to\s+put\s+(?:any\s+)?(?:money\s+|cash\s+|anything\s+)?down\b|\bnothing\s+down\b|\$\s?0\s+(?:due|out of pocket)\b/i;
+  var blocks = [], cur = null;
+  brief.split('\n').forEach(function (l) {
+    var h = l.match(/^\s*\[(\d{1,2}\/\d{1,2}\/\d{4}[^\]]*)\]\s*\[([A-Z][A-Z ]*)\]/);
+    if (h) { cur = { date: h[1], tag: h[2].trim(), body: [] }; blocks.push(cur); }
+    else if (cur && /^\s+\S/.test(l)) cur.body.push(l.trim());
+    else cur = null;
+  });
+  for (var i = 0; i < blocks.length; i++) {
+    var b = blocks[i];
+    var staff = (b.tag === 'NOTE' || b.tag === 'CALL NOTE'), cust = (b.tag === 'CUSTOMER');
+    if (!staff && !cust) continue;
+    var text = b.body.join(' '), by = '';
+    var bm = text.match(/^By:\s*([A-Z][a-z'-]+(?:\s[A-Z][a-z'-]+)?)\s*/);
+    if (bm) { by = bm[1]; text = text.slice(bm[0].length); }
+    if (/^System$/i.test(by)) continue;
+    var pay = null;
+    var sents = text.split(/[.!?;]\s+|\n/);
+    for (var j = 0; j < sents.length && pay == null; j++) {
+      var s = sents[j], am = s.match(AMT);
+      if (!am || !PAYW.test(s) || !WANT.test(s) || OURS.test(s)) continue;
+      var n = parseInt(am[1] || am[2], 10);
+      if (n >= 99 && n <= 2000) pay = n;
+    }
+    var zero = ZERO.test(text);
+    if (pay != null || zero) return { payment: pay, zeroDown: zero, from: staff ? 'note' : 'customer', by: staff ? by : '', date: b.date };
+  }
+  return null;
+}
+// _lpLeaseFloor: the store's live lease lines for the lead vehicle -- the cheapest, and the cheapest of each sibling
+// model in the same family (the first word of the model name: Sportage, Sportage Hybrid, Sportage Plug-in Hybrid).
+function _lpLeaseFloor(leadVeh, incentives, storeLabel) {
+  if (!leadVeh || !Array.isArray(incentives)) return null;
+  var live = (typeof _lpExpiryFilterIncentives === 'function') ? _lpExpiryFilterIncentives(incentives, storeLabel) : incentives;
+  var parse = function (x) {
+    var line = String((x && x.line) || ''), m = line.match(/\$([\d,]+)\/mo\b/);
+    if (!m || !/lease/i.test(line)) return null;
+    var due = line.match(/\(\$([\d,]+) due at signing\)/), term = line.match(/(\d{2})\s*mo lease/);
+    return { model: String(x.model || ''), line: line, monthly: parseInt(m[1].replace(/,/g, ''), 10),
+             due: due ? parseInt(due[1].replace(/,/g, ''), 10) : null, term: term ? parseInt(term[1], 10) : null };
+  };
+  var leases = live.map(function (x) { var p = parse(x); return p ? Object.assign({ x: x }, p) : null; }).filter(Boolean);
+  if (!leases.length) return null;
+  var mine = _lpMatchByModel(leadVeh, leases.map(function (p) { return p.x; }), function (x) { return x.model; }, 999, true);
+  if (!mine.length) return null;
+  var mineP = leases.filter(function (p) { return mine.indexOf(p.x) > -1; }).sort(function (a, b) { return a.monthly - b.monthly; });
+  var floor = mineP[0], fam = floor.model.split(/\s+/)[0].toLowerCase(), byModel = {};
+  leases.forEach(function (p) {
+    if (p.model === floor.model || p.model.split(/\s+/)[0].toLowerCase() !== fam) return;
+    if (!byModel[p.model] || p.monthly < byModel[p.model].monthly) byModel[p.model] = p;
+  });
+  var siblings = Object.keys(byModel).map(function (k) { return byModel[k]; }).sort(function (a, b) { return a.monthly - b.monthly; }).slice(0, 3);
+  return { floor: floor, siblings: siblings };
+}
 function _lpOffersForBody(ask, incentives, storeLabel) {
   if (!ask || !Array.isArray(incentives)) return [];
   var live = (typeof _lpExpiryFilterIncentives === 'function') ? _lpExpiryFilterIncentives(incentives, storeLabel) : incentives;
@@ -7653,6 +7728,8 @@ function populateFromData(d) {
     // (worst case: incentive surfaces one touch earlier than the default), so no downside to being
     // reasonably inclusive.
     var _incCustomerAsked = /\b(any (deals?|specials?|discounts?|rebates?|incentives?|promos?)|discount|rebate|incentive|promo|0\s*%\s*(apr|financing)|special (financing|apr|lease)|financing options?|lease special|(?:lease|leasing|finance|financing) (?:offers?|deals?|specials?|options?)|any leases?|current offers?|cash back|how much off|best price|out.?the.?door|\botd\b|what.?s the (payment|apr|rate))\b/i.test(d.lastInboundMsg || '');
+    // (v9.7.759) "Lease only, seeking low payment 24, 36, 48-months, 12k mileage" is a payment question too.
+    if (!_incCustomerAsked) _incCustomerAsked = _LP_PAY_ASK_RX.test(d.lastInboundMsg || '');
     var _incFirstTouchReason = null;
     if (_incFirstTouch && _incCustomerAsked) { _incFirstTouch = false; _incFirstTouchReason = 'asked'; }
     // (v9.7.424/422 GENERIC-VOI FIRST-TOUCH OVERRIDE) Gil's read: a lead with no VIN and no stock
@@ -7889,6 +7966,33 @@ function populateFromData(d) {
         vehicleExtras.push('↻ RE-ENGAGEMENT HOOK: this customer has gone quiet (or this is a reactivation touch) — the incentive above is a genuine, specific reason to reach back out, stronger than a generic check-in. If you are choosing between secondary-touch angles for this message, favor the incentive here.');
       }
     }
+    // (v9.7.759) THEIR PAYMENT TARGET AGAINST THE STORE'S REAL LEASE OFFERS (see _lpPaymentTarget). Only when the
+    // target is below the cheapest live lease on their vehicle, or they want nothing down and every offer needs money
+    // at signing. Says what to do with the gap; never to promise it, call it unrealistic, or mention the note.
+    try {
+      var _ptT = (_lvInc && !d.isSoldDelivered && !_incAdversarial && !_incUsed && _vfc && _vfc.incentives) ? _lpPaymentTarget(d) : null;
+      var _ptF = _ptT ? _lpLeaseFloor(_lvInc, _vfc.incentives, (d.store || ('dealer ' + (d.dealerId || '?')))) : null;
+      if (_ptT && _ptF) {
+        var _ptFl = _ptF.floor;
+        var _ptOver = (_ptT.payment != null && _ptFl.monthly > _ptT.payment);
+        var _ptDue = (_ptT.zeroDown && _ptFl.due > 0);
+        if (_ptOver || _ptDue) {
+          var _ptWant = (_ptT.payment != null ? 'about $' + _ptT.payment + '/month on a lease' : 'a lease') + (_ptT.zeroDown ? ' with no money down' : '');
+          var _ptSrc = _ptT.from === 'note' ? 'On a call the customer told us they want ' + _ptWant + ' (recorded in a staff note)' : 'The customer said they want ' + _ptWant;
+          vehicleExtras.push('💲 THEIR PAYMENT TARGET vs THE STORE\'S REAL LEASE OFFERS: ' + _ptSrc + '. The lowest current lease on what they asked about is '
+            + _lpModelLine(_ptFl.model, _ptFl.line) + '.'
+            + (_ptF.siblings.length ? ' Closer options in the same family: ' + _ptF.siblings.map(function (p) { return _lpModelLine(p.model, p.line); }).join(' | ') + '.' : '')
+            + ' Their target ' + (_ptOver && _ptDue ? 'is below these payments, and every one of them has money due at signing' : _ptOver ? 'is below these payments' : 'leaves nothing for the amount due at signing these offers require') + '.'
+            + ' So: give them the real number for what they asked about, name one closer option if one fits, and ask which they would rather move on -- the trim or model, the amount due at signing, or the term.'
+            + ' Do NOT promise or imply their target can be met, and do NOT say you will "find a low payment" or "work the numbers" as if it can. Do NOT call their goal unrealistic, and do NOT mention the note or who wrote it.'
+            + ' These offers are for qualified buyers, subject to credit approval and program terms.');
+        }
+        console.log('[LP PAYMENT TARGET DIAG] ' + _ptT.from + (_ptT.by ? ' (' + _ptT.by + ')' : '') + ' ' + _ptT.date + ' | target:' + (_ptT.payment != null ? '$' + _ptT.payment : 'none') + ' zeroDown:' + _ptT.zeroDown
+          + ' | lowest lease: ' + _ptFl.model + ' $' + _ptFl.monthly + (_ptFl.due != null ? ' + $' + _ptFl.due + ' due' : '') + ' | ' + ((_ptOver || _ptDue) ? 'GAP — block added' : 'within reach — no block'));
+      } else if (_ptT) {
+        console.log('[LP PAYMENT TARGET DIAG] target found (' + _ptT.from + ', ' + (_ptT.payment != null ? '$' + _ptT.payment : 'no figure') + (_ptT.zeroDown ? ', zero down' : '') + ') but no live lease line for "' + String(_lvInc).slice(0, 60) + '" — no comparison');
+      }
+    } catch (ePt) { console.log('[LP PAYMENT TARGET DIAG] threw:', ePt && ePt.message); }
   } catch (e) { console.log('[LP INCENTIVE DIAG] STORE INCENTIVE block threw:', e && e.message); } // (v9.7.429/427) was a bare silent catch — the v9.7.416 two-layer-silence class
 
   // (v9.7.414/412 ENGAGEMENT ENHANCEMENT — LIKE-VEHICLE COMPARABLES, secondary-touch angle)
@@ -7981,10 +8085,12 @@ function populateFromData(d) {
     if (_mfToy.length) _mfLines.push('Toyota ' + _mfToy.join(', ') + ' 2026 and newer are hybrid-only in every trim, even when a listing leaves out the word "Hybrid".');
     if (/\baccord\b/i.test(_mfText)) _mfLines.push('New Honda Accord: LX and SE are gas; Sport, EX-L, Sport-L and Touring are hybrid.');
     if (/\bcivic\b/i.test(_mfText)) _mfLines.push('New Honda Civic Sedan: LX and Sport are gas; Sport Hybrid and Sport Touring Hybrid are hybrid.');
+    // (v9.7.759) log277: "Sportage or Seltos, SX Prestige Plug In Hybrid", and both drafts repeated "Seltos ... Plug-In Hybrid".
+    if (/\bseltos\b/i.test(_mfText) && /plug[\s-]*in|\bphev\b/i.test(_mfText)) _mfLines.push('Kia Seltos: there is no plug-in hybrid Seltos (the Sportage and Sorento come as plug-in hybrids) -- never pair "Seltos" with "Plug-In Hybrid".');
     if (_mfLines.length) {
       vehicleExtras.push('BACKGROUND — powertrain reference (new vehicles). Do NOT bring this up on your own; use it only if gas vs hybrid or trims come up, so the answer is right: ' + _mfLines.join(' '));
       console.log('[LP MODEL FACTS DIAG] background reference carried for: ' + (_mfToy.length ? 'Toyota ' + _mfToy.join('/') + ' ' : '')
-        + (/\baccord\b/i.test(_mfText) ? 'Accord ' : '') + (/\bcivic\b/i.test(_mfText) ? 'Civic' : ''));
+        + (/\baccord\b/i.test(_mfText) ? 'Accord ' : '') + (/\bcivic\b/i.test(_mfText) ? 'Civic ' : '') + (/\bseltos\b/i.test(_mfText) ? 'Seltos' : ''));
     }
   } catch (eMf) {}
   // (v9.7.505) VEHICLE VARIANT MISMATCH — Gary Hudson (Audi Lafayette, lead 2050872006):
