@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.762-dev (Dev. A LEAD THAT BEGAN WITH A PHONE CALL STARTS AT THAT CALL. Extension only; proxy v7.83, reporter v1.23 and dashboard v1.8 unchanged. Kia Baytown, 10/5 (log281/282): the lead opened with an inbound phone call ('Auto generated from adding customer', 9/25/2026 5:15 PM) and has no 'Lead received' note. Gil: 'The inbound phone call was the point of inception for this lead' -- treat it as the lead start when that can be detected. No marker was placed (markerFound:false), for three reasons, all fixed. (1) labelValue('Created') returned the adjacent 'Status:' cell, and a non-empty wrong answer stopped the TEXT fallback in its `||` from running, so leadCreatedMs stayed 0 and every lead-window test failed. The Created date now falls back to the page text, then PageData's LeadCreatedUTC reduced to its calendar day ([LP LEAD START DIAG] says which). (2) The source scrapes as 'Dealers WebSite' (the page shows '(Phone)'), so the phone-up rule never applied and the internet rule wanted a Lead received note that does not exist. Now detected from the notes: no Lead received note inside the lead window, and an inbound call inside it, means the lead began with that call. (3) The phone-up rule took the first inbound call met reading newest-first -- the NEWEST (5:19 'transfer to manager') -- which would leave 5:15 and 5:18 'Wanting to go over leasing options' below the marker; it now takes the OLDEST in the window. REAL-PAGE CHECK, both builds' shipped scrapers over all 27 VinSolutions dumps Gil has sent: 24 unchanged; 3 gain a marker where 761 had none, all from the misread Created cell -- this lead at 9/25 5:15 PM; a Repeat Customer lead at its first inbound call; a Phone Up lead at its first call (5:39 PM, its 5:41 call kept current). NEW SUITE lead-start-762.test.js (16 assertions, slices of the shipped scraper; v9.7.761 fails the 5 targeted checks, its 3 controls pass on both). VERIFIED: run-all 186 suites, 7,420 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.761-dev.)
 // Lead Pro -- popup.js  v9.7.761-dev (Dev. THE 2023 QUESTIONS, ON A LEAD WITH NO MARKER. Extension only; proxy v7.83, reporter v1.23 and dashboard v1.8 unchanged. Kia Baytown, 10/5 (log281, prompt 20-09-51): on v9.7.760 the same lead still opened 'I'm checking on whether this particular model and year is susceptible to theft and whether it needs a steering wheel lock'. 760 bounded the open-question resolver by the current-lead marker, else the DOM Created date less 2 days. This lead had neither: it began with an inbound phone call ('Auto generated from adding customer', 9/25/2026 5:15 PM -- Gil), so there is no lead-received note and markerFound:false, and the DOM Created text did not parse (the age was recovered from PageData). The CRM's own LeadCreatedUTC was there all along -- _lpLeadCreatedMs, the v9.7.616 lead boundary computed in the same function for outreach counts. The resolver now takes, in order: the marker; LeadCreatedUTC less 1 day (slack for the inquiry itself); the DOM Created date less 2 days. VERIFIED ON THE REAL PAGE: the shipped scraper of both builds run on Gil's dump (vinsolutions-dump 2026-10-05T145356): v9.7.760 lists both 2023 questions OPEN, this build marks both PRIOR-LEAD and lists none. open-questions-760.test.js gains the shape (32 assertions; v9.7.760 fails exactly that one). WHY 760 MISSED IT: its fixture supplied a Created date this lead did not have. VERIFIED: run-all 185 suites, 7,404 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.760-dev.)
 // Lead Pro -- popup.js  v9.7.760-dev (Dev. OLD QUESTIONS ARE NOT OPEN QUESTIONS. Extension only; proxy v7.83, reporter v1.23 and dashboard v1.8 unchanged. Two drafts on 10/5, one cause: the open-question lists (the main prompt's OPEN THREADS, 'address it directly'; the text rewrite's QUESTIONS STILL OPEN, 'answer it first') carried questions that were no longer live, and the rewrite led with them. (1) A SOLD UNIT'S NUMBERS. Kia Baytown lead 2091734847 (log279): on 9/30 the customer asked to itemize 'the 832.50 in dealer fees' and said 'if you can get the dealer discount to $5,000 ... I'd be ready'; by 10/5 that EV9 had sold and this message was the one telling her. The rewrite opened 'I'll get you an itemized breakdown of the $832.50 in fees', while the SOLD notice in the same prompt said 'do not work it, quote it, or re-run its numbers'. Gil: acknowledging the sale and suggesting the alternative would have been fine. Now, only when the NEWS variant of the sold notice is in the prompt (_lpSoldNoticeInPrompt), questions about that deal's numbers (_LP_DEAL_Q_RX) and the others sent in the same message leave both lists for one line -- moot, do not promise, send or itemize those figures, pivot, offer numbers on the alternative (_lpMootSoldQuestions) -- and the deal trigger's condition/deadline stand down. When the customer was ALREADY TOLD, a later question can be about the alternative, so nothing changes. (2) A QUESTION FROM AN EARLIER LEAD. Kia Baytown, log280: on a lead opened 9/25/2026 the resolver listed 'Do we need a steering wheel lock?' and 'Is this particular model/year susceptible to being stolen?' -- asked 10/07/2023 about the Forte she bought then, and answered that minute -- and the text opened 'I can't confirm whether this model year is susceptible to theft'. detectUnansweredQuestions now skips a question dated before the current-lead marker (or the Created date less 2 days when no marker), the rule the email-bounce scan already used; the diag row says PRIOR-LEAD. The marker variables and the new helper are read through typeof, so the suites that lift these functions alone (open-thread-resolver, sms-refine) still run them. NOT FIXED: the 2023 answer ('You should be okay with the Forte') did not register as one -- the word-overlap bar; moot once the question is out of scope. NEW SUITE open-questions-760.test.js (28 assertions; v9.7.759 fails the 8 targeted checks, the 6 controls pass on both). VERIFIED: run-all 185 suites, 7,400 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.759-dev.)
 // Lead Pro -- popup.js  v9.7.759-dev (Dev. THEIR PAYMENT TARGET AGAINST THE STORE'S REAL OFFERS. Extension only; proxy v7.83, reporter v1.23 and dashboard v1.8 unchanged. Kia Baytown, 10/5 (log277, prompt 19-09-42). On a call the customer told the sales rep he wanted a $300 lease payment with no money down, and the rep's General Note said so ('was being very unrealistic with his goal'). His texts then asked 'Lease only, seeking low payment 24, 36, 48-months, 12k mileage' about a 'Sportage or Seltos, SX Prestige Plug In Hybrid'. The store's lowest Sportage Plug-in Hybrid lease was $349/mo with $3,999 due. The drafts promised to 'help find a low payment' and booked a visit: the customer would walk in expecting a number that does not exist. Gil: should it be addressed? THREE GAPS. (1) THE OFFERS WERE HELD BACK. The v9.7.726 rule holds an incentive while the customer waits on us unless they asked about price, payment or deals, and the v9.7.415 customer-asked pattern did not match lease/term/mileage talk, so the log read 'suppressed'. New _LP_PAY_ASK_RX ('lease only', 'low payment', '24/36/48 months', '12k miles', 'payment of/under') now counts. (2) NOTHING READ THE TARGET. Money counts as a budget only when the customer wrote it (by design, since agents' offers were once read as customer requests). New _lpPaymentTarget reads a monthly target and/or no-money-down from the customer's words or a staff NOTE/CALL NOTE on this lead: a figure needs a wanting word and a payment word in the same sentence, and a sentence reading as our offer ('offered', 'quoted', 'sent') is skipped. New _lpLeaseFloor finds the cheapest live lease on their vehicle and the cheapest of each sibling in its family. When the target is below that, or they want nothing down and the offers need money at signing, a 'THEIR PAYMENT TARGET vs THE STORE'S REAL LEASE OFFERS' block says: give the real number, name one closer option, ask which they would move (trim/model, due at signing, term); never promise the target, never 'find a low payment', never call it unrealistic, never mention the note. (3) NO PLUG-IN SELTOS. Both drafts repeated 'Seltos ... Plug-In Hybrid'. The background reference now says there is none (the Sportage and Sorento are), when Seltos and plug-in are both named. Found while testing on the real brief: the note writes 'doesn’t' with a curly apostrophe, so the no-money-down pattern takes both. NEW SUITE payment-target-759.test.js (28 assertions; v9.7.758 fails 10 by name, four labelled new helper); also checked on the real log277 brief locally: target $300, no money down, from the note. VERIFIED: run-all 184 suites, 7,372 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.758-dev.)
@@ -11929,6 +11930,28 @@ function _lpScraperBotAuthor(msg) {
         }
       }
     } catch(e) {}
+    // (v9.7.762) WHEN THE CREATED CELL IS MISREAD. labelValue('Created') can return an adjacent cell -- "Status:" on Kia
+    // Baytown 10/5 (log281/282, a phone-up lead) -- and a non-empty wrong answer stopped the TEXT fallback in the `||`
+    // above from ever running, so leadCreatedMs stayed 0: the phone-up rule below never placed a marker
+    // (markerFound:false) and 2023 history read as this lead's. Try the page text, then PageData's LeadCreatedUTC (the
+    // same stamp the age recovery uses), reduced to its local calendar day so it means exactly what a parsed Created
+    // date means everywhere below.
+    if (!leadCreatedMs) {
+      try {
+        var _lcAltTxt = (TEXT.match(/Created[:\s]+(\d{1,2}\/\d{1,2}\/\d{2,4})/i) || [])[1] || '';
+        var _lcAltMs = _lcAltTxt ? new Date(_lcAltTxt).getTime() : 0, _lcAltSrc = 'page text';
+        if (!(_lcAltMs > 0) && _pdCreatedH) {
+          var _lcPdMs = Date.parse(_pdCreatedH + (/[zZ]|[+-]\d\d:?\d\d$/.test(_pdCreatedH) ? '' : 'Z'));
+          if (_lcPdMs > 0) { var _lcPdD = new Date(_lcPdMs); _lcAltMs = new Date(_lcPdD.getFullYear(), _lcPdD.getMonth(), _lcPdD.getDate()).getTime(); _lcAltSrc = 'PageData LeadCreatedUTC'; }
+        }
+        if (_lcAltMs > 0) {
+          leadCreatedMs = _lcAltMs;
+          var _lcAltCut = _lcAltMs - (1 * 60 * 60 * 1000);
+          if (_lcAltCut > transcriptCutoffMs) transcriptCutoffMs = _lcAltCut;
+          _lpD('[LP LEAD START DIAG] Created cell unreadable (' + JSON.stringify(String(createdRaw || '').slice(0, 20)) + ') -- lead created date taken from ' + _lcAltSrc + ': ' + new Date(_lcAltMs).toDateString());
+        }
+      } catch (eLcAlt) {}
+    }
     // For re-engagement leads (loyalty/KFA/AFS), also scan note text for most recent
     // 'Lead received' timestamp and use THAT as the definitive cutoff start point.
     // This prevents old objections from prior lead cycles bleeding into new outreach.
@@ -11947,6 +11970,30 @@ function _lpScraperBotAuthor(msg) {
     } catch(e) {}
     // Detect phone-up leads -- source contains "Phone"
     var isPhoneUpLead = /phone/i.test(leadSource || '');
+    // (v9.7.762) THE PHONE-UP LEAD STARTS AT ITS FIRST CALL. The notes are read newest-first, so "the first inbound phone
+    // call within the lead window" was the NEWEST one: on the log282 lead that is 5:19 PM "transfer to manager", which
+    // would have put the 5:15 call that opened the lead and the 5:18 "Wanting to go over leasing options" below the
+    // marker. Gil: the inbound phone call was the point of inception. Pick the OLDEST inbound call in the window.
+    // Detected from the notes, not only the source label: log282's source reads "Dealers WebSite (Phone)" on the page but
+    // scrapes as "Dealers WebSite". So a lead with NO "Lead received" note inside the lead window, whose window does hold
+    // an inbound phone call, is treated the same way -- the call is where it began.
+    var _puStartDate = '', _puNoLeadReceived = false;
+    if (leadCreatedMs > 0) {
+      try {
+        var _puBest = Infinity, _puLrInWindow = false;
+        noteEls.slice(0,150).forEach(function(item){
+          var _puT = ((item.querySelector('.legacy-notes-and-history-title')||{}).innerText||'').trim();
+          var _puD = ((item.querySelector('.notes-and-hsitory-item-date')||{}).innerText||'').trim();
+          var _puMs = _puD ? new Date(_puD).getTime() : 0;
+          var _puIn = _puMs > 0 && Math.abs(_puMs - leadCreatedMs) < 2 * 86400000;
+          if (_puIn && /lead received/i.test(_puT)) _puLrInWindow = true;
+          if (_puIn && /inbound phone/i.test(_puT) && _puMs < _puBest) { _puBest = _puMs; _puStartDate = _puD; }
+        });
+        _puNoLeadReceived = !_puLrInWindow && !!_puStartDate;
+        if (!isPhoneUpLead && !_puNoLeadReceived) _puStartDate = '';
+        if (_puStartDate) _lpD('[LP LEAD START DIAG] ' + (isPhoneUpLead ? 'phone-up lead' : 'no "Lead received" note in the lead window') + ': starts at the first inbound call in the window, ' + _puStartDate);
+      } catch (ePu) { _puStartDate = ''; _puNoLeadReceived = false; }
+    }
     // (v9.7.507) REPEATED CHOICE-QUESTION PRE-SCAN — Gary Hudson (Audi Lafayette, lead
     // 2050872006): the v9.7.506 STOP RE-ASKING THE SAME CHOICE directive fired correctly
     // (confirmed via [LP STUCK-CHOICE DIAG] priorChoiceAsk:true) and the VEHICLE VARIANT
@@ -12084,11 +12131,13 @@ function _lpScraperBotAuthor(msg) {
         var isCurrentLeadStart = false;
         if(isPhoneUpLead) {
           // Phone-up: first Inbound phone call within the lead window is the current lead
-          isCurrentLeadStart = /inbound phone/i.test(title) && withinLeadWindow;
+          isCurrentLeadStart = /inbound phone/i.test(title) && withinLeadWindow && (!_puStartDate || date === _puStartDate);   // (v9.7.762) the oldest, not the newest
         } else {
           // Internet: first Lead Received within the lead window is the current lead
           // If no Created date is available, fall back to just the first Lead Received (old behavior)
           isCurrentLeadStart = isLeadReceived && (leadCreatedMs === 0 || withinLeadWindow);
+          // (v9.7.762) no Lead received note in the window: the first inbound call started this lead (see _puNoLeadReceived)
+          if (!isCurrentLeadStart && _puNoLeadReceived && /inbound phone/i.test(title) && date === _puStartDate) isCurrentLeadStart = true;
         }
         if(isCurrentLeadStart) {
           firstLeadReceivedSeen = true;
