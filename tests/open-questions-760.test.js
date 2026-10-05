@@ -63,7 +63,14 @@ for (const f of BUILDS) {
   check('main prompt: the fee question is no longer listed as possibly unanswered',
     () => /Customer asked question\(s\) that may not have been answered:[^\n]*itemize the 832/.test(p1), false);
   check('...instead: "about that deal\'s numbers ... SOLD, so they are moot", pivot, offer numbers on the alternative',
-    () => /Their earlier questions about that deal's numbers \("Can you itemize the 832 in fees\?"[^\n]*were about the vehicle that has SOLD, so they are moot: do NOT promise, send or itemize those figures/.test(p1), true);
+    () => /Their earlier questions about that deal's numbers \("Can you itemize the 832 in fees\?"[^\n]*were about the vehicle that has SOLD, so they are moot\. Leave them out of the message entirely: do not answer them, do not say you cannot, and do not explain why/.test(p1), true);
+  // (v9.7.763) log284 on 762: the first pass was right ("...has sold. We do have an Ebony Black 2026 EV9 Land..."); the
+  // rewrite opened "I can't itemize the fees for the EV9 Light Long Range because it has sold".
+  check('(v9.7.763) the main prompt drops the "open questions ... highest-leverage move" line when every open question was moot',
+    () => /There are open questions from the customer that may not have been answered/.test(p1), false);
+  check('(v9.7.763) the rewrite marks her last message as about the car that sold -- background, not something to answer',
+    () => [/WHAT THE CUSTOMER LAST SAID \u2014 ABOUT THE VEHICLE THAT HAS SINCE SOLD, BACKGROUND ONLY/.test(r1), /WHAT THE CUSTOMER LAST SAID, IN THEIR OWN WORDS/.test(r1),
+      /Leave it out of the text: do not answer it, do not say you cannot/.test(r1)], [true, false, true]);
   check('text rewrite: no "QUESTIONS OF THEIRS THAT ARE STILL OPEN" with the fee question; the sold section instead',
     () => [/QUESTIONS OF THEIRS THAT ARE STILL OPEN/.test(r1), /THE VEHICLE THEY ASKED ABOUT HAS SOLD/.test(r1)], [false, true]);
   check('...the sold section names the fee question, and "So I can compare?" (same message) is not listed as open',
@@ -76,6 +83,8 @@ for (const f of BUILDS) {
   check('control: unit not sold -> the fee question stays open in both prompts',
     () => [/may not have been answered:[^\n]*itemize the 832/.test(p0), /QUESTIONS OF THEIRS THAT ARE STILL OPEN[\s\S]{0,80}itemize the 832/.test(r0)], [true, true]);
   check('control: unit not sold -> the deal trigger still fires on the condition', () => /The customer put a SPECIFIC DEAL CONDITION on the table/.test(p0), true);
+  check('control: unit not sold -> her last message is shown in her own words, and the open-questions line stays',
+    () => [/WHAT THE CUSTOMER LAST SAID, IN THEIR OWN WORDS/.test(r0), /There are open questions from the customer that may not have been answered/.test(p0)], [true, true]);
   const pT = prompt(lead(TOLD)), rT = refine(lead(TOLD));
   check('control: customer ALREADY TOLD it sold -> a later question may be about the alternative, so it stays open',
     () => [/may not have been answered:[^\n]*itemize the 832/.test(pT), /QUESTIONS OF THEIRS THAT ARE STILL OPEN/.test(rT)], [true, true]);
