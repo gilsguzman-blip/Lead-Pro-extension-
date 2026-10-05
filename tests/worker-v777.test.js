@@ -291,7 +291,9 @@ const getJ = async (L, env, u) => { const r = await L.worker.fetch(new Request('
       // (v7.80) and whether the call was a full draft.
       ...(/fullDraft: normalizeContract/.test(src) ? ['fullDraft'] : []),
       // (v7.81) and whether it was the SMS refine pass.
-      ...(/smsRefine: String\(systemText/.test(src) ? ['smsRefine'] : [])]);
+      ...(/smsRefine: String\(systemText/.test(src) ? ['smsRefine'] : []),
+      // (v7.83) and who sent it (the license's agentName).
+      ...(/agent: null,\s*\/\/ \(v7\.83\)/.test(src) ? ['agent'] : [])]);
     check('...with real values', [p.tier, p.contract, p.promptTokens, p.cachedTokens, p.writtenTokens, p.edgeCache, p.classifier, typeof p.prefilterWouldSkip, p.sysChars],
       ['primary', 'draft', 12000, 7000, 0, 'MISS', 'ran', 'boolean', SYS.length]);
     check('control: ...and no prompt text, phone or draft content', /BDC agent|Lead context|010-0199|Accord/.test(JSON.stringify(p)), false);

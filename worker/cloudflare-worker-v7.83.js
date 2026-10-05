@@ -1,4 +1,13 @@
 /**
+ * v7.83: WHO IS ON WHICH BUILD. Worker only; extension, reporter and dashboard unchanged. Either deploy order.
+ *   perf: rows carried the build (extensionVersion, v7.77) but not who sent the request, so /perf could say
+ *   "8% of today's calls came from 9.7.756" and not whose. Each row now gains `agent`: the agentName on the
+ *   sender's license (the extension attaches the key to every /generate). The KEY IS NEVER STORED. When
+ *   REQUIRE_LICENSE already looked the license up, that record is reused; otherwise the lookup runs inside
+ *   waitUntil after the response, so no generation waits on it. agent is null when the request carried no
+ *   license. /perf tallies gain byVersion and byAgentVersion ({ rep: { version: calls } }); rows written
+ *   before v7.83 count under '(not recorded)'.
+ *
  * v7.82: THE DIRECTOR-ONLY READ ENDPOINTS ALSO TAKE "Authorization: Bearer <key>". Worker only; extension,
  *   reporter and dashboard unchanged. Either deploy order.
  *   /feedback/summary, /feedback/range, /feedback/drafts, /degenerate and /perf read a director key from ?key=
@@ -2453,11 +2462,13 @@ export default {
     if (!systemText || !userText)
       return corsResponse('{"error":"Missing required fields"}', 400);
 
+    let _genAgent = null;   // (v7.83) the rep, for the perf: row, when the license was already looked up here
     if (env.REQUIRE_LICENSE === 'true') {
       const genAuth = await validateLicenseRecord(body.licenseKey, env);
       if (!genAuth.valid) {
         return corsResponse('{"error":"Unauthorized: valid licenseKey required"}', 403);
       }
+      _genAgent = (genAuth.record && genAuth.record.agentName) || null;
     } else if (!body.licenseKey) {
       console.log('[GENERATE] no licenseKey in payload (REQUIRE_LICENSE off — fleet-readiness signal)');
     }
@@ -2491,6 +2502,11 @@ export default {
     // (v7.77) perf: row state, filled in as the request runs and written once, at whichever return
     // it reaches. See _writePerfRow.
     const _perf = _newPerfState(extVer, body.responseContract, systemText, userText);
+    // (v7.83) WHO SENT IT. The row gains the license's agentName -- never the key. When the license was not
+    // already looked up above, the key rides along unpersisted and is resolved inside waitUntil, after the
+    // response, so no generation waits on it (see _writePerfRow).
+    if (_genAgent) _perf.agent = String(_genAgent).slice(0, 60);
+    else if (typeof body.licenseKey === 'string' && body.licenseKey) _perf._lk = body.licenseKey.slice(0, 64);
 
     const noEdgeCache = !!body.noEdgeCache;
     const edgeKey = await edgeCacheKey(systemText, userText);
@@ -3731,8 +3747,13 @@ function _writePerfRow(env, ctx, perf) {
     if (mode === 'draft' && perf.contract !== 'draft') return;
     if (!env.LEADPRO_LICENSES || !ctx || typeof ctx.waitUntil !== 'function') return;
     perf.ts = new Date().toISOString();
-    ctx.waitUntil(env.LEADPRO_LICENSES.put(`perf:${perf.ts}:${perf.requestId}`, JSON.stringify(perf),
-      { expirationTtl: 60 * 60 * 24 * 14 }).catch(() => {}));
+    const lk = perf._lk; delete perf._lk;   // (v7.83) the key is never written
+    ctx.waitUntil((async () => {
+      if (lk && !perf.agent) {
+        try { const a = await validateLicenseRecord(lk, env); if (a.valid && a.record && a.record.agentName) perf.agent = String(a.record.agentName).slice(0, 60); } catch (e) {}
+      }
+      await env.LEADPRO_LICENSES.put(`perf:${perf.ts}:${perf.requestId}`, JSON.stringify(perf), { expirationTtl: 60 * 60 * 24 * 14 });
+    })().catch(() => {}));
   } catch (e) { /* telemetry must never break a generation */ }
 }
 
@@ -3753,6 +3774,7 @@ function _newPerfState(extVer, responseContract, systemText, userText) {
       && String(systemText || '').indexOf('\u27E6LP_CACHE_BREAKPOINT\u27E7') > -1,
     // (v7.81) The SMS refine pass, by the sentence its system prompt opens on.
     smsRefine: String(systemText || '').indexOf(SMS_REFINE_MARKER) > -1,
+    agent: null,   // (v7.83) the license's agentName -- who sent it; never the key
   };
 }
 // An edge-cache HIT returns before the request id is minted, so its row gets its own.
@@ -3774,7 +3796,10 @@ function _perfTallies(rows) {
     // (v7.80) FULL drafts only. v7.79 counted every primary 'draft'-contract call, so its "low" bucket
     // was the SMS refine pass (a ~7.4k-char prompt, 700 tokens) set against full drafts under "none".
     // The other draft-contract calls are reported beside it, not mixed in.
-    draftsByEffort: {}, otherDraftCallsByEffort: {}, subjectLifted: 0 };
+    draftsByEffort: {}, otherDraftCallsByEffort: {}, subjectLifted: 0,
+    // (v7.83) which build each rep is running: calls per version, and per rep per version. Rows written before
+    // v7.83 have no agent and count under '(not recorded)'; a request with no license, under '(no license)'.
+    byVersion: {}, byAgentVersion: {} };
   const _byEff = {}, _otherEff = {};
   const bands = { preM4: { label: 'draft, sysChars < ' + PERF_M4_SYSCHARS, cached: [], uncached: [], written: [] },
                   postM4: { label: 'draft, sysChars >= ' + PERF_M4_SYSCHARS, cached: [], uncached: [], written: [] } };
@@ -3788,6 +3813,10 @@ function _perfTallies(rows) {
     if (r.regenerated) t.regenerated++;
     if (r.regenRejected) t.regenRejected++;
     if (r.subjectLifted) t.subjectLifted++;
+    { const v = r.extensionVersion || '(unstamped)';
+      const who = r.agent || (Object.prototype.hasOwnProperty.call(r, 'agent') ? '(no license)' : '(not recorded)');
+      t.byVersion[v] = (t.byVersion[v] || 0) + 1;
+      const av = (t.byAgentVersion[who] = t.byAgentVersion[who] || {}); av[v] = (av[v] || 0) + 1; }
     if (r.contract === 'draft' && r.tier === 'primary' && r.effort && typeof r.latency === 'number') {
       // Rows written by v7.79 carry effort but no fullDraft flag. For those, the full draft prompt is
       // ~33k characters and the refine pass ~7.4k, so 15,000 separates them; every newer row says.
