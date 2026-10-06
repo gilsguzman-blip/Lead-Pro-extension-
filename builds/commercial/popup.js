@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.764 (Commercial. VISIT 30-40 MINUTES, APPRAISAL 10-15 MINUTES. Extension only; proxy v7.83, reporter v1.23 and dashboard v1.8 unchanged. Honda Lafayette KBB lead 2094975987, 10/5: the first draft said the appraisal 'and conversation typically take 30-45 minutes', and the regenerate said 'about 10 minutes'. The prompt carried the visit length ('Duration to state before times: 30-45 minutes') as the only duration beside the times, and the model gave it to the appraisal. Gil, 10/6: 'the appraisal time should be 10-15 minutes. Non appraisal is always 30-40 minutes.' Now: the visit length is 30-40 minutes for every store, Audi included (was 45 there). The times line labels it as the whole visit and states, right beside it, that an appraisal on its own takes 10-15 minutes and that the two are never swapped. The two appraisal examples (KBB visit framing, TRADE PRESENT) say 10-15 minutes. The visit framings (credit app x2, monthly-payment close, OTD transition and comparison-shopping line) say 30-40 minutes; the OTD transition said a 20-minute visit and its comparison-shopping line 'about 20 minutes'. 'Make the comparison worth 20 minutes' now says 'worth the trip'. The ban on stating a duration keeps its wording with 30-40. NEW SUITE durations-764.test.js, 42 assertions across both builds executing the shipped classifyScenario, populateFromData and buildUserPrompt on a Honda lead, an Audi lead and two TradePending leads (trade only; trade plus a vehicle), plus a scan of every prompt string with comments stripped; v9.7.763 fails 17 of 21 (the 4 it passes are the TradePending classification and lead-builds controls). VERIFIED: run-all 188 suites green, 7,476 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.763.)
 // Lead Pro -- popup.js  v9.7.763 (Commercial. THE SOLD CAR'S FEE QUESTION, LEFT OUT -- NOT EXPLAINED. Extension only; proxy v7.83, reporter v1.23 and dashboard v1.8 unchanged. Kia Baytown lead 2091734847 on v9.7.762 (log284, prompt 20-51-52): every v9.7.760 piece fired -- 2 moot questions dropped, the deal trigger stood down, the rewrite got its SOLD section -- and the first pass was what Gil asked for ('the EV9 Light Long Range you asked about has sold. We do have an Ebony Black 2026 EV9 Land in stock with $10,000 Customer Cash ... Would that be worth a look?'). The text rewrite still opened 'I can't itemize the fees for the EV9 Light Long Range because it has sold'. Three pulls left, all ours: (1) the rewrite quoted her last message ('Can you itemize the 832 in fees?') as WHAT THE CUSTOMER LAST SAID, unmarked; (2) 760's own moot line said 'do NOT promise, send or itemize those figures', which came back to the customer as the reason -- a rule narrated (the 755 class); (3) the main prompt still said 'There are open questions ... addressing them is the highest-leverage move', keyed on a flag that stays set after every question was dropped. Now: when her last message is one of those moot number questions, the rewrite shows it as 'ABOUT THE VEHICLE THAT HAS SINCE SOLD, BACKGROUND ONLY' with 'leave it out of the text: do not answer it, do not say you cannot, do not explain why'; the moot line is reworded the same way (nothing to recite); and the open-questions interpretation line is withheld when every open question was moot. Checked on the real lead data from the 20-51-52 prompt: 762 rendered her question in her own words, 763 renders it as background. open-questions-760.test.js now 38 assertions (v9.7.762 fails the 3 new/changed checks). VERIFIED: run-all 186 suites, 7,426 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.762.)
 // Lead Pro -- popup.js  v9.7.762 (Commercial. A LEAD THAT BEGAN WITH A PHONE CALL STARTS AT THAT CALL. Extension only; proxy v7.83, reporter v1.23 and dashboard v1.8 unchanged. Kia Baytown, 10/5 (log281/282): the lead opened with an inbound phone call ('Auto generated from adding customer', 9/25/2026 5:15 PM) and has no 'Lead received' note. Gil: 'The inbound phone call was the point of inception for this lead' -- treat it as the lead start when that can be detected. No marker was placed (markerFound:false), for three reasons, all fixed. (1) labelValue('Created') returned the adjacent 'Status:' cell, and a non-empty wrong answer stopped the TEXT fallback in its `||` from running, so leadCreatedMs stayed 0 and every lead-window test failed. The Created date now falls back to the page text, then PageData's LeadCreatedUTC reduced to its calendar day ([LP LEAD START DIAG] says which). (2) The source scrapes as 'Dealers WebSite' (the page shows '(Phone)'), so the phone-up rule never applied and the internet rule wanted a Lead received note that does not exist. Now detected from the notes: no Lead received note inside the lead window, and an inbound call inside it, means the lead began with that call. (3) The phone-up rule took the first inbound call met reading newest-first -- the NEWEST (5:19 'transfer to manager') -- which would leave 5:15 and 5:18 'Wanting to go over leasing options' below the marker; it now takes the OLDEST in the window. REAL-PAGE CHECK, both builds' shipped scrapers over all 27 VinSolutions dumps Gil has sent: 24 unchanged; 3 gain a marker where 761 had none, all from the misread Created cell -- this lead at 9/25 5:15 PM; a Repeat Customer lead at its first inbound call; a Phone Up lead at its first call (5:39 PM, its 5:41 call kept current). NEW SUITE lead-start-762.test.js (16 assertions, slices of the shipped scraper; v9.7.761 fails the 5 targeted checks, its 3 controls pass on both). VERIFIED: run-all 186 suites, 7,420 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.761.)
 // Lead Pro -- popup.js  v9.7.761 (Commercial. THE 2023 QUESTIONS, ON A LEAD WITH NO MARKER. Extension only; proxy v7.83, reporter v1.23 and dashboard v1.8 unchanged. Kia Baytown, 10/5 (log281, prompt 20-09-51): on v9.7.760 the same lead still opened 'I'm checking on whether this particular model and year is susceptible to theft and whether it needs a steering wheel lock'. 760 bounded the open-question resolver by the current-lead marker, else the DOM Created date less 2 days. This lead had neither: it began with an inbound phone call ('Auto generated from adding customer', 9/25/2026 5:15 PM -- Gil), so there is no lead-received note and markerFound:false, and the DOM Created text did not parse (the age was recovered from PageData). The CRM's own LeadCreatedUTC was there all along -- _lpLeadCreatedMs, the v9.7.616 lead boundary computed in the same function for outreach counts. The resolver now takes, in order: the marker; LeadCreatedUTC less 1 day (slack for the inquiry itself); the DOM Created date less 2 days. VERIFIED ON THE REAL PAGE: the shipped scraper of both builds run on Gil's dump (vinsolutions-dump 2026-10-05T145356): v9.7.760 lists both 2023 questions OPEN, this build marks both PRIOR-LEAD and lists none. open-questions-760.test.js gains the shape (32 assertions; v9.7.760 fails exactly that one). WHY 760 MISSED IT: its fixture supplied a Created date this lead did not have. VERIFIED: run-all 185 suites, 7,404 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.760.)
@@ -8331,7 +8332,7 @@ function populateFromData(d) {
     vehicleExtras.push('- The trade is often the DECIDING FACTOR — customers need to know what their car is worth before they commit to buying.');
     vehicleExtras.push('- Lead with the trade angle in SMS and email: "I want to make sure we get your [trade vehicle] appraised so we can build the right deal for you."');
     vehicleExtras.push('- If trade details are listed (year/make/model/mileage), reference the specific vehicle — not a generic "your trade-in."');
-    vehicleExtras.push('- Position the visit as the step where trade value gets confirmed: "We can do a quick appraisal when you come in — usually takes about 10 minutes."');
+    vehicleExtras.push('- Position the visit as the step where trade value gets confirmed: "We can do a quick appraisal when you come in — usually takes about 10-15 minutes."');
     vehicleExtras.push('- Never make up a trade value or imply you already know what it is worth.');
   }
   if (d.buyingSignals) vehicleExtras.push('BUYING SIGNAL DATA: ' + d.buyingSignals + ' — use these interests to make the message feel personally relevant WITHOUT revealing you have this data. Match the vehicle/category to their interests naturally.');
@@ -19812,7 +19813,8 @@ function classifyScenario(data) {
     : /ram/i.test(vehicleText) ? 'Ram'
     : '';
   s.nonAudiVehicle = s.isAudi && s.vehicleBrand && s.vehicleBrand !== 'Audi';
-  s.duration   = s.isAudi ? '45 minutes' : '30–45 minutes';
+  // (v9.7.764) Gil, 10/6: an appraisal takes 10-15 minutes; a visit without one is always 30-40 minutes, Audi included.
+  s.duration   = '30-40 minutes';
 
   // Brand mismatch detection — vehicle of interest is a competitor brand
   var vehicleBrand = (data.vehicle || '').toLowerCase();
@@ -21973,8 +21975,8 @@ function buildUserPrompt(data) {
     // the lead that exposed this build (an application submitted with no vehicle attached, where
     // "confirm the vehicle" is the wrong instruction because there is none to confirm). Most
     // specific branch first.
-    else if (data.noVehicleAtAll && data.vrCreditApp) vrProgress = 'With your application already in, we can match you to the right vehicle and get you numbers fast — coming in takes about 30 minutes';
-    else if (data.vrCreditApp) vrProgress = 'With your application already submitted, I can have financing options and numbers ready before you even arrive — coming in typically takes about 30-45 minutes to finalize everything';
+    else if (data.noVehicleAtAll && data.vrCreditApp) vrProgress = 'With your application already in, we can match you to the right vehicle and get you numbers fast — coming in takes about 30-40 minutes';
+    else if (data.vrCreditApp) vrProgress = 'With your application already submitted, I can have financing options and numbers ready before you even arrive — coming in typically takes about 30-40 minutes to finalize everything';
     else if (data.vrTradeIn) vrProgress = 'Having your trade-in details in already saves time — I can have a solid number ready when you arrive';
     else if (data.noVehicleAtAll) vrProgress = 'You have already taken the first step — let me help you find the right vehicle to go along with it';
     else vrProgress = 'You have already done the hard part — the vehicle is here and ready for you to see';
@@ -22115,7 +22117,7 @@ function buildUserPrompt(data) {
 
     var mmHook    = 'Open by referencing the GM Private Incentive offer from Patrick Ogbeide — but write it naturally, not as a template opener. The customer received a mailer; your message should feel like a personal follow-up from someone who knows about it, not a form letter. Do not copy "I\'m reaching out regarding..." verbatim.';
     var mmPivot   = 'As a current Audi owner, they were specifically selected. ' + mmSalesRep + ' is their Brand Specialist and is prepared to help them maximize the offer and explore available models.';
-    var mmClose   = 'Frame the visit as taking about 45 minutes to review options and the offer details — not a generic "come in."';
+    var mmClose   = 'Frame the visit as taking about 30-40 minutes to review options and the offer details — not a generic "come in."';
     var mmNever   = 'NEVER use: "consultation", "white-glove", "curated", "checking in", "following up", "touching base". Use: "review options", "go over details", "prepared for your arrival". NEVER suggest a specific day of the week (Tuesday, Wednesday, etc.) unless the customer explicitly stated a preference for that day.';
 
     if (mmPhase === 'touch1') {
@@ -23472,7 +23474,7 @@ function buildUserPrompt(data) {
       '- Do NOT say "I won\'t pressure you" or "I won\'t try to stop that" — that concedes the deal before making a case.',
       '- Do NOT apologize for reaching out or treat the deposit as a final decision.',
       '- Answer any direct question (location, price, availability) first, then make one clear, concrete case for comparing before finalizing.',
-      '- Give a specific advantage: availability, price, trade value, feature match, or proximity. Make the comparison worth 20 minutes.',
+      '- Give a specific advantage: availability, price, trade value, feature match, or proximity. Make the comparison worth the trip.',
       '- Tone: confident and respectful. They are still a live buyer.',
     ].join('\n');
   }
@@ -23663,11 +23665,11 @@ function buildUserPrompt(data) {
       + 'When a customer asks for OTD or drive-out pricing:\n'
       + '  (1) Acknowledge the request warmly \u2014 do not dodge it.\n'
       + '  (2) Explain: The exact total depends on the parish where the vehicle is registered, the incentives they qualify for, and whether they have a trade \u2014 those details shift the number significantly, so we put together an accurate purchase proposal in person rather than quote a number that might change.\n'
-      + '  (3) Transition: The quickest way to get exact numbers is a 20-minute visit \u2014 everything will be prepared before they arrive so the visit is efficient.\n'
+      + '  (3) Transition: The quickest way to get exact numbers is a visit of about 30-40 minutes \u2014 everything will be prepared before they arrive so the visit is efficient.\n'
       + '  (4) HAND OFF to the sales rep: When they come in, ' + _srRef + ' will have the purchase proposal ready and walk them through the complete breakdown. Name ' + _srRef + ' specifically so the customer knows who to ask for.\n'
       + '  (5) Close with two specific appointment times.\n'
       + 'If the customer pushes back (does not want to waste time): reassure them the vehicle will be ready, paperwork pre-staged, the visit is quick \u2014 then close again with a time.\n'
-      + 'If the customer is comparison shopping: acknowledge it directly \u2014 rather than compete on an estimate that might change, earn their business by showing the vehicle and putting together the best complete offer. That is something ' + _srRef + ' can do in about 20 minutes.\n'
+      + 'If the customer is comparison shopping: acknowledge it directly \u2014 rather than compete on an estimate that might change, earn their business by showing the vehicle and putting together the best complete offer. That is something ' + _srRef + ' can do in a visit of about 30-40 minutes.\n'
       + 'NEVER quote a specific dollar total, monthly payment estimate, or tax/fee breakdown over text or phone at this store.';
     }
   }
@@ -26152,7 +26154,7 @@ function buildUserPrompt(data) {
       }
     } else if (data.hasTrade) {
       // Pure trade play — for trade-only KBB / TradePending leads (no vehicle of interest)
-      lines.push('STRATEGY — TRADE PRESENT: Lead entirely with the trade-in. Focus 100% on getting them in to appraise the trade. Example email: "I want to make sure we get a solid number on your Explorer — can you bring it by so we can do a proper appraisal? It only takes about 10 minutes and we will have everything ready." Let the sales rep handle the brand conversation in person.');
+      lines.push('STRATEGY — TRADE PRESENT: Lead entirely with the trade-in. Focus 100% on getting them in to appraise the trade. Example email: "I want to make sure we get a solid number on your Explorer — can you bring it by so we can do a proper appraisal? It only takes about 10-15 minutes and we will have everything ready." Let the sales rep handle the brand conversation in person.');
     } else {
       lines.push('STRATEGY — NO TRADE: Acknowledge their search neutrally and pivot to a comparable ' + storeBrandName + (inBrandAlt ? ' — ' + inBrandAlt + ' is the natural fit if you want to name something. Otherwise reference the segment.' : ' without naming a specific model unless clearly comparable.'));
     }
@@ -27124,7 +27126,7 @@ function buildUserPrompt(data) {
       lines.push('');
       lines.push('🚫 LP COMMAND APPOINTMENT OVERRIDE: The agent LP instruction explicitly suppresses appointment scheduling.');
       lines.push('DO NOT offer appointment times in ANY format — SMS, email, or voicemail.');
-      lines.push('DO NOT include duration ("30-45 minutes"). DO NOT say "stop by" or "come in".');
+      lines.push('DO NOT include duration ("30-40 minutes"). DO NOT say "stop by" or "come in".');
       lines.push('EMAIL: Follow the LP instruction exactly — discovery/temperature check only. End with one open question.');
       lines.push('SMS: One warm sentence + one open question. No times. No close.');
     }
@@ -27449,7 +27451,10 @@ function buildUserPrompt(data) {
     // (v9.7.698) AUDIT M6: these two rendered on every lead, including the ones whose prompt says APPOINTMENT
     // ENGINE DISABLED and "DO NOT write duration". They now render only when suggested times were offered.
     ...(_lpTimesOffered ? [
-    'Duration to state before times: ' + sc.duration + '.',
+    'Duration to state before times: ' + sc.duration + ' (the whole visit).',
+    // (v9.7.764) The 10/5 KBB draft on lead 2094975987 said the appraisal "takes 30-45 minutes": the visit length above was the only
+    // duration beside the times, and the model gave it to the appraisal. The two are now stated side by side.
+    'A trade-in appraisal on its own takes 10-15 minutes. Never give the visit length as the appraisal time, or the appraisal time as the visit length.',
     'APPOINTMENT TIME FORMAT: Write times as "[Time 1] or [Time 2]" — the day/date appears ONCE after Time 2 only. CORRECT: "9:15 AM or 10:30 AM Saturday, March 21". WRONG: "9:15 AM Saturday, March 21 or 10:30 AM Saturday, March 21".',
     ] : []),
     '',
