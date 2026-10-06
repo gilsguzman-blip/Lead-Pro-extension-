@@ -5,6 +5,10 @@ require('./lib/fatal-guard.js')('durations-764.test.js');
 // "and conversation typically take 30-45 minutes"; the regenerate said "about 10 minutes". The prompt carried the visit
 // length ("Duration to state before times: 30-45 minutes") as the only duration beside the times, and the model gave it
 // to the appraisal. Gil, 10/6: "the appraisal time should be 10-15 minutes. Non appraisal is always 30-40 minutes."
+// (v9.7.766) THE VISIT LENGTH IS GONE. After 765 a text read "The appraisal takes about 10-15 minutes, and the visit is
+// around 30-40 minutes" (log287). Gil, 10/6: "remove the double time acknowledgement and just go with the appraisal taking
+// 10-15 minutes. No need for the visit time. It just becomes static." No prompt string states a visit length now; the
+// times line says not to, and the appraisal keeps 10-15 minutes.
 // Executes the shipped classifyScenario and buildUserPrompt (whole popup.js in a vm), then scans the prompt-building
 // strings (comments stripped) for any duration left over. Placeholder data only.
 //
@@ -31,7 +35,7 @@ const lead = (store, dealerId, vehicle) => ({ name: 'Test Buyer', firstName: 'Te
   relationshipSignals: { totalOutboundCount: 1, leadOutboundCount: 1, totalInboundCount: 1 } });
 const STORES = [['Community Honda Lafayette', '24399', '2026 Honda CR-V EX-L'], ['Community Audi Lafayette', '21135', '2026 Audi Q5 Premium']];
 // Old durations, as they were written into prompt strings before this build.
-const OLD = /30\s*[–-]\s*45 min|\b45 minutes|\babout 10 minutes|\b10 minutes and we|20-minute visit|worth 20 minutes|takes about 30 minutes|can do in about 20 minutes/;
+const OLD = /30\s*[–-]\s*40 min|Duration to state before times|the whole visit|30\s*[–-]\s*45 min|\b45 minutes|\babout 10 minutes|\b10 minutes and we|20-minute visit|worth 20 minutes|takes about 30 minutes|can do in about 20 minutes/;
 
 for (const f of BUILDS) {
   console.log('\n' + path.basename(path.dirname(f)) + '/' + path.basename(f));
@@ -39,12 +43,10 @@ for (const f of BUILDS) {
   for (const [store, id, veh] of STORES) {
     const d = lead(store, id, veh);
     vm.runInContext('leadContext = ' + JSON.stringify(CTX) + ';', sb);
-    check(store + ': the visit length is 30-40 minutes', () => vm.runInContext('classifyScenario', sb)(d).duration, '30-40 minutes');
+    check(store + ': classifyScenario no longer carries a visit length', () => vm.runInContext('classifyScenario', sb)(d).duration, undefined);
     const p = sb.__lp.buildUserPrompt(d);
-    check(store + ': times are offered with the visit length labelled as the whole visit',
-      () => /Duration to state before times: 30-40 minutes \(the whole visit\)\./.test(p), true);
-    check(store + ': ...and the appraisal stated beside it as 10-15 minutes, never swapped with the visit',
-      () => /A trade-in appraisal on its own takes 10-15 minutes\. Never give the visit length as the appraisal time/.test(p), true);
+    check(store + ': times are offered, and the line beside them says no visit length, appraisal 10-15 minutes',
+      () => [/SUGGESTED APPOINTMENT TIMES/.test(p), /Do not state how long the visit takes\. If you mention a trade-in appraisal, it takes about 10-15 minutes\./.test(p)], [true, true]);
     check(store + ': no old duration anywhere in the prompt', () => (p.match(OLD) || [null])[0], null);
   }
   // Every prompt string, not only the branches the two leads above reach. Comments are stripped first so version
@@ -53,8 +55,8 @@ for (const f of BUILDS) {
   check('no prompt string in the file still carries an old duration', () => (src.match(OLD) || [null])[0], null);
   check('the appraisal examples say 10-15 minutes (KBB visit framing and the TRADE PRESENT example)',
     () => [/quick appraisal when you come in — usually takes about 10-15 minutes/.test(src), /It only takes about 10-15 minutes and we will have everything ready/.test(src)], [true, true]);
-  check('the visit framings say 30-40 minutes (credit app x2, monthly-payment close, OTD transition)',
-    () => [/coming in takes about 30-40 minutes'/, /coming in typically takes about 30-40 minutes to finalize/, /Frame the visit as taking about 30-40 minutes/, /exact numbers is a visit of about 30-40 minutes/, /can do in a visit of about 30-40 minutes/].map(r => r.test(src)), [true, true, true, true, true]);
+  check('the visit framings carry no length (credit app x2, monthly-payment close, OTD transition, comparison shopping)',
+    () => [/get you numbers fast';/, /numbers ready before you even arrive';/, /Frame the visit as the place to review options and the offer details/, /exact numbers is a visit \\u2014 everything will be prepared/, /can do when they come in\./].map(r => r.test(src)), [true, true, true, true, true]);
   // TradePending: the trade flag and TRADE-IN RULES come from the lead source, so the appraisal line must reach it too.
   const TP_CTX = entry(9, 23, '9:05 AM', 'CUSTOMER', 'Inbound Text Message', 'Received from: (555) 010-0199\n  What would you give me for it? I could bring it by.')
     + '=== CURRENT LEAD SUBMITTED HERE ===\n' + entry(9, 22, '9:00 AM', 'NOTE', 'Lead Received', 'Internet lead');
@@ -66,7 +68,7 @@ for (const f of BUILDS) {
     check(label + ': the lead builds', () => { vm.runInContext('activeFlags = new Set(); leadContext = "";', sb); sb.populateFromData(d);
       const lc = vm.runInContext('leadContext', sb); all = lc + '\n' + sb.__lp.buildUserPrompt(Object.assign({}, d, { context: lc })); return all.length > 1000; }, true);
     check(label + ': the appraisal is framed as about 10-15 minutes', () => /quick appraisal when you come in \u2014 usually takes about 10-15 minutes/.test(all), true);
-    check(label + ': the visit is 30-40 minutes and the two are kept apart', () => [/Duration to state before times: 30-40 minutes \(the whole visit\)/.test(all), /A trade-in appraisal on its own takes 10-15 minutes/.test(all)], [true, true]);
+    check(label + ': no visit length, and the appraisal line beside the times', () => [/Duration to state/.test(all), /Do not state how long the visit takes\. If you mention a trade-in appraisal, it takes about 10-15 minutes\./.test(all)], [false, true]);
     check(label + ': no old duration', () => (all.match(OLD) || [null])[0], null);
   }
 }

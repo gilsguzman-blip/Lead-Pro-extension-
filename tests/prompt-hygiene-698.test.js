@@ -74,7 +74,8 @@ for (const f of BUILDS) {
   check('the scenario judgment line appears once, not twice', () => n(zc, 'Read the conversation and use judgment'), 1);
 
   console.log(' M6 — format rules:');
-  check('no Duration line and no APPOINTMENT TIME FORMAT on a lead offered no times', () => [n(zc, 'Duration to state before times'), n(zc, 'APPOINTMENT TIME FORMAT')], [0, 0]);
+  // (v9.7.766) The Duration line became the no-visit-length / appraisal line; it is still gated on times being offered.
+  check('no visit-length line and no APPOINTMENT TIME FORMAT on a lead offered no times', () => [n(zc, 'Do not state how long the visit takes'), n(zc, 'APPOINTMENT TIME FORMAT')], [0, 0]);
   check('the SMS signature rule no longer contradicts the LEAD section', () => [n(zc, 'agent first name only + phone number'), n(zc, 'SMS signature: the stacked block given in the LEAD section')], [0, 1]);
   check('the JSON instruction names the subject field the parser reads', () => n(zc, 'Return ONLY the JSON object {"sms":"...","email":"...","subject":"...","voicemail":"..."}'), 1);
 
@@ -85,7 +86,7 @@ for (const f of BUILDS) {
     lastInboundMsg: 'Is the Carnival still available? I could come look at it.',
     relationshipSignals: { totalOutboundCount: 1, leadOutboundCount: 1, totalInboundCount: 1 } });
   console.log(' controls — an engaged lead (executed):');
-  check('times are offered, so Duration and APPOINTMENT TIME FORMAT still render', () => [n(live, 'Duration to state before times'), n(live, 'APPOINTMENT TIME FORMAT')], [1, 1]);
+  check('times are offered, so the visit-length line and APPOINTMENT TIME FORMAT still render', () => [n(live, 'Do not state how long the visit takes'), n(live, 'APPOINTMENT TIME FORMAT')], [1, 1]);
   check('...beside the suggested times they format', () => /Option: /.test(live) || /would .* or .* work\?/.test(live), true);
 
   // ── CONTROL: replied once long ago, then ten unanswered outreaches — not zero-contact ───
