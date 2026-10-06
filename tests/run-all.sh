@@ -99,6 +99,7 @@ run reporter-ct-failures.test.js     "$REPORTER"
 [ -n "${DASH:-}" ] && run dashboard-range-v17.test.js "$DASH"
 [ -n "${DASH:-}" ] && run dashboard-key-v18.test.js "$DASH"
 run feedback-gatherer-v15.test.js tools/feedback-gatherer/index.html
+run record-first-tools.test.js
 
 echo
 echo "───────────────────────────────────────────────────────────"
