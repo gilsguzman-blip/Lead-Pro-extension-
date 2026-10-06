@@ -531,7 +531,8 @@ check('B: the note itself clears even the OLD bar — the direction flag is what
 check('B: and a two-word question becomes unclosable again, as it was for months',
   i => run(i, shortLead('The Patriot one is on the ground now'), TWO_WORDS).open.length, 1);
 
-const NO_APOS = c => c.replace(/\n\s*qbody = qbody\.replace\([^\n]*\n/, '\n');
+// (v9.7.765) Anchored on the repair's own lookahead: the trade-form cut is now the first qbody.replace line.
+const NO_APOS = c => c.replace(/\n[^\n]*qbody = qbody\.replace\([^\n]*\(\?=\[a-z\]\)[^\n]*\n/, '\n');
 check('neuter C actually removed the apostrophe repair', i => NO_APOS(i.code) !== i.code, true);
 check('C: the CarGurus body manufactures questions again',
   i => run(i, [item('Inbound', '09/06/2026 5:38 PM', CARGURUS_BODY)], NO_APOS).open.length > 0, true);
