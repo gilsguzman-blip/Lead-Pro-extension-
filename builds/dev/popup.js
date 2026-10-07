@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.771-dev (Dev. WHICH DEALERSHIPS ARE OURS: THE BAYTOWN SISTER STORES MAY BE NAMED, EVERY OTHER DEALER IS A COMPETITOR, AND A BAYTOWN BE-BACK THAT WENT TO A SISTER STORE IS OFFERED BOTH. Extension only; proxy v7.83, reporter v1.23 and dashboard v1.8 unchanged. Honda Baytown lead 2095705388 (log292): the visit notes say the rep went to Kia and showed a Telluride; the draft wrote 'the Telluride Hybrid at Kia', right by luck -- no prompt in 99 captures had ever said which stores are in the group. Gil, 10/7: Community Toyota, Kia and Honda Baytown are sister stores and may be named; Audi Lafayette and Community Honda Lafayette have no connection to each other or anyone else, so another brand in Lafayette is a competitor; and 'Honda options based on the Telluride you liked' is the right instinct at every Baytown store. (1) OUR STORES / OUR STORE: when the lead's own text names another brand, one line says which dealerships are ours (the three Baytown stores, or none for a Lafayette store) and that every other dealer is a competitor -- never called ours or a sister store, nothing arranged there, not named. A used unit of any brand on our own lot is ours to sell. (2) SISTER STORE ON THIS VISIT: a Baytown be-back whose visit notes say they went to a sister store closes on one offer covering both -- the rep's own-brand options based on what they liked, and that vehicle's numbers from the named sister store. (3) ANOTHER BRAND IN THE VISIT NOTES: the Lafayette version -- a competitor's vehicle; do not name it or the dealership; the offer is about our own vehicles. Every store sells used units of other brands (lead 2094209825 is a used Ford F-150 at Honda Baytown), so a visit-note mention counts only with a went-elsewhere cue, never for the lead's own vehicle, a used or in-stock unit, or their trade. On all 33 saved page dumps: the roster line on 9, the sister-store line on lead 2095705388 only, the competitor line on none. TESTS: store-group-771 (new) executes populateFromData on placeholder leads at all five stores: 24 assertions across both builds; v9.7.770 fails 7 of 12 per build (every control passes there). VERIFIED: run-all 195 suites green, 7,621 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.770-dev.)
 // Lead Pro -- popup.js  v9.7.770-dev (Dev. CO-SIGNER AND FINANCING SCRIPTS NO LONGER RUN AFTER THE VISIT THEY WERE WRITTEN FOR. Extension only; proxy v7.83, reporter v1.23 and dashboard v1.8 unchanged. log292 (three showroom follow-ups regenerated on 769). Honda Lafayette lead 2082889754: the customer texted the night before her visit that she would bring a co-signer; she came in, the payment did not work, and the next morning she wrote that she has to keep looking. CO-SIGNER NEEDED still told the model to say 'We will need both of you here to finalize everything', and both drafts said it; FINANCING CONCERN still said the visit is the easiest way to get real numbers. When every line that triggers either one predates the newest showroom visit, a post-visit line replaces it (co-signer: do not tell them both need to be here, mention the co-signer only if the visit notes make it part of the next step; financing: no visit pitch, the next step is the rep reworking the numbers, never state a credit result). A mention after the visit, an undated one, or no visit at all keeps the original, unchanged. The concern block runs before the scraper decides isShowroomFollowUp, so it reads the visit time from the notes itself (_lpConcernVisitMs, the same read as _lastVisitMs). The same draft promised 'I'll ask the rep to call you' and then asked whether she wanted that call: the showroom close and the text rewrite now say to state the offer once. Measured on all 33 saved page dumps: only lead 2082889754's brief changes (both lines replaced); every other field matches 769 apart from clock-derived values. TESTS: cosigner-770 (new) executes the lifted concern code with the DOM stubbed, populateFromData and _lpBuildSmsRefinePrompt: 24 assertions across both builds; v9.7.769 fails 5 of 12 per build (every control passes there). log243-709's lifted slice now ends at the renamed co-signer block. VERIFIED: run-all 194 suites green, 7,597 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.769-dev.)
 // Lead Pro -- popup.js  v9.7.769-dev (Dev. SHOWROOM BE-BACKS: QUESTIONS HANDLED AT THE VISIT, NO CREDIT RESULTS IN WRITING, ONE CONCRETE OFFER TO CLOSE. Extension only; proxy v7.83, reporter v1.23 and dashboard v1.8 unchanged. log290/log291 (six showroom follow-ups on 768, three page dumps). (1) Honda Lafayette lead 2082889754: 'did i get pre approved' (9/14) and 'Can I come today after 3:30' (10/6 8:25 AM) were still OPEN after a two-hour visit that afternoon (test drive, write-up, finance turnover; manager note 'GOT APPROVED'), and the text rewrite answered both. A question asked before the newest showroom visit (_lastVisitMs, v9.7.192) is now HANDLED-AT-VISIT; on all 32 saved page dumps only that lead changes (2 open -> 0). (2) The same rewrite told that approved customer 'You weren't pre-approved based on what I have here'. New rule in the main system prompt and the rewrite's restated constraints: no credit decisions in writing (approved, pre-approved, declined) -- the finance team gives those. A rewrite that states one where the first pass did not loses to the first pass (LP_CREDIT_DECISION_RX needs the customer as subject, so 'if financing is approved' and 'subject to credit approval' are not matched). (3) No vehicle on the lead: the visit notes are read first and a vehicle, trim, color or numbers not yet seen count as the message (lead 2095705388, white Telluride Hybrid, got 768's own example question twice); with nothing usable, thank them, name the rep, one concrete yes/no offer. 768's 'what matters most' example is gone. (4) Honda Baytown lead 2094209825: the 768 check fired on a 2023 F-150 confirmed in stock because noVehicleAtAll read TRUE beside a vehicle field, stock number and VIN -- the prompt said 'nothing on file says which vehicle' under 'VEHICLE ON LEAD ... confirmed in stock' and the agent would have seen a false notice. The check no longer reads noVehicleAtAll; a stock number or VIN also counts. (5) Gil, 10/7: every showroom be-back closes on ONE concrete yes/no offer (the rep reworking the numbers with a different down payment or term, numbers to review at home, a second look, a trade appraisal), not an open 'what would help / what part of the decision' question -- lead 2094209825 closed 'What part of the decision would be most helpful to revisit?'. One question in the message, and the rewrite is told to keep the first draft's offer. NEW SUITE showroom-769.test.js, 36 assertions across both builds (the detector lifted and executed as open-thread-resolver does); v9.7.768 fails 14 of 18 per build. showroom-novehicle-768 follows the reworded line. VERIFIED: run-all 193 suites green, 7,573 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.768-dev.)
 // Lead Pro -- popup.js  v9.7.768-dev (Dev. A SHOWROOM VISIT WITH NO VEHICLE ON FILE: NEVER ASK THE CUSTOMER WHAT WE SHOWED THEM. Extension only; proxy v7.83, reporter v1.23 and dashboard v1.8 unchanged. 10/6, Toyota Baytown leads 2094292708 and 2094316393 (both Showroom, no vehicle recorded): drafts asked 'What did you and <rep> look at together?' and 'if you remember the model you and <rep> discussed... send them over' -- asking the customer to tell us what our own salesperson showed them. On 2094292708 the agent skipped three in a row and sent the one that went to the next step (mom co-signing). The showroom block says 'reference what they saw'; with nothing recorded the model got it by asking. Gil: and if the notes are thin? Now, on a showroom follow-up with no vehicle on file (_lpShowroomNoVehicle -- empty, 'not provided' or an Any/All placeholder): the prompt says never ask what they looked at, what they and the rep discussed, or to describe or remember the vehicle; if the visit notes record something else (co-signer, payment range, trade question, a decision they were weighing) pick up from that and offer the next step; if they record nothing useful, thank them for coming in, mention the rep by name and ask one forward-looking question about the customer. And the agent sees, after generation, 'No vehicle recorded for this showroom visit -- check with <rep> what they looked at before sending' (the rep name only when the field reads as a name and is not the agent; otherwise 'the salesperson'). NEW SUITE showroom-novehicle-768.test.js, 20 assertions across both builds, executing the shipped populateFromData; v9.7.767 fails 8 of 10 per build. VERIFIED: run-all 192 suites green, 7,537 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.767-dev.)
@@ -4457,6 +4458,61 @@ const _SHOWROOM_MGR_CODES   = ['MT'];
 // <rep> discussed... send them over" -- asking the customer to tell us what our own salesperson showed them. The agent
 // skipped three of those in a row. The showroom block says "reference what they saw", and with nothing recorded the model
 // got it by asking. Returns { rep } (the sales rep's name, or '' when the field is unusable) or null.
+// ── (v9.7.771) WHICH DEALERSHIPS ARE OURS ─────────────────────────────────────────────────────
+// Honda Baytown lead 2095705388 (log292): the visit notes say the rep "went to Kia and showed a telluride", and the
+// draft wrote "the Telluride Hybrid at Kia". Right by luck -- no prompt had ever told the model which stores are in
+// the group. Gil, 10/7: the three Baytown stores (Toyota, Kia, Honda) are sister stores; Audi Lafayette and Community
+// Honda Lafayette have no connection to each other or to anyone else, so in Lafayette another brand the customer
+// looked at is a competitor. Naming a sister store is fine; mixing in a competing dealership is not.
+var LP_BAYTOWN_SISTERS = { toyota: 'Community Toyota Baytown', kia: 'Community Kia Baytown', honda: 'Community Honda Baytown' };
+var LP_OTHER_BRAND_RX = /\b(toyota|honda|kia|audi|ford|chevy|chevrolet|nissan|hyundai|mazda|subaru|jeep|gmc|dodge|lexus|acura|bmw|mercedes|volkswagen|vw|tesla|buick|cadillac|lincoln|infiniti|volvo|mitsubishi|genesis|chrysler|porsche)\b/ig;
+var LP_MODEL_BRAND = {
+  camry:'toyota', corolla:'toyota', rav4:'toyota', tacoma:'toyota', tundra:'toyota', highlander:'toyota', sequoia:'toyota',
+  sienna:'toyota', venza:'toyota', prius:'toyota', '4runner':'toyota', 'grand highlander':'toyota',
+  accord:'honda', civic:'honda', 'cr-v':'honda', crv:'honda', pilot:'honda', odyssey:'honda', ridgeline:'honda', passport:'honda', 'hr-v':'honda', hrv:'honda', prologue:'honda',
+  telluride:'kia', sorento:'kia', sportage:'kia', carnival:'kia', k5:'kia', k4:'kia', ev6:'kia', ev9:'kia', niro:'kia', soul:'kia', forte:'kia', seltos:'kia'
+};
+function _lpStoreGroup(d) {
+  d = d || {};
+  var store = String(d.store || (typeof DEALER_ID_MAP === 'object' && DEALER_ID_MAP[String(d.dealerId || '')]) || '').trim();
+  var brand = /toyota/i.test(store) ? 'toyota' : /honda/i.test(store) ? 'honda' : /kia/i.test(store) ? 'kia' : /audi/i.test(store) ? 'audi' : '';
+  var area = /baytown/i.test(store) ? 'baytown' : /lafayette/i.test(store) ? 'lafayette' : '';
+  return { store: store, brand: brand, area: area, sisters: (area === 'baytown' && LP_BAYTOWN_SISTERS[brand]) ? LP_BAYTOWN_SISTERS : null };
+}
+var _lpCap = function (w) { w = String(w || ''); return w === 'vw' ? 'Volkswagen' : w === 'gmc' ? 'GMC' : w === 'bmw' ? 'BMW' : w === 'cr-v' || w === 'crv' ? 'CR-V' : w === 'hr-v' || w === 'hrv' ? 'HR-V' : w === 'ev6' || w === 'ev9' || w === 'k5' || w === 'k4' ? w.toUpperCase() : w.replace(/\b[a-z]/g, function (c) { return c.toUpperCase(); }); };
+// The visit notes only (the newest visit note plus every [SHOWROOM VISIT] block in the transcript). A sentence about
+// the customer's own car or trade is not a vehicle they looked at, so it is skipped. Every store sells used units of
+// other brands (lead 2094209825 is a used Ford F-150 at Honda Baytown), so a sentence counts only when it says they
+// went somewhere else for it, and never when it names the lead's own vehicle or says used / in stock.
+function _lpVisitOtherBrand(d) {
+  d = d || {};
+  var g = _lpStoreGroup(d);
+  if (!g.brand) return null;
+  var txt = String(d.showroomDetails || '');
+  var ctx = String(d.conversationBrief || d.context || '');
+  var re = /\[SHOWROOM VISIT\]([\s\S]*?)(?=\n\[\d{1,2}\/\d{1,2}\/\d{2,4}|\n\S|$)/g, m;
+  while ((m = re.exec(ctx))) txt += '\n' + m[1];
+  var sentences = txt.split(/[.!?;\n]+/);
+  for (var i = 0; i < sentences.length; i++) {
+    var sn = sentences[i];
+    if (/\btrade|apprais|payoff|\bowes?\b|\blien\b|\b(?:his|her|their|my) (?:current )?(?:car|truck|vehicle)\b|\bdrives? a\b|\bcurrently (?:has|drives|owns)\b|\bowns?\b|\bha(?:s|ve) an? (?:19|20)\d\d\b/i.test(sn)) continue;
+    var found = '', model = '';
+    var bw; LP_OTHER_BRAND_RX.lastIndex = 0;
+    while ((bw = LP_OTHER_BRAND_RX.exec(sn))) { var w = bw[1].toLowerCase(); if (w === 'chevrolet') w = 'chevy'; if (w === 'vw') w = 'volkswagen'; if (w !== g.brand) { found = w; break; } }
+    for (var mk in LP_MODEL_BRAND) {
+      if (LP_MODEL_BRAND[mk] === g.brand) continue;
+      if (new RegExp('\\b' + mk.replace(/-/g, '\\-') + '\\b', 'i').test(sn) && (!found || found === LP_MODEL_BRAND[mk])) { model = mk; found = LP_MODEL_BRAND[mk]; break; }
+    }
+    if (!found) continue;
+    if (!/\b(?:went|walked|drove|go(?:ing)?|headed|took (?:them|him|her))\s+(?:over\s+)?(?:to|by|across)\b|\bover at\b|\bnext door\b|\bacross the street\b|\belsewhere\b|\b(?:another|other) (?:dealer|store|lot)|\bcompar(?:e|ing)\b|\bshopping\b/i.test(sn)) continue;
+    if (/\bused\b|pre-?owned|\bin stock\b|\bon (?:the|our) lot\b|\bstock ?#/i.test(sn)) continue;
+    var _lv = String(d.vehicle || '').toLowerCase();
+    if (_lv && (_lv.indexOf(found) !== -1 || (model && _lv.indexOf(model) !== -1))) continue;
+    return { brand: found, model: model, own: g.brand, store: g.store, area: g.area,
+      sister: (g.sisters && g.sisters[found]) ? g.sisters[found] : '' };
+  }
+  return null;
+}
 function _lpShowroomNoVehicle(d) {
   d = d || {};
   if (!d.isShowroomFollowUp) return null;
@@ -6356,6 +6412,44 @@ function populateFromData(d) {
     extras.push('- Do NOT ask for information the customer or the thread has already provided (mileage, phone, vehicle, their availability). Re-asking a known fact is the single clearest signal that nobody read the conversation.');
     extras.push('- Do NOT re-acknowledge the lead source or thank them for the original inquiry as though this were a first touch. The relationship is well past that once a time is on the books.');
   }
+
+  // (v9.7.771) WHICH DEALERSHIPS ARE OURS -- see LP_BAYTOWN_SISTERS. Only when the lead's own text names another brand,
+  // so a lead that never leaves its own make carries nothing new.
+  try {
+    var _sg = _lpStoreGroup(d);
+    var _sgText = [d.conversationBrief, d.context, d.showroomDetails, d.lastInboundMsg].map(function (x) { return String(x || ''); }).join('\n');
+    var _sgOther = false, _sgM; LP_OTHER_BRAND_RX.lastIndex = 0;
+    while ((_sgM = LP_OTHER_BRAND_RX.exec(_sgText))) { var _sgW = _sgM[1].toLowerCase(); if (_sgW === 'chevrolet') _sgW = 'chevy'; if (_sgW !== _sg.brand) { _sgOther = true; break; } }
+    if (_sg.brand && _sg.area && _sgOther) {
+      if (_sg.sisters) {
+        extras.push('OUR STORES: ' + _sg.store + ' is one of three sister stores in Baytown, all in the same group: Community Toyota Baytown, Community Kia Baytown and Community Honda Baytown. '
+          + 'You may name a sister store when the notes or the customer bring it up. Any other dealership -- another Toyota, Kia or Honda dealer, or any other brand\'s -- is a competitor: '
+          + 'never call it ours or a sister store, never offer to get its numbers or arrange anything there, and do not name it. '
+          + 'A used vehicle of any brand on our own lot is ours to sell.');
+      } else {
+        extras.push('OUR STORE: ' + _sg.store + ' has no sister store. It is not connected to any other dealership, in Lafayette or anywhere else. Every other dealership the notes or the customer name '
+          + 'is a competitor: never call it ours or a sister store, never offer to get its numbers or arrange anything there, and do not name it. A used vehicle of any brand on our own lot is ours to sell.');
+      }
+      try { console.log('[LP STORE GROUP DIAG] roster line added | store:' + _sg.store + ' | area:' + _sg.area); } catch (eSgL) {}
+    }
+    if (d.isShowroomFollowUp && !d.isSoldDelivered) {
+      var _vob = _lpVisitOtherBrand(d);
+      if (_vob) {
+        var _vobRep = String(d.salesRep || '').trim().split(' ')[0] || 'the salesperson';
+        var _vobVeh = _vob.model ? _lpCap(_vob.brand) + ' ' + _lpCap(_vob.model) : 'the ' + _lpCap(_vob.brand);
+        if (_vob.sister) {
+          extras.push('SISTER STORE ON THIS VISIT: the visit notes say they also looked at ' + (_vob.model ? 'the ' : '') + _vobVeh + ' at our sister store ' + _vob.sister + ' (same group, here in Baytown). '
+            + 'Close on ONE offer that covers both: ' + _vobRep + ' putting together a couple of ' + _lpCap(_vob.own) + ' options based on what they liked about the ' + (_vob.model ? _lpCap(_vob.model) : _lpCap(_vob.brand)) + ', '
+            + 'and getting them the numbers on that ' + _vobVeh.replace(/^the /, '') + ' from ' + _vob.sister + ', so they can compare at home. Name ' + _vob.sister + ' by its name; '
+            + 'never say we carry ' + _lpCap(_vob.brand) + ' at ' + _vob.store + '. Still one question in the whole message.');
+        } else {
+          extras.push('ANOTHER BRAND IN THE VISIT NOTES: the notes mention ' + (_vob.model ? 'a ' + _vobVeh : _vobVeh.replace(/^the /, 'a ')) + '. ' + _vob.store + ' has no sister store that sells it, so that is a competitor\'s vehicle. '
+            + 'Do not name the ' + _lpCap(_vob.brand) + ' or the dealership, and do not offer its numbers or anything there. Make the offer about our own ' + _lpCap(_vob.own) + ' vehicles that fit what they were looking for.');
+        }
+        try { console.log('[LP STORE GROUP DIAG] visit notes name another brand | ' + _vobVeh + ' | ' + (_vob.sister ? 'sister store: ' + _vob.sister : 'competitor (no sister store)')); } catch (eVoL) {}
+      }
+    }
+  } catch (eSg) {}
 
   // The conversation brief IS the follow-up context — it contains the full transcript
   // and the AI directive. Stage overrides (appointment/showroom) prepend to it.
