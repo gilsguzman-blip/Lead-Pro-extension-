@@ -33,14 +33,15 @@ for (const f of BUILDS) {
     try { sb.populateFromData(lead(extra)); } finally { sb.console.log = ol; } return vm.runInContext('leadContext', sb); };
   console.log(' 1. the prompt (executed populateFromData):');
   const c = pfd({});
-  check('showroom, no vehicle: the NO VEHICLE RECORDED line renders, once', () => c.split('NO VEHICLE RECORDED FOR THIS VISIT').length - 1, 1);
+  check('showroom, no vehicle: the no-vehicle line renders, once', () => c.split('NO VEHICLE ON THE LEAD FOR THIS VISIT').length - 1, 1);
   check('...it forbids asking what they looked at or discussed with the rep, by the rep\'s first name', () =>
     /Do NOT ask the customer what they looked at, what they and Rep discussed, or to describe or remember the vehicle/.test(c), true);
-  check('...notes with substance are picked up; thin notes get one forward question about the customer', () =>
-    [/If the visit notes record something else \(a co-signer, a payment range, a trade question/.test(c), /thank them for coming in, mention Rep by name, and ask ONE forward-looking question about them/.test(c)], [true, true]);
-  check('control: a vehicle on file -> no line', () => /NO VEHICLE RECORDED/.test(pfd({ vehicle: '2026 Toyota Camry LE' })), false);
-  check('control: not a showroom follow-up -> no line', () => /NO VEHICLE RECORDED/.test(pfd({ isShowroomFollowUp: false })), false);
-  check('a placeholder vehicle ("Any/All") counts as none', () => /NO VEHICLE RECORDED/.test(pfd({ vehicle: '2026 Toyota Any/All' })), true);
+  // (v9.7.769) reworded: notes that name a vehicle count, and thin notes get one concrete yes/no offer (showroom-769 owns the detail).
+  check('...notes with substance are picked up; thin notes get one concrete offer', () =>
+    [/READ THE VISIT NOTES FIRST: if they name a vehicle, trim or color that caught their eye/.test(c), /thank them for coming in, mention Rep by name, and make ONE concrete offer they can answer yes or no/.test(c)], [true, true]);
+  check('control: a vehicle on file -> no line', () => /NO VEHICLE ON THE LEAD FOR THIS VISIT/.test(pfd({ vehicle: '2026 Toyota Camry LE' })), false);
+  check('control: not a showroom follow-up -> no line', () => /NO VEHICLE ON THE LEAD FOR THIS VISIT/.test(pfd({ isShowroomFollowUp: false })), false);
+  check('a placeholder vehicle ("Any/All") counts as none', () => /NO VEHICLE ON THE LEAD FOR THIS VISIT/.test(pfd({ vehicle: '2026 Toyota Any/All' })), true);
   console.log(' 2. the agent notice helper (new helper):');
   const nv = (x) => has ? vm.runInContext('_lpShowroomNoVehicle', sb)(lead(x)) : '(new helper missing)';
   check('no vehicle -> names the rep for the notice', () => nv({}), { rep: 'Rep Name' });
