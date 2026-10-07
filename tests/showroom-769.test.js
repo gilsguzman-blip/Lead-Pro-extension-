@@ -94,7 +94,7 @@ for (const f of BUILDS) {
   check('notes that name a vehicle, trim or color, or numbers not yet seen, count as something to pick up', () =>
     /if they name a vehicle, trim or color that caught their eye, numbers they did not get to see/.test(c), true);
   check('thin notes: one concrete yes/no offer, not an open question; 768\'s example question is gone', () =>
-    [/make ONE concrete offer they can answer yes or no -- Rep putting together the numbers on what they looked at, a second look, or an appraisal of their trade/.test(c),
+    [/make ONE concrete offer they can answer yes or no -- Rep putting together new options on what they looked at to go over with them when they come back in, a second look, or an appraisal of their trade/.test(c),
      /Not an open "what would help" or "what matters most" question/.test(c), /ask ONE forward-looking question about them -- what matters most/.test(c)], [true, true, false]);
   check('one question in the whole message, and the rewrite is told to keep the one concrete offer', () => [/One question in the whole message\./.test(c), /The text closes on ONE concrete offer they can answer yes or no -- keep the first draft's\./.test(rp)], [true, true]);
   console.log(' 5. every be-back closes on a concrete offer (Gil, 10/7):');
@@ -102,7 +102,7 @@ for (const f of BUILDS) {
   run('activeFlags = new Set(); leadContext = "";'); const ol2 = sb.console.log; sb.console.log = () => {}; try { sb.populateFromData(withVeh); } finally { sb.console.log = ol2; }
   const cv = run('leadContext');
   check('lead 2094209825 shape (vehicle on file, "wanted to think about it"): the concrete-offer close renders, the no-vehicle line does not', () =>
-    [/CLOSE WITH ONE CONCRETE OFFER they can answer yes or no -- the next step for what the notes say: the rep reworking the numbers \(a different down payment or term\)/.test(cv),
+    [/CLOSE WITH ONE CONCRETE OFFER they can answer yes or no, and the offer BRINGS THEM BACK IN: the rep putting together new options for what the notes say \(a different down payment or term/.test(cv),
      /NOT an open question \("what would help", "what part of the decision"/.test(cv), /NO VEHICLE ON THE LEAD FOR THIS VISIT/.test(cv)], [true, true, false]);
   check('...and its text rewrite gets the same close', () => /ONE CONCRETE OFFER/.test(run('_lpBuildSmsRefinePrompt')('Test, Rep can rework the numbers. Want options?', EMAIL, withVeh)), true);
   run('activeFlags = new Set(); leadContext = "";'); sb.console.log = () => {}; try { sb.populateFromData(lead({ isShowroomFollowUp: false, vehicle: '2023 Ford F-150 XL' })); } finally { sb.console.log = ol2; }

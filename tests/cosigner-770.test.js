@@ -55,8 +55,8 @@ for (const f of BUILDS) {
   check('...and the pre-visit financing mentions get the post-visit line, not "the visit is the easiest way"',
     () => concerns([PRE_FIN, PRE_CO, VISIT_LINE, AFTER], [VISIT]).filter(c => /FINANCING/.test(c)), ['FINANCING (raised before the visit)']);
   check('the replacement lines carry no finalize script and no visit pitch (new helper)', () => {
-    const t = src.slice(src.indexOf("'CO-SIGNER (mentioned before the visit)"), src.indexOf("'CO-SIGNER (mentioned before the visit)") + 400)
-      + src.slice(src.indexOf("'FINANCING (raised before the visit)"), src.indexOf("'FINANCING (raised before the visit)") + 400);
+    const t = src.slice(src.indexOf("'CO-SIGNER (mentioned before the visit)"), src.indexOf("'CO-SIGNER (mentioned before the visit)") + 600)
+      + src.slice(src.indexOf("'FINANCING (raised before the visit)"), src.indexOf("'FINANCING (raised before the visit)") + 600);
     return [/CO-SIGNER \(mentioned before/.test(t), /Do NOT tell them both people need to be here to finalize/.test(t),
       /Do NOT tell them a visit is the way to get real numbers/.test(t), /Never state a credit result/.test(t)]; }, [true, true, true, true]);
 

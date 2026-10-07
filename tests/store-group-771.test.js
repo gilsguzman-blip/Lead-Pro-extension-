@@ -6,7 +6,7 @@ require('./lib/fatal-guard.js')('store-group-771.test.js');
 // the group. Gil, 10/7: the three Baytown stores (Toyota, Kia, Honda) are sister stores and may be named; Audi Lafayette and
 // Community Honda Lafayette have no connection to each other or anyone else, so another brand in Lafayette is a competitor.
 // On a Baytown be-back that went to a sister store, the close offers both: own-brand options based on what they liked, and
-// the sister store's numbers on that vehicle. Every store sells used units of other brands, so a mention counts only when the
+// the sister store's numbers on that vehicle (gone over when they come back in, v9.7.774). Every store sells used units of other brands, so a mention counts only when the
 // notes say they went elsewhere for it. Executes the shipped populateFromData. Placeholder data only.
 //
 // Usage: node tests/store-group-771.test.js <dev popup.js> <commercial popup.js>
@@ -40,7 +40,7 @@ for (const f of BUILDS) {
   const s1 = line(c1, /^SISTER STORE ON THIS VISIT/);
   check('the close offers both: Honda options based on the Telluride, and the Telluride numbers from Community Kia Baytown', () =>
     [/looked at the Kia Telluride at our sister store Community Kia Baytown/.test(s1), /Rep putting together a couple of Honda options based on what they liked about the Telluride/.test(s1),
-     /getting them the numbers on that Kia Telluride from Community Kia Baytown/.test(s1), /never say we carry Kia at Community Honda Baytown/.test(s1), /Still one question/.test(s1)], [true, true, true, true, true]);
+     /with the numbers on that Kia Telluride from Community Kia Baytown ready beside them, so they can come back in and compare them side by side/.test(s1), /never say we carry Kia at Community Honda Baytown/.test(s1), /Still one question/.test(s1)], [true, true, true, true, true]);
   check('the roster names the three Baytown sister stores and calls every other dealer a competitor', () => { const r = line(c1, /^OUR STORES:/);
     return [/Community Toyota Baytown, Community Kia Baytown and Community Honda Baytown/.test(r), /Any other dealership[^.]*is a competitor/.test(r), /A used vehicle of any brand on our own lot is ours to sell/.test(r)]; }, [true, true, true]);
   check('Toyota Baytown, "went over to Honda next door, liked the Pilot": sister store Community Honda Baytown', () =>
