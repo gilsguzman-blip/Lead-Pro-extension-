@@ -72,7 +72,7 @@ for (const f of BUILDS) {
       lastInboundMsg: 'What would you give me for my trade-in?' }).p), true);
 
   console.log(' 3. the scraper\'s concern block, lifted verbatim:');
-  const a = src.indexOf('      var _tradeRx  ='), b = src.indexOf('      if(/co.?sign|cosign', a);
+  const a = src.indexOf('      var _tradeRx  ='), b = src.indexOf('      var _coRx = ', a);
   const concerns = (lines, allText) => {
     const said = lines.map((t, i) => ({ text: t, ms: 1000 + i }));
     const out = [];

@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.770-dev (Dev. CO-SIGNER AND FINANCING SCRIPTS NO LONGER RUN AFTER THE VISIT THEY WERE WRITTEN FOR. Extension only; proxy v7.83, reporter v1.23 and dashboard v1.8 unchanged. log292 (three showroom follow-ups regenerated on 769). Honda Lafayette lead 2082889754: the customer texted the night before her visit that she would bring a co-signer; she came in, the payment did not work, and the next morning she wrote that she has to keep looking. CO-SIGNER NEEDED still told the model to say 'We will need both of you here to finalize everything', and both drafts said it; FINANCING CONCERN still said the visit is the easiest way to get real numbers. When every line that triggers either one predates the newest showroom visit, a post-visit line replaces it (co-signer: do not tell them both need to be here, mention the co-signer only if the visit notes make it part of the next step; financing: no visit pitch, the next step is the rep reworking the numbers, never state a credit result). A mention after the visit, an undated one, or no visit at all keeps the original, unchanged. The concern block runs before the scraper decides isShowroomFollowUp, so it reads the visit time from the notes itself (_lpConcernVisitMs, the same read as _lastVisitMs). The same draft promised 'I'll ask the rep to call you' and then asked whether she wanted that call: the showroom close and the text rewrite now say to state the offer once. Measured on all 33 saved page dumps: only lead 2082889754's brief changes (both lines replaced); every other field matches 769 apart from clock-derived values. TESTS: cosigner-770 (new) executes the lifted concern code with the DOM stubbed, populateFromData and _lpBuildSmsRefinePrompt: 24 assertions across both builds; v9.7.769 fails 5 of 12 per build (every control passes there). log243-709's lifted slice now ends at the renamed co-signer block. VERIFIED: run-all 194 suites green, 7,597 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.769-dev.)
 // Lead Pro -- popup.js  v9.7.769-dev (Dev. SHOWROOM BE-BACKS: QUESTIONS HANDLED AT THE VISIT, NO CREDIT RESULTS IN WRITING, ONE CONCRETE OFFER TO CLOSE. Extension only; proxy v7.83, reporter v1.23 and dashboard v1.8 unchanged. log290/log291 (six showroom follow-ups on 768, three page dumps). (1) Honda Lafayette lead 2082889754: 'did i get pre approved' (9/14) and 'Can I come today after 3:30' (10/6 8:25 AM) were still OPEN after a two-hour visit that afternoon (test drive, write-up, finance turnover; manager note 'GOT APPROVED'), and the text rewrite answered both. A question asked before the newest showroom visit (_lastVisitMs, v9.7.192) is now HANDLED-AT-VISIT; on all 32 saved page dumps only that lead changes (2 open -> 0). (2) The same rewrite told that approved customer 'You weren't pre-approved based on what I have here'. New rule in the main system prompt and the rewrite's restated constraints: no credit decisions in writing (approved, pre-approved, declined) -- the finance team gives those. A rewrite that states one where the first pass did not loses to the first pass (LP_CREDIT_DECISION_RX needs the customer as subject, so 'if financing is approved' and 'subject to credit approval' are not matched). (3) No vehicle on the lead: the visit notes are read first and a vehicle, trim, color or numbers not yet seen count as the message (lead 2095705388, white Telluride Hybrid, got 768's own example question twice); with nothing usable, thank them, name the rep, one concrete yes/no offer. 768's 'what matters most' example is gone. (4) Honda Baytown lead 2094209825: the 768 check fired on a 2023 F-150 confirmed in stock because noVehicleAtAll read TRUE beside a vehicle field, stock number and VIN -- the prompt said 'nothing on file says which vehicle' under 'VEHICLE ON LEAD ... confirmed in stock' and the agent would have seen a false notice. The check no longer reads noVehicleAtAll; a stock number or VIN also counts. (5) Gil, 10/7: every showroom be-back closes on ONE concrete yes/no offer (the rep reworking the numbers with a different down payment or term, numbers to review at home, a second look, a trade appraisal), not an open 'what would help / what part of the decision' question -- lead 2094209825 closed 'What part of the decision would be most helpful to revisit?'. One question in the message, and the rewrite is told to keep the first draft's offer. NEW SUITE showroom-769.test.js, 36 assertions across both builds (the detector lifted and executed as open-thread-resolver does); v9.7.768 fails 14 of 18 per build. showroom-novehicle-768 follows the reworded line. VERIFIED: run-all 193 suites green, 7,573 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.768-dev.)
 // Lead Pro -- popup.js  v9.7.768-dev (Dev. A SHOWROOM VISIT WITH NO VEHICLE ON FILE: NEVER ASK THE CUSTOMER WHAT WE SHOWED THEM. Extension only; proxy v7.83, reporter v1.23 and dashboard v1.8 unchanged. 10/6, Toyota Baytown leads 2094292708 and 2094316393 (both Showroom, no vehicle recorded): drafts asked 'What did you and <rep> look at together?' and 'if you remember the model you and <rep> discussed... send them over' -- asking the customer to tell us what our own salesperson showed them. On 2094292708 the agent skipped three in a row and sent the one that went to the next step (mom co-signing). The showroom block says 'reference what they saw'; with nothing recorded the model got it by asking. Gil: and if the notes are thin? Now, on a showroom follow-up with no vehicle on file (_lpShowroomNoVehicle -- empty, 'not provided' or an Any/All placeholder): the prompt says never ask what they looked at, what they and the rep discussed, or to describe or remember the vehicle; if the visit notes record something else (co-signer, payment range, trade question, a decision they were weighing) pick up from that and offer the next step; if they record nothing useful, thank them for coming in, mention the rep by name and ask one forward-looking question about the customer. And the agent sees, after generation, 'No vehicle recorded for this showroom visit -- check with <rep> what they looked at before sending' (the rep name only when the field reads as a name and is not the agent; otherwise 'the salesperson'). NEW SUITE showroom-novehicle-768.test.js, 20 assertions across both builds, executing the shipped populateFromData; v9.7.767 fails 8 of 10 per build. VERIFIED: run-all 192 suites green, 7,537 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.767-dev.)
 // Lead Pro -- popup.js  v9.7.767-dev (Dev. A STALE AGENT LP COMMAND IS NOT FORCED INTO THE TEXT. Extension only; proxy v7.83, reporter v1.23 and dashboard v1.8 unchanged. Honda Lafayette lead 2049596846 (log288, 10/6): on 10/5 and 10/6 a text ended 'What's the oldest model year you'd consider? Value' -- a stray word before the signature -- and today's shipped 'so you get more value from your visit'. The source is a 7/14 agent note 'LP: value', 84 days old, with the customer replying since (8/29, 10/2). The main prompt already showed it as 'EARLIER AGENT NOTE (context only -- customer has replied since)', but the text rewrite (_lpBuildSmsRefinePrompt) never read the superseded flag and handed it over as 'WHAT THE AGENT TYPED BY HAND FOR THIS LEAD -- EVERY ONE OF THESE MUST APPEAR IN THE TEXT'. The first pass had no 'value'; the rewrite added it because it was told to. Now a command the customer has replied past is not passed to the rewrite at all (logged as '[LP SMS REFINE DIAG] agent LP command not forced into the text'); a current command still must appear, unchanged. Checked on the lead's real data from the 21:02 capture: 766's rewrite prompt carried '► value', 767's does not. ALSO REVIEWED, NO CHANGE: Audi Lafayette lead 2070719714 (log289) -- the customer texted STOP on 8/23 on this lead; an SMS is still drafted and the agent is told, per Gil's 9/23 ruling. NEW SUITE lp-superseded-767.test.js, 10 assertions across both builds; v9.7.766 fails 2 of 5 per build. VERIFIED: run-all 191 suites green, 7,517 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.766-dev.)
@@ -6257,7 +6258,7 @@ function populateFromData(d) {
     // (v9.7.769) Gil, 10/7: every be-back closes on a concrete offer. Honda Baytown lead 2094209825 (log291) picked up the
     // notes well -- finance details, wanted to think -- and then closed "What part of the decision would be most helpful to
     // revisit?", the same open shape as the thin-note leads. An open "what would help" question gives them nothing to say yes to.
-    extras.push('CLOSE WITH ONE CONCRETE OFFER they can answer yes or no -- the next step for what the notes say: the rep reworking the numbers (a different down payment or term) and sending a couple of options, the numbers on the vehicle they liked so they can review at home, a second look, a trade appraisal. NOT an open question ("what would help", "what part of the decision", "what would you like to revisit", "what matters most"). One question in the whole message.');
+    extras.push('CLOSE WITH ONE CONCRETE OFFER they can answer yes or no -- the next step for what the notes say: the rep reworking the numbers (a different down payment or term) and sending a couple of options, the numbers on the vehicle they liked so they can review at home, a second look, a trade appraisal. NOT an open question ("what would help", "what part of the decision", "what would you like to revisit", "what matters most"). One question in the whole message. State the offer once, as that question -- do not promise it in one sentence and then ask it again in the next.');
     extras.push('TONE: Warm, specific, low-pressure. The customer already came in — that\'s proof of real interest. Treat them accordingly. The goal is removing whatever kept them from saying yes, not re-selling the vehicle from scratch.');
     extras.push('VISIT PROGRESS: The line(s) below describe how far the customer got during the visit, already decoded into plain English. Use this to shape tone and angle — if they saw real numbers, their hesitation is about price or deal structure, so write a deal-focused follow-up rather than re-pitching the vehicle. NEVER restate this progress description literally to the customer (do not write "I see you reached the write-up" or "a manager was involved"); let it inform what you write, not what you say.');
     extras.push('READING VISIT NOTES: Visit notes are written by sales managers and vary in quality. Treat the decoded summary below as the authoritative account of what happened — even one sentence changes the tone. A customer who left ungreeted needs an apology-adjacent acknowledgment; a customer who test drove and saw numbers needs a deal-focused follow-up, not a vehicle pitch.');
@@ -15107,6 +15108,41 @@ function _lpScraperBotAuthor(msg) {
       var customerOnlyText = concernScanLines.filter(function(line){
         return line.indexOf('[CUSTOMER]') !== -1;
       }).join(' ');
+      // (v9.7.770) A CONCERN THE SHOWROOM VISIT ALREADY DEALT WITH IS NOT A PLAN FOR THE NEXT VISIT.
+      // Lead 2082889754 (10/7): "I plan on coming with 2,000 down and a cosigner" was sent the night
+      // BEFORE the visit. She came in, could not make the payment work, and then wrote that she has
+      // to keep looking. CO-SIGNER NEEDED still told the model to say "We will need both of you here
+      // to finalize everything", and it did -- to a customer who had just walked. FINANCING CONCERN
+      // likewise still said the visit is the easiest way to get real numbers, after she had seen them.
+      // Both scripts are for a customer who has not been in yet. When every line that triggers one
+      // predates the newest showroom visit, the post-visit wording replaces it. A mention AFTER the
+      // visit (or an undated one) keeps the original, unchanged.
+      var _lpConcernVisitMs = 0;
+      try {
+        for (var cvi = 0; cvi < noteEls.length; cvi++) {
+          var cvTitle = ((noteEls[cvi].querySelector('.legacy-notes-and-history-title')||{}).innerText||'');
+          if (!/showroom\s*visit/i.test(cvTitle)) continue;
+          var cvDate = ((noteEls[cvi].querySelector('.notes-and-hsitory-item-date')||{}).innerText||'').trim();
+          var cvMs = cvDate ? new Date(cvDate).getTime() : 0;
+          if (cvMs > _lpConcernVisitMs) _lpConcernVisitMs = cvMs;
+        }
+      } catch (eCv) {}
+      function _lpPreVisitOnly(rx, customerOnly) {
+        if (!(_lpConcernVisitMs > 0)) return false;
+        var hit = false, after = false;
+        try {
+          (customerOnly ? concernScanLines.filter(function (l) { return String(l).indexOf('[CUSTOMER]') !== -1; }) : _lpConcernLines)
+            .forEach(function (line) {
+              var s = String(line).replace(_lpSrcNoise, ' ');
+              if (!rx.test(s)) return;
+              hit = true;
+              var dm = s.match(/^\[(\d{1,2}\/\d{1,2}\/\d{2,4}[^\]]*)\]/);
+              var ms = dm ? new Date(dm[1]).getTime() : 0;
+              if (!(ms > 0) || ms > _lpConcernVisitMs) after = true;
+            });
+        } catch (ePv) { return false; }
+        return hit && !after;
+      }
 
       // (c) TWO FALSE NEGATIVES FOUND BY WRITING THE TEST, not by a report. `can.t afford` used a
       // single-character wildcard, so it matched "can't" and "cant" but never "cannot"; `what.s
@@ -15516,14 +15552,26 @@ function _lpScraperBotAuthor(msg) {
       if(_tradeSaid && !_tradeDeclined){
         customerConcerns.push('TRADE-IN CONCERN: Customer mentioned their trade-in. This is THE hook -- lead with it in BOTH the SMS and email. Do not bury it. Do not default to a generic vehicle check-in. Example SMS opener: "Angel, still want to get your trade appraised -- took 10 min to pull values, just need to confirm before I send."');
       }
-      if(/\bcredit\b|financing|pre.?approv|interest rate|down payment|how much down/i.test(allTranscriptText)){
-        customerConcerns.push('FINANCING CONCERN: Customer raised credit or financing. Acknowledge that the visit is the easiest way to get real numbers - keep it low pressure.');
+      var _finRx = /\bcredit\b|financing|pre.?approv|interest rate|down payment|how much down/i;
+      if(_finRx.test(allTranscriptText)){
+        if (typeof _lpPreVisitOnly === 'function' && _lpPreVisitOnly(_finRx, false)) {
+          customerConcerns.push('FINANCING (raised before the visit): credit or financing came up before they came in, and they have since been through it at the visit. Do NOT tell them a visit is the way to get real numbers. If the notes say the numbers did not work, the next step is the rep reworking them (a different down payment, a longer term, or a lower-priced vehicle). Never state a credit result.');
+          try { _lpD('[LP CONCERN VISIT DIAG] FINANCING CONCERN replaced -- every mention predates the showroom visit'); } catch (eDf) {}
+        } else {
+          customerConcerns.push('FINANCING CONCERN: Customer raised credit or financing. Acknowledge that the visit is the easiest way to get real numbers - keep it low pressure.');
+        }
       }
       if(/don.t have (good|great|perfect|the best)? credit|bad credit|no credit|poor credit|credit (is|isn.t|aint)|low credit score|been denied|got denied|bankruptcy|\brepo\b|repossess|it is what it is.*credit/i.test(customerOnlyText)){
         customerConcerns.push('CREDIT CHALLENGE DISCLOSED: Customer explicitly stated they have credit difficulties. Handle with empathy - NEVER say "no problem" or "we work with all credit" (sounds dismissive). Say: "We work through situations like this every day - let us look at the options together." Position the visit as where real answers happen, not a pre-approval guarantee.');
       }
-      if(/co.?sign|cosign|co.?buyer|adding.*someone|need.*someone.*on.*loan|second.*person.*sign/i.test(customerOnlyText)){
-        customerConcerns.push('CO-SIGNER NEEDED: Customer mentioned needing a co-signer or co-buyer. Both people must be present at signing. Invite both in together - do not push solo visit. Say: \'We will need both of you here to finalize everything.\'');
+      var _coRx = /co.?sign|cosign|co.?buyer|adding.*someone|need.*someone.*on.*loan|second.*person.*sign/i;
+      if(_coRx.test(customerOnlyText)){
+        if (typeof _lpPreVisitOnly === 'function' && _lpPreVisitOnly(_coRx, true)) {
+          customerConcerns.push('CO-SIGNER (mentioned before the visit): they said before coming in that they would bring a co-signer; they have since been in. Do NOT tell them both people need to be here to finalize, and do not build the message around the co-signer. Mention the co-signer only if the visit notes make it part of the next step.');
+          try { _lpD('[LP CONCERN VISIT DIAG] CO-SIGNER NEEDED replaced -- every mention predates the showroom visit'); } catch (eDc) {}
+        } else {
+          customerConcerns.push('CO-SIGNER NEEDED: Customer mentioned needing a co-signer or co-buyer. Both people must be present at signing. Invite both in together - do not push solo visit. Say: \'We will need both of you here to finalize everything.\'');
+        }
       }
 
       // -- Friction type: Spouse/partner approval needed ------------
@@ -21298,7 +21346,7 @@ function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
     if (d && d.isShowroomFollowUp) {   // every be-back, vehicle on file or not (Gil, 10/7)
       out.push('\u2501\u2501\u2501 ONE CONCRETE OFFER \u2501\u2501\u2501');
       out.push('This follows up an in-store visit. The text closes on ONE concrete offer they can answer yes or no -- keep the first '
-        + 'draft\'s. Do not turn it into an open question ("what would help", "what part of the decision") and do not add a second question.');
+        + 'draft\'s. Do not turn it into an open question ("what would help", "what part of the decision") and do not add a second question. Say the offer once: if an earlier sentence already promises what the question offers, cut the promise.');
       out.push('');
     }
   } catch (eRfSq) {}
