@@ -5,6 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LeadPro Dashboard — Community Auto Group</title>
 <!--
+  v1.9 — AGENTS. Gil, 10/8: per-agent numbers, on this page rather than the reporter ("it has more real estate"). A
+  Quality | Agents switch in the header; the Agents view reads GET /agents (proxy v7.84) for the selected range, capped
+  at 14 days because perf: rows live 14 days. One row per person who pressed Generate -- credited by their LICENSE,
+  not by the lead's BD Agent field, so a director testing on a rep's lead is not scored as that rep. Columns: build
+  (amber when behind the newest seen), drafts, leads, active hours and pace, median draft time, failures, then the same
+  shipped / first-try / no-copy / unused / thumbs this page uses everywhere, regens and chips per session with the
+  chips used, and the first-touch / follow-up / showroom mix. An older proxy (no /agents) gets a plain message, not
+  an empty table. Requires proxy v7.84 for the Agents view only; the Quality view is unchanged.
+
   v1.8 — NO KEY IN THIS FILE. The director key was written into this page's source ("internal, non-public" -- but
   the repo is public with Pages on, and the deployed page itself ships its source to anyone with the link). Anyone
   holding it could read feedback and perf, list licenses and mint new ones. The page now asks for the key once,
@@ -166,6 +175,7 @@
   .loading-pulse { animation: pulse 1.4s ease infinite; }
 
   .wrap { max-width: 980px; margin: 0 auto; }
+  .wrap.wide { max-width: 1480px; }   /* (v1.9) the Agents table uses the room */
 
   /* Header */
   .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 28px; flex-wrap: wrap; gap: 16px; }
@@ -231,6 +241,13 @@
   .flag-rate { font-size: 18px; font-weight: 600; font-family: var(--mono); line-height: 1; }
   .flag-meta { font-size: 10px; color: var(--muted); margin-top: 3px; }
 
+  /* (v1.9) Agents view */
+  .view-btns { display: flex; gap: 6px; margin-bottom: 8px; justify-content: flex-end; }
+  .tbl-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .tbl.agents td, .tbl.agents th { white-space: nowrap; }
+  .agent-sub { font-size: 10px; color: var(--muted); margin-top: 2px; white-space: normal; max-width: 260px; }
+  .behind { color: #fbbf24; font-weight: 600; }
+
   /* Two col layout */
   .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
@@ -279,7 +296,7 @@ const PROXY = 'https://leadpro-proxy.gilsguzman.workers.dev';
 // This is the cheapest possible instrument: a version in the footer, asserted by the suite to
 // match the newest vN.N block in this header, so bumping one without the other fails a test
 // rather than shipping a page that misreports its own age.
-const DASH_VERSION = 'v1.8';
+const DASH_VERSION = 'v1.9';
 
 // (v1.8) The proxy's /feedback/* GET endpoints require a director key (worker v7.30, W3). It is NOT written in
 // this file: asked for once, kept in this browser only, re-asked on a 403. See the v1.8 header.
@@ -403,6 +420,29 @@ async function fetchRange(from, to) {
   if (!res.ok) throw new Error(res.status === 403 ? 'HTTP 403 — director key refused' : `HTTP ${res.status}`);
   return res.json();
 }
+
+// (v1.9) The per-agent breakdown. Same key handling as fetchRange; a 404 means the proxy predates v7.84.
+async function fetchAgents(from, to) {
+  const url = `${PROXY}/agents?from=${from}&to=${to}`;
+  let res = await fetch(url, { headers: { 'X-LP-Key': directorKey(false) } });
+  if (res.status === 403) {
+    const k = directorKey(true);
+    if (k) res = await fetch(url, { headers: { 'X-LP-Key': k } });
+  }
+  if (res.status === 404) throw new Error('The Agents view needs proxy v7.84 or newer — deploy it and reload.');
+  if (!res.ok) throw new Error(res.status === 403 ? 'HTTP 403 — director key refused' : `HTTP ${res.status}`);
+  const d = await res.json();
+  if (!d || !d.agents) throw new Error('The Agents view needs proxy v7.84 or newer — deploy it and reload.');
+  return d;
+}
+// (v1.9) "9.7.774" vs "9.7.772-dev": compare the numbers, ignore the -dev label.
+function buildNum(v) { return String(v || '').replace(/-.*$/, '').split('.').map(n => +n || 0); }
+function buildCmp(a, b) { const x = buildNum(a), y = buildNum(b); for (let i = 0; i < Math.max(x.length, y.length); i++) { const d = (x[i] || 0) - (y[i] || 0); if (d) return d; } return 0; }
+function ctTime(iso) {
+  if (!iso) return DASH;
+  return new Intl.DateTimeFormat('en-US', { timeZone: 'America/Chicago', hour: 'numeric', minute: '2-digit' }).format(new Date(iso));
+}
+function topN(map, n) { return Object.entries(map || {}).sort((a, b) => b[1] - a[1]).slice(0, n); }
 
 // ── (v1.4) WHAT LEAD PRO IS HOLDING ──────────────────────────────────────────────────────
 // Keep in step with the Data Tool's store <select>. A sixth rooftop is one line here.
@@ -594,8 +634,85 @@ function StoreBar({ name, data }) {
   );
 }
 
+// ── (v1.9) Agents ──
+function AgentsView({ ri }) {
+  const [d, setD] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const load = useCallback(async (idx) => {
+    setLoading(true); setError(null);
+    try {
+      const days = Math.min(RANGES[idx].days, 13);   // perf: rows live 14 days
+      setD(await fetchAgents(fmtDate(days), fmtDate(0)));
+    } catch (e) { setError(e.message); setD(null); }
+    finally { setLoading(false); }
+  }, []);
+  useEffect(() => { load(ri); }, [ri]);
+  if (loading) return h('div', { style: { textAlign:'center', padding:60, color:'#4b5563', fontSize:13 }, className:'loading-pulse' }, 'Loading agent activity…');
+  if (error) return h('div', { className: 'error-box' }, 'Error: ' + error);
+  if (!d) return null;
+  const rows = Object.entries(d.agents || {})
+    .sort((a, b) => (a[0] === 'Unattributed') - (b[0] === 'Unattributed') || (b[1].drafts - a[1].drafts) || (b[1].total - a[1].total));
+  const newest = rows.map(([, a]) => a.latestBuild).filter(v => v && !/-dev$/.test(v)).sort(buildCmp).pop() || null;
+  const at = d.attribution || {};
+  const capped = RANGES[ri].days > 13;
+  return h(Fragment, null,
+    h('div', { className: 'card fade-up', style: { marginBottom: 12 } },
+      h('div', { className: 'section-title' }, 'By Agent · ' + (d.from || '').slice(5) + (d.to && d.to !== d.from ? ' → ' + d.to.slice(5) : '') + (capped ? ' · capped to 14 days' : '')),
+      rows.length === 0 ? h('div', { style: { color: '#4b5563', fontSize: 12 } }, 'No activity in this range yet.') :
+      h('div', { className: 'tbl-scroll' },
+        h('table', { className: 'tbl agents' },
+          h('thead', null, h('tr', null,
+            ['Agent', 'Build', 'Drafts', 'Leads', 'Active hrs', 'Per hr', 'Draft time', 'Shipped', 'First try', 'No-copy', 'Unused', '👍 / 👎', 'Regens', 'Chips', 'Mix FT / FU / SR', 'Failures']
+              .map((t, i) => h('th', { key: t, className: i > 1 ? 'right' : '' }, t))
+          )),
+          h('tbody', null, rows.map(([name, a]) => {
+            const ship = shippedRateOf(a), ft = firstTryRateOf(a);
+            const behind = newest && a.latestBuild && !/-dev$/.test(a.latestBuild) && buildCmp(a.latestBuild, newest) < 0;
+            const builds = Object.keys(a.builds || {});
+            const chips = topN(a.chipFreq, 3).map(([c, n]) => c + ' ' + n).join(', ');
+            const stores = topN(a.stores, 2).map(([s2]) => s2.replace('Community ', '')).join(', ');
+            const mix = a.mix || {};
+            return h('tr', { key: name },
+              h('td', null, h('div', { style: { fontWeight: 600 } }, name),
+                h('div', { className: 'agent-sub' }, (a.firstAt ? ctTime(a.firstAt) + '–' + ctTime(a.latestAt) : 'no drafts in range') + (stores ? ' · ' + stores : ''))),
+              h('td', { className: 'mono' + (behind ? ' behind' : ''), title: builds.length > 1 ? 'Also used: ' + builds.join(', ') : '' },
+                (a.latestBuild || DASH) + (builds.length > 1 ? ' +' + (builds.length - 1) : '')),
+              h('td', { className: 'right mono' }, a.drafts),
+              h('td', { className: 'right mono' }, a.leads),
+              h('td', { className: 'right mono' }, a.activeHours),
+              h('td', { className: 'right mono' }, a.perActiveHour),
+              h('td', { className: 'right mono' }, a.medianDraftMs == null ? DASH : (a.medianDraftMs / 1000).toFixed(1) + 's'),
+              h('td', { className: 'right mono', style: { color: ship === null ? '#4b5563' : posColor(ship), fontWeight: 600 } }, pct(ship)),
+              h('td', { className: 'right mono' }, pct(ft)),
+              h('td', { className: 'right mono', style: { color: implicitDownOf(a) > 0 ? '#fbbf24' : '#4b5563' } }, implicitDownOf(a) || DASH),
+              h('td', { className: 'right mono', style: { color: (a.abandoned || 0) > 0 ? '#94a3b8' : '#4b5563' } }, a.abandoned || DASH),
+              h('td', { className: 'right mono' }, explicitUpOf(a) + ' / ' + explicitDownOf(a)),
+              h('td', { className: 'right mono', style: { color: a.avgRegens > 0.3 ? '#fbbf24' : '#94a3b8' } }, a.avgRegens),
+              h('td', { className: 'right mono', title: chips }, a.avgChips + (chips ? ' · ' + chips : '')),
+              h('td', { className: 'right mono' }, (mix.firstTouch || 0) + ' / ' + (mix.followUp || 0) + ' / ' + (mix.showroom || 0)),
+              h('td', { className: 'right mono', style: { color: a.failures > 0 ? '#f87171' : '#4b5563' } }, a.failures || DASH)
+            );
+          }))
+        )
+      )
+    ),
+    h('div', { className: 'disclosure' },
+      'Credited to the person who pressed Generate (their Lead Pro license), not the lead\'s BD Agent. ',
+      (at.feedback || 0).toLocaleString() + ' feedback sessions: ' + (at.joined || 0) + ' matched to their generation, ' +
+      (at.byUser || 0) + ' by license, ' + (at.unattributed || 0) + ' unattributed. ',
+      'Drafts, hours, draft time and failures count generate calls; shipped, first try, no-copy (regenerated or chipped, then not sent), ',
+      'unused (produced, never used) and thumbs count sessions. Mix: first touch / follow-up / showroom. Build in amber: behind the newest in use.'
+    ),
+    h('div', { style:{textAlign:'center',fontSize:10,color:'#374151',paddingTop:8,fontFamily:'IBM Plex Mono,monospace'} },
+      'LeadPro · Community Auto Group · Data via leadpro-proxy KV · dashboard ' + DASH_VERSION)
+  );
+}
+
 // ── Main ──
 function App() {
+  const [view, setView] = useState(() => { try { return localStorage.getItem('lp_dash_view') || 'quality'; } catch (e) { return 'quality'; } });
+  const pickView = (v) => { setView(v); try { localStorage.setItem('lp_dash_view', v); } catch (e) {} };
   const [ri, setRi] = useState(1);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -657,7 +774,7 @@ function App() {
   const implicitUp   = implicitUpOf(data);
   const implicitDown = implicitDownOf(data);
 
-  return h('div', { className: 'wrap' },
+  return h('div', { className: 'wrap' + (view === 'agents' ? ' wide' : '') },
 
     // Header
     h('div', { className: 'header fade-up' },
@@ -667,12 +784,17 @@ function App() {
         h('div', { className: 'sub' }, 'Response Quality · Live KV Data')
       ),
       h('div', null,
+        h('div', { className: 'view-btns' },
+          [['quality', 'Quality'], ['agents', 'Agents']].map(([k, l]) => h('button', {
+            key: k, onClick: () => pickView(k), className: 'range-btn' + (view === k ? ' active' : ''),
+          }, l))
+        ),
         h('div', { className: 'range-btns' },
           RANGES.map((r,i) => h('button', {
             key: i, onClick: () => setRi(i),
             className: 'range-btn' + (ri === i ? ' active' : ''),
           }, r.label)),
-          h('button', { className: 'refresh-btn', onClick: () => load(ri) }, '↻')
+          view === 'quality' && h('button', { className: 'refresh-btn', onClick: () => load(ri) }, '↻')
         ),
         ts && h('div', { className: 'refresh-time' }, 'Updated ' + ts.toLocaleTimeString())
       )
@@ -681,12 +803,14 @@ function App() {
     // (v1.4) OUTSIDE the `data && !loading` block on purpose. This panel answers a different
     // question from a different endpoint, and it must still answer it when /feedback/* is erroring
     // or the director key has rotated — the exact moment someone needs to ask what is published.
-    h(LiveIncentives),
+    view === 'agents' && h(AgentsView, { ri }),
 
-    loading && h('div', { style: { textAlign:'center', padding:60, color:'#4b5563', fontSize:13 }, className:'loading-pulse' }, 'Loading feedback data…'),
-    error && h('div', { className: 'error-box' }, 'Error: ' + error),
+    view === 'quality' && h(LiveIncentives),
 
-    data && !loading && h(Fragment, null,
+    view === 'quality' && loading && h('div', { style: { textAlign:'center', padding:60, color:'#4b5563', fontSize:13 }, className:'loading-pulse' }, 'Loading feedback data…'),
+    view === 'quality' && error && h('div', { className: 'error-box' }, 'Error: ' + error),
+
+    view === 'quality' && data && !loading && h(Fragment, null,
 
       // Stats row 1
       h('div', { className: 'stats-grid fade-up fade-up-1' },
