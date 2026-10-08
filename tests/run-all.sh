@@ -8,7 +8,7 @@ cd "$(dirname "$0")/.."
 
 DEV=builds/dev/popup.js
 COMM=builds/commercial/popup.js
-PROXY=${1:-worker/cloudflare-worker-v7.85.js}
+PROXY=${1:-worker/cloudflare-worker-v7.86.js}
 REPORTER=${2:-worker/leadpro-reporter-v1.23.js}
 DASH=$(ls dashboard*.html dashboard/*.html 2>/dev/null | head -1)
 
@@ -89,6 +89,7 @@ run worker-v782.test.js              "$PROXY"
 run worker-v783.test.js              "$PROXY"
 run worker-v784.test.js              "$PROXY"
 run worker-v785.test.js              "$PROXY"
+run worker-v786.test.js              "$PROXY"
 run dashboard-explicit-down.test.js  "$PROXY"
 run feedback-export-join.test.js     "$PROXY"
 run degenerate-samples.test.js       "$PROXY"
@@ -102,6 +103,7 @@ run reporter-ct-failures.test.js     "$REPORTER"
 [ -n "${DASH:-}" ] && run dashboard-key-v18.test.js "$DASH"
 [ -n "${DASH:-}" ] && run dashboard-agents-v19.test.js "$DASH"
 [ -n "${DASH:-}" ] && run dashboard-agents-v110.test.js "$DASH"
+[ -n "${DASH:-}" ] && run dashboard-quality-v111.test.js "$DASH" "$PROXY"
 run feedback-gatherer-v15.test.js tools/feedback-gatherer/index.html
 run record-first-tools.test.js
 

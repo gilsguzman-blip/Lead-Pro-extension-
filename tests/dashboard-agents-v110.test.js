@@ -65,7 +65,7 @@ const D2 = { attribution: { feedback: 2, joined: 1, byUser: 1, unattributed: 0 }
     const old = { agents: { 'Agent Name': day({ total: 2, up: 2, leads: 2, avgRegens: 0.5, drafts: 4 }) } };
     const x = ctx.mergeAgentDays([old, old]).agents['Agent Name']; return [x.leads, x.avgRegens, x.drafts]; }, [4, 0.5, 8]);
   check('the view fans out one day per request, four at a time, and names a failed day', () =>
-    [/await pool\(dates, 4, \(dt\) => fetchAgents\(dt, dt\)\)/.test(html), /'Could not load ' \+ failed\.map/.test(html), /const DASH_VERSION = 'v1\.10';/.test(html)], [true, true, true]);
+    [/await pool\(dates, 4, \(dt\) => fetchAgents\(dt, dt\)\)/.test(html), /'Could not load ' \+ failed\.map/.test(html), /\n  v1\.10 — THE AGENTS VIEW ASKS ONE DAY AT A TIME\./.test(html)], [true, true, true]);
   console.log('\n' + (fail ? 'FAILED' : 'PASSED') + ' — ' + pass + ' passed, ' + fail + ' failed');
   process.exit(fail ? 1 : 0);
 })();

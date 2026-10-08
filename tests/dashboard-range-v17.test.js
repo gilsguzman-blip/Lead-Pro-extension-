@@ -22,6 +22,9 @@ const a = html.indexOf('async function fetchRange('), b = html.indexOf('\n}\n', 
     fetch: async (u) => { urls.push(String(u)); return { ok: true, json: async () => ({}) }; } };
   vm.createContext(sb);
   vm.runInContext(html.slice(a, b + 2), sb);
+  // (v1.11) fetchRange goes through the shared fetchJSON; load it alongside when the page has it
+  const fj = html.indexOf('async function fetchJSON(');
+  if (fj > -1) vm.runInContext(html.slice(fj, html.indexOf('\n}\n', fj) + 2), sb);
   await vm.runInContext('fetchRange("2026-10-02", "2026-10-02")', sb);
   check('Today asks for one Central day: from=2026-10-02&to=2026-10-02 (was to=2026-10-03)', /from=2026-10-02&to=2026-10-02(?:&|$)/.test(urls[0] || ''), true);
   await vm.runInContext('fetchRange("2026-09-26", "2026-10-02")', sb);

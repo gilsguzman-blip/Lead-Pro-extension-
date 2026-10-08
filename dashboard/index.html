@@ -5,6 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LeadPro Dashboard — Community Auto Group</title>
 <!--
+  v1.11 — THE QUALITY VIEW ASKS ONE DAY AT A TIME TOO, AND AN ERROR SAYS WHAT WENT WRONG. Gil, 10/8: "fix the 30 day
+  view also." The 30-day Quality range was one /feedback/range call over a month of rows and failed at ~29 s. Ranges
+  longer than a day now ask for each Central day (four at a time) and add them up here, the same way the Agents view
+  does since v1.10: ratings, signals, thumbs and every bucket's counts are summed, rates are re-derived from the sums
+  by the page's own readers, the per-day trend is the days side by side, and regens/chips per session are weighted by
+  each day's sessions. Proxy v7.86 stores a finished day, so after one load a 30-day view is 29 stored days and today.
+  A day that fails is named; the rest render. AND THE ERROR BOX NOW CARRIES THE WORKER'S OWN MESSAGE: the 10/8 Agents
+  failures showed only "Error: HTTP 500" although the worker returns the reason in the body, and the error state
+  dropped the version footer, so a stale page and a live failure looked identical. Both fixed: every request reads the
+  body's error into the message, and the error box ends with the dashboard version.
+
   v1.10 — THE AGENTS VIEW ASKS ONE DAY AT A TIME. 10/8, first live loads: Today worked, 7 days and 14 days gave
   "Error: HTTP 500". One request for the range read every perf: row (~1,000 a day) and every feedback row in it --
   past what one worker request can do (the 30-day Quality range already fails the same way at 29 s). Now the page asks
@@ -305,7 +316,7 @@ const PROXY = 'https://leadpro-proxy.gilsguzman.workers.dev';
 // This is the cheapest possible instrument: a version in the footer, asserted by the suite to
 // match the newest vN.N block in this header, so bumping one without the other fails a test
 // rather than shipping a page that misreports its own age.
-const DASH_VERSION = 'v1.10';
+const DASH_VERSION = 'v1.11';
 
 // (v1.8) The proxy's /feedback/* GET endpoints require a director key (worker v7.30, W3). It is NOT written in
 // this file: asked for once, kept in this browser only, re-asked on a 403. See the v1.8 header.
@@ -417,31 +428,91 @@ function fmtDate(n) {
 }
 function posColor(r) { return r >= 90 ? '#34d399' : r >= 75 ? '#fbbf24' : '#f87171'; }
 
-async function fetchRange(from, to) {
-  // (v1.7) Sent as asked: the worker's days are Central days since v7.77, so no extra day (see header).
-  // (v1.8) The key goes in the X-LP-Key header, not the URL, and is never written in this file.
-  const url = `${PROXY}/feedback/range?from=${from}&to=${to}`;
+// (v1.11) One GET for every director endpoint: the key in X-LP-Key, a re-ask on 403, and on failure the worker's own
+// error message in the thrown Error instead of a bare status.
+async function fetchJSON(url) {
   let res = await fetch(url, { headers: { 'X-LP-Key': directorKey(false) } });
   if (res.status === 403) {
     const k = directorKey(true);
     if (k) res = await fetch(url, { headers: { 'X-LP-Key': k } });
   }
-  if (!res.ok) throw new Error(res.status === 403 ? 'HTTP 403 — director key refused' : `HTTP ${res.status}`);
+  if (!res.ok) {
+    let msg = '';
+    try { const b = await res.json(); msg = (b && b.error) ? String(b.error) : ''; } catch (e) {}
+    const err = new Error(res.status === 403 ? 'HTTP 403 — director key refused' : `HTTP ${res.status}` + (msg ? ' — ' + msg : ''));
+    err.status = res.status;
+    throw err;
+  }
   return res.json();
+}
+// (v1.11) Ranges longer than a day: one /feedback/range call per Central day, added up here.
+async function fetchRangeByDay(nDays) {
+  const dates = rangeDays(nDays);
+  directorKey(false);
+  const res = await pool(dates, 4, (dt) => fetchRange(dt, dt));
+  const ok = res.filter(r => r.ok).map(r => r.value);
+  if (!ok.length) throw (res[0] && res[0].error) || new Error('no data');
+  const merged = mergeRangeDays(ok);
+  merged.dates = dates;
+  merged.from = dates[0]; merged.to = dates[dates.length - 1];
+  merged.failedDays = dates.filter((dt, i) => !res[i].ok);
+  return merged;
+}
+// (v1.11) Add per-day /feedback/range results. Counts sum; rate fields are dropped so the page's readers re-derive
+// them from the summed counts (never an average of percentages).
+const BUCKET_COUNTS = ['up', 'weak_up', 'neutral', 'down', 'abandoned', 'incomplete', 'explicitUp', 'explicitDown', 'implicitDown', 'total'];
+function mergeBuckets(into, from) {
+  for (const [name, b] of Object.entries(from || {})) {
+    const m = into[name] || (into[name] = {});
+    for (const k of BUCKET_COUNTS) m[k] = (m[k] || 0) + (b[k] || 0);
+  }
+  return into;
+}
+function finishBucket(m) {
+  m.shipped = (m.up || 0) + (m.weak_up || 0) + (m.neutral || 0);
+  m.firstTry = (m.up || 0) + (m.weak_up || 0);
+  m.engaged = (m.total || 0) - (m.abandoned || 0) - (m.incomplete || 0);
+  return m;
+}
+function mergeRangeDays(days) {
+  const out = { byDay: {}, ratings: {}, signals: {}, byStore: {}, byPersona: {}, byLeadSource: {}, byFlag: {},
+                total: 0, explicitUp: 0, explicitDown: 0, implicitUp: 0, implicitDown: 0, _regens: 0, _chips: 0 };
+  for (const d of days) {
+    if (!d) continue;
+    Object.assign(out.byDay, d.byDay || {});
+    out.total += d.total || 0;
+    for (const k of ['explicitUp', 'explicitDown', 'implicitUp', 'implicitDown']) out[k] += d[k] || 0;
+    for (const [k, v] of Object.entries(d.ratings || {})) out.ratings[k] = (out.ratings[k] || 0) + v;
+    for (const [k, v] of Object.entries(d.signals || {})) out.signals[k] = (out.signals[k] || 0) + v;
+    for (const b of ['byStore', 'byPersona', 'byLeadSource', 'byFlag']) mergeBuckets(out[b], d[b]);
+    out._regens += (d.avgRegens || 0) * (d.total || 0);
+    out._chips  += (d.avgChips  || 0) * (d.total || 0);
+  }
+  for (const b of ['byStore', 'byPersona', 'byLeadSource', 'byFlag']) for (const k of Object.keys(out[b])) finishBucket(out[b][k]);
+  const r = out.ratings;
+  Object.assign(out, finishBucket({ up: r.up || 0, weak_up: r.weak_up || 0, neutral: r.neutral || 0, down: r.down || 0,
+    abandoned: r.abandoned || 0, incomplete: r.incomplete || 0, total: out.total }));
+  out.produced = out.total - (r.incomplete || 0);
+  out.avgRegens = out.total ? +(out._regens / out.total).toFixed(2) : 0;
+  out.avgChips  = out.total ? +(out._chips  / out.total).toFixed(2) : 0;
+  delete out._regens; delete out._chips;
+  return out;
+}
+
+async function fetchRange(from, to) {
+  // (v1.7) Sent as asked: the worker's days are Central days since v7.77, so no extra day (see header).
+  // (v1.8) The key goes in the X-LP-Key header, not the URL, and is never written in this file.
+  // (v1.11) via fetchJSON, so a failure carries the worker's message
+  return fetchJSON(`${PROXY}/feedback/range?from=${from}&to=${to}`);
 }
 
 // (v1.9) The per-agent breakdown. Same key handling as fetchRange; a 404 means the proxy predates v7.84.
 async function fetchAgents(from, to) {
   // (v1.10) one Central day per request: from === to is sent as ?date=, which proxy v7.85 serves from its store once the day is over
   const url = from === to ? `${PROXY}/agents?date=${from}` : `${PROXY}/agents?from=${from}&to=${to}`;
-  let res = await fetch(url, { headers: { 'X-LP-Key': directorKey(false) } });
-  if (res.status === 403) {
-    const k = directorKey(true);
-    if (k) res = await fetch(url, { headers: { 'X-LP-Key': k } });
-  }
-  if (res.status === 404) throw new Error('The Agents view needs proxy v7.84 or newer — deploy it and reload.');
-  if (!res.ok) throw new Error(res.status === 403 ? 'HTTP 403 — director key refused' : `HTTP ${res.status}`);
-  const d = await res.json();
+  let d;
+  try { d = await fetchJSON(url); }
+  catch (e) { if (e.status === 404) throw new Error('The Agents view needs proxy v7.84 or newer — deploy it and reload.'); throw e; }
   if (!d || !d.agents) throw new Error('The Agents view needs proxy v7.84 or newer — deploy it and reload.');
   return d;
 }
@@ -723,7 +794,7 @@ function AgentsView({ ri }) {
   useEffect(() => { load(ri); }, [ri]);
   if (loading) return h('div', { style: { textAlign:'center', padding:60, color:'#4b5563', fontSize:13 }, className:'loading-pulse' },
     'Loading agent activity… ' + (RANGES[ri].days > 0 ? '(the first load of a range computes each day once; after that it is quick)' : ''));
-  if (error) return h('div', { className: 'error-box' }, 'Error: ' + error);
+  if (error) return h('div', { className: 'error-box' }, 'Error: ' + error + ' · dashboard ' + DASH_VERSION);
   if (!d) return null;
   const rows = Object.entries(d.agents || {})
     .sort((a, b) => (a[0] === 'Unattributed') - (b[0] === 'Unattributed') || (b[1].drafts - a[1].drafts) || (b[1].total - a[1].total));
@@ -798,9 +869,9 @@ function App() {
   const load = useCallback(async (idx) => {
     setLoading(true); setError(null);
     try {
-      const from = fmtDate(RANGES[idx].days);
-      const to   = fmtDate(0);
-      const d = await fetchRange(from, to);
+      // (v1.11) a single day is one call; anything longer is one call per day, added up (see header)
+      const n = RANGES[idx].days;
+      const d = n > 0 ? await fetchRangeByDay(n) : await fetchRange(fmtDate(0), fmtDate(0));
       setData(d); setTs(new Date());
     } catch(e) { setError(e.message); }
     finally { setLoading(false); }
@@ -882,8 +953,11 @@ function App() {
 
     view === 'quality' && h(LiveIncentives),
 
-    view === 'quality' && loading && h('div', { style: { textAlign:'center', padding:60, color:'#4b5563', fontSize:13 }, className:'loading-pulse' }, 'Loading feedback data…'),
-    view === 'quality' && error && h('div', { className: 'error-box' }, 'Error: ' + error),
+    view === 'quality' && loading && h('div', { style: { textAlign:'center', padding:60, color:'#4b5563', fontSize:13 }, className:'loading-pulse' },
+      'Loading feedback data… ' + (RANGES[ri].days > 0 ? '(the first load of a range computes each day once; after that it is quick)' : '')),
+    view === 'quality' && error && h('div', { className: 'error-box' }, 'Error: ' + error + ' · dashboard ' + DASH_VERSION),
+    view === 'quality' && data && !loading && data.failedDays && data.failedDays.length > 0 && h('div', { className: 'error-box' },
+      'Could not load ' + data.failedDays.map(x => x.slice(5)).join(', ') + ' — shown without ' + (data.failedDays.length > 1 ? 'those days' : 'that day') + '. Refresh to retry.'),
 
     view === 'quality' && data && !loading && h(Fragment, null,
 

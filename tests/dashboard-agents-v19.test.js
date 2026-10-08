@@ -34,7 +34,7 @@ const ctx = { PROXY: 'https://p.test', DASH: '—', calls, URL,
   directorKey: () => 'LP-TESTDIR3',
   fetch: (url, opts) => { calls.push({ url, opts }); return Promise.resolve({ status: reply.status, ok: reply.status < 400, json: () => Promise.resolve(reply.body) }); } };
 vm.createContext(ctx);
-for (const n of ['buildNum', 'buildCmp', 'topN', 'fetchAgents']) { const src = slice(n); if (src) vm.runInContext(src, ctx); }
+for (const n of ['buildNum', 'buildCmp', 'topN', 'fetchJSON', 'fetchAgents']) { const src = slice(n); if (src) vm.runInContext(src, ctx); }   // (v1.11) fetchAgents goes through fetchJSON
 (async () => {
   console.log('\n' + HTML + ' — dashboard v1.9, Agents');
   check('(new helper) builds compare by number and ignore -dev', () => [ctx.buildCmp('9.7.772', '9.7.774') < 0, ctx.buildCmp('9.7.774-dev', '9.7.774'), ctx.buildCmp('9.7.1000', '9.7.774') > 0], [true, 0, true]);
