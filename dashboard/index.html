@@ -5,6 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LeadPro Dashboard — Community Auto Group</title>
 <!--
+  v1.10 — THE AGENTS VIEW ASKS ONE DAY AT A TIME. 10/8, first live loads: Today worked, 7 days and 14 days gave
+  "Error: HTTP 500". One request for the range read every perf: row (~1,000 a day) and every feedback row in it --
+  past what one worker request can do (the 30-day Quality range already fails the same way at 29 s). Now the page asks
+  /agents for each Central day (four requests at a time) and adds them up here: counts are summed and every rate is
+  re-derived from the sums by the same readers the rest of the page uses; leads are de-duplicated across days by lead
+  id; draft time is a drafts-weighted average of each day's median. Proxy v7.85 stores a finished day after its first
+  computation, so after one load a 14-day view is thirteen stored days and today. A day that fails is named; the rest
+  still render. Works against proxy v7.84 too (no stored days, and leads summed rather than de-duplicated).
+
   v1.9 — AGENTS. Gil, 10/8: per-agent numbers, on this page rather than the reporter ("it has more real estate"). A
   Quality | Agents switch in the header; the Agents view reads GET /agents (proxy v7.84) for the selected range, capped
   at 14 days because perf: rows live 14 days. One row per person who pressed Generate -- credited by their LICENSE,
@@ -296,7 +305,7 @@ const PROXY = 'https://leadpro-proxy.gilsguzman.workers.dev';
 // This is the cheapest possible instrument: a version in the footer, asserted by the suite to
 // match the newest vN.N block in this header, so bumping one without the other fails a test
 // rather than shipping a page that misreports its own age.
-const DASH_VERSION = 'v1.9';
+const DASH_VERSION = 'v1.10';
 
 // (v1.8) The proxy's /feedback/* GET endpoints require a director key (worker v7.30, W3). It is NOT written in
 // this file: asked for once, kept in this browser only, re-asked on a 403. See the v1.8 header.
@@ -423,7 +432,8 @@ async function fetchRange(from, to) {
 
 // (v1.9) The per-agent breakdown. Same key handling as fetchRange; a 404 means the proxy predates v7.84.
 async function fetchAgents(from, to) {
-  const url = `${PROXY}/agents?from=${from}&to=${to}`;
+  // (v1.10) one Central day per request: from === to is sent as ?date=, which proxy v7.85 serves from its store once the day is over
+  const url = from === to ? `${PROXY}/agents?date=${from}` : `${PROXY}/agents?from=${from}&to=${to}`;
   let res = await fetch(url, { headers: { 'X-LP-Key': directorKey(false) } });
   if (res.status === 403) {
     const k = directorKey(true);
@@ -435,6 +445,61 @@ async function fetchAgents(from, to) {
   if (!d || !d.agents) throw new Error('The Agents view needs proxy v7.84 or newer — deploy it and reload.');
   return d;
 }
+// (v1.10) The Central days of a range, oldest first.
+function rangeDays(n) { const out = []; for (let i = n; i >= 0; i--) out.push(fmtDate(i)); return out; }
+// (v1.10) Add per-day /agents results. Counts sum; rates are NOT summed -- they are left off so shippedRateOf and
+// firstTryRateOf re-derive them from the summed counts. Leads de-duplicate by id when the proxy sends ids (v7.85+).
+const AGENT_COUNTS = ['up', 'weak_up', 'neutral', 'down', 'abandoned', 'incomplete', 'explicitUp', 'explicitDown', 'implicitDown', 'total',
+                      'drafts', 'failures', 'rewrites', 'activeHours'];
+function mergeAgentDays(days) {
+  const acc = {}, attribution = { feedback: 0, joined: 0, byUser: 0, unattributed: 0 };
+  for (const day of days) {
+    if (!day || !day.agents) continue;
+    for (const k of Object.keys(attribution)) attribution[k] += (day.attribution && day.attribution[k]) || 0;
+    for (const [name, a] of Object.entries(day.agents)) {
+      const m = acc[name] || (acc[name] = { builds: {}, chipFreq: {}, stores: {}, mix: { firstTouch: 0, followUp: 0, showroom: 0 },
+        latestBuild: null, latestAt: null, firstAt: null, _leadIds: new Set(), _leadsNoIds: 0, _regens: 0, _chips: 0, _msW: 0, _msN: 0 });
+      for (const k of AGENT_COUNTS) m[k] = (m[k] || 0) + (a[k] || 0);
+      for (const [k, v] of Object.entries(a.builds || {})) m.builds[k] = (m.builds[k] || 0) + v;
+      for (const [k, v] of Object.entries(a.chipFreq || {})) m.chipFreq[k] = (m.chipFreq[k] || 0) + v;
+      for (const [k, v] of Object.entries(a.stores || {})) m.stores[k] = (m.stores[k] || 0) + v;
+      for (const k of Object.keys(m.mix)) m.mix[k] += (a.mix && a.mix[k]) || 0;
+      if (a.latestAt && (!m.latestAt || a.latestAt > m.latestAt)) { m.latestAt = a.latestAt; m.latestBuild = a.latestBuild; }
+      if (a.firstAt && (!m.firstAt || a.firstAt < m.firstAt)) m.firstAt = a.firstAt;
+      if (Array.isArray(a.leadIds)) a.leadIds.forEach(id => m._leadIds.add(id)); else m._leadsNoIds += a.leads || 0;
+      m._regens += typeof a.regens === 'number' ? a.regens : (a.avgRegens || 0) * (a.total || 0);
+      m._chips  += typeof a.chips  === 'number' ? a.chips  : (a.avgChips  || 0) * (a.total || 0);
+      const n = typeof a.draftMsCount === 'number' ? a.draftMsCount : (a.drafts || 0);
+      if (a.medianDraftMs != null && n) { m._msW += a.medianDraftMs * n; m._msN += n; }
+    }
+  }
+  const agents = {};
+  for (const [name, m] of Object.entries(acc)) {
+    const shipped = m.up + m.weak_up + m.neutral, firstTry = m.up + m.weak_up;
+    agents[name] = {
+      drafts: m.drafts, failures: m.failures, rewrites: m.rewrites, builds: m.builds, latestBuild: m.latestBuild,
+      firstAt: m.firstAt, latestAt: m.latestAt, activeHours: m.activeHours,
+      perActiveHour: m.activeHours ? +(m.drafts / m.activeHours).toFixed(1) : 0,
+      medianDraftMs: m._msN ? Math.round(m._msW / m._msN) : null,
+      leads: m._leadIds.size + m._leadsNoIds,
+      avgRegens: m.total ? +(m._regens / m.total).toFixed(2) : 0,
+      avgChips:  m.total ? +(m._chips  / m.total).toFixed(2) : 0,
+      chipFreq: m.chipFreq, stores: m.stores, mix: m.mix,
+      up: m.up, weak_up: m.weak_up, neutral: m.neutral, down: m.down, abandoned: m.abandoned, incomplete: m.incomplete,
+      explicitUp: m.explicitUp, explicitDown: m.explicitDown, implicitDown: m.implicitDown, total: m.total,
+      shipped, firstTry, engaged: m.total - m.abandoned - m.incomplete,
+    };
+  }
+  return { agents, attribution };
+}
+// (v1.10) Run fn over items, at most `limit` at a time; each result is { ok, value | error }.
+async function pool(items, limit, fn) {
+  const out = new Array(items.length); let next = 0;
+  async function worker() { while (next < items.length) { const i = next++; try { out[i] = { ok: true, value: await fn(items[i]) }; } catch (e) { out[i] = { ok: false, error: e }; } } }
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return out;
+}
+
 // (v1.9) "9.7.774" vs "9.7.772-dev": compare the numbers, ignore the -dev label.
 function buildNum(v) { return String(v || '').replace(/-.*$/, '').split('.').map(n => +n || 0); }
 function buildCmp(a, b) { const x = buildNum(a), y = buildNum(b); for (let i = 0; i < Math.max(x.length, y.length); i++) { const d = (x[i] || 0) - (y[i] || 0); if (d) return d; } return 0; }
@@ -639,16 +704,25 @@ function AgentsView({ ri }) {
   const [d, setD] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [failed, setFailed] = useState([]);
   const load = useCallback(async (idx) => {
-    setLoading(true); setError(null);
+    setLoading(true); setError(null); setFailed([]);
     try {
-      const days = Math.min(RANGES[idx].days, 13);   // perf: rows live 14 days
-      setD(await fetchAgents(fmtDate(days), fmtDate(0)));
+      const dates = rangeDays(Math.min(RANGES[idx].days, 13));   // perf: rows live 14 days
+      // (v1.10) one day per request, four at a time; the key prompt (if any) happens once, before the fan-out
+      directorKey(false);
+      const res = await pool(dates, 4, (dt) => fetchAgents(dt, dt));
+      const ok = res.filter(r => r.ok).map(r => r.value);
+      if (!ok.length) throw (res[0] && res[0].error) || new Error('no data');
+      const merged = mergeAgentDays(ok);
+      setFailed(dates.filter((dt, i) => !res[i].ok));
+      setD(Object.assign({ from: dates[0], to: dates[dates.length - 1] }, merged));
     } catch (e) { setError(e.message); setD(null); }
     finally { setLoading(false); }
   }, []);
   useEffect(() => { load(ri); }, [ri]);
-  if (loading) return h('div', { style: { textAlign:'center', padding:60, color:'#4b5563', fontSize:13 }, className:'loading-pulse' }, 'Loading agent activity…');
+  if (loading) return h('div', { style: { textAlign:'center', padding:60, color:'#4b5563', fontSize:13 }, className:'loading-pulse' },
+    'Loading agent activity… ' + (RANGES[ri].days > 0 ? '(the first load of a range computes each day once; after that it is quick)' : ''));
   if (error) return h('div', { className: 'error-box' }, 'Error: ' + error);
   if (!d) return null;
   const rows = Object.entries(d.agents || {})
@@ -657,6 +731,7 @@ function AgentsView({ ri }) {
   const at = d.attribution || {};
   const capped = RANGES[ri].days > 13;
   return h(Fragment, null,
+    failed.length > 0 && h('div', { className: 'error-box' }, 'Could not load ' + failed.map(x => x.slice(5)).join(', ') + ' — shown without ' + (failed.length > 1 ? 'those days' : 'that day') + '. Refresh to retry.'),
     h('div', { className: 'card fade-up', style: { marginBottom: 12 } },
       h('div', { className: 'section-title' }, 'By Agent · ' + (d.from || '').slice(5) + (d.to && d.to !== d.from ? ' → ' + d.to.slice(5) : '') + (capped ? ' · capped to 14 days' : '')),
       rows.length === 0 ? h('div', { style: { color: '#4b5563', fontSize: 12 } }, 'No activity in this range yet.') :

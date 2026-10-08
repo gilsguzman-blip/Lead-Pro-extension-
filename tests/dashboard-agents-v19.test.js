@@ -39,18 +39,18 @@ for (const n of ['buildNum', 'buildCmp', 'topN', 'fetchAgents']) { const src = s
   console.log('\n' + HTML + ' — dashboard v1.9, Agents');
   check('(new helper) builds compare by number and ignore -dev', () => [ctx.buildCmp('9.7.772', '9.7.774') < 0, ctx.buildCmp('9.7.774-dev', '9.7.774'), ctx.buildCmp('9.7.1000', '9.7.774') > 0], [true, 0, true]);
   check('(new helper) topN orders by count', () => ctx.topN({ a: 1, b: 3, c: 2 }, 2), [['b', 3], ['c', 2]]);
-  await acheck('(new helper) fetchAgents: GET /agents with from/to, key in X-LP-Key, not in the URL', async () => {
+  await acheck('(new helper) fetchAgents: GET /agents, key in X-LP-Key, not in the URL (one day is ?date= since v1.10)', async () => {
     reply = { status: 200, body: { agents: { 'Agent Name': {} } } };
-    await ctx.fetchAgents('2026-10-08', '2026-10-08');
+    await ctx.fetchAgents('2026-10-02', '2026-10-08');
     const c = calls[calls.length - 1];
-    return [c.url, c.opts.headers['X-LP-Key'], /key=/.test(c.url)]; }, ['https://p.test/agents?from=2026-10-08&to=2026-10-08', 'LP-TESTDIR3', false]);
+    return [c.url, c.opts.headers['X-LP-Key'], /key=/.test(c.url)]; }, ['https://p.test/agents?from=2026-10-02&to=2026-10-08', 'LP-TESTDIR3', false]);
   await acheck('an older proxy (404): a plain "needs proxy v7.84" message, not an empty table', async () => {
     reply = { status: 404, body: {} };
     try { await ctx.fetchAgents('2026-10-08', '2026-10-08'); return 'no error'; } catch (e) { return /needs proxy v7\.84/.test(e.message); } }, true);
   check('the view switch, the Agents view and its range cap are in the page', () =>
     [/\['quality', 'Quality'\], \['agents', 'Agents'\]/.test(html), /function AgentsView\(/.test(html), /Math\.min\(RANGES\[idx\]\.days, 13\)/.test(html),
      /not the lead\\\\?'s BD Agent/.test(html)], [true, true, true, true]);
-  check('the version marker moved: DASH_VERSION v1.9 and a v1.9 header block', () => [/const DASH_VERSION = 'v1\.9';/.test(html), /\n  v1\.9 — AGENTS\./.test(html)], [true, true]);
+  check('the v1.9 header block is kept (DASH_VERSION itself is dashboard-version\'s to pin)', () => /\n  v1\.9 — AGENTS\./.test(html), true);
   console.log('\n' + (fail ? 'FAILED' : 'PASSED') + ' — ' + pass + ' passed, ' + fail + ' failed');
   process.exit(fail ? 1 : 0);
 })();
