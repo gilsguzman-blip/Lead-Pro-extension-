@@ -77,7 +77,9 @@ function load(file) {
 
   // the shipped return-site reorder, wrapped so it can be handed a lines[] array
   const ra = src.indexOf('  var _out = lines.filter(function(l){ return l !== undefined; });');
-  const rb = src.indexOf("  return _out.join('\\n');", ra);
+  // (v9.7.775 also accepted: the joined prompt goes through the visit decision before it is returned)
+  const rbOld = src.indexOf("  return _out.join('\\n');", ra), rbNew = src.indexOf("  var _vdOut = _out.join('\\n');", ra);
+  const rb = rbNew >= 0 && (rbOld < 0 || rbNew < rbOld) ? rbNew : rbOld;
   if (ra < 0 || rb < 0) require('./lib/fatal-guard.js').bail('arc-first.test.js', 'reorder not in ' + file);
   const body = src.slice(ra, rb) + "  return _out;";
   const sbOrd = { String, Array };
@@ -183,7 +185,8 @@ if (BUILDS.length > 1) {
   const cut = f => {
     const s = fs.readFileSync(f, 'utf8');
     const i = s.indexOf('  var _out = lines.filter(function(l){ return l !== undefined; });');
-    return s.slice(i, s.indexOf("  return _out.join('\\n');", i));
+    const jOld = s.indexOf("  return _out.join('\\n');", i), jNew = s.indexOf("  var _vdOut = _out.join('\\n');", i);   // v9.7.775 form too
+    return s.slice(i, jNew >= 0 && (jOld < 0 || jNew < jOld) ? jNew : jOld);
   };
   check('dev and commercial are identical', cut(BUILDS[0]) === cut(BUILDS[1]), true);
 }

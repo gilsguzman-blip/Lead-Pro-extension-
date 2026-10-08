@@ -238,8 +238,8 @@ if (BUILDS.length > 1) {
     region(BUILDS[0], "  if (flags.includes('distance')) {", "  if (flags.includes('loyalty')) {")
     === region(BUILDS[1], "  if (flags.includes('distance')) {", "  if (flags.includes('loyalty')) {"), true);
   check('the precedence rule is identical',
-    region(BUILDS[0], "'overrule them.',", 'return _out.join')
-    === region(BUILDS[1], "'overrule them.',", 'return _out.join'), true);
+    region(BUILDS[0], "'overrule them.',", "_out.join('\\n');")   // v9.7.775: "var _vdOut = _out.join" ends the region too
+    === region(BUILDS[1], "'overrule them.',", "_out.join('\\n');"), true);
 }
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed');

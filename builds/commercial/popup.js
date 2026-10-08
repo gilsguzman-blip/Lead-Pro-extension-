@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.775 (Commercial. A MISSED APPOINTMENT WAS READ AS A LIVE ONE -- AND THE AUDIT IT STARTED: THE VISIT DECISION NOW HAS ONE OWNER. Extension only; proxy v7.86, reporter v1.23 and dashboard v1.11 unchanged. log298, Honda Lafayette lead 2091288708 (IdentityMax, claimed $1,000 off a new Honda): an appointment set for Saturday 10/3 was missed; on 10/6 the assistant texted 'We noticed you missed your appointment ... I have availability Wednesday at 10:00 AM or Thursday'; on 10/8 the customer answered a rep's intro with 'Okay'. The draft led with the $1,000 offer. Gil: wrong angle. (1) The appointment scan tested the REMINDER pattern first and 'your appointment ... Wednesday' matched, so the missed-appointment notice was filed as a reminder -> 'THERE IS A LIVE APPOINTMENT ON THIS LEAD'. A message saying they missed it is no longer a reminder, and the store saying so outright counts as a missed appointment whoever sent it (727's bot guard stays for the vague phrases). (2) The no-show counter now takes 'missed your appointment'. (3) On a follow-up the claimed-offer line no longer says 'Lead with that': the offer is background, never the opener. Gil then asked why the logic said both acknowledge the miss and do not, and to clean up contradicting logic for other scenarios too ('fix them all at once'). THE AUDIT: 105 prompt captures and the 36 saved page dumps re-rendered on v9.7.774 (system + user prompt, as the model reads them); 473 conditional instruction families on the current build; directives that fire together with opposite instructions on the same subject were counted per lead. The contradictions sat in one subject -- whether this message asks for a visit, with which times: 63 opposing pairs, 166 lead-pairs. A dozen blocks HOLD the visit back and the blocks that PUSH it were written without reading them (the store-hours line 'today is the default: lead with a today time' sat beside the stalled block's 'DO NOT offer appointment times' on 7 of 36 leads and beside the showroom block's 'the visit already happened' on 5; SUGGESTED APPOINTMENT TIMES, '(5) Close with two specific appointment times', the financing line's visit pitch and the distance block's REQUIRED visit reason did the same). FIXES: (a) ONE OWNER PER MISS: a miss on THIS lead is acknowledged lightly and without blame (the appointment block's job); a no-show from earlier history keeps 'Do NOT reference the no-show directly'. (b) A KEPT APPOINTMENT IS NOT A LIVE ONE: a showroom visit at or after the newest evidence that set the appointment clears it (Honda Lafayette 2082889754, Honda Baytown 2094209825 and Toyota Baytown 2093513607 had 'LIVE APPOINTMENT ... OUTRANKS' beside 'the visit already happened'); a reminder for a new appointment after a visit stays live. (c) THE VISIT DECISION (_lpVisitDecision / _lpApplyVisitDecision), made once on the finished user prompt: the strongest hold present sets the level -- 3 no visit ask (pause, deal condition, not any day, exit), 2 no times (stalled, showroom visit happened, first human touch, zero-contact, reactivation, times withheld, quiet 30+ days, fell through, a live appointment), 1 not today by default (cannot come today, not a hot lead, the day they named, answer what they asked, trade number) -- every push line that contradicts it is removed or neutralised, and one line states the decision and names its owner. Holds are read from Lead Pro's own directive lines only, never the transcript or a quoted note. v9.7.737's 14-29-day quiet rule still allows times, as designed. Logged as [LP VISIT DECISION DIAG]. MEASURED on the 36 dumps: 24 prompts change, 12 have no hold and are unchanged apart from the clock; owners: stalled 7, showroom 5, quiet 30+ 3, not a hot lead 3, first human touch 2, not today 1, fell through 1, the day they named 1, deal condition 1. Opposing pairs 63 -> 28 (166 -> 64 lead-pairs), and none of the 28 is a live contradiction: 14-29-day quiet with times (737's design), not a hot lead with times offered softly (level 1), the hand-off's 'when they come in' under a no-times hold (an invite without times), the showroom close's come-back offer (774), one conditional ('If YES to both'), and question/number pairs that do not oppose. TESTS: missed-appt-775 (new) executes the lifted appointment block, the no-show pattern, _lpImxOfferGuidance, renderRelationshipReading, _lpApplyVisitDecision and buildUserPrompt: 50 assertions across both builds; v9.7.774 fails 16 of 25 per build (every control passes there). arc-first and fact-arbitration accept the new return site; prompt-hygiene-698 and quiet-sweep-737 unchanged and green. VERIFIED: run-all 205 suites green, 7,761 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.774.)
 // Lead Pro -- popup.js  v9.7.774 (Commercial. SHOWROOM FOLLOW-UPS BRING THE CUSTOMER BACK IN TO GO OVER NEW OPTIONS -- NO MORE 'SEND IT TO REVIEW AT HOME'. Extension only; proxy v7.83, reporter v1.23 and dashboard v1.8 unchanged. Gil, 10/7 (Honda Lafayette lead 2096017815, log296: '[the rep] can send you the CR-V EX offer details to review at home'): 'We don't want that. We want them to come back and review new options.' Every 'review / compare / look over at home' draft in logs 286-296 is from log292 on, and each traces to wording Lead Pro added: 769's close examples ('the numbers on the vehicle they liked so they can review at home'), the no-vehicle line ('sent so they can look them over'), and 771's sister-store 'so they can compare at home'; earlier drafts said 'review the financing together'. Now: the showroom close is a concrete yes/no offer that BRINGS THEM BACK IN -- the rep putting together new options for what the notes say and going over them in person -- and says not to offer sending numbers, offer details or options to review at home; the no-vehicle line, the sister-store line (side by side when they come back in) and 770's post-visit financing line say the same; the text rewrite's offer block says never to turn it into sending. On all 35 saved page dumps: the 5 showroom briefs offered 'at home' on 773, none on 774; no other brief line changes. TESTS: come-back-774 (new) executes populateFromData and _lpBuildSmsRefinePrompt: 14 assertions across both builds; v9.7.773 fails 6 of 7 per build (the control passes there). showroom-769, cosigner-770 and store-group-771 follow the new wording. VERIFIED: run-all 198 suites green, 7,661 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.773.)
 // Lead Pro -- popup.js  v9.7.773 (Commercial. THE TEXT REWRITE NOW KEEPS v9.7.195's RULE: A CUSTOMER TEXT SENT BEFORE THE SHOWROOM VISIT IS NOT SHOWN TO IT. Extension only; proxy v7.83, reporter v1.23 and dashboard v1.8 unchanged. log295. Toyota Baytown lead 2093513607: her last text (9:22 AM, on her way and running a little late) predates the 9:55 AM visit. The scraper caught it (inboundPreVisit true, her Spanish question HANDLED-AT-VISIT), the generation payload left it out as v9.7.195 does, and the first pass was about the Civic trade and the Camry. The rewrite shipped 'thanks for letting us know you're running a little late'. Lead 2092136687's rewrite likewise answered a pre-visit mileage question the visit had handled ('I don't have the mileage ... but I can check it'). Cause: _lpRefineSms is handed the raw scrape (lastScrapedData), not the payload, so the 195 blanking at the payload never reached it, and _lpBuildSmsRefinePrompt printed lastInboundMsg as WHAT THE CUSTOMER LAST SAID, IN THEIR OWN WORDS. It now applies the same rule: when inboundPreVisit is set, the last message is left out, not annotated -- the lesson of 195. On all 34 saved page dumps the rewrite prompt changes on two, both pre-visit: lead 2093513607 and lead 2094209825 (a pre-visit 'Wednesday at 10:00am'). TESTS: previsit-rewrite-773 (new) executes _lpBuildSmsRefinePrompt: 12 assertions across both builds; v9.7.772 fails 2 of 6 per build (every control passes there). VERIFIED: run-all 197 suites green, 7,647 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.772.)
 // Lead Pro -- popup.js  v9.7.772 (Commercial. OUR STORE FIRST: A BAYTOWN BE-BACK THAT WENT TO A SISTER STORE NO LONGER READS AS A PUSH TO THE SISTER STORE. Extension only; proxy v7.83, reporter v1.23 and dashboard v1.8 unchanged. log293, Honda Baytown lead 2095705388 on 771: the first pass offered 'a couple of Honda options and the numbers on the Telluride from Community Kia Baytown' and the email kept that order, but the text rewrite opened on the Telluride, offered 'the Telluride numbers and a couple of Honda options', and dropped the store name, so it read as sending her to the Kia store and as if the Honda store priced the Kia. Gil, 10/7: we are the Honda store. The SISTER STORE ON THIS VISIT line now says LEAD WITH OUR STORE (open on the visit or the rep, not the other vehicle; our options first, the other vehicle's numbers second as the comparison, always from the named sister store), and the text rewrite gets an OUR STORE FIRST block that keeps that order and the store name. Fires only where 771's sister-store line does: on all 33 saved page dumps, lead 2095705388 only. TESTS: our-store-first-772 (new) executes populateFromData and _lpBuildSmsRefinePrompt: 14 assertions across both builds; v9.7.771 fails 4 of 7 per build (every control passes there). VERIFIED: run-all 196 suites green, 7,635 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.771.)
@@ -5809,10 +5810,10 @@ function _lpImxOfferGuidance(text, condition, vehicle, opts) {
     g = '- THE OFFER THEY CLAIMED: "' + offer + '". This is a discount on NEW vehicles only'
       + (used ? ' — and the vehicle on this lead (' + (veh || 'pre-owned') + ') is PRE-OWNED, so the offer does NOT apply to it. Do not attach it to that car; say the offer they claimed is for new models and ask which new one they have in mind (or whether that pre-owned one is still the one they want).'
               : veh ? ' — it applies to new models like the ' + veh + '; mention it for that one, final eligibility confirmed in person.'
-                    : ' — the $1,000 is theirs on the ' + newWhat + ' they choose (final eligibility confirmed in person). Lead with that, and find out which model and trim they are looking at. Do NOT tell them it does not apply to pre-owned: no vehicle is on this lead, and a condition field on its own is only a default.')
+                    : ' — the $1,000 is theirs on the ' + newWhat + ' they choose (final eligibility confirmed in person). ' + (o.followUp ? 'It is background on a follow-up: mention it only in support of what this message is about, never as its opener.' : 'Lead with that, and find out which model and trim they are looking at.') + ' Do NOT tell them it does not apply to pre-owned: no vehicle is on this lead, and a condition field on its own is only a default.')
       + ' It says "limited time": do NOT invent an end date.';
   }
-  else g = '- THE OFFER THEY CLAIMED: "' + offer + '". Lead with THAT offer in its own words, and add no amount, term, model or eligibility it does not state.';
+  else g = '- THE OFFER THEY CLAIMED: "' + offer + '". ' + (o.followUp ? 'If you mention it, use its own words' : 'Lead with THAT offer in its own words') + ', and add no amount, term, model or eligibility it does not state.';   // (v9.7.775)
   var rng = 'our pre-owned and certified vehicles ' + (cap ? 'under ' + cap : 'in that range');
   var link = isPre ? String((_LP_IMX_OFFER_LINKS[String(o.dealerId || '')] || {}).preowned || '') : '';
   if (link) g += o.firstTouch
@@ -15845,6 +15846,7 @@ function _lpScraperBotAuthor(msg) {
     var apptTimeline = [];
     var _minApptEventDays = Infinity; // (v9.7.345) age of the FRESHEST appt event — if even the newest is old, all are stale
     var hasApptSet = false;      // kept for isStalled / stageActive calculations only
+    var _apptSetMs = 0;          // (v9.7.775) the newest evidence that set hasApptSet
     var hasMissedAppt = false;   // kept for persona auto-switch only
     var apptDetails = '';
     var customerRepliedRescheduleFlag = false;
@@ -15865,6 +15867,7 @@ function _lpScraperBotAuthor(msg) {
       // reminder or confirmation (the branches below), our message saying it is set/confirmed/scheduled, or the
       // customer agreeing to a time.
       var _apptBooked = false;
+      var _LP_MISSED_APPT_NOTICE_RX = /\bmissed\s+(?:(?:your|the|our|his|her|their|an?)\s+)?(?:appointment|appt)\b|\bsorry\s+you\s+couldn.t\s+make\s+it\b|\bno[\s-]?show(?:ed)?\b/i;   // (v9.7.775)
       var _apptBotRe = /\b(?:virtual|automated|auto|ai|digital|robo)[\s-]*(?:assistant|agent|coordinator|concierge|advisor|responder)\b|\bchat\s?bot\b|\bauto[\s-]?responder\b/i;   // copy of _LP_BOT_AUTHOR_RE (page context)
       for (var ani = Math.min(noteEls.length, 20) - 1; ani >= 0; ani--) {
         var anEl = noteEls[ani];
@@ -15901,18 +15904,24 @@ function _lpScraperBotAuthor(msg) {
         }
 
         // Appointment confirmation / reminder sent by agent
-        if (anDir === 'outbound' && /quick reminder.*appointment|reminder of our appointment|your appointment.*(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)|reply c to confirm/i.test(anContent)) {
+        // (v9.7.775) NOT a message that says they MISSED it. Honda Lafayette lead 2091288708 (log298): the assistant's
+        // "We noticed you missed your appointment ... I have availability Wednesday at 10:00 AM" matched "your
+        // appointment ... wednesday" here first, was filed as a reminder sent 2 days ago, and set hasApptSet -- the
+        // prompt said "THERE IS A LIVE APPOINTMENT ON THIS LEAD" for an appointment missed five days earlier, and the
+        // draft led with the claimed $1,000 offer. A missed-appointment notice now falls through to the branch below.
+        if (anDir === 'outbound' && /quick reminder.*appointment|reminder of our appointment|your appointment.*(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)|reply c to confirm/i.test(anContent)
+            && !_LP_MISSED_APPT_NOTICE_RX.test(_anNoCall)) {
           isApptRelated = true;
           apptEvent = 'Agent sent appointment reminder (' + anLabel + '): "' + anContent.substring(0, 120).replace(/[\r\n]+/g, ' ') + '"';
           _apptBooked = true;
-          if (anDays <= 3) { hasApptSet = true; apptDetails = anContent.substring(0, 250); }
+          if (anDays <= 3) { hasApptSet = true; _apptSetMs = Math.max(_apptSetMs, anMs); apptDetails = anContent.substring(0, 250); }
         }
         // System appointment confirmation email
         else if (/email auto response/i.test(anTitle) && /appointment confirmation|reminder.*appointment/i.test(anContent)) {
           isApptRelated = true;
           apptEvent = 'System sent appointment confirmation email (' + anLabel + ')';
           _apptBooked = true;
-          if (anDays <= 3) hasApptSet = true;
+          if (anDays <= 3) { hasApptSet = true; _apptSetMs = Math.max(_apptSetMs, anMs); }
         }
         // Missed appointment re-engagement sent by agent
         // (v9.7.727) Not from the automated assistant when nothing was booked: it says "we can reschedule at a
@@ -15920,8 +15929,10 @@ function _lpScraperBotAuthor(msg) {
         // (v9.7.728) The vague phrases ("sorry ... miss", "life is busy", "reschedule at a convenient time") count only
         // after a booking; the explicit ones ("sorry you couldn't make it", "missed ... appointment") from a person
         // still count on their own, since a booking made by phone may leave no note.
+        // (v9.7.775) The store telling the customer outright that they missed their appointment is the CRM's own record of
+        // a booked one, whoever sent it -- the assistant included. 727's bot guard is for its vague phrases, not this one.
         else if (anDir === 'outbound' && /life is busy|sorry you couldn.t make it|couldn.t make it out|missed.*appointment|reschedule.*convenient|sorry.*miss/i.test(_anNoCall)
-                 && (_apptBooked || (!_apptBotRe.test(anContent) && /sorry you couldn.t make it|couldn.t make it out|missed.*appointment/i.test(_anNoCall)))) {
+                 && (_apptBooked || _LP_MISSED_APPT_NOTICE_RX.test(_anNoCall) || (!_apptBotRe.test(anContent) && /sorry you couldn.t make it|couldn.t make it out|missed.*appointment/i.test(_anNoCall)))) {
           isApptRelated = true;
           apptEvent = 'Agent sent missed-appointment re-engagement (' + anLabel + '): "' + anContent.substring(0, 120).replace(/[\r\n]+/g, ' ') + '"';
           hasMissedAppt = true;
@@ -15943,7 +15954,7 @@ function _lpScraperBotAuthor(msg) {
           isApptRelated = true;
           apptEvent = 'Call note: customer verbally confirmed (' + anLabel + '): "' + anContent.substring(0, 100).replace(/[\r\n]+/g, ' ') + '"';
           _apptBooked = true;
-          if (anDays <= 7) hasApptSet = true;
+          if (anDays <= 7) { hasApptSet = true; _apptSetMs = Math.max(_apptSetMs, anMs); }
         }
         // Customer replied R to reschedule
         else if (anDir === 'inbound' && /^r$/i.test(anContent.replace(/[\r\n]+.*$/m, '').trim())) {
@@ -16012,6 +16023,16 @@ function _lpScraperBotAuthor(msg) {
       if (customerRepliedRescheduleFlag) {
         hasApptSet = false;
         hasMissedAppt = true;
+      }
+      // (v9.7.775) A KEPT APPOINTMENT IS NOT A LIVE ONE. Honda Lafayette 2082889754, Honda Baytown 2094209825, Toyota Baytown
+      // 2093513607: a reminder, then the customer came in -- and the prompt still said "THERE IS A LIVE APPOINTMENT ON THIS LEAD --
+      // IT OUTRANKS ... EVERY OTHER ANGLE" beside the showroom block's "the visit already happened". A showroom visit at or after
+      // the evidence that set the appointment means it was kept. A reminder for a NEW appointment after an earlier visit stays live.
+      if (hasApptSet && typeof _lastVisitMs === 'number' && _lastVisitMs > 0 && _apptSetMs > 0 && _lastVisitMs >= _apptSetMs) {
+        hasApptSet = false;
+        apptDetails = '';
+        apptTimeline.push('Appointment kept: the customer came in (showroom visit after the reminder) -- it is not upcoming');
+        _lpD('[LP APPT DIAG] appointment kept -- a showroom visit is newer than the evidence that set it; not a live appointment');
       }
 
     } catch(apptErr) {
@@ -16362,7 +16383,7 @@ function _lpScraperBotAuthor(msg) {
           sig.priorAppointmentsTotal++;
         }
         if (/missed\s*appointment|no.?show|did\s*not\s*show|customer\s*missed|appt.*missed|missed.*visit/i.test(title) ||
-            /\bno.?show\b|\bdidn.?t\s*show\s*up\b|\bdid\s*not\s*show\s*(up|for)\b|\bnever\s*(showed|came|arrived)\b|\bmissed\s*(the\s*)?(appointment|appt|visit)\b/i.test(bodyLower)) {
+            /\bno.?show\b|\bdidn.?t\s*show\s*up\b|\bdid\s*not\s*show\s*(up|for)\b|\bnever\s*(showed|came|arrived)\b|\bmissed\s+(?:(?:the|your|our|his|her|their|an?)\s+)?(?:appointment|appt|visit)\b/i.test(bodyLower)) {   // (v9.7.775) "missed your appointment" (log298)
           sig.priorNoShows++;
         }
 
@@ -21489,7 +21510,15 @@ function renderRelationshipReading(data) {
   // FRICTION
   var frictionBits = [];
   if (s.hasNoShowHistory) {
-    frictionBits.push(s.priorNoShows + ' prior no-show appointment(s) on file. Do NOT reference the no-show directly — it would feel accusatory. Soft re-engage instead.');
+    // (v9.7.775) ONE OWNER PER MISS. The APPOINTMENT FELL THROUGH block says "Acknowledge the miss"; this line said "Do NOT
+    // reference the no-show directly". Both were right for their own case and never met until log298 registered a real no-show
+    // on the CURRENT lead (Honda Lafayette 2091288708). A miss on this lead belongs to the appointment block -- acknowledge it,
+    // lightly. A no-show from earlier history (another lead, months ago) stays unmentioned, as before.
+    var _nsCurrent = false;
+    try { _nsCurrent = !!(data && data.hasMissedAppt) && !((typeof _lpMissedApptIsPrior === 'function') && _lpMissedApptIsPrior(data)); } catch (eNs) {}
+    frictionBits.push(_nsCurrent
+      ? 'The appointment on THIS lead was missed. Acknowledge it lightly and without blame ("sorry we missed you Saturday, no worries"), never "you didn\'t show up", and get them back on the calendar -- the appointment section below sets the timing.'
+      : s.priorNoShows + ' prior no-show appointment(s) on file. Do NOT reference the no-show directly — it would feel accusatory. Soft re-engage instead.');
   } else if (s.priorAppointmentsTotal >= 2) {
     frictionBits.push(s.priorAppointmentsTotal + ' prior appointments on file (no no-shows). Customer has shown up before.');
   }
@@ -21959,6 +21988,124 @@ function _lpApptEngineOff(d) {
     if ((parseFloat((d && d.leadAgeDays) || 0) || 0) >= 31) return true;// reactivation: NO APPOINTMENT TIME
     return false;
   } catch (e) { return false; }
+}
+
+// ── (v9.7.775) THE VISIT DECISION HAS ONE OWNER ─────────────────────────────────────────────────────────────────
+// Gil, 10/8, on log298: "why is there a conflict in the logic to acknowledge or not ... so we won't have contradicting logic
+// moving forward with other scenarios?" The audit (105 captures + the 36 saved page dumps re-rendered on v9.7.774) found the
+// contradictions in one subject: whether this message asks for a visit, with which times. A dozen blocks HOLD the visit back
+// (stalled: "DO NOT offer appointment times"; showroom: "the visit already happened ... do not offer times"; not a hot lead;
+// gone quiet; first human touch; a deal condition; a live appointment already booked ...), and the blocks that PUSH it were
+// written without reading them: the store-hours line ("today is the default: lead with a today time") sat beside "DO NOT offer
+// appointment times" on 7 of the 36 leads, beside the showroom hold on 5, beside "not a hot lead" on 7; SUGGESTED APPOINTMENT
+// TIMES, "(5) Close with two specific appointment times", the financing line's "the visit is the easiest way to get real
+// numbers" and the distance block's "REQUIRED ... reason the visit is worth their time" did the same. _lpApptEngineOff
+// (v9.7.655) already answered this question, for the distance block alone.
+//
+// One decision, made once, on the prompt the model will actually read: the strongest hold present sets the level, every push
+// line that contradicts that level is removed or neutralised, and one line states the decision and names its owner -- the
+// prompt's own closing rule ("the directive that OWNS the fact wins") made mechanical instead of left to the model.
+//   3 NONE      no visit push at all       -- pause/not ready, deal condition, "not today, not any day", exit
+//   2 NO TIMES  no slots, no time examples  -- stalled, showroom visit happened, first human touch, zero-contact, reactivation,
+//                                              times withheld above, quiet 30+ days, appointment fell through, a live appointment
+//   1 NO TODAY  no "today by default"       -- cannot come today, not a hot lead (no hard press), the day they named, answer what
+//                                              they asked first, trade value
+// A hold is read only from Lead Pro's own directive lines, never from the transcript or a quoted note.
+var _LP_VISIT_HOLDS = [
+  [3, /Do NOT offer an appointment\. NO QUESTIONS of any kind/, 'the PAUSE rule (not ready)'],
+  [3, /HARD RULE: do NOT offer an appointment time|FINAL CLOSE RULE FOR THIS MESSAGE: Do NOT end with an appointment/, 'the DEAL CONDITION rule'],
+  [3, /NOT TODAY: Customer explicitly said they cannot or do not want to come in right now/, 'NOT TODAY (not any day)'],
+  [3, /^EXIT SIGNAL:/, 'the EXIT rule'],
+  [2, /^DO NOT offer appointment times\. DO NOT write duration\./, 'the stalled-lead re-engagement block'],
+  [2, /The visit already happened\. Do NOT push a same-day appointment or offer times/, 'the SHOWROOM FOLLOW-UP block'],
+  [2, /FIRST HUMAN TOUCH — LIGHT ASK, NO TIMES/, 'FIRST HUMAN TOUCH'],
+  [2, /^APPOINTMENT TIMES WITHHELD ON THIS LEAD/, 'APPOINTMENT TIMES WITHHELD (a block above owns "no times")'],
+  [2, /DO NOT include appointment times in ANY format/, 'the ZERO-CONTACT block'],
+  [2, /do NOT offer a specific appointment time/, 'the REACTIVATION block'],
+  // v9.7.737 withholds times only at 30+ days quiet; at 14-29 days its owner rule still allows them, so that is no hold
+  [2, /no appointment times in this message\.$|^APPOINTMENT TIMES WITHHELD: the customer has not written in/, 'the QUIET CUSTOMER rule (30+ days)'],
+  [2, /^TIMING — APPOINTMENT FELL THROUGH/, 'APPOINTMENT FELL THROUGH'],
+  [2, /THERE IS A LIVE APPOINTMENT ON THIS LEAD/, 'the LIVE APPOINTMENT block (a time is already booked)'],
+  [1, /^TIMING NOTE: Customer said they cannot come in TODAY/, 'TIMING NOTE (not today)'],
+  // "do not press for an appointment hard" -- times are still allowed, a same-day push is not
+  [1, /This is not a hot lead\. Soft re-engage/, 'the RELATIONSHIP READING (not a hot lead)'],
+  [1, /Your ONLY close is two times on the day the customer named|LOCK IN \S+ - do NOT offer any other day/, 'the DAY THE CUSTOMER NAMED'],
+  [1, /RESPOND TO WHAT THE CUSTOMER ACTUALLY ASKED — LEAD WITH INFO, NOT A SHOWROOM TIME/, 'RESPOND TO WHAT THE CUSTOMER ASKED'],
+  [1, /they asked for a NUMBER, not an appointment/, 'the TRADE VALUE request'],
+];
+function _lpVisitDecision(text) {
+  var best = { level: 0, owner: '' };
+  try {
+    var lines = String(text || '').split('\n'), inNote = false;
+    for (var i = 0; i < lines.length; i++) {
+      var raw = lines[i];
+      // a "[date] [TAG]" header opens a quoted note; its indented body follows until the next unindented line. The
+      // relationship reading's own rules are indented bullets too, and they ARE directives -- so only a note's body is skipped.
+      if (/^\s*\[\d{1,2}\/\d{1,2}\/\d{2,4}[^\]]*\]/.test(raw) || /^\d+\.\s*\[\d/.test(raw)) { inNote = true; continue; }
+      if (inNote && /^\s+\S/.test(raw)) continue;
+      inNote = false;
+      var l = raw.replace(/^[\s\-•⚠🔔🚫🤝🔴]+/, '');
+      for (var h = 0; h < _LP_VISIT_HOLDS.length; h++) {
+        var H = _LP_VISIT_HOLDS[h];
+        if (H[0] > best.level && H[1].test(l)) best = { level: H[0], owner: H[2] };
+      }
+    }
+  } catch (e) {}
+  return best;
+}
+var _LP_VISIT_DECISION_TEXT = {
+  3: 'no visit ask and no appointment times in this message',
+  2: 'no specific appointment times and no same-day push in this message; invite them in only as that instruction allows',
+  1: 'appointment times are fine, but not today by default',
+};
+function _lpApplyVisitDecision(text) {
+  var dec = _lpVisitDecision(text), edits = [];
+  if (!dec.level) return { text: text, level: 0, owner: '', edits: edits };
+  var L = dec.level, lines = String(text).split('\n'), out = [];
+  var drop = function (why) { edits.push(why); };
+  for (var i = 0; i < lines.length; i++) {
+    var l = lines[i], t = l.replace(/^\s+/, '');
+    // the store-hours line keeps its facts and loses the booking instruction
+    if (/^STORE STATUS RIGHT NOW: OPEN\./.test(t) && / OFFER THE SOONEST REAL OPENING FIRST/.test(l)) {
+      out.push(l.replace(/\s*OFFER THE SOONEST REAL OPENING FIRST[\s\S]*$/, ''));
+      out.push('VISIT DECISION FOR THIS MESSAGE: ' + _LP_VISIT_DECISION_TEXT[L] + ' -- ' + dec.owner + ' owns this. Any slot, time example or "come in today" wording elsewhere in this prompt does not apply.');
+      drop('store-status today default'); dec._placed = true; continue;
+    }
+    // same-day timing and urgency examples (level 1+); next-day examples and every slot block (level 2+)
+    var _sameDay = /^(?:TIMING — (?:AFTERNOON|MORNING)|URGENCY — )/.test(t);
+    var _slots = /^(?:TIMING — NEXT-DAY|SUGGESTED APPOINTMENT TIMES \(fallback only|APPOINTMENT TIMES — ADJUSTED FOR CUSTOMER ARRIVAL TIME|APPOINTMENT TIME FORMAT:)/.test(t);
+    if (_sameDay || (L >= 2 && _slots)) {
+      drop(t.slice(0, 40));
+      while (i + 1 < lines.length && /^\s*(?:- |Option: |First option: |Second option: |↳ )/.test(lines[i + 1])) i++;
+      continue;
+    }
+    if (L >= 2) {
+      // the day they named, when something stronger holds the visit (a stale "Tuesday works" under the quiet rule)
+      if (/LOCK IN \S+ - do NOT offer any other day|Your ONLY close is two times on the day the customer named/.test(l)) { drop('day-named two-times close'); continue; }
+      if (/\(5\) Close with two specific appointment times\./.test(l)) { out.push(l.replace(/Close with two specific appointment times\./, 'Close with one easy next step -- no appointment times (see the VISIT DECISION).')); drop('(5) two-times close'); continue; }
+      if (/Close toward that visit with one clear ask\./.test(l)) { out.push(l.replace(/Close toward that visit with one clear ask\./, 'Close with one clear ask that fits the VISIT DECISION.')); drop('close toward that visit'); continue; }
+      if (/Acknowledge that the visit is the easiest way to get real numbers - keep it low pressure\./.test(l)) { out.push(l.replace(/Acknowledge that the visit is the easiest way to get real numbers - keep it low pressure\./, 'Keep it low pressure; the next step on financing follows the VISIT DECISION.')); drop('financing visit pitch'); continue; }
+      if (/Email: Open with the vehicle\/option confirmation, THEN the appointment ask\./.test(l)) { out.push(l.replace(/, THEN the appointment ask\./, '.')); drop('distance email appointment ask'); continue; }
+      if (/OFFER A VISIT \(first reach-out, required\)/.test(l)) {
+        if (L >= 3) { drop('first-touch visit offer'); continue; }
+        out.push(l.replace(/, using the appointment times in this prompt/, ', without naming times').replace(/Make it the main ask of the message/, 'Keep it a light ask')); drop('first-touch visit offer softened'); continue;
+      }
+    }
+    if (/REQUIRED in EVERY format: One specific reason (?:the|any) visit (?:is|would be) worth their time/.test(l) && L >= 2) {
+      if (L >= 3) { drop('distance visit reason'); continue; }
+      out.push(l.replace(/REQUIRED in EVERY format: One specific reason (?:the|any) visit (?:is|would be) worth their time/, 'If you invite them in at all, give one specific reason the visit is worth their time')); drop('distance visit reason softened'); continue;
+    }
+    if (L >= 3 && /\(4\) HAND OFF to the sales rep: When they come in, /.test(l)) { out.push(l.replace('When they come in, ', '')); drop('hand-off visit framing'); continue; }
+    out.push(l);
+  }
+  var res = out.join('\n');
+  if (!dec._placed) {
+    var marker = 'VISIT DECISION FOR THIS MESSAGE: ' + _LP_VISIT_DECISION_TEXT[L] + ' -- ' + dec.owner + ' owns this. Any slot, time example or "come in today" wording elsewhere in this prompt does not apply.';
+    var at = res.indexOf('\nCURRENT TIME:');
+    if (at >= 0) { var eol = res.indexOf('\n', at + 1); res = res.slice(0, eol < 0 ? res.length : eol) + '\n' + marker + (eol < 0 ? '' : res.slice(eol)); }
+    else res = marker + '\n' + res;
+  }
+  return { text: res, level: L, owner: dec.owner, edits: edits };
 }
 
 function buildUserPrompt(data) {
@@ -23076,7 +23223,7 @@ function buildUserPrompt(data) {
       _imxNoAppt = !!window._lpSuppressApptChip || !!(window._lpNoApptLeadId && _imxLead && window._lpNoApptLeadId === _imxLead);
     } catch (eIa) {}
     var _imxGuide = _lpImxOfferGuidance(String((data && data.context) || '') + ' ' + String((data && data.conversationBrief) || ''),
-      (data && data.condition) || '', (data && data.vehicle) || '', { dealerId: (data && data.dealerId) || '', firstTouch: !imFollowUp, noAppt: _imxNoAppt,
+      (data && data.condition) || '', (data && data.vehicle) || '', { dealerId: (data && data.dealerId) || '', firstTouch: !imFollowUp, followUp: !!imFollowUp, noAppt: _imxNoAppt,
         linkSent: /https?:\/\/|\bbit\.ly\/|\bwww\./i.test([String((data && data.lastSubstantiveOutboundMsg) || ''), String((data && data.lastOutboundMsg) || '')]
           .concat(((data && data.outboundSends) || []).map(function (x) { return String((x && x.body) || ''); })).join(' ')) });
     scenarioRules = imFollowUp
@@ -27852,7 +27999,17 @@ function buildUserPrompt(data) {
       }
     }
   } catch (e) { /* order is a preference, never a reason to fail a generation */ }
-  return _out.join('\n');
+  // (v9.7.775) the visit decision, made once on the finished prompt -- see _lpApplyVisitDecision
+  var _vdOut = _out.join('\n');
+  try {
+    var _vd = _lpApplyVisitDecision(_vdOut);
+    if (_vd.level) {
+      _vdOut = _vd.text;
+      console.log('[LP VISIT DECISION DIAG] level ' + _vd.level + ' (' + _LP_VISIT_DECISION_TEXT[_vd.level] + ') | owner: ' + _vd.owner
+        + ' | removed or neutralised: ' + (_vd.edits.length ? _vd.edits.join(' · ') : 'nothing conflicted'));
+    }
+  } catch (eVd) {}
+  return _vdOut;
 }
 
 
