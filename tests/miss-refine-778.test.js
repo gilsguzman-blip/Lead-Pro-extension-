@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 'use strict';
 require('./lib/fatal-guard.js')('miss-refine-778.test.js');
-// (v9.7.778) log300/log301, Honda Lafayette lead 2091288708 on v9.7.777. The first draft: "Keith, thanks for the reply. Sorry we
-// missed you Saturday. Would you still like to come in?"; the text rewrite shipped "Keith, would you still like to come in? ..."
+// (v9.7.778) log300/log301, Honda Lafayette lead 2091288708 on v9.7.777. The first draft: "[customer], thanks for the reply. Sorry we
+// missed you Saturday. Would you still like to come in?"; the text rewrite shipped "[customer], would you still like to come in? ..."
 // -- the email kept the apology, the text lost it (after Warmer, the next run kept it: chance). The rewrite never saw 775's
 // "acknowledge it lightly". Now: the rewrite is told when the miss is on THIS lead, a rewrite that drops an acknowledgement the
 // first pass made does not ship, and the regen-variance row stops calling a chip's kept move a rejected one (777 intends it).
