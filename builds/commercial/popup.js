@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.781 (Commercial. A SOLD UNIT, AN INTERNAL NOTE AND A PRE-OWNED SHOPPER. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Honda Lafayette lead 2097428117, 10/9: an out-of-state CarGurus lead on a pre-owned 2018 Accord EX-L 2.0T ($21,991). We texted 'It's here and available' and offered a video; the customer replied 'Yes that would be great!'; a manager then added an INTERNAL General Note that the unit had sold. The prompt contradicted itself four ways and the draft pivoted to a new car with an APR program. (1) 'the customer was ALREADY TOLD -- do not re-announce' was read off the manager's internal note, beside our own 'It's here and available' two hours earlier. The sold-news scan now reads the thread without internal [NOTE] entries, unless a note records telling the customer ('told customer', 'informed', 'let them know'): on this lead the customer is told once, plainly. (2) The pivot named a NEW 2026 Accord Hybrid EX-L with 3.49%/5.49% APR, while 2024 Accord LX CPO ($23,691) and 2025 Accord SE CPOs sat in the same feed: the comparables scorer read model words only. With the lead's condition it now ranks the lead's own lane first (pre-owned for a pre-owned lead, new for a new one), keeps only that lane when it has matches, orders equal model matches by the closest price to the sold unit, and a pre-owned lead with pre-owned comparables gets no new-car incentive pivot. On the real dump: 2024 Accord LX CPO, 2025 Accord SE CPO x2, no incentive line. (3) 'FRESH ARRIVAL -- just came in' printed for the sold unit; it no longer prints for a unit out of inventory or sold. (4) The store-hours 'today is the default: lead with a today time' sat beside the remote block's 'Do NOT push an in-person visit or offer appointment times as the ask', and no visit hold read the remote block. It is now a level-3 hold (owner: the REMOTE / OUT-OF-STATE BUYER block); on the real prompt the today default is removed. TESTS: sold-pivot-781 (new) executes populateFromData with a placeholder inventory and incentive cache, _lpCustomerFacingThread, _lpComparablesWithUnits and _lpApplyVisitDecision: 20 assertions across both builds; v9.7.780 fails 6 of 10 per build (its 4 controls pass). VERIFIED: run-all 214 suites green, 7,884 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.780.)
 // Lead Pro -- popup.js  v9.7.780 (Commercial. A DUPLICATE LEAD NAMED BY THE CRM NO LONGER EMPTIES THE GRAB, AND _lpDumpPrompt() EXISTS FROM LOAD. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Honda Lafayette, 10/9, on a BD agent's PC (commercial 9.7.779): the grab filled the customer name and store and nothing else -- no BD agent, no vehicle, no source -- and the draft asked 'what matters most in your next vehicle?'. Three grabs, same result. Her log: the vindebug marker had not rendered (rims2 count 0), so the pre-scrape took ECCS alone, which named lead 2097030012 -- a lead the CRM itself marks DUPLICATE_LEAD/BAD, whose frames carry no lead panel and no notes. The lead page on screen was 2096976782 (2026 Accord Sedan SE, BD agent, source, notes), on the same customer record (its lead grid lists both), and every one of its frames was then rejected as 'autoLeadId mismatch'. On another PC the marker rendered, named 2096976782, and the same lead grabbed correctly. Now, before frames are filtered by the winner: when ECCS alone named the lead, the CRM marks it DUPLICATE or BAD, none of its frames has a lead panel or PageData, exactly one other lead has a lead page loaded, and that page's lead grid lists the ECCS lead, the grab takes that lead. Any one condition missing keeps ECCS (an active lead still loading, two candidate pages, another customer, a vindebug-confirmed lead). Logged as [LP WINNER DIAG]. _lpDumpPrompt() is built by a panel's first generation; typed before one, Chrome said 'not defined', which read as a broken command. It now exists from load and says to generate first. Same log, not a code fault: her synced dealer config lists her personal numbers as all five store phones; [LP STORE PHONE GUARD] refused every one and kept the real store lines -- fix it in her admin panel. TESTS: winner-780 (new) runs the shipped correction (lifted from the merge) on frames shaped like her log -- switch on the 10/9 shape; keep when vindebug agreed, when the lead is not duplicate/bad, when it has its own page, when two pages compete, and when the other page is another customer -- plus the wiring and the _lpDumpPrompt placeholder: 18 assertions across both builds; v9.7.779 has neither. VERIFIED: run-all 213 suites green, 7,864 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.779.)
 // Lead Pro -- popup.js  v9.7.779 (Commercial. THE EMAIL FIELD IS THE WHOLE EMAIL. Extension; proxy v7.88 ships beside it (its own change: the SMS rewrite's floor); reporter v1.24 and dashboard v1.11 unchanged. Proxy v7.87's first day of failure reasons (10/8): no rate limits or 5xx at all. All 15 'degenerate' rejections were full drafts on GPT-6 Luna that came back with "email" set to "subject" (9), "subject omitted" / "subject line omitted" (4) or "{" (3), the subject sitting in its own field -- about 4% of the day's 399 full drafts, every one rescued by the fallback tier at the cost of a few seconds. The shape is not new (the worker's v7.72 notes describe it), and the prompt never said what the email field must hold: the EMAIL rule said only 'Subject line in the "subject" field', which the model read at effort none as a note for the email field. Now the EMAIL rule says the "email" field is the WHOLE email every time -- greeting, body, close and signature -- never a label, a placeholder or a note about the subject; the CRITICAL line adds 'never a single word or a note in its place'; the user prompt's JSON line says '"email" is the full email from greeting to signature; "subject" is the subject line alone'. The other 23 of the day's 42 failures were the SMS rewrite's short replies refused by the worker's 150-character floor; proxy v7.88 fixes those. TESTS: email-field-779 (new) executes buildSystemPrompt and buildUserPrompt: 8 assertions across both builds; v9.7.778 fails 3 of 4 per build (its control passes). VERIFIED: run-all 212 suites green, 7,846 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.778.)
 // Lead Pro -- popup.js  v9.7.778 (Commercial. THE TEXT REWRITE KEEPS THE MISSED-APPOINTMENT ACKNOWLEDGEMENT. Extension only; proxy v7.86, reporter v1.23 and dashboard v1.11 unchanged. log300/log301, Honda Lafayette lead 2091288708 on v9.7.777. 777 held: incentive spent ('$1,000 off'), and after Warmer the draft kept its move and warmed it ('I'm glad to hear from you, and I'm sorry we missed you Saturday. Would you still like to come in?') with no offer. But on the first generation the first pass said '[customer], thanks for the reply. Sorry we missed you Saturday. Would you still like to come in?' and the text rewrite shipped '[customer], would you still like to come in? Just reply yes or no, and we can find a day that works.' -- the email kept the apology, the text lost it, and the next run kept it: chance. The rewrite is handed the raw scrape and five restated rules, and 775's 'acknowledge it lightly' was not one of them. Now, when the missed appointment is on THIS lead (_lpMissOnThisLead: hasMissedAppt, not rebooked, and not older than the lead -- the relationship reading's own test), the rewrite gets THE APPOINTMENT ON THIS LEAD WAS MISSED: acknowledge it lightly, never 'you didn't show up', keep the first draft's ask, do not drop it to shorten. And the same guard shape as 738's Concierge and 769's credit result: a first pass that acknowledged the miss (LP_MISS_ACK_RX: 'missed you', 'couldn't make it', 'didn't get to see you', 'plans can change', 'life happens'; not 'missed your call') and a rewrite that did not -> the first pass ships, logged. On this lead's real scrape: the rule fires and the guard would have shipped the first pass. The regen-variance row (observational) no longer calls a chip's kept move 'what the agent just rejected': after a chip it reads 'SAME MOVE -- draft #N with the <chip> adjustment, as intended: a chip keeps the move (v9.7.777)'; a plain Regenerate keeps the old verdict. TESTS: miss-refine-778 (new) executes _lpBuildSmsRefinePrompt, _lpRefineSms with the worker stubbed, and the lifted variance verdict: 16 assertions across both builds; v9.7.777 fails 5 of 8 per build (its three controls pass). VERIFIED: run-all 208 suites green, 7,813 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.777.)
@@ -5135,12 +5136,13 @@ function _lpCheckConflictAdherence(text, conflict){
   return 'NEITHER';
 }
 
-function _lpComparables(leadVeh, units, soldStock, soldVin, cap){
+function _lpComparables(leadVeh, units, soldStock, soldVin, cap, opts){
   var _minYr = _lpCompYr(leadVeh);
   return units.map(function(u){ return { u: u, sc: _lpScore(leadVeh, u.vehicle || ((u.make||'') + ' ' + (u.model||''))) }; })
     .filter(function(o){ var _uYr = parseInt(o.u.year, 10) || _lpCompYr(o.u.vehicle); return !(_minYr && _uYr && _uYr < _minYr); }) // (v9.7.431/429) year floor
     .filter(function(o){ var _uStock = o.u.stock || o.u.stockNum || ''; return o.sc > 0 && (!soldStock || _uStock !== soldStock) && (!soldVin || o.u.vin !== soldVin); }) // (v9.7.429/427) feed may carry stockNum (the validated consumers read u.stockNum) — check both so the sold unit is actually excluded; only exclude on a truthy sold identifier
-    .sort(function(p,q){ return (q.sc - p.sc) || ((p.u.daysOnLot||0) - (q.u.daysOnLot||0)); })
+    .sort(opts ? _lpCompRankSort(opts) : function(p,q){ return (q.sc - p.sc) || ((p.u.daysOnLot||0) - (q.u.daysOnLot||0)); })   // (v9.7.781) opts: lane + price
+    .filter(_lpCompLaneOnly(opts))
     .slice(0, cap || 3)
     .map(function(o){ var u = o.u; // (v9.7.484/479) label certified units + scrub color codes
       var _cc = _lpCleanColor(u.color);
@@ -5263,14 +5265,61 @@ function _lpInvFreshness(dealerId) {
   } catch (e) { return { fresh: false, settled: false, ageMs: -1, reason: 'freshness check threw: ' + (e && e.message) }; }
 }
 
-function _lpComparablesWithUnits(leadVeh, units, soldStock, soldVin, cap){
+// (v9.7.781) The thread without the store's internal notes: a [NOTE] entry stays only when it records telling the customer.
+function _lpCustomerFacingThread(ctx) {
+  try {
+    var t = String(ctx || '');
+    var parts = t.split(/(?=^\[\d{1,2}\/\d{1,2}\/\d{2,4}[^\]\n]*\]\s*\[)/m);
+    return parts.filter(function (pt) {
+      var m = pt.match(/^\[\d{1,2}\/\d{1,2}\/\d{2,4}[^\]\n]*\]\s*\[([^\]]+)\]/);
+      if (!m || !/^NOTE$/i.test(m[1].trim())) return true;
+      return /\b(?:told|informed|notified|advised|let (?:him|her|them|the customer|customer) know|texted|called) (?:him|her|them|the customer|customer|cx)\b|\b(?:customer|cx) (?:was |has been )?(?:told|informed|notified|aware)\b/i.test(pt);
+    }).join('');
+  } catch (e) { return String(ctx || ''); }
+}
+// (v9.7.781) Comparables in the customer's own lane. Lead 2097428117: a 2018 Accord EX-L 2.0T (pre-owned, $21,991) sold
+// and the pivot named a NEW 2026 Accord Hybrid EX-L with an APR program, while a 2024 Accord LX CPO at $23,691 sat in the
+// same feed -- the scorer read model words only. opts.cond (the lead's condition) puts units of the same lane first --
+// pre-owned (used/cpo) for a pre-owned lead, new for a new one; within the lane the model match leads as before, and
+// opts.price (the sold unit's price) orders equal matches by the closest price among pre-owned units. A lane with nothing in it falls back to the rest, as before.
+function _lpCompLane(c) { var t = String(c || '').toLowerCase(); return /pre-?owned|used|cpo|certified/.test(t) ? 'pre' : (/\bnew\b/.test(t) ? 'new' : ''); }
+function _lpCompRankSort(opts) {
+  var lane = _lpCompLane(opts && opts.cond), price = Number(opts && opts.price) || 0;
+  return function (p, q) {
+    if (lane) {
+      var pl = _lpCompLane(_lpUnitCondition(p.u)) === lane ? 0 : 1, ql = _lpCompLane(_lpUnitCondition(q.u)) === lane ? 0 : 1;
+      if (pl !== ql) return pl - ql;
+    }
+    if (q.sc !== p.sc) return q.sc - p.sc;   // the model match still leads; price only orders equal matches
+    if (lane === 'pre' && price) {
+      var pp = Number(p.u.price) || 0, qp = Number(q.u.price) || 0;
+      if (pp && qp && Math.abs(pp - price) !== Math.abs(qp - price)) return Math.abs(pp - price) - Math.abs(qp - price);
+    }
+    return (p.u.daysOnLot||0) - (q.u.daysOnLot||0);
+  };
+}
+
+// (v9.7.781) Once the sort has put the lead's lane first: if any unit is in that lane, keep only the lane (a pre-owned
+// shopper with pre-owned matches is not shown a new car as a third option). An empty lane keeps everything, as before.
+function _lpCompLaneOnly(opts) {
+  var lane = _lpCompLane(opts && opts.cond);
+  if (!lane) return function () { return true; };
+  var seen = null;
+  return function (o, i, arr) {
+    if (seen === null) seen = arr.some(function (x) { return _lpCompLane(_lpUnitCondition(x.u)) === lane; });
+    return !seen || _lpCompLane(_lpUnitCondition(o.u)) === lane;
+  };
+}
+
+function _lpComparablesWithUnits(leadVeh, units, soldStock, soldVin, cap, opts){
   var _minYr = _lpCompYr(leadVeh); // (v9.7.431/429) year floor — see _lpComparables
   return units.map(function(u){ return { u: u, sc: _lpScore(leadVeh, u.vehicle || ((u.make||'') + ' ' + (u.model||''))) }; })
     .filter(function(o){ var _uYr = parseInt(o.u.year, 10) || _lpCompYr(o.u.vehicle); return !(_minYr && _uYr && _uYr < _minYr); })
     .filter(function(o){ var _uStock = o.u.stock || o.u.stockNum || ''; return o.sc > 0 && (!soldStock || _uStock !== soldStock) && (!soldVin || o.u.vin !== soldVin); }) // (v9.7.429/427) feed may carry stockNum (the validated consumers read u.stockNum) — check both so the sold unit is actually excluded; only exclude on a truthy sold identifier
-    .sort(function(p,q){ return (q.sc - p.sc) || ((p.u.daysOnLot||0) - (q.u.daysOnLot||0)); })
+    .sort(opts ? _lpCompRankSort(opts) : function(p,q){ return (q.sc - p.sc) || ((p.u.daysOnLot||0) - (q.u.daysOnLot||0)); })
+    .filter(_lpCompLaneOnly(opts))
     .slice(0, cap || 3)
-    .map(function(o){ var u = o.u; return { text: u.vehicle + (u.color ? ' (' + u.color + ')' : ''), unit: u, inTransit: _lpUnitInTransit(u) }; }); }
+    .map(function(o){ var u = o.u; return { text: u.vehicle + (u.color ? ' (' + u.color + ')' : '') + (_lpUnitCondition(u) === 'cpo' ? ' — Certified Pre-Owned' : (_lpUnitCondition(u) === 'used' ? ' — pre-owned' : '')), unit: u, inTransit: _lpUnitInTransit(u) }; }); }
 
 // (v9.7.257) Chat vehicle candidate extractor. Pulls every "<make> <model...>" phrase out of the
 // chat/inquiry region of the brief so the inventory matcher can score each against real stock.
@@ -6882,7 +6931,7 @@ function populateFromData(d) {
   if (typeof d.daysOnLot === 'number') {
     if (d.daysOnLot >= 60) {
       vehicleExtras.push('⏳ AGED INVENTORY — this unit has been in stock ' + d.daysOnLot + ' days. Do NOT use scarcity or urgency language about it: no "these move fast", "won\'t last long", "moving quickly", "before someone else grabs it". The listing date is public and a customer who checks will catch the claim. Earn the visit on the vehicle and the experience instead. This is context for YOU — never state or hint at how long it has been sitting.');
-    } else if (d.daysOnLot <= 14) {
+    } else if (d.daysOnLot <= 14 && !d.inventoryWarning && !d.isSoldDelivered) {   // (v9.7.781) not for a unit that has sold
       vehicleExtras.push('🆕 FRESH ARRIVAL — this unit came in ' + d.daysOnLot + ' day(s) ago. "Just arrived" / "just came in" is genuinely TRUE here, so use it if it fits naturally. Do not stretch it beyond that.');
     }
   }
@@ -7649,7 +7698,11 @@ function populateFromData(d) {
         // check does substring(0, marker). That was latent only because the source was
         // empty; fixing the source alone would have switched this guard on against the
         // wrong half of the transcript. _lpCtxCurrent is the correctly-bounded scope.
-        var _snScan = _lpCtxCurrent.toLowerCase();
+        // (v9.7.781) What the CUSTOMER was told, not what the store wrote to itself. Honda Lafayette lead 2097428117
+        // (10/9): the only "sold" in the thread was a manager's internal General Note ("Stock #:19575AB has been sold"),
+        // and this read it as the customer already told -- beside our own "It's here and available" from two hours
+        // before. Internal [NOTE] entries are left out unless they say the customer was told.
+        var _snScan = _lpCustomerFacingThread(_lpCtxCurrent).toLowerCase();
         _soldNewsInArc = /\b(?:has (?:been |already )?sold|it (?:just )?sold|already sold|(?:that|the) (?:car|one|unit|vehicle) (?:has )?sold|no longer available|sold (?:over the weekend|yesterday|this (?:morning|week)|last (?:night|week)))\b/.test(_snScan);
       } catch(eSn) { _soldNewsInArc = false; }
       if (_soldNewsInArc) {
@@ -7692,7 +7745,11 @@ function populateFromData(d) {
             + ' | fresh:' + _invFresh.fresh + ' settled:' + _invFresh.settled
             + ' | units:' + _cinv.units.length + ' | ' + _invFresh.reason
             + (_invFresh.fresh ? '' : ' — an in-stock claim will NOT be made on any comparable from this snapshot'));
-          var _compsFull = _lpComparablesWithUnits(_lvSold, _cinv.units, d.stockNum, d.vin, 3);
+          // (v9.7.781) the lead's own lane and the sold unit's price
+          var _soldUnitPrice = 0;
+          try { for (var _sui = 0; _sui < _cinv.units.length; _sui++) { var _su = _cinv.units[_sui]; if (d.stockNum && (_su.stock === d.stockNum || _su.stockNum === d.stockNum)) { _soldUnitPrice = Number(_su.price) || 0; break; } } } catch (eSup) {}
+          var _compsFull = _lpComparablesWithUnits(_lvSold, _cinv.units, d.stockNum, d.vin, 3, { cond: d.condition || '', price: _soldUnitPrice });
+          try { console.log('[LP SOLD PIVOT DIAG] comparables (lane ' + (_lpCompLane(d.condition) || 'any') + (_soldUnitPrice ? ', near $' + _soldUnitPrice : '') + '): ' + _compsFull.map(function (c) { return c.text + (c.unit && c.unit.price ? ' $' + c.unit.price : ''); }).join(' | ')); } catch (eSpl) {}
           var _comps = _compsFull.map(function(c){ return c.text; });
           if (!_comps.length) {
             console.log('[LP SOLD PIVOT DIAG] no comparable units scored against "' + _lvSold + '" out of ' + _cinv.units.length + ' cached unit(s)');
@@ -7743,7 +7800,10 @@ function populateFromData(d) {
               if (!_soldIncCur.length) {
                 console.log('[LP SOLD PIVOT DIAG] all ' + _soldVfc.incentives.length + ' cached incentive line(s) are expired or undated — no CURRENT offer to pair, falling back to generic no-price pivot');
               }
-              for (var _cpI = 0; _cpI < _comps.length && !_soldPivotInc && _soldIncCur.length; _cpI++) {
+              // (v9.7.781) A pre-owned lead with a pre-owned comparable does not lead with a new car's program.
+              var _spPreLead = _lpCompLane(d.condition) === 'pre' && _compsFull.some(function (c) { return _lpCompLane(_lpUnitCondition(c.unit || {})) === 'pre'; });
+              if (_spPreLead) console.log('[LP SOLD PIVOT DIAG] pre-owned lead with pre-owned comparables -- no new-car incentive pivot');
+              for (var _cpI = 0; _cpI < _comps.length && !_soldPivotInc && _soldIncCur.length && !_spPreLead; _cpI++) {
                 // (v9.7.429/427) Store incentives are NEW-car programs (the v9.7.241 used-VOI
                 // gate's own rationale) — never pair one with a comparable not confirmed New.
                 // Condition read from the unit's own fields/string; unconfirmed → skip the
@@ -8205,7 +8265,7 @@ function populateFromData(d) {
     if (d.vehicle && !d.isSoldDelivered && !_incAdversarial && !_incIsFirstTouchLead && !_voiCrossSellSuppressed) { // (v9.7.429/427) pristine first-touch flag — override-admitted incentives no longer unlock cross-sell
       var _cvcInv = _lpValueFactCache[d.dealerId] && _lpValueFactCache[d.dealerId].inv;
       if (_cvcInv && _cvcInv.units && _cvcInv.units.length) {
-        var _likeComps = _lpComparables(d.vehicle, _cvcInv.units, d.stockNum, d.vin, 2);
+        var _likeComps = _lpComparables(d.vehicle, _cvcInv.units, d.stockNum, d.vin, 2, { cond: d.condition || '' });   // (v9.7.781) same lane first
         if (_likeComps.length) {
           vehicleExtras.push('🚙 SIMILAR VEHICLES IN STOCK (secondary-touch angle — real, in stock, do NOT quote price): ' + _likeComps.join('; ') + '. Use this ONLY if it genuinely helps this specific touch — e.g. the customer has gone quiet on the original ask, mentioned wanting to see options, or a fit issue (space, budget, feature) suggests an alternative might land better. Never lead a first-touch or a clearly-engaged conversation with an unsolicited alternative to the vehicle they asked about.');
         }
@@ -22097,6 +22157,9 @@ var _LP_VISIT_HOLDS = [
   [3, /HARD RULE: do NOT offer an appointment time|FINAL CLOSE RULE FOR THIS MESSAGE: Do NOT end with an appointment/, 'the DEAL CONDITION rule'],
   [3, /NOT TODAY: Customer explicitly said they cannot or do not want to come in right now/, 'NOT TODAY (not any day)'],
   [3, /^EXIT SIGNAL:/, 'the EXIT rule'],
+  // (v9.7.781) lead 2097428117, an out-of-state buyer: "Do NOT push an in-person visit or offer appointment times as the
+  // ask" sat beside the store-hours "today is the default: lead with a today time", and no hold read it
+  [3, /^Do NOT push an in-person visit or offer appointment times as the ask/, 'the REMOTE / OUT-OF-STATE BUYER block'],
   [2, /^DO NOT offer appointment times\. DO NOT write duration\./, 'the stalled-lead re-engagement block'],
   [2, /The visit already happened\. Do NOT push a same-day appointment or offer times/, 'the SHOWROOM FOLLOW-UP block'],
   [2, /FIRST HUMAN TOUCH — LIGHT ASK, NO TIMES/, 'FIRST HUMAN TOUCH'],
