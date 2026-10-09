@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.776-dev (Dev. THE VISIT DECISION IN THE DUMP. Extension only, diagnostics only: no prompt changes. Proxy v7.86, reporter v1.23 and dashboard v1.11 unchanged. Gil, 10/9: 'Should we add [LP VISIT DECISION DIAG] to the _LP dump console prompt for future analysis when working issues?' v9.7.775's decision line is in the user prompt, so a dump already showed the decision and its owner; it did not show what was taken out -- the suggested-times block, the store-hours 'today is the default', the two-times close were simply absent, with nothing saying they had been there -- and a lead with no hold showed nothing, so 'never ran' and 'found nothing' looked the same. _lpDumpPrompt() now writes a VISIT DECISION section after MODEL RAW RESPONSE: the level and what it means, the owner, any outranked holds with their levels, and every line removed or rewritten with its original text (a slot block with its option lines); 'level 0 -- no hold on the visit in this prompt; nothing removed' when nothing held it; the reason if the decision failed. buildUserPrompt records each decision (_lpLastVisitDecision, level 0 included); the main generation copies it to window._lpLastVisitDecision beside window._lpLastUserPrompt, so the voicemail prompt cannot overwrite it and it always matches the prompt in the same file. _lpVisitDecision also returns the outranked holds; _lpApplyVisitDecision returns the removed lines; the prompt text is unchanged. MEASURED: the 36 saved page dumps re-rendered on v9.7.775 and v9.7.776 give identical prompts apart from the clock. TESTS: visit-dump-776 (new) executes buildUserPrompt, _lpApplyVisitDecision, _lpVisitDecisionDumpText and the shipped _lpDumpPrompt lifted from the generation with the download stubbed: 22 assertions across both builds; v9.7.775 fails 10 of 11 per build (its one pass: the prompt text is unchanged). VERIFIED: run-all 206 suites green, 7,783 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.775-dev.)
 // Lead Pro -- popup.js  v9.7.775-dev (Dev. A MISSED APPOINTMENT WAS READ AS A LIVE ONE -- AND THE AUDIT IT STARTED: THE VISIT DECISION NOW HAS ONE OWNER. Extension only; proxy v7.86, reporter v1.23 and dashboard v1.11 unchanged. log298, Honda Lafayette lead 2091288708 (IdentityMax, claimed $1,000 off a new Honda): an appointment set for Saturday 10/3 was missed; on 10/6 the assistant texted 'We noticed you missed your appointment ... I have availability Wednesday at 10:00 AM or Thursday'; on 10/8 the customer answered a rep's intro with 'Okay'. The draft led with the $1,000 offer. Gil: wrong angle. (1) The appointment scan tested the REMINDER pattern first and 'your appointment ... Wednesday' matched, so the missed-appointment notice was filed as a reminder -> 'THERE IS A LIVE APPOINTMENT ON THIS LEAD'. A message saying they missed it is no longer a reminder, and the store saying so outright counts as a missed appointment whoever sent it (727's bot guard stays for the vague phrases). (2) The no-show counter now takes 'missed your appointment'. (3) On a follow-up the claimed-offer line no longer says 'Lead with that': the offer is background, never the opener. Gil then asked why the logic said both acknowledge the miss and do not, and to clean up contradicting logic for other scenarios too ('fix them all at once'). THE AUDIT: 105 prompt captures and the 36 saved page dumps re-rendered on v9.7.774 (system + user prompt, as the model reads them); 473 conditional instruction families on the current build; directives that fire together with opposite instructions on the same subject were counted per lead. The contradictions sat in one subject -- whether this message asks for a visit, with which times: 63 opposing pairs, 166 lead-pairs. A dozen blocks HOLD the visit back and the blocks that PUSH it were written without reading them (the store-hours line 'today is the default: lead with a today time' sat beside the stalled block's 'DO NOT offer appointment times' on 7 of 36 leads and beside the showroom block's 'the visit already happened' on 5; SUGGESTED APPOINTMENT TIMES, '(5) Close with two specific appointment times', the financing line's visit pitch and the distance block's REQUIRED visit reason did the same). FIXES: (a) ONE OWNER PER MISS: a miss on THIS lead is acknowledged lightly and without blame (the appointment block's job); a no-show from earlier history keeps 'Do NOT reference the no-show directly'. (b) A KEPT APPOINTMENT IS NOT A LIVE ONE: a showroom visit at or after the newest evidence that set the appointment clears it (Honda Lafayette 2082889754, Honda Baytown 2094209825 and Toyota Baytown 2093513607 had 'LIVE APPOINTMENT ... OUTRANKS' beside 'the visit already happened'); a reminder for a new appointment after a visit stays live. (c) THE VISIT DECISION (_lpVisitDecision / _lpApplyVisitDecision), made once on the finished user prompt: the strongest hold present sets the level -- 3 no visit ask (pause, deal condition, not any day, exit), 2 no times (stalled, showroom visit happened, first human touch, zero-contact, reactivation, times withheld, quiet 30+ days, fell through, a live appointment), 1 not today by default (cannot come today, not a hot lead, the day they named, answer what they asked, trade number) -- every push line that contradicts it is removed or neutralised, and one line states the decision and names its owner. Holds are read from Lead Pro's own directive lines only, never the transcript or a quoted note. v9.7.737's 14-29-day quiet rule still allows times, as designed. Logged as [LP VISIT DECISION DIAG]. MEASURED on the 36 dumps: 24 prompts change, 12 have no hold and are unchanged apart from the clock; owners: stalled 7, showroom 5, quiet 30+ 3, not a hot lead 3, first human touch 2, not today 1, fell through 1, the day they named 1, deal condition 1. Opposing pairs 63 -> 28 (166 -> 64 lead-pairs), and none of the 28 is a live contradiction: 14-29-day quiet with times (737's design), not a hot lead with times offered softly (level 1), the hand-off's 'when they come in' under a no-times hold (an invite without times), the showroom close's come-back offer (774), one conditional ('If YES to both'), and question/number pairs that do not oppose. TESTS: missed-appt-775 (new) executes the lifted appointment block, the no-show pattern, _lpImxOfferGuidance, renderRelationshipReading, _lpApplyVisitDecision and buildUserPrompt: 50 assertions across both builds; v9.7.774 fails 16 of 25 per build (every control passes there). arc-first and fact-arbitration accept the new return site; prompt-hygiene-698 and quiet-sweep-737 unchanged and green. VERIFIED: run-all 205 suites green, 7,761 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.774-dev.)
 // Lead Pro -- popup.js  v9.7.774-dev (Dev. SHOWROOM FOLLOW-UPS BRING THE CUSTOMER BACK IN TO GO OVER NEW OPTIONS -- NO MORE 'SEND IT TO REVIEW AT HOME'. Extension only; proxy v7.83, reporter v1.23 and dashboard v1.8 unchanged. Gil, 10/7 (Honda Lafayette lead 2096017815, log296: '[the rep] can send you the CR-V EX offer details to review at home'): 'We don't want that. We want them to come back and review new options.' Every 'review / compare / look over at home' draft in logs 286-296 is from log292 on, and each traces to wording Lead Pro added: 769's close examples ('the numbers on the vehicle they liked so they can review at home'), the no-vehicle line ('sent so they can look them over'), and 771's sister-store 'so they can compare at home'; earlier drafts said 'review the financing together'. Now: the showroom close is a concrete yes/no offer that BRINGS THEM BACK IN -- the rep putting together new options for what the notes say and going over them in person -- and says not to offer sending numbers, offer details or options to review at home; the no-vehicle line, the sister-store line (side by side when they come back in) and 770's post-visit financing line say the same; the text rewrite's offer block says never to turn it into sending. On all 35 saved page dumps: the 5 showroom briefs offered 'at home' on 773, none on 774; no other brief line changes. TESTS: come-back-774 (new) executes populateFromData and _lpBuildSmsRefinePrompt: 14 assertions across both builds; v9.7.773 fails 6 of 7 per build (the control passes there). showroom-769, cosigner-770 and store-group-771 follow the new wording. VERIFIED: run-all 198 suites green, 7,661 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.773-dev.)
 // Lead Pro -- popup.js  v9.7.773-dev (Dev. THE TEXT REWRITE NOW KEEPS v9.7.195's RULE: A CUSTOMER TEXT SENT BEFORE THE SHOWROOM VISIT IS NOT SHOWN TO IT. Extension only; proxy v7.83, reporter v1.23 and dashboard v1.8 unchanged. log295. Toyota Baytown lead 2093513607: her last text (9:22 AM, on her way and running a little late) predates the 9:55 AM visit. The scraper caught it (inboundPreVisit true, her Spanish question HANDLED-AT-VISIT), the generation payload left it out as v9.7.195 does, and the first pass was about the Civic trade and the Camry. The rewrite shipped 'thanks for letting us know you're running a little late'. Lead 2092136687's rewrite likewise answered a pre-visit mileage question the visit had handled ('I don't have the mileage ... but I can check it'). Cause: _lpRefineSms is handed the raw scrape (lastScrapedData), not the payload, so the 195 blanking at the payload never reached it, and _lpBuildSmsRefinePrompt printed lastInboundMsg as WHAT THE CUSTOMER LAST SAID, IN THEIR OWN WORDS. It now applies the same rule: when inboundPreVisit is set, the last message is left out, not annotated -- the lesson of 195. On all 34 saved page dumps the rewrite prompt changes on two, both pre-visit: lead 2093513607 and lead 2094209825 (a pre-visit 'Wednesday at 10:00am'). TESTS: previsit-rewrite-773 (new) executes _lpBuildSmsRefinePrompt: 12 assertions across both builds; v9.7.772 fails 2 of 6 per build (every control passes there). VERIFIED: run-all 197 suites green, 7,647 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.772-dev.)
@@ -22465,7 +22466,7 @@ var _LP_VISIT_HOLDS = [
   [1, /they asked for a NUMBER, not an appointment/, 'the TRADE VALUE request'],
 ];
 function _lpVisitDecision(text) {
-  var best = { level: 0, owner: '' };
+  var best = { level: 0, owner: '' }, seen = [], seenLv = [];
   try {
     var lines = String(text || '').split('\n'), inNote = false;
     for (var i = 0; i < lines.length; i++) {
@@ -22478,10 +22479,14 @@ function _lpVisitDecision(text) {
       var l = raw.replace(/^[\s\-•⚠🔔🚫🤝🔴]+/, '');
       for (var h = 0; h < _LP_VISIT_HOLDS.length; h++) {
         var H = _LP_VISIT_HOLDS[h];
-        if (H[0] > best.level && H[1].test(l)) best = { level: H[0], owner: H[2] };
+        if (!H[1].test(l)) continue;
+        if (seen.indexOf(H[2]) < 0) { seen.push(H[2]); seenLv.push(H[0]); }   // (v9.7.776) for the dump
+        if (H[0] > best.level) best = { level: H[0], owner: H[2] };
       }
     }
   } catch (e) {}
+  best.others = [];
+  for (var k = 0; k < seen.length; k++) if (seen[k] !== best.owner) best.others.push(seen[k] + ' [level ' + seenLv[k] + ']');
   return best;
 }
 var _LP_VISIT_DECISION_TEXT = {
@@ -22490,43 +22495,44 @@ var _LP_VISIT_DECISION_TEXT = {
   1: 'appointment times are fine, but not today by default',
 };
 function _lpApplyVisitDecision(text) {
-  var dec = _lpVisitDecision(text), edits = [];
-  if (!dec.level) return { text: text, level: 0, owner: '', edits: edits };
+  var dec = _lpVisitDecision(text), edits = [], removed = [];
+  if (!dec.level) return { text: text, level: 0, owner: '', edits: edits, removed: removed, others: dec.others || [] };
   var L = dec.level, lines = String(text).split('\n'), out = [];
-  var drop = function (why) { edits.push(why); };
+  var drop = function (why, was) { edits.push(why); removed.push({ why: why, was: was }); };   // (v9.7.776) was: for the dump
   for (var i = 0; i < lines.length; i++) {
     var l = lines[i], t = l.replace(/^\s+/, '');
     // the store-hours line keeps its facts and loses the booking instruction
     if (/^STORE STATUS RIGHT NOW: OPEN\./.test(t) && / OFFER THE SOONEST REAL OPENING FIRST/.test(l)) {
       out.push(l.replace(/\s*OFFER THE SOONEST REAL OPENING FIRST[\s\S]*$/, ''));
       out.push('VISIT DECISION FOR THIS MESSAGE: ' + _LP_VISIT_DECISION_TEXT[L] + ' -- ' + dec.owner + ' owns this. Any slot, time example or "come in today" wording elsewhere in this prompt does not apply.');
-      drop('store-status today default'); dec._placed = true; continue;
+      drop('store-status today default', l); dec._placed = true; continue;
     }
     // same-day timing and urgency examples (level 1+); next-day examples and every slot block (level 2+)
     var _sameDay = /^(?:TIMING — (?:AFTERNOON|MORNING)|URGENCY — )/.test(t);
     var _slots = /^(?:TIMING — NEXT-DAY|SUGGESTED APPOINTMENT TIMES \(fallback only|APPOINTMENT TIMES — ADJUSTED FOR CUSTOMER ARRIVAL TIME|APPOINTMENT TIME FORMAT:)/.test(t);
     if (_sameDay || (L >= 2 && _slots)) {
-      drop(t.slice(0, 40));
-      while (i + 1 < lines.length && /^\s*(?:- |Option: |First option: |Second option: |↳ )/.test(lines[i + 1])) i++;
+      var _was = [l];
+      while (i + 1 < lines.length && /^\s*(?:- |Option: |First option: |Second option: |↳ )/.test(lines[i + 1])) _was.push(lines[++i]);
+      drop(t.slice(0, 40), _was.join('\n'));
       continue;
     }
     if (L >= 2) {
       // the day they named, when something stronger holds the visit (a stale "Tuesday works" under the quiet rule)
-      if (/LOCK IN \S+ - do NOT offer any other day|Your ONLY close is two times on the day the customer named/.test(l)) { drop('day-named two-times close'); continue; }
-      if (/\(5\) Close with two specific appointment times\./.test(l)) { out.push(l.replace(/Close with two specific appointment times\./, 'Close with one easy next step -- no appointment times (see the VISIT DECISION).')); drop('(5) two-times close'); continue; }
-      if (/Close toward that visit with one clear ask\./.test(l)) { out.push(l.replace(/Close toward that visit with one clear ask\./, 'Close with one clear ask that fits the VISIT DECISION.')); drop('close toward that visit'); continue; }
-      if (/Acknowledge that the visit is the easiest way to get real numbers - keep it low pressure\./.test(l)) { out.push(l.replace(/Acknowledge that the visit is the easiest way to get real numbers - keep it low pressure\./, 'Keep it low pressure; the next step on financing follows the VISIT DECISION.')); drop('financing visit pitch'); continue; }
-      if (/Email: Open with the vehicle\/option confirmation, THEN the appointment ask\./.test(l)) { out.push(l.replace(/, THEN the appointment ask\./, '.')); drop('distance email appointment ask'); continue; }
+      if (/LOCK IN \S+ - do NOT offer any other day|Your ONLY close is two times on the day the customer named/.test(l)) { drop('day-named two-times close', l); continue; }
+      if (/\(5\) Close with two specific appointment times\./.test(l)) { out.push(l.replace(/Close with two specific appointment times\./, 'Close with one easy next step -- no appointment times (see the VISIT DECISION).')); drop('(5) two-times close', l); continue; }
+      if (/Close toward that visit with one clear ask\./.test(l)) { out.push(l.replace(/Close toward that visit with one clear ask\./, 'Close with one clear ask that fits the VISIT DECISION.')); drop('close toward that visit', l); continue; }
+      if (/Acknowledge that the visit is the easiest way to get real numbers - keep it low pressure\./.test(l)) { out.push(l.replace(/Acknowledge that the visit is the easiest way to get real numbers - keep it low pressure\./, 'Keep it low pressure; the next step on financing follows the VISIT DECISION.')); drop('financing visit pitch', l); continue; }
+      if (/Email: Open with the vehicle\/option confirmation, THEN the appointment ask\./.test(l)) { out.push(l.replace(/, THEN the appointment ask\./, '.')); drop('distance email appointment ask', l); continue; }
       if (/OFFER A VISIT \(first reach-out, required\)/.test(l)) {
-        if (L >= 3) { drop('first-touch visit offer'); continue; }
-        out.push(l.replace(/, using the appointment times in this prompt/, ', without naming times').replace(/Make it the main ask of the message/, 'Keep it a light ask')); drop('first-touch visit offer softened'); continue;
+        if (L >= 3) { drop('first-touch visit offer', l); continue; }
+        out.push(l.replace(/, using the appointment times in this prompt/, ', without naming times').replace(/Make it the main ask of the message/, 'Keep it a light ask')); drop('first-touch visit offer softened', l); continue;
       }
     }
     if (/REQUIRED in EVERY format: One specific reason (?:the|any) visit (?:is|would be) worth their time/.test(l) && L >= 2) {
-      if (L >= 3) { drop('distance visit reason'); continue; }
-      out.push(l.replace(/REQUIRED in EVERY format: One specific reason (?:the|any) visit (?:is|would be) worth their time/, 'If you invite them in at all, give one specific reason the visit is worth their time')); drop('distance visit reason softened'); continue;
+      if (L >= 3) { drop('distance visit reason', l); continue; }
+      out.push(l.replace(/REQUIRED in EVERY format: One specific reason (?:the|any) visit (?:is|would be) worth their time/, 'If you invite them in at all, give one specific reason the visit is worth their time')); drop('distance visit reason softened', l); continue;
     }
-    if (L >= 3 && /\(4\) HAND OFF to the sales rep: When they come in, /.test(l)) { out.push(l.replace('When they come in, ', '')); drop('hand-off visit framing'); continue; }
+    if (L >= 3 && /\(4\) HAND OFF to the sales rep: When they come in, /.test(l)) { out.push(l.replace('When they come in, ', '')); drop('hand-off visit framing', l); continue; }
     out.push(l);
   }
   var res = out.join('\n');
@@ -22536,7 +22542,30 @@ function _lpApplyVisitDecision(text) {
     if (at >= 0) { var eol = res.indexOf('\n', at + 1); res = res.slice(0, eol < 0 ? res.length : eol) + '\n' + marker + (eol < 0 ? '' : res.slice(eol)); }
     else res = marker + '\n' + res;
   }
-  return { text: res, level: L, owner: dec.owner, edits: edits };
+  return { text: res, level: L, owner: dec.owner, edits: edits, removed: removed, others: dec.others || [] };
+}
+// (v9.7.776) THE VISIT DECISION IN THE DUMP. Gil, 10/9: "Should we add [LP VISIT DECISION DIAG] to the _LP dump console
+// prompt for future analysis when working issues?" The decision line is already in the user prompt, but the lines it
+// removed are not -- the dump showed a prompt without them and nothing said they had been there -- and a lead with no
+// hold printed nothing at all. buildUserPrompt keeps the last decision here; the generation copies it beside
+// window._lpLastUserPrompt so it always matches the prompt in the same dump; _lpDumpPrompt() writes this section.
+var _lpLastVisitDecision = null;
+function _lpVisitDecisionDumpText(v) {
+  if (!v) return '(none captured yet -- generate a response first)';
+  if (v.error) return 'the visit decision failed (' + v.error + ') -- the prompt went out without it';
+  var out = [];
+  if (!v.level) out.push('level 0 -- no hold on the visit in this prompt; nothing removed');
+  else {
+    out.push('level ' + v.level + ' -- ' + _LP_VISIT_DECISION_TEXT[v.level]);
+    out.push('owner: ' + v.owner);
+  }
+  if (v.others && v.others.length) out.push('other holds present (outranked): ' + v.others.join('; '));
+  if (v.level) {
+    var r = v.removed || [];
+    out.push('removed or neutralised (' + r.length + ')' + (r.length ? ':' : ': nothing conflicted'));
+    for (var i = 0; i < r.length; i++) out.push('- ' + r[i].why + '\n    was: ' + String(r[i].was || '').replace(/\n/g, '\n         '));
+  }
+  return out.join('\n');
 }
 
 function buildUserPrompt(data) {
@@ -28465,12 +28494,13 @@ function buildUserPrompt(data) {
   var _vdOut = _out.join('\n');
   try {
     var _vd = _lpApplyVisitDecision(_vdOut);
+    _lpLastVisitDecision = { level: _vd.level, owner: _vd.owner, others: _vd.others, removed: _vd.removed };   // (v9.7.776) for the dump
     if (_vd.level) {
       _vdOut = _vd.text;
       console.log('[LP VISIT DECISION DIAG] level ' + _vd.level + ' (' + _LP_VISIT_DECISION_TEXT[_vd.level] + ') | owner: ' + _vd.owner
         + ' | removed or neutralised: ' + (_vd.edits.length ? _vd.edits.join(' · ') : 'nothing conflicted'));
     }
-  } catch (eVd) {}
+  } catch (eVd) { _lpLastVisitDecision = { error: (eVd && eVd.message) || String(eVd) }; }
   return _vdOut;
 }
 
@@ -29274,6 +29304,7 @@ async function generateAll() {
     try {
       window._lpLastSystemPrompt = payload.system_instruction.parts[0].text;
       window._lpLastUserPrompt = userPrompt;
+      window._lpLastVisitDecision = (typeof _lpLastVisitDecision !== 'undefined') ? _lpLastVisitDecision : null;   // (v9.7.776) matches this prompt
       window._lpDumpPrompt = function() {
         var sys = window._lpLastSystemPrompt || '(none captured yet — generate a response first)';
         var usr = window._lpLastUserPrompt || '(none captured yet — generate a response first)';
@@ -29291,6 +29322,7 @@ async function generateAll() {
           out = '=== LEAD ' + ((_lsd && _lsd.autoLeadId) || '(unknown)') + ' | dealer ' + ((_lsd && _lsd.dealerId) || '(unknown)')
             + ' | dumped ' + new Date().toISOString() + ' ===\n\n' + out;
           _sec('MODEL RAW RESPONSE', window._lpLastRawResponse || '(none captured yet)');
+          _sec('VISIT DECISION', (typeof _lpVisitDecisionDumpText === 'function') ? _lpVisitDecisionDumpText(window._lpLastVisitDecision) : '(not in this build)');   // (v9.7.776)
           var _rf = window._lpLastRefine;
           _sec('SMS REWRITE STEP', !_rf ? '(did not run on this generation)'
             : 'RESULT: ' + (_rf.result || '(no result recorded)') + '\n\n--- first-pass text ---\n' + _rf.pass1
