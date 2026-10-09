@@ -31,7 +31,7 @@ function check(name, got, want) {
   else { fail++; console.log('  FAIL ' + name + '\n        expected ' + w + '\n        got      ' + g); }
 }
 
-const NANO = 'gpt-5.4-nano-2026-03-17';
+const NANO = 'gpt-4.1-mini';   // (v7.87) the emergency tier; it was gpt-5.4-nano-2026-03-17 from v7.78 to v7.86
 const SENTINEL = '⟦LP_CACHE_BREAKPOINT⟧';
 const SYS = 'You are a BDC agent. '.repeat(300) + SENTINEL + '\nPERSONA: agent at the store.\n';
 const USER = 'Lead context. '.repeat(400);
@@ -120,11 +120,11 @@ const shape = p => ({
   console.log('\n1. the order, under the worst case (primary and fallback both time out):');
   {
     const r = await run(['hang', 'hang', 'ok']);
-    check('[new] the tiers are gpt-6-luna → gpt-5.6-luna → gpt-5.4-nano', models(r), ['gpt-6-luna', 'gpt-5.6-luna', NANO]);
+    check('[new] the tiers are gpt-6-luna → gpt-5.6-luna → gpt-4.1-mini (v7.87)', models(r), ['gpt-6-luna', 'gpt-5.6-luna', NANO]);
     check('[control] the timeouts are 12000 → 8000 → 3700: the 24000ms budget still reaches all three tiers',
       r.calls.map(c => c.timeoutMs), [12000, 8000, 3700]);
     check('[control] ...and the emergency tier\'s draft is served, not the safe fallback', [r.tier, r.fallback], ['emergency', false]);
-    check('[new] the log names the model that answered', r.logs.some(l => /EMERGENCY OK gpt-5\.4-nano-2026-03-17 /.test(l)), true);
+    check('[new] the log names the model that answered', r.logs.some(l => /EMERGENCY OK gpt-4\.1-mini /.test(l)), true);
   }
 
   console.log('\n2. the ordinary request — one call, to GPT-6 Luna:');
@@ -148,10 +148,11 @@ const shape = p => ({
       shape(r.calls[1].payload),
       { cacheOptions: { mode: 'explicit', ttl: '30m' }, retention: null, systemIs: 'blocks', breakpoint: true, sentinelLeft: false,
         effort: 'low', verbosity: 'low', temperature: null, maxTokens: 3500 });
-    check('[new] emergency (5.4-nano) gets prompt_cache_retention, a plain system string with the sentinel stripped, effort low, no temperature, 3500 tokens',
+    // (v7.87) the emergency tier is gpt-4.1-mini: not a reasoning model, so no effort and no verbosity; temperature 0.3, 2500 tokens
+    check('[new] emergency (4.1-mini) gets prompt_cache_retention, a plain system string with the sentinel stripped, no effort, temperature 0.3, 2500 tokens',
       shape(r.calls[2].payload),
       { cacheOptions: null, retention: '24h', systemIs: 'string', breakpoint: false, sentinelLeft: false,
-        effort: 'low', verbosity: 'low', temperature: null, maxTokens: 3500 });
+        effort: null, verbosity: null, temperature: 0.3, maxTokens: 2500 });
     check('[new] after two FAST failures the emergency tier gets its own 8000ms cap (was 5000 for 4.1-nano)',
       r.calls.map(c => c.timeoutMs), [12000, 8000, 8000]);
     check('[control] and it answers', [r.tier, r.fallback], ['emergency', false]);
@@ -167,8 +168,9 @@ const shape = p => ({
   }
   {
     const r = await run([{ status: 500, error: { message: 'x' } }, { status: 500, error: { message: 'x' } }, 'ok'], 'none');
-    check('[new] a probe\'s "none" reaches all three tiers — 5.4-nano takes it (4.1-nano took no effort at all)',
-      r.calls.map(c => c.payload.reasoning_effort || null), ['none', 'none', 'none']);
+    // (v7.87) gpt-4.1-mini, like 4.1-nano before v7.78, takes no effort field at all
+    check('[new] a probe\'s "none" reaches both reasoning tiers; the emergency tier (4.1-mini) is sent no effort',
+      r.calls.map(c => c.payload.reasoning_effort || null), ['none', 'none', null]);
   }
 
   console.log('\n5. a model the project cannot use does not end the cascade:');

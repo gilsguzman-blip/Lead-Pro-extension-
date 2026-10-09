@@ -249,7 +249,7 @@ one('spec.tokens is set on ALL THREE tiers, so the logged tokens=300 never reach
     .match(/tokens:\s*(\d+)/g).map(x => Number(x.replace(/\D/g, ''))),
   // (v7.78) The third tier is now gpt-5.4-nano, a reasoning model, and keeps its own 3500 (was 2000
   // for the non-reasoning gpt-4.1-nano). Still set on all three, which is what this pins.
-  [3500, 3500, 3500]);
+  [3500, 3500, 2500]);   // (v7.87) the emergency tier is gpt-4.1-mini (non-reasoning): 2500
 
 one('...and the START line now says so, so tokens=300 cannot mislead the next reader',
   () => /tokens=\$\{callerMax\}\(caller; tiers use spec\.tokens\)/.test(proxySrc), true);
@@ -574,12 +574,13 @@ pOne('400 is genuinely NOT fatal — the claim above is checked, not asserted',
 // tier now reasons. The old check would still have PASSED (it split names into 'gpt-6', 'gpt-5.6',
 // 'gpt-5.4' and called that diversity), which is precisely why it is replaced: three GPT-5-lineage
 // reasoning models is not the backstop the assertion's own comment described. This says what is true.
-pOne('v7.78: three distinct models, and every one of them a reasoning model — no non-reasoning backstop',
+// (v7.87) Gil, 10/8: the emergency tier is back out of the reasoning models -- gpt-4.1-mini, the non-reasoning backstop.
+pOne('v7.87: three distinct models; the emergency tier is a non-reasoning model again (gpt-4.1-mini)',
   () => {
     const rows = (proxySrc.match(/\{ model: '[^']+'[^}]*\}/g) || []);
     return { models: rows.map(r => r.match(/model: '([^']+)'/)[1]),
              reasoning: rows.map(r => /gpt5:\s*true/.test(r)) };
-  }, { models: ['gpt-6-luna', 'gpt-5.6-luna', 'gpt-5.4-nano-2026-03-17'], reasoning: [true, true, true] });
+  }, { models: ['gpt-6-luna', 'gpt-5.6-luna', 'gpt-4.1-mini'], reasoning: [true, true, false] });
 
 pOne('...and a high effort the tier cannot take degrades downward the same way',
   () => W.effort('gpt-5.4-nano-2026-03-17', 'max').effort, 'high');

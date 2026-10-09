@@ -126,7 +126,7 @@ const efforts = r => r.calls.map(c => [c.model, c.payload.reasoning_effort || nu
   {
     const r = await run({ script: [{ status: 500, error: { message: 'x' } }, { status: 500, error: { message: 'x' } }, 'ok'] });
     check('[new] the recovery tiers keep "low" — only gpt-6-luna was measured at "none"', efforts(r),
-      [['gpt-6-luna', 'none'], ['gpt-5.6-luna', 'low'], ['gpt-5.4-nano-2026-03-17', 'low']]);
+      [['gpt-6-luna', 'none'], ['gpt-5.6-luna', 'low'], ['gpt-4.1-mini', null]]);   // (v7.87) the emergency tier takes no effort
   }
   {
     const r = await run({ effort: 'low' });

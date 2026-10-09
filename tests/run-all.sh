@@ -8,8 +8,8 @@ cd "$(dirname "$0")/.."
 
 DEV=builds/dev/popup.js
 COMM=builds/commercial/popup.js
-PROXY=${1:-worker/cloudflare-worker-v7.86.js}
-REPORTER=${2:-worker/leadpro-reporter-v1.23.js}
+PROXY=${1:-worker/cloudflare-worker-v7.87.js}
+REPORTER=${2:-worker/leadpro-reporter-v1.24.js}
 DASH=$(ls dashboard*.html dashboard/*.html 2>/dev/null | head -1)
 
 declare -a FAILED=()
@@ -90,6 +90,7 @@ run worker-v783.test.js              "$PROXY"
 run worker-v784.test.js              "$PROXY"
 run worker-v785.test.js              "$PROXY"
 run worker-v786.test.js              "$PROXY"
+run worker-v787.test.js              "$PROXY" "$REPORTER"
 run dashboard-explicit-down.test.js  "$PROXY"
 run feedback-export-join.test.js     "$PROXY"
 run degenerate-samples.test.js       "$PROXY"
@@ -97,6 +98,7 @@ run cache-ceiling.test.js            "$REPORTER"
 run reporter-feedback.test.js        "$REPORTER"
 run reporter-leadlink.test.js        "$REPORTER"
 run reporter-ct-failures.test.js     "$REPORTER"
+run reporter-fail-reasons.test.js    "$REPORTER"
 [ -n "${DASH:-}" ] && run dashboard-render.test.js "$DASH" "$PROXY"
 [ -n "${DASH:-}" ] && run dashboard-version.test.js "$DASH"
 [ -n "${DASH:-}" ] && run dashboard-range-v17.test.js "$DASH"
