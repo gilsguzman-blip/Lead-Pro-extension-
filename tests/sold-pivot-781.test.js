@@ -54,11 +54,13 @@ for (const f of BUILDS) {
   check('a note that records telling the customer counts', () => /customer was ALREADY TOLD/.test(ctx({ history: HIST('told customer the Accord has been sold') })), true);
 
   console.log(' 2. the pivot stays in the customer\'s lane:');
-  check('pre-owned lead: the pivot names the 2024 Accord LX CPO, and there is no new-car incentive pivot', () =>
-    [/2024 Honda Accord LX \(Platinum White Pearl\) — Certified Pre-Owned/.test(c1), /SOLD → INCENTIVE PIVOT/.test(c1), /2026 Honda Accord Hybrid EX-L/.test(c1)], [true, false, false]);
-  check('(new helper) the ranking: the lead\'s lane only when it has matches, model match, then the closest price', () => {
+  // (v9.7.782) model > price > type: a new unit may follow the pre-owned ones in the list, but never leads it here
+  check('pre-owned lead: the pivot names the 2024 Accord LX CPO first, and there is no new-car incentive pivot', () =>
+    [/2024 Honda Accord LX \(Platinum White Pearl\) — Certified Pre-Owned/.test(c1), /SOLD → INCENTIVE PIVOT/.test(c1),
+     c1.indexOf('2024 Honda Accord LX') > -1 && (c1.indexOf('2026 Honda Accord Hybrid EX-L') < 0 || c1.indexOf('2024 Honda Accord LX') < c1.indexOf('2026 Honda Accord Hybrid EX-L'))], [true, false, true]);
+  check('(new helper) the ranking: model, then the closest price, then the lead\'s type (v9.7.782 order)', () => {
     const r = run('_lpComparablesWithUnits')('2018 Honda Accord Sedan EX-L 2.0T', UNITS, 'TEST001A', '', 3, { cond: 'Pre-Owned', price: 21991 });
-    return r.map(x => x.unit.stock); }, ['TEST003C', 'TEST004C']);
+    return r.map(x => x.unit.stock); }, ['TEST003C', 'TEST004C', 'TEST002N']);
   check('control: a NEW lead still gets new units first', () => {
     const r = run('_lpComparablesWithUnits')('2026 Honda Accord Hybrid Sport', UNITS, '', '', 1, { cond: 'New' }); return r.map(x => x.unit.stock); }, ['TEST002N']);
   check('control: no opts -> the old ordering, unchanged', () => {

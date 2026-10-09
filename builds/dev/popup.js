@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.782-dev (Dev. COMPARABLES RANKED MODEL > PRICE > TYPE. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Follow-up to v9.7.781 on lead 2097428117 (sold pre-owned 2018 Accord EX-L 2.0T, $21,991). The 781 order was type first, then name-word overlap (a trim word counted as much as the model, and any shared word such as '2.0T' admitted another make), then price only for exact ties; and nothing told the model the list was ranked, so a draft could name the third unit. The ranking now has one stated order (_lpRankComparables): (1) LIKE MODEL -- same make and model family ('Accord Hybrid' is an Accord); when none is in stock, the same feed class (Car, Intermediate) before anything else; name-word overlap only as the last resort; only the best tier is kept. (2) LIKE PRICE -- distance from the sold unit's price in $2,000 bands. (3) TYPE -- within a band, the lead's own lane wins (pre-owned for a pre-owned shopper, new for a new one); ruling 10/9: 'pre-owned wins since she shops pre-owned'. (4) then nearest model year, lower miles, fewer days on lot. Never an older model year than theirs; never the sold unit. The PIVOT TO THESE line now says the list is CLOSEST MATCH FIRST and to name the first one unless the conversation points to another (a color, trim, year or budget they stated). Calls without the lead's condition and price keep the old order. On the real dump: 2024 Accord LX CPO $23,691 first, then the 2025 Accord SE CPOs; a new 2026 Accord LX $28,498 in the same band as the $28,891 SE CPO ranks after it. TESTS: comp-rank-782 (new) executes _lpRankComparables, _lpComparablesWithUnits and populateFromData with placeholder units: 24 assertions across both builds; v9.7.781 fails 11 of 12 per build (its 1 control passes). sold-pivot-781 updated for the 782 order (a new unit may follow the pre-owned ones). VERIFIED: run-all 215 suites green, 7908 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.781-dev.)
 // Lead Pro -- popup.js  v9.7.781-dev (Dev. A SOLD UNIT, AN INTERNAL NOTE AND A PRE-OWNED SHOPPER. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Honda Lafayette lead 2097428117, 10/9: an out-of-state CarGurus lead on a pre-owned 2018 Accord EX-L 2.0T ($21,991). We texted 'It's here and available' and offered a video; the customer replied 'Yes that would be great!'; a manager then added an INTERNAL General Note that the unit had sold. The prompt contradicted itself four ways and the draft pivoted to a new car with an APR program. (1) 'the customer was ALREADY TOLD -- do not re-announce' was read off the manager's internal note, beside our own 'It's here and available' two hours earlier. The sold-news scan now reads the thread without internal [NOTE] entries, unless a note records telling the customer ('told customer', 'informed', 'let them know'): on this lead the customer is told once, plainly. (2) The pivot named a NEW 2026 Accord Hybrid EX-L with 3.49%/5.49% APR, while 2024 Accord LX CPO ($23,691) and 2025 Accord SE CPOs sat in the same feed: the comparables scorer read model words only. With the lead's condition it now ranks the lead's own lane first (pre-owned for a pre-owned lead, new for a new one), keeps only that lane when it has matches, orders equal model matches by the closest price to the sold unit, and a pre-owned lead with pre-owned comparables gets no new-car incentive pivot. On the real dump: 2024 Accord LX CPO, 2025 Accord SE CPO x2, no incentive line. (3) 'FRESH ARRIVAL -- just came in' printed for the sold unit; it no longer prints for a unit out of inventory or sold. (4) The store-hours 'today is the default: lead with a today time' sat beside the remote block's 'Do NOT push an in-person visit or offer appointment times as the ask', and no visit hold read the remote block. It is now a level-3 hold (owner: the REMOTE / OUT-OF-STATE BUYER block); on the real prompt the today default is removed. TESTS: sold-pivot-781 (new) executes populateFromData with a placeholder inventory and incentive cache, _lpCustomerFacingThread, _lpComparablesWithUnits and _lpApplyVisitDecision: 20 assertions across both builds; v9.7.780 fails 6 of 10 per build (its 4 controls pass). VERIFIED: run-all 214 suites green, 7,884 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.780-dev.)
 // Lead Pro -- popup.js  v9.7.780-dev (Dev. A DUPLICATE LEAD NAMED BY THE CRM NO LONGER EMPTIES THE GRAB, AND _lpDumpPrompt() EXISTS FROM LOAD. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Honda Lafayette, 10/9, on a BD agent's PC (commercial 9.7.779): the grab filled the customer name and store and nothing else -- no BD agent, no vehicle, no source -- and the draft asked 'what matters most in your next vehicle?'. Three grabs, same result. Her log: the vindebug marker had not rendered (rims2 count 0), so the pre-scrape took ECCS alone, which named lead 2097030012 -- a lead the CRM itself marks DUPLICATE_LEAD/BAD, whose frames carry no lead panel and no notes. The lead page on screen was 2096976782 (2026 Accord Sedan SE, BD agent, source, notes), on the same customer record (its lead grid lists both), and every one of its frames was then rejected as 'autoLeadId mismatch'. On another PC the marker rendered, named 2096976782, and the same lead grabbed correctly. Now, before frames are filtered by the winner: when ECCS alone named the lead, the CRM marks it DUPLICATE or BAD, none of its frames has a lead panel or PageData, exactly one other lead has a lead page loaded, and that page's lead grid lists the ECCS lead, the grab takes that lead. Any one condition missing keeps ECCS (an active lead still loading, two candidate pages, another customer, a vindebug-confirmed lead). Logged as [LP WINNER DIAG]. _lpDumpPrompt() is built by a panel's first generation; typed before one, Chrome said 'not defined', which read as a broken command. It now exists from load and says to generate first. Same log, not a code fault: her synced dealer config lists her personal numbers as all five store phones; [LP STORE PHONE GUARD] refused every one and kept the real store lines -- fix it in her admin panel. TESTS: winner-780 (new) runs the shipped correction (lifted from the merge) on frames shaped like her log -- switch on the 10/9 shape; keep when vindebug agreed, when the lead is not duplicate/bad, when it has its own page, when two pages compete, and when the other page is another customer -- plus the wiring and the _lpDumpPrompt placeholder: 18 assertions across both builds; v9.7.779 has neither. VERIFIED: run-all 213 suites green, 7,864 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.779-dev.)
 // Lead Pro -- popup.js  v9.7.779-dev (Dev. THE EMAIL FIELD IS THE WHOLE EMAIL. Extension; proxy v7.88 ships beside it (its own change: the SMS rewrite's floor); reporter v1.24 and dashboard v1.11 unchanged. Proxy v7.87's first day of failure reasons (10/8): no rate limits or 5xx at all. All 15 'degenerate' rejections were full drafts on GPT-6 Luna that came back with "email" set to "subject" (9), "subject omitted" / "subject line omitted" (4) or "{" (3), the subject sitting in its own field -- about 4% of the day's 399 full drafts, every one rescued by the fallback tier at the cost of a few seconds. The shape is not new (the worker's v7.72 notes describe it), and the prompt never said what the email field must hold: the EMAIL rule said only 'Subject line in the "subject" field', which the model read at effort none as a note for the email field. Now the EMAIL rule says the "email" field is the WHOLE email every time -- greeting, body, close and signature -- never a label, a placeholder or a note about the subject; the CRITICAL line adds 'never a single word or a note in its place'; the user prompt's JSON line says '"email" is the full email from greeting to signature; "subject" is the subject line alone'. The other 23 of the day's 42 failures were the SMS rewrite's short replies refused by the worker's 150-character floor; proxy v7.88 fixes those. TESTS: email-field-779 (new) executes buildSystemPrompt and buildUserPrompt: 8 assertions across both builds; v9.7.778 fails 3 of 4 per build (its control passes). VERIFIED: run-all 212 suites green, 7,846 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.778-dev.)
@@ -5083,12 +5084,14 @@ function _lpCheckConflictAdherence(text, conflict){
 }
 
 function _lpComparables(leadVeh, units, soldStock, soldVin, cap, opts){
+  if (opts) return _lpRankComparables(leadVeh, units, soldStock, soldVin, opts).slice(0, cap || 3)   // (v9.7.782)
+    .map(function(o){ var u = o.u; var _cc = _lpCleanColor(u.color);
+      return u.vehicle + (_cc ? ' (' + _cc + ')' : '') + (_lpUnitCondition(u) === 'cpo' ? ' — Certified Pre-Owned' : ''); });
   var _minYr = _lpCompYr(leadVeh);
   return units.map(function(u){ return { u: u, sc: _lpScore(leadVeh, u.vehicle || ((u.make||'') + ' ' + (u.model||''))) }; })
     .filter(function(o){ var _uYr = parseInt(o.u.year, 10) || _lpCompYr(o.u.vehicle); return !(_minYr && _uYr && _uYr < _minYr); }) // (v9.7.431/429) year floor
     .filter(function(o){ var _uStock = o.u.stock || o.u.stockNum || ''; return o.sc > 0 && (!soldStock || _uStock !== soldStock) && (!soldVin || o.u.vin !== soldVin); }) // (v9.7.429/427) feed may carry stockNum (the validated consumers read u.stockNum) — check both so the sold unit is actually excluded; only exclude on a truthy sold identifier
-    .sort(opts ? _lpCompRankSort(opts) : function(p,q){ return (q.sc - p.sc) || ((p.u.daysOnLot||0) - (q.u.daysOnLot||0)); })   // (v9.7.781) opts: lane + price
-    .filter(_lpCompLaneOnly(opts))
+    .sort(function(p,q){ return (q.sc - p.sc) || ((p.u.daysOnLot||0) - (q.u.daysOnLot||0)); })
     .slice(0, cap || 3)
     .map(function(o){ var u = o.u; // (v9.7.484/479) label certified units + scrub color codes
       var _cc = _lpCleanColor(u.color);
@@ -5223,47 +5226,57 @@ function _lpCustomerFacingThread(ctx) {
     }).join('');
   } catch (e) { return String(ctx || ''); }
 }
-// (v9.7.781) Comparables in the customer's own lane. Lead 2097428117: a 2018 Accord EX-L 2.0T (pre-owned, $21,991) sold
-// and the pivot named a NEW 2026 Accord Hybrid EX-L with an APR program, while a 2024 Accord LX CPO at $23,691 sat in the
-// same feed -- the scorer read model words only. opts.cond (the lead's condition) puts units of the same lane first --
-// pre-owned (used/cpo) for a pre-owned lead, new for a new one; within the lane the model match leads as before, and
-// opts.price (the sold unit's price) orders equal matches by the closest price among pre-owned units. A lane with nothing in it falls back to the rest, as before.
+// (v9.7.782) HOW COMPARABLES ARE RANKED -- Gil, 10/9: "it has to have some rhyme or reason though, like model > like
+// price > type and so on." On 781 the order was type, then name-word overlap (a trim word like "EX-L" or "2.0T" counted
+// as much as the model name, and any shared word admitted a unit -- a VW Atlas "2.0T" matched a Honda Accord "2.0T"),
+// then price only to break exact ties. Now, with opts (both call sites pass them):
+//   1 LIKE MODEL  same make + model family (_lpModelFamilyKey: "Accord" = "Accord Hybrid Sport-L", trim ignored); if the
+//                 store has none, the same vehicle class as the unit they wanted (the feed's class field); only then the
+//                 old any-shared-word match.
+//   2 LIKE PRICE  closest to the price of the unit they wanted, in $2,000 bands -- "about $7k over" is a tie, not a rank.
+//   3 TYPE        the lead's own type -- pre-owned (used or CPO) for a pre-owned lead, new for a new one. Gil: "pre-owned
+//                 wins since she shops pre-owned" when the price bands tie.
+//   4 TIEBREAKS   nearest model year, then lower miles, then fewest days on the lot.
+// The year floor (never an older model year than theirs) and "never the sold unit" stay as they were.
 function _lpCompLane(c) { var t = String(c || '').toLowerCase(); return /pre-?owned|used|cpo|certified/.test(t) ? 'pre' : (/\bnew\b/.test(t) ? 'new' : ''); }
-function _lpCompRankSort(opts) {
+var LP_COMP_PRICE_BAND = 2000;
+function _lpRankComparables(leadVeh, units, soldStock, soldVin, opts) {
   var lane = _lpCompLane(opts && opts.cond), price = Number(opts && opts.price) || 0;
-  return function (p, q) {
-    if (lane) {
-      var pl = _lpCompLane(_lpUnitCondition(p.u)) === lane ? 0 : 1, ql = _lpCompLane(_lpUnitCondition(q.u)) === lane ? 0 : 1;
-      if (pl !== ql) return pl - ql;
-    }
-    if (q.sc !== p.sc) return q.sc - p.sc;   // the model match still leads; price only orders equal matches
-    if (lane === 'pre' && price) {
-      var pp = Number(p.u.price) || 0, qp = Number(q.u.price) || 0;
-      if (pp && qp && Math.abs(pp - price) !== Math.abs(qp - price)) return Math.abs(pp - price) - Math.abs(qp - price);
-    }
-    return (p.u.daysOnLot||0) - (q.u.daysOnLot||0);
-  };
-}
-
-// (v9.7.781) Once the sort has put the lead's lane first: if any unit is in that lane, keep only the lane (a pre-owned
-// shopper with pre-owned matches is not shown a new car as a third option). An empty lane keeps everything, as before.
-function _lpCompLaneOnly(opts) {
-  var lane = _lpCompLane(opts && opts.cond);
-  if (!lane) return function () { return true; };
-  var seen = null;
-  return function (o, i, arr) {
-    if (seen === null) seen = arr.some(function (x) { return _lpCompLane(_lpUnitCondition(x.u)) === lane; });
-    return !seen || _lpCompLane(_lpUnitCondition(o.u)) === lane;
-  };
+  var leadYr = _lpCompYr(leadVeh), _minYr = leadYr;
+  var fam = (typeof _lpModelFamilyKey === 'function') ? _lpModelFamilyKey(leadVeh) : '';
+  var cls = '';
+  try { for (var k = 0; k < units.length; k++) { var x = units[k]; if ((soldStock && (x.stock === soldStock || x.stockNum === soldStock)) || (soldVin && x.vin === soldVin)) { cls = String(x.class || ''); if (!price) price = Number(x.price) || 0; break; } } } catch (e) {}
+  var pool = units.filter(function (u) {
+    var st = u.stock || u.stockNum || '';
+    if ((soldStock && st === soldStock) || (soldVin && u.vin === soldVin)) return false;
+    var uy = parseInt(u.year, 10) || _lpCompYr(u.vehicle);
+    return !(_minYr && uy && uy < _minYr);
+  }).map(function (u) {
+    var name = u.vehicle || ((u.make || '') + ' ' + (u.model || ''));
+    var tier = (fam && _lpModelFamilyKey(name) === fam) ? 0 : ((cls && String(u.class || '') === cls) ? 1 : (_lpScore(leadVeh, name) > 0 ? 2 : 9));
+    var up = Number(u.price) || 0;
+    var band = (price && up) ? Math.floor(Math.abs(up - price) / LP_COMP_PRICE_BAND) : 9999;
+    var ul = _lpCompLane(_lpUnitCondition(u));
+    var uy = parseInt(u.year, 10) || _lpCompYr(u.vehicle) || 0;
+    return { u: u, sc: _lpScore(leadVeh, name), tier: tier, band: band, laneMiss: (lane && ul !== lane) ? 1 : 0,
+             yrGap: (leadYr && uy) ? Math.abs(uy - leadYr) : 99, miles: Number(u.odometer) || 0, days: Number(u.daysOnLot) || 0 };
+  }).filter(function (o) { return o.tier < 9; });
+  var best = pool.reduce(function (m, o) { return Math.min(m, o.tier); }, 9);
+  // like model first: when the store has the model, the class and word fallbacks are not offered beside it
+  pool = pool.filter(function (o) { return o.tier === best || best === 2; });
+  return pool.sort(function (p, q) {
+    return (p.tier - q.tier) || (p.band - q.band) || (p.laneMiss - q.laneMiss) || (p.yrGap - q.yrGap) || (p.miles - q.miles) || (p.days - q.days);
+  });
 }
 
 function _lpComparablesWithUnits(leadVeh, units, soldStock, soldVin, cap, opts){
+  if (opts) return _lpRankComparables(leadVeh, units, soldStock, soldVin, opts).slice(0, cap || 3)   // (v9.7.782)
+    .map(function(o){ var u = o.u; return { text: u.vehicle + (u.color ? ' (' + u.color + ')' : '') + (_lpUnitCondition(u) === 'cpo' ? ' — Certified Pre-Owned' : (_lpUnitCondition(u) === 'used' ? ' — pre-owned' : '')), unit: u, inTransit: _lpUnitInTransit(u) }; });
   var _minYr = _lpCompYr(leadVeh); // (v9.7.431/429) year floor — see _lpComparables
   return units.map(function(u){ return { u: u, sc: _lpScore(leadVeh, u.vehicle || ((u.make||'') + ' ' + (u.model||''))) }; })
     .filter(function(o){ var _uYr = parseInt(o.u.year, 10) || _lpCompYr(o.u.vehicle); return !(_minYr && _uYr && _uYr < _minYr); })
     .filter(function(o){ var _uStock = o.u.stock || o.u.stockNum || ''; return o.sc > 0 && (!soldStock || _uStock !== soldStock) && (!soldVin || o.u.vin !== soldVin); }) // (v9.7.429/427) feed may carry stockNum (the validated consumers read u.stockNum) — check both so the sold unit is actually excluded; only exclude on a truthy sold identifier
-    .sort(opts ? _lpCompRankSort(opts) : function(p,q){ return (q.sc - p.sc) || ((p.u.daysOnLot||0) - (q.u.daysOnLot||0)); })
-    .filter(_lpCompLaneOnly(opts))
+    .sort(function(p,q){ return (q.sc - p.sc) || ((p.u.daysOnLot||0) - (q.u.daysOnLot||0)); })
     .slice(0, cap || 3)
     .map(function(o){ var u = o.u; return { text: u.vehicle + (u.color ? ' (' + u.color + ')' : '') + (_lpUnitCondition(u) === 'cpo' ? ' — Certified Pre-Owned' : (_lpUnitCondition(u) === 'used' ? ' — pre-owned' : '')), unit: u, inTransit: _lpUnitInTransit(u) }; }); }
 
@@ -7722,7 +7735,7 @@ function populateFromData(d) {
           var _soldUnitPrice = 0;
           try { for (var _sui = 0; _sui < _cinv.units.length; _sui++) { var _su = _cinv.units[_sui]; if (d.stockNum && (_su.stock === d.stockNum || _su.stockNum === d.stockNum)) { _soldUnitPrice = Number(_su.price) || 0; break; } } } catch (eSup) {}
           var _compsFull = _lpComparablesWithUnits(_lvSold, _cinv.units, d.stockNum, d.vin, 3, { cond: d.condition || '', price: _soldUnitPrice });
-          try { console.log('[LP SOLD PIVOT DIAG] comparables (lane ' + (_lpCompLane(d.condition) || 'any') + (_soldUnitPrice ? ', near $' + _soldUnitPrice : '') + '): ' + _compsFull.map(function (c) { return c.text + (c.unit && c.unit.price ? ' $' + c.unit.price : ''); }).join(' | ')); } catch (eSpl) {}
+          try { console.log('[LP SOLD PIVOT DIAG] comparables, ranked model > price > type > year/miles (lane ' + (_lpCompLane(d.condition) || 'any') + (_soldUnitPrice ? ', near $' + _soldUnitPrice : '') + '): ' + _compsFull.map(function (c) { return c.text + (c.unit && c.unit.price ? ' $' + c.unit.price : ''); }).join(' | ')); } catch (eSpl) {}
           var _comps = _compsFull.map(function(c){ return c.text; });
           if (!_comps.length) {
             console.log('[LP SOLD PIVOT DIAG] no comparable units scored against "' + _lvSold + '" out of ' + _cinv.units.length + ' cached unit(s)');
@@ -7854,7 +7867,11 @@ function populateFromData(d) {
               vehicleExtras.push('➡ PIVOT TO THESE — ' + (_invFresh.fresh
                 ? 'real, in-stock units you already have the details for.'
                 : 'units from our inventory list whose presence on the lot has NOT been re-confirmed this session. Name them specifically, but do NOT state any of them is in stock, here, or available to see, and do NOT offer times to come see one — offer to confirm the unit first.')
-                + ' Name at least one of them SPECIFICALLY in the message — do not write "I\'ll line up some options," "let me check what we have," or "I\'ll put together a list" when the unit(s) below are already confirmed and sitting right here; that reads as a stall when you actually have the answer. Do NOT quote, mention, or lead with price — we don\'t push price; keep it about finding them a similar vehicle.' + (_anyTransitInComps ? ' Be upfront about availability — units marked "(in transit)" are VIN-allocated but not yet on the lot, not on-lot inventory ready to view today.' : '') + ' ' + _compsFull.map(function(c){ return c.text + (c.inTransit ? ' (in transit)' : ''); }).join('; '));
+                + ' Name at least one of them SPECIFICALLY in the message — do not write "I\'ll line up some options," "let me check what we have," or "I\'ll put together a list" when the unit(s) below are already confirmed and sitting right here; that reads as a stall when you actually have the answer. Do NOT quote, mention, or lead with price — we don\'t push price; keep it about finding them a similar vehicle.' + (_anyTransitInComps ? ' Be upfront about availability — units marked "(in transit)" are VIN-allocated but not yet on the lot, not on-lot inventory ready to view today.' : '')
+                // (v9.7.782) the list is ranked (see _lpRankComparables); say so, or the model picks for itself -- on 781 it named
+                // the third (a 2025 Accord SE CPO, $28,891) over the first (a 2024 Accord LX CPO, $23,691, nearest the sold $21,991)
+                + (_compsFull.length > 1 ? ' They are listed CLOSEST MATCH FIRST -- model, then price nearest the one they wanted, then pre-owned or new as they shop. Name the FIRST one unless the conversation points to another (a color, trim, year or budget they have stated).' : '')
+                + ' ' + _compsFull.map(function(c){ return c.text + (c.inTransit ? ' (in transit)' : ''); }).join('; '));
             }
           }
         }
