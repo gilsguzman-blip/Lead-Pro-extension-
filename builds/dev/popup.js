@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.780-dev (Dev. A DUPLICATE LEAD NAMED BY THE CRM NO LONGER EMPTIES THE GRAB, AND _lpDumpPrompt() EXISTS FROM LOAD. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Honda Lafayette, 10/9, on a BD agent's PC (commercial 9.7.779): the grab filled the customer name and store and nothing else -- no BD agent, no vehicle, no source -- and the draft asked 'what matters most in your next vehicle?'. Three grabs, same result. Her log: the vindebug marker had not rendered (rims2 count 0), so the pre-scrape took ECCS alone, which named lead 2097030012 -- a lead the CRM itself marks DUPLICATE_LEAD/BAD, whose frames carry no lead panel and no notes. The lead page on screen was 2096976782 (2026 Accord Sedan SE, BD agent, source, notes), on the same customer record (its lead grid lists both), and every one of its frames was then rejected as 'autoLeadId mismatch'. On another PC the marker rendered, named 2096976782, and the same lead grabbed correctly. Now, before frames are filtered by the winner: when ECCS alone named the lead, the CRM marks it DUPLICATE or BAD, none of its frames has a lead panel or PageData, exactly one other lead has a lead page loaded, and that page's lead grid lists the ECCS lead, the grab takes that lead. Any one condition missing keeps ECCS (an active lead still loading, two candidate pages, another customer, a vindebug-confirmed lead). Logged as [LP WINNER DIAG]. _lpDumpPrompt() is built by a panel's first generation; typed before one, Chrome said 'not defined', which read as a broken command. It now exists from load and says to generate first. Same log, not a code fault: her synced dealer config lists her personal numbers as all five store phones; [LP STORE PHONE GUARD] refused every one and kept the real store lines -- fix it in her admin panel. TESTS: winner-780 (new) runs the shipped correction (lifted from the merge) on frames shaped like her log -- switch on the 10/9 shape; keep when vindebug agreed, when the lead is not duplicate/bad, when it has its own page, when two pages compete, and when the other page is another customer -- plus the wiring and the _lpDumpPrompt placeholder: 18 assertions across both builds; v9.7.779 has neither. VERIFIED: run-all 213 suites green, 7,864 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.779-dev.)
 // Lead Pro -- popup.js  v9.7.779-dev (Dev. THE EMAIL FIELD IS THE WHOLE EMAIL. Extension; proxy v7.88 ships beside it (its own change: the SMS rewrite's floor); reporter v1.24 and dashboard v1.11 unchanged. Proxy v7.87's first day of failure reasons (10/8): no rate limits or 5xx at all. All 15 'degenerate' rejections were full drafts on GPT-6 Luna that came back with "email" set to "subject" (9), "subject omitted" / "subject line omitted" (4) or "{" (3), the subject sitting in its own field -- about 4% of the day's 399 full drafts, every one rescued by the fallback tier at the cost of a few seconds. The shape is not new (the worker's v7.72 notes describe it), and the prompt never said what the email field must hold: the EMAIL rule said only 'Subject line in the "subject" field', which the model read at effort none as a note for the email field. Now the EMAIL rule says the "email" field is the WHOLE email every time -- greeting, body, close and signature -- never a label, a placeholder or a note about the subject; the CRITICAL line adds 'never a single word or a note in its place'; the user prompt's JSON line says '"email" is the full email from greeting to signature; "subject" is the subject line alone'. The other 23 of the day's 42 failures were the SMS rewrite's short replies refused by the worker's 150-character floor; proxy v7.88 fixes those. TESTS: email-field-779 (new) executes buildSystemPrompt and buildUserPrompt: 8 assertions across both builds; v9.7.778 fails 3 of 4 per build (its control passes). VERIFIED: run-all 212 suites green, 7,846 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.778-dev.)
 // Lead Pro -- popup.js  v9.7.778-dev (Dev. THE TEXT REWRITE KEEPS THE MISSED-APPOINTMENT ACKNOWLEDGEMENT. Extension only; proxy v7.86, reporter v1.23 and dashboard v1.11 unchanged. log300/log301, Honda Lafayette lead 2091288708 on v9.7.777. 777 held: incentive spent ('$1,000 off'), and after Warmer the draft kept its move and warmed it ('I'm glad to hear from you, and I'm sorry we missed you Saturday. Would you still like to come in?') with no offer. But on the first generation the first pass said '[customer], thanks for the reply. Sorry we missed you Saturday. Would you still like to come in?' and the text rewrite shipped '[customer], would you still like to come in? Just reply yes or no, and we can find a day that works.' -- the email kept the apology, the text lost it, and the next run kept it: chance. The rewrite is handed the raw scrape and five restated rules, and 775's 'acknowledge it lightly' was not one of them. Now, when the missed appointment is on THIS lead (_lpMissOnThisLead: hasMissedAppt, not rebooked, and not older than the lead -- the relationship reading's own test), the rewrite gets THE APPOINTMENT ON THIS LEAD WAS MISSED: acknowledge it lightly, never 'you didn't show up', keep the first draft's ask, do not drop it to shorten. And the same guard shape as 738's Concierge and 769's credit result: a first pass that acknowledged the miss (LP_MISS_ACK_RX: 'missed you', 'couldn't make it', 'didn't get to see you', 'plans can change', 'life happens'; not 'missed your call') and a rewrite that did not -> the first pass ships, logged. On this lead's real scrape: the rule fires and the guard would have shipped the first pass. The regen-variance row (observational) no longer calls a chip's kept move 'what the agent just rejected': after a chip it reads 'SAME MOVE -- draft #N with the <chip> adjustment, as intended: a chip keeps the move (v9.7.777)'; a plain Regenerate keeps the old verdict. TESTS: miss-refine-778 (new) executes _lpBuildSmsRefinePrompt, _lpRefineSms with the worker stubbed, and the lifted variance verdict: 16 assertions across both builds; v9.7.777 fails 5 of 8 per build (its three controls pass). VERIFIED: run-all 208 suites green, 7,813 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.777-dev.)
 // Lead Pro -- popup.js  v9.7.777-dev (Dev. A CHIP ADJUSTS THE DRAFT; IT DOES NOT REJECT ITS MOVE. Extension only; proxy v7.86, reporter v1.23 and dashboard v1.11 unchanged. log299, Honda Lafayette lead 2091288708 on v9.7.776: the first draft acknowledged the missed appointment and asked whether they still wanted to come in (775 working; the dump's new VISIT DECISION section showed APPOINTMENT FELL THROUGH owning the visit, the two-times close removed). The agent pressed Warmer, and the regenerated draft asked 'Was the $1,000 offer on a new Honda what you wanted to ask about?'. Two causes. (1) The drafts-already-written block (v9.7.688) fired on every regenerate with 'they are rejecting THE MOVE ... make a different one', beside the chip's TONE ADJUSTMENT 'warm the tone' -- two instructions about the same draft that disagree, and the model changed the move. 688 wrote that rule for the PLAIN Regenerate (no directive), where six identical moves were rejected; a chip names the change the agent wants. With a chip pressed the block now heads 'THE AGENT ASKED FOR AN ADJUSTMENT' and says keep the newest draft's subject and question, change only what the adjustment says, and do not swap in a topic, offer or angle it did not use. A plain Regenerate keeps 688's wording unchanged. (2) Our first text, 'the $1,000 off MSRP offer applies to the new Honda you choose', registered as the price angle only, so the relationship facts listed incentive as 'Not raised with this customer yet' -- an open invitation once the model was told to change the move. A dollar amount OFF ('$1,000 off'), an offer named as one ('website/online/claimed offer') and 'the offer applies / is yours / is still good' are now the incentive angle; a bare dollar figure still is not ('$500 down' is payment) and 'I can offer 10 AM' is not. On this lead's real outbound sends: 776 incentive unused, 777 incentive spent ('$1,000 off'). MEASURED: the 36 saved page dumps rendered back to back on 776 and 777 give identical prompts (no draft history or chip in a render; the arc facts are added outside buildUserPrompt). TESTS: chip-move-777 (new) executes buildUserPrompt with a draft history and each chip's own directive, and _lpArcAnglesSpent: 14 assertions across both builds; v9.7.776 fails 5 of 7 per build (both controls pass there). regen-variance's plain-regenerate checks unchanged and green. VERIFIED: run-all 207 suites green, 7,797 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.776-dev.)
@@ -501,6 +502,10 @@ function _lpDumpLead() {
   } catch (e) { console.log('[LP DUMP] failed: ' + ((e && e.message) || e)); return false; }
 }
 try { if (typeof window !== 'undefined') window._lpDumpLead = _lpDumpLead; } catch (e) {}
+// (v9.7.780) _lpDumpPrompt() is built by the first generation in this panel (it needs that generation's prompt). Typed
+// before one -- a BD agent, 10/9 -- Chrome answered "not defined", which reads as a broken command. Until then it says so.
+try { if (typeof window !== 'undefined' && typeof window._lpDumpPrompt !== 'function') window._lpDumpPrompt = function () {
+  console.log('[LP DUMP] nothing captured yet -- generate a response in this Lead Pro panel first, then run _lpDumpPrompt() here again'); return false; }; } catch (e) {}
 
 function _lpMaskPhone(p) {
   var s = String(p || '');
@@ -9669,6 +9674,7 @@ async function grabLead() {
         if (r.result.type === 'frameploader' && r.result.leadId) _frameploaderFrame = r.result;
       });
 
+      window._lpEccsOnlyWinner = '';   // (v9.7.780) set below when ECCS alone names the lead
       console.log('[Lead Pro] Pre-scrape: eccs=', _eccsFrame, '| rims2 count=', _rims2Frames.length, '| dashboard=', _dashFrame, '| frameploader=', _frameploaderFrame);
       (function(){ var _rec = _rims2Frames.filter(function(f){ return f._recovered; }); if (_rec.length) console.log('[LP RIMS2-RECOVERY DIAG] recovered', _rec.length, 'frame(s) via URL/hidden-input fallback (data-autoleadid was empty):', JSON.stringify(_rec.map(function(f){ return {id:f.leadId, did:f.dealerId, vis:f.visible}; }))); })();
 
@@ -9806,6 +9812,7 @@ async function grabLead() {
         window._activeLeadId = _eccsFrame.activeLeadId;
         var _vindebugMatch = _rims2Frames.filter(function(f){ return String(f.leadId) === String(_eccsFrame.activeLeadId); });
         var _dualConfirmed = _vindebugMatch.length > 0;
+        window._lpEccsOnlyWinner = _dualConfirmed ? '' : String(window._activeLeadId || '');   // (v9.7.780)
         console.log('[Lead Pro] Pre-scrape winner (ECCS cdQuery active lead' +
           (_dualConfirmed ? ' + vindebug data-autoleadid CONFIRMED' : '') + ' — deterministic):', window._activeLeadId,
           '| dual-signal:', _dualConfirmed ? 'YES (ECCS+vindebug agree)' : 'ECCS-only (vindebug div not rendered this pass)',
@@ -17973,6 +17980,39 @@ function _lpScraperBotAuthor(msg) {
               }
             }
           }
+          // (v9.7.780) THE CRM'S "ACTIVE LEAD" WAS A DUPLICATE WITH NO LEAD PAGE. Honda Lafayette, 10/9 (BD agent's PC):
+          // the vindebug marker had not rendered, so ECCS alone named lead 2097030012 -- a lead the CRM itself marks
+          // DUPLICATE_LEAD/BAD, whose frames carry no lead panel and no notes. The lead panel on screen was 2096976782
+          // (VOI, BD agent, source, notes), on the same customer record, and every one of its frames was rejected below
+          // as "autoLeadId mismatch": the grab came back with a name and a store and nothing else. On another PC the
+          // marker rendered and named 2096976782, so the same lead worked there.
+          // Switch only when ALL hold: ECCS alone named the lead (no vindebug agreement); the CRM marks that lead
+          // DUPLICATE or BAD; none of its frames has a lead panel or PageData; exactly ONE other lead has a lead page
+          // loaded (PageData present); and that page's own lead grid lists the ECCS lead -- the same customer record.
+          try {
+            var _ew = String(window._lpEccsOnlyWinner || '');
+            if (_ew && String(window._activeLeadId || '') === _ew) {
+              var _ewBad = false, _ewHasPage = false, _others = {};
+              sorted.forEach(function (fr) {
+                var r = fr && fr.result; if (!r) return;
+                var di = r._pdDiag && r._pdDiag.di;
+                if (di && String(di.leadId) === _ew && /DUPLICATE|BAD/i.test(String(di.status || '') + ' ' + String(di.statusType || ''))) _ewBad = true;
+                var lid = String(r.autoLeadId || '');
+                var hasPage = !!(r.isLeadFrame && (r._voiFromPanel || (r._pdDiag && r._pdDiag.present)));
+                if (lid === _ew) { if (hasPage) _ewHasPage = true; return; }
+                if (lid && hasPage && r._pdDiag && r._pdDiag.present) {
+                  var ids = Array.isArray(r._leadSelectorIds) ? r._leadSelectorIds.map(String) : [];
+                  _others[lid] = _others[lid] || ids.indexOf(_ew) > -1;
+                }
+              });
+              var _cand = Object.keys(_others);
+              var _switch = _ewBad && !_ewHasPage && _cand.length === 1 && _others[_cand[0]];
+              console.log('[LP WINNER DIAG] ECCS-only lead ' + _ew + ' | marked duplicate/bad:' + _ewBad + ' | has a lead page:' + _ewHasPage
+                + ' | other leads with a page:' + JSON.stringify(_cand) + (_cand.length === 1 ? ' (same customer record: ' + !!_others[_cand[0]] + ')' : '')
+                + (_switch ? ' -> SWITCHED to ' + _cand[0] : ' -> kept'));
+              if (_switch) window._activeLeadId = _cand[0];
+            }
+          } catch (eWin) { /* the switch is a correction; never block a grab */ }
           var _aid = window._activeLeadId || '';
           var _activeCustomerId = ''; // Captured from confirmed-active-lead frames
           var _pass1HadActiveFrame = false; // (v9.7.51) True if any frame matched _aid
