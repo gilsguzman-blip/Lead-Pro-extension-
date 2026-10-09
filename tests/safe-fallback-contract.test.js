@@ -302,8 +302,9 @@ one('the fact floor ACCEPTS every real probe answer — the point of the whole c
   () => Object.keys(PROBE_ANSWERS).map(k => W.factFail(PROBE_ANSWERS[k])),
   [null, null, null, null]);
 
-one('the draft path still applies MIN_CONTENT_CHARS, unchanged and unguarded by anything else',
-  () => /if \(_contract === RESPONSE_CONTRACT_DRAFT\) \{\s*\n\s*if \(text\.length < MIN_CONTENT_CHARS\)/.test(proxySrc), true);
+// (v7.88) one exception, and only that one: the SMS rewrite pass, whose reply is {"sms":"..."} alone
+one('the draft path still applies MIN_CONTENT_CHARS, guarded by nothing but the v7.88 SMS-rewrite exception',
+  () => /if \(_contract === RESPONSE_CONTRACT_DRAFT\) \{\s*\n(?:\s*\/\/[^\n]*\n)?\s*if \(text\.length < MIN_CONTENT_CHARS(?: && !\(_isRefineMessages\(messages\) && _refineReplyOk\(text\)\))?\)\s*\n/.test(proxySrc), true);
 
 // (v7.73) The variable name is not the property. This pinned `isLikelyJson(text)` verbatim and
 // went red when v7.73 renamed that local to `_outText` — a rename, not a regression, and the
