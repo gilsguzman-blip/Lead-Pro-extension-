@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.785 (Commercial. 'I ALREADY HAVE A SALES REP'. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Honda Lafayette lead 2096116717 (AMP lease end, 10/9): the salesperson logged 'Sold'; an hour later a BDC text asked how soon she wanted to buy; she answered 'I already have a sales rep'. Nothing in Lead Pro read that reply -- not an exit (the rep is usually ours), not a pause, not a question -- so the next draft would have kept selling over the person she is working with. (1) When the newest customer message says they already have a rep (LP_HAS_REP_RX: 'already have a sales rep', 'already working with [name]', 'have a salesperson already', 'working with someone there'; not 'do you have a rep?', 'I don't have a rep yet' or 'working with you'), the prompt says THEY ALREADY HAVE A SALES REP: a short, gracious step-back that leaves them with that person, naming the lead's salesperson when one is assigned and it is not the writer; thank them, say they are in good hands and that we are here if they need anything; no pitch, vehicle, offer, appointment or question. A bare 'Sold' staff note on this lead adds 'do not sell to them in any form'. It is a level-3 visit hold (owner: the ALREADY HAVE A SALES REP block), and the text rewrite gets the same section. Logged as [LP HAS REP DIAG]. (2) Two visit pushes survived every level-3 hold and now do not: the lease-end scenario's 'Frame the visit as an "options review"' is dropped, and the LIVE CONVERSATION line keeps 'continue the thread, reference what they said' but loses 'moves toward a concrete next step ... getting them in soon is the goal' (re-running the decision on lead 2097428117's saved 783 prompt, an out-of-state buyer at level 3, removes it there too). Below level 3 both lines are unchanged. TESTS: has-rep-785 (new) executes buildUserPrompt, _lpApplyVisitDecision and _lpBuildSmsRefinePrompt: 18 assertions across both builds; v9.7.784 fails 6 of 9 per build (its 3 controls pass). VERIFIED: run-all 218 suites green, 7980 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.784.)
 // Lead Pro -- popup.js  v9.7.784 (Commercial. FOUR LEADS THE AGENTS WORKED AROUND ON 10/9. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. The 10/9 feedback export's rejected sessions, read against each lead's VinSolutions notes. (1) LEASE END, LEASE OR LOAN UNKNOWN. Honda Lafayette 2096116717 (AMP lease end; no vehicle on the lead; no note names a make): every draft said 'her Kia agreement' -- the rule's example was hard-coded 'as your current Kia agreement comes due' on every store -- and the email told the customer 'without assuming whether she leased or financed'. The example now names no make ('as your current agreement comes due'; name the make only if the lead or notes do), and the rule and the loyalty flag line say to use the neutral words silently, never to tell the customer we do not know. (2) THE CLOSE-OUT QUESTION, ALREADY ASKED. Honda Baytown 2073356549 (Facebook, 45d, never replied): our messages had asked it on 9/21, 9/22 and 10/5 (email and voicemail); rung 5 asked it a fifth time and the agent moved off three rewordings. Nothing counted those asks: the angle table's stepback words did not include 'close it out', 'keep it open' or 'no more messages', and rung 5 relied on the model noticing. _lpCloseOutAsked reads our texts, emails and call notes on THIS lead after the customer's last message, by move (channel / file / timing). Two or more unanswered (or two different moves): rung 5 becomes 'CLOSE-OUT ALREADY ASKED, NOW ONE NEW REASON' -- do not ask it in any form; one concrete new reason to look again (a matching vehicle, a change on the one they asked about, something in their file not yet used) and one easy question about that -- and the Director stall voice's 'Give them a clean, easy out' is replaced with 'the exit has already been offered ... do not offer it again'. One unanswered: rung 5 stays and is told not to repeat that move. Logged as [LP CLOSE-OUT ASKED DIAG]. The stepback angle now knows those words. (3) THE LEAD SOURCE'S SEARCH ZIP OVER A MAILING ADDRESS. Kia Baytown 2096861231 (K5 GT-Line AWD): an out-of-state PO Box on the customer record made the drafts 'a first look remotely', while the TrueCar lead on the same customer said 'Search ZIP was [a local ZIP], 9 miles from your dealership'. _lpSearchZipLocal reads that line; within 50 miles or in the rooftop's local-ZIP set it vetoes out-of-state and in-state-far exactly as a local ZIP does (scenario and prompt), logged under [LP DISTANCE DIAG]. A far search ZIP changes nothing. (4) A NEW LEAD ON A CUSTOMER ALREADY IN CONVERSATION. Same lead, minutes old, so a first touch -- the drafts opened 'Your online inquiry is for a 2027 Kia K5 GT-Line AWD' -- while on her other lead the BDC agent had spoken with her the day before and the salesperson texted 'We just got off the phone' that afternoon. _lpSisterLeadContact finds live contact below the current-lead marker in the 3 days before this lead (the customer wrote or called, a call connected, or our message says we spoke; a bot text is not contact) when nothing has gone out on the new lead yet; the prompt then says SAME CUSTOMER, ALREADY IN CONVERSATION: not a first introduction, do not announce their inquiry as news, continue from where that conversation stands, keep anyone already working with them in the picture. Logged as [LP SISTER LEAD DIAG]. No dump of this lead exists; built from the pasted notes. NOT CHANGED: the same lease-end lead's rep logged 'Sold' and the customer later replied 'I already have a sales rep' -- how Lead Pro answers that is a separate decision. TESTS: stuck-leads-784 (new) executes buildUserPrompt, buildSystemPrompt (Director), _lpArcAnglesSpent and the three new helpers: 36 assertions across both builds; v9.7.783 fails 13 of 18 per build (its 5 controls pass). VERIFIED: run-all 217 suites green, 7962 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.783.)
 // Lead Pro -- popup.js  v9.7.783 (Commercial. AN OFFER STAYS AN OFFER IN THE TEXT REWRITE. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. log306, Honda Lafayette lead 2097428117 on v9.7.782. 782 held: the comparables ranked 2024 Accord LX CPO first, the email, first-draft text and voicemail named it, told the customer once that the unit sold, asked 'Would you like a video of that one instead?', and the remote buyer's visit hold removed the today default. But the text rewrite shipped 'I'll send you a video of the Certified Pre-Owned 2024 Accord LX in Platinum White Pearl. The EX-L 2.0T you asked about has sold, but this is a comparable option we have in stock.' -- a promise of something the customer never accepted (they said yes to a video of the sold unit), ahead of the news, with nothing to answer, while the email still asked. Now the rewrite is told, in two conditional sections: THE VEHICLE THEY ASKED ABOUT HAS SOLD (when the email or first draft says so: the text says it first and plainly, before naming any other vehicle) and AN OFFER STAYS AN OFFER (when the first draft or email asks whether they want something: the text asks too, never 'I'll send you...', and ends on that question, quoting the first draft's own ask). And the same guard shape as 778's missed appointment: a first pass that asked an offer (LP_OFFER_ASK_RX: would you like / do you want / want me to / should I send / would a video help -- opening its own sentence or clause, so 'what color did you want?' is not one) and did not promise it, and a rewrite that promises it (LP_OFFER_PROMISE_RX: I'll send / I will get / I'm sending) and asks no question at all -> the first pass ships, logged. A rewrite that promises and still asks something is left alone. On the real dump: both sections fire and the guard matches the shipped rewrite ('I'll send'). TESTS: offer-refine-783 (new) executes _lpBuildSmsRefinePrompt, _lpRefineSms with the worker stubbed, and the patterns: 18 assertions across both builds; v9.7.782 fails 5 of 9 per build (its 4 controls pass). VERIFIED: run-all 216 suites green, 7926 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.782.)
 // Lead Pro -- popup.js  v9.7.782 (Commercial. COMPARABLES RANKED MODEL > PRICE > TYPE. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Follow-up to v9.7.781 on lead 2097428117 (sold pre-owned 2018 Accord EX-L 2.0T, $21,991). The 781 order was type first, then name-word overlap (a trim word counted as much as the model, and any shared word such as '2.0T' admitted another make), then price only for exact ties; and nothing told the model the list was ranked, so a draft could name the third unit. The ranking now has one stated order (_lpRankComparables): (1) LIKE MODEL -- same make and model family ('Accord Hybrid' is an Accord); when none is in stock, the same feed class (Car, Intermediate) before anything else; name-word overlap only as the last resort; only the best tier is kept. (2) LIKE PRICE -- distance from the sold unit's price in $2,000 bands. (3) TYPE -- within a band, the lead's own lane wins (pre-owned for a pre-owned shopper, new for a new one); ruling 10/9: 'pre-owned wins since she shops pre-owned'. (4) then nearest model year, lower miles, fewer days on lot. Never an older model year than theirs; never the sold unit. The PIVOT TO THESE line now says the list is CLOSEST MATCH FIRST and to name the first one unless the conversation points to another (a color, trim, year or budget they stated). Calls without the lead's condition and price keep the old order. On the real dump: 2024 Accord LX CPO $23,691 first, then the 2025 Accord SE CPOs; a new 2026 Accord LX $28,498 in the same band as the $28,891 SE CPO ranks after it. TESTS: comp-rank-782 (new) executes _lpRankComparables, _lpComparablesWithUnits and populateFromData with placeholder units: 24 assertions across both builds; v9.7.781 fails 11 of 12 per build (its 1 control passes). sold-pivot-781 updated for the 782 order (a new unit may follow the pre-owned ones). VERIFIED: run-all 215 suites green, 7908 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.781.)
@@ -3675,6 +3676,34 @@ function _lpStripScaffold(txt) {
 // TrueCar lead on the same customer said "Search ZIP was [a local ZIP], 9 miles from your dealership". A listing site that measured
 // where they shopped from, in miles to this store, is the better witness of where they are than a PO Box. Newest such line
 // wins. Local when the source puts them within 50 miles, or the search ZIP is in this rooftop's own local set.
+// (v9.7.785) "I ALREADY HAVE A SALES REP". Honda Lafayette lead 2096116717 (AMP lease end, 10/9): the salesperson logged
+// "Sold" at 1:48 PM; at 2:48 PM a BDC text asked how soon she wanted to buy; she answered "I already have a sales rep".
+// Nothing in Lead Pro read that reply: it is not an exit (the rep is usually ours), not a pause, not a question -- so the
+// next draft would have kept selling over the person she is already working with. When the newest customer message says
+// they already have a rep, the message is a short, gracious step-back that leaves them with that person: no pitch, no
+// question, no visit. Names the lead's own salesperson when one is assigned and it is not the person writing.
+var LP_HAS_REP_RX = /\b(?:i|we)(?:['’]?(?:ve|m|re))?\s+(?:already\s+)?(?:have|got|am working|are working|working|been working|talking|dealing)\s+(?:with\s+)?(?:a|my|our|another|one|some)?\s*(?:sales\s*(?:rep(?:resentative)?|person|man|woman|guy|lady|associate|consultant)\b|salesperson\b|rep\b|someone (?:helping|there|already)|somebody (?:helping|there))|\b(?:already|currently)\s+(?:working|talking|dealing)\s+with\s+(?:someone|somebody|a\s+(?:rep|salesperson|sales\s*\w+)|(?!(?:you|your|y['\u2019]all|us|them|the)\b)[A-Za-z]{2,})\b|\bhave a (?:sales\s*)?(?:rep|salesperson|salesman) already\b/i;
+function _lpHasRep(data) {
+  try {
+    var msg = String((data && data.lastInboundMsg) || '');
+    if (!msg || !LP_HAS_REP_RX.test(msg)) return null;
+    var rep = String((data && data.salesRep) || '').trim(), agent = String((data && data.agent) || '').trim();
+    if (!rep || /^(?:none|system|unassigned)$/i.test(rep) || rep.toLowerCase() === agent.toLowerCase()) rep = '';
+    var ctx = String((data && (data.context || data.history)) || ''), mk = ctx.indexOf('=== CURRENT LEAD SUBMITTED HERE ===');
+    var cur = mk >= 0 ? ctx.slice(0, mk) : ctx;
+    var soldNote = /\] \[NOTE\] General Note\n\s+By: (?:\S+ ){1,3}Sold[.!]?\s*(?:\n|$)/i.test(cur);
+    return { said: (msg.match(LP_HAS_REP_RX) || [''])[0], rep: rep, repFirst: rep.split(/\s+/)[0], soldNote: soldNote };
+  } catch (e) { return null; }
+}
+function _lpHasRepText(hr) {
+  if (!hr) return '';
+  return 'THEY ALREADY HAVE A SALES REP: their newest message says so ("' + hr.said + '"). This message is a short, gracious step-back that leaves them with that person'
+    + (hr.rep ? ' -- on this lead that is ' + hr.rep + ', our salesperson: say ' + hr.repFirst + ' is taking care of them' : '')
+    + '. Thank them, make it plain they are in good hands, and say you are here if they ever need anything. '
+    + 'No pitch, no vehicle, no offer, no appointment, and NO QUESTION of any kind -- not about timing, not about what they want. Do not apologise at length or explain our process.'
+    + (hr.soldNote ? ' A staff note on this lead reads "Sold": do not sell to them in any form.' : '');
+}
+
 // (v9.7.784) A NEW LEAD ON A CUSTOMER WE ARE ALREADY TALKING TO. Kia Baytown lead 2096861231 (Kia Digital, K5 GT-Line AWD,
 // 10/9 evening): the lead was minutes old, so it read as a first touch and the drafts opened "Your online inquiry is for a
 // 2027 Kia K5 GT-Line AWD" -- while on the same customer's TrueCar lead the BDC agent had spoken with her on 10/8 and the
@@ -21325,6 +21354,15 @@ function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
       out.push('');
     }
   } catch (eRfOf) {}
+  // (v9.7.785) They already have a sales rep: the text steps back too.
+  try {
+    var _rfHr = _lpHasRep(d);
+    if (_rfHr) {
+      out.push('━━━ THEY ALREADY HAVE A SALES REP ━━━');
+      out.push('Keep the email\'s step-back: thank them' + (_rfHr.rep ? ', say ' + _rfHr.repFirst + ' is taking care of them' : '') + ', and say you are here if they need anything. No pitch, no offer, no visit, and NO question.');
+      out.push('');
+    }
+  } catch (eRfHr) {}
 
   // (v9.7.553) An agent LP command is the one thing in this whole pipeline a human typed by hand
   // for this specific lead, and the shape rule already says it is never what gets cut. It has to
@@ -22323,6 +22361,7 @@ var _LP_VISIT_HOLDS = [
   [3, /HARD RULE: do NOT offer an appointment time|FINAL CLOSE RULE FOR THIS MESSAGE: Do NOT end with an appointment/, 'the DEAL CONDITION rule'],
   [3, /NOT TODAY: Customer explicitly said they cannot or do not want to come in right now/, 'NOT TODAY (not any day)'],
   [3, /^EXIT SIGNAL:/, 'the EXIT rule'],
+  [3, /^THEY ALREADY HAVE A SALES REP:/, 'the ALREADY HAVE A SALES REP block'],   // (v9.7.785)
   // (v9.7.781) lead 2097428117, an out-of-state buyer: "Do NOT push an in-person visit or offer appointment times as the
   // ask" sat beside the store-hours "today is the default: lead with a today time", and no hold read it
   [3, /^Do NOT push an in-person visit or offer appointment times as the ask/, 'the REMOTE / OUT-OF-STATE BUYER block'],
@@ -22401,6 +22440,13 @@ function _lpApplyVisitDecision(text) {
       if (/Close toward that visit with one clear ask\./.test(l)) { out.push(l.replace(/Close toward that visit with one clear ask\./, 'Close with one clear ask that fits the VISIT DECISION.')); drop('close toward that visit', l); continue; }
       if (/Acknowledge that the visit is the easiest way to get real numbers - keep it low pressure\./.test(l)) { out.push(l.replace(/Acknowledge that the visit is the easiest way to get real numbers - keep it low pressure\./, 'Keep it low pressure; the next step on financing follows the VISIT DECISION.')); drop('financing visit pitch', l); continue; }
       if (/Email: Open with the vehicle\/option confirmation, THEN the appointment ask\./.test(l)) { out.push(l.replace(/, THEN the appointment ask\./, '.')); drop('distance email appointment ask', l); continue; }
+      // (v9.7.785) the lease-end scenario's visit framing, under a decision that allows no visit ask (lead 2096116717)
+      if (L >= 3 && /^- Frame the visit as an "options review"/.test(l)) { drop('lease-end visit framing', l); continue; }
+      // (v9.7.785) the LIVE CONVERSATION line ends "getting them in soon is the goal" -- a visit push under every level-3 hold
+      // (lead 2097428117's out-of-state buyer carried both); the rest of the line (continue the thread, reference what they said) stays
+      if (L >= 3 && /LIVE CONVERSATION: Customer replied within the last few hours/.test(l) && /getting them in soon is the goal/.test(l)) {
+        out.push(l.replace(/, and moves toward a concrete next step\.[\s\S]*$/, '. This message makes no visit ask and offers no times (see the VISIT DECISION).')); drop('live-conversation visit push', l); continue;
+      }
       if (/OFFER A VISIT \(first reach-out, required\)/.test(l)) {
         if (L >= 3) { drop('first-touch visit offer', l); continue; }
         out.push(l.replace(/, using the appointment times in this prompt/, ', without naming times').replace(/Make it the main ask of the message/, 'Keep it a light ask')); drop('first-touch visit offer softened', l); continue;
@@ -26105,6 +26151,15 @@ function buildUserPrompt(data) {
         + 'Read that conversation below the CURRENT LEAD marker and continue from where it stands: take the new request in that light, keep anyone already working with them in the picture, and do not re-ask what they already told us.');
     }
   } catch (eSlc) {}
+  // (v9.7.785) They already have a sales rep (see _lpHasRep).
+  try {
+    var _hr = _lpHasRep(data);
+    if (_hr) {
+      console.log('[LP HAS REP DIAG] customer: "' + _hr.said + '" | salesperson on the lead: ' + (_hr.rep || '(none named)') + ' | staff "Sold" note: ' + _hr.soldNote + ' -> step back, no question, no visit');
+      ageBlock.push('');
+      ageBlock.push('🤝 ' + _lpHasRepText(_hr));
+    }
+  } catch (eHr) {}
   // (v9.7.737) On a customer quiet 14+ days the Click & Go arm's two angle rules stand down ("LEAD WITH WHAT THEY
   // ALREADY DID" and the progress angle); the session itself is one background line (see drSessionBlock).
   // Filtered here, where the rules render, so the arm's own expression is unchanged.
