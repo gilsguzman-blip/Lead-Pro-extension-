@@ -1,0 +1,40 @@
+AGENT CONTEXT — READ THIS FIRST. These notes may reflect events that happened AFTER the customer's last message (visits, calls, price agreements, plans made in person). If a note post-dates the most recent customer message, that note is the current status — not the customer's last text. If a note states what the customer actually wants — a different condition (new vs. used/CPO), trim, year, or model than the structured Vehicle of Interest on file — that stated preference is the real ask. Build the message around what the note says the customer wants, not around the structured Vehicle of Interest field. Do NOT merge the two into one description (e.g. never say a specific new-model trim name together with an old model-year range as if the same vehicle, like "Premium Plus quattro (2020 or newer)" — that trim name does not span back to that year and the phrase is nonsensical). Do NOT assert either one as the settled answer either. Ask ONE direct question naming both distinctly so the customer tells you which — e.g. "are you set on a 2020+ pre-owned A6, or the 2026 model?" This applies identically to SMS, email, AND voicemail — a format being short is never a reason to drop this distinction down to just the structured Vehicle of Interest field.
+[08/20/2026 4:36 PM] [CALL NOTE] Outbound phone call (Contacted)
+  By: Alyssa Williams
+  Hung up
+[08/20/2026 4:35 PM] [CALL NOTE] Outbound phone call
+  By: System
+  https://www.callmeasurement.com/review_x.cfm?cid=6001666268236&lid=153575
+[08/20/2026 8:46 AM] [CALL NOTE] Outbound phone call (Machine)
+  By: Tania Gonzalez
+  Left message
+
+FOLLOW-UP: read the full transcript and write a response that directly continues THIS conversation.
+Total CRM entries: 14
+
+MOST RECENT CUSTOMER MESSAGES (newest first — the customer sent more than one) [sent TODAY]: "(newest) Received from: (346) 533-5573 Received by: Alyssa Williams Looking for all red Kia red inside  ||  (then) Received from: (346) 533-5573 Received by: Alyssa Williams My husband doesn’t have great credit but we have a 2017 Toyota corolla to possibly trade"
+CRITICAL: Your response MUST directly address what the customer said above — address ALL of it, not just the latest line. If they stated when they can or cannot come in (a day, a constraint, "not till Friday"), honor it — do NOT offer a day or time they have ruled out. Read the FULL transcript. The customer may have communicated across text, email, and phone. Agent notes, call notes, and sales rep interactions all provide context. React to the complete picture, not just one message.
+
+IDENTIFIED CUSTOMER CONCERNS - lead with these, do not bury them:
+SPOUSE/PARTNER INVOLVED: Customer mentioned needing to involve their spouse or partner. Invite both in or offer to answer questions they might have for their partner.
+COLOR PREFERENCE: Customer mentioned red. Match this in your message or acknowledge availability honestly.
+FINANCING CONCERN: Customer raised credit or financing. Acknowledge that the visit is the easiest way to get real numbers - keep it low pressure.
+CONVERSATION TRANSCRIPT (newest first — read the full thread before responding):
+---
+
+---
+
+VEHICLE/LEAD DETAILS:
+Vehicle of Interest: 2026 Kia Sportage (New)
+Color: Runway Red (expressed interest — specific unit not confirmed)
+PRESENCE LANGUAGE: Do NOT say you'll have the vehicle "pulled up" or imply the specific unit is physically here and waiting — its presence on the lot is NOT confirmed (it may be in transit or at another store). Keep the appointment urgency with readiness language that's true wherever the car is — "have everything ready," "get you in," "set you up" — and do not claim the specific vehicle is ready to view.
+⚠ No stock number or VIN — do not claim availability. Reference the model and ask a qualifying question.
+⚠ CUSTOMER NAME SOURCE: use ONLY the customer name given to you above (in the VEHICLE/LEAD DETAILS or as stated elsewhere in this prompt) — never a name found inside an embedded chat transcript in the notes. A chat transcript formatted like "Guest: ... / [Name]: Hi there! My name is [Name]..." is the WIDGET/BOT introducing itself, not the customer; the customer's lines in that format are always labeled "Guest". If no reliable customer name is available, use a generic greeting rather than adopt a name from a chat agent's self-introduction.
+💲 STORE INCENTIVE (real & current — offer only to well-qualified buyers; APR/lease/cash are subject to credit approval and program terms, so frame it as "for qualified buyers" and never promise the rate outright): Sportage — $750 Customer Cash
+💲 STORE INCENTIVE (real & current — offer only to well-qualified buyers; APR/lease/cash are subject to credit approval and program terms, so frame it as "for qualified buyers" and never promise the rate outright): Sportage — $259/mo 24 mo lease ($3,999 due at signing)
+🚙 SIMILAR VEHICLES IN STOCK (secondary-touch angle — real, in stock, do NOT quote price): 2026 Kia Sportage LX (Glacial White Pearl); 2026 Kia Sportage EX (Panthera Metal Gray). Use this ONLY if it genuinely helps this specific touch — e.g. the customer has gone quiet on the original ask, mentioned wanting to see options, or a fit issue (space, budget, feature) suggests an alternative might land better. Never lead a first-touch or a clearly-engaged conversation with an unsolicited alternative to the vehicle they asked about.
+🎯 ENGAGEMENT-ANGLE DISCIPLINE: If more than one secondary-touch angle is available above (similar vehicles, alternate condition, store incentive), pick AT MOST ONE that best fits this specific touch and where the customer is in the arc. Do NOT combine them in the same message — offering a comparable AND an alternate condition AND an incentive together overwhelms rather than engages. Save the rest for a later touch if this one does not land.
+Manager: Daniel Schatte
+
+CRM ENGAGEMENT RATING: High (VinSolutions' own engagement-strength score for this lead — context, not a directive).
+🔥 LIVE CONVERSATION: Customer replied within the last few hours and is actively engaged. This is a HOT lead — momentum matters, so do not let it cool. Write a response that directly continues the live conversation thread, references exactly what the customer said, and moves toward a concrete next step. Move on the timing the CUSTOMER is actually discussing — if they (or a pending agent message they are responding to) named a day or window, work within that day; do NOT default to a same-day appointment when the conversation is about another day. If no day is on the table yet, getting them in soon is the goal.
