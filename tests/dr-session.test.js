@@ -194,9 +194,11 @@ check('...and "do not re-introduce" is not read as "there is nothing to say"',
 
 // The no-regression direction: a Click & Go lead whose session recorded nothing must come out of
 // this arm exactly as it did before the build.
-check('with NO steps, the arm is the v9.7.648 pair and nothing more',
+// (v9.7.787) + the BRAND line on every follow-up arm (Gil, 10/10: "make sure the Click & Go branding is sticking").
+check('with NO steps, the arm is the v9.7.648 pair plus the v9.7.787 brand line, and nothing more',
   i => followUpRules(i, [], PROGRESS),
   '- Follow-up: read the transcript and continue naturally from where things left off.\n'
+  + '- BRAND: name Click & Go once in BOTH the SMS and the email, in passing -- "the deal you started on Click & Go", "your Click & Go application", "since you started on Click & Go". Not as the opener and not as news: they know where they started; the name is how we keep that thread visible.\n'
   + '- Never say Gubagoo, virtual retailing platform, digital retailing, or "dynamic credit app".');
 
 check('the vendor name stays forbidden in every case',
@@ -264,15 +266,15 @@ check('B: without the substance rules the arm loses the SMS quality bar — the 
 check('B (control): the shipped arm carries it',
   i => /SMS quality bar/.test(followUpRules(i, ['SUBMITTED A CREDIT APPLICATION'], PROGRESS)), true);
 
-check('A+B: the 9/10 lead reproduced — no DR note, and a two-rule follow-up arm',
+check('A+B: the 9/10 lead reproduced — no DR note, and a follow-up arm with no step rules (two rules, + the v9.7.787 brand line)',
   i => [recognises(i, BRENNAN_NOTE, OLD_RECOGNITION(i.isDrNote)),
         followUpRules(i, [], PROGRESS, OLD_FOLLOWUP(i.followUp)).split('\n').length],
-  [false, 2]);
+  [false, 3]);
 
-check('A+B (control): the shipped pair recognises the note and carries six rules',
+check('A+B (control): the shipped pair recognises the note and carries six rules (+ the v9.7.787 brand line)',
   i => [recognises(i, BRENNAN_NOTE),
         followUpRules(i, stepsFor(i, BRENNAN).steps, PROGRESS).split('\n').length],
-  [true, 6]);
+  [true, 7]);
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);

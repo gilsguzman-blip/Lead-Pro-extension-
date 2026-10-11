@@ -56,7 +56,8 @@ for (const f of BUILDS) {
   check('the appraisal examples say 10-15 minutes (KBB visit framing and the TRADE PRESENT example)',
     () => [/quick appraisal when you come in — usually takes about 10-15 minutes/.test(src), /It only takes about 10-15 minutes and we will have everything ready/.test(src)], [true, true]);
   check('the visit framings carry no length (credit app x2, monthly-payment close, OTD transition, comparison shopping)',
-    () => [/get you numbers fast';/, /numbers ready before you even arrive';/, /Frame the visit as the place to review options and the offer details/, /exact numbers is a visit \\u2014 everything will be prepared/, /can do when they come in\./].map(r => r.test(src)), [true, true, true, true, true]);
+    // (v9.7.787) the two credit-app angles were reworded around the step and the visit; still no length
+    () => [/go over your options and match you to the right vehicle';/, /go over your options, with financing ready before you arrive';/, /Frame the visit as the place to review options and the offer details/, /exact numbers is a visit \\u2014 everything will be prepared/, /can do when they come in\./].map(r => r.test(src)), [true, true, true, true, true]);
   // TradePending: the trade flag and TRADE-IN RULES come from the lead source, so the appraisal line must reach it too.
   const TP_CTX = entry(9, 23, '9:05 AM', 'CUSTOMER', 'Inbound Text Message', 'Received from: (555) 010-0199\n  What would you give me for it? I could bring it by.')
     + '=== CURRENT LEAD SUBMITTED HERE ===\n' + entry(9, 22, '9:00 AM', 'NOTE', 'Lead Received', 'Internet lead');
