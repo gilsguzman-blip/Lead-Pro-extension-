@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.789-dev (Dev. WHAT WE HAVE: THE INVENTORY FEED ANSWERS 'WHAT DO YOU HAVE IN WHITE'. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Honda Lafayette lead 2095742306 (dump + log308, 10/12): on 10/6 the customer wrote 'Let me know what you have on that. We would want it in white.' about a 2026 Pilot Touring AWD with no stock number. Three of our messages (10/9, 10/12 x2) said 'I'll check' / 'I still need to verify'. The feed held the answer: no white Touring; two Tourings in Crystal Black Pearl; white in the EX-L (x3), the Elite and the Black Edition. The prompt told the model the build was 'not verified ... you MAY reference the BASE MODEL', and its only inventory was the SIMILAR VEHICLES side angle -- the two cheapest 2026 Pilot EX-Ls, 'use ONLY if it genuinely helps' -- which left out the exact trim. Now, when the lead's vehicle has no stock or VIN, the customer named a colour (the scrape's COLOR PREFERENCE line, or their own words) or asked what we have, and this grab's inventory is in hand (_lpInvFreshness), _lpWhatWeHave lists that model in their condition (and model year, for new) and the INVENTORY line becomes WHAT WE HAVE: the exact trim and colour (IN STOCK, or NONE in stock today); the same trim in other colours (named); their colour in a lower trim (may be mentioned, not pushed); their colour in a HIGHER trim -- counted, never named. Gil, 10/12: 'if it has to go up a trim it should say we do have other options if you'd like to come take a look at them'. A trim is lower only when clearly cheaper ($1,500+) than the cheapest unit of the trim they asked for -- discounts overlap neighbouring trims (an Elite at $51,578 under a Touring at $52,890), and anything not clearly lower is treated as higher. It says the feed has been checked (no 'still need to verify'), that a listed IN STOCK unit outranks any 'presence not confirmed' line, never gives a stock number or price, and does not state AWD or 2WD (the feed has no drivetrain). The SIMILAR VEHICLES side angle stands down when it fires. Logged as [LP WHAT WE HAVE DIAG]. On the real dump: NONE for the white Touring; Touring in Crystal Black Pearl x2 named; EX-L in Platinum White Pearl x3 as the lower option; Elite and Black Edition counted as '2 units' above, unnamed; no 'not verified' note and no side angle. TESTS: what-we-have-789 (new) executes buildUserPrompt and populateFromData with placeholder inventory: 22 assertions across both builds; v9.7.788 fails 8 of 11 per build (its 3 controls pass: no ask, a stock number on the lead, inventory older than the grab). VERIFIED: run-all 222 suites green, 8060 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.788-dev.)
 // Lead Pro -- popup.js  v9.7.788-dev (Dev. A COUNTER COMES AFTER OUR NUMBER, AND NO DISTANCE LABELS. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. From the 10/12 feedback export (5,341 requests, 99% shipped, 97% first try). (1) Kia Baytown lead 2098406554 (AutoTrader, first touch, on 9.7.787): the inquiry said the certified Soul was 'listed at $17,468'; a priced message of ours had gone out after it; the text went out 'I've got your $17,468 figure and am taking it to my manager. I'll come back to you with an answer.' v9.7.786 stopped the IdentityMax offer line and the never-replied customer, not this: _lpPricePushback never checked which came first, and a [CUSTOMER REQUEST FROM INQUIRY] entry was read as one of OUR messages. A counter answers our number, so it comes after it. Now the customer's newest message (any CUSTOMER-tagged entry, an inquiry included) is the anchor; only a priced message of ours OLDER than it can be what they answered, and none at all means no pushback. Every lead-form inquiry predates our first message, so none can be a counter. A real reply with their own number after our price, and 'is this your final price?', are unchanged; the text rewrite's price section reads the same function. (2) 'since you're not local' (Audi Lafayette lead 2097521611, 10/12) and 'Since you're remote' (Honda Lafayette lead 2097861745, 10/10) reached customers. The DISTANCE rule (main system prompt and the text rewrite's) now says: do not LABEL them either -- no 'since you're not local', 'since you're remote', 'since you're out of state', 'since you're out of town', 'I know you're not nearby' -- offer the remote path as a plain offer ('I can send you a video walkaround'). New observational [LP DISTANCE LABEL DIAG] (console.warn) when a final SMS or email still carries one. TESTS: counter-order-788 (new) executes _lpPricePushback, buildUserPrompt, buildSystemPrompt and buildSystemPromptSmsRefine: 18 assertions across both builds; v9.7.787 fails 6 of 9 per build (its 3 controls pass). price-pushback-745, chip-counter-748, price-concern and imx-link-786 unchanged and green. VERIFIED: run-all 221 suites green, 8038 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.787-dev.)
 // Lead Pro -- popup.js  v9.7.787-dev (Dev. CLICK & GO: THE STEP IS THE REASON TO COME IN, AND THE BRAND STICKS. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Gil, 10/10, on the day's Click & Go rejections: 'I think the appointment is OK on Click & Go if we pose it as you've taken [the] step -- customer can come in and go over options', and 'make sure the Click & Go branding is sticking. I saw it miss on a lead earlier.' Appointment times stay. (1) THE STEP AND THE VISIT. Each progress angle now ties what they did online to coming in: completed -> 'come in and we will finalize the details together'; application, no vehicle -> 'you have taken the first step — come in and we will go over your options and match you to the right vehicle'; application -> '... go over your options, with financing ready before you arrive'; trade-in -> '... with a solid trade number ready'; no vehicle -> '... find the right vehicle for you'; vehicle on the lead -> 'taken the first step online, and the vehicle is here — come in and we will go over your options'. (2) 'NO VEHICLE' IS RE-CHECKED. Kia Baytown lead 2097743287 (Click & Go, stock on the lead): the email paired 'the K4 is here' with 'help you find the right vehicle to go along with the step you've already taken'. noVehicleAtAll is set once from the first read of the page; a vehicle filled in later did not always clear it. The angle now tests the vehicle, stock and VIN at the point it is chosen. (3) THE BRAND. The two first-contact arms required 'Click & Go' in both formats; the follow-up arm -- the one nearly every Click & Go lead takes, because the store's assistant answers within minutes -- did not, and the generic SOURCE ACKNOWLEDGMENT block told the model not to name it again once one of our messages had (and skipped it entirely past the early touches). The follow-up arm now says BRAND: name Click & Go once in BOTH the SMS and the email, in passing ('the deal you started on Click & Go'), not as the opener or as news (v9.7.650's point stands); the source block stands aside for Click & Go (logged SKIPPED-click-and-go); other sources keep their already-named rule. v9.7.697's rewrite guard already ships the first pass when the rewrite drops the name (executed in the new suite). New observational [LP CLICK&GO BRAND DIAG] after each generation: sms/email named or MISSING. TESTS: clickgo-787 (new) executes buildUserPrompt and _lpRefineSms with the worker stubbed: 18 assertions across both builds; v9.7.786 fails 6 of 9 per build (its 3 passes: the website control and the two rewrite-guard checks, which predate this build). dr-session updated for the brand line (rule counts +1); first-touch-register counts the new reported exit (4 -> 5); durations-764 points its no-length check at the reworded credit-app angles. VERIFIED: run-all 220 suites green, 8020 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.786-dev.)
 // Lead Pro -- popup.js  v9.7.786-dev (Dev. AN IDENTITYMAX OFFER IS NOT A COUNTER, AND THE SEARCH LINK REACHES THE TEXT. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Honda Lafayette lead 2097663640 (IdentityMax 'Pre-owned and Certified Vehicles under $25,000!', 10/10, on 9.7.785, the customer had not written). The text went out: 'I'll take the $25,000 figure to my manager and get back to you with an answer. You can browse the pre-owned and certified vehicles under $25,000 here, ...' -- with no link. Gil: 'the text reads funny ... it also mentions looking at 25k options "here" but there was no link sent.' (1) THE COUNTER. On such a lead the newest 'customer message' is the lead's own inquiry line (claimed the website offer "...under $25,000!"). _lpPricePushback read '$25,000' beside 'offer' as their number, and any priced message of ours in 14 days made it a counter: v9.7.748's 'take their $X to your manager and come back with an answer'. Executed on 785: the prompt carries THEY COUNTERED WITH THEIR OWN NUMBER on that shape. Now no pushback and no counter when the customer has not replied, or when the newest message is the claimed-offer line; a real reply countering our figure is unchanged. The text rewrite's price section reads the same function. (2) THE LINK. The IdentityMax guidance (v9.7.722) says to put the store's under-$25,000 search link in the SMS 'on its own line, before the signature'. enforceSmsSig strips the signature, and its store-key safety net then deletes a short last line containing the store's first word -- 'community', inside www.communityhondalafayette.com. Executed on 785: 'You can browse them here:' + link + signature comes out with the link gone. Neither safety-net strip (store key, phone) now touches a line with a URL. WHY LEAD 2097324735 (the day before, same offer, on 779) CAME OUT RIGHT: its link sat mid-text with the visit ask after it ('Would 3:30 or 4:15 work?'), so the link was not the last line and the strip left it; and nothing of ours had gone out before that draft, so there was no priced message for the offer line to 'counter'. On 2097663640 the closing question came before the link (the order the guidance asks for), and the virtual assistant's email had gone out three hours earlier. (3) The text rewrite is told THE LINK STAYS when the first draft carries one (exactly, on its own line; 'here' needs the link), and a rewrite that drops or changes it does not ship -- the first pass does, logged. (4) FOUND WHILE VERIFYING: the agent's 'no appointment' chip was not a visit hold. With the store open and room left today, the store-status line ('today is the default: lead with a today time ... the SUGGESTED APPOINTMENT TIMES below') stayed beside the AGENT OVERRIDE -- imx-noappt-720 passed in the evening and failed in the morning (it failed on 785 the same way at 9:52 AM). The override is now a level-3 hold, so the visit decision removes the today default under it. TESTS: imx-link-786 (new) executes _lpPricePushback, buildUserPrompt, enforceSmsSig (lifted as step5-700 does), _lpBuildSmsRefinePrompt and _lpRefineSms with the worker stubbed, and _lpApplyVisitDecision: 22 assertions across both builds; v9.7.785 fails 7 of 11 per build (its 4 controls pass). VERIFIED: run-all 219 suites green, 8002 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.785-dev.)
@@ -3699,6 +3700,81 @@ function _lpSearchZipLocal(data) {
     return { zip: zip, miles: miles, local: inSet || miles <= 50 };
   } catch (e) { return null; }
 }
+// (v9.7.789) WHAT WE HAVE: THE INVENTORY FEED ANSWERS "WHAT DO YOU HAVE IN WHITE". Honda Lafayette lead 2095742306 (10/6-10/12):
+// the customer asked "Let me know what you have on that. We would want it in white." about a 2026 Pilot Touring AWD with no stock
+// number; three of our messages said "I'll check" / "I still need to verify". The feed held the answer: no white Touring, two
+// Tourings in Crystal Black Pearl, and white in the Elite, Black Edition and EX-L. The prompt said the build was "not verified"
+// and offered, as an optional side angle, the two cheapest EX-Ls. When the lead's vehicle has no stock or VIN, the customer named a
+// colour or asked what we have, and this grab's inventory is in hand, this lists that model in their condition: the exact trim and
+// colour (or NONE), the same trim in other colours, and their colour in other trims -- a HIGHER trim is never named (Gil, 10/12:
+// "if it has to go up a trim it should say we do have other options if you'd like to come take a look at them"); a lower one may be.
+var LP_AVAIL_ASK_RX = /\bwhat (?:do )?(?:you|y'?all) (?:have|got)\b|\bwhat(?:['’]s| is) (?:in stock|available)\b|\bin stock\b|\bavailab\w*\b|\bdo (?:you|y'?all) (?:have|carry|still have)\b|\blet me know what you have\b/i;
+function _lpTrimOf(v) {
+  try {
+    var s = _lpNormVehicleStr(v).replace(/\b(?:19|20)\d{2}\b/g, ' ');
+    var mk = s.match(_LP_MAKE_RX); if (mk) s = s.slice(s.toLowerCase().indexOf(mk[0].toLowerCase()) + mk[0].length);
+    s = s.trim().replace(/^[A-Za-z0-9][A-Za-z0-9\-]*\s*/, '');   // the model word itself
+    s = s.replace(/\b(?:awd|fwd|rwd|2wd|4wd|4x4|4x2|sedan|coupe|hatchback|suv|4d|sport utility|w\/[^,]*)\b/ig, ' ').replace(/\s{2,}/g, ' ').trim();
+    return { disp: s, norm: s.toLowerCase().replace(/[^a-z0-9]+/g, '') };
+  } catch (e) { return { disp: '', norm: '' }; }
+}
+function _lpWhatWeHave(d) {
+  try {
+    if (!d || !d.vehicle || d.stockNum || d.vin || /not provided/i.test(d.vehicle) || d.isSoldDelivered) return null;
+    var fam = _lpModelFamilyKey(d.vehicle); if (!fam) return null;
+    var c = _lpValueFactCache[d.dealerId], units = c && c.inv && c.inv.units;
+    if (!units || !units.length) return null;
+    var fr = (typeof _lpInvFreshness === 'function') ? _lpInvFreshness(d.dealerId) : null;
+    if (!fr || !fr.fresh) return null;
+    var cust = (typeof _lpCustomerText === 'function') ? _lpCustomerText(d) : String(d.lastInboundMsg || '');
+    var ctx = String(d.conversationBrief || '') + '\n' + String(d.context || '');
+    var cp = ctx.match(/COLOR PREFERENCE: Customer mentioned ([^.\n]+)\./);
+    var colors = Object.keys(_lpColorWords(cp ? cp[1] : cust));
+    var asked = LP_AVAIL_ASK_RX.test(cust);
+    if (!colors.length && !asked) return null;
+    var lane = _lpCompLane(d.condition), vy = (String(d.vehicle).match(/\b(?:19|20)\d{2}\b/) || [''])[0];
+    var pool = units.filter(function (u) {
+      if (_lpModelFamilyKey(u.vehicle) !== fam) return false;
+      var ul = String(u.condition || '').toLowerCase() === 'new' ? 'new' : 'pre';
+      if (lane && ul !== lane) return false;
+      if (lane === 'new' && vy && String(u.year || (String(u.vehicle).match(/\b(?:19|20)\d{2}\b/) || [''])[0]) !== vy) return false;
+      return true;
+    });
+    if (!pool.length) return null;
+    var want = _lpTrimOf(d.vehicle);
+    var trimOk = function (u) { return !!want.norm && _lpTrimOf(u.vehicle).norm === want.norm; };
+    var colorOk = function (u) { var w = _lpColorWords(u.color); return colors.some(function (k) { return w[k]; }); };
+    var grp = function (list) { var m = {}, order = [];
+      list.forEach(function (u) { var k = String(u.vehicle).replace(_LP_MAKE_RX, '').replace(/\s{2,}/g, ' ').trim() + ' (' + (u.color || 'color not listed') + ')';
+        if (!m[k]) { m[k] = 0; order.push(k); } m[k]++; });
+      return order.map(function (k) { return k + (m[k] > 1 ? ' x' + m[k] : ''); }).join('; '); };
+    var base = (vy ? vy + ' ' : '') + (String(pool[0].model || '').split(/\s+/)[0] || 'model');
+    var exact = pool.filter(function (u) { return (!want.norm || trimOk(u)) && (!colors.length || colorOk(u)); });
+    var sameTrim = (want.norm && colors.length) ? pool.filter(function (u) { return trimOk(u) && !colorOk(u); }) : [];
+    var other = colors.length ? pool.filter(function (u) { return colorOk(u) && !(want.norm && trimOk(u)); }).filter(function (u) { return !!want.norm; }) : [];
+    var refPrices = pool.filter(trimOk).map(function (u) { return Number(u.price) || 0; }).filter(Boolean);
+    // A trim is LOWER only when it is clearly cheaper than the cheapest unit of the trim they asked for: discounts make
+    // neighbouring trims overlap (lead 2095742306: an Elite at $51,578 under a Touring at $52,890), and anything not clearly
+    // lower is treated as higher -- never named, which is the side Gil's rule errs to.
+    var refMin = refPrices.length ? Math.min.apply(null, refPrices) : 0;
+    var lower = other.filter(function (u) { return refMin && Number(u.price) && Number(u.price) <= refMin - 1500; });
+    var higher = other.filter(function (u) { return lower.indexOf(u) < 0; });
+    var wantDesc = (want.disp ? 'the ' + base + ' ' + want.disp : 'the ' + base) + (colors.length ? ' in ' + colors.join(' or ') : '');
+    var L = ['📦 WHAT WE HAVE IN THE ' + base.toUpperCase() + ' RIGHT NOW (this store\'s inventory feed, checked for this grab -- real units; never give a stock number or a price). They asked about ' + wantDesc + '.'];
+    if (colors.length || want.norm) L.push('- ' + wantDesc.charAt(0).toUpperCase() + wantDesc.slice(1) + ': ' + (exact.length ? 'IN STOCK -- ' + grp(exact) + '.' : 'NONE in stock today.'));
+    else L.push('- In stock: ' + grp(pool.slice(0, 8)) + '.');
+    if (sameTrim.length) L.push('- The ' + want.disp + ' in other colors: ' + grp(sameTrim) + '. You may name these.');
+    var _cw = colors.join(' or '); _cw = _cw.charAt(0).toUpperCase() + _cw.slice(1);
+    if (lower.length) L.push('- ' + _cw + ' in a lower trim: ' + grp(lower) + '. You may mention it as an option; do not push it.');
+    if (higher.length) L.push('- ' + _cw + ' in a trim above what they asked for: ' + (higher.length === 1 ? 'one unit' : higher.length + ' units') + '. Do NOT name them or their trims. Say it the way the store does: "we do have other options if you\'d like to come take a look at them" (if this message allows a visit ask; otherwise, that you have other options and can send details).');
+    L.push('This answers what they asked. Tell them plainly. Do NOT say you still need to check, verify or confirm availability on this model -- the feed has been checked for this grab. '
+      + (exact.length ? 'The unit(s) listed as IN STOCK are confirmed by the feed: this outranks any line in this prompt that says the vehicle\'s presence is not confirmed. '
+                      : 'If the exact one is not here, say so once, plainly, then offer what fits from the lines above and ask which they would rather. ')
+      + 'The feed does not list drivetrain: do not state AWD or 2WD for these units.');
+    return { text: L.join('\n'), exact: exact.length, sameTrim: sameTrim.length, lower: lower.length, higher: higher.length, colors: colors, asked: asked, want: want.disp };
+  } catch (e) { return null; }
+}
+
 function _lpExplicitDistanceReq(text){
   var t = String(text || '').toLowerCase();
   if (!t) return false;
@@ -8397,7 +8473,11 @@ function populateFromData(d) {
   // secondary-touch tool, not a first-impression pitch), not adversarial, not already sold/
   // delivered, and stands down when the color-mismatch or SOLD pivot already offered alternatives.
   try {
-    if (d.vehicle && !d.isSoldDelivered && !_incAdversarial && !_incIsFirstTouchLead && !_voiCrossSellSuppressed) { // (v9.7.429/427) pristine first-touch flag — override-admitted incentives no longer unlock cross-sell
+    // (v9.7.789) Stands down when the WHAT WE HAVE answer will carry this model's stock (see _lpWhatWeHave): the cheapest two
+    // of the model, as a side angle, beside the real answer, is what lead 2095742306 got instead of it.
+    var _cvcWwh = null; try { _cvcWwh = _lpWhatWeHave(d); } catch (eCw) {}
+    if (_cvcWwh) console.log('[LP WHAT WE HAVE DIAG] the SIMILAR VEHICLES side angle stands down -- the inventory answer carries this model');
+    if (d.vehicle && !d.isSoldDelivered && !_incAdversarial && !_incIsFirstTouchLead && !_voiCrossSellSuppressed && !_cvcWwh) { // (v9.7.429/427) pristine first-touch flag — override-admitted incentives no longer unlock cross-sell
       var _cvcInv = _lpValueFactCache[d.dealerId] && _lpValueFactCache[d.dealerId].inv;
       if (_cvcInv && _cvcInv.units && _cvcInv.units.length) {
         var _likeComps = _lpComparables(d.vehicle, _cvcInv.units, d.stockNum, d.vin, 2, { cond: d.condition || '' });   // (v9.7.781) same lane first
@@ -24771,6 +24851,7 @@ function buildUserPrompt(data) {
 
   // ── Inventory notes (for loyalty vehicle only — others handled above) ─
   let inventoryNote = '';
+  var _lpWwh = null;   // (v9.7.789) the WHAT WE HAVE answer, when the feed answers what they asked
 
   // VIN-only-no-stock language is shared across model years — defined once,
   // composed into the relevant branches below. The architectural truth: stock
@@ -24803,6 +24884,11 @@ function buildUserPrompt(data) {
       // VIN present but no stock number — non-Toyota-inbound case.
       // May be inbound, dealer-trade prospect, or third-party scrape. Do NOT claim availability.
       inventoryNote = _vinOnlyNoStockText;
+    } else if ((function () { try { return (_lpWwh = _lpWhatWeHave(data)); } catch (eW) { return null; } })()) {
+      // (v9.7.789) The feed answers what they asked (see _lpWhatWeHave); the "not verified" note would contradict it.
+      inventoryNote = _lpWwh.text;
+      try { console.log('[LP WHAT WE HAVE DIAG] asked:' + (_lpWwh.want || '(model)') + (_lpWwh.colors.length ? ' in ' + _lpWwh.colors.join('/') : '') + (_lpWwh.asked ? ' (availability ask)' : '')
+        + ' | exact:' + _lpWwh.exact + ' sameTrimOtherColor:' + _lpWwh.sameTrim + ' lowerTrimTheirColor:' + _lpWwh.lower + ' higherTrimTheirColor(unnamed):' + _lpWwh.higher); } catch (eWd) {}
     } else {
       // Vehicle of interest only — no specific unit confirmed
       inventoryNote = 'VEHICLE NOTE: No specific unit confirmed (no stock number or VIN). The customer asked about ' + (data.vehicle || 'a vehicle') + ', but we have not verified we have THIS specific trim/configuration on the lot. RULES: (1) You MAY reference the BASE MODEL by name (e.g. "the Prius", "the CR-V") because we carry that line. (2) Do NOT confirm availability of the specific TRIM, COLOR, or CONFIGURATION the customer mentioned (e.g. "Nightshade", "Touring", "Hybrid AWD") — we have not verified those. (3) Do NOT say "we have the [Nightshade/specific trim] available" or "we can get you set up with the [specific trim]" — these claim availability we cannot confirm. (4) Better phrasing: "I can check availability on the Nightshade trim specifically" or "We have the Prius — let me confirm the exact trim and color you are looking for." (5) Best phrasing for first-touch: ask a qualifying question — "What trim and color are you set on?" — instead of claiming availability.';
