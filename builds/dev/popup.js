@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.797-dev (Dev. DRIVETRAIN: SAID FOR THE VEHICLE ON THE LEAD WHEN WE HAVE IT, NEVER FOR ONE WE DO NOT. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Toyota Baytown lead 2099028967 (log318): the customer asked 'Is it awd' about a 2026 RAV4 LE offered as an alternative; nothing Lead Pro holds carries that unit's drivetrain (the vAuto export has no such column, so the inventory feed never will), and both drafts said 'yes -- the 2026 RAV4 LE is AWD'. It is FWD. Honda Lafayette lead 2099028490 (log319): VinSolutions' record of the lead's vehicle carries 'DriveTrain':'FWD' / 'DriveLine':'FWD', and the Lead Info panel reads 'FWD 4dr Car (4 Door)' -- Lead Pro read past both. (1) The scraper reads the vehicle on the lead's drivetrain from that record (only when it belongs to this lead and the store has not changed the vehicle on it), else from the panel line, and carries it as voiDrivetrain ([LP DRIVETRAIN DIAG]); the prompt states 'DRIVETRAIN: FWD (front-wheel drive) -- VinSolutions' own record of this unit'. (2) When the customer's newest message asks about drivetrain (AWD/FWD/4WD/4x4/all-wheel...), a DRIVETRAIN QUESTION line answers with the lead vehicle's drivetrain when we have it, and for any other vehicle -- an alternative, a comparable, an inventory suggestion, or the lead vehicle when it is not on record -- forbids naming one: say you will confirm it, or ask whether AWD is a must (Gil, 10/13: 'we'll be nebulous in the response'). (3) The text rewrite gets the same rule, and a rewrite that names a drivetrain the first draft did not does not ship. [LP DRIVETRAIN CLAIM DIAG] logs any format that states one. On the real pages: the Civic reads FWD from VinSolutions' record; the in-transit RAV4 has none, so nothing is stated and the question line says to confirm. TESTS: drivetrain-797 (new) executes the scraper's drivetrain block (lifted), populateFromData, _lpBuildSmsRefinePrompt and _lpRefineSms (worker stubbed) with placeholder data: 20 assertions across both builds; v9.7.796 fails 8 of 10 per build. VERIFIED: run-all 230 suites green, 8235 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.796-dev.)
 // Lead Pro -- popup.js  v9.7.796-dev (Dev. A RETURNING CUSTOMER'S NEW LEAD STARTS ITS OWN CLOCK. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Toyota Baytown lead 2099028967 (log317, on 795): a Click & Go lead submitted that day, and a connected call five minutes before the grab (a trade-in, and 'the rav4 is to be here around the end of November'). 795's fixes held (the 2/19 note skipped, no arrival constraint, no missed-appointment line), but her last TEXT was 236 days old, on the closed lead before this one, and three parts of the prompt ran on that clock. (1) _lpQuietDays: 'THIS CUSTOMER LAST WROTE 236 DAYS AGO ... THIS RULE OUTRANKS ANY BLOCK BELOW', one job (offer an in-stock alternative), times withheld -- the text pitched a RAV4 LE instead of following up the call -- and _lpCloseOutEligible read the lead as eligible for a close-out. New _lpReachedRecently: a lead submitted in the last two days (its created time, never a defaulted age) or a connected call on this lead in the last 14 days means the customer is not quiet and is never offered a close-out. (2) A missed appointment from an EARLIER lead (_lpMissedApptIsPrior) never switches the message to the Sales Manager voice; the fresh-lead guard only stood down the switch while nothing had been sent, and the agent had already called. (3) The call-today block (v9.7.792) now asks whether the customer wrote AFTER the call, not whether they ever wrote: her 24 February messages counted as 'a real customer reply' and the call was never read as the conversation. A text or email of theirs dated after the call still decides it further down. Replayed on the real dump: 795 opens on the quiet rule, switches to the manager and marks the lead close-out eligible; 796 does none of the three (the visit decision is owned by FIRST HUMAN TOUCH, a light ask with no times). TESTS: new-lead-clock-796 (new) executes _lpQuietDays, _lpReachedRecently, _lpCloseOutEligible, classifyScenario and the scraper's call-today block (lifted) with placeholder data: 22 assertions across both builds; v9.7.795 fails 6 of 11 per build (its 5 controls pass). call-first-792's control updated: a reply from before the call no longer blocks it, a text after the call still does. VERIFIED: run-all 229 suites green, 8215 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.795-dev.)
 // Lead Pro -- popup.js  v9.7.795-dev (Dev. A CLOSED LEAD'S TEXT, AN 'ABOUT' AND A MISSED APPOINTMENT NOBODY MISSED. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Toyota Baytown lead 2099028967 (log316), a Click & Go lead submitted that day: the text shipped '[customer], sorry we missed you Saturday ... Would 6:45 or 7:15 this evening work'. (1) THE ARRIVAL-TIME SCAN. Its bare 'out' matched inside 'about': 'Give me about 45 minutes', a text from 02/19/2026 on a closed lead, became 'Customer gets off at 45 PM ... arrive around 45:30 PM ... Evening only' (and on Honda Lafayette lead 2077008076, 'I would love to come about 1:30', a 9/29 appointment, became 1:30 PM today). Now: whole words; 'out', 'done' and 'finish' need at/by/around/after; the number must be a clock time (1-12, or h:mm), never 'N minutes/hours/days'; a one-off visit time ('come by / be there / arrive / stop by / swing by at N') counts only from a message of the last two days; and the scheduling loop skips notes more than two days older than the current-lead marker, so a closed lead's messages cannot set this lead's schedule (logged as [LP SCHED SCOPE DIAG] and [LP SCHED ARRIVAL DIAG]). The popup-side read uses the same rules, and the customer's last message only while it is two days old or less. (2) TODAY'S ARRIVAL-ADJUSTED TIMES ARE NEVER IN THE PAST: lead 2077008076 was offered 1:30 PM today at 1:44 PM. A slot that has passed or is under 15 minutes away moves to the next half hour at least 30 minutes out; with no room before close, the ordinary suggested times are used ([LP ARRIVAL SLOT DIAG]). The constraint's wording is a real 12-hour time ('1:30' had read '13:30 PM') and says 'evening only' only for an evening time. (3) THE TEXT REWRITE'S MISSED APPOINTMENT. The main prompt suppressed the 236-day-old miss from the closed lead; the rewrite's check (_lpMissedApptIsPrior) compared it with leadAgeDays, which the raw scrape it is handed does not carry, so it fell through to 'THE APPOINTMENT ON THIS LEAD WAS MISSED ... as the first draft did (sorry we missed you Saturday)'. The first draft said nothing of the kind, and the example was copied word for word. Now the check falls back to the relationship signals' lead age, the section appears only when the first draft acknowledges a miss, and it keeps the first draft's own words with no example day to copy. TESTS: arrival-time-795 (new) executes the lifted scheduling loop, populateFromData, buildUserPrompt with the clock frozen at 1:44 PM, and _lpBuildSmsRefinePrompt, with placeholder data: 28 assertions across both builds; v9.7.794 fails 10 of 14 per build (2 of them are new wording on controls). Replayed on both real CRM pages: 794 reproduces the logged 'around 45' and 'around 1:30', 795 finds no constraint; on lead 2099028967's real scrape 794 writes the MISSED section with 'Saturday', 795 does not. miss-refine-778 updated for the new wording. VERIFIED: run-all 228 suites green, 8191 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.794-dev.)
 // Lead Pro -- popup.js  v9.7.794-dev (Dev. THE CUSTOMER'S NEWEST MESSAGE IS WHAT THE DRAFT ANSWERS: FOUR PARTS OF THE PROMPT STOP OUTRANKING IT. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Kia Baytown lead 2082559456 (log313, 10/13): his newest message (10/9) was about the rate -- he buys at 0% or 1%, 'when it does go down to 0 or 1.9, I will rekindle my interest in the K5' -- and only the automated assistant had written since. The K5 he built had sold, and the store carried 1.90% APR on the K5 the pivot offered. The text that shipped opened 'I can help with the darker window tint question' (asked 9/16, answered 9/17) and said nothing about the rate. (1) A RATE QUESTION IS NOT THE SOLD CAR'S NUMBERS. v9.7.760's moot rule dropped any money question on a sold lead; rate, APR, financing and incentive questions now stay open (LP_TERMS_Q_RX) -- only that car's own fees, breakdown, price and out-the-door figures are moot -- and the rewrite shows such a message in the customer's own words, not as 'about the vehicle that has since sold, background only'. When the newest message is about the rate, the sold pivot also gives the alternative's APR programs (the pivot itself leads with one program; on this lead the $750 cash, and the 1.90% never reached the prompt). (2) A QUESTION OUR REPLY TOOK UP, THAT THEY HAVE WRITTEN PAST TWICE, IS CLOSED. The tint reply shared one word with the question against a bar of two; a reply that touches the subject, followed by two customer messages that never mention it, now closes it ('reply-then-moved-on'). A question no reply of ours took up (the v9.7.681 credit-approval case) is untouched. (3) AN OLDER QUESTION DOES NOT OUTRANK THE NEWEST MESSAGE. A question asked before their newest message is marked older: OPEN THREADS lists it as 'Earlier question(s) ... pick it up after that, never instead of it', the 'highest-leverage move' reading is kept for questions in or after their newest message, and the text rewrite lists it as EARLIER, never as the opening. IDENTIFIED CUSTOMER CONCERNS now reads 'do not bury them, but the customer's most recent message comes first' (was 'lead with these'). (4) WHEN ONLY THE ASSISTANT HAS WRITTEN SINCE, THIS MESSAGE IS THE ANSWER. CONVERSATION STATE said nobody had replied, then 'Do NOT re-answer ... Re-engage with a genuinely different angle'; it now says the message is that answer and responds to what they said first. 'Nobody replied' now needs every written send since their message to be the assistant's (one from a person is a reply; bot-authorship's 'a bot send newer than a human send' check is reversed accordingly). TESTS: current-arc-794 (new) executes the lifted open-question detector, _lpMootSoldQuestions, renderRelationshipReading, _lpBuildSmsRefinePrompt and populateFromData with placeholder data: 26 assertions across both builds; v9.7.793 fails 8 of 13 per build (its 5 controls pass). Replayed on the real lead: the 793 detector leaves the tint question OPEN on the real CRM page and 794 closes it; the prompt keeps both rate questions open, gives K5 1.90% APR for 48 mos, and the rewrite shows his message in his own words. Updated: bot-authorship (reversed check, plus the new wording), open-thread-resolver (its two-word-bar isolation also switches off the new close), incentive-expiry (three expiry-filtered read sites). VERIFIED: run-all 227 suites green, 8163 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.793-dev.)
@@ -986,6 +987,28 @@ function _lpQuietDays(d) {
     if (_lpReachedRecently(d)) return 0;
     return Math.round(a);
   } catch (e) { return 0; }
+}
+// (v9.7.797) DRIVETRAIN: SAY IT FOR THE VEHICLE ON THE LEAD WHEN WE HAVE IT, NEVER FOR ONE WE DO NOT. Toyota Baytown lead
+// 2099028967 (log318): the customer asked "Is it awd" about a 2026 RAV4 LE offered as an alternative; nothing Lead Pro holds
+// carries that unit's drivetrain (the inventory feed has none), and both drafts said "yes -- the 2026 RAV4 LE is AWD". It is
+// FWD. The vehicle on the lead now carries its drivetrain from VinSolutions' record (d.voiDrivetrain); for any other unit
+// the draft says it will confirm (Gil, 10/13: "we'll be nebulous in the response").
+var LP_DRIVE_RX = /\b(?:awd|fwd|rwd|4wd|2wd|4x4|4x2|all[- ]?wheel(?:[- ]drive)?|front[- ]?wheel(?:[- ]drive)?|rear[- ]?wheel(?:[- ]drive)?|four[- ]?wheel(?:[- ]drive)?)\b/i;
+var _LP_DRIVE_NAME = { AWD: 'AWD (all-wheel drive)', FWD: 'FWD (front-wheel drive)', RWD: 'RWD (rear-wheel drive)', '4WD': '4WD (four-wheel drive)', '2WD': '2WD' };
+function _lpDriveAsked(d) {
+  try {
+    if (!d || d.inboundPreVisit) return false;
+    var age = d.relationshipSignals ? d.relationshipSignals.lastInboundAgeDays : null;
+    if (typeof age === 'number' && age >= 14) return false;
+    return LP_DRIVE_RX.test(String(d.lastInboundMsg || ''));
+  } catch (e) { return false; }
+}
+function _lpDriveLine(d) {
+  var dv = d && d.voiDrivetrain && _LP_DRIVE_NAME[d.voiDrivetrain] ? d.voiDrivetrain : '';
+  var veh = String((d && d.vehicle) || 'the vehicle on this lead');
+  return 'They asked about the drivetrain. ' + (dv ? 'The ' + veh + ' on this lead is ' + _LP_DRIVE_NAME[dv] + ' (VinSolutions\' record of this unit) -- answer with that. ' : '')
+    + 'For ' + (dv ? 'any OTHER vehicle' : 'any vehicle') + ' -- an alternative, a comparable, an inventory suggestion' + (dv ? '' : ', or the vehicle on this lead') + ' -- we do NOT have its drivetrain on record: '
+    + 'do not say it is AWD, FWD, RWD or 4WD. Say you will confirm it for them (or ask whether AWD is a must), and keep moving.';
 }
 // (v9.7.796) A RETURNING CUSTOMER'S NEW LEAD STARTS ITS OWN CLOCK. Toyota Baytown lead 2099028967 (log317): a Click & Go
 // lead submitted that day, and a connected call five minutes before the grab (a trade-in, and "the
@@ -7193,6 +7216,14 @@ function populateFromData(d) {
     }
   }
   if (d.vin && !d.stockNum) vehicleExtras.push('VIN: ' + d.vin + ' (in transit — do not say "in stock")');
+  // (v9.7.797) the vehicle on the lead's drivetrain, and the rule for any unit we do not have it for
+  try {
+    if (d.voiDrivetrain && _LP_DRIVE_NAME[d.voiDrivetrain]) vehicleExtras.push('DRIVETRAIN: ' + _LP_DRIVE_NAME[d.voiDrivetrain] + ' -- VinSolutions\' own record of this unit.');
+    if (_lpDriveAsked(d)) {
+      vehicleExtras.push('🚙 DRIVETRAIN QUESTION: ' + _lpDriveLine(d));
+      console.log('[LP DRIVETRAIN DIAG] asked: "' + String(d.lastInboundMsg || '').slice(0, 60) + '" | on record for the vehicle on the lead: ' + (d.voiDrivetrain || 'no'));
+    }
+  } catch (eDvP) {}
   // (v9.7.480/475 STAGE 2) Certified surfaced as its own fact. The condition enum stays
   // 'Pre-Owned' (no downstream equality check changes); this line gives the model the CPO
   // selling points it was previously blind to.
@@ -10826,6 +10857,33 @@ function _lpScraperBotAuthor(msg) {
     } else if (!autoLeadId && _pdLeadIdH && LP_PD_PRIMARY) {
       autoLeadId = _pdLeadIdH; // vindebug absent — PD supplies the frame identity
     }
+    // (v9.7.797) THE DRIVETRAIN OF THE VEHICLE ON THE LEAD. Honda Lafayette lead 2099028490 (log319): VinSolutions' record of
+    // the lead's vehicle carries it ("DriveTrain":"FWD", "DriveLine":"FWD"), and so does the Lead Info panel ("FWD 4dr Car (4
+    // Door)") -- Lead Pro read past both. On lead 2099028967 (log318) the customer asked "Is it awd" and the draft guessed.
+    // Read from the record when it belongs to this lead (no identity conflict, no swapped vehicle), else from the panel line.
+    var _voiDrive = '', _voiDriveSrc = '';
+    try {
+      var _dvNorm = function (x) {
+        var t = String(x || '').trim().toUpperCase();
+        if (/^(AWD|ALL[- ]?WHEEL(?:\s+DRIVE)?)$/.test(t)) return 'AWD';
+        if (/^(FWD|FRONT[- ]?WHEEL(?:\s+DRIVE)?)$/.test(t)) return 'FWD';
+        if (/^(RWD|REAR[- ]?WHEEL(?:\s+DRIVE)?)$/.test(t)) return 'RWD';
+        if (/^(4WD|4X4|FOUR[- ]?WHEEL(?:\s+DRIVE)?)$/.test(t)) return '4WD';
+        if (/^(2WD|4X2)$/.test(t)) return '2WD';
+        return '';
+      };
+      if (!_voiSwap && !(autoLeadId && _pdLeadIdH && autoLeadId !== _pdLeadIdH)) {
+        _voiDrive = _dvNorm(_pdH_V.DriveTrain) || _dvNorm(_pdH_V.DriveLine);
+        if (_voiDrive) _voiDriveSrc = 'VinSolutions record';
+      }
+      if (!_voiDrive && !_voiSwap) {
+        var _dvEl = document.getElementById('ActiveLeadPanelWONotesAndHistory1_m_VehicleDetails') || document.getElementById('ActiveLeadPanel1_m_VehicleDetails');
+        var _dvFirst = _dvEl ? String(_dvEl.innerText || _dvEl.textContent || '').trim().split(/\n/)[0] : '';
+        var _dvM = _dvFirst.match(/^\s*(AWD|FWD|RWD|4WD|2WD|4X4)\b/i);
+        if (_dvM) { _voiDrive = _dvNorm(_dvM[1]); _voiDriveSrc = 'Lead Info panel'; }
+      }
+      _lpD('[LP DRIVETRAIN DIAG] vehicle on the lead: ' + (_voiDrive ? _voiDrive + ' (' + _voiDriveSrc + ')' : 'not on record' + (_voiSwap ? ' (the store changed the vehicle on this lead -- not read)' : '')));
+    } catch (eDv) { _voiDrive = ''; }
     // ── (v9.7.480/475 — STAGE 2) authoritative array + certified facts from the hoist ──────────
     // Trades[] carries TYPED trade records (YearName/Make/Model/ModelTrim/Mileage — confirmed on
     // the Christina Fregia dump: 2023 Kia Telluride S, 52,000 mi) and VehiclesOfInterest[] is an
@@ -17948,6 +18006,8 @@ function _lpScraperBotAuthor(msg) {
       customerStatedColorPhrase: (typeof _statedColorPhrase === 'string' && !(typeof _colorSettled !== 'undefined' && _colorSettled) ? _statedColorPhrase : ''),
       // (v9.7.742) the unit the lead came in on, when the store has since changed it.
       voiSwap: (typeof _voiSwap !== 'undefined' && _voiSwap) ? _voiSwap : null,
+      // (v9.7.797) the vehicle on the lead's drivetrain (AWD/FWD/RWD/4WD/2WD), from VinSolutions' own record of it.
+      voiDrivetrain: (typeof _voiDrive === 'string') ? _voiDrive : '',
       scrapedAt:Date.now(),
       // (v9.7.51) Frame freshness signals -- used to identify which iframe was
       // most recently loaded. When VinSolutions SPA shell holds multiple
@@ -22148,6 +22208,14 @@ function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
       out.push('');
     }
   } catch (eRfUrl) {}
+  // (v9.7.797) Their drivetrain question: the same rule as the main prompt.
+  try {
+    if (_lpDriveAsked(d)) {
+      out.push('\u2501\u2501\u2501 THE DRIVETRAIN \u2501\u2501\u2501');
+      out.push(_lpDriveLine(d) + ' Keep whatever the first draft says about it; do not add a drivetrain the first draft does not state.');
+      out.push('');
+    }
+  } catch (eRfDv) {}
   // (v9.7.793) They texted STOP: the text never asks them to text (log312: "If your plans change ... just text me").
   try {
     if (_lpStopIsCurrent(d)) {
@@ -22471,6 +22539,14 @@ async function _lpRefineSms(pass1, emailText, d) {
         return null;
       }
     } catch (eRfTi) {}
+
+    // (v9.7.797) The rewrite named a drivetrain the first pass did not: the first pass ships.
+    try {
+      if (LP_DRIVE_RX.test(out) && !LP_DRIVE_RX.test(String(pass1 || ''))) {
+        console.log('[LP SMS REFINE DIAG] kept the first pass \u2014 the rewrite named a drivetrain ("' + (out.match(LP_DRIVE_RX) || [''])[0] + '") the first pass did not | ' + (Date.now() - t0) + 'ms');
+        return null;
+      }
+    } catch (eRfDg) {}
 
     // (v9.7.786) The first pass carried a link and the rewrite lost it: the first pass ships.
     try {
@@ -31276,6 +31352,13 @@ async function generateAll() {
         var _dlS = (String(rawSms || '').match(_dlRx) || [''])[0], _dlE = (String(rawEmail || '').match(_dlRx) || [''])[0];
         if (_dlS || _dlE) console.warn('[LP DISTANCE LABEL DIAG] a draft labels the customer as far away -- sms:' + (_dlS ? '"' + _dlS + '"' : 'clean') + ' | email:' + (_dlE ? '"' + _dlE + '"' : 'clean'));
       } catch (eDl) {}
+      // (v9.7.797) Did a format state a drivetrain we have no record of? Observational.
+      try {
+        var _dvRec = (lastScrapedData && lastScrapedData.voiDrivetrain) || '';
+        var _dvClaim = function (t) { var m = String(t || '').match(/\b(?:is|it['’]s|comes?\s+(?:in|with)|has)\s+(?:an?\s+)?(awd|fwd|rwd|4wd|all[- ]?wheel|front[- ]?wheel|rear[- ]?wheel|four[- ]?wheel)\b/i); return m ? m[1] : ''; };
+        var _dvS = _dvClaim(rawSms), _dvE = _dvClaim(rawEmail);
+        if (_dvS || _dvE) console.log('[LP DRIVETRAIN CLAIM DIAG] sms:' + (_dvS || '-') + ' | email:' + (_dvE || '-') + ' | on record for the vehicle on the lead: ' + (_dvRec || 'none') + ' -- check it is the vehicle on the lead');
+      } catch (eDvC) {}
       // (v9.7.787) Did the Click & Go brand reach both formats? Observational: the rules above require it; this line shows a miss.
       try {
         var _cgSrc = (typeof _lpSourceAckPhrase === 'function') ? _lpSourceAckPhrase(lastScrapedData && lastScrapedData.leadSource) : null;
