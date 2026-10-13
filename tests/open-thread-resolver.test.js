@@ -515,7 +515,9 @@ check('A: the note can no longer close the video thread',
 check('A (control): the shipped resolver closes it',
   i => run(i, antonio(NO_REPLY)).open.length, 0);
 
-const TWO_WORDS = c => c.replace('var _need = qWords.length <= 3 ? 1 : 2;', 'var _need = 2;');
+// (v9.7.794) The reply-then-moved-on close is a second path (one shared word, then two customer messages that never
+// mention it -- Antonio's lead has both); it is switched off too, so B still isolates the bar.
+const TWO_WORDS = c => c.replace('var _need = qWords.length <= 3 ? 1 : 2;', 'var _need = 2;').replace('if (_uqPast >= 2)', 'if (false)');
 check('neuter B actually restored the two-word bar', i => TWO_WORDS(i.code) !== i.code, true);
 // With the note neutralised the outbound reply is the only thing that can close it, which is the
 // path the bar governs. Left as-is the note closes it even under the old bar (it carries BOTH

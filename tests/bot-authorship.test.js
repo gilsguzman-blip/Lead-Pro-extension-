@@ -298,8 +298,12 @@ check('...and does not get the assistant branch',
 // Newest-first: the most recent outbound is the one that answers for the reply.
 check('a human send NEWER than a bot send wins',
   i => /You ALREADY replied to it/.test(stateLine(i, [HUMAN_NOTE, BOT_NOTE, INBOUND])), true);
-check('a bot send NEWER than a human send wins',
-  i => /YOU have not replied to this yet/.test(stateLine(i, [BOT_NOTE, HUMAN_NOTE, INBOUND])), true);
+// (v9.7.794) Reversed: a person replied, so "nobody has answered them" (and, since 794, "THIS MESSAGE IS THAT ANSWER")
+// would be false. Every written send since their message must be the assistant's.
+check('a bot send NEWER than a human send: a person still replied',
+  i => /You ALREADY replied to it/.test(stateLine(i, [BOT_NOTE, HUMAN_NOTE, INBOUND])), true);
+check('(v9.7.794) only the assistant since: this message is the answer, not a new angle',
+  i => { const s = stateLine(i, [BOT_NOTE, INBOUND]); return [/THIS MESSAGE IS THAT ANSWER/.test(s), /Re-engage with a genuinely different angle/.test(s)]; }, [true, false]);
 
 // A phone-call attempt is not a written reply and must not set the flag either way (v9.7.300).
 check('a voicemail attempt is not a reply at all',

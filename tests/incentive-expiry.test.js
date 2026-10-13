@@ -130,7 +130,8 @@ for (const file of BUILDS) {
     .map((l, i) => ({ n: i + 1, l }))
     .filter(o => /_lpMatchByModel\(/.test(o.l) && /incentives|Inc\b|_soldIncCur|_vfc/.test(o.l)
                  && !/function _lpMatchByModel/.test(o.l));
-  check('two incentive read sites are wired', sites.length, 2);
+  // (v9.7.794) a third: the sold pivot's APR programs for a customer whose newest message is about the rate -- also from _soldIncCur
+  check('three incentive read sites are wired', sites.length, 3);
   sites.forEach(o => check('  line ' + o.n + ' feeds from an expiry-filtered list',
     /_lpExpiryFilterIncentives|_soldIncCur/.test(o.l), true));
   check('the sold-pivot no longer reads _soldVfc.incentives directly into the matcher',

@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.794-dev (Dev. THE CUSTOMER'S NEWEST MESSAGE IS WHAT THE DRAFT ANSWERS: FOUR PARTS OF THE PROMPT STOP OUTRANKING IT. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Kia Baytown lead 2082559456 (log313, 10/13): his newest message (10/9) was about the rate -- he buys at 0% or 1%, 'when it does go down to 0 or 1.9, I will rekindle my interest in the K5' -- and only the automated assistant had written since. The K5 he built had sold, and the store carried 1.90% APR on the K5 the pivot offered. The text that shipped opened 'I can help with the darker window tint question' (asked 9/16, answered 9/17) and said nothing about the rate. (1) A RATE QUESTION IS NOT THE SOLD CAR'S NUMBERS. v9.7.760's moot rule dropped any money question on a sold lead; rate, APR, financing and incentive questions now stay open (LP_TERMS_Q_RX) -- only that car's own fees, breakdown, price and out-the-door figures are moot -- and the rewrite shows such a message in the customer's own words, not as 'about the vehicle that has since sold, background only'. When the newest message is about the rate, the sold pivot also gives the alternative's APR programs (the pivot itself leads with one program; on this lead the $750 cash, and the 1.90% never reached the prompt). (2) A QUESTION OUR REPLY TOOK UP, THAT THEY HAVE WRITTEN PAST TWICE, IS CLOSED. The tint reply shared one word with the question against a bar of two; a reply that touches the subject, followed by two customer messages that never mention it, now closes it ('reply-then-moved-on'). A question no reply of ours took up (the v9.7.681 credit-approval case) is untouched. (3) AN OLDER QUESTION DOES NOT OUTRANK THE NEWEST MESSAGE. A question asked before their newest message is marked older: OPEN THREADS lists it as 'Earlier question(s) ... pick it up after that, never instead of it', the 'highest-leverage move' reading is kept for questions in or after their newest message, and the text rewrite lists it as EARLIER, never as the opening. IDENTIFIED CUSTOMER CONCERNS now reads 'do not bury them, but the customer's most recent message comes first' (was 'lead with these'). (4) WHEN ONLY THE ASSISTANT HAS WRITTEN SINCE, THIS MESSAGE IS THE ANSWER. CONVERSATION STATE said nobody had replied, then 'Do NOT re-answer ... Re-engage with a genuinely different angle'; it now says the message is that answer and responds to what they said first. 'Nobody replied' now needs every written send since their message to be the assistant's (one from a person is a reply; bot-authorship's 'a bot send newer than a human send' check is reversed accordingly). TESTS: current-arc-794 (new) executes the lifted open-question detector, _lpMootSoldQuestions, renderRelationshipReading, _lpBuildSmsRefinePrompt and populateFromData with placeholder data: 26 assertions across both builds; v9.7.793 fails 8 of 13 per build (its 5 controls pass). Replayed on the real lead: the 793 detector leaves the tint question OPEN on the real CRM page and 794 closes it; the prompt keeps both rate questions open, gives K5 1.90% APR for 48 mos, and the rewrite shows his message in his own words. Updated: bot-authorship (reversed check, plus the new wording), open-thread-resolver (its two-word-bar isolation also switches off the new close), incentive-expiry (three expiry-filtered read sites). VERIFIED: run-all 227 suites green, 8163 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.793-dev.)
 // Lead Pro -- popup.js  v9.7.793-dev (Dev. AFTER A STOP THE TEXT NEVER ASKS THEM TO TEXT; A THREAD ENTRY IS ONLY ITS OWN LINES. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. log312 on 9.7.792, lead 2098953366 (a 'not looking' call, then the customer texted Stop): everything 792 changed fired, and two things did not. (1) THE TEXT REWRITE INVITED THEM TO TEXT. The first-pass text was right ('I'll respect that and leave the door open if your plans change.'); the rewrite shipped 'If your plans change and you'd like help finding a vehicle, just text me.' When the customer's newest message is a STOP (_lpStopIsCurrent; the STOP stays a text-channel preference per the 9/23 ruling -- the email and voicemail are untouched), the rewrite prompt now carries THEY TEXTED STOP: no 'text me', 'reply here' or 'send me a text'; point to calling or email if anywhere. And a rewrite that invites them to text (LP_TEXT_INVITE_RX) when the first pass did not does not ship -- the first pass does, logged as [LP SMS REFINE DIAG] kept the first pass. (2) 791's _lpThreadEntries joined every line after an entry's header into its body, so the state label printed after the last note was read as part of the call note (log312: call note: "she said she isn't looking ...  FOLLOW-UP TO A PHONE CALL: we already spoke ..."). Harmless there, but a label carrying 'no longer interested' after an ordinary call note would have set off a false call-note pause. The body is now the entry's own indented lines only. TESTS: stop-text-793 (new) executes _lpThreadEntries, _lpCustomerStateHold, the rewrite prompt and _lpRefineSms (worker stubbed) with placeholder data: 20 assertions across both builds; v9.7.792 fails 5 of 10 per build (its 5 controls pass), including the false pause and log312's exact leaked note. VERIFIED: run-all 226 suites green, 8134 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.792-dev.)
 // Lead Pro -- popup.js  v9.7.792-dev (Dev. CALL FIRST: A CONNECTED CALL MAKES THE TEXT AND EMAIL A FOLLOW-UP; A STOP IS A TEXT PREFERENCE AGAIN. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Gil, 10/13: 'Our process is call first' ... 'a lot of times the AI is getting the stop before we actually try and do our first reach. I don't want the email and VM to read as follow ups when we got the stop.' (1) A CONNECTED CALL TODAY. On a lead created today with no real customer reply, a call that reached the customer today (Outbound phone call (Contacted), or the customer calling in) now sets convState 'call-followup' -- the existing state ('the call already happened. Text/email is the follow-up to the call') that the fresh-today first-touch rule made unreachable on same-day leads. It gets its own label: FOLLOW-UP TO A PHONE CALL -- pick up from what was said, no first introduction, never quote the call note. A voicemail or no answer (Machine / No Contact) is not contact: those leads stay first-touch and keep first-reach messages. A call from a previous day, or a lead with a real customer reply, are decided as before. (2) A STOP IS A TEXT-CHANNEL PREFERENCE, NOT A CONVERSATION (Gil's 9/23 ruling, which v9.7.791 broke): 791's THEY TEXTED STOP block and its level-3 hold are removed -- a STOP does not reframe the email or voicemail, and the text is still drafted. A STOP no longer counts as contact for WHAT WE HAVE's first-touch trigger, nor as 'their words since the call' for the call-note pause: on lead 2098953366 the 11:21 STOP had hidden the 10:57 'isn't looking' call; replayed on the real dump, the call-note PAUSE now owns the decision (level 3) and no inventory answer fires. TESTS: call-first-792 (new) executes the shipped scraper block (lifted, as appt-booked-727 does) against stub notes, the prompt builder and _lpLeadHasContact: 16 assertions across both builds; v9.7.791 fails all 8 per build (it has no call-today block, and counted a STOP as contact). stop-pause-791 section 1 updated: the STOP line is gone and the call note owns the hold. VERIFIED: run-all 225 suites green, 8114 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.791-dev.)
 // Lead Pro -- popup.js  v9.7.791-dev (Dev. A STOP AND A 'NOT LOOKING' CALL HOLD THE MESSAGE; THE INVENTORY ANSWER NARROWS. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. log311 on 9.7.790, Honda Lafayette lead 2098953366: a connected call at 10:57 ('she said she isn't looking for a vehicle at this moment'), our 11:02 acknowledgement, then the customer texted 'Stop' at 11:21. The draft was right ('[customer], understood. You can reach me by email or phone if you decide to revisit the Pilot.') only because the model ignored the prompt: the lead read as a fresh first touch ('no customer reply'), the visit decision held nothing (level 0, times on offer), and 790's WHAT WE HAVE fired as 'the lead is the question', listing nine 'lower trim' Pilots under an in-stock Black Edition. (1) _lpCustomerStateHold reads THIS lead's thread: STOP -- the customer's newest message is an opt-out keyword (stop, stop all, unsubscribe, end, quit, cancel); CALL-PAUSE -- a connected call note says they are not looking / not in the market / not ready / not interested right now, with no customer message since (Gil, 10/13: 'yes on the call note'). 'Not interested in the Civic' (a different car) is not a pause. Each pushes its own line -- THEY TEXTED STOP: a short, gracious acknowledgement, no pitch, no visit, no question (SMS is still drafted, per the standing ruling); ON THE CALL THEY SAID THEY ARE NOT LOOKING RIGHT NOW: as if they had written it, no visit, no pitch, no questions, never quote the note -- and each is a level-3 visit hold. They stand aside when the scenario already carries an exit or pause. Logged as [LP CUSTOMER STATE DIAG]. (2) WHAT WE HAVE stands down on either, on exit/pause signals and on convState exit/pause; its first-touch trigger now needs a TRUE first touch (no customer message, no connected call on this lead). (3) With the exact trim in stock and no colour asked, the block lists only that trim; a lower trim is offered as the three closest in price, not the whole lot. On the real dump: THEY TEXTED STOP owns the decision (level 3: today default, hand-off framing, two-times close, suggested times and urgency removed), and no inventory answer. NOT CHANGED: the convState reading itself ('fresh-today lead, no customer reply -> first-touch') -- a 'Stop' is not counted as a reply there; the holds above no longer depend on it. TESTS: stop-pause-791 (new) executes buildUserPrompt and the new helpers with placeholder data: 20 assertions across both builds; v9.7.790 fails 8 of 10 per build (its 2 controls pass). VERIFIED: run-all 224 suites green, 8098 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.790-dev.)
@@ -8156,6 +8157,24 @@ function populateFromData(d) {
                   + 'customer asks about price or payment now, and then as the offer they already have, never as news.');
               } else
               vehicleExtras.push('🔴➡💲 SOLD → INCENTIVE PIVOT (real, current — offer only to well-qualified buyers; APR/lease/cash subject to credit approval and program terms, frame "for qualified buyers," never promise the rate): their original vehicle is sold, but ' + _soldPivotInc.vehicle + ' ' + _soldPivotAvailPhrase + ' — ' + _lpModelLine(_soldPivotInc.inc.model, _soldPivotInc.inc.line) + '.' + _soldPivotTransitNote + ' Lead the pivot with THIS as the concrete, positive reason to move forward — e.g. "the one you had your eye on sold, but we\'ve got [X] on the [alternative] right now, want to take a look?" — not a soft "still interested?" check-in that dwells on the loss. Do not ask whether they are still considering the sold unit; move forward with the alternative.' + (_comps.length > 1 ? ' Other comparable units are also available if this one doesn\'t fit: ' + _compsFull.filter(function(c){ return c.text !== _soldPivotInc.vehicle; }).map(function(c){ return c.text + (c.inTransit ? ' (in transit)' : ''); }).join('; ') + ' (no price on these others, just the offer above).' : ''));
+              // (v9.7.794) Their newest message is about the rate: the pivot led with one program (the $750 cash on lead
+              // 2082559456), and the store's APR programs on the same alternative never reached the prompt -- 1.90% for 48
+              // months, to a customer who had just written "when it does go down to 0 or 1.9".
+              try {
+                var _spLast = d.inboundPreVisit ? '' : String(d.lastInboundMsg || '');
+                var _spAge = d.relationshipSignals ? d.relationshipSignals.lastInboundAgeDays : null;
+                if (_spLast && LP_TERMS_Q_RX.test(_spLast) && !(typeof _spAge === 'number' && _spAge >= 14)) {
+                  var _spApr = _lpMatchByModel(_soldPivotInc.vehicle, _lpYearFilterIncentives(_soldPivotInc.vehicle, _soldIncCur || []), function (x) { return x.model; }, 4, true)
+                    .filter(function (x) { return /\bAPR\b/i.test(String(x.line || '')); });
+                  if (_spApr.length) {
+                    vehicleExtras.push('💲 THEIR MOST RECENT MESSAGE IS ABOUT THE RATE — the store\'s current APR programs on the ' + _soldPivotInc.vehicle
+                      + ' (real & current; for qualified buyers, subject to credit approval and program terms -- never promise the rate): '
+                      + _spApr.map(function (x) { return _lpModelLine(x.model, x.line); }).join(' | ')
+                      + '. Answer their rate question with these, plainly, rate and term exactly as written. Do not hold it back for the visit.');
+                    console.log('[LP SOLD PIVOT DIAG] their newest message is about the rate -- ' + _spApr.length + ' APR program(s) on the alternative given: ' + _spApr.map(function (x) { return x.line; }).join(' | '));
+                  } else console.log('[LP SOLD PIVOT DIAG] their newest message is about the rate -- no APR program on the alternative to give');
+                }
+              } catch (eSpApr) {}
             } else {
               // (v9.7.502/498 FIX) Live: Keijo Armstrong (Honda Lafayette). This branch had no
               // diagnostic of its own — unlike the sibling incentive-paired branch above, which
@@ -15508,13 +15527,14 @@ function _lpScraperBotAuthor(msg) {
             var ksOutTitle = ((noteEls[ksi].querySelector('.legacy-notes-and-history-title')||{}).innerText||'');
             if(/text|sms|email/i.test(ksOutTitle)) {
               _alreadyReplied = true;
-              if (!_lpReplySeen) {
-                _lpReplySeen = true;
-                try {
-                  _lpReplyWasBot = _lpScraperBotAuthor(
-                    ((noteEls[ksi].querySelector('.notes-and-history-item-content')||{}).innerText||''));
-                } catch (eRb) { _lpReplyWasBot = false; }
-              }
+              // (v9.7.794) EVERY written send since their message must be the assistant's: one from a person is a reply.
+              var _ksBot = false;
+              try {
+                _ksBot = _lpScraperBotAuthor(
+                  ((noteEls[ksi].querySelector('.notes-and-history-item-content')||{}).innerText||''));
+              } catch (eRb) { _ksBot = false; }
+              _lpReplyWasBot = (_lpReplySeen ? _lpReplyWasBot : true) && _ksBot;
+              _lpReplySeen = true;
             }
             continue;
           }
@@ -15582,7 +15602,7 @@ function _lpScraperBotAuthor(msg) {
             }
           }
           keySignal = _alreadyReplied
-            ? '\nCONVERSATION STATE: The customer\'s last message was' + msgAgeLabel + ': "' + mostRecentInbound.substring(0,400) + '". ' + (_lpReplyWasBot ? 'THE ONLY THING SENT SINCE WAS FROM THE STORE\'S AUTOMATED ASSISTANT, NOT FROM YOU (see the transcript, it is marked) — so YOU have not replied to this yet, and you must not write as though you had. Build on what the assistant said if it helps, but never as something you wrote.' : 'You ALREADY replied to it (see your most recent outbound in the transcript);') + ' they have been silent ' + _silenceDays + ' day(s) since. Do NOT re-answer or restate that reply — repeating your prior message is the failure here. Re-engage with a genuinely different angle: a concrete new reason to act now, a specific next step, or a question you have not already asked.'
+            ? '\nCONVERSATION STATE: The customer\'s last message was' + msgAgeLabel + ': "' + mostRecentInbound.substring(0,400) + '". ' + (_lpReplyWasBot ? 'THE ONLY THING SENT SINCE WAS FROM THE STORE\'S AUTOMATED ASSISTANT, NOT FROM YOU (see the transcript, it is marked) — so YOU have not replied to this yet, and you must not write as though you had. Build on what the assistant said if it helps, but never as something you wrote. They have been silent ' + _silenceDays + ' day(s) since, still waiting on an answer from a person: THIS MESSAGE IS THAT ANSWER. Respond to what they said first, before anything else this prompt raises -- an earlier question, an older preference or a pivot comes after it, never instead of it.' : 'You ALREADY replied to it (see your most recent outbound in the transcript); they have been silent ' + _silenceDays + ' day(s) since. Do NOT re-answer or restate that reply — repeating your prior message is the failure here. Re-engage with a genuinely different angle: a concrete new reason to act now, a specific next step, or a question you have not already asked.')
             : '\nMOST RECENT CUSTOMER MESSAGE' + (_multiBurst ? 'S (newest first — the customer sent more than one)' : '') + msgAgeLabel + ': "' + mostRecentInbound.substring(0,400) + '"'
             + '\nCRITICAL: Your response MUST directly address what the customer said above'
             + (_multiBurst ? ' — address ALL of it, not just the latest line.' : '.')
@@ -16167,7 +16187,7 @@ function _lpScraperBotAuthor(msg) {
       var concernBlock = customerConcerns.length > 0
         ? (_ccQuiet
             ? '\nIDENTIFIED CUSTOMER CONCERNS - BACKGROUND ONLY: raised before the customer went quiet ' + _ccQuiet + ' days ago; do not lead with them:\n'
-            : '\nIDENTIFIED CUSTOMER CONCERNS - lead with these, do not bury them:\n') + customerConcerns.join('\n')
+            : '\nIDENTIFIED CUSTOMER CONCERNS - do not bury them, but the customer\'s most recent message comes first:\n') + customerConcerns.join('\n')   // (v9.7.794)
         : '';
 
       // (v9.7.629) The fenced region now comes from _lpFencedTranscript — same characters, one
@@ -17581,7 +17601,7 @@ function _lpScraperBotAuthor(msg) {
                        .filter(function(w){ return !stopwords.test(w); });
           if (qWords.length === 0) continue;
           // Check notes that came AFTER this item (lower index = newer, DOM is newest-first).
-          var answered = false, _closedBy = '', _obSeen = false;
+          var answered = false, _closedBy = '', _obSeen = false, _uqTopicalAt = -1;
           for (var oi = iq.noteIdx - 1; oi >= 0 && !answered; oi--) {
             var on = noteEls[oi];
             var odir = (on.getAttribute('data-direction')||'').toLowerCase();
@@ -17699,7 +17719,23 @@ function _lpScraperBotAuthor(msg) {
                 if (hits >= _need) break;
               }
               if (hits >= _need) { answered = true; _closedBy = _isNote ? 'note' : 'outbound'; break; }
+              if (hits >= 1 && odir === 'outbound' && _uqTopicalAt < 0) _uqTopicalAt = oi;
             }
+          }
+          // (v9.7.794) OUR REPLY TOOK IT UP, AND THEY HAVE WRITTEN PAST IT TWICE. Kia Baytown lead 2082559456: the 9/16 tint
+          // question was answered 9/17 under the subject "Your K5 tint question", but the captured reply shared one word with
+          // it ("tint") against a bar of two, and he went on to write six more times (the visit, the drive, the price, the
+          // rate) -- four weeks later the prompt still called it "the highest-leverage move this message can make", and the
+          // text opened on it. A reply that touched the subject, then two customer messages that never mention it, close it.
+          // The v9.7.681 credit-approval case is untouched: no reply of ours took up that question, so this never applies to it.
+          if (!answered && !iq.isObjection && _uqTopicalAt > 0) {
+            var _uqPast = 0;
+            for (var _upi = _uqTopicalAt - 1; _upi >= 0; _upi--) {
+              if ((noteEls[_upi].getAttribute('data-direction') || '').toLowerCase() !== 'inbound') continue;
+              var _upb = _uqMsgBody(((noteEls[_upi].querySelector('.notes-and-history-item-content') || {}).innerText || '').toLowerCase());
+              if (_upb && !_uqShares(_upb, qWords)) _uqPast++;
+            }
+            if (_uqPast >= 2) { answered = true; _closedBy = 'reply-then-moved-on'; }
           }
           // (v9.7.735) ONCE THE CUSTOMER HAS GONE QUIET, THEIR OLD QUESTIONS ARE BACKGROUND. Audi Lafayette
           // lead 2049511947 (log258): the customer last wrote 76 days ago, 20 of our messages followed, and
@@ -17730,7 +17766,9 @@ function _lpScraperBotAuthor(msg) {
           var _uqVisit = !answered && !_uqPrior && typeof _lastVisitMs === 'number' && _lastVisitMs > 0 && isFinite(_uqQMs) && _uqQMs < _lastVisitMs;
           if (_uqVisit) _uqStale = false;
           if (!answered && !_uqStale && !_uqPrior && !_uqVisit) {
-            sig.unansweredQuestions.push({ date: iq.date, question: iq.question, isObjection: iq.isObjection });
+            // (v9.7.794) asked before their newest message: still listed, but it does not outrank what they said last
+            var _uqOlder = (typeof lastInboundTs === 'number' && lastInboundTs > 0 && isFinite(iq.ts) && iq.ts > 0 && iq.ts < lastInboundTs - 60000);
+            sig.unansweredQuestions.push({ date: iq.date, question: iq.question, isObjection: iq.isObjection, older: _uqOlder });
           }
           // (v9.7.654) A SILENT RESOLVER IS HOW A FALSE OPEN SHIPPED FOR MONTHS WITHOUT BEING SEEN.
           // One row per question carrying the verdict, the bar it had to clear and what cleared it,
@@ -21798,7 +21836,11 @@ function _lpChipBroken(key, pass1, out) {
 // while the SOLD notice in the same prompt said "do not work it, quote it, or re-run its numbers". Gil: acknowledge it
 // sold and pivot. When that notice is in the prompt, questions about the deal's numbers (and the other questions sent in
 // the same message) leave both open-question lists, and one line says they are moot.
-var _LP_DEAL_Q_RX = /\b(?:fees?|itemi[sz]e[ds]?|itemi[sz]ation|breakdown|discount|price|pricing|otd|out[\s-]?the[\s-]?door|numbers|quote|payments?|apr|rate|financ\w*|rebate|incentives?|tax(?:es)?|doc fee|dealer fees?)\b/i;
+var _LP_DEAL_Q_RX = /\b(?:fees?|itemi[sz]e[ds]?|itemi[sz]ation|breakdown|discount|price|pricing|otd|out[\s-]?the[\s-]?door|numbers|quote|payments?|tax(?:es)?|doc fee|dealer fees?)\b/i;
+// (v9.7.794) Rates and programs are not that car's numbers: they carry over to the alternative. Kia Baytown lead 2082559456
+// (10/13): "when it does go down to 0 or 1.9, I will rekindle my interest in the K5" was dropped as moot, and the store had
+// 1.90% APR on the K5 the pivot offered. A question that talks rate, APR, financing or incentives stays open.
+var LP_TERMS_Q_RX = /\b(?:apr|rates?|interest|financ\w*|rebates?|incentives?|percent|zero\s+percent)\b|\d\s*%/i;
 function _lpSoldNoticeInPrompt(d) {
   var ctx = String((d && d.context) || '') + '\n' + (typeof leadContext === 'string' ? leadContext : '');
   // Only the NEWS variant: when the customer was already told (the "ALREADY TOLD" variant), a later question can be
@@ -21809,10 +21851,10 @@ function _lpMootSoldQuestions(uq, d) {
   var out = { keep: uq || [], dropped: [] };
   try {
     if (!uq || !uq.length || !_lpSoldNoticeInPrompt(d)) return out;
-    var deal = uq.filter(function (q) { return _LP_DEAL_Q_RX.test(String((q && q.question) || '')); });
+    var deal = uq.filter(function (q) { var t = String((q && q.question) || ''); return _LP_DEAL_Q_RX.test(t) && !LP_TERMS_Q_RX.test(t); });
     if (!deal.length) return out;
     var dates = {}; deal.forEach(function (q) { if (q && q.date) dates[q.date] = 1; });
-    out.dropped = uq.filter(function (q) { return deal.indexOf(q) > -1 || (q && q.date && dates[q.date]); });
+    out.dropped = uq.filter(function (q) { return deal.indexOf(q) > -1 || (q && q.date && dates[q.date] && !LP_TERMS_Q_RX.test(String(q.question || ''))); });
     out.keep = uq.filter(function (q) { return out.dropped.indexOf(q) < 0; });
   } catch (e) {}
   return out;
@@ -21854,7 +21896,7 @@ function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
     out.push('');
   } else if (lastIn && (function () {   // (v9.7.763) their last message was a number question about the car that sold
       try { var _lsM = (typeof _lpMootSoldQuestions === 'function') ? _lpMootSoldQuestions((d.relationshipSignals && d.relationshipSignals.unansweredQuestions) || [], d) : { dropped: [] };
-            return _lsM.dropped.length > 0 && _LP_DEAL_Q_RX.test(lastIn); } catch (e) { return false; } })()) {
+            return _lsM.dropped.length > 0 && _LP_DEAL_Q_RX.test(lastIn) && !LP_TERMS_Q_RX.test(lastIn); } catch (e) { return false; } })()) {   // (v9.7.794) a rate message is not about the sold car
     out.push('\u2501\u2501\u2501 WHAT THE CUSTOMER LAST SAID \u2014 ABOUT THE VEHICLE THAT HAS SINCE SOLD, BACKGROUND ONLY \u2501\u2501\u2501');
     out.push('"' + lastIn.replace(/"/g, "'").slice(0, 400) + '"');
     out.push('That was about the car that has sold. Leave it out of the text: do not answer it, do not say you cannot, do not explain why. The sale and the alternative are the message.');
@@ -21876,11 +21918,22 @@ function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
       out.push(_LP_MOOT_SOLD_LINE.replace('QUOTED', _uqMoot.dropped.slice(-2).map(function (q) { return '"' + String(q.question || '').replace(/"/g, "'").slice(0, 100) + '"'; }).join(' / ')));
       out.push('');
     }
-    if (uq.length) {
+    // (v9.7.794) A question asked before their most recent message is not the opening (lead 2082559456: the rewrite opened
+    // "I can help with the darker window tint question", four weeks and six of his messages after he asked it).
+    var _uqCur = uq.filter(function (q) { return !(q && q.older); }), _uqOld = uq.filter(function (q) { return !!(q && q.older); });
+    if (_uqCur.length) {
       out.push('\u2501\u2501\u2501 QUESTIONS OF THEIRS THAT ARE STILL OPEN \u2501\u2501\u2501');
-      uq.slice(-3).forEach(function (q) {
+      _uqCur.slice(-3).forEach(function (q) {
         out.push('  - "' + String(q && q.question || '').replace(/"/g, "'").slice(0, 160) + '"');
       });
+      out.push('');
+    }
+    if (_uqOld.length) {
+      out.push('\u2501\u2501\u2501 EARLIER QUESTIONS, ASKED BEFORE THEIR MOST RECENT MESSAGE \u2501\u2501\u2501');
+      _uqOld.slice(-2).forEach(function (q) {
+        out.push('  - "' + String(q && q.question || '').replace(/"/g, "'").slice(0, 160) + '"' + (q.date ? ' (' + String(q.date).split(' ')[0] + ')' : ''));
+      });
+      out.push('Only if still open, and only after the text answers their most recent message -- never as the opening.');
       out.push('');
     }
   } catch (eUq) {}
@@ -22671,11 +22724,17 @@ function renderRelationshipReading(data) {
     forwardBits.push(_LP_MOOT_SOLD_LINE.replace('QUOTED', _rrMoot.dropped.slice(-2).map(function (q) { return '"' + String(q.question || '').replace(/"/g, "'").substring(0, 100) + '"'; }).join(' / ')));
     try { console.log('[LP OPEN THREAD DIAG] sold unit: ' + _rrMoot.dropped.length + ' question(s) about its numbers dropped from OPEN THREADS'); } catch (e) {}
   }
-  if (_rrMoot.keep.length > 0) {
-    var uqExamples = _rrMoot.keep.slice(-3).map(function(q){
+  // (v9.7.794) A question asked before their most recent message does not outrank it (lead 2082559456: a 9/16 tint question
+  // over a 10/9 message about the rate). It is still listed, as earlier, to pick up after -- never instead.
+  var _rrCurQ = _rrMoot.keep.filter(function (q) { return !(q && q.older); }), _rrOldQ = _rrMoot.keep.filter(function (q) { return !!(q && q.older); });
+  var _rrQx = function (arr) { return arr.slice(-3).map(function(q){
       return '"' + q.question.replace(/"/g,"'").substring(0,120) + '"' + (q.date ? ' (' + q.date + ')' : '');
-    });
-    forwardBits.push('Customer asked question(s) that may not have been answered: ' + uqExamples.join(' / ') + '. Read the surrounding transcript carefully — if the question is still open, address it directly before moving on.');
+    }); };
+  if (_rrCurQ.length > 0) {
+    forwardBits.push('Customer asked question(s) that may not have been answered: ' + _rrQx(_rrCurQ).join(' / ') + '. Read the surrounding transcript carefully — if the question is still open, address it directly before moving on.');
+  }
+  if (_rrOldQ.length > 0) {
+    forwardBits.push('Earlier question(s), asked BEFORE their most recent message, that may not have been answered: ' + _rrQx(_rrOldQ).join(' / ') + '. They have written since, so their most recent message comes first; if one of these is still open, pick it up after that, never instead of it.');
   }
   if (forwardBits.length) {
     lines.push('OPEN THREADS:');
@@ -22720,7 +22779,8 @@ function renderRelationshipReading(data) {
   }
   // (v9.7.81) New interpretation rules for the new categories
   if (s.hasUnansweredQuestions && !(_rrMoot && _rrMoot.dropped.length && !_rrMoot.keep.length)) {   // (v9.7.763) not when every one was a sold unit's moot number question
-    interp.push('There are open questions from the customer that may not have been answered. Read the transcript carefully — if any are still unanswered, addressing them is the highest-leverage move this message can make. The customer is more likely to be silent because we did not answer than because they lost interest.');
+    if (!_rrCurQ.length) interp.push('Their most recent message is what this one answers. An earlier question of theirs may still be open -- pick it up after that, not instead of it.');   // (v9.7.794)
+    else interp.push('There are open questions from the customer that may not have been answered. Read the transcript carefully — if any are still unanswered, addressing them is the highest-leverage move this message can make. The customer is more likely to be silent because we did not answer than because they lost interest.');
   }
   if (_rrAc.length > 0) {
     interp.push('The agent made commitments to the customer that may or may not have been fulfilled. If the agent said "I will send pics" or "I will call you back" and no follow-up is visible in the outbound history, honoring that commitment now (or acknowledging the slip honestly) is the right move. Do NOT ask for new commitments while owing the customer an old one.');
