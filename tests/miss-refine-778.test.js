@@ -39,7 +39,8 @@ for (const f of BUILDS) {
 
   console.log(' 1. the rewrite is told:');
   check('a miss on this lead (lead 2091288708 shape): acknowledge it lightly, keep the ask, do not drop it to shorten', () =>
-    /━━━ THE APPOINTMENT ON THIS LEAD WAS MISSED ━━━\nAcknowledge it lightly and without blame, as the first draft did[^\n]*never "you didn't show up"[^\n]*Do not drop the acknowledgement to make the text shorter\./.test(rp()), true);
+    // (v9.7.795) reworded: the first draft's own words, no example day to copy
+    /━━━ THE APPOINTMENT ON THIS LEAD WAS MISSED ━━━\nThe first draft acknowledges it\. Keep that acknowledgement, in the first draft's own words, lightly and without blame[^\n]*never "you didn't show up"[^\n]*Do not drop the acknowledgement to make the text shorter, and do not name a day the first draft does not name\./.test(rp()), true);
   check('control: a no-show from earlier history (older than this lead), a rebooked appointment, or no miss -> not told', () =>
     [rp({ freshestApptEventDays: 40 }), rp({ hasApptSet: true }), rp({ hasMissedAppt: false })].map(t => /THE APPOINTMENT ON THIS LEAD WAS MISSED/.test(t)), [false, false, false]);
 

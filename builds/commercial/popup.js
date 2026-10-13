@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.795 (Commercial. A CLOSED LEAD'S TEXT, AN 'ABOUT' AND A MISSED APPOINTMENT NOBODY MISSED. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Toyota Baytown lead 2099028967 (log316), a Click & Go lead submitted that day: the text shipped '[customer], sorry we missed you Saturday ... Would 6:45 or 7:15 this evening work'. (1) THE ARRIVAL-TIME SCAN. Its bare 'out' matched inside 'about': 'Give me about 45 minutes', a text from 02/19/2026 on a closed lead, became 'Customer gets off at 45 PM ... arrive around 45:30 PM ... Evening only' (and on Honda Lafayette lead 2077008076, 'I would love to come about 1:30', a 9/29 appointment, became 1:30 PM today). Now: whole words; 'out', 'done' and 'finish' need at/by/around/after; the number must be a clock time (1-12, or h:mm), never 'N minutes/hours/days'; a one-off visit time ('come by / be there / arrive / stop by / swing by at N') counts only from a message of the last two days; and the scheduling loop skips notes more than two days older than the current-lead marker, so a closed lead's messages cannot set this lead's schedule (logged as [LP SCHED SCOPE DIAG] and [LP SCHED ARRIVAL DIAG]). The popup-side read uses the same rules, and the customer's last message only while it is two days old or less. (2) TODAY'S ARRIVAL-ADJUSTED TIMES ARE NEVER IN THE PAST: lead 2077008076 was offered 1:30 PM today at 1:44 PM. A slot that has passed or is under 15 minutes away moves to the next half hour at least 30 minutes out; with no room before close, the ordinary suggested times are used ([LP ARRIVAL SLOT DIAG]). The constraint's wording is a real 12-hour time ('1:30' had read '13:30 PM') and says 'evening only' only for an evening time. (3) THE TEXT REWRITE'S MISSED APPOINTMENT. The main prompt suppressed the 236-day-old miss from the closed lead; the rewrite's check (_lpMissedApptIsPrior) compared it with leadAgeDays, which the raw scrape it is handed does not carry, so it fell through to 'THE APPOINTMENT ON THIS LEAD WAS MISSED ... as the first draft did (sorry we missed you Saturday)'. The first draft said nothing of the kind, and the example was copied word for word. Now the check falls back to the relationship signals' lead age, the section appears only when the first draft acknowledges a miss, and it keeps the first draft's own words with no example day to copy. TESTS: arrival-time-795 (new) executes the lifted scheduling loop, populateFromData, buildUserPrompt with the clock frozen at 1:44 PM, and _lpBuildSmsRefinePrompt, with placeholder data: 28 assertions across both builds; v9.7.794 fails 10 of 14 per build (2 of them are new wording on controls). Replayed on both real CRM pages: 794 reproduces the logged 'around 45' and 'around 1:30', 795 finds no constraint; on lead 2099028967's real scrape 794 writes the MISSED section with 'Saturday', 795 does not. miss-refine-778 updated for the new wording. VERIFIED: run-all 228 suites green, 8191 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.794.)
 // Lead Pro -- popup.js  v9.7.794 (Commercial. THE CUSTOMER'S NEWEST MESSAGE IS WHAT THE DRAFT ANSWERS: FOUR PARTS OF THE PROMPT STOP OUTRANKING IT. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Kia Baytown lead 2082559456 (log313, 10/13): his newest message (10/9) was about the rate -- he buys at 0% or 1%, 'when it does go down to 0 or 1.9, I will rekindle my interest in the K5' -- and only the automated assistant had written since. The K5 he built had sold, and the store carried 1.90% APR on the K5 the pivot offered. The text that shipped opened 'I can help with the darker window tint question' (asked 9/16, answered 9/17) and said nothing about the rate. (1) A RATE QUESTION IS NOT THE SOLD CAR'S NUMBERS. v9.7.760's moot rule dropped any money question on a sold lead; rate, APR, financing and incentive questions now stay open (LP_TERMS_Q_RX) -- only that car's own fees, breakdown, price and out-the-door figures are moot -- and the rewrite shows such a message in the customer's own words, not as 'about the vehicle that has since sold, background only'. When the newest message is about the rate, the sold pivot also gives the alternative's APR programs (the pivot itself leads with one program; on this lead the $750 cash, and the 1.90% never reached the prompt). (2) A QUESTION OUR REPLY TOOK UP, THAT THEY HAVE WRITTEN PAST TWICE, IS CLOSED. The tint reply shared one word with the question against a bar of two; a reply that touches the subject, followed by two customer messages that never mention it, now closes it ('reply-then-moved-on'). A question no reply of ours took up (the v9.7.681 credit-approval case) is untouched. (3) AN OLDER QUESTION DOES NOT OUTRANK THE NEWEST MESSAGE. A question asked before their newest message is marked older: OPEN THREADS lists it as 'Earlier question(s) ... pick it up after that, never instead of it', the 'highest-leverage move' reading is kept for questions in or after their newest message, and the text rewrite lists it as EARLIER, never as the opening. IDENTIFIED CUSTOMER CONCERNS now reads 'do not bury them, but the customer's most recent message comes first' (was 'lead with these'). (4) WHEN ONLY THE ASSISTANT HAS WRITTEN SINCE, THIS MESSAGE IS THE ANSWER. CONVERSATION STATE said nobody had replied, then 'Do NOT re-answer ... Re-engage with a genuinely different angle'; it now says the message is that answer and responds to what they said first. 'Nobody replied' now needs every written send since their message to be the assistant's (one from a person is a reply; bot-authorship's 'a bot send newer than a human send' check is reversed accordingly). TESTS: current-arc-794 (new) executes the lifted open-question detector, _lpMootSoldQuestions, renderRelationshipReading, _lpBuildSmsRefinePrompt and populateFromData with placeholder data: 26 assertions across both builds; v9.7.793 fails 8 of 13 per build (its 5 controls pass). Replayed on the real lead: the 793 detector leaves the tint question OPEN on the real CRM page and 794 closes it; the prompt keeps both rate questions open, gives K5 1.90% APR for 48 mos, and the rewrite shows his message in his own words. Updated: bot-authorship (reversed check, plus the new wording), open-thread-resolver (its two-word-bar isolation also switches off the new close), incentive-expiry (three expiry-filtered read sites). VERIFIED: run-all 227 suites green, 8163 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.793.)
 // Lead Pro -- popup.js  v9.7.793 (Commercial. AFTER A STOP THE TEXT NEVER ASKS THEM TO TEXT; A THREAD ENTRY IS ONLY ITS OWN LINES. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. log312 on 9.7.792, lead 2098953366 (a 'not looking' call, then the customer texted Stop): everything 792 changed fired, and two things did not. (1) THE TEXT REWRITE INVITED THEM TO TEXT. The first-pass text was right ('I'll respect that and leave the door open if your plans change.'); the rewrite shipped 'If your plans change and you'd like help finding a vehicle, just text me.' When the customer's newest message is a STOP (_lpStopIsCurrent; the STOP stays a text-channel preference per the 9/23 ruling -- the email and voicemail are untouched), the rewrite prompt now carries THEY TEXTED STOP: no 'text me', 'reply here' or 'send me a text'; point to calling or email if anywhere. And a rewrite that invites them to text (LP_TEXT_INVITE_RX) when the first pass did not does not ship -- the first pass does, logged as [LP SMS REFINE DIAG] kept the first pass. (2) 791's _lpThreadEntries joined every line after an entry's header into its body, so the state label printed after the last note was read as part of the call note (log312: call note: "she said she isn't looking ...  FOLLOW-UP TO A PHONE CALL: we already spoke ..."). Harmless there, but a label carrying 'no longer interested' after an ordinary call note would have set off a false call-note pause. The body is now the entry's own indented lines only. TESTS: stop-text-793 (new) executes _lpThreadEntries, _lpCustomerStateHold, the rewrite prompt and _lpRefineSms (worker stubbed) with placeholder data: 20 assertions across both builds; v9.7.792 fails 5 of 10 per build (its 5 controls pass), including the false pause and log312's exact leaked note. VERIFIED: run-all 226 suites green, 8134 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.792.)
 // Lead Pro -- popup.js  v9.7.792 (Commercial. CALL FIRST: A CONNECTED CALL MAKES THE TEXT AND EMAIL A FOLLOW-UP; A STOP IS A TEXT PREFERENCE AGAIN. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Gil, 10/13: 'Our process is call first' ... 'a lot of times the AI is getting the stop before we actually try and do our first reach. I don't want the email and VM to read as follow ups when we got the stop.' (1) A CONNECTED CALL TODAY. On a lead created today with no real customer reply, a call that reached the customer today (Outbound phone call (Contacted), or the customer calling in) now sets convState 'call-followup' -- the existing state ('the call already happened. Text/email is the follow-up to the call') that the fresh-today first-touch rule made unreachable on same-day leads. It gets its own label: FOLLOW-UP TO A PHONE CALL -- pick up from what was said, no first introduction, never quote the call note. A voicemail or no answer (Machine / No Contact) is not contact: those leads stay first-touch and keep first-reach messages. A call from a previous day, or a lead with a real customer reply, are decided as before. (2) A STOP IS A TEXT-CHANNEL PREFERENCE, NOT A CONVERSATION (Gil's 9/23 ruling, which v9.7.791 broke): 791's THEY TEXTED STOP block and its level-3 hold are removed -- a STOP does not reframe the email or voicemail, and the text is still drafted. A STOP no longer counts as contact for WHAT WE HAVE's first-touch trigger, nor as 'their words since the call' for the call-note pause: on lead 2098953366 the 11:21 STOP had hidden the 10:57 'isn't looking' call; replayed on the real dump, the call-note PAUSE now owns the decision (level 3) and no inventory answer fires. TESTS: call-first-792 (new) executes the shipped scraper block (lifted, as appt-booked-727 does) against stub notes, the prompt builder and _lpLeadHasContact: 16 assertions across both builds; v9.7.791 fails all 8 per build (it has no call-today block, and counted a STOP as contact). stop-pause-791 section 1 updated: the STOP line is gone and the call note owns the hold. VERIFIED: run-all 225 suites green, 8114 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.791.)
@@ -6071,6 +6072,10 @@ function _lpIsOurOwnSend(text) {
 // appointment history itself still reaches the model as background.
 function _lpMissedApptIsPrior(d) {
   var f = d && d.freshestApptEventDays, a = d ? parseFloat(d.leadAgeDays) : NaN;
+  // (v9.7.795) The text rewrite is handed the raw scrape, which carries no leadAgeDays: with NaN this returned false and a
+  // 236-day-old miss from a closed lead read as "THE APPOINTMENT ON THIS LEAD WAS MISSED" (lead 2099028967, submitted
+  // that day). The relationship signals carry the same lead age.
+  if (!isFinite(a) && d && d.relationshipSignals) a = parseFloat(d.relationshipSignals.leadAgeDaysForFatigue);
   return typeof f === 'number' && isFinite(f) && isFinite(a) && f > a;
 }
 // (v9.7.751) THE CRM'S OWN "IN ACTIVE INVENTORY", WHEN THE FEED HAS NOT CAUGHT UP. Toyota Baytown lead 2092976040,
@@ -8974,15 +8979,20 @@ function populateFromData(d) {
         vehicleExtras.push('- Schedule AFTER their return date. Reference the trip positively: "Safe travels" or "Hope the trip goes well."');
         vehicleExtras.push('- Close by locking in a time for when they are back: "When you are back, would [day] work to come in?"');
       } else if(d.customerScheduleConstraint.indexOf('CUSTOMER ARRIVAL TIME:') === 0) {
-        var arrHourMatch = d.customerScheduleConstraint.match(/around\s+(\d{1,2})/i);
-        var arrHour = arrHourMatch ? parseInt(arrHourMatch[1]) : null;
+        var arrHourMatch = d.customerScheduleConstraint.match(/around\s+(\d{1,2})(?::(\d{2}))?/i);
+        var arrHour = arrHourMatch ? parseInt(arrHourMatch[1]) : null, arrMin = arrHourMatch && arrHourMatch[2] ? parseInt(arrHourMatch[2]) : 0;
         if(arrHour && arrHour < 8) arrHour += 12; // assume PM for small numbers
-        var arrivalPlusDrive = arrHour ? (arrHour + ':30 PM') : 'after 6:30 PM';
+        // (v9.7.795) Written as a real 12-hour time ("1:30 PM" had read "13:30 PM"; "45" read "45:30 PM"), and "evening only"
+        // only when the time is in the evening.
+        var _arrFmt = function (h, m) { return ((h % 12) || 12) + ':' + ('0' + m).slice(-2) + (h >= 12 ? ' PM' : ' AM'); };
+        var _arrOk = arrHour !== null && arrHour >= 1 && arrHour <= 23;
+        var _arrPlus = _arrOk ? (arrHour * 60 + arrMin + 30) : 0;
+        var arrivalPlusDrive = _arrOk ? _arrFmt(Math.floor(_arrPlus / 60), _arrPlus % 60) : 'after 6:30 PM';
         vehicleExtras.push('⏰ CUSTOMER ARRIVAL TIME CONSTRAINT: ' + d.customerScheduleConstraint);
         vehicleExtras.push('- The computed appointment times above are WRONG for this customer. IGNORE them.');
-        vehicleExtras.push('- Customer gets off at ' + (arrHour || 6) + ' PM and needs ~30 min to drive. They will arrive around ' + arrivalPlusDrive + '.');
-        vehicleExtras.push('- REQUIRED: Offer two times AFTER ' + arrivalPlusDrive + ' that are within store hours (store closes 8 PM). Example: 6:45 PM and 7:15 PM.');
-        vehicleExtras.push('- Do NOT offer morning or early afternoon times. Evening only.');
+        vehicleExtras.push('- Customer is free from about ' + (_arrOk ? _arrFmt(arrHour, arrMin) : '6:00 PM') + ' and needs ~30 min to get here. They will arrive around ' + arrivalPlusDrive + '.');
+        vehicleExtras.push('- REQUIRED: Offer two times AFTER ' + arrivalPlusDrive + ' that are within store hours.');
+        if (!_arrOk || arrHour >= 16) vehicleExtras.push('- Do NOT offer morning or early afternoon times. Evening only.');
       } else if(d.customerScheduleConstraint.indexOf('CUSTOMER SPECIFIED DAY:') === 0) {
         var dayLine = d.customerScheduleConstraint.replace('CUSTOMER SPECIFIED DAY: ','');
         var _spDayM = dayLine.match(/Customer said (\w+)/i);
@@ -14258,6 +14268,18 @@ function _lpScraperBotAuthor(msg) {
       var isInboundNote = ntDir === 'inbound' || /inbound text|inbound sms|text message.*inbound|inbound.*text|email reply from prospect|email from prospect|inbound phone|inbound call/i.test(ntTitleCheck);
       // [LP SCHED GATE] - log every note's gate decision to trace why constraint detection isn't reaching the email reply
       try { _lpD('[LP SCHED GATE]', { noteIndex: nti, dir: ntDir || '(empty)', title: ntTitleCheck.substring(0,100), passesGate: isInboundNote }); } catch(e) {}
+      // (v9.7.795) A NOTE FROM A CLOSED LEAD IS NOT THIS CUSTOMER'S SCHEDULE NOW. Toyota Baytown lead 2099028967 (log316):
+      // a lead submitted today, and "Give me about 45 minutes" -- a text from 02/19/2026, eight months and one lead
+      // earlier -- set "Customer gets off at 45 PM ... Evening only". Notes more than two days older than the current-lead
+      // marker are skipped (the margin keeps a conversation the new lead was opened in the middle of).
+      var _ntMs = 0;
+      try { _ntMs = new Date(((noteEls[nti].querySelector('.notes-and-hsitory-item-date')||{}).innerText||'').trim()).getTime() || 0; } catch (eNtMs) { _ntMs = 0; }
+      var _ntLeadStart = (typeof _lpMarkerMs === 'number' && _lpMarkerMs > 0) ? _lpMarkerMs : 0;
+      if (isInboundNote && _ntLeadStart && _ntMs > 0 && _ntMs < _ntLeadStart - 2 * 86400000) {
+        try { _lpD('[LP SCHED SCOPE DIAG]', { noteIndex: nti, verdict: 'SKIPPED -- before this lead (a closed lead\'s schedule)',
+          noteDate: new Date(_ntMs).toLocaleDateString(), leadStart: new Date(_ntLeadStart).toLocaleDateString() }); } catch (eSc) {}
+        continue;
+      }
       if(isInboundNote){
         var ntTitle = ((noteEls[nti].querySelector('.legacy-notes-and-history-title')||{}).innerText||'').toLowerCase();
         var ntRawText = ((noteEls[nti].querySelector('.notes-and-history-item-content')||{}).innerText||'');
@@ -14384,7 +14406,24 @@ function _lpScraperBotAuthor(msg) {
           } catch(e) {}
         }
         // Customer states arrival time - e.g. "I get off at 6", "done at 5:30", "arrive around 7"
-        var arrivalMatch = ntText.match(/(?:get off|off work|done|finish|out|arrive|be there|come by|stop by|swing by)(?:\s+(?:at|by|around|after))?\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)/i);
+        // (v9.7.795) WHOLE WORDS, A REAL TIME, AND A ONE-OFF VISIT TIME ONLY WHILE IT IS CURRENT. The bare "out" matched
+        // inside "about": "Give me about 45 minutes" (lead 2099028967) became "gets off around 45" and "I would love to
+        // come about 1:30" (a 9/29 appointment, read on 10/13 at 1:44 PM) became 1:30 PM today. "out", "done" and
+        // "finish" now need at/by/around/after after them; the number must be a clock time (1-12, or h:mm); and "come
+        // by / be there / arrive / stop by / swing by at N" -- a time for one visit, not a work schedule -- counts only
+        // from a message of the last two days.
+        var arrivalMatch = ntText.match(/\b(?:get(?:s|ting)?\s+off|off\s+work|(?:done|finish(?:ed)?|out)(?=\s+(?:at|by|around|after)\b)|arrive|be there|come by|stop by|swing by)(?:\s+(?:at|by|around|after))?\s+(\d{1,2}(?::\d{2})?(?:\s*(?:am|pm))?)(?![\d:])(?!\s*(?:min|minute|hour|hr|day|week|month|mile|year|%|percent|k\b|grand|dollar|down))/i);
+        if (arrivalMatch) {
+          var _amH = parseInt(arrivalMatch[1], 10), _amHasMin = /:/.test(arrivalMatch[1]), _amHasMer = /am|pm/i.test(arrivalMatch[1]);
+          var _amOneOff = /\b(?:arrive|be there|come by|stop by|swing by)\b/i.test(arrivalMatch[0]);
+          var _amWhy = '';
+          if (!(_amH >= 1 && _amH <= 12) && !(_amHasMin && _amH <= 23)) _amWhy = 'not a clock time';
+          else if (_amOneOff && _ntMs > 0 && (Date.now() - _ntMs) > 2 * 86400000) _amWhy = 'a time for one visit, from ' + Math.round((Date.now() - _ntMs) / 86400000) + ' days ago';
+          if (_amWhy) {
+            try { _lpD('[LP SCHED ARRIVAL DIAG]', { noteIndex: nti, verdict: 'REFUSED -- ' + _amWhy, matched: arrivalMatch[0] }); } catch (eAm) {}
+            arrivalMatch = null;
+          }
+        }
         if(arrivalMatch && !customerScheduleConstraint) {
           customerScheduleConstraint = 'CUSTOMER ARRIVAL TIME: Customer said they arrive/get off around ' + arrivalMatch[1] + '. Offer appointment times AFTER this time - not before. Example: if they arrive at 6:30 PM, offer 6:45 PM and 7:15 PM or similar evening slots within store hours.';
         }
@@ -21591,10 +21630,12 @@ function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
 
   // (v9.7.778) The missed appointment on this lead, in the main prompt's own terms (see _lpMissOnThisLead).
   try {
-    if (_lpMissOnThisLead(d)) {
+    // (v9.7.795) Only when the first draft acknowledged it: the example "sorry we missed you Saturday" was copied word for
+    // word into a text on a lead submitted that day, whose first draft said nothing of the kind.
+    if (_lpMissOnThisLead(d) && LP_MISS_ACK_RX.test(String(pass1 || ''))) {
       out.push('\u2501\u2501\u2501 THE APPOINTMENT ON THIS LEAD WAS MISSED \u2501\u2501\u2501');
-      out.push('Acknowledge it lightly and without blame, as the first draft did ("sorry we missed you Saturday") -- never "you didn\'t show up" -- '
-        + 'and keep the first draft\'s ask about getting them back in. Do not drop the acknowledgement to make the text shorter.');
+      out.push('The first draft acknowledges it. Keep that acknowledgement, in the first draft\'s own words, lightly and without blame -- never "you didn\'t show up" -- '
+        + 'and keep the first draft\'s ask about getting them back in. Do not drop the acknowledgement to make the text shorter, and do not name a day the first draft does not name.');
       out.push('');
     }
   } catch (eRfMiss) {}
@@ -28423,8 +28464,12 @@ function buildUserPrompt(data) {
       var arrivalFromInbound = '';
       // Scan both lastInboundMsg AND full context for arrival time
       // lastInboundMsg may be stale if agent hasn't re-grabbed since customer's last message
-      var arrivalScanText = (data.lastInboundMsg || '') + ' ' + (data.context || '').substring(0, 1000);
-      var inboundArrMatch = arrivalScanText.match(/(?:get off|off work|done|finish|out at|arrive|be there|come by)(?:\s+(?:at|by|around|after))?\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)/i);
+      // (v9.7.795) Same rules as the scraper's scan (whole words, a clock time), and their last message only while it is
+      // current: on lead 2099028967 it was eight months old and belonged to a closed lead.
+      var _arrInAge = (data.relationshipSignals && typeof data.relationshipSignals.lastInboundAgeDays === 'number') ? data.relationshipSignals.lastInboundAgeDays : null;
+      var arrivalScanText = ((_arrInAge === null || _arrInAge <= 2) ? (data.lastInboundMsg || '') : '') + ' ' + (data.context || '').substring(0, 1000);
+      var inboundArrMatch = arrivalScanText.match(/\b(?:get(?:s|ting)?\s+off|off\s+work|(?:done|finish(?:ed)?|out)(?=\s+(?:at|by|around|after)\b)|arrive|be there|come by)(?:\s+(?:at|by|around|after))?\s+(\d{1,2}(?::\d{2})?(?:\s*(?:am|pm))?)(?![\d:])(?!\s*(?:min|minute|hour|hr|day|week|month|mile|year|%|percent|k\b|grand|dollar|down))/i);
+      if (inboundArrMatch) { var _iaH = parseInt(inboundArrMatch[1], 10); if (!(_iaH >= 1 && _iaH <= 12) && !(/:/.test(inboundArrMatch[1]) && _iaH <= 23)) inboundArrMatch = null; }
       if(inboundArrMatch) arrivalFromInbound = inboundArrMatch[1].trim();
       var arrivalTimeOverride = (data.customerScheduleConstraint && data.customerScheduleConstraint.indexOf('CUSTOMER ARRIVAL TIME:') === 0) || arrivalFromInbound.length > 0;
       if(arrivalTimeOverride) {
@@ -28442,12 +28487,25 @@ function buildUserPrompt(data) {
           else if (arrivalHour < 12) arrivalHour += 12; // assume PM if no AM/PM stated
         }
         var closeHour = appt.closeMins ? Math.floor(appt.closeMins / 60) : 20;
-        if(arrivalHour && (arrivalHour + 1) < closeHour) {
+        // (v9.7.795) Today's adjusted slots are never in the past: lead 2077008076 was offered "1:30 PM today" at 1:44 PM.
+        // A slot that has passed (or is under 15 minutes away) moves to the next half hour at least 30 minutes out; if
+        // that leaves no room before close, the ordinary suggested times are used.
+        var _adjDay = appt.time1 && appt.time1.match(/(today|monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i) ? appt.time1.match(/(today|monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i)[1] : 'tomorrow';
+        var _adjS1 = arrivalHour ? arrivalHour * 60 + 30 : 0;
+        if (arrivalHour && /today/i.test(_adjDay)) {
+          var _adjNow = now2.getHours() * 60 + now2.getMinutes();
+          if (_adjS1 <= _adjNow + 15) {
+            _adjS1 = Math.ceil((_adjNow + 30) / 30) * 30;
+            try { console.log('[LP ARRIVAL SLOT DIAG] the arrival-adjusted slot had passed or was under 15 min away -- moved to ' + Math.floor(_adjS1 / 60) + ':' + ('0' + (_adjS1 % 60)).slice(-2)); } catch (eAs) {}
+          }
+        }
+        var _adjCloseM = appt.closeMins ? appt.closeMins : closeHour * 60;
+        if(arrivalHour && _adjS1 + 30 <= _adjCloseM - 30) {
           // Add 30-45 min for travel, offer two slots after arrival
-          var slot1Hour = arrivalHour;
-          var slot1Min = 30;
-          var slot2Hour = arrivalHour + 1;
-          var slot2Min = 0;
+          var slot1Hour = Math.floor(_adjS1 / 60);
+          var slot1Min = _adjS1 % 60;
+          var slot2Hour = Math.floor((_adjS1 + 30) / 60);
+          var slot2Min = (_adjS1 + 30) % 60;
           var fmt = function(h,m){ var ampm = h >= 12 ? 'PM' : 'AM'; var h12 = h > 12 ? h-12 : h; return h12 + ':' + (m < 10 ? '0'+m : m) + ' ' + ampm; };
           var dayLabel = appt.time1 && appt.time1.match(/(today|monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i) ? appt.time1.match(/(today|monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i)[1] : 'tomorrow';
           lines.push('', 'APPOINTMENT TIMES — ADJUSTED FOR CUSTOMER ARRIVAL TIME (use exactly):',
