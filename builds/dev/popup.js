@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.793-dev (Dev. AFTER A STOP THE TEXT NEVER ASKS THEM TO TEXT; A THREAD ENTRY IS ONLY ITS OWN LINES. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. log312 on 9.7.792, lead 2098953366 (a 'not looking' call, then the customer texted Stop): everything 792 changed fired, and two things did not. (1) THE TEXT REWRITE INVITED THEM TO TEXT. The first-pass text was right ('I'll respect that and leave the door open if your plans change.'); the rewrite shipped 'If your plans change and you'd like help finding a vehicle, just text me.' When the customer's newest message is a STOP (_lpStopIsCurrent; the STOP stays a text-channel preference per the 9/23 ruling -- the email and voicemail are untouched), the rewrite prompt now carries THEY TEXTED STOP: no 'text me', 'reply here' or 'send me a text'; point to calling or email if anywhere. And a rewrite that invites them to text (LP_TEXT_INVITE_RX) when the first pass did not does not ship -- the first pass does, logged as [LP SMS REFINE DIAG] kept the first pass. (2) 791's _lpThreadEntries joined every line after an entry's header into its body, so the state label printed after the last note was read as part of the call note (log312: call note: "she said she isn't looking ...  FOLLOW-UP TO A PHONE CALL: we already spoke ..."). Harmless there, but a label carrying 'no longer interested' after an ordinary call note would have set off a false call-note pause. The body is now the entry's own indented lines only. TESTS: stop-text-793 (new) executes _lpThreadEntries, _lpCustomerStateHold, the rewrite prompt and _lpRefineSms (worker stubbed) with placeholder data: 20 assertions across both builds; v9.7.792 fails 5 of 10 per build (its 5 controls pass), including the false pause and log312's exact leaked note. VERIFIED: run-all 226 suites green, 8134 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.792-dev.)
 // Lead Pro -- popup.js  v9.7.792-dev (Dev. CALL FIRST: A CONNECTED CALL MAKES THE TEXT AND EMAIL A FOLLOW-UP; A STOP IS A TEXT PREFERENCE AGAIN. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Gil, 10/13: 'Our process is call first' ... 'a lot of times the AI is getting the stop before we actually try and do our first reach. I don't want the email and VM to read as follow ups when we got the stop.' (1) A CONNECTED CALL TODAY. On a lead created today with no real customer reply, a call that reached the customer today (Outbound phone call (Contacted), or the customer calling in) now sets convState 'call-followup' -- the existing state ('the call already happened. Text/email is the follow-up to the call') that the fresh-today first-touch rule made unreachable on same-day leads. It gets its own label: FOLLOW-UP TO A PHONE CALL -- pick up from what was said, no first introduction, never quote the call note. A voicemail or no answer (Machine / No Contact) is not contact: those leads stay first-touch and keep first-reach messages. A call from a previous day, or a lead with a real customer reply, are decided as before. (2) A STOP IS A TEXT-CHANNEL PREFERENCE, NOT A CONVERSATION (Gil's 9/23 ruling, which v9.7.791 broke): 791's THEY TEXTED STOP block and its level-3 hold are removed -- a STOP does not reframe the email or voicemail, and the text is still drafted. A STOP no longer counts as contact for WHAT WE HAVE's first-touch trigger, nor as 'their words since the call' for the call-note pause: on lead 2098953366 the 11:21 STOP had hidden the 10:57 'isn't looking' call; replayed on the real dump, the call-note PAUSE now owns the decision (level 3) and no inventory answer fires. TESTS: call-first-792 (new) executes the shipped scraper block (lifted, as appt-booked-727 does) against stub notes, the prompt builder and _lpLeadHasContact: 16 assertions across both builds; v9.7.791 fails all 8 per build (it has no call-today block, and counted a STOP as contact). stop-pause-791 section 1 updated: the STOP line is gone and the call note owns the hold. VERIFIED: run-all 225 suites green, 8114 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.791-dev.)
 // Lead Pro -- popup.js  v9.7.791-dev (Dev. A STOP AND A 'NOT LOOKING' CALL HOLD THE MESSAGE; THE INVENTORY ANSWER NARROWS. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. log311 on 9.7.790, Honda Lafayette lead 2098953366: a connected call at 10:57 ('she said she isn't looking for a vehicle at this moment'), our 11:02 acknowledgement, then the customer texted 'Stop' at 11:21. The draft was right ('[customer], understood. You can reach me by email or phone if you decide to revisit the Pilot.') only because the model ignored the prompt: the lead read as a fresh first touch ('no customer reply'), the visit decision held nothing (level 0, times on offer), and 790's WHAT WE HAVE fired as 'the lead is the question', listing nine 'lower trim' Pilots under an in-stock Black Edition. (1) _lpCustomerStateHold reads THIS lead's thread: STOP -- the customer's newest message is an opt-out keyword (stop, stop all, unsubscribe, end, quit, cancel); CALL-PAUSE -- a connected call note says they are not looking / not in the market / not ready / not interested right now, with no customer message since (Gil, 10/13: 'yes on the call note'). 'Not interested in the Civic' (a different car) is not a pause. Each pushes its own line -- THEY TEXTED STOP: a short, gracious acknowledgement, no pitch, no visit, no question (SMS is still drafted, per the standing ruling); ON THE CALL THEY SAID THEY ARE NOT LOOKING RIGHT NOW: as if they had written it, no visit, no pitch, no questions, never quote the note -- and each is a level-3 visit hold. They stand aside when the scenario already carries an exit or pause. Logged as [LP CUSTOMER STATE DIAG]. (2) WHAT WE HAVE stands down on either, on exit/pause signals and on convState exit/pause; its first-touch trigger now needs a TRUE first touch (no customer message, no connected call on this lead). (3) With the exact trim in stock and no colour asked, the block lists only that trim; a lower trim is offered as the three closest in price, not the whole lot. On the real dump: THEY TEXTED STOP owns the decision (level 3: today default, hand-off framing, two-times close, suggested times and urgency removed), and no inventory answer. NOT CHANGED: the convState reading itself ('fresh-today lead, no customer reply -> first-touch') -- a 'Stop' is not counted as a reply there; the holds above no longer depend on it. TESTS: stop-pause-791 (new) executes buildUserPrompt and the new helpers with placeholder data: 20 assertions across both builds; v9.7.790 fails 8 of 10 per build (its 2 controls pass). VERIFIED: run-all 224 suites green, 8098 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.790-dev.)
 // Lead Pro -- popup.js  v9.7.790-dev (Dev. WHAT WE HAVE ON A FIRST TOUCH, AND DOOR COUNTS OUT OF THE TRIM. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. log310 on 9.7.789, two grabs. Lead 2098939548 (2026 Pilot Elite, CarGurus, Texas customer, stock on the lead) was right throughout: confirmed in stock, the out-of-state block owned the visit (level 3), and the remote path went out as a plain offer with no 'since you're remote' (788). Lead 2098953366 (a first-touch '2026 Honda Pilot AWD Black Edition 4dr SUV', no stock number, the customer typed nothing) went out 'I can check availability on the 2026 Pilot AWD Black Edition. What color are you looking for?' while the feed held exactly one 2026 Pilot Black Edition, in Platinum White Pearl. Two reasons: 789's WHAT WE HAVE fired only when the customer named a colour or asked what we have; and _lpTrimOf kept '4dr' (trim 'Black Edition 4dr' never matches the feed's 'Black Edition'; '4-Door' the same). Now: door counts (4dr, 2dr, 4-Door) are dropped from the trim; trims compare as word sets ('Sport Hybrid' = 'Hybrid Sport'; 'EX-L' is still not 'EX'); and a FIRST-TOUCH lead that names a trim fires WHAT WE HAVE on its own -- the lead is the question. With no colour named, the block lists that trim in any colour (IN STOCK or NONE), a lower trim (may be mentioned) and higher ones (counted, never named -- Gil's 'we do have other options if you'd like to come take a look at them'). With none of their trim in stock there is no price to rank against, so every other trim stays unnamed and is called 'other trims', not 'above'. A follow-up with no colour and no ask, and a first touch with no trim, are unchanged. On lead 2098953366's shape: 'The 2026 Pilot Black Edition: IN STOCK -- 2026 Pilot Black Edition (Platinum White Pearl).' TESTS: what-we-have-790 (new) executes buildUserPrompt and _lpTrimOf with placeholder inventory: 18 assertions across both builds; v9.7.789 fails 6 of 9 per build (its 3 passes: two controls and the colour case with a price reference, which 789 already handled). what-we-have-789 unchanged and green. VERIFIED: run-all 223 suites green, 8078 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.789-dev.)
@@ -3719,7 +3720,12 @@ function _lpThreadEntries(ctx) {
   s.split(/\n(?=\[\d{2}\/\d{2}\/\d{4}[^\]]*\] )/).forEach(function (e) {
     var h = /^\[(\d{2})\/(\d{2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})\s*([AP]M))?[^\]]*\] \[([^\]]*)\] ([^\n—]*)/i.exec(e); if (!h) return;
     var t = new Date(+h[3], +h[1] - 1, +h[2], h[4] ? (+h[4] % 12) + (/p/i.test(h[6]) ? 12 : 0) : 0, h[5] ? +h[5] : 0).getTime();
-    var body = e.split('\n').slice(1).map(function (l) { return l.trim(); }).join(' ').replace(/^By:\s*\S+(?:\s+\S+)?\s+/, '');
+    // (v9.7.793) Only the entry's own indented lines: the state label printed after the last note (e.g. "FOLLOW-UP TO A PHONE
+    // CALL: ...") is not part of the note -- log312 read it into the call note, and another label ("no longer interested")
+    // could have set off a false call-note pause.
+    var _bl = [], _ls = e.split('\n').slice(1);
+    for (var _bi = 0; _bi < _ls.length && /^\s+\S/.test(_ls[_bi]); _bi++) _bl.push(_ls[_bi].trim());
+    var body = _bl.join(' ').replace(/^By:\s*\S+(?:\s+\S+)?\s+/, '');
     out.push({ t: t, date: h[1] + '/' + h[2], tag: h[7], title: h[8].trim(), body: body, raw: e });
   });
   return out;
@@ -3739,6 +3745,17 @@ function _lpCustomerStateHold(d) {
   } catch (e) {}
   return null;
 }
+// (v9.7.793) Is the customer's newest message on this lead a STOP? (A text-channel fact for the text only -- see the rewrite.)
+function _lpStopIsCurrent(d) {
+  try {
+    var cust = _lpThreadEntries((d && (d.history || d.context)) || '').filter(function (x) { return /CUSTOMER/i.test(x.tag) && !/REQUEST FROM INQUIRY/i.test(x.tag); })
+      .sort(function (a, b) { return b.t - a.t; });
+    return !!(cust.length && LP_STOP_WORD_RX.test(cust[0].body));
+  } catch (e) { return false; }
+}
+// A text that asks them to text us: "just text me", "text me back", "reply here", "shoot me a text".
+var LP_TEXT_INVITE_RX = /\b(?:just\s+)?(?:text|txt|message)\s+me\b|\btext\s+(?:me\s+)?back\b|\breply\s+(?:here|to\s+this(?:\s+text)?|by\s+text)\b|\bshoot\s+me\s+a\s+(?:text|message)\b|\bsend\s+me\s+a\s+text\b/i;
+
 // True when the thread shows two-way contact on this lead: a customer message or a connected call.
 function _lpLeadHasContact(d) {
   try {
@@ -21987,6 +22004,14 @@ function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
       out.push('');
     }
   } catch (eRfUrl) {}
+  // (v9.7.793) They texted STOP: the text never asks them to text (log312: "If your plans change ... just text me").
+  try {
+    if (_lpStopIsCurrent(d)) {
+      out.push('━━━ THEY TEXTED STOP ━━━');
+      out.push('Their newest message opted them out of texts. Do not invite them to text: no "text me", "reply here" or "send me a text". If the first draft points them anywhere, keep it to calling or email.');
+      out.push('');
+    }
+  } catch (eRfStop) {}
   // (v9.7.785) They already have a sales rep: the text steps back too.
   try {
     var _rfHr = _lpHasRep(d);
@@ -22294,6 +22319,14 @@ async function _lpRefineSms(pass1, emailText, d) {
         return null;
       }
     } catch (eRfMs) {}
+
+    // (v9.7.793) After a STOP, a rewrite that invites them to text (and the first pass did not) does not ship.
+    try {
+      if (_lpStopIsCurrent(d) && LP_TEXT_INVITE_RX.test(out) && !LP_TEXT_INVITE_RX.test(String(pass1 || ''))) {
+        console.log('[LP SMS REFINE DIAG] kept the first pass — the customer texted STOP and the rewrite invited them to text ("' + (out.match(LP_TEXT_INVITE_RX) || [''])[0] + '") | ' + (Date.now() - t0) + 'ms');
+        return null;
+      }
+    } catch (eRfTi) {}
 
     // (v9.7.786) The first pass carried a link and the rewrite lost it: the first pass ships.
     try {
