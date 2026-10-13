@@ -8,7 +8,8 @@ require('./lib/fatal-guard.js')('stop-pause-791.test.js');
 // connected call note saying they are not looking right now (Gil, 10/13: "yes on the call note"), are level-3 visit holds with
 // their own lines; WHAT WE HAVE stands down on them, on exit/pause, and its first-touch trigger needs a TRUE first touch (no
 // customer message, no connected call); with the exact trim in stock and no colour asked, only that trim is listed, and a lower
-// trim is offered as the three closest. Executes the shipped buildUserPrompt and helpers. Placeholder data only.
+// trim is offered as the three closest. (v9.7.792 removed the STOP hold; section 1 now pins that.) Executes the shipped
+// buildUserPrompt and helpers. Placeholder data only.
 //
 // Usage: node tests/stop-pause-791.test.js <dev popup.js> <commercial popup.js>
 const path = require('path'), vm = require('vm');
@@ -48,11 +49,13 @@ for (const f of BUILDS) {
   const owner = () => ((logs.find(l => /\[LP VISIT DECISION DIAG\]/.test(l)) || '').match(/owner: ([^|]*)/) || [, ''])[1].trim();
   const inv = (p) => (p.match(/INVENTORY: [^\n]*(?:\n- [^\n]*)*/) || [''])[0];
 
-  console.log(' 1. lead 2098953366: they texted STOP:');
+  // (v9.7.792) The 791 STOP hold is gone (a STOP is a text-channel preference -- Gil's 9/23 ruling, restated 10/13). On this lead
+  // the call note owns the hold, and the STOP after it no longer hides the call.
+  console.log(' 1. lead 2098953366: the call said not looking, then they texted STOP:');
   const p1 = up(LEAD(H(CALL, ACK, STOP), { lastInboundMsg: 'Stop' })), o1 = owner();
-  check('THEY TEXTED STOP: a short acknowledgement, no pitch, no visit, no question', () =>
-    /🚫 THEY TEXTED STOP \(10\/13\): they have opted out of texts\. This message is a short, gracious acknowledgement and nothing else -- no pitch, no vehicle, no offer, no visit ask or times, and NO QUESTION of any kind\./.test(p1), true);
-  check('it owns the visit decision (level 3), and no inventory answer fires', () => [o1, /WHAT WE HAVE/.test(p1)], ['the STOP block (they opted out of texts)', false]);
+  check('the call-note pause owns it -- the later STOP does not hide the call -- and no STOP line is written', () =>
+    [o1, /THEY TEXTED STOP/.test(p1), /🔴 ON THE CALL THEY SAID THEY ARE NOT LOOKING RIGHT NOW/.test(p1)], ['the call-note PAUSE (not looking right now)', false, true]);
+  check('no inventory answer fires', () => /WHAT WE HAVE/.test(p1), false);
 
   console.log(' 2. before the STOP: the call note says not looking right now:');
   const p2 = up(LEAD(H(CALL, ACK))), o2 = owner();

@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.792-dev (Dev. CALL FIRST: A CONNECTED CALL MAKES THE TEXT AND EMAIL A FOLLOW-UP; A STOP IS A TEXT PREFERENCE AGAIN. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Gil, 10/13: 'Our process is call first' ... 'a lot of times the AI is getting the stop before we actually try and do our first reach. I don't want the email and VM to read as follow ups when we got the stop.' (1) A CONNECTED CALL TODAY. On a lead created today with no real customer reply, a call that reached the customer today (Outbound phone call (Contacted), or the customer calling in) now sets convState 'call-followup' -- the existing state ('the call already happened. Text/email is the follow-up to the call') that the fresh-today first-touch rule made unreachable on same-day leads. It gets its own label: FOLLOW-UP TO A PHONE CALL -- pick up from what was said, no first introduction, never quote the call note. A voicemail or no answer (Machine / No Contact) is not contact: those leads stay first-touch and keep first-reach messages. A call from a previous day, or a lead with a real customer reply, are decided as before. (2) A STOP IS A TEXT-CHANNEL PREFERENCE, NOT A CONVERSATION (Gil's 9/23 ruling, which v9.7.791 broke): 791's THEY TEXTED STOP block and its level-3 hold are removed -- a STOP does not reframe the email or voicemail, and the text is still drafted. A STOP no longer counts as contact for WHAT WE HAVE's first-touch trigger, nor as 'their words since the call' for the call-note pause: on lead 2098953366 the 11:21 STOP had hidden the 10:57 'isn't looking' call; replayed on the real dump, the call-note PAUSE now owns the decision (level 3) and no inventory answer fires. TESTS: call-first-792 (new) executes the shipped scraper block (lifted, as appt-booked-727 does) against stub notes, the prompt builder and _lpLeadHasContact: 16 assertions across both builds; v9.7.791 fails all 8 per build (it has no call-today block, and counted a STOP as contact). stop-pause-791 section 1 updated: the STOP line is gone and the call note owns the hold. VERIFIED: run-all 225 suites green, 8114 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.791-dev.)
 // Lead Pro -- popup.js  v9.7.791-dev (Dev. A STOP AND A 'NOT LOOKING' CALL HOLD THE MESSAGE; THE INVENTORY ANSWER NARROWS. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. log311 on 9.7.790, Honda Lafayette lead 2098953366: a connected call at 10:57 ('she said she isn't looking for a vehicle at this moment'), our 11:02 acknowledgement, then the customer texted 'Stop' at 11:21. The draft was right ('[customer], understood. You can reach me by email or phone if you decide to revisit the Pilot.') only because the model ignored the prompt: the lead read as a fresh first touch ('no customer reply'), the visit decision held nothing (level 0, times on offer), and 790's WHAT WE HAVE fired as 'the lead is the question', listing nine 'lower trim' Pilots under an in-stock Black Edition. (1) _lpCustomerStateHold reads THIS lead's thread: STOP -- the customer's newest message is an opt-out keyword (stop, stop all, unsubscribe, end, quit, cancel); CALL-PAUSE -- a connected call note says they are not looking / not in the market / not ready / not interested right now, with no customer message since (Gil, 10/13: 'yes on the call note'). 'Not interested in the Civic' (a different car) is not a pause. Each pushes its own line -- THEY TEXTED STOP: a short, gracious acknowledgement, no pitch, no visit, no question (SMS is still drafted, per the standing ruling); ON THE CALL THEY SAID THEY ARE NOT LOOKING RIGHT NOW: as if they had written it, no visit, no pitch, no questions, never quote the note -- and each is a level-3 visit hold. They stand aside when the scenario already carries an exit or pause. Logged as [LP CUSTOMER STATE DIAG]. (2) WHAT WE HAVE stands down on either, on exit/pause signals and on convState exit/pause; its first-touch trigger now needs a TRUE first touch (no customer message, no connected call on this lead). (3) With the exact trim in stock and no colour asked, the block lists only that trim; a lower trim is offered as the three closest in price, not the whole lot. On the real dump: THEY TEXTED STOP owns the decision (level 3: today default, hand-off framing, two-times close, suggested times and urgency removed), and no inventory answer. NOT CHANGED: the convState reading itself ('fresh-today lead, no customer reply -> first-touch') -- a 'Stop' is not counted as a reply there; the holds above no longer depend on it. TESTS: stop-pause-791 (new) executes buildUserPrompt and the new helpers with placeholder data: 20 assertions across both builds; v9.7.790 fails 8 of 10 per build (its 2 controls pass). VERIFIED: run-all 224 suites green, 8098 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.790-dev.)
 // Lead Pro -- popup.js  v9.7.790-dev (Dev. WHAT WE HAVE ON A FIRST TOUCH, AND DOOR COUNTS OUT OF THE TRIM. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. log310 on 9.7.789, two grabs. Lead 2098939548 (2026 Pilot Elite, CarGurus, Texas customer, stock on the lead) was right throughout: confirmed in stock, the out-of-state block owned the visit (level 3), and the remote path went out as a plain offer with no 'since you're remote' (788). Lead 2098953366 (a first-touch '2026 Honda Pilot AWD Black Edition 4dr SUV', no stock number, the customer typed nothing) went out 'I can check availability on the 2026 Pilot AWD Black Edition. What color are you looking for?' while the feed held exactly one 2026 Pilot Black Edition, in Platinum White Pearl. Two reasons: 789's WHAT WE HAVE fired only when the customer named a colour or asked what we have; and _lpTrimOf kept '4dr' (trim 'Black Edition 4dr' never matches the feed's 'Black Edition'; '4-Door' the same). Now: door counts (4dr, 2dr, 4-Door) are dropped from the trim; trims compare as word sets ('Sport Hybrid' = 'Hybrid Sport'; 'EX-L' is still not 'EX'); and a FIRST-TOUCH lead that names a trim fires WHAT WE HAVE on its own -- the lead is the question. With no colour named, the block lists that trim in any colour (IN STOCK or NONE), a lower trim (may be mentioned) and higher ones (counted, never named -- Gil's 'we do have other options if you'd like to come take a look at them'). With none of their trim in stock there is no price to rank against, so every other trim stays unnamed and is called 'other trims', not 'above'. A follow-up with no colour and no ask, and a first touch with no trim, are unchanged. On lead 2098953366's shape: 'The 2026 Pilot Black Edition: IN STOCK -- 2026 Pilot Black Edition (Platinum White Pearl).' TESTS: what-we-have-790 (new) executes buildUserPrompt and _lpTrimOf with placeholder inventory: 18 assertions across both builds; v9.7.789 fails 6 of 9 per build (its 3 passes: two controls and the colour case with a price reference, which 789 already handled). what-we-have-789 unchanged and green. VERIFIED: run-all 223 suites green, 8078 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.789-dev.)
 // Lead Pro -- popup.js  v9.7.789-dev (Dev. WHAT WE HAVE: THE INVENTORY FEED ANSWERS 'WHAT DO YOU HAVE IN WHITE'. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Honda Lafayette lead 2095742306 (dump + log308, 10/12): on 10/6 the customer wrote 'Let me know what you have on that. We would want it in white.' about a 2026 Pilot Touring AWD with no stock number. Three of our messages (10/9, 10/12 x2) said 'I'll check' / 'I still need to verify'. The feed held the answer: no white Touring; two Tourings in Crystal Black Pearl; white in the EX-L (x3), the Elite and the Black Edition. The prompt told the model the build was 'not verified ... you MAY reference the BASE MODEL', and its only inventory was the SIMILAR VEHICLES side angle -- the two cheapest 2026 Pilot EX-Ls, 'use ONLY if it genuinely helps' -- which left out the exact trim. Now, when the lead's vehicle has no stock or VIN, the customer named a colour (the scrape's COLOR PREFERENCE line, or their own words) or asked what we have, and this grab's inventory is in hand (_lpInvFreshness), _lpWhatWeHave lists that model in their condition (and model year, for new) and the INVENTORY line becomes WHAT WE HAVE: the exact trim and colour (IN STOCK, or NONE in stock today); the same trim in other colours (named); their colour in a lower trim (may be mentioned, not pushed); their colour in a HIGHER trim -- counted, never named. Gil, 10/12: 'if it has to go up a trim it should say we do have other options if you'd like to come take a look at them'. A trim is lower only when clearly cheaper ($1,500+) than the cheapest unit of the trim they asked for -- discounts overlap neighbouring trims (an Elite at $51,578 under a Touring at $52,890), and anything not clearly lower is treated as higher. It says the feed has been checked (no 'still need to verify'), that a listed IN STOCK unit outranks any 'presence not confirmed' line, never gives a stock number or price, and does not state AWD or 2WD (the feed has no drivetrain). The SIMILAR VEHICLES side angle stands down when it fires. Logged as [LP WHAT WE HAVE DIAG]. On the real dump: NONE for the white Touring; Touring in Crystal Black Pearl x2 named; EX-L in Platinum White Pearl x3 as the lower option; Elite and Black Edition counted as '2 units' above, unnamed; no 'not verified' note and no side angle. TESTS: what-we-have-789 (new) executes buildUserPrompt and populateFromData with placeholder inventory: 22 assertions across both builds; v9.7.788 fails 8 of 11 per build (its 3 controls pass: no ask, a stock number on the lead, inventory older than the grab). VERIFIED: run-all 222 suites green, 8060 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.788-dev.)
@@ -3706,8 +3707,8 @@ function _lpSearchZipLocal(data) {
 // call at 10:57 ("she said she isn't looking for a vehicle at this moment"), our 11:02 acknowledgement, then the customer texted
 // "Stop" at 11:21. The lead still read as a fresh first touch ("no customer reply"), the visit decision held nothing (level 0), and
 // 790's inventory block told the model to tell them what we have. The draft was right because the model ignored all three.
-// Returns { kind: 'stop' | 'call-pause', date, note } or null, read from THIS lead's entries (above the current-lead marker):
-//   stop       -- the customer's newest message is an opt-out keyword (STOP, unsubscribe, end, quit, cancel).
+// Returns { kind: 'call-pause', date, note } or null, read from THIS lead's entries (above the current-lead marker). (v9.7.792:
+// the 791 'stop' kind is gone -- a STOP is a text-channel preference, not a hold; LP_STOP_WORD_RX now only filters it out.)
 //   call-pause -- a connected call note says they are not looking / not in the market / not ready / not interested right now,
 //                 and no customer message has come in since (Gil, 10/13: "yes on the call note").
 var LP_STOP_WORD_RX = /^\s*(?:stop(?:\s+all)?|unsubscribe|end|quit|cancel|stopall)\s*[.!]?\s*$/i;
@@ -3726,8 +3727,10 @@ function _lpThreadEntries(ctx) {
 function _lpCustomerStateHold(d) {
   try {
     var ents = _lpThreadEntries((d && (d.history || d.context)) || '');
-    var cust = ents.filter(function (x) { return /CUSTOMER/i.test(x.tag) && !/REQUEST FROM INQUIRY/i.test(x.tag); }).sort(function (a, b) { return b.t - a.t; });
-    if (cust.length && LP_STOP_WORD_RX.test(cust[0].body)) return { kind: 'stop', date: cust[0].date, note: '' };
+    // (v9.7.792) A STOP is a text-channel preference, not the customer talking to us (Gil, 9/23 ruling, restated 10/13: the STOP
+    // often answers the virtual assistant before our first reach, and the email and voicemail must stay first-reach). It is not a
+    // hold, and it does not count as "their words since the call" -- on lead 2098953366 the STOP at 11:21 hid the 10:57 call.
+    var cust = ents.filter(function (x) { return /CUSTOMER/i.test(x.tag) && !/REQUEST FROM INQUIRY/i.test(x.tag) && !LP_STOP_WORD_RX.test(x.body); }).sort(function (a, b) { return b.t - a.t; });
     var lastWords = cust.length ? cust[0].t : 0;
     var calls = ents.filter(function (x) { return /\(Contacted\)|^Inbound phone call/i.test(x.title) && x.t >= lastWords; }).sort(function (a, b) { return b.t - a.t; });
     for (var i = 0; i < calls.length; i++) {
@@ -3740,7 +3743,7 @@ function _lpCustomerStateHold(d) {
 function _lpLeadHasContact(d) {
   try {
     return _lpThreadEntries((d && (d.history || d.context)) || '').some(function (x) {
-      return (/CUSTOMER/i.test(x.tag) && !/REQUEST FROM INQUIRY/i.test(x.tag)) || /\(Contacted\)|^Inbound phone call/i.test(x.title); });
+      return (/CUSTOMER/i.test(x.tag) && !/REQUEST FROM INQUIRY/i.test(x.tag) && !LP_STOP_WORD_RX.test(x.body)) || /\(Contacted\)|^Inbound phone call/i.test(x.title); });   // (v9.7.792) a STOP is not contact
   } catch (e) { return false; }
 }
 
@@ -14990,7 +14993,28 @@ function _lpScraperBotAuthor(msg) {
           && content && content.length > 3;
         return isRealInboundText || isRealEmailReply;
       });
-      if(hasNewLeadToday && !hasRealCustomerReply && (hasRecentReoptIn || contactedAgeDays === undefined || contactedAgeDays > 90)) {
+      // (v9.7.792) A CONNECTED CALL TODAY MAKES THE FIRST TEXT AND EMAIL A FOLLOW-UP TO THAT CALL. The store calls first. On a
+      // lead created today, a call that reached the customer (Outbound phone call (Contacted), or the customer calling in) means
+      // the next text and email follow a conversation that happened -- the existing 'call-followup' state ("the call already
+      // happened. Text/email is the follow-up to the call") was unreachable on same-day leads, because the fresh-today rule
+      // below ran first. A voicemail or no answer (Machine / No Contact) is not contact: those leads stay first-touch and get
+      // first-reach messages as before. A STOP is not a reply here either (hasRealCustomerReply already excludes it).
+      var _lpCallToday = false, _lpCallTodayTitle = '';
+      try {
+        var _ctNow = new Date();
+        noteEls.slice(0, 60).forEach(function (item) {
+          if (_lpCallToday) return;
+          var _ctT = ((item.querySelector('.legacy-notes-and-history-title')||{}).innerText||'').toLowerCase().trim();
+          if (!/outbound phone call \(contacted\)|inbound phone call|inbound call/.test(_ctT)) return;
+          var _ctD = new Date(((item.querySelector('.notes-and-hsitory-item-date')||{}).innerText||'').trim());
+          if (isNaN(_ctD.getTime())) return;
+          if (_ctD.getFullYear() === _ctNow.getFullYear() && _ctD.getMonth() === _ctNow.getMonth() && _ctD.getDate() === _ctNow.getDate()) { _lpCallToday = true; _lpCallTodayTitle = _ctT; }
+        });
+      } catch (eCt) {}
+      if (hasNewLeadToday && !hasRealCustomerReply && _lpCallToday) {
+        _lpD('[Lead Pro] convState: fresh-today lead with a connected call today ("' + _lpCallTodayTitle + '") -> call-followup: the text and email follow that conversation');
+        convState = 'call-followup';
+      } else if(hasNewLeadToday && !hasRealCustomerReply && (hasRecentReoptIn || contactedAgeDays === undefined || contactedAgeDays > 90)) {
         // Brand new lead submitted today with no recent contact - customer re-engaged fresh
         // Old outbound history is irrelevant - treat as first-touch
         convState = 'first-touch';
@@ -15368,7 +15392,9 @@ function _lpScraperBotAuthor(msg) {
         'pause':            'PAUSE SIGNAL: customer needs more time. Empathetic check-in only. No appointment pressure.',
         'negative-reply':   'NEGATIVE/PRICING REPLY: customer expressed concern. Address it directly in opening.',
         'active-follow-up': 'FOLLOW-UP: read the full transcript and write a response that directly continues THIS conversation.',
-        'first-follow-up':  'FOLLOW-UP: first outreach was made. Read the transcript and write a relevant continuation.'
+        'first-follow-up':  'FOLLOW-UP: first outreach was made. Read the transcript and write a relevant continuation.',
+        // (v9.7.792) reachable on same-day leads now: a connected call happened before this text and email
+        'call-followup':    'FOLLOW-UP TO A PHONE CALL: we already spoke with this customer by phone (see the call note). This text and email follow that conversation -- pick up from what was said on the call. Do NOT write it as a first introduction or thank them for an inquiry as if it just arrived. Never quote the call note or mention notes.'
       }[convState] || 'FOLLOW-UP';
 
       // (v9.7.62) STOP-as-first-touch OVERRIDE: replace whatever stateLabel was assigned
@@ -22978,7 +23004,6 @@ var _LP_VISIT_HOLDS = [
   [3, /HARD RULE: do NOT offer an appointment time|FINAL CLOSE RULE FOR THIS MESSAGE: Do NOT end with an appointment/, 'the DEAL CONDITION rule'],
   [3, /NOT TODAY: Customer explicitly said they cannot or do not want to come in right now/, 'NOT TODAY (not any day)'],
   [3, /^EXIT SIGNAL:/, 'the EXIT rule'],
-  [3, /^THEY TEXTED STOP/, 'the STOP block (they opted out of texts)'],   // (v9.7.791)
   [3, /^ON THE CALL THEY SAID THEY ARE NOT LOOKING RIGHT NOW/, 'the call-note PAUSE (not looking right now)'],   // (v9.7.791)
   [3, /^THEY ALREADY HAVE A SALES REP:/, 'the ALREADY HAVE A SALES REP block'],   // (v9.7.785)
   // (v9.7.786) The agent's "no appointment" chip was not a hold: in the morning, with room left today, the store-status line's
@@ -26807,9 +26832,7 @@ function buildUserPrompt(data) {
     if (_csh) {
       console.log('[LP CUSTOMER STATE DIAG] ' + _csh.kind + ' (' + _csh.date + ')' + (_csh.note ? ' | call note: "' + _csh.note + '"' : '') + ' -> full visit hold, no pitch, no question');
       ageBlock.push('');
-      ageBlock.push(_csh.kind === 'stop'
-        ? '🚫 THEY TEXTED STOP (' + _csh.date + '): they have opted out of texts. This message is a short, gracious acknowledgement and nothing else -- no pitch, no vehicle, no offer, no visit ask or times, and NO QUESTION of any kind. The text says only that you understand; the email may add that they can reach you by email or phone if they ever want help. Do not ask why.'
-        : '🔴 ON THE CALL THEY SAID THEY ARE NOT LOOKING RIGHT NOW (' + _csh.date + ', recorded in the call note): treat it exactly as if they had written it. Acknowledge it with zero pressure and leave the door open. No visit ask or times, no pitch, no vehicle or inventory push, and NO QUESTIONS of any kind. Never quote or mention the call note.');
+      ageBlock.push('🔴 ON THE CALL THEY SAID THEY ARE NOT LOOKING RIGHT NOW (' + _csh.date + ', recorded in the call note): treat it exactly as if they had written it. Acknowledge it with zero pressure and leave the door open. No visit ask or times, no pitch, no vehicle or inventory push, and NO QUESTIONS of any kind. Never quote or mention the call note.');
     }
   } catch (eCsh) {}
   // (v9.7.785) They already have a sales rep (see _lpHasRep).
