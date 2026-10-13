@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.796-dev (Dev. A RETURNING CUSTOMER'S NEW LEAD STARTS ITS OWN CLOCK. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Toyota Baytown lead 2099028967 (log317, on 795): a Click & Go lead submitted that day, and a connected call five minutes before the grab (a trade-in, and 'the rav4 is to be here around the end of November'). 795's fixes held (the 2/19 note skipped, no arrival constraint, no missed-appointment line), but her last TEXT was 236 days old, on the closed lead before this one, and three parts of the prompt ran on that clock. (1) _lpQuietDays: 'THIS CUSTOMER LAST WROTE 236 DAYS AGO ... THIS RULE OUTRANKS ANY BLOCK BELOW', one job (offer an in-stock alternative), times withheld -- the text pitched a RAV4 LE instead of following up the call -- and _lpCloseOutEligible read the lead as eligible for a close-out. New _lpReachedRecently: a lead submitted in the last two days (its created time, never a defaulted age) or a connected call on this lead in the last 14 days means the customer is not quiet and is never offered a close-out. (2) A missed appointment from an EARLIER lead (_lpMissedApptIsPrior) never switches the message to the Sales Manager voice; the fresh-lead guard only stood down the switch while nothing had been sent, and the agent had already called. (3) The call-today block (v9.7.792) now asks whether the customer wrote AFTER the call, not whether they ever wrote: her 24 February messages counted as 'a real customer reply' and the call was never read as the conversation. A text or email of theirs dated after the call still decides it further down. Replayed on the real dump: 795 opens on the quiet rule, switches to the manager and marks the lead close-out eligible; 796 does none of the three (the visit decision is owned by FIRST HUMAN TOUCH, a light ask with no times). TESTS: new-lead-clock-796 (new) executes _lpQuietDays, _lpReachedRecently, _lpCloseOutEligible, classifyScenario and the scraper's call-today block (lifted) with placeholder data: 22 assertions across both builds; v9.7.795 fails 6 of 11 per build (its 5 controls pass). call-first-792's control updated: a reply from before the call no longer blocks it, a text after the call still does. VERIFIED: run-all 229 suites green, 8215 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.795-dev.)
 // Lead Pro -- popup.js  v9.7.795-dev (Dev. A CLOSED LEAD'S TEXT, AN 'ABOUT' AND A MISSED APPOINTMENT NOBODY MISSED. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Toyota Baytown lead 2099028967 (log316), a Click & Go lead submitted that day: the text shipped '[customer], sorry we missed you Saturday ... Would 6:45 or 7:15 this evening work'. (1) THE ARRIVAL-TIME SCAN. Its bare 'out' matched inside 'about': 'Give me about 45 minutes', a text from 02/19/2026 on a closed lead, became 'Customer gets off at 45 PM ... arrive around 45:30 PM ... Evening only' (and on Honda Lafayette lead 2077008076, 'I would love to come about 1:30', a 9/29 appointment, became 1:30 PM today). Now: whole words; 'out', 'done' and 'finish' need at/by/around/after; the number must be a clock time (1-12, or h:mm), never 'N minutes/hours/days'; a one-off visit time ('come by / be there / arrive / stop by / swing by at N') counts only from a message of the last two days; and the scheduling loop skips notes more than two days older than the current-lead marker, so a closed lead's messages cannot set this lead's schedule (logged as [LP SCHED SCOPE DIAG] and [LP SCHED ARRIVAL DIAG]). The popup-side read uses the same rules, and the customer's last message only while it is two days old or less. (2) TODAY'S ARRIVAL-ADJUSTED TIMES ARE NEVER IN THE PAST: lead 2077008076 was offered 1:30 PM today at 1:44 PM. A slot that has passed or is under 15 minutes away moves to the next half hour at least 30 minutes out; with no room before close, the ordinary suggested times are used ([LP ARRIVAL SLOT DIAG]). The constraint's wording is a real 12-hour time ('1:30' had read '13:30 PM') and says 'evening only' only for an evening time. (3) THE TEXT REWRITE'S MISSED APPOINTMENT. The main prompt suppressed the 236-day-old miss from the closed lead; the rewrite's check (_lpMissedApptIsPrior) compared it with leadAgeDays, which the raw scrape it is handed does not carry, so it fell through to 'THE APPOINTMENT ON THIS LEAD WAS MISSED ... as the first draft did (sorry we missed you Saturday)'. The first draft said nothing of the kind, and the example was copied word for word. Now the check falls back to the relationship signals' lead age, the section appears only when the first draft acknowledges a miss, and it keeps the first draft's own words with no example day to copy. TESTS: arrival-time-795 (new) executes the lifted scheduling loop, populateFromData, buildUserPrompt with the clock frozen at 1:44 PM, and _lpBuildSmsRefinePrompt, with placeholder data: 28 assertions across both builds; v9.7.794 fails 10 of 14 per build (2 of them are new wording on controls). Replayed on both real CRM pages: 794 reproduces the logged 'around 45' and 'around 1:30', 795 finds no constraint; on lead 2099028967's real scrape 794 writes the MISSED section with 'Saturday', 795 does not. miss-refine-778 updated for the new wording. VERIFIED: run-all 228 suites green, 8191 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.794-dev.)
 // Lead Pro -- popup.js  v9.7.794-dev (Dev. THE CUSTOMER'S NEWEST MESSAGE IS WHAT THE DRAFT ANSWERS: FOUR PARTS OF THE PROMPT STOP OUTRANKING IT. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Kia Baytown lead 2082559456 (log313, 10/13): his newest message (10/9) was about the rate -- he buys at 0% or 1%, 'when it does go down to 0 or 1.9, I will rekindle my interest in the K5' -- and only the automated assistant had written since. The K5 he built had sold, and the store carried 1.90% APR on the K5 the pivot offered. The text that shipped opened 'I can help with the darker window tint question' (asked 9/16, answered 9/17) and said nothing about the rate. (1) A RATE QUESTION IS NOT THE SOLD CAR'S NUMBERS. v9.7.760's moot rule dropped any money question on a sold lead; rate, APR, financing and incentive questions now stay open (LP_TERMS_Q_RX) -- only that car's own fees, breakdown, price and out-the-door figures are moot -- and the rewrite shows such a message in the customer's own words, not as 'about the vehicle that has since sold, background only'. When the newest message is about the rate, the sold pivot also gives the alternative's APR programs (the pivot itself leads with one program; on this lead the $750 cash, and the 1.90% never reached the prompt). (2) A QUESTION OUR REPLY TOOK UP, THAT THEY HAVE WRITTEN PAST TWICE, IS CLOSED. The tint reply shared one word with the question against a bar of two; a reply that touches the subject, followed by two customer messages that never mention it, now closes it ('reply-then-moved-on'). A question no reply of ours took up (the v9.7.681 credit-approval case) is untouched. (3) AN OLDER QUESTION DOES NOT OUTRANK THE NEWEST MESSAGE. A question asked before their newest message is marked older: OPEN THREADS lists it as 'Earlier question(s) ... pick it up after that, never instead of it', the 'highest-leverage move' reading is kept for questions in or after their newest message, and the text rewrite lists it as EARLIER, never as the opening. IDENTIFIED CUSTOMER CONCERNS now reads 'do not bury them, but the customer's most recent message comes first' (was 'lead with these'). (4) WHEN ONLY THE ASSISTANT HAS WRITTEN SINCE, THIS MESSAGE IS THE ANSWER. CONVERSATION STATE said nobody had replied, then 'Do NOT re-answer ... Re-engage with a genuinely different angle'; it now says the message is that answer and responds to what they said first. 'Nobody replied' now needs every written send since their message to be the assistant's (one from a person is a reply; bot-authorship's 'a bot send newer than a human send' check is reversed accordingly). TESTS: current-arc-794 (new) executes the lifted open-question detector, _lpMootSoldQuestions, renderRelationshipReading, _lpBuildSmsRefinePrompt and populateFromData with placeholder data: 26 assertions across both builds; v9.7.793 fails 8 of 13 per build (its 5 controls pass). Replayed on the real lead: the 793 detector leaves the tint question OPEN on the real CRM page and 794 closes it; the prompt keeps both rate questions open, gives K5 1.90% APR for 48 mos, and the rewrite shows his message in his own words. Updated: bot-authorship (reversed check, plus the new wording), open-thread-resolver (its two-word-bar isolation also switches off the new close), incentive-expiry (three expiry-filtered read sites). VERIFIED: run-all 227 suites green, 8163 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.793-dev.)
 // Lead Pro -- popup.js  v9.7.793-dev (Dev. AFTER A STOP THE TEXT NEVER ASKS THEM TO TEXT; A THREAD ENTRY IS ONLY ITS OWN LINES. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. log312 on 9.7.792, lead 2098953366 (a 'not looking' call, then the customer texted Stop): everything 792 changed fired, and two things did not. (1) THE TEXT REWRITE INVITED THEM TO TEXT. The first-pass text was right ('I'll respect that and leave the door open if your plans change.'); the rewrite shipped 'If your plans change and you'd like help finding a vehicle, just text me.' When the customer's newest message is a STOP (_lpStopIsCurrent; the STOP stays a text-channel preference per the 9/23 ruling -- the email and voicemail are untouched), the rewrite prompt now carries THEY TEXTED STOP: no 'text me', 'reply here' or 'send me a text'; point to calling or email if anywhere. And a rewrite that invites them to text (LP_TEXT_INVITE_RX) when the first pass did not does not ship -- the first pass does, logged as [LP SMS REFINE DIAG] kept the first pass. (2) 791's _lpThreadEntries joined every line after an entry's header into its body, so the state label printed after the last note was read as part of the call note (log312: call note: "she said she isn't looking ...  FOLLOW-UP TO A PHONE CALL: we already spoke ..."). Harmless there, but a label carrying 'no longer interested' after an ordinary call note would have set off a false call-note pause. The body is now the entry's own indented lines only. TESTS: stop-text-793 (new) executes _lpThreadEntries, _lpCustomerStateHold, the rewrite prompt and _lpRefineSms (worker stubbed) with placeholder data: 20 assertions across both builds; v9.7.792 fails 5 of 10 per build (its 5 controls pass), including the false pause and log312's exact leaked note. VERIFIED: run-all 226 suites green, 8134 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.792-dev.)
@@ -980,8 +981,31 @@ var LP_OTD_PHRASE_RE = /out[- ]?the[- ]?door|\botd\b|drive[- ]?out|total (?:pric
 function _lpQuietDays(d) {
   try {
     var a = d && d.relationshipSignals ? d.relationshipSignals.lastInboundAgeDays : null;
-    return (d && d.hasCustomerReply && typeof a === 'number' && a >= 14) ? Math.round(a) : 0;
+    if (!(d && d.hasCustomerReply && typeof a === 'number' && a >= 14)) return 0;
+    // (v9.7.796) Not quiet if they reached us, or we reached them, on this lead -- see _lpReachedRecently.
+    if (_lpReachedRecently(d)) return 0;
+    return Math.round(a);
   } catch (e) { return 0; }
+}
+// (v9.7.796) A RETURNING CUSTOMER'S NEW LEAD STARTS ITS OWN CLOCK. Toyota Baytown lead 2099028967 (log317): a Click & Go
+// lead submitted that day, and a connected call five minutes before the grab (a trade-in, and "the
+// rav4 is to be here around the end of November"). Her last TEXT was 236 days old, on the closed lead before it, so the
+// prompt opened "THIS CUSTOMER LAST WROTE 236 DAYS AGO ... THIS RULE OUTRANKS ANY BLOCK BELOW", gave the draft one job
+// (offer an in-stock alternative), withheld times and marked the lead eligible for a close-out -- and the text pitched a
+// RAV4 LE instead of following up the call. Submitting a lead is the customer reaching out, and a connected call is
+// contact: either one, on this lead, means they are not quiet. Returns the reason, or ''.
+function _lpReachedRecently(d) {
+  try {
+    var rs = (d && d.relationshipSignals) || {};
+    var la = (typeof rs.leadAgeDaysForFatigue === 'number' && isFinite(rs.leadAgeDaysForFatigue)) ? rs.leadAgeDaysForFatigue : null;   // from the lead's created time; null when unknown
+    if (la !== null && la >= 0 && la < 2) return 'this lead was submitted ' + (la < 1 ? 'in the last day' : 'yesterday');
+    var since = Date.now() - 14 * 86400000;
+    var ents = (typeof _lpThreadEntries === 'function') ? _lpThreadEntries((d && (d.history || d.context)) || '') : [];
+    for (var i = 0; i < ents.length; i++) {
+      if (/\(Contacted\)|^Inbound phone call/i.test(ents[i].title) && ents[i].t >= since) return 'a connected call on this lead (' + ents[i].date + ')';
+    }
+  } catch (e) {}
+  return '';
 }
 // The one current fact this lead can offer a quiet customer: an in-stock alternative the vehicle block surfaced.
 function _lpQuietFreshReason(ctx) {
@@ -4333,6 +4357,9 @@ function _lpCloseOutEligible(d) {
 
   if (replied) {
     if (sinceReply === null) { out.reason = 'replied, but the reply date is unknown — not eligible'; return out; }
+    // (v9.7.796) A lead they submitted, or a call that reached them, is not a customer gone quiet (lead 2099028967).
+    var _coReach = (typeof _lpReachedRecently === 'function') ? _lpReachedRecently(d) : '';
+    if (sinceReply >= 30 && _coReach) { out.reason = 'replied ' + sinceReply + 'd ago, but ' + _coReach + ' — not eligible'; return out; }
     if (sinceReply >= 30) { out.eligible = true; out.reason = 'replied ' + sinceReply + 'd ago, quiet 30d+'; return out; }
     out.reason = 'replied ' + sinceReply + 'd ago — under the 30d quiet window';
     return out;
@@ -15074,7 +15101,7 @@ function _lpScraperBotAuthor(msg) {
       // happened. Text/email is the follow-up to the call") was unreachable on same-day leads, because the fresh-today rule
       // below ran first. A voicemail or no answer (Machine / No Contact) is not contact: those leads stay first-touch and get
       // first-reach messages as before. A STOP is not a reply here either (hasRealCustomerReply already excludes it).
-      var _lpCallToday = false, _lpCallTodayTitle = '';
+      var _lpCallToday = false, _lpCallTodayTitle = '', _lpCallTodayMs = 0;
       try {
         var _ctNow = new Date();
         noteEls.slice(0, 60).forEach(function (item) {
@@ -15083,10 +15110,26 @@ function _lpScraperBotAuthor(msg) {
           if (!/outbound phone call \(contacted\)|inbound phone call|inbound call/.test(_ctT)) return;
           var _ctD = new Date(((item.querySelector('.notes-and-hsitory-item-date')||{}).innerText||'').trim());
           if (isNaN(_ctD.getTime())) return;
-          if (_ctD.getFullYear() === _ctNow.getFullYear() && _ctD.getMonth() === _ctNow.getMonth() && _ctD.getDate() === _ctNow.getDate()) { _lpCallToday = true; _lpCallTodayTitle = _ctT; }
+          if (_ctD.getFullYear() === _ctNow.getFullYear() && _ctD.getMonth() === _ctNow.getMonth() && _ctD.getDate() === _ctNow.getDate()) { _lpCallToday = true; _lpCallTodayTitle = _ctT; _lpCallTodayMs = _ctD.getTime(); }
         });
       } catch (eCt) {}
-      if (hasNewLeadToday && !hasRealCustomerReply && _lpCallToday) {
+      // (v9.7.796) WHAT BLOCKS IT IS THE CUSTOMER WRITING AFTER THE CALL, NOT EVER HAVING WRITTEN. On lead 2099028967 her 24
+      // messages from February, on the closed lead before this one, counted as "a real customer reply" and the call that
+      // afternoon was never read as the conversation. A text or email of theirs dated after the call still wins.
+      var _lpWroteAfterCall = false;
+      try {
+        if (_lpCallToday) noteEls.slice(0, 80).forEach(function (item) {
+          if (_lpWroteAfterCall) return;
+          if ((item.getAttribute('data-direction')||'').toLowerCase() !== 'inbound') return;
+          var _waT = ((item.querySelector('.legacy-notes-and-history-title')||{}).innerText||'').toLowerCase();
+          if (!/inbound text|inbound sms|text message|email reply from prospect|email from prospect/.test(_waT)) return;
+          var _waC = ((item.querySelector('.notes-and-history-item-content')||{}).innerText||'').trim();
+          if (!_waC || _waC.length <= 3 || /lead received|auto response|opted out|stop$/i.test(_waC)) return;
+          var _waD = new Date(((item.querySelector('.notes-and-hsitory-item-date')||{}).innerText||'').trim()).getTime();
+          if (_waD > _lpCallTodayMs) _lpWroteAfterCall = true;
+        });
+      } catch (eWa) {}
+      if (hasNewLeadToday && _lpCallToday && !_lpWroteAfterCall) {
         _lpD('[Lead Pro] convState: fresh-today lead with a connected call today ("' + _lpCallTodayTitle + '") -> call-followup: the text and email follow that conversation');
         convState = 'call-followup';
       } else if(hasNewLeadToday && !hasRealCustomerReply && (hasRecentReoptIn || contactedAgeDays === undefined || contactedAgeDays > 90)) {
@@ -20588,6 +20631,13 @@ function classifyScenario(data) {
     }
     if (base === 'bdc') {
       var isMissedAppt = !!data.hasMissedAppt || s.isMissedAppt;
+      // (v9.7.796) ...and a miss from an EARLIER lead never makes this one a manager's message, whatever we have sent since:
+      // lead 2099028967 switched to the Sales Manager voice ("If you've moved on, just tell me and I'll close this out clean")
+      // over a 236-day-old miss, because the agent had already called the customer that afternoon.
+      if (isMissedAppt && (typeof _lpMissedApptIsPrior === 'function') && _lpMissedApptIsPrior(data)) {
+        console.log('[Lead Pro] missed-appt from an earlier lead (' + data.freshestApptEventDays + 'd old) -- no manager switch');
+        isMissedAppt = false;
+      }
       if (_isFreshLead && isMissedAppt && !hasRealOutbound) {
         // Only suppress if there's no real outbound on this lead — if outbound exists,
         // the missed-appt is current (agent already sent re-engagement), not historical.

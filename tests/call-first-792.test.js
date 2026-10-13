@@ -48,8 +48,13 @@ for (const f of BUILDS) {
   check('the customer called in today ("Inbound phone call") -> call-followup', () => runState([note(TODAY, 'inbound', 'Inbound phone call', 'By: Agent Name customer called about the Pilot')]), 'call-followup');
   check('control: a voicemail ("Outbound phone call (Machine)") or no answer ("(No Contact)") stays first-touch -- first-reach messages', () =>
     [runState([note(TODAY, 'outbound', 'Outbound phone call (Machine)', 'By: Agent Name Left message')]), runState([note(TODAY, 'outbound', 'Outbound phone call (No Contact)', 'By: Agent Name rings')])], ['first-touch', 'first-touch']);
-  check('control: a connected call from a previous day does not count; a lead with a real customer reply is decided further down', () =>
-    [runState([note(30 * H, 'outbound', 'Outbound phone call (Contacted)', 'By: Agent Name talked')]), runState([note(TODAY, 'outbound', 'Outbound phone call (Contacted)', 'talked')], { hasRealCustomerReply: true })], ['first-touch', 'first-touch']);
+  // (v9.7.796) What blocks it is the customer writing AFTER the call, not ever having written: a reply from before the call
+  // (lead 2099028967: 24 messages on the closed lead before this one) no longer hides today's call.
+  check('control: a connected call from a previous day does not count; a customer text AFTER the call is decided further down', () =>
+    [runState([note(30 * H, 'outbound', 'Outbound phone call (Contacted)', 'By: Agent Name talked')]),
+     runState([note(Math.floor(TODAY / 2), 'inbound', 'Inbound Text Message', 'Received from: (555) 010-0199 sounds good, see you then'), note(TODAY, 'outbound', 'Outbound phone call (Contacted)', 'talked')], { hasRealCustomerReply: true })], ['first-touch', 'first-touch']);
+  check('(v9.7.796) an older customer reply (before the call) no longer blocks it', () =>
+    runState([note(TODAY, 'outbound', 'Outbound phone call (Contacted)', 'talked')], { hasRealCustomerReply: true }), 'call-followup');
   check('the call-followup state has its own label: follow the conversation, no first introduction, never quote the call note', () =>
     /'call-followup':\s+'FOLLOW-UP TO A PHONE CALL: we already spoke with this customer by phone \(see the call note\)\. This text and email follow that conversation -- pick up from what was said on the call\. Do NOT write it as a first introduction or thank them for an inquiry as if it just arrived\. Never quote the call note or mention notes\.'/.test(src), true);
 
