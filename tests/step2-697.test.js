@@ -54,8 +54,9 @@ for (const f of BUILDS) {
 
   // ── DISTANCE / REMOTE ──────────────────────────────────────────────────────────────────
   console.log(' remote buyers:');
-  check('no suggested times or TIMING block for a remote buyer (source: the appointment gate reads isRemoteBuyer)',
-    () => /&& !closeOverride && !isZeroContactStalled && !isRemoteBuyer\) \{/.test(C), true);
+  // (v9.7.802) unless the agent pressed Add Appt Ask on this lead (_rbVisit 'chip'); see remote-visit-802
+  check('no suggested times or TIMING block for a remote buyer (source: the appointment gate reads isRemoteBuyer; v9.7.802: only the Add Appt Ask chip lets times through)',
+    () => /&& !closeOverride && !isZeroContactStalled && \(!isRemoteBuyer \|\| _rbVisit === 'chip'\)\) \{/.test(C), true);
 
   // ── H1 / channel preference (scraper detector, executed) ───────────────────────────────
   console.log(' H1 channel preference detector (scraper, executed):');

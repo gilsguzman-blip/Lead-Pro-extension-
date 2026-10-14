@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.802-dev (Dev. ADD APPT ASK, AND THREE THINGS THE THREAD HAD ALREADY SETTLED. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Kia Baytown lead 2099780329 (log326, on 801): an out-of-state CarGurus buyer in a live text thread with the sales rep -- 'still in our service department. (Not on the lot yet)', then 'I have a 2022 Kia K5 LXS (White) on the lot', and the customer answered 'Good', 'I will bring it up dere wen ii come', 'Pay cash'. The draft said the 2023 'is here in Gravity Gray', never mentioned the white one, and offered a video instead of asking when they are coming; that morning the agent regenerated the first touch ten times looking for a visit ask the out-of-state rule had removed. (1) NOT ON THE LOT: _lpRepNotOnLot reads every message of ours on the lead (not only the newest) for 'not on the lot', 'in our service department', 'in recon', 'being detailed'; a newer message saying it is on the lot or ready wins, and a message naming another year is not about this car. The unit stays ours (not sold): VEHICLE ON LEAD, PRESENCE LANGUAGE, the feed confirmation line, the INVENTORY note, the distance CONTEXT and the text rewrite all say still in service instead of 'here'. (2) THE CAR ON THE TABLE NOW: _lpOfferedUnit -- a different unit we offered ('I have a 2022 Kia K5 LXS (White) on the lot') whose first customer reply after it is not a turn-down. The prompt says the conversation moved to it; the Vehicle line points at it instead of 'THIS IS THE VEHICLE FOR THIS LEAD. Do not substitute'; the settled-colour line for the lead's car stands down; no new figure is to be worked out. (3) THEY SAID THEY WILL MAKE THE TRIP: _lpTripIntent reads the customer's own messages on the lead ('if I come get it', 'when I come', 'I'll drive up'); for an out-of-state buyer the no-visit rule gives way to: ask when they are planning to come, say what will be ready, no set times (a new level-2 visit hold). (4) ADD APPT ASK chip (Gil, 10/14: keep the out-of-state logic intact and let the agent choose): sticky for the lead like Drop Appt Ask, and the two cancel each other. On an out-of-state buyer it replaces the no-visit rule with AGENT OVERRIDE -- APPOINTMENT ASK (times inside store hours, not today by default: a new level-1 hold) and lets the suggested times through. Exit and pause still win; on any other hold the log says [LP ADD-APPT DIAG] held by. The text rewrite knows the chip, and a rewrite that drops the first draft's time does not ship. Replayed on the real dump: 801 says 'confirmed in stock ... Say we have it here', 'THIS IS THE VEHICLE FOR THIS LEAD' and no visit ask; 802 says still in service, puts the white 2022 on the table and asks when they are coming (with the chip: an appointment ask with next-day times). TESTS: remote-visit-802 (new) executes the helpers, populateFromData, buildUserPrompt, _lpBuildSmsRefinePrompt and the chip helpers with placeholder data: 32 assertions across both builds; v9.7.801 fails 12 of 16 per build (6 of them new helpers; its 4 controls pass). step2-697: the appointment gate's source check now allows the chip clause. VERIFIED: run-all 235 suites green, 8355 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.801-dev.)
 // Lead Pro -- popup.js  v9.7.801-dev (Dev. THE CAR ON A MASTERMIND LEAD IS THE PROGRAM'S PICK, NOT THE CUSTOMER'S. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Audi Lafayette Mastermind lead 2099729963 (log325): the vehicle on the lead (a 2026 Q5 Sportback Premium 2.0) was the replacement the Automotive Mastermind program suggested, and every draft treated it as the customer's choice -- 'The 2026 Q5 Sportback Premium 2.0 isn't in stock today ... Would you rather look at the other Q5 options, or wait for the Sportback?'. Gil, 10/14: they never picked that car; ask about a new version of what they drive now or another Audi, with the bridge when the model was renamed, and keep the suggested car out even when it is in stock. (1) Until the customer writes on the lead (_lpMmSuggestedVoi), the vehicle is labelled the program's suggestion everywhere it reached the prompt: the Vehicle of Interest line, the Vehicle line ('none chosen by the customer'), the inventory note (no WHAT WE HAVE answer, no stock either way), the distance CONTEXT line, the no-stock-number line and the similar-vehicles angle stand down; touch1's NEW VEHICLE and touch2's model pivot point at the new question; 800's 'Name the vehicle separately' is dropped for it. (2) New Mastermind rules: THE CAR ON THIS LEAD IS THE PROGRAM'S PICK, NOT THEIRS (not named in SMS, email, voicemail or subject, even in stock; no 'wait for it') and, on touch1-touch4, THE AUDI THEY DRIVE NOW, closing on an open question built by _lpMmModelAsk from the trade-in: 'a new [model]' when the feed has it new; the successor with the bridge when the model was renamed (A4 -> 'the new A5, which replaced the A4'; S4 -> S5); otherwise 'a newer Audi'. (3) The lead notice ('[Dealsheet]: ... [Lead pushed by]: ...') is the program's text: the scraper treats it as a program push (no inquiry read from it); populate drops the CUSTOMER'S INQUIRY block, relabels the transcript line MASTERMIND OFFER NOTICE and does not use it as their last message; the text rewrite no longer quotes it as WHAT THE CUSTOMER LAST SAID (it had a 28-day age from an older lead). (4) The text rewrite gets THE CAR ON THIS LEAD IS THE PROGRAM'S PICK, and a rewrite that names the suggested car's model when the first draft did not does not ship ([LP SMS REFINE DIAG] kept the first pass). Once they write on the lead, the normal vehicle handling; other sources unchanged. Replayed on the real dump: 800 says 'They asked about the 2026 Q5 Sportback Premium 2.0 ... NONE in stock today' and 'reference it by name'; 801 labels every mention as the program's pick and asks about the new A5, which replaced the A4. TESTS: mastermind-pick-801 (new) executes the helpers, populateFromData, buildUserPrompt, _lpBuildSmsRefinePrompt, _lpRefineSms (worker stubbed) and the scraper's program-push test (lifted) with placeholder data: 36 assertions across both builds; v9.7.800 fails 12 of 18 per build (4 of them new helpers; its 6 controls pass). VERIFIED: run-all 234 suites green, 8323 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.800-dev.)
 // Lead Pro -- popup.js  v9.7.800-dev (Dev. AUTOMOTIVE MASTERMIND IS AN OFFER THEY WERE SELECTED FOR, NOT AN INQUIRY. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Audi Lafayette Mastermind lead 2099714300 (log324): the voicemail never named the offer ('the offer details'), the prompt called the mailer 'your online inquiry' four times (the source acknowledgement and HOW THIS LEAD REACHED US both read it as a web form), and the text rewrite wrote 'your Audi-owner incentive is tied to the 2027 Q7 Premium'. Gil, 10/14: 'it's not an inquiry it's an offer they were selected for'. (1) The source acknowledgement stands aside for Mastermind (SKIPPED-mastermind); the Mastermind rules own how it reached us. (2) HOW THIS LEAD REACHED US names the GM Private Incentive they received as a current Audi owner -- an offer they were selected for -- and forbids 'online inquiry', 'reached out', 'inquired' and 'showed interest'. (3) Every Mastermind arm carries THIS IS AN OFFER THEY WERE SELECTED FOR, NOT AN INQUIRY and DO NOT TIE THE OFFER TO A VEHICLE (the vehicle is one option to use it on, named separately); the outreach touches (touch1-touch4) add THE OFFER IS THE REASON IN EVERY FORMAT -- SMS, email AND voicemail, with a voicemail example that opens on the offer. An active conversation and the soft exit do not get the outreach line. (4) The text rewrite gets a THE OWNER OFFER section on Mastermind leads, and a rewrite that ties the offer to a vehicle (LP_OFFER_TIE_RX: 'tied to', 'only on/for', 'applies only to', 'is for the') when the first draft did not does not ship ([LP SMS REFINE DIAG] kept the first pass). Replayed on the real dump: 799 has 'online inquiry' 4 times and no OWNER OFFER section; 800 has it only inside the rules forbidding it, the offer as how it reached us, and the rewrite section. TESTS: mastermind-offer-800 (new) executes buildUserPrompt, _lpBuildSmsRefinePrompt and _lpRefineSms (worker stubbed) with placeholder data: 24 assertions across both builds; v9.7.799 fails 7 of 12 per build (its 5 controls pass). first-touch-register: the acknowledgement's early-exit count goes 5 -> 6 for SKIPPED-mastermind. VERIFIED: run-all 233 suites green, 8287 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.799-dev.)
 // Lead Pro -- popup.js  v9.7.799-dev (Dev. THE MODEL YEAR CHANGES OVER: THEIR TRIM IN THE NEXT (OR PREVIOUS) YEAR IS THE ANSWER. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Audi Lafayette lead 2099714300 (log323): a 2026 Audi Q7 Premium 45 TFSI quattro lead ('2026 Audi Q7 Q7 Premium 45 TFSI quattro' on the CRM panel), seven new 2027 Q7 Premium quattros in the feed, and the inventory answer said 'The 2026 Q7 Q7 Premium 45 TFSI quattro: NONE in stock today' -- the draft offered 'other options'. Two causes: the new-car pool kept only the lead's model year, and the trim reader kept the repeated model word and Audi's engine code, so 'Premium 45 TFSI quattro' never matched 'Premium quattro'. Gil, 10/14: 'as we approach the new model years we need to account for this across the board'. (1) _lpTrimOf drops a repeated model word ('Q7 Q7'), Audi engine codes (30/35/40/45/50/55/60, TFSI, TFSI e, TDI) and 'quattro'; '55 Premium Plus' and 'Premium S Line' stay different trims, and other makes read as before. (2) _lpWhatWeHave keeps new units of the model year either side of the lead's aside; when the lead's year has none of their trim and the adjacent year does, the answer is said Gil's way -- 'We have the 2027 Q7 Premium available' -- with the units named, no line saying the year they asked for is not here, and no explanation of the model-year change ([LP WHAT WE HAVE DIAG] model-year change). The lead's own year in stock still wins; two years off is not offered; other trims stay counted and unnamed. Replayed on the real dump: 798 says 'NONE in stock today'; 799 says 'We have the 2027 Q7 Premium available' with all seven units. TESTS: model-year-799 (new) executes _lpTrimOf and buildUserPrompt's inventory answer with placeholder data (an Audi Q7 and a Honda Pilot): 14 assertions across both builds; v9.7.798 fails 3 of 7 per build (its 4 controls pass). VERIFIED: run-all 232 suites green, 8263 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.798-dev.)
@@ -1036,6 +1037,71 @@ function _lpMmVoiRx(v, d) {
   var m = _lpAudiModelOf(v); if (!m) return null;
   var a = _lpMmModelAsk(d); if (m === a.current || m === a.model) return null;
   return new RegExp('(?:^|[^A-Za-z0-9])' + m.replace(/\s/g, '\\s?') + '(?![A-Za-z0-9])', 'i');
+}
+// (v9.7.802) KIA BAYTOWN LEAD 2099780329 (log326, on 801). An out-of-state CarGurus buyer in a live text thread with the sales
+// rep: "The 2023 K5 LXS (Gravity Gray) - This is still in our service department. (Not on the lot yet)", then "I have a 2022 Kia
+// K5 LXS (White) on the lot ... you would be at $22,877", and the customer answered "Good", "I will bring it up dere wen ii come",
+// "Pay cash". The draft said the 2023 "is here in Gravity Gray", never mentioned the white one, and offered a video instead of
+// asking when they are coming. Three readers of this lead's own thread, plus the agent's Add Appt Ask chip (Gil, 10/14: keep the
+// out-of-state logic intact and let the agent choose to ask).
+//
+// The sales rep told the customer the car on the lead is still in service / not on the lot -- on any message of ours on this
+// lead, not only the newest -- and no later message of ours says it is ready. Returns { date, quote } or null.
+var LP_NOT_ON_LOT_RX = /\bnot\s+(?:out\s+)?on\s+(?:the|our)\s+lot\b|\b(?:still\s+)?in\s+(?:our\s+|the\s+)?(?:service|recon(?:ditioning)?)\s+(?:department|dept|shop|bay)\b|\bstill\s+in\s+(?:service|recon(?:ditioning)?)\b|\bbeing\s+(?:serviced|reconditioned|detailed|inspected)\b|\bnot\s+(?:front[-\s]?line|lot)[-\s]?ready\b/i;
+var LP_LOT_READY_RX = /\b(?:is|it['’]s|its)\s+(?:now\s+|finally\s+)?(?:on\s+the\s+lot|out\s+of\s+(?:service|recon)|front[-\s]?line(?:\s+ready)?|ready\s+(?:to\s+(?:go|see|view|test\s+drive)|for\s+(?:you|a\s+test\s+drive)))\b|\b(?:came|got)\s+out\s+of\s+(?:service|recon)\b|\bback\s+from\s+(?:service|recon)\b/i;
+function _lpOurEntries(d) {
+  return _lpThreadEntries((d && (d.history || d.context)) || '').filter(function (x) { return /^AGENT$/i.test(String(x.tag || '').trim()) && x.body; }).sort(function (a, b) { return b.t - a.t; });
+}
+function _lpCustEntries(d) {
+  return _lpThreadEntries((d && (d.history || d.context)) || '').filter(function (x) { return /CUSTOMER/i.test(x.tag) && !/REQUEST FROM INQUIRY/i.test(x.tag) && x.body && !LP_STOP_WORD_RX.test(x.body); }).sort(function (a, b) { return b.t - a.t; });
+}
+function _lpRepNotOnLot(d) {
+  try {
+    if (!d || !d.vehicle) return null;
+    var yr = (String(d.vehicle).match(/\b(?:19|20)\d{2}\b/) || [''])[0], ours = _lpOurEntries(d);
+    for (var i = 0; i < ours.length; i++) {
+      var b = ours[i].body, yrs = b.match(/\b(?:19|20)\d{2}\b/g);
+      if (yrs && yr && yrs.indexOf(yr) < 0) continue;   // about another car
+      if (LP_LOT_READY_RX.test(b)) return null;          // a newer message of ours says it is ready
+      if (LP_NOT_ON_LOT_RX.test(b)) return { date: ours[i].date, quote: b.slice(0, 200) };
+    }
+  } catch (e) {}
+  return null;
+}
+// A different unit we offered on this lead, and the customer's first reply after it does not turn it down.
+// Returns { date, unit, quote, reply } or null.
+var LP_OFFER_UNIT_RX = /\b(?:I|we)\s+(?:also\s+|do\s+)?(?:have|got|found)\s+(?:a|an|one|another)\s+((?:19|20)\d{2}\s+[^.!?\n]{3,60}?)(?=\s+(?:on\s+(?:the|our)\s+lot|in\s+stock|here|available|that|with|for|at)\b|\s*[.!?,;]|\s*$)|\bthere['’]?s\s+(?:a|an|one|another)\s+((?:19|20)\d{2}\s+[^.!?\n]{3,60}?)(?=\s+(?:on\s+(?:the|our)\s+lot|in\s+stock|here|available)\b|\s*[.!?,;]|\s*$)/i;
+var LP_TURN_DOWN_RX = /^\s*(?:no\b|nope\b|nah\b|not\s+interested|pass\b|too\s+(?:much|high|expensive)|i['’]?ll\s+pass|no\s+thanks?)/i;
+function _lpOfferedUnit(d) {
+  try {
+    if (!d || !d.vehicle) return null;
+    var lead = String(d.vehicle).toLowerCase(), yr = (lead.match(/\b(?:19|20)\d{2}\b/) || [''])[0];
+    var ours = _lpOurEntries(d), cust = _lpCustEntries(d);
+    for (var i = 0; i < ours.length; i++) {
+      var m = LP_OFFER_UNIT_RX.exec(ours[i].body); if (!m) continue;
+      var unit = String(m[1] || m[2] || '').trim(), uy = (unit.match(/^(?:19|20)\d{2}/) || [''])[0];
+      var base = unit.replace(/\s*\([^)]*\)\s*$/, '').toLowerCase(), col = (unit.match(/\(([^)]*)\)\s*$/) || ['', ''])[1].toLowerCase();
+      if (uy === yr && lead.indexOf(base) >= 0 && (!col || String(d.color || '').toLowerCase().indexOf(col) >= 0)) continue;   // the lead's own car
+      var t0 = ours[i].t, after = cust.filter(function (x) { return x.t > t0; }).sort(function (a, b) { return a.t - b.t; });
+      if (!after.length || LP_TURN_DOWN_RX.test(after[0].body)) return null;
+      return { date: ours[i].date, unit: unit, quote: ours[i].body.slice(0, 200), reply: after[0].body.slice(0, 80) };
+    }
+  } catch (e) {}
+  return null;
+}
+// The customer said, in their own words on this lead, that they will come in ("if I come get it from Texas", "when I come").
+var LP_TRIP_RX = /\b(?:if|when|wen|once|before|after)\s+(?:i+|we)\s+(?:come|drive|make\s+(?:the|a)\s+trip|get\s+(?:up|down|over)\s+there|head\s+(?:up|down|over))\b|\bcome\s+(?:get|pick\s+up)\s+(?:it|the\s+car|that\s+one|her|him)\b|\b(?:i|we)(?:['’]ll|\s+will|\s+can|['’]m\s+(?:going\s+to|gonna)|\s+am\s+(?:going\s+to|gonna)|\s+plan\s+to)\s+(?:come|drive|make\s+the\s+trip|be\s+(?:up|down|over)\s+there)\b/i;
+function _lpTripIntent(d) {
+  try { var c = _lpCustEntries(d); for (var i = 0; i < c.length; i++) if (LP_TRIP_RX.test(c[i].body)) return c[i].body.slice(0, 140); } catch (e) {}
+  return '';
+}
+// The agent pressed Add Appt Ask on this lead (sticky until another lead is grabbed; Drop Appt Ask clears it).
+function _lpAddApptOn(d) {
+  try {
+    var a = (typeof window !== 'undefined' && window._lpAddApptLeadId) || '';
+    var lid = String((d && d.autoLeadId) || (typeof window !== 'undefined' && window._activeLeadId) || '');
+    return !!(a && lid && String(a) === lid);
+  } catch (e) { return false; }
 }
 function _lpDropProgramNotice(brief) {
   return String(brief || '')
@@ -6627,6 +6693,11 @@ function populateFromData(d) {
       if (d.conversationBrief) d.conversationBrief = _lpDropProgramNotice(d.conversationBrief);
     }
   } catch (eMmN) {}
+  // (v9.7.802) See _lpRepNotOnLot.
+  try {
+    d._lpRepNotOnLot = _lpRepNotOnLot(d);
+    if (d._lpRepNotOnLot) console.log('[LP NOT ON LOT DIAG] the sales rep told the customer on ' + d._lpRepNotOnLot.date + ' that the ' + d.vehicle + ' is not on the lot yet -- "' + d._lpRepNotOnLot.quote.slice(0, 120) + '"');
+  } catch (eNol) {}
   console.log('[Lead Pro] populateFromData — notes:', d.totalNoteCount, '| brief:', d.conversationBrief ? d.conversationBrief.substring(0,100) : 'NONE', '| convState:', d.convState, '| engagement:', d.engagementStrength || 'n/a'); // (v9.7.478/473) engagement visibility — the CRM ENGAGEMENT RATING prompt line sits past the 300-char context excerpt, so logs couldn't confirm it was flowing
   // ── (v9.7.633) THE ONE PLACE THE DELIVERED BRIEF IS KNOWN ──────────────────────────────────
   // The per-frame [LP BRIEF FENCE DIAG] reports what EACH frame built. It cannot report what
@@ -7165,6 +7236,16 @@ function populateFromData(d) {
   var _mmSugVoi = ((typeof _lpMmSuggestedVoi === 'function') ? _lpMmSuggestedVoi(d) : '');   // (v9.7.801) the Mastermind program's pick, not theirs
   if (d.vehicle && !_voiIsProgramPlaceholder && _mmSugVoi) vehicleExtras.push('Suggested by the Mastermind program as a possible replacement (NOT the customer\'s choice -- they never asked for it; do not name it): ' + d.vehicle + (d.condition ? ' (' + d.condition + ')' : ''));
   else if (d.vehicle && !_voiIsProgramPlaceholder) vehicleExtras.push('Vehicle of Interest: ' + d.vehicle + (d.condition ? ' (' + d.condition + ')' : ''));
+  // (v9.7.802) See _lpOfferedUnit.
+  try {
+    var _ofrUnit = _lpOfferedUnit(d);
+    if (_ofrUnit) {
+      vehicleExtras.push('THE CAR ON THE TABLE NOW: on ' + _ofrUnit.date + ' we offered this customer a different unit -- "' + _ofrUnit.quote.replace(/"/g, "'") + '" -- and their reply after it was "'
+        + _ofrUnit.reply.replace(/"/g, "'") + '". The conversation moved to the ' + _ofrUnit.unit + ': this message continues on THAT car. The ' + d.vehicle + ' on the lead is background now -- do not steer them back to it, '
+        + 'and nothing below about it being the vehicle for this lead overrides this. Do not work out or quote any new figure.');
+      console.log('[LP OFFERED UNIT DIAG] we offered the ' + _ofrUnit.unit + ' on ' + _ofrUnit.date + ' and they answered "' + _ofrUnit.reply + '" -- the conversation is about that car now');
+    }
+  } catch (eOfr) {}
   // (v9.7.410/408) LP VOI / cross-frame conflict directives \u2014 three mutually exclusive states:
   // agent declared (authoritative), agent declared earlier but superseded (soft, arc decides),
   // or unresolved cross-frame conflict (ask, don't assert). An LP VOI note suppresses the
@@ -7226,7 +7307,7 @@ function populateFromData(d) {
     // The correct predicate already existed FIFTEEN LINES BELOW as _confirmedPresent, guarding the
     // presence-language block. It is hoisted here so the two cannot disagree — one computation, two
     // consumers. A stock number identifies a unit; it does not attest that we still have it.
-    var _agentSaidNotAvailPres = /not on (the )?lot|don.t have (one|it)|do not have|unfortunately we do not|unfortunately.*not.*available|not.*currently.*available|not.*have.*right now|can.*reach out.*should one become/i.test(d.lastOutboundMsg || '');
+    var _agentSaidNotAvailPres = /not on (the )?lot|don.t have (one|it)|do not have|unfortunately we do not|unfortunately.*not.*available|not.*currently.*available|not.*have.*right now|can.*reach out.*should one become/i.test(d.lastOutboundMsg || '') || !!d._lpRepNotOnLot;   // (v9.7.802) an earlier message of ours said so
     // (v9.7.696) PRESENCE NOW NEEDS THE LIVE FEED TO HOLD THIS UNIT AND IT TO BE THE LEAD'S VEHICLE
     // (_lpFeedUnitCheck). It used to be "a stock number exists and nothing says otherwise", which
     // turned every stray or stale stock number into "it's here".
@@ -7245,6 +7326,8 @@ function populateFromData(d) {
       ? ' — this is the CUSTOMER\'S OWN vehicle (sold, leased or financed to them), NOT a unit for sale; an inventory flag on it is expected. Never say it is here, available, or sold'
       : _confirmedPresent
       ? ' — confirmed in stock'
+      : d._lpRepNotOnLot   // (v9.7.802)
+      ? ' -- ours (in today\'s inventory, not sold), but the sales rep told the customer it is still in service and not on the lot yet (see PRESENCE LANGUAGE). Do NOT tell the customer it is here'
       : (d.inventoryWarning && !d.vehiclePendingSale && !d.isInTransit)
         ? ' — VinSolutions flags this unit as NO LONGER IN ACTIVE INVENTORY; the VEHICLE STATUS line below says how to handle that. Do NOT tell the customer it is here'
         : ' — NOT confirmed available (not in today\'s live inventory feed as this vehicle, or sold, pending, or in transit). Do NOT tell the customer it is here';
@@ -7258,14 +7341,16 @@ function populateFromData(d) {
   // (v9.7.286) VEHICLE-PRESENCE LANGUAGE GUARD. "Pulled up" implies the unit is physically on the lot
   // and waiting — misleading when in transit / at another store / unconfirmed. Gate on confirmed presence.
   if ((d.vehicle && String(d.vehicle).trim()) || d.stockNum || (d.vehicleRaw && String(d.vehicleRaw).trim())) {
-    var _agentSaidNotAvailPres = /not on (the )?lot|don.t have (one|it)|do not have|unfortunately we do not|unfortunately.*not.*available|not.*currently.*available|not.*have.*right now|can.*reach out.*should one become/i.test(d.lastOutboundMsg || '');
+    var _agentSaidNotAvailPres = /not on (the )?lot|don.t have (one|it)|do not have|unfortunately we do not|unfortunately.*not.*available|not.*currently.*available|not.*have.*right now|can.*reach out.*should one become/i.test(d.lastOutboundMsg || '') || !!d._lpRepNotOnLot;   // (v9.7.802) an earlier message of ours said so
     // (v9.7.696) PRESENCE NOW NEEDS THE LIVE FEED TO HOLD THIS UNIT AND IT TO BE THE LEAD'S VEHICLE
     // (_lpFeedUnitCheck). It used to be "a stock number exists and nothing says otherwise", which
     // turned every stray or stale stock number into "it's here".
     var _confirmedPresent = _lpFeedUnitCheck(d).confirmed && !d.isInTransit && !d.inventoryWarning && !d.vehiclePendingSale && !_agentSaidNotAvailPres;
     vehicleExtras.push(_confirmedPresent
       ? 'PRESENCE LANGUAGE: Skip the "pulled up" cliché. This unit\'s stock is confirmed, so "have it ready for you to see" or "have everything ready" both work — just don\'t lean on "pulled up."'
-      : (_agentSaidNotAvailPres
+      : (d._lpRepNotOnLot   // (v9.7.802) the rep told them it is still in service
+          ? 'PRESENCE LANGUAGE: On ' + d._lpRepNotOnLot.date + ' the sales rep told this customer the car is still in service and not on the lot yet ("' + d._lpRepNotOnLot.quote.replace(/"/g, "'") + '"). It is still ours -- not sold -- but do NOT say it is here, on the lot, ready or available to see. If it comes up, say it is still being serviced.'
+          : _agentSaidNotAvailPres
           ? 'PRESENCE LANGUAGE: An agent already told this customer the vehicle is NOT on the lot. Do NOT say it is available, in stock, or ready to see. Continue from what was already said — offer to notify when one arrives or pivot to configuration/alternatives.'
           : 'PRESENCE LANGUAGE: Do NOT say you\'ll have the vehicle "pulled up" or imply the specific unit is physically here and waiting — its presence on the lot is NOT confirmed (it may be in transit or at another store). Keep the appointment urgency with readiness language that\'s true wherever the car is — "have everything ready," "get you in," "set you up" — and do not claim the specific vehicle is ready to view.'));
   }
@@ -8049,6 +8134,8 @@ function populateFromData(d) {
         : '✅ CONFIRMED IN TODAY\u2019S LIVE INVENTORY LOAD: stock ' + d.stockNum + ' is present in the current dealer inventory feed — this vehicle IS in stock right now. Treat')
       + ' this as more current and more reliable than any other status signal on this lead. Do not say or imply it sold, moved, is no longer available, or pivot to '
       + (_lpColorLive ? 'a different unit on availability grounds.' : 'alternate colors/units on availability grounds.'));
+    if (d._lpRepNotOnLot) vehicleExtras[vehicleExtras.length - 1] = 'IN TODAY\'S INVENTORY FEED, BUT STILL IN SERVICE: stock ' + d.stockNum + ' is ours -- in the feed, not sold -- but on ' + d._lpRepNotOnLot.date
+      + ' the sales rep told the customer it is still in service and not on the lot yet. Do not say it sold or is gone; do not say it is here, on the lot or ready to see.';   // (v9.7.802)
     if (_lpColorLive) {
       vehicleExtras.push('🎨 WHAT COLOUR THAT CONFIRMED UNIT ACTUALLY IS: stock ' + d.stockNum + ' is ' + _lpStockColor
         + '. That comes from the inventory feed and it is the paint on the physical car. It is NOT the same fact as the "Color:" line in the lead details — that one records what the CUSTOMER asked for, so the two agreeing proves nothing about what is on the lot. This customer asked for ' + _lpSaidColor
@@ -8095,7 +8182,8 @@ function populateFromData(d) {
         _lcSame = (_lpCleanColor(_lcLead).toLowerCase() === _lpStockColor.toLowerCase()) || _lcShared;
       }
       if (_lcSame) {
-        vehicleExtras.push('\ud83c\udfa8 THE COLOUR IS ALREADY SETTLED — USE IT, DO NOT ASK ABOUT IT: the unit confirmed above is ' + _lpStockColor
+        // (v9.7.802) not when the talk moved to another unit, or this one is still in service
+        if (!((typeof _ofrUnit !== 'undefined' && _ofrUnit) || d._lpRepNotOnLot)) vehicleExtras.push('\ud83c\udfa8 THE COLOUR IS ALREADY SETTLED — USE IT, DO NOT ASK ABOUT IT: the unit confirmed above is ' + _lpStockColor
           + (d.colorAskSettled
               ? ', and the colour question is closed: they first asked for ' + d.colorAskSettled + ', then ' + (d.voiSwap ? 'the store changed the vehicle on this lead to this car' : 'sent us the listing for this car') + ', and our reply told them it is ' + _lpStockColor + '. They have not asked for ' + d.colorAskSettled + ' since, so do not offer or look for a ' + d.colorAskSettled + ' one.'
               : ', and the customer has not raised colour, trim or configuration anywhere in this conversation.')
@@ -22016,6 +22104,7 @@ function _lpActiveChips(d) {
     var na = (typeof window !== 'undefined' && window._lpNoApptLeadId) || '';
     var lid = String((d && d.autoLeadId) || (typeof window !== 'undefined' && window._activeLeadId) || '');
     if (na && lid && String(na) === lid && keys.indexOf('no-appt') < 0) keys.push('no-appt');
+    if ((typeof _lpAddApptOn === 'function') && _lpAddApptOn(d) && keys.indexOf('add-appt') < 0) keys.push('add-appt');   // (v9.7.802)
   } catch (e) {}
   return keys;
 }
@@ -22028,6 +22117,7 @@ var LP_CHIP_KEEP = {
   'lead-distance': 'Do not name the distance, the drive or the trip.',
   'lead-credit': 'No approval or qualification language.',
   'no-appt': 'No appointment time and no ask to come in at a set time: close with a question that invites a reply.',
+  'add-appt': 'Keep the appointment ask and the times the first draft offered.',
   'add-urgency': 'Keep the real reason to act that the first draft gave, and do not invent one.'
 };
 // (v9.7.778) A MISSED APPOINTMENT ON THIS LEAD IS ACKNOWLEDGED IN THE TEXT TOO. Honda Lafayette lead 2091288708 (log300/301,
@@ -22068,6 +22158,7 @@ function _lpChipBroken(key, pass1, out) {
   if (key === 'shorter' && b.length > a.length) return 'the agent asked for it shorter and the rewrite came back longer (' + a.length + ' -> ' + b.length + ' chars)';
   if (key === 'expand' && b.length < a.length * 0.85) return 'the agent asked for more substance and the rewrite cut it (' + a.length + ' -> ' + b.length + ' chars)';
   if (key === 'no-appt' && LP_CHIP_TIME_RE.test(b) && !LP_CHIP_TIME_RE.test(a)) return 'the agent dropped the appointment ask and the rewrite put a time back';
+  if (key === 'add-appt' && LP_CHIP_TIME_RE.test(a) && !LP_CHIP_TIME_RE.test(b)) return 'the agent asked for an appointment ask and the rewrite dropped the time';   // (v9.7.802)
   if (key === 'lead-distance' && LP_CHIP_DIST_RE.test(b) && !LP_CHIP_DIST_RE.test(a)) return 'the rewrite named the drive or the distance';
   if (key === 'lead-credit' && LP_CHIP_CREDIT_RE.test(b) && !LP_CHIP_CREDIT_RE.test(a)) return 'the rewrite put approval or qualification language back';
   if (key === 'lead-trade' && /\btrade\b/i.test(a) && !/\btrade\b/i.test(b)) return 'the agent asked to lead with the trade and the rewrite dropped it';
@@ -22253,7 +22344,13 @@ function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
   } catch (eRfP) {}
 
   // (v9.7.755) The unit is confirmed in stock (lead 2093398081): the text may not say it is gone.
-  if (d && d._lpInvConfirmedAvailable && d.vehicle) {
+  var _rfNol = null;   // (v9.7.802) the rep told them it is still in service
+  try { _rfNol = (d && d._lpRepNotOnLot) || ((typeof _lpRepNotOnLot === 'function') ? _lpRepNotOnLot(d) : null); } catch (eRfNl) {}
+  if (d && d._lpInvConfirmedAvailable && d.vehicle && _rfNol) {
+    out.push('\u2501\u2501\u2501 THE VEHICLE IS OURS, BUT STILL IN SERVICE \u2501\u2501\u2501');
+    out.push('The ' + String(d.vehicle) + ' is ours (not sold), but the sales rep told the customer it is still in service and not on the lot yet. Your text must agree: do NOT say it is gone or sold, and do NOT say it is here or ready to see.');
+    out.push('');
+  } else if (d && d._lpInvConfirmedAvailable && d.vehicle) {
     out.push('\u2501\u2501\u2501 THE VEHICLE IS IN STOCK \u2501\u2501\u2501');
     out.push('The ' + String(d.vehicle) + ' is confirmed in stock today, and the email says it is here. Your text must agree: do NOT say it is gone, sold or no longer available.');
     out.push('');
@@ -23423,6 +23520,9 @@ var _LP_VISIT_HOLDS = [
   // (v9.7.781) lead 2097428117, an out-of-state buyer: "Do NOT push an in-person visit or offer appointment times as the
   // ask" sat beside the store-hours "today is the default: lead with a today time", and no hold read it
   [3, /^Do NOT push an in-person visit or offer appointment times as the ask/, 'the REMOTE / OUT-OF-STATE BUYER block'],
+  // (v9.7.802) the out-of-state buyer the agent chose to invite in, and the one who said they will make the trip
+  [1, /^AGENT OVERRIDE -- APPOINTMENT ASK FOR AN OUT-OF-STATE BUYER/, 'the agent\'s ADD APPT ASK chip (out-of-state: times, but not today by default)'],
+  [2, /^THEY SAID THEY WILL MAKE THE TRIP:/, 'the REMOTE BUYER who said they will make the trip (ask when, no set times)'],
   [2, /^DO NOT offer appointment times\. DO NOT write duration\./, 'the stalled-lead re-engagement block'],
   [2, /The visit already happened\. Do NOT push a same-day appointment or offer times/, 'the SHOWROOM FOLLOW-UP block'],
   [2, /FIRST HUMAN TOUCH — LIGHT ASK, NO TIMES/, 'FIRST HUMAN TOUCH'],
@@ -23551,6 +23651,7 @@ function _lpVisitDecisionDumpText(v) {
 }
 
 function buildUserPrompt(data) {
+  if (data && data._lpRepNotOnLot === undefined) { try { data._lpRepNotOnLot = (typeof _lpRepNotOnLot === 'function') ? _lpRepNotOnLot(data) : null; } catch (eNol2) {} }   // (v9.7.802)
   const sc   = classifyScenario(data);
   const hasRealOutbound = !!(data.hasOutbound);
   // (v9.7.460 fix) Distinguishes "genuinely nothing sent yet" from "several call
@@ -24431,7 +24532,7 @@ function buildUserPrompt(data) {
     // keeps the original "yes it is here" language; unconfirmed gets an honest lineup-level
     // framing that still gives the customer a reason to come in.
     var _fbAgentSaidNotAvail = /not on (the )?lot|don.t have (one|it)|do not have|unfortunately we do not|unfortunately.*not.*available|not.*currently.*available|not.*have.*right now|can.*reach out.*should one become/i.test(data.lastOutboundMsg || '');
-    var _fbConfirmedPresent = !!data.stockNum && !!data._lpInvConfirmedAvailable && !data.isInTransit && !data.inventoryWarning && !data.vehiclePendingSale && !_fbAgentSaidNotAvail;   // (v9.7.697) feed must confirm, as everywhere since v9.7.696
+    var _fbConfirmedPresent = !!data.stockNum && !!data._lpInvConfirmedAvailable && !data.isInTransit && !data.inventoryWarning && !data.vehiclePendingSale && !_fbAgentSaidNotAvail && !data._lpRepNotOnLot;   // (v9.7.697) (v9.7.802) feed must confirm, as everywhere since v9.7.696
     scenarioRules = fbFollowUp
       ? '- Follow-up: read the transcript and continue naturally from where things left off.'
       : [
@@ -25382,6 +25483,8 @@ function buildUserPrompt(data) {
 
   if (((typeof _lpMmSuggestedVoi === 'function') ? _lpMmSuggestedVoi(data) : '')) {   // (v9.7.801) the program's pick: no stock answer about it, in stock or not
     inventoryNote = 'VEHICLE NOTE: The ' + _lpMmVoiShort(data.vehicle) + ' on this lead is the Mastermind program\'s suggested replacement, not their choice. Do NOT name it or say whether it is in stock -- not even if it is here. Ask what they would want instead (THE AUDI THEY DRIVE NOW above). Never give a stock number or a price.';
+  } else if (data._lpRepNotOnLot) {   // (v9.7.802) the rep told them it is still in service
+    inventoryNote = 'VEHICLE NOTE: The ' + data.vehicle + ' is ours (in today\'s inventory, not sold), but on ' + data._lpRepNotOnLot.date + ' the sales rep told the customer it is still in service and not on the lot yet. Do NOT say it is here, on the lot, ready or available to see, and do not say it sold. Never give a stock number.';
   } else if (sc.isLoyaltyVehicle) {
     inventoryNote = 'VEHICLE NOTE: This is the customer\'s current owned vehicle — not dealership inventory. Never reference its availability.';
   } else if (sc.staleModelYear && sc.stockNum && !data.inventoryWarning && data._lpInvConfirmedAvailable) {   // (v9.7.696) feed-confirmed only
@@ -28376,6 +28479,16 @@ function buildUserPrompt(data) {
     // CUSTOMER wrote; the ZIP/state facts above are what carry a remote lead the customer never
     // spoke about, and a manual chip still overrides everything.
     var isRemoteBuyer = _manualDistance || _geoOutOfState || /ship(?:ping)? to|not (?:local|in the (?:local )?area|nearby)|not (?:located|based) (?:in|near)|out of state|out.of.state/i.test(_lpCustomerText(data));
+    // (v9.7.802) An out-of-state buyer the agent chose to invite in (Add Appt Ask), or one who said in their own words that they
+    // will make the trip. Neither changes the out-of-state rule for anyone else.
+    var _rbVisit = '';
+    try {
+      if (isRemoteBuyer && !((typeof _lpTouchHold === 'function') && _lpTouchHold(data))) {
+        if ((typeof _lpAddApptOn === 'function') && _lpAddApptOn(data)) _rbVisit = 'chip';
+        else if ((typeof _lpTripIntent === 'function') && _lpTripIntent(data)) _rbVisit = 'trip';
+      }
+      if (_rbVisit) console.log('[LP REMOTE VISIT DIAG] ' + (_rbVisit === 'chip' ? 'the agent pressed Add Appt Ask -- the out-of-state no-visit rule stands aside for this lead' : 'they said they will make the trip ("' + _lpTripIntent(data) + '") -- ask when, no set times'));
+    } catch (eRbV) {}
     // ── (v9.7.655) AN EXITING LEAD GETS NO CONTEXT LINE AT ALL ──────────────────────────────
     // Checked FIRST, above the credit arm, because that arm ends "before asking them to drive"
     // and is just as wrong on a goodbye as the vehicle arm is. This is the ownership rule applied
@@ -28391,6 +28504,10 @@ function buildUserPrompt(data) {
             : ' before asking them to drive.');
     } else if (((typeof _lpMmSuggestedVoi === 'function') ? _lpMmSuggestedVoi(data) : '')) {   // (v9.7.801)
       distanceContext = 'Distance buyer: the visit must be worth their time -- the owner offer, an appraisal of their current Audi and the models they would want, ready when they arrive. The vehicle on this lead is the program\'s pick, not theirs: do not name it.';
+    } else if ((typeof _lpOfferedUnit === 'function') && _lpOfferedUnit(data)) {   // (v9.7.802) the conversation moved to the unit we offered
+      distanceContext = 'The conversation is about the ' + _lpOfferedUnit(data).unit + ' we offered (see THE CAR ON THE TABLE NOW)'
+        + (isRemoteBuyer && _rbVisit === 'chip' ? '. The agent wants a visit asked for (see the AGENT OVERRIDE above)' : isRemoteBuyer && _rbVisit === 'trip' ? '. They said they will make the trip: ask when they plan to come, and say what will be ready for them' : isRemoteBuyer ? '. They are remote: the next step is remote (details, video, numbers), not a visit time' : '')
+        + ' -- do NOT promise to hold or set aside an in-stock unit (we do not reserve on-lot cars).';
     } else if (data.vehicle && _dbSoldUnit) {
       // (v9.7.631) The distance FACT still applies and still shapes the offer — they are far, so
       // a wasted trip costs them more than most. What changes is what the trip can be FOR. No
@@ -28415,7 +28532,7 @@ function buildUserPrompt(data) {
       // (v9.7.697) Presence only when the feed confirms it; and a REMOTE buyer is not asked for a visit
       // time here — Jalen Garner (Audi Lafayette, Mississippi, 9/23) got "do not imply a near-term visit"
       // and "encourage the soonest workable time" in the same prompt.
-      distanceContext = 'Customer is interested in the ' + data.vehicle + '. ' + (data._lpInvConfirmedAvailable ? 'Confirm it is available' : 'Its presence on the lot is NOT confirmed by today\'s inventory feed \u2014 do not say it is here') + (isRemoteBuyer ? '. They are remote: the next step is remote (details, video, numbers), not a visit time' : ' and encourage the soonest workable time, with what will be ready for them as the reason (never the drive or the trip)') + ' — do NOT promise to hold or set aside an in-stock unit (we do not reserve on-lot cars). If it is in transit/inbound, securing it before arrival is appropriate.';
+      distanceContext = 'Customer is interested in the ' + data.vehicle + '. ' + (data._lpInvConfirmedAvailable && data._lpRepNotOnLot ? 'It is ours, but the sales rep told them it is still in service and not on the lot yet \u2014 do not say it is here' : data._lpInvConfirmedAvailable ? 'Confirm it is available' : 'Its presence on the lot is NOT confirmed by today\'s inventory feed \u2014 do not say it is here') + (isRemoteBuyer && _rbVisit === 'chip' ? '. The agent wants a visit asked for (see the AGENT OVERRIDE above)' : isRemoteBuyer && _rbVisit === 'trip' ? '. They said they will make the trip: ask when they plan to come, and say what will be ready for them' : isRemoteBuyer ? '. They are remote: the next step is remote (details, video, numbers), not a visit time' : ' and encourage the soonest workable time, with what will be ready for them as the reason (never the drive or the trip)') + ' — do NOT promise to hold or set aside an in-stock unit (we do not reserve on-lot cars). If it is in transit/inbound, securing it before arrival is appropriate.';
     }
     if (isRemoteBuyer) {
       // (v9.7.225) Conditional visit: some remote buyers WILL drive in, but only after the
@@ -28424,14 +28541,16 @@ function buildUserPrompt(data) {
       // that stance and soften the no-visit directive into a numbers-first sequence.
       var _conditionalVisit = /if .{0,40}(price|number|deal|right)|come in .{0,30}(if|once|after)|then .{0,15}come in|would .{0,15}come in|come down .{0,30}(if|once)/i.test((data.lastInboundMsg || ''));
       lines.push('🔴 REMOTE / OUT-OF-STATE BUYER: Customer is NOT local.',
-        '- Do NOT push an in-person visit or offer appointment times as the ask — they are remote.',
-        '- Do NOT say "stop by", "swing by", "come see us", "when you arrive", or anything implying a near-term physical visit as the next step.',
+        _rbVisit === 'chip' ? '- AGENT OVERRIDE -- APPOINTMENT ASK FOR AN OUT-OF-STATE BUYER: the agent chose to invite this customer in. Ask for the visit with one or two specific times inside store hours. They are not local, so give them room to make the trip: offer the next open day or later, not later today, unless they said they are on the way. Make the trip worth it -- say what will be ready for them when they arrive.'
+          : _rbVisit === 'trip' ? '- THEY SAID THEY WILL MAKE THE TRIP: in their own words on this lead -- "' + _lpTripIntent(data).replace(/"/g, "'") + '". The visit is on the table: ask when they are planning to come, and give them a reason the trip is worth it (what will be ready for them). Let them name the day -- do NOT push set appointment times on them.'
+          : '- Do NOT push an in-person visit or offer appointment times as the ask — they are remote.',
+        _rbVisit ? '' : '- Do NOT say "stop by", "swing by", "come see us", "when you arrive", or anything implying a near-term physical visit as the next step.',
         '- TRANSPORT/SHIPPING IS A LATE-STAGE TOPIC — do NOT explain how the vehicle gets to them (third-party shipper, transport coordination, the fact that we do not deliver) at first or early touch; that exposes a limitation before the deal is alive. If the customer flagged delivery, acknowledge it lightly and reassuringly — e.g. "we will sort out the logistics once we lock in the deal" — and keep the early message on confirming the vehicle and opening the numbers/trade conversation.',
         '- When transport IS the real next step (the deal is moving): the dealer does NOT arrange or pay for shipping — the customer arranges their own transport (e.g. uShip, Montway) and we assist with the process. NEVER say "we ship to you" or "we handle shipping"; say "we can help coordinate transport." Do not volunteer that we do not deliver before it is relevant.',
-        '- Focus on what CAN be done remotely: photos/video walkaround, financing application, deal structure.',
-        '- Ask ONE qualifying question to move the deal forward: financing or cash? Trade-in? Which trim/color? Timeline?',
+        _rbVisit ? '' : '- Focus on what CAN be done remotely: photos/video walkaround, financing application, deal structure.',
+        _rbVisit ? '' : '- Ask ONE qualifying question to move the deal forward: financing or cash? Trade-in? Which trim/color? Timeline?',
         '- Tone: efficient and helpful. They want to know if this is doable — not a sales pitch about the vehicle.',
-        _conditionalVisit ? '- CONDITIONAL VISIT: This customer has said they WOULD come in, but only once the numbers work. Do NOT push times now — that front-runs their condition. Lead with the numbers remotely (pricing, what is negotiable, deal structure); frame the visit as the payoff AFTER you have agreed on a number, not the next step. Honor the sequence they set: deal first, drive second.' : '',
+        (_conditionalVisit && !_rbVisit) ? '- CONDITIONAL VISIT: This customer has said they WOULD come in, but only once the numbers work. Do NOT push times now — that front-runs their condition. Lead with the numbers remotely (pricing, what is negotiable, deal structure); frame the visit as the payoff AFTER you have agreed on a number, not the next step. Honor the sequence they set: deal first, drive second.' : '',
         distanceContext ? '- CONTEXT: ' + distanceContext : '',
         '');
     } else {
@@ -28773,6 +28892,8 @@ function buildUserPrompt(data) {
           : 'Customer browsing interest: ' + (data.vehicle || '(not specified)') + '  ← This is what they have been shopping online — not necessarily what is on our lot today. Reference the model naturally if it fits, but never claim a specific unit, color, trim, or stock is available without confirmation.')
       : ((typeof _lpMmSuggestedVoi === 'function') ? _lpMmSuggestedVoi(data) : '')   // (v9.7.801)
         ? 'Vehicle:    (none chosen by the customer) ← The ' + data.vehicle + ' on this lead was picked by the Automotive Mastermind program as a possible replacement -- the customer never asked for it. Do NOT name it; ask what they would want instead.'
+      : ((typeof _lpOfferedUnit === 'function') && data.vehicle && _lpOfferedUnit(data))   // (v9.7.802)
+        ? 'Vehicle:    ' + data.vehicle + '  ← the vehicle the lead came in on. The conversation has since moved to the ' + _lpOfferedUnit(data).unit + ' we offered (see THE CAR ON THE TABLE NOW above) -- this message is about that one.'
       : (data.vehicle && _voiMis.length)
         ? 'Vehicle:    ' + data.vehicle + '  ← THIS IS THE VEHICLE CURRENTLY PINNED TO THE LEAD, AND IT IS NOT THE ONLY ONE ON FILE.\n'
           + '⚠ TWO DIFFERENT VEHICLES ARE ON THIS LEAD AND NOBODY HAS ASKED THE CUSTOMER WHICH ONE. The CRM also carries '
@@ -29152,7 +29273,7 @@ function buildUserPrompt(data) {
   // today" beneath the block that says not to push a visit. isRemoteBuyer is declared (var) inside the
   // distance-flag block above, so on a non-distance lead it is undefined here — falsy — as intended.
   var _lpTimesOffered = false; // (v9.7.698) M6: set where suggested times are actually handed to the model
-  if (!sc.isApptConfirmation && !sc.isExitSignal && !sc.isPauseSignal && !sc.isSoldDelivered && !sc.vehicleSold && !hasVerbalCommitment && !closeOverride && !isZeroContactStalled && !isRemoteBuyer) {
+  if (!sc.isApptConfirmation && !sc.isExitSignal && !sc.isPauseSignal && !sc.isSoldDelivered && !sc.vehicleSold && !hasVerbalCommitment && !closeOverride && !isZeroContactStalled && (!isRemoteBuyer || _rbVisit === 'chip')) {   // (v9.7.802) Add Appt Ask brings the times back
     // Suppress appointment-time injection on cross-brand AI Buying Signal leads.
     // The matrix's PLAY A (honest pivot) and PLAY C (questioning open) need the model
     // to ASK before committing — appointment times pull the model toward closing on
@@ -29623,6 +29744,7 @@ function buildUserPrompt(data) {
       console.log('[LP VISIT DECISION DIAG] level ' + _vd.level + ' (' + _LP_VISIT_DECISION_TEXT[_vd.level] + ') | owner: ' + _vd.owner
         + ' | removed or neutralised: ' + (_vd.edits.length ? _vd.edits.join(' · ') : 'nothing conflicted'));
     }
+    if ((typeof _lpAddApptOn === 'function') && _lpAddApptOn(data) && _vd.level >= 2) console.log('[LP ADD-APPT DIAG] the agent asked for an appointment ask; held by ' + _vd.owner);   // (v9.7.802)
   } catch (eVd) { _lpLastVisitDecision = { error: (eVd && eVd.message) || String(eVd) }; }
   return _vdOut;
 }
@@ -32753,6 +32875,8 @@ var _regenDirectives = {
   'lead-distance': 'Make the visit clearly worth their time: lead with exactly what will be ready for them when they arrive — the vehicle confirmed, the numbers, the paperwork. Do NOT name the distance, the drive or the trip.',
   'lead-credit':   'Soften the credit framing. No approval language, no qualification language. Use options-based language. The visit is about exploring what fits, not vetting them. Reassure without being patronizing.',
   'no-appt':       'Remove the appointment ask entirely. Replace the close with a question that invites the next reply rather than a commitment. Lead Pro should sound like it\'s opening a conversation, not closing one.',
+  // (v9.7.802) the agent choosing to ask for the visit where the out-of-state rule holds it back (see _lpAddApptOn)
+  'add-appt':      'Ask for the appointment: invite the customer in with one or two specific times inside store hours, and say what will be ready for them. If the VISIT DECISION line in this prompt still holds the visit back, follow it.',
   'add-urgency':   'Add a justified, real urgency element — vehicle activity, schedule constraint, market context. NEVER fabricate urgency. If you cannot find a real reason, use scarcity of the agent\'s availability ("I only have a couple slots open this week") rather than inventing inventory pressure.'
 };
 document.querySelectorAll('.regen-chip').forEach(function(chip) {
@@ -32782,6 +32906,12 @@ document.querySelectorAll('.regen-chip').forEach(function(chip) {
     // Linda/Camaro auction case). Set the suppression flag the prompt builder checks so the times
     // block is actually skipped — same pattern as the distance-flag activation above. One-shot.
     if (key === 'no-appt') window._lpSuppressApptChip = true;
+    // (v9.7.802) "Add Appt Ask": the agent wants this lead invited in -- an out-of-state buyer the remote rule holds back. Sticky
+    // for the lead like "Drop Appt Ask", and the two cancel each other.
+    if (key === 'add-appt') {
+      try { window._lpAddApptLeadId = String((lastScrapedData && lastScrapedData.autoLeadId) || window._activeLeadId || ''); window._lpNoApptLeadId = ''; window._lpSuppressApptChip = false; } catch (eAa) {}
+    }
+    if (key === 'no-appt') window._lpAddApptLeadId = '';
     // (v9.7.720) AND IT STAYS ON FOR THIS LEAD. The chip used to be one-shot, so the next chip -- "more
     // direct", "shorter" -- rebuilt without it and the times came straight back. Lead 2089026834 (9/24):
     // "no appointment" was pressed 6 times in 3 minutes because each "more direct" undid it. It now holds
