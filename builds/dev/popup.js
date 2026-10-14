@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.799-dev (Dev. THE MODEL YEAR CHANGES OVER: THEIR TRIM IN THE NEXT (OR PREVIOUS) YEAR IS THE ANSWER. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Audi Lafayette lead 2099714300 (log323): a 2026 Audi Q7 Premium 45 TFSI quattro lead ('2026 Audi Q7 Q7 Premium 45 TFSI quattro' on the CRM panel), seven new 2027 Q7 Premium quattros in the feed, and the inventory answer said 'The 2026 Q7 Q7 Premium 45 TFSI quattro: NONE in stock today' -- the draft offered 'other options'. Two causes: the new-car pool kept only the lead's model year, and the trim reader kept the repeated model word and Audi's engine code, so 'Premium 45 TFSI quattro' never matched 'Premium quattro'. Gil, 10/14: 'as we approach the new model years we need to account for this across the board'. (1) _lpTrimOf drops a repeated model word ('Q7 Q7'), Audi engine codes (30/35/40/45/50/55/60, TFSI, TFSI e, TDI) and 'quattro'; '55 Premium Plus' and 'Premium S Line' stay different trims, and other makes read as before. (2) _lpWhatWeHave keeps new units of the model year either side of the lead's aside; when the lead's year has none of their trim and the adjacent year does, the answer is said Gil's way -- 'We have the 2027 Q7 Premium available' -- with the units named, no line saying the year they asked for is not here, and no explanation of the model-year change ([LP WHAT WE HAVE DIAG] model-year change). The lead's own year in stock still wins; two years off is not offered; other trims stay counted and unnamed. Replayed on the real dump: 798 says 'NONE in stock today'; 799 says 'We have the 2027 Q7 Premium available' with all seven units. TESTS: model-year-799 (new) executes _lpTrimOf and buildUserPrompt's inventory answer with placeholder data (an Audi Q7 and a Honda Pilot): 14 assertions across both builds; v9.7.798 fails 3 of 7 per build (its 4 controls pass). VERIFIED: run-all 232 suites green, 8263 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.798-dev.)
 // Lead Pro -- popup.js  v9.7.798-dev (Dev. THE HOLD POLICY IS FOR WHEN THEY ASK. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Honda Baytown lead 2099028490 (log321, on 797): a confirmed in-stock Civic, a Saturday visit on the books, and nobody had asked to hold anything -- both drafts still told the customer 'It's still available to other buyers until sold, so I can't set it aside ahead of your visit'. The system prompt's VEHICLE AVAILABILITY policy ('we do NOT hold, reserve, or set it aside ... in-stock units stay available first-come until sold') is long-standing and unchanged; it is in every prompt, and it reads as something to SAY on a draft that promises to 'have it ready' for a visit days away on a confirmed in-stock unit -- the exact situation it describes, and rare until this lead (earlier grabs today were in transit, sold, or same-day). (1) The policy now ends: raise it only if the customer asks to hold, reserve, save or set aside the car, or offers a deposit to keep it; if they have not asked, do not mention holding at all -- no 'I can't hold it', no 'available to other buyers until sold', no 'first-come'. (2) The text rewrite is told NOTHING ABOUT HOLDING THE CAR when the first draft carried it and they never asked, and a rewrite that adds it when the first draft did not does not ship (LP_HOLD_TALK_RX / LP_HOLD_ASK_RX). (3) [LP DRIVETRAIN CLAIM DIAG] no longer reads 'I'll confirm whether the RAV4 LE is AWD' as a claim (log320, a false alarm). TESTS: hold-quiet-798 (new) executes buildSystemPrompt, _lpBuildSmsRefinePrompt, _lpRefineSms (worker stubbed) and the shipped claim reader, with placeholder data: 14 assertions across both builds; v9.7.797 fails 4 of 7 per build (its 3 controls pass). Replayed on lead 2099028490's real first draft: 797 gives the rewrite no such instruction, 798 does. VERIFIED: run-all 231 suites green, 8249 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.797-dev.)
 // Lead Pro -- popup.js  v9.7.797-dev (Dev. DRIVETRAIN: SAID FOR THE VEHICLE ON THE LEAD WHEN WE HAVE IT, NEVER FOR ONE WE DO NOT. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Toyota Baytown lead 2099028967 (log318): the customer asked 'Is it awd' about a 2026 RAV4 LE offered as an alternative; nothing Lead Pro holds carries that unit's drivetrain (the vAuto export has no such column, so the inventory feed never will), and both drafts said 'yes -- the 2026 RAV4 LE is AWD'. It is FWD. Honda Lafayette lead 2099028490 (log319): VinSolutions' record of the lead's vehicle carries 'DriveTrain':'FWD' / 'DriveLine':'FWD', and the Lead Info panel reads 'FWD 4dr Car (4 Door)' -- Lead Pro read past both. (1) The scraper reads the vehicle on the lead's drivetrain from that record (only when it belongs to this lead and the store has not changed the vehicle on it), else from the panel line, and carries it as voiDrivetrain ([LP DRIVETRAIN DIAG]); the prompt states 'DRIVETRAIN: FWD (front-wheel drive) -- VinSolutions' own record of this unit'. (2) When the customer's newest message asks about drivetrain (AWD/FWD/4WD/4x4/all-wheel...), a DRIVETRAIN QUESTION line answers with the lead vehicle's drivetrain when we have it, and for any other vehicle -- an alternative, a comparable, an inventory suggestion, or the lead vehicle when it is not on record -- forbids naming one: say you will confirm it, or ask whether AWD is a must (Gil, 10/13: 'we'll be nebulous in the response'). (3) The text rewrite gets the same rule, and a rewrite that names a drivetrain the first draft did not does not ship. [LP DRIVETRAIN CLAIM DIAG] logs any format that states one. On the real pages: the Civic reads FWD from VinSolutions' record; the in-transit RAV4 has none, so nothing is stated and the question line says to confirm. TESTS: drivetrain-797 (new) executes the scraper's drivetrain block (lifted), populateFromData, _lpBuildSmsRefinePrompt and _lpRefineSms (worker stubbed) with placeholder data: 20 assertions across both builds; v9.7.796 fails 8 of 10 per build. VERIFIED: run-all 230 suites green, 8235 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.796-dev.)
 // Lead Pro -- popup.js  v9.7.796-dev (Dev. A RETURNING CUSTOMER'S NEW LEAD STARTS ITS OWN CLOCK. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Toyota Baytown lead 2099028967 (log317, on 795): a Click & Go lead submitted that day, and a connected call five minutes before the grab (a trade-in, and 'the rav4 is to be here around the end of November'). 795's fixes held (the 2/19 note skipped, no arrival constraint, no missed-appointment line), but her last TEXT was 236 days old, on the closed lead before this one, and three parts of the prompt ran on that clock. (1) _lpQuietDays: 'THIS CUSTOMER LAST WROTE 236 DAYS AGO ... THIS RULE OUTRANKS ANY BLOCK BELOW', one job (offer an in-stock alternative), times withheld -- the text pitched a RAV4 LE instead of following up the call -- and _lpCloseOutEligible read the lead as eligible for a close-out. New _lpReachedRecently: a lead submitted in the last two days (its created time, never a defaulted age) or a connected call on this lead in the last 14 days means the customer is not quiet and is never offered a close-out. (2) A missed appointment from an EARLIER lead (_lpMissedApptIsPrior) never switches the message to the Sales Manager voice; the fresh-lead guard only stood down the switch while nothing had been sent, and the agent had already called. (3) The call-today block (v9.7.792) now asks whether the customer wrote AFTER the call, not whether they ever wrote: her 24 February messages counted as 'a real customer reply' and the call was never read as the conversation. A text or email of theirs dated after the call still decides it further down. Replayed on the real dump: 795 opens on the quiet rule, switches to the manager and marks the lead close-out eligible; 796 does none of the three (the visit decision is owned by FIRST HUMAN TOUCH, a light ask with no times). TESTS: new-lead-clock-796 (new) executes _lpQuietDays, _lpReachedRecently, _lpCloseOutEligible, classifyScenario and the scraper's call-today block (lifted) with placeholder data: 22 assertions across both builds; v9.7.795 fails 6 of 11 per build (its 5 controls pass). call-first-792's control updated: a reply from before the call no longer blocks it, a text after the call still does. VERIFIED: run-all 229 suites green, 8215 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.795-dev.)
@@ -3831,7 +3832,13 @@ function _lpTrimOf(v) {
   try {
     var s = _lpNormVehicleStr(v).replace(/\b(?:19|20)\d{2}\b/g, ' ');
     var mk = s.match(_LP_MAKE_RX); if (mk) s = s.slice(s.toLowerCase().indexOf(mk[0].toLowerCase()) + mk[0].length);
+    var _tmM = s.trim().match(/^[A-Za-z0-9][A-Za-z0-9\-]*/), _tmW = _tmM ? _tmM[0] : '';
     s = s.trim().replace(/^[A-Za-z0-9][A-Za-z0-9\-]*\s*/, '');   // the model word itself
+    // (v9.7.799) ...and again when the CRM repeats it ("2026 Audi Q7 Q7 Premium 45 TFSI quattro", Audi Lafayette lead 2099714300),
+    // plus Audi's engine codes and "quattro": the feed lists the 2027 as "Q7 Premium quattro", the lead as "Premium 45 TFSI
+    // quattro" -- one trim. "55 Premium Plus" and "Premium S Line" stay different trims.
+    if (_tmW) s = s.replace(new RegExp('^' + _tmW.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b\\s*', 'i'), '');
+    s = s.replace(/\b(?:30|35|40|45|50|55|60)\b|\btfsi\s*e\b|\b(?:tfsi|tfsie|tdi|quattro)\b/ig, ' ');
     // (v9.7.790) + door counts: lead 2098953366's "2026 Honda Pilot AWD Black Edition 4dr SUV" read as trim "Black Edition 4dr".
     s = s.replace(/\b(?:awd|fwd|rwd|2wd|4wd|4x4|4x2|sedan|coupe|hatchback|suv|4d|[245]dr|[245]-?doors?|sport utility|w\/[^,]*)\b/ig, ' ').replace(/\s{2,}/g, ' ').trim();
     // norm: the trim's words, each stripped of punctuation, in sorted order -- "Hybrid Sport" and "Sport Hybrid" are one trim (v9.7.790)
@@ -3861,22 +3868,32 @@ function _lpWhatWeHave(d) {
     var firstTouch = _wwConv === 'first-touch' && !!_wwTrim.norm && !_lpLeadHasContact(d);
     if (!colors.length && !asked && !firstTouch) return null;
     var lane = _lpCompLane(d.condition), vy = (String(d.vehicle).match(/\b(?:19|20)\d{2}\b/) || [''])[0];
+    // (v9.7.799) THE MODEL YEAR CHANGES OVER. A new unit from the year next to theirs (2027 for a 2026, or the other way) is kept
+    // aside: the same trim in that year is an answer of its own (Audi Lafayette lead 2099714300: seven 2027 Q7 Premiums in stock,
+    // and the prompt said the 2026 Q7 Premium was "NONE in stock today"). Gil, 10/14: "as we approach the new model years we need
+    // to account for this across the board".
+    var adjPool = [], _adjYrs = vy ? [String(+vy + 1), String(+vy - 1)] : [];
     var pool = units.filter(function (u) {
       if (_lpModelFamilyKey(u.vehicle) !== fam) return false;
       var ul = String(u.condition || '').toLowerCase() === 'new' ? 'new' : 'pre';
       if (lane && ul !== lane) return false;
-      if (lane === 'new' && vy && String(u.year || (String(u.vehicle).match(/\b(?:19|20)\d{2}\b/) || [''])[0]) !== vy) return false;
+      var _uy = String(u.year || (String(u.vehicle).match(/\b(?:19|20)\d{2}\b/) || [''])[0]);
+      if (lane === 'new' && vy && _uy !== vy) { if (_adjYrs.indexOf(_uy) >= 0) adjPool.push(u); return false; }
       return true;
     });
-    if (!pool.length) return null;
     var want = _lpTrimOf(d.vehicle);
     var trimOk = function (u) { return !!want.norm && _lpTrimOf(u.vehicle).norm === want.norm; };
+    var colorOk0 = function (u) { var w = _lpColorWords(u.color); return colors.some(function (k) { return w[k]; }); };
+    var adjSame = adjPool.filter(trimOk);
+    if (colors.length && adjSame.some(colorOk0)) adjSame = adjSame.filter(colorOk0);
+    adjSame.sort(function (a, b) { return Number(b.year || 0) - Number(a.year || 0); });   // the newer year first
+    if (!pool.length && !adjSame.length) return null;
     var colorOk = function (u) { var w = _lpColorWords(u.color); return colors.some(function (k) { return w[k]; }); };
     var grp = function (list) { var m = {}, order = [];
       list.forEach(function (u) { var k = String(u.vehicle).replace(_LP_MAKE_RX, '').replace(/\s{2,}/g, ' ').trim() + ' (' + (u.color || 'color not listed') + ')';
         if (!m[k]) { m[k] = 0; order.push(k); } m[k]++; });
       return order.map(function (k) { return k + (m[k] > 1 ? ' x' + m[k] : ''); }).join('; '); };
-    var base = (vy ? vy + ' ' : '') + (String(pool[0].model || '').split(/\s+/)[0] || 'model');
+    var base = (vy ? vy + ' ' : '') + (String(((pool[0] || adjSame[0] || {}).model) || '').split(/\s+/)[0] || 'model');
     var exact = pool.filter(function (u) { return (!want.norm || trimOk(u)) && (!colors.length || colorOk(u)); });
     var sameTrim = (want.norm && colors.length) ? pool.filter(function (u) { return trimOk(u) && !colorOk(u); }) : [];
     // their colour in other trims; with no colour named, every other trim of the model (v9.7.790)
@@ -3895,7 +3912,19 @@ function _lpWhatWeHave(d) {
     lower = lower.sort(function (a, b) { return (Number(b.price) || 0) - (Number(a.price) || 0); }).slice(0, 3);
     var wantDesc = (want.disp ? 'the ' + base + ' ' + want.disp : 'the ' + base) + (colors.length ? ' in ' + colors.join(' or ') : '');
     var L = ['📦 WHAT WE HAVE IN THE ' + base.toUpperCase() + ' RIGHT NOW (this store\'s inventory feed, checked for this grab -- real units; never give a stock number or a price). They asked about ' + wantDesc + '.'];
-    if (colors.length || want.norm) L.push('- ' + wantDesc.charAt(0).toUpperCase() + wantDesc.slice(1) + ': ' + (exact.length ? 'IN STOCK -- ' + grp(exact) + '.' : 'NONE in stock today.'));
+    // (v9.7.799) Their trim in the other model year, when their year is not here: said as Gil words it -- "We have the 2027 Q7
+    // Premium available" -- with no sentence about the year they asked for not being in stock.
+    var _adjLine = '', _adjName = '';
+    if (!exact.length && adjSame.length) {
+      var _ay = String(adjSame[0].year || (String(adjSame[0].vehicle).match(/\b(?:19|20)\d{2}\b/) || [''])[0]);
+      var _ayUnits = adjSame.filter(function (u) { return String(u.year || (String(u.vehicle).match(/\b(?:19|20)\d{2}\b/) || [''])[0]) === _ay; });
+      _adjName = _ay + ' ' + (String(adjSame[0].model || '').split(/\s+/)[0] || '') + (want.disp ? ' ' + want.disp : '');
+      _adjLine = '- We have the ' + _adjName + ' available: ' + grp(_ayUnits) + '. Say it just like that -- "We have the ' + _adjName + ' available" -- and name these freely. '
+        + 'Do NOT say the ' + (vy || 'year they asked for') + ' is not in stock or not here, and do not explain the model-year change.';
+      try { console.log('[LP WHAT WE HAVE DIAG] model-year change -- none of the ' + (vy || '') + ' ' + want.disp + '; ' + _ayUnits.length + ' of the ' + _adjName + ' offered'); } catch (eAy) {}
+    }
+    if (_adjLine) L.push(_adjLine);
+    else if (colors.length || want.norm) L.push('- ' + wantDesc.charAt(0).toUpperCase() + wantDesc.slice(1) + ': ' + (exact.length ? 'IN STOCK -- ' + grp(exact) + '.' : 'NONE in stock today.'));
     else L.push('- In stock: ' + grp(pool.slice(0, 8)) + '.');
     if (sameTrim.length) L.push('- The ' + want.disp + ' in other colors: ' + grp(sameTrim) + '. You may name these.');
     var _cw = colors.join(' or '); _cw = _cw ? _cw.charAt(0).toUpperCase() + _cw.slice(1) + ' in' : 'In';
@@ -3905,9 +3934,10 @@ function _lpWhatWeHave(d) {
     if (higher.length) L.push('- ' + _cw + (refMin ? ' a trim above what they asked for: ' : ' other trims: ') + (higher.length === 1 ? 'one unit' : higher.length + ' units') + '. Do NOT name them or their trims. Say it the way the store does: "we do have other options if you\'d like to come take a look at them" (if this message allows a visit ask; otherwise, that you have other options and can send details).');
     L.push('This answers what they asked. Tell them plainly. Do NOT say you still need to check, verify or confirm availability on this model -- the feed has been checked for this grab. '
       + (exact.length ? 'The unit(s) listed as IN STOCK are confirmed by the feed: this outranks any line in this prompt that says the vehicle\'s presence is not confirmed. '
-                      : 'If the exact one is not here, say so once, plainly, then offer what fits from the lines above and ask which they would rather. ')
+                      : (_adjLine ? 'Lead with the ' + _adjName + ' as the answer. '
+                      : 'If the exact one is not here, say so once, plainly, then offer what fits from the lines above and ask which they would rather. '))
       + 'The feed does not list drivetrain: do not state AWD or 2WD for these units.');
-    return { text: L.join('\n'), exact: exact.length, sameTrim: sameTrim.length, lower: lower.length, higher: higher.length, colors: colors, asked: asked, firstTouch: firstTouch, want: want.disp };
+    return { text: L.join('\n'), exact: exact.length, sameTrim: sameTrim.length, lower: lower.length, higher: higher.length, colors: colors, asked: asked, firstTouch: firstTouch, want: want.disp, otherYear: _adjName };
   } catch (e) { return null; }
 }
 
