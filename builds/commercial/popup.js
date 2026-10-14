@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.800 (Commercial. AUTOMOTIVE MASTERMIND IS AN OFFER THEY WERE SELECTED FOR, NOT AN INQUIRY. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Audi Lafayette Mastermind lead 2099714300 (log324): the voicemail never named the offer ('the offer details'), the prompt called the mailer 'your online inquiry' four times (the source acknowledgement and HOW THIS LEAD REACHED US both read it as a web form), and the text rewrite wrote 'your Audi-owner incentive is tied to the 2027 Q7 Premium'. Gil, 10/14: 'it's not an inquiry it's an offer they were selected for'. (1) The source acknowledgement stands aside for Mastermind (SKIPPED-mastermind); the Mastermind rules own how it reached us. (2) HOW THIS LEAD REACHED US names the GM Private Incentive they received as a current Audi owner -- an offer they were selected for -- and forbids 'online inquiry', 'reached out', 'inquired' and 'showed interest'. (3) Every Mastermind arm carries THIS IS AN OFFER THEY WERE SELECTED FOR, NOT AN INQUIRY and DO NOT TIE THE OFFER TO A VEHICLE (the vehicle is one option to use it on, named separately); the outreach touches (touch1-touch4) add THE OFFER IS THE REASON IN EVERY FORMAT -- SMS, email AND voicemail, with a voicemail example that opens on the offer. An active conversation and the soft exit do not get the outreach line. (4) The text rewrite gets a THE OWNER OFFER section on Mastermind leads, and a rewrite that ties the offer to a vehicle (LP_OFFER_TIE_RX: 'tied to', 'only on/for', 'applies only to', 'is for the') when the first draft did not does not ship ([LP SMS REFINE DIAG] kept the first pass). Replayed on the real dump: 799 has 'online inquiry' 4 times and no OWNER OFFER section; 800 has it only inside the rules forbidding it, the offer as how it reached us, and the rewrite section. TESTS: mastermind-offer-800 (new) executes buildUserPrompt, _lpBuildSmsRefinePrompt and _lpRefineSms (worker stubbed) with placeholder data: 24 assertions across both builds; v9.7.799 fails 7 of 12 per build (its 5 controls pass). first-touch-register: the acknowledgement's early-exit count goes 5 -> 6 for SKIPPED-mastermind. VERIFIED: run-all 233 suites green, 8287 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.799.)
 // Lead Pro -- popup.js  v9.7.799 (Commercial. THE MODEL YEAR CHANGES OVER: THEIR TRIM IN THE NEXT (OR PREVIOUS) YEAR IS THE ANSWER. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Audi Lafayette lead 2099714300 (log323): a 2026 Audi Q7 Premium 45 TFSI quattro lead ('2026 Audi Q7 Q7 Premium 45 TFSI quattro' on the CRM panel), seven new 2027 Q7 Premium quattros in the feed, and the inventory answer said 'The 2026 Q7 Q7 Premium 45 TFSI quattro: NONE in stock today' -- the draft offered 'other options'. Two causes: the new-car pool kept only the lead's model year, and the trim reader kept the repeated model word and Audi's engine code, so 'Premium 45 TFSI quattro' never matched 'Premium quattro'. Gil, 10/14: 'as we approach the new model years we need to account for this across the board'. (1) _lpTrimOf drops a repeated model word ('Q7 Q7'), Audi engine codes (30/35/40/45/50/55/60, TFSI, TFSI e, TDI) and 'quattro'; '55 Premium Plus' and 'Premium S Line' stay different trims, and other makes read as before. (2) _lpWhatWeHave keeps new units of the model year either side of the lead's aside; when the lead's year has none of their trim and the adjacent year does, the answer is said Gil's way -- 'We have the 2027 Q7 Premium available' -- with the units named, no line saying the year they asked for is not here, and no explanation of the model-year change ([LP WHAT WE HAVE DIAG] model-year change). The lead's own year in stock still wins; two years off is not offered; other trims stay counted and unnamed. Replayed on the real dump: 798 says 'NONE in stock today'; 799 says 'We have the 2027 Q7 Premium available' with all seven units. TESTS: model-year-799 (new) executes _lpTrimOf and buildUserPrompt's inventory answer with placeholder data (an Audi Q7 and a Honda Pilot): 14 assertions across both builds; v9.7.798 fails 3 of 7 per build (its 4 controls pass). VERIFIED: run-all 232 suites green, 8263 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.798.)
 // Lead Pro -- popup.js  v9.7.798 (Commercial. THE HOLD POLICY IS FOR WHEN THEY ASK. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Honda Baytown lead 2099028490 (log321, on 797): a confirmed in-stock Civic, a Saturday visit on the books, and nobody had asked to hold anything -- both drafts still told the customer 'It's still available to other buyers until sold, so I can't set it aside ahead of your visit'. The system prompt's VEHICLE AVAILABILITY policy ('we do NOT hold, reserve, or set it aside ... in-stock units stay available first-come until sold') is long-standing and unchanged; it is in every prompt, and it reads as something to SAY on a draft that promises to 'have it ready' for a visit days away on a confirmed in-stock unit -- the exact situation it describes, and rare until this lead (earlier grabs today were in transit, sold, or same-day). (1) The policy now ends: raise it only if the customer asks to hold, reserve, save or set aside the car, or offers a deposit to keep it; if they have not asked, do not mention holding at all -- no 'I can't hold it', no 'available to other buyers until sold', no 'first-come'. (2) The text rewrite is told NOTHING ABOUT HOLDING THE CAR when the first draft carried it and they never asked, and a rewrite that adds it when the first draft did not does not ship (LP_HOLD_TALK_RX / LP_HOLD_ASK_RX). (3) [LP DRIVETRAIN CLAIM DIAG] no longer reads 'I'll confirm whether the RAV4 LE is AWD' as a claim (log320, a false alarm). TESTS: hold-quiet-798 (new) executes buildSystemPrompt, _lpBuildSmsRefinePrompt, _lpRefineSms (worker stubbed) and the shipped claim reader, with placeholder data: 14 assertions across both builds; v9.7.797 fails 4 of 7 per build (its 3 controls pass). Replayed on lead 2099028490's real first draft: 797 gives the rewrite no such instruction, 798 does. VERIFIED: run-all 231 suites green, 8249 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.797.)
 // Lead Pro -- popup.js  v9.7.797 (Commercial. DRIVETRAIN: SAID FOR THE VEHICLE ON THE LEAD WHEN WE HAVE IT, NEVER FOR ONE WE DO NOT. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Toyota Baytown lead 2099028967 (log318): the customer asked 'Is it awd' about a 2026 RAV4 LE offered as an alternative; nothing Lead Pro holds carries that unit's drivetrain (the vAuto export has no such column, so the inventory feed never will), and both drafts said 'yes -- the 2026 RAV4 LE is AWD'. It is FWD. Honda Lafayette lead 2099028490 (log319): VinSolutions' record of the lead's vehicle carries 'DriveTrain':'FWD' / 'DriveLine':'FWD', and the Lead Info panel reads 'FWD 4dr Car (4 Door)' -- Lead Pro read past both. (1) The scraper reads the vehicle on the lead's drivetrain from that record (only when it belongs to this lead and the store has not changed the vehicle on it), else from the panel line, and carries it as voiDrivetrain ([LP DRIVETRAIN DIAG]); the prompt states 'DRIVETRAIN: FWD (front-wheel drive) -- VinSolutions' own record of this unit'. (2) When the customer's newest message asks about drivetrain (AWD/FWD/4WD/4x4/all-wheel...), a DRIVETRAIN QUESTION line answers with the lead vehicle's drivetrain when we have it, and for any other vehicle -- an alternative, a comparable, an inventory suggestion, or the lead vehicle when it is not on record -- forbids naming one: say you will confirm it, or ask whether AWD is a must (Gil, 10/13: 'we'll be nebulous in the response'). (3) The text rewrite gets the same rule, and a rewrite that names a drivetrain the first draft did not does not ship. [LP DRIVETRAIN CLAIM DIAG] logs any format that states one. On the real pages: the Civic reads FWD from VinSolutions' record; the in-transit RAV4 has none, so nothing is stated and the question line says to confirm. TESTS: drivetrain-797 (new) executes the scraper's drivetrain block (lifted), populateFromData, _lpBuildSmsRefinePrompt and _lpRefineSms (worker stubbed) with placeholder data: 20 assertions across both builds; v9.7.796 fails 8 of 10 per build. VERIFIED: run-all 230 suites green, 8235 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.796.)
@@ -1056,6 +1057,9 @@ function _lpQuietDays(d) {
 // FWD. The vehicle on the lead now carries its drivetrain from VinSolutions' record (d.voiDrivetrain); for any other unit
 // the draft says it will confirm (Gil, 10/13: "we'll be nebulous in the response").
 // (v9.7.798) The hold policy said to the customer: "I can't set it aside", "available to other buyers until sold", "first come".
+// (v9.7.800) An owner offer tied to a vehicle: "your Audi-owner incentive is tied to the 2027 Q7 Premium" (lead 2099714300).
+var LP_OFFER_TIE_RX = /\b(?:incentive|offer)\b[^.!?\n]{0,40}\b(?:is\s+)?(?:tied\s+to|only\s+(?:on|for)|applies\s+(?:only\s+)?to|is\s+for\s+the)\b/i;
+function _lpIsMastermind(d) { return !!(d && /mastermind/i.test(String(d.leadSource || '')) && /audi lafayette/i.test(String(d.store || ''))); }
 var LP_HOLD_TALK_RX = /\b(?:can(?:no|['\u2019])t|cannot|(?:do|does|will)\s+not|won['\u2019]t|unable\s+to|not\s+able\s+to)\s+(?:hold|reserve|set\s+(?:it|the\s+\w+)\s+aside|save|keep)\b|\bavailable\s+to\s+other\s+(?:buyers|customers|shoppers)\b|\bfirst[- ]come\b|\buntil\s+(?:it(?:['\u2019]s|\s+is)\s+)?sold\b/i;
 // Did the customer ask to hold / reserve / put a deposit on it?
 var LP_HOLD_ASK_RX = /\b(?:hold|reserve|set\s+(?:it|\w+)\s+aside|save\s+(?:it|the\s+\w+)\s+for\s+me|put\s+(?:a\s+)?(?:deposit|money\s+down)|deposit)\b/i;
@@ -21816,6 +21820,14 @@ function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
       out.push('');
     }
   } catch (eRfUrl) {}
+  // (v9.7.800) The owner offer, in the rewrite too.
+  try {
+    if (_lpIsMastermind(d)) {
+      out.push('\u2501\u2501\u2501 THE OWNER OFFER \u2501\u2501\u2501');
+      out.push('They were selected for the GM Private Incentive as a current Audi owner -- an offer, not an inquiry. Keep the offer as the reason in the text; never call it an online inquiry; and do not tie the offer to a vehicle ("tied to", "only on", "for the [model]") -- name the vehicle separately.');
+      out.push('');
+    }
+  } catch (eRfMm) {}
   // (v9.7.798) The first draft carried the hold policy and they never asked about holding: leave it out.
   try {
     if (LP_HOLD_TALK_RX.test(String(pass1 || '')) && !LP_HOLD_ASK_RX.test(String(d.lastInboundMsg || ''))) {
@@ -22155,6 +22167,14 @@ async function _lpRefineSms(pass1, emailText, d) {
         return null;
       }
     } catch (eRfTi) {}
+
+    // (v9.7.800) The rewrite tied the owner offer to a vehicle and the first pass did not: the first pass ships.
+    try {
+      if (_lpIsMastermind(d) && LP_OFFER_TIE_RX.test(out) && !LP_OFFER_TIE_RX.test(String(pass1 || ''))) {
+        console.log('[LP SMS REFINE DIAG] kept the first pass \u2014 the rewrite tied the owner offer to a vehicle ("' + (out.match(LP_OFFER_TIE_RX) || [''])[0] + '") | ' + (Date.now() - t0) + 'ms');
+        return null;
+      }
+    } catch (eRfOt) {}
 
     // (v9.7.798) The rewrite told them we can't hold it, and they never asked: the first pass ships.
     try {
@@ -23516,6 +23536,17 @@ function buildUserPrompt(data) {
       ].join('\n');
     }
 
+    // (v9.7.800) Audi Lafayette lead 2099714300 (log324): the text and email led with the offer; the voicemail opened "I saw your
+    // online inquiry ... we have the 2027 Q7 Premium available ... go over the offer details" -- no incentive named, no "selected";
+    // and the text rewrite wrote "your Audi-owner incentive is tied to the 2027 Q7 Premium", which nothing in the prompt says. Gil,
+    // 10/14: "it's not an inquiry it's an offer they were selected for".
+    scenarioRules = String(scenarioRules || '') + '\n' + [
+      '- THIS IS AN OFFER THEY WERE SELECTED FOR, NOT AN INQUIRY. Never write "your online inquiry", "thanks for reaching out", "you inquired" or "your interest in" -- they did not ask us; we are following up on the owner offer they received.',
+      (mmPhase !== 'active' && mmPhase !== 'touch5')
+        ? '- THE OFFER IS THE REASON IN EVERY FORMAT -- SMS, email AND voicemail: name the GM Private Incentive and that they were selected as a current Audi owner. In the voicemail it is the reason to call back, said first, e.g. "Hi [Name], it\'s [you] at Audi Lafayette. As a current Audi owner you were selected for the GM Private Incentive' + (sc.salesRep ? ', and ' + mmSalesRep + ' can go over it with you' : '') + '..." -- never just "the offer details".'
+        : '',
+      '- DO NOT TIE THE OFFER TO A VEHICLE. Do not say it is "tied to", "for", "on" or "only on" a particular model or the vehicle on this lead -- it is an owner offer, and the vehicle is one option to use it on. Name the vehicle separately.'
+    ].filter(Boolean).join('\n');
   } else if (sc.isLeaseMature) {
     var lsLower2 = (data.leadSource || '').toLowerCase();
     var isAFSlead   = /afs/i.test(lsLower2);
@@ -26818,6 +26849,9 @@ function buildUserPrompt(data) {
         || sc.isCarFax || sc.isKBB || sc.isTradePending || sc.isCostco || sc.isTrueCar
         || sc.isFacebook || sc.isCapitalOne || sc.isCarPro;
     if (_ackDedicated && !(sc.isFollowUp && hasRealOutbound)) { _ackLog('SKIPPED-dedicated-directive — this source names itself in its own first-touch framing elsewhere in the prompt'); return; }
+    // (v9.7.800) An Automotive Mastermind lead is an owner offer they were SELECTED for, not an inquiry they made: "I saw your
+    // online inquiry" went into the voicemail on Audi Lafayette lead 2099714300. The Mastermind rules own how it reached us.
+    if (sc.isAutomotiveMastermind) { _ackLog('SKIPPED-mastermind — an owner offer they were selected for, not an inquiry; the Mastermind rules own it'); return; }
     // (v9.7.787) Click & Go's own rules carry the brand on every arm now; this block's "already named -- do not name it again" would contradict them.
     if (sc.isClickAndGo && _ackName === 'Click & Go') { _ackLog('SKIPPED-click-and-go — the Click & Go scenario rules own the brand mention: once, in passing, both formats'); return; }
     // Skip internal/finance program sources that already have their own framing.
@@ -27291,7 +27325,10 @@ function buildUserPrompt(data) {
     // this sentence ("thanks for reaching out on Facebook") still gets written.
     // (v9.7.637) The tail is supplied by the shape too — "that is a place they will recognise" is
     // false of "your online inquiry", which is not a place and is not what they would call it.
-    (_lpSourceAckPhrase(data.leadSource)
+    // (v9.7.800) A Mastermind lead reached us as an offer, not an inquiry.
+    (sc.isAutomotiveMastermind
+      ? '- HOW THIS LEAD REACHED US: the GM Private Incentive offer they received as a current Audi owner -- an offer they were selected for, NOT an inquiry they made. Never call it an "online inquiry" or say they reached out, inquired or showed interest.'
+      : _lpSourceAckPhrase(data.leadSource)
       ? '- HOW THIS LEAD REACHED US: you may say the customer came through ' + _lpSourceAckPhrase(data.leadSource).name
         + ' — ' + _lpSourceAckPhrase(data.leadSource).tail + '. Do NOT use any other name for the source, including any '
         + 'label you see in the CRM notes or lead history.'
