@@ -442,7 +442,7 @@ const ackFn = (i) => { const a = i.src.indexOf('var _ackP = (typeof _lpSourceAck
                        return i.src.slice(a, b); };
 
 check('every early exit reports an outcome before returning',
-  i => (ackFn(i).match(/_ackLog\('SKIPPED|_ackLog\('SUPPRESSED/g) || []).length, 6);   // (v9.7.787) + SKIPPED-click-and-go; (v9.7.800) + SKIPPED-mastermind
+  i => (ackFn(i).match(/_ackLog\('SKIPPED|_ackLog\('SUPPRESSED/g) || []).length, 7);   // (v9.7.787) + SKIPPED-click-and-go; (v9.7.800) + SKIPPED-mastermind; (v9.7.803) + SKIPPED-fullpath
 
 check('no bare "return;" is left unreported in the block',
   i => { const body = ackFn(i).split('\n').filter(l => !/^\s*\/\//.test(l)).join('\n');

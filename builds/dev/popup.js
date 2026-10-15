@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.803-dev (Dev. FULLPATH: THEY ACTED ON OUR OWN MARKETING, AND THE DRAFT LEADS WITH WHAT THEY ACTED ON. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Fullpath is the stores' CDP; its audience module markets to in-market customers in our own database, and a lead arrives when one of them converts. Kia Baytown lead 2100329657 (log327) converted on '2026 Kia Sorento Hybrid Lease for $409/mo for 24 months, $3,999 due at signing' and the draft pitched '$3,000 customer cash' -- the note never reached the prompt (rejected as machine fields); Honda Baytown lead 2100288374 (log328) converted on a 2019 Honda Pilot (VIN, $19,616) and wrote 'My credit is not that good'. Both prompts called it 'your online inquiry'. Gil, 10/15: quote the advertised offer prefaced with approved credit; a specific unit's price is fine; other offers wait for a later follow-up; the vehicle they own is a light trade/upgrade question ('fishing'). (1) The scraper keeps the current lead's received note when it carries 'CONVERTED ON:' (fullpathConversion, carried through the frame merge), and the merge keeps a rejected service-record frame's vehicle as the one they own (serviceVehicle). (2) _lpFullpath reads it on FullPath leads: the offer (and its figure) or the unit (vehicle, VIN for matching, advertised price), the customer's message, what they viewed, what they own, and whether our own messages have already put the figure to them. (3) WHAT THEY RESPONDED TO in the prompt: the offer quoted as advertised, prefaced 'on approved credit', in every format (the payment rules do not stop the advertised offer; they still forbid any other figure); or the car at its advertised price, the VIN never quoted; their message answered first; one light trade/upgrade question on the car they own; OTHER OFFERS WAIT until the offer has been put to them (the store incentive lines stand down meanwhile). HOW THIS LEAD REACHED US says they opened it on our website -- never 'online inquiry', never Fullpath, a landing page, a campaign or an audience; the source acknowledgement stands aside (SKIPPED-fullpath). (4) The text rewrite gets WHAT THEY RESPONDED TO, and a rewrite that drops the offer's figure or the car's price the first draft carried does not ship. Replayed on both real dumps: 802 carries both store incentives ($3,000 cash first) and 'your online inquiry'; 803 carries the $409 lease on approved credit, the 2017 Sorento question and no other offer, and the Pilot at $19,616 with the credit message answered first. TESTS: fullpath-803 (new) executes _lpFullpath, the scraper capture line (lifted), populateFromData, buildUserPrompt, _lpBuildSmsRefinePrompt and _lpRefineSms (worker stubbed) with placeholder data: 28 assertions across both builds; v9.7.802 fails 12 of 14 per build (6 of them new helpers or source; its 2 controls pass). first-touch-register: the acknowledgement's early-exit count goes 6 -> 7 for SKIPPED-fullpath. VERIFIED: run-all 236 suites green, 8383 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.802-dev.)
 // Lead Pro -- popup.js  v9.7.802-dev (Dev. ADD APPT ASK, AND THREE THINGS THE THREAD HAD ALREADY SETTLED. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Kia Baytown lead 2099780329 (log326, on 801): an out-of-state CarGurus buyer in a live text thread with the sales rep -- 'still in our service department. (Not on the lot yet)', then 'I have a 2022 Kia K5 LXS (White) on the lot', and the customer answered 'Good', 'I will bring it up dere wen ii come', 'Pay cash'. The draft said the 2023 'is here in Gravity Gray', never mentioned the white one, and offered a video instead of asking when they are coming; that morning the agent regenerated the first touch ten times looking for a visit ask the out-of-state rule had removed. (1) NOT ON THE LOT: _lpRepNotOnLot reads every message of ours on the lead (not only the newest) for 'not on the lot', 'in our service department', 'in recon', 'being detailed'; a newer message saying it is on the lot or ready wins, and a message naming another year is not about this car. The unit stays ours (not sold): VEHICLE ON LEAD, PRESENCE LANGUAGE, the feed confirmation line, the INVENTORY note, the distance CONTEXT and the text rewrite all say still in service instead of 'here'. (2) THE CAR ON THE TABLE NOW: _lpOfferedUnit -- a different unit we offered ('I have a 2022 Kia K5 LXS (White) on the lot') whose first customer reply after it is not a turn-down. The prompt says the conversation moved to it; the Vehicle line points at it instead of 'THIS IS THE VEHICLE FOR THIS LEAD. Do not substitute'; the settled-colour line for the lead's car stands down; no new figure is to be worked out. (3) THEY SAID THEY WILL MAKE THE TRIP: _lpTripIntent reads the customer's own messages on the lead ('if I come get it', 'when I come', 'I'll drive up'); for an out-of-state buyer the no-visit rule gives way to: ask when they are planning to come, say what will be ready, no set times (a new level-2 visit hold). (4) ADD APPT ASK chip (Gil, 10/14: keep the out-of-state logic intact and let the agent choose): sticky for the lead like Drop Appt Ask, and the two cancel each other. On an out-of-state buyer it replaces the no-visit rule with AGENT OVERRIDE -- APPOINTMENT ASK (times inside store hours, not today by default: a new level-1 hold) and lets the suggested times through. Exit and pause still win; on any other hold the log says [LP ADD-APPT DIAG] held by. The text rewrite knows the chip, and a rewrite that drops the first draft's time does not ship. Replayed on the real dump: 801 says 'confirmed in stock ... Say we have it here', 'THIS IS THE VEHICLE FOR THIS LEAD' and no visit ask; 802 says still in service, puts the white 2022 on the table and asks when they are coming (with the chip: an appointment ask with next-day times). TESTS: remote-visit-802 (new) executes the helpers, populateFromData, buildUserPrompt, _lpBuildSmsRefinePrompt and the chip helpers with placeholder data: 32 assertions across both builds; v9.7.801 fails 12 of 16 per build (6 of them new helpers; its 4 controls pass). step2-697: the appointment gate's source check now allows the chip clause. VERIFIED: run-all 235 suites green, 8355 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.801-dev.)
 // Lead Pro -- popup.js  v9.7.801-dev (Dev. THE CAR ON A MASTERMIND LEAD IS THE PROGRAM'S PICK, NOT THE CUSTOMER'S. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Audi Lafayette Mastermind lead 2099729963 (log325): the vehicle on the lead (a 2026 Q5 Sportback Premium 2.0) was the replacement the Automotive Mastermind program suggested, and every draft treated it as the customer's choice -- 'The 2026 Q5 Sportback Premium 2.0 isn't in stock today ... Would you rather look at the other Q5 options, or wait for the Sportback?'. Gil, 10/14: they never picked that car; ask about a new version of what they drive now or another Audi, with the bridge when the model was renamed, and keep the suggested car out even when it is in stock. (1) Until the customer writes on the lead (_lpMmSuggestedVoi), the vehicle is labelled the program's suggestion everywhere it reached the prompt: the Vehicle of Interest line, the Vehicle line ('none chosen by the customer'), the inventory note (no WHAT WE HAVE answer, no stock either way), the distance CONTEXT line, the no-stock-number line and the similar-vehicles angle stand down; touch1's NEW VEHICLE and touch2's model pivot point at the new question; 800's 'Name the vehicle separately' is dropped for it. (2) New Mastermind rules: THE CAR ON THIS LEAD IS THE PROGRAM'S PICK, NOT THEIRS (not named in SMS, email, voicemail or subject, even in stock; no 'wait for it') and, on touch1-touch4, THE AUDI THEY DRIVE NOW, closing on an open question built by _lpMmModelAsk from the trade-in: 'a new [model]' when the feed has it new; the successor with the bridge when the model was renamed (A4 -> 'the new A5, which replaced the A4'; S4 -> S5); otherwise 'a newer Audi'. (3) The lead notice ('[Dealsheet]: ... [Lead pushed by]: ...') is the program's text: the scraper treats it as a program push (no inquiry read from it); populate drops the CUSTOMER'S INQUIRY block, relabels the transcript line MASTERMIND OFFER NOTICE and does not use it as their last message; the text rewrite no longer quotes it as WHAT THE CUSTOMER LAST SAID (it had a 28-day age from an older lead). (4) The text rewrite gets THE CAR ON THIS LEAD IS THE PROGRAM'S PICK, and a rewrite that names the suggested car's model when the first draft did not does not ship ([LP SMS REFINE DIAG] kept the first pass). Once they write on the lead, the normal vehicle handling; other sources unchanged. Replayed on the real dump: 800 says 'They asked about the 2026 Q5 Sportback Premium 2.0 ... NONE in stock today' and 'reference it by name'; 801 labels every mention as the program's pick and asks about the new A5, which replaced the A4. TESTS: mastermind-pick-801 (new) executes the helpers, populateFromData, buildUserPrompt, _lpBuildSmsRefinePrompt, _lpRefineSms (worker stubbed) and the scraper's program-push test (lifted) with placeholder data: 36 assertions across both builds; v9.7.800 fails 12 of 18 per build (4 of them new helpers; its 6 controls pass). VERIFIED: run-all 234 suites green, 8323 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.800-dev.)
 // Lead Pro -- popup.js  v9.7.800-dev (Dev. AUTOMOTIVE MASTERMIND IS AN OFFER THEY WERE SELECTED FOR, NOT AN INQUIRY. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Audi Lafayette Mastermind lead 2099714300 (log324): the voicemail never named the offer ('the offer details'), the prompt called the mailer 'your online inquiry' four times (the source acknowledgement and HOW THIS LEAD REACHED US both read it as a web form), and the text rewrite wrote 'your Audi-owner incentive is tied to the 2027 Q7 Premium'. Gil, 10/14: 'it's not an inquiry it's an offer they were selected for'. (1) The source acknowledgement stands aside for Mastermind (SKIPPED-mastermind); the Mastermind rules own how it reached us. (2) HOW THIS LEAD REACHED US names the GM Private Incentive they received as a current Audi owner -- an offer they were selected for -- and forbids 'online inquiry', 'reached out', 'inquired' and 'showed interest'. (3) Every Mastermind arm carries THIS IS AN OFFER THEY WERE SELECTED FOR, NOT AN INQUIRY and DO NOT TIE THE OFFER TO A VEHICLE (the vehicle is one option to use it on, named separately); the outreach touches (touch1-touch4) add THE OFFER IS THE REASON IN EVERY FORMAT -- SMS, email AND voicemail, with a voicemail example that opens on the offer. An active conversation and the soft exit do not get the outreach line. (4) The text rewrite gets a THE OWNER OFFER section on Mastermind leads, and a rewrite that ties the offer to a vehicle (LP_OFFER_TIE_RX: 'tied to', 'only on/for', 'applies only to', 'is for the') when the first draft did not does not ship ([LP SMS REFINE DIAG] kept the first pass). Replayed on the real dump: 799 has 'online inquiry' 4 times and no OWNER OFFER section; 800 has it only inside the rules forbidding it, the offer as how it reached us, and the rewrite section. TESTS: mastermind-offer-800 (new) executes buildUserPrompt, _lpBuildSmsRefinePrompt and _lpRefineSms (worker stubbed) with placeholder data: 24 assertions across both builds; v9.7.799 fails 7 of 12 per build (its 5 controls pass). first-touch-register: the acknowledgement's early-exit count goes 5 -> 6 for SKIPPED-mastermind. VERIFIED: run-all 233 suites green, 8287 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.799-dev.)
@@ -1102,6 +1103,42 @@ function _lpAddApptOn(d) {
     var lid = String((d && d.autoLeadId) || (typeof window !== 'undefined' && window._activeLeadId) || '');
     return !!(a && lid && String(a) === lid);
   } catch (e) { return false; }
+}
+// (v9.7.803) FULLPATH: THEY ACTED ON OUR OWN MARKETING. Fullpath is the stores' CDP; its audience module markets to in-market
+// customers in our own database, and a lead arrives when one of them converts on what we showed them. Two on 10/15: Kia Baytown
+// lead 2100329657 converted on "2026 Kia Sorento Hybrid Lease for $409/mo for 24 months, $3,999 due at signing" and the draft
+// pitched "$3,000 customer cash" -- the note had been thrown away as machine fields; Honda Baytown lead 2100288374 converted on
+// a 2019 Honda Pilot (VIN, $19,616) and wrote "My credit is not that good". Both prompts called it "your online inquiry".
+// Gil, 10/15: quote the advertised offer, prefaced with approved credit; a specific unit's price is fine; other offers wait for
+// a later follow-up; the vehicle they own is a light trade/upgrade question ("fishing").
+// The scraper keeps the current lead's received note when it carries "CONVERTED ON:" (d.fullpathConversion); this reads it.
+function _lpFpField(n, label) {
+  var re = new RegExp(label + '\\s*:\\s*([\\s\\S]*?)(?=\\s*(?:CONVERTED ON|Customer message|Lead Details|Vehicles viewed|Page converted on|Preferred Contact Method)\\s*:|\\s*Show (?:Less|More)\\b|$)', 'i');
+  var m = re.exec(n);
+  return m ? m[1].replace(/\(\s*(?:www\.|https?:|[a-z0-9-]+\.(?:com|net|org))[^)]*\)/gi, '').replace(/Click here to view complete lead information/gi, '').replace(/\s+/g, ' ').trim() : '';
+}
+function _lpTitleCaps(s) { s = String(s || '').trim(); return /[a-z]/.test(s) ? s : s.replace(/\b([A-Z])([A-Z]+)\b/g, function (m, a, b) { return a + b.toLowerCase(); }); }
+function _lpFullpath(d) {
+  try {
+    if (!d || !/full\s*path/i.test(String(d.leadSource || ''))) return null;
+    var n = String(d.fullpathConversion || '').replace(/\s+/g, ' ').trim();
+    var conv = _lpFpField(n, 'CONVERTED ON'); if (!conv) return null;
+    var page = '', what = conv, y = conv.search(/\b(?:19|20)\d{2}\b/);
+    if (y > 0) { page = conv.slice(0, y).trim(); what = conv.slice(y).trim(); }
+    var vin = (what.match(/\(\s*VIN\s+([A-HJ-NPR-Z0-9]{17})\s*\)/i) || ['', ''])[1];
+    var r = { page: page, what: what, kind: 'page', vehicle: '', vin: vin, price: '', offer: '', key: '', message: _lpFpField(n, 'Customer message'), viewed: [], owned: '' };
+    if (vin) {
+      r.kind = 'unit'; r.vehicle = what.split(/\(\s*VIN/i)[0].trim();
+      r.price = (what.slice(what.search(/\(\s*VIN/i)).match(/\$\s?[\d,]{3,}/) || [''])[0].replace(/\s/g, ''); r.key = r.price;
+    } else if (/\$\s?[\d,]+/.test(what) && /\b(?:lease|financ\w*|apr|cash|rebate|off|per month)\b|\/\s*mo\b/i.test(what)) {
+      r.kind = 'offer'; r.offer = what; r.key = (what.match(/\$\s?[\d,]+/) || [''])[0].replace(/\s/g, '');
+    } else r.vehicle = what;
+    var vre = /Status:\s*([^,]+),\s*Make:\s*([^,]+),\s*Model:\s*([^,]+),\s*Year:\s*(\d{4})(?:,\s*Page-Views:\s*(\d+))?/gi, vm;
+    while ((vm = vre.exec(_lpFpField(n, 'Vehicles viewed')))) r.viewed.push(vm[1].trim().toLowerCase() + ' ' + vm[4] + ' ' + vm[2].trim() + ' ' + vm[3].trim() + (vm[5] ? ' (' + vm[5] + ' page view' + (vm[5] === '1' ? '' : 's') + ')' : ''));
+    if (d.serviceVehicle && /\b(?:19|20)\d{2}\b/.test(String(d.serviceVehicle))) r.owned = _lpTitleCaps(d.serviceVehicle);
+    r.presented = !!(r.key && _lpOurEntries(d).some(function (x) { return x.body.replace(/\s/g, '').indexOf(r.key) >= 0; }));
+    return r;
+  } catch (e) { return null; }
 }
 function _lpDropProgramNotice(brief) {
   return String(brief || '')
@@ -8696,7 +8733,11 @@ function populateFromData(d) {
         }
       }
     } catch (eBd) {}
-    if (!_vfc || !_vfc.incentives || !_vfc.incentives.length) {
+    var _fpHold = false;   // (v9.7.803) a Fullpath lead: the offer they acted on leads, other offers wait until it has been put to them
+    try { var _fpInc = _lpFullpath(d); _fpHold = !!(_fpInc && !_fpInc.presented); } catch (eFpI) {}
+    if (_fpHold) {
+      console.log('[LP INCENTIVE DIAG] suppressed — Fullpath: the ' + (_lpFullpath(d).kind === 'unit' ? 'car' : 'offer') + ' they acted on leads; other offers wait for a later follow-up');
+    } else if (!_vfc || !_vfc.incentives || !_vfc.incentives.length) {
       console.log('[LP INCENTIVE DIAG] no incentive data cached for dealer ' + (d.dealerId || '?') + ' — nothing to match against');
     } else if (!_lvInc) {
       console.log('[LP INCENTIVE DIAG] no lead vehicle known — cannot match');
@@ -8711,7 +8752,7 @@ function populateFromData(d) {
     } else if (_soldPivotIncentiveUsed) {
       console.log('[LP INCENTIVE DIAG] suppressed — SOLD pivot already led with an incentive on the comparable alternative (v9.7.418/416), skipping the redundant general mention');
     }
-    if (_lvInc && !d.isSoldDelivered && !_incAdversarial && !_incFirstTouch && !_incUsed && !_soldPivotIncentiveUsed && _vfc && _vfc.incentives && _vfc.incentives.length) {
+    if (_lvInc && !_fpHold && !d.isSoldDelivered && !_incAdversarial && !_incFirstTouch && !_incUsed && !_soldPivotIncentiveUsed && _vfc && _vfc.incentives && _vfc.incentives.length) {
       // (v9.7.530/528 G1) Expiry filter wraps the year filter — an expired line can no longer
       // reach the _daysLeft branch below, where it was being injected as "real & current".
       var _inc = _lpMatchByModel(_lvInc, _lpExpiryFilterIncentives(_lpYearFilterIncentives(_lvInc, _vfc.incentives), (d.store || ('dealer ' + (d.dealerId || '?')))), function(x){ return x.model; }, 2, true);
@@ -10896,6 +10937,7 @@ function _lpScraperBotAuthor(msg) {
     // are — tool output, unverified, not to be quoted — which is the store's existing rule for
     // trade and payment numbers, not a new one.
     var _lpToolFieldData='';
+    var _lpFullpathNote='';   // (v9.7.803) the current lead's received note when it is a Fullpath conversion ("CONVERTED ON: ...")
     // SHAPE, NOT FIELD NAME. A "TradeInVehicleComment" blocklist is enumeration, and this file has
     // been bitten by enumerating the shapes it happened to have seen more times than by anything
     // else (v9.7.552/553/554, and v9.7.555 wrote the rule down: a shape test rejects the NEXT
@@ -12988,6 +13030,7 @@ function _lpScraperBotAuthor(msg) {
         }
         if(isCurrentLeadStart) {
           firstLeadReceivedSeen = true;
+          if (/\bCONVERTED ON\s*:/i.test(content || '')) _lpFullpathNote = String(content).replace(/\s+/g, ' ').trim().slice(0, 900);   // (v9.7.803)
           _lpMarkerMs = noteMs > 0 ? noteMs : 0; _lpMarkerDate = date || '';   // (v9.7.695) see declaration
           // If this lead note is significantly newer than the original created date,
           // this is a re-activated/recycled lead. Tighten the cutoff so old outbound
@@ -18187,6 +18230,8 @@ function _lpScraperBotAuthor(msg) {
       voiSwap: (typeof _voiSwap !== 'undefined' && _voiSwap) ? _voiSwap : null,
       // (v9.7.797) the vehicle on the lead's drivetrain (AWD/FWD/RWD/4WD/2WD), from VinSolutions' own record of it.
       voiDrivetrain: (typeof _voiDrive === 'string') ? _voiDrive : '',
+      // (v9.7.803) the Fullpath conversion note on this lead -- what they acted on (see _lpFullpath)
+      fullpathConversion: (typeof _lpFullpathNote === 'string') ? _lpFullpathNote : '',
       scrapedAt:Date.now(),
       // (v9.7.51) Frame freshness signals -- used to identify which iframe was
       // most recently loaded. When VinSolutions SPA shell holds multiple
@@ -18522,7 +18567,7 @@ function _lpScraperBotAuthor(msg) {
           });
 
           const m = {};
-          const historyFields = new Set(['totalNoteCount','history','conversationBrief','convState','hasExitSignal','hasPauseSignal','lastInboundMsg','lastInboundMs','lastOutboundMsg','lastSubstantiveOutboundMsg','noReplySinceLastOutbound','newestCustomerSignalType','newestCustomerSignalDesc','hasFreshCustomerSignal','isContacted','hasOutbound']);
+          const historyFields = new Set(['totalNoteCount','history','conversationBrief','convState','hasExitSignal','hasPauseSignal','lastInboundMsg','lastInboundMs','lastOutboundMsg','lastSubstantiveOutboundMsg','noReplySinceLastOutbound','newestCustomerSignalType','newestCustomerSignalDesc','hasFreshCustomerSignal','isContacted','hasOutbound','fullpathConversion']);
           // Track best store — prefer non-empty over empty, specific over generic
           let bestStore = '';
 
@@ -18812,6 +18857,8 @@ function _lpScraperBotAuthor(msg) {
             // beacon's leadId or sits beside the real lead, it must not provide VOI or identity.
             if (d.leadSource && (/\b(?:autosoft|xtime|xtime.?legacy|cdk)\b/i.test(d.leadSource))) {
               console.log('[Lead Pro] Frame rejected — service-record source (not a sales lead):', d.leadSource);
+              // (v9.7.803) not a lead -- but its vehicle is one this customer owns (a trade/upgrade angle; see _lpFullpath)
+              if (d.vehicle && !m.serviceVehicle && (!_aid || !d.autoLeadId || d.autoLeadId === _aid)) { m.serviceVehicle = String(d.vehicle); console.log('[LP SERVICE VEHICLE DIAG] owned vehicle from the service record: ' + m.serviceVehicle); }
               continue;
             }
             // Reject frames from a different lead — autoLeadId mismatch
@@ -22423,6 +22470,16 @@ function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
       out.push('');
     }
   } catch (eRfMs) {}
+  // (v9.7.803) The Fullpath offer or car they acted on stays in the text.
+  try {
+    var _rfFp = (typeof _lpFullpath === 'function') ? _lpFullpath(d) : null;
+    if (_rfFp) {
+      out.push('\u2501\u2501\u2501 WHAT THEY RESPONDED TO \u2501\u2501\u2501');
+      out.push('They opened ' + (_rfFp.kind === 'offer' ? 'our ' + _rfFp.offer : 'the ' + (_rfFp.vehicle || _rfFp.what) + (_rfFp.price ? ' at ' + _rfFp.price : '')) + ' on our website. Keep it in the text the way the first draft has it'
+        + (_rfFp.kind === 'offer' ? ' (on approved credit, the numbers as advertised)' : '') + '; never call it an online inquiry; add no other offer.');
+      out.push('');
+    }
+  } catch (eRfFp) {}
   // (v9.7.798) The first draft carried the hold policy and they never asked about holding: leave it out.
   try {
     if (LP_HOLD_TALK_RX.test(String(pass1 || '')) && !LP_HOLD_ASK_RX.test(String(d.lastInboundMsg || ''))) {
@@ -22779,6 +22836,15 @@ async function _lpRefineSms(pass1, emailText, d) {
         return null;
       }
     } catch (eRfMv) {}
+
+    // (v9.7.803) The first pass named the Fullpath offer or price they acted on and the rewrite dropped it: the first pass ships.
+    try {
+      var _rgFp = (typeof _lpFullpath === 'function') ? _lpFullpath(d) : null;
+      if (_rgFp && _rgFp.key && String(pass1 || '').replace(/\s/g, '').indexOf(_rgFp.key) >= 0 && out.replace(/\s/g, '').indexOf(_rgFp.key) < 0) {
+        console.log('[LP SMS REFINE DIAG] kept the first pass \u2014 the rewrite dropped the ' + (_rgFp.kind === 'unit' ? 'price of the car' : 'offer') + ' they acted on (' + _rgFp.key + ') | ' + (Date.now() - t0) + 'ms');
+        return null;
+      }
+    } catch (eRfFg) {}
 
     // (v9.7.798) The rewrite told them we can't hold it, and they never asked: the first pass ships.
     try {
@@ -27484,6 +27550,7 @@ function buildUserPrompt(data) {
     if (_ackDedicated && !(sc.isFollowUp && hasRealOutbound)) { _ackLog('SKIPPED-dedicated-directive — this source names itself in its own first-touch framing elsewhere in the prompt'); return; }
     // (v9.7.800) An Automotive Mastermind lead is an owner offer they were SELECTED for, not an inquiry they made: "I saw your
     // online inquiry" went into the voicemail on Audi Lafayette lead 2099714300. The Mastermind rules own how it reached us.
+    if ((typeof _lpFullpath === 'function') && _lpFullpath(data)) { _ackLog('SKIPPED-fullpath — they acted on our own marketing; WHAT THEY RESPONDED TO owns how it reached us'); return; }   // (v9.7.803)
     if (sc.isAutomotiveMastermind) { _ackLog('SKIPPED-mastermind — an owner offer they were selected for, not an inquiry; the Mastermind rules own it'); return; }
     // (v9.7.787) Click & Go's own rules carry the brand on every arm now; this block's "already named -- do not name it again" would contradict them.
     if (sc.isClickAndGo && _ackName === 'Click & Go') { _ackLog('SKIPPED-click-and-go — the Click & Go scenario rules own the brand mention: once, in passing, both formats'); return; }
@@ -27979,7 +28046,9 @@ function buildUserPrompt(data) {
     // (v9.7.637) The tail is supplied by the shape too — "that is a place they will recognise" is
     // false of "your online inquiry", which is not a place and is not what they would call it.
     // (v9.7.800) A Mastermind lead reached us as an offer, not an inquiry.
-    (sc.isAutomotiveMastermind
+    ((typeof _lpFullpath === 'function') && _lpFullpath(data))   // (v9.7.803)
+      ? '- HOW THIS LEAD REACHED US: they acted on our own marketing -- on our website they opened ' + (_lpFullpath(data).kind === 'offer' ? 'our ' + _lpFullpath(data).offer : 'the ' + (_lpFullpath(data).vehicle || 'vehicle')) + ' and sent their details (see WHAT THEY RESPONDED TO). Never call it an "online inquiry", and never name Fullpath, a landing page, a campaign or an audience -- say they were looking at it on our website.'
+      : (sc.isAutomotiveMastermind
       ? '- HOW THIS LEAD REACHED US: the GM Private Incentive offer they received as a current Audi owner -- an offer they were selected for, NOT an inquiry they made. Never call it an "online inquiry" or say they reached out, inquired or showed interest.'
       : _lpSourceAckPhrase(data.leadSource)
       ? '- HOW THIS LEAD REACHED US: you may say the customer came through ' + _lpSourceAckPhrase(data.leadSource).name
@@ -28910,6 +28979,23 @@ function buildUserPrompt(data) {
         : 'Vehicle:    (none specified) ← NO VEHICLE IS ATTACHED TO THIS LEAD. Do NOT reference or name any vehicle from the conversation history as the one they want — those belong to prior leads or conversations. A trade-in listed in the LEAD section is theirs and is fine to name as their trade.',
   );
 
+  // (v9.7.803) See _lpFullpath.
+  try {
+    var _fp = _lpFullpath(data);
+    if (_fp) {
+      lines.push('', '\ud83c\udfaf WHAT THEY RESPONDED TO -- THEY ACTED ON OUR OWN MARKETING, AND IT IS THE REASON FOR THIS MESSAGE:');
+      if (_fp.kind === 'offer') lines.push('- The offer they opened on our website: "' + _fp.offer + '". Lead with it in the SMS, the email and the voicemail. Quote it as advertised, prefaced with "on approved credit" -- e.g. "On approved credit, it is ' + _fp.key + '/mo ..." in the offer\'s own numbers. This is our own advertised offer, so the payment rules elsewhere in this prompt do not stop you quoting it as advertised; they still forbid any other figure. Do not change the numbers, add terms, or promise they qualify.');
+      else if (_fp.kind === 'unit') lines.push('- The car they opened on our website: ' + _fp.vehicle + (_fp.price ? ', advertised at ' + _fp.price : '') + '. Lead with that car.' + (_fp.price ? ' You may name that advertised price; do not quote any other figure, payment or out-the-door total.' : '') + ' The VIN on the record is for matching only -- never quote it.');
+      else lines.push('- What they opened on our website: "' + _fp.what + '". Lead with it.');
+      if (_fp.message) lines.push('- They also wrote: "' + _fp.message.replace(/"/g, "'") + '" -- answer that first, in your own words, then come to the ' + (_fp.kind === 'offer' ? 'offer' : 'car') + '.');
+      if (_fp.viewed.length) lines.push('- What they viewed: ' + _fp.viewed.join('; ') + '.');
+      if (_fp.owned) lines.push('- THEY OWN A ' + _fp.owned + ' (our service records). Fish lightly for a trade or upgrade -- one easy question, e.g. "Are you thinking about trading in your ' + _fp.owned.replace(/^((?:19|20)\d{2})\s+\S+\s+/, '$1 ') + '?" Never assume they are trading and never put a value on it.');
+      lines.push(_fp.presented
+        ? '- It has already been put to them; another current offer may now be used as a secondary angle, never ahead of it.'
+        : '- OTHER OFFERS WAIT: do not add or lead with any other incentive, rebate or special in this message -- they are for a later follow-up if this does not land.');
+      try { console.log('[LP FULLPATH DIAG] ' + _fp.kind + ': "' + (_fp.offer || _fp.vehicle || _fp.what) + '"' + (_fp.price ? ' at ' + _fp.price : '') + (_fp.message ? ' | wrote: "' + _fp.message + '"' : '') + (_fp.owned ? ' | owns: ' + _fp.owned : '') + ' | already put to them: ' + _fp.presented); } catch (eFpD) {}
+    }
+  } catch (eFp) {}
   if (sc.isAudi && sc.salesRep) lines.push('Brand Specialist: ' + sc.salesRep);
 
   // Zero-contact stalled leads: suppress entire appointment engine
