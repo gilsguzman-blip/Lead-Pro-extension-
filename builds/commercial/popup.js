@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.804 (Commercial. WHAT THEY SAID ON THE CALL IS WHAT THEY WANT -- AND A SISTER STORE'S CAR IS OURS TO OFFER. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Honda Baytown lead 2097505088 (log329, on 803): a Facebook lead on a 2027 CR-V Hybrid TrailSport; the customer has never written, but the 10/12 connected call's note read 'Wife wants a used landcruiser, told them about the one at Toyota but they don't want black' and a 10/16 note 'In market for Land Cruiser'. The draft: 'the Ash Green 2027 CR-V Hybrid TrailSport is here. Is there a feature you'd like me to verify?' -- the pivot detector reads only the customer's own messages ('EXCLUDED BY SCOPE (not customer speech):[Land cruiser]') and the Vehicle line said 'THIS IS THE VEHICLE FOR THIS LEAD. Do not substitute'. Gil, 10/16: offer to set up the visit at the sister store; the salesperson can cross-sell there and go with them. (1) _lpCallWants: a connected call's note naming a different model is the customer's stated want (a no-contact note backs it, never starts it), with its conditions -- used/new and colours ruled out ('don't want black'); not when the model is one they own or trade, one they ruled out, or when a newer customer message names the lead's model again. (2) _lpCallWantsUnits: our lot first, then the Baytown sister stores' live feeds, filtered by those conditions. (3) The prompt: WHAT THEY WANT NOW -- FROM THE CALL (the note quoted, the lead's model not pushed); a unit on our lot is named and the visit offered here; a sister store's unit is named and the visit offered at that store, with the salesperson meeting them there; with nothing that fits, it says so, does not re-offer the colour they ruled out, and asks year range or colour. The Vehicle line and the inventory note stand the lead's car down. Lafayette stores have no sister stores, so only our own lot is searched. (4) The text rewrite gets WHAT THEY WANT NOW, and a rewrite that brings the lead's model back when the first draft had left it does not ship. Replayed on the real dump: 803 says 'THIS IS THE VEHICLE FOR THIS LEAD' and 'we have it here'; 804 says the conversation is about a used Land Cruiser, not black, and (with a placeholder Toyota Baytown unit) offers the visit at Community Toyota Baytown with the rep meeting them there. TESTS: call-wants-804 (new) executes _lpCallWants, _lpCallWantsUnits, populateFromData, buildUserPrompt, _lpBuildSmsRefinePrompt and _lpRefineSms (worker stubbed) with placeholder data: 26 assertions across both builds; v9.7.803 fails 11 of 13 per build (5 of them new helpers; its 2 controls pass). VERIFIED: run-all 237 suites green, 8409 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.803.)
 // Lead Pro -- popup.js  v9.7.803 (Commercial. FULLPATH: THEY ACTED ON OUR OWN MARKETING, AND THE DRAFT LEADS WITH WHAT THEY ACTED ON. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Fullpath is the stores' CDP; its audience module markets to in-market customers in our own database, and a lead arrives when one of them converts. Kia Baytown lead 2100329657 (log327) converted on '2026 Kia Sorento Hybrid Lease for $409/mo for 24 months, $3,999 due at signing' and the draft pitched '$3,000 customer cash' -- the note never reached the prompt (rejected as machine fields); Honda Baytown lead 2100288374 (log328) converted on a 2019 Honda Pilot (VIN, $19,616) and wrote 'My credit is not that good'. Both prompts called it 'your online inquiry'. Gil, 10/15: quote the advertised offer prefaced with approved credit; a specific unit's price is fine; other offers wait for a later follow-up; the vehicle they own is a light trade/upgrade question ('fishing'). (1) The scraper keeps the current lead's received note when it carries 'CONVERTED ON:' (fullpathConversion, carried through the frame merge), and the merge keeps a rejected service-record frame's vehicle as the one they own (serviceVehicle). (2) _lpFullpath reads it on FullPath leads: the offer (and its figure) or the unit (vehicle, VIN for matching, advertised price), the customer's message, what they viewed, what they own, and whether our own messages have already put the figure to them. (3) WHAT THEY RESPONDED TO in the prompt: the offer quoted as advertised, prefaced 'on approved credit', in every format (the payment rules do not stop the advertised offer; they still forbid any other figure); or the car at its advertised price, the VIN never quoted; their message answered first; one light trade/upgrade question on the car they own; OTHER OFFERS WAIT until the offer has been put to them (the store incentive lines stand down meanwhile). HOW THIS LEAD REACHED US says they opened it on our website -- never 'online inquiry', never Fullpath, a landing page, a campaign or an audience; the source acknowledgement stands aside (SKIPPED-fullpath). (4) The text rewrite gets WHAT THEY RESPONDED TO, and a rewrite that drops the offer's figure or the car's price the first draft carried does not ship. Replayed on both real dumps: 802 carries both store incentives ($3,000 cash first) and 'your online inquiry'; 803 carries the $409 lease on approved credit, the 2017 Sorento question and no other offer, and the Pilot at $19,616 with the credit message answered first. TESTS: fullpath-803 (new) executes _lpFullpath, the scraper capture line (lifted), populateFromData, buildUserPrompt, _lpBuildSmsRefinePrompt and _lpRefineSms (worker stubbed) with placeholder data: 28 assertions across both builds; v9.7.802 fails 12 of 14 per build (6 of them new helpers or source; its 2 controls pass). first-touch-register: the acknowledgement's early-exit count goes 6 -> 7 for SKIPPED-fullpath. VERIFIED: run-all 236 suites green, 8383 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.802.)
 // Lead Pro -- popup.js  v9.7.802 (Commercial. ADD APPT ASK, AND THREE THINGS THE THREAD HAD ALREADY SETTLED. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Kia Baytown lead 2099780329 (log326, on 801): an out-of-state CarGurus buyer in a live text thread with the sales rep -- 'still in our service department. (Not on the lot yet)', then 'I have a 2022 Kia K5 LXS (White) on the lot', and the customer answered 'Good', 'I will bring it up dere wen ii come', 'Pay cash'. The draft said the 2023 'is here in Gravity Gray', never mentioned the white one, and offered a video instead of asking when they are coming; that morning the agent regenerated the first touch ten times looking for a visit ask the out-of-state rule had removed. (1) NOT ON THE LOT: _lpRepNotOnLot reads every message of ours on the lead (not only the newest) for 'not on the lot', 'in our service department', 'in recon', 'being detailed'; a newer message saying it is on the lot or ready wins, and a message naming another year is not about this car. The unit stays ours (not sold): VEHICLE ON LEAD, PRESENCE LANGUAGE, the feed confirmation line, the INVENTORY note, the distance CONTEXT and the text rewrite all say still in service instead of 'here'. (2) THE CAR ON THE TABLE NOW: _lpOfferedUnit -- a different unit we offered ('I have a 2022 Kia K5 LXS (White) on the lot') whose first customer reply after it is not a turn-down. The prompt says the conversation moved to it; the Vehicle line points at it instead of 'THIS IS THE VEHICLE FOR THIS LEAD. Do not substitute'; the settled-colour line for the lead's car stands down; no new figure is to be worked out. (3) THEY SAID THEY WILL MAKE THE TRIP: _lpTripIntent reads the customer's own messages on the lead ('if I come get it', 'when I come', 'I'll drive up'); for an out-of-state buyer the no-visit rule gives way to: ask when they are planning to come, say what will be ready, no set times (a new level-2 visit hold). (4) ADD APPT ASK chip (Gil, 10/14: keep the out-of-state logic intact and let the agent choose): sticky for the lead like Drop Appt Ask, and the two cancel each other. On an out-of-state buyer it replaces the no-visit rule with AGENT OVERRIDE -- APPOINTMENT ASK (times inside store hours, not today by default: a new level-1 hold) and lets the suggested times through. Exit and pause still win; on any other hold the log says [LP ADD-APPT DIAG] held by. The text rewrite knows the chip, and a rewrite that drops the first draft's time does not ship. Replayed on the real dump: 801 says 'confirmed in stock ... Say we have it here', 'THIS IS THE VEHICLE FOR THIS LEAD' and no visit ask; 802 says still in service, puts the white 2022 on the table and asks when they are coming (with the chip: an appointment ask with next-day times). TESTS: remote-visit-802 (new) executes the helpers, populateFromData, buildUserPrompt, _lpBuildSmsRefinePrompt and the chip helpers with placeholder data: 32 assertions across both builds; v9.7.801 fails 12 of 16 per build (6 of them new helpers; its 4 controls pass). step2-697: the appointment gate's source check now allows the chip clause. VERIFIED: run-all 235 suites green, 8355 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.801.)
 // Lead Pro -- popup.js  v9.7.801 (Commercial. THE CAR ON A MASTERMIND LEAD IS THE PROGRAM'S PICK, NOT THE CUSTOMER'S. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Audi Lafayette Mastermind lead 2099729963 (log325): the vehicle on the lead (a 2026 Q5 Sportback Premium 2.0) was the replacement the Automotive Mastermind program suggested, and every draft treated it as the customer's choice -- 'The 2026 Q5 Sportback Premium 2.0 isn't in stock today ... Would you rather look at the other Q5 options, or wait for the Sportback?'. Gil, 10/14: they never picked that car; ask about a new version of what they drive now or another Audi, with the bridge when the model was renamed, and keep the suggested car out even when it is in stock. (1) Until the customer writes on the lead (_lpMmSuggestedVoi), the vehicle is labelled the program's suggestion everywhere it reached the prompt: the Vehicle of Interest line, the Vehicle line ('none chosen by the customer'), the inventory note (no WHAT WE HAVE answer, no stock either way), the distance CONTEXT line, the no-stock-number line and the similar-vehicles angle stand down; touch1's NEW VEHICLE and touch2's model pivot point at the new question; 800's 'Name the vehicle separately' is dropped for it. (2) New Mastermind rules: THE CAR ON THIS LEAD IS THE PROGRAM'S PICK, NOT THEIRS (not named in SMS, email, voicemail or subject, even in stock; no 'wait for it') and, on touch1-touch4, THE AUDI THEY DRIVE NOW, closing on an open question built by _lpMmModelAsk from the trade-in: 'a new [model]' when the feed has it new; the successor with the bridge when the model was renamed (A4 -> 'the new A5, which replaced the A4'; S4 -> S5); otherwise 'a newer Audi'. (3) The lead notice ('[Dealsheet]: ... [Lead pushed by]: ...') is the program's text: the scraper treats it as a program push (no inquiry read from it); populate drops the CUSTOMER'S INQUIRY block, relabels the transcript line MASTERMIND OFFER NOTICE and does not use it as their last message; the text rewrite no longer quotes it as WHAT THE CUSTOMER LAST SAID (it had a 28-day age from an older lead). (4) The text rewrite gets THE CAR ON THIS LEAD IS THE PROGRAM'S PICK, and a rewrite that names the suggested car's model when the first draft did not does not ship ([LP SMS REFINE DIAG] kept the first pass). Once they write on the lead, the normal vehicle handling; other sources unchanged. Replayed on the real dump: 800 says 'They asked about the 2026 Q5 Sportback Premium 2.0 ... NONE in stock today' and 'reference it by name'; 801 labels every mention as the program's pick and asks about the new A5, which replaced the A4. TESTS: mastermind-pick-801 (new) executes the helpers, populateFromData, buildUserPrompt, _lpBuildSmsRefinePrompt, _lpRefineSms (worker stubbed) and the scraper's program-push test (lifted) with placeholder data: 36 assertions across both builds; v9.7.800 fails 12 of 18 per build (4 of them new helpers; its 6 controls pass). VERIFIED: run-all 234 suites green, 8323 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.800.)
@@ -1199,6 +1200,91 @@ function _lpFullpath(d) {
     r.presented = !!(r.key && _lpOurEntries(d).some(function (x) { return x.body.replace(/\s/g, '').indexOf(r.key) >= 0; }));
     return r;
   } catch (e) { return null; }
+}
+// (v9.7.804) WHAT THEY SAID ON THE CALL IS WHAT THEY WANT. Honda Baytown lead 2097505088 (log329, on 803): a Facebook lead on a
+// 2027 CR-V Hybrid TrailSport; the customer has never written, but on the 10/12 connected call the sales rep noted "Wife wants
+// a used landcruiser, told them about the one at Toyota but they don't want black", and on 10/16 "In market for Land Cruiser".
+// The draft: "the Ash Green 2027 CR-V Hybrid TrailSport is here. Is there a feature you'd like me to verify?" -- the pivot
+// detector reads only the customer's own messages ("EXCLUDED BY SCOPE (not customer speech):[Land cruiser]") and the Vehicle
+// line said "THIS IS THE VEHICLE FOR THIS LEAD. Do not substitute". Gil, 10/16: offer to set up the visit at the sister store;
+// the salesperson can cross-sell there and can go with them.
+// A connected call's note naming a different model is the customer's stated want (a no-contact note can back it, not start
+// it), unless a newer customer message names the lead's model again. Returns { model, display, make, date, quote, condition,
+// notColors, support } or null.
+var LP_CALL_MODEL_EXTRA = { 'land cruiser': 'toyota', 'corolla cross': 'toyota', bz4x: 'toyota', crown: 'toyota', gr86: 'toyota', supra: 'toyota', insight: 'honda', stinger: 'kia' };
+function _lpModelRx(name) { return new RegExp('\\b' + String(name).replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/[\s-]+/g, '[\\s-]?') + '\\b', 'i'); }
+function _lpModelName(k) {
+  var up = { 'cr-v': 'CR-V', crv: 'CR-V', 'hr-v': 'HR-V', hrv: 'HR-V', rav4: 'RAV4', '4runner': '4Runner', k5: 'K5', k4: 'K4', ev6: 'EV6', ev9: 'EV9', bz4x: 'bZ4X', gr86: 'GR86' };
+  return up[k] || String(k).replace(/\b[a-z]/g, function (c) { return c.toUpperCase(); });
+}
+function _lpModelsIn(text) {
+  var all = {}, out = [], t = String(text || '');
+  [LP_MODEL_BRAND, LP_CALL_MODEL_EXTRA].forEach(function (m) { Object.keys(m).forEach(function (k) { all[k] = m[k]; }); });
+  Object.keys(all).sort(function (a, b) { return b.length - a.length; }).forEach(function (k) {
+    var m = _lpModelRx(k).exec(t); if (!m) return;
+    if (out.some(function (o) { return _lpModelRx(o.name).test(k) || _lpModelRx(k).test(o.name); })) return;
+    out.push({ name: k, make: all[k], at: m.index });
+  });
+  return out;
+}
+var LP_WANT_NEG_RX = /\b(?:not|no|don['\u2019]?t|doesn['\u2019]?t|didn['\u2019]?t|never|won['\u2019]?t)\s+(?:\w+\s+){0,3}$/i;
+var LP_WANT_OWNED_RX = /\b(?:trade|trading|trade-in|his|her|their|my|owns?|has an?|have an?|drives? an?|sold (?:his|her|their|my))\s+(?:\w+\s+){0,2}$/i;
+var LP_NOT_COLOR_RX = /\b(?:don['\u2019]?t|do not|doesn['\u2019]?t|does not|not|no)\s+(?:want\s+|like\s+)?(?:a\s+|the\s+|any\s+)?(black|white|silver|gr[ae]y|red|blue|green|brown|beige|gold|tan|orange|yellow)\b/gi;
+function _lpCallWants(d) {
+  try {
+    if (!d || !d.vehicle) return null;
+    var leadModels = _lpModelsIn(d.vehicle).map(function (x) { return x.name; }); if (!leadModels.length) return null;
+    var ents = _lpThreadEntries((d.history || d.context) || '');
+    var named = function (body) {
+      return _lpModelsIn(body).filter(function (x) {
+        var pre = body.slice(0, x.at);
+        return leadModels.indexOf(x.name) < 0 && !LP_WANT_NEG_RX.test(pre) && !LP_WANT_OWNED_RX.test(pre);
+      });
+    };
+    var calls = ents.filter(function (x) { return /^AGENT$/i.test(String(x.tag || '').trim()) && /phone call/i.test(x.title) && x.body; }).sort(function (a, b) { return b.t - a.t; });
+    var hit = null;
+    for (var i = 0; i < calls.length && !hit; i++) {
+      if (!/\(Contacted\)|^Inbound phone call/i.test(calls[i].title)) continue;
+      var n = named(calls[i].body); if (n.length) hit = { e: calls[i], m: n[0] };
+    }
+    if (!hit) return null;
+    var rx = _lpModelRx(hit.m.name);
+    var back = _lpCustEntries(d).some(function (x) { return x.t > hit.e.t && leadModels.some(function (l) { return _lpModelRx(l).test(x.body); }); });
+    if (back) return null;   // they wrote about the lead's own model since
+    var text = calls.filter(function (x) { return rx.test(x.body); }).map(function (x) { return x.body; }).join(' ');
+    var notColors = [], cm; LP_NOT_COLOR_RX.lastIndex = 0;
+    while ((cm = LP_NOT_COLOR_RX.exec(text))) { var c = cm[1].toLowerCase().replace('grey', 'gray'); if (notColors.indexOf(c) < 0) notColors.push(c); }
+    var support = calls.filter(function (x) { return x !== hit.e && rx.test(x.body); }).map(function (x) { return { date: x.date, quote: x.body.slice(0, 140) }; })
+      .filter(function (x, k, a) { return a.findIndex(function (y) { return y.date === x.date && y.quote === x.quote; }) === k; });
+    return { model: hit.m.name, display: _lpModelName(hit.m.name), make: hit.m.make, date: hit.e.date, quote: hit.e.body.slice(0, 200),
+      condition: /\b(?:used|pre-?owned|certified|cpo)\b/i.test(text) ? 'used' : /\bnew\b/i.test(text) ? 'new' : '', notColors: notColors, support: support,
+      leadModel: _lpModelName(leadModels[0]) };
+  } catch (e) { return null; }
+}
+// Units that fit what they said, on our lot first and then at a sister store (Baytown). Returns [{ store, own, text }].
+function _lpCallWantsUnits(d, w) {
+  var out = [];
+  try {
+    var g = _lpStoreGroup(d), ids = {};
+    Object.keys(DEALER_ID_MAP).forEach(function (id) { ids[DEALER_ID_MAP[id]] = id; });
+    var stores = [g.store].concat(g.sisters ? Object.keys(g.sisters).map(function (k) { return g.sisters[k]; }).filter(function (s) { return s !== g.store; }) : []);
+    var rx = _lpModelRx(w.model);
+    stores.forEach(function (s) {
+      var id = ids[s] || (s === g.store ? String(d.dealerId || '') : ''), c = id && _lpValueFactCache[id], units = (c && c.inv && c.inv.units) || [];
+      units.forEach(function (u) {
+        var desc = String(u.vehicle || [u.year, u.make, u.model].join(' ')).trim();
+        if (!rx.test(desc)) return;
+        var used = /used|pre|cert|cpo/i.test(String(u.condition || '')) || !!u.certified;
+        if (w.condition === 'used' && !used) return;
+        if (w.condition === 'new' && used) return;
+        var col = String(u.color || '').toLowerCase().replace('grey', 'gray');
+        if (w.notColors.some(function (x) { return col.indexOf(x) >= 0; })) return;
+        out.push({ store: s, own: s === g.store, year: +u.year || 0, text: desc + (u.color ? ' in ' + u.color : '') });
+      });
+    });
+    out.sort(function (a, b) { return (b.own - a.own) || (b.year - a.year); });
+  } catch (e) {}
+  return out.slice(0, 3);
 }
 function _lpDropProgramNotice(brief) {
   return String(brief || '')
@@ -22049,6 +22135,16 @@ function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
       out.push('');
     }
   } catch (eRfFp) {}
+  // (v9.7.804) What they said on the call is what the text is about.
+  try {
+    var _rfCw = (typeof _lpCallWants === 'function') ? _lpCallWants(d) : null;
+    if (_rfCw) {
+      out.push('\u2501\u2501\u2501 WHAT THEY WANT NOW \u2501\u2501\u2501');
+      out.push('On the ' + _rfCw.date + ' call they said they want a ' + (_rfCw.condition ? _rfCw.condition + ' ' : '') + _rfCw.display + (_rfCw.notColors.length ? ', not ' + _rfCw.notColors.join(' or ') : '')
+        + ' -- not the ' + String(d.vehicle) + ' the lead came in on. Keep the text on that; do not bring the ' + _rfCw.leadModel + ' back.');
+      out.push('');
+    }
+  } catch (eRfCw) {}
   // (v9.7.798) The first draft carried the hold policy and they never asked about holding: leave it out.
   try {
     if (LP_HOLD_TALK_RX.test(String(pass1 || '')) && !LP_HOLD_ASK_RX.test(String(d.lastInboundMsg || ''))) {
@@ -22414,6 +22510,15 @@ async function _lpRefineSms(pass1, emailText, d) {
         return null;
       }
     } catch (eRfFg) {}
+
+    // (v9.7.804) The rewrite went back to the lead's model after the call moved them off it, and the first pass did not: the first pass ships.
+    try {
+      var _rgCw = (typeof _lpCallWants === 'function') ? _lpCallWants(d) : null, _rgLm = _rgCw ? _lpModelRx(_rgCw.leadModel) : null;
+      if (_rgLm && _rgLm.test(out) && !_rgLm.test(String(pass1 || ''))) {
+        console.log('[LP SMS REFINE DIAG] kept the first pass \u2014 the rewrite went back to the ' + _rgCw.leadModel + ' after the call moved them to the ' + _rgCw.display + ' | ' + (Date.now() - t0) + 'ms');
+        return null;
+      }
+    } catch (eRfCg) {}
 
     // (v9.7.798) The rewrite told them we can't hold it, and they never asked: the first pass ships.
     try {
@@ -25118,6 +25223,8 @@ function buildUserPrompt(data) {
 
   if (((typeof _lpMmSuggestedVoi === 'function') ? _lpMmSuggestedVoi(data) : '')) {   // (v9.7.801) the program's pick: no stock answer about it, in stock or not
     inventoryNote = 'VEHICLE NOTE: The ' + _lpMmVoiShort(data.vehicle) + ' on this lead is the Mastermind program\'s suggested replacement, not their choice. Do NOT name it or say whether it is in stock -- not even if it is here. Ask what they would want instead (THE AUDI THEY DRIVE NOW above). Never give a stock number or a price.';
+  } else if ((typeof _lpCallWants === 'function') && _lpCallWants(data)) {   // (v9.7.804) not what they want now
+    inventoryNote = 'VEHICLE NOTE: The ' + data.vehicle + ' on the lead is not what they want now (see WHAT THEY WANT NOW) -- do not report its stock or say it is here.';
   } else if (data._lpRepNotOnLot) {   // (v9.7.802) the rep told them it is still in service
     inventoryNote = 'VEHICLE NOTE: The ' + data.vehicle + ' is ours (in today\'s inventory, not sold), but on ' + data._lpRepNotOnLot.date + ' the sales rep told the customer it is still in service and not on the lot yet. Do NOT say it is here, on the lot, ready or available to see, and do not say it sold. Never give a stock number.';
   } else if (sc.isLoyaltyVehicle) {
@@ -28501,6 +28608,8 @@ function buildUserPrompt(data) {
         ? 'Vehicle:    (none chosen by the customer) ← The ' + data.vehicle + ' on this lead was picked by the Automotive Mastermind program as a possible replacement -- the customer never asked for it. Do NOT name it; ask what they would want instead.'
       : ((typeof _lpOfferedUnit === 'function') && data.vehicle && _lpOfferedUnit(data))   // (v9.7.802)
         ? 'Vehicle:    ' + data.vehicle + '  ← the vehicle the lead came in on. The conversation has since moved to the ' + _lpOfferedUnit(data).unit + ' we offered (see THE CAR ON THE TABLE NOW above) -- this message is about that one.'
+      : ((typeof _lpCallWants === 'function') && data.vehicle && _lpCallWants(data))   // (v9.7.804)
+        ? 'Vehicle:    ' + data.vehicle + '  ← what the lead came in on. On the ' + _lpCallWants(data).date + ' call they said they want something else (see WHAT THEY WANT NOW below) -- this message is about that.'
       : (data.vehicle && _voiMis.length)
         ? 'Vehicle:    ' + data.vehicle + '  ← THIS IS THE VEHICLE CURRENTLY PINNED TO THE LEAD, AND IT IS NOT THE ONLY ONE ON FILE.\n'
           + '⚠ TWO DIFFERENT VEHICLES ARE ON THIS LEAD AND NOBODY HAS ASKED THE CUSTOMER WHICH ONE. The CRM also carries '
@@ -28517,6 +28626,26 @@ function buildUserPrompt(data) {
         : 'Vehicle:    (none specified) ← NO VEHICLE IS ATTACHED TO THIS LEAD. Do NOT reference or name any vehicle from the conversation history as the one they want — those belong to prior leads or conversations. A trade-in listed in the LEAD section is theirs and is fine to name as their trade.',
   );
 
+  // (v9.7.804) See _lpCallWants.
+  try {
+    var _cw = _lpCallWants(data);
+    if (_cw) {
+      var _cwDesc = (_cw.condition ? _cw.condition + ' ' : '') + _cw.display + (_cw.notColors.length ? ', not ' + _cw.notColors.join(' or ') : '');
+      var _cwUnits = _lpCallWantsUnits(data, _cw), _cwG = _lpStoreGroup(data);
+      var _cwSister = (_cwG.sisters && LP_BAYTOWN_SISTERS[_cw.make] && LP_BAYTOWN_SISTERS[_cw.make] !== _cwG.store) ? LP_BAYTOWN_SISTERS[_cw.make] : '';
+      var _cwRep = String(data.salesRep || '').trim().split(/\s+/)[0] || '';
+      lines.push('', '\ud83d\udd01 WHAT THEY WANT NOW -- FROM THE CALL: on ' + _cw.date + ' the sales rep spoke with them: "' + _cw.quote.replace(/"/g, "'") + '"'
+        + (_cw.support.length ? ' (and ' + _cw.support.map(function (x) { return x.date + ': "' + x.quote.replace(/"/g, "'") + '"'; }).join('; ') + ')' : '')
+        + '. The conversation is about a ' + _cwDesc + ' -- not the ' + data.vehicle + ' the lead came in on. Do NOT push the ' + _cw.leadModel + ', say it is here, or ask about its features.');
+      var _cwOwn = _cwUnits.filter(function (u) { return u.own; }), _cwAway = _cwUnits.filter(function (u) { return !u.own; });
+      if (_cwOwn.length) lines.push('- On our lot: ' + _cwOwn.map(function (u) { return u.text; }).join('; ') + '. Name it and offer the visit here.');
+      else if (_cwAway.length) lines.push('- At our sister store, ' + _cwAway[0].store + ': ' + _cwAway.filter(function (u) { return u.store === _cwAway[0].store; }).map(function (u) { return u.text; }).join('; ')
+        + '. Name it, and offer to set up a visit at ' + _cwAway[0].store + ' to see it -- ' + (_cwRep ? _cwRep + ' can meet them there' : 'their salesperson can meet them there') + ' and go through it with them. It is our group\'s car; never treat it as a competitor\'s.');
+      else lines.push('- Neither our lot' + (_cwSister ? ' nor ' + _cwSister : '') + ' has a ' + (_cw.condition ? _cw.condition + ' ' : '') + _cw.display + (_cw.notColors.length ? ' that is not ' + _cw.notColors.join(' or ') : '') + ' today.' + (_cw.notColors.length ? ' Do not offer the ' + _cw.notColors.join(' or ') + ' one again.' : '')
+        + ' Ask what year range or colour they would like, and offer to keep watch for one' + (_cwSister ? ' here and at our sister store, ' + _cwSister : '') + '.');
+      try { console.log('[LP CALL WANTS DIAG] ' + _cw.date + ' call: ' + _cwDesc + ' (lead vehicle: ' + data.vehicle + ') | units: ' + (_cwUnits.length ? _cwUnits.map(function (u) { return u.text + ' @ ' + u.store; }).join('; ') : 'none') + (_cw.support.length ? ' | backed by ' + _cw.support.length + ' later note(s)' : '')); } catch (eCwD) {}
+    }
+  } catch (eCw) {}
   // (v9.7.803) See _lpFullpath.
   try {
     var _fp = _lpFullpath(data);
