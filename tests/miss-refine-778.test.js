@@ -4,7 +4,7 @@ require('./lib/fatal-guard.js')('miss-refine-778.test.js');
 // (v9.7.778) log300/log301, Honda Lafayette lead 2091288708 on v9.7.777. The first draft: "[customer], thanks for the reply. Sorry we
 // missed you Saturday. Would you still like to come in?"; the text rewrite shipped "[customer], would you still like to come in? ..."
 // -- the email kept the apology, the text lost it (after Warmer, the next run kept it: chance). The rewrite never saw 775's
-// "acknowledge it lightly". Now: the rewrite is told when the miss is on THIS lead, a rewrite that drops an acknowledgement the
+// "acknowledge it lightly". Now: the rewrite is told when the miss is on THIS lead, a rewrite that drops an acknowledgment the
 // first pass made does not ship, and the regen-variance row stops calling a chip's kept move a rejected one (777 intends it).
 // Executes the shipped _lpBuildSmsRefinePrompt, _lpRefineSms (worker stubbed) and the lifted variance verdict. Placeholder data only.
 //
@@ -40,11 +40,11 @@ for (const f of BUILDS) {
   console.log(' 1. the rewrite is told:');
   check('a miss on this lead (lead 2091288708 shape): acknowledge it lightly, keep the ask, do not drop it to shorten', () =>
     // (v9.7.795) reworded: the first draft's own words, no example day to copy
-    /━━━ THE APPOINTMENT ON THIS LEAD WAS MISSED ━━━\nThe first draft acknowledges it\. Keep that acknowledgement, in the first draft's own words, lightly and without blame[^\n]*never "you didn't show up"[^\n]*Do not drop the acknowledgement to make the text shorter, and do not name a day the first draft does not name\./.test(rp()), true);
+    /━━━ THE APPOINTMENT ON THIS LEAD WAS MISSED ━━━\nThe first draft acknowledges it\. Keep that acknowledgment, in the first draft's own words, lightly and without blame[^\n]*never "you didn't show up"[^\n]*Do not drop the acknowledgment to make the text shorter, and do not name a day the first draft does not name\./.test(rp()), true);
   check('control: a no-show from earlier history (older than this lead), a rebooked appointment, or no miss -> not told', () =>
     [rp({ freshestApptEventDays: 40 }), rp({ hasApptSet: true }), rp({ hasMissedAppt: false })].map(t => /THE APPOINTMENT ON THIS LEAD WAS MISSED/.test(t)), [false, false, false]);
 
-  console.log(' 2. a rewrite that drops the acknowledgement does not ship (worker stubbed):');
+  console.log(' 2. a rewrite that drops the acknowledgment does not ship (worker stubbed):');
   const refine = async (reply, x) => { const logs = []; sb.__reply = reply; sb.__d = LEAD(x);
     run('window._leadProResolvedSigner = { firstName: "Agent", phone: "(555) 010-0100" }; window._leadProResolvedContext = { storeName: "Test Store" };'
       + 'window._lpRegenChipKey = ""; window._lpNoApptLeadId = ""; window._lpActiveProhibitions = [];'

@@ -1,4 +1,4 @@
-// Lead Pro -- popup.js  v9.7.804-dev (Dev. WHAT THEY SAID ON THE CALL IS WHAT THEY WANT -- AND A SISTER STORE'S CAR IS OURS TO OFFER. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Honda Baytown lead 2097505088 (log329, on 803): a Facebook lead on a 2027 CR-V Hybrid TrailSport; the customer has never written, but the 10/12 connected call's note read 'Wife wants a used landcruiser, told them about the one at Toyota but they don't want black' and a 10/16 note 'In market for Land Cruiser'. The draft: 'the Ash Green 2027 CR-V Hybrid TrailSport is here. Is there a feature you'd like me to verify?' -- the pivot detector reads only the customer's own messages ('EXCLUDED BY SCOPE (not customer speech):[Land cruiser]') and the Vehicle line said 'THIS IS THE VEHICLE FOR THIS LEAD. Do not substitute'. Gil, 10/16: offer to set up the visit at the sister store; the salesperson can cross-sell there and go with them. (1) _lpCallWants: a connected call's note naming a different model is the customer's stated want (a no-contact note backs it, never starts it), with its conditions -- used/new and colours ruled out ('don't want black'); not when the model is one they own or trade, one they ruled out, or when a newer customer message names the lead's model again. (2) _lpCallWantsUnits: our lot first, then the Baytown sister stores' live feeds, filtered by those conditions. (3) The prompt: WHAT THEY WANT NOW -- FROM THE CALL (the note quoted, the lead's model not pushed); a unit on our lot is named and the visit offered here; a sister store's unit is named and the visit offered at that store, with the salesperson meeting them there; with nothing that fits, it says so, does not re-offer the colour they ruled out, and asks year range or colour. The Vehicle line and the inventory note stand the lead's car down. Lafayette stores have no sister stores, so only our own lot is searched. (4) The text rewrite gets WHAT THEY WANT NOW, and a rewrite that brings the lead's model back when the first draft had left it does not ship. Replayed on the real dump: 803 says 'THIS IS THE VEHICLE FOR THIS LEAD' and 'we have it here'; 804 says the conversation is about a used Land Cruiser, not black, and (with a placeholder Toyota Baytown unit) offers the visit at Community Toyota Baytown with the rep meeting them there. TESTS: call-wants-804 (new) executes _lpCallWants, _lpCallWantsUnits, populateFromData, buildUserPrompt, _lpBuildSmsRefinePrompt and _lpRefineSms (worker stubbed) with placeholder data: 26 assertions across both builds; v9.7.803 fails 11 of 13 per build (5 of them new helpers; its 2 controls pass). VERIFIED: run-all 237 suites green, 8409 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.803-dev.)
+// Lead Pro -- popup.js  v9.7.804-dev (Dev. WHAT THEY SAID ON THE CALL IS WHAT THEY WANT -- AND A SISTER STORE'S CAR IS OURS TO OFFER. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Honda Baytown lead 2097505088 (log329, on 803): a Facebook lead on a 2027 CR-V Hybrid TrailSport; the customer has never written, but the 10/12 connected call's note read 'Wife wants a used landcruiser, told them about the one at Toyota but they don't want black' and a 10/16 note 'In market for Land Cruiser'. The draft: 'the Ash Green 2027 CR-V Hybrid TrailSport is here. Is there a feature you'd like me to verify?' -- the pivot detector reads only the customer's own messages ('EXCLUDED BY SCOPE (not customer speech):[Land cruiser]') and the Vehicle line said 'THIS IS THE VEHICLE FOR THIS LEAD. Do not substitute'. Gil, 10/16: offer to set up the visit at the sister store; the salesperson can cross-sell there and go with them. (1) _lpCallWants: a connected call's note naming a different model is the customer's stated want (a no-contact note backs it, never starts it), with its conditions -- used/new and colours ruled out ('don't want black'); not when the model is one they own or trade, one they ruled out, or when a newer customer message names the lead's model again. (2) _lpCallWantsUnits: our lot first, then the Baytown sister stores' live feeds, filtered by those conditions. (3) The prompt: WHAT THEY WANT NOW -- FROM THE CALL (the note quoted, the lead's model not pushed); a unit on our lot is named and the visit offered here; a sister store's unit is named and the visit offered at that store, with the salesperson meeting them there; with nothing that fits, it says so, does not re-offer the colour they ruled out, and asks year range or colour. The Vehicle line and the inventory note stand the lead's car down. Lafayette stores have no sister stores, so only our own lot is searched. (4) The text rewrite gets WHAT THEY WANT NOW, and a rewrite that brings the lead's model back when the first draft had left it does not ship. (5) AMERICAN SPELLING, ALWAYS (Gil, 10/16): the first 804 draft on this lead asked 'what year range or colour should I watch for?' -- copied from this block's own wording. Both LANGUAGE rules (main prompt and text rewrite) now require American spelling; the instruction text the model reads is written that way (41 strings: colour, acknowledgement, summarise, apologise, recognise, labelled, cancelled; diagnostic log strings kept); and _lpAmericanSpelling runs on every SMS, email and voicemail before render ('grey' left alone for factory paint names). Ten existing suites' expected prompt wording updated to match. Replayed on the real dump: 803 says 'THIS IS THE VEHICLE FOR THIS LEAD' and 'we have it here'; 804 says the conversation is about a used Land Cruiser, not black, and (with a placeholder Toyota Baytown unit) offers the visit at Community Toyota Baytown with the rep meeting them there. TESTS: us-spelling-804 (new) executes _lpAmericanSpelling, buildSystemPrompt, buildSystemPromptSmsRefine and buildUserPrompt: 18 assertions across both builds; the first 804 cut fails all 9 per build (5 of them the new helper). call-wants-804 (new) executes _lpCallWants, _lpCallWantsUnits, populateFromData, buildUserPrompt, _lpBuildSmsRefinePrompt and _lpRefineSms (worker stubbed) with placeholder data: 26 assertions across both builds; v9.7.803 fails 11 of 13 per build (5 of them new helpers; its 2 controls pass). VERIFIED: run-all 238 suites green, 8427 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.803-dev.)
 // Lead Pro -- popup.js  v9.7.803-dev (Dev. FULLPATH: THEY ACTED ON OUR OWN MARKETING, AND THE DRAFT LEADS WITH WHAT THEY ACTED ON. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Fullpath is the stores' CDP; its audience module markets to in-market customers in our own database, and a lead arrives when one of them converts. Kia Baytown lead 2100329657 (log327) converted on '2026 Kia Sorento Hybrid Lease for $409/mo for 24 months, $3,999 due at signing' and the draft pitched '$3,000 customer cash' -- the note never reached the prompt (rejected as machine fields); Honda Baytown lead 2100288374 (log328) converted on a 2019 Honda Pilot (VIN, $19,616) and wrote 'My credit is not that good'. Both prompts called it 'your online inquiry'. Gil, 10/15: quote the advertised offer prefaced with approved credit; a specific unit's price is fine; other offers wait for a later follow-up; the vehicle they own is a light trade/upgrade question ('fishing'). (1) The scraper keeps the current lead's received note when it carries 'CONVERTED ON:' (fullpathConversion, carried through the frame merge), and the merge keeps a rejected service-record frame's vehicle as the one they own (serviceVehicle). (2) _lpFullpath reads it on FullPath leads: the offer (and its figure) or the unit (vehicle, VIN for matching, advertised price), the customer's message, what they viewed, what they own, and whether our own messages have already put the figure to them. (3) WHAT THEY RESPONDED TO in the prompt: the offer quoted as advertised, prefaced 'on approved credit', in every format (the payment rules do not stop the advertised offer; they still forbid any other figure); or the car at its advertised price, the VIN never quoted; their message answered first; one light trade/upgrade question on the car they own; OTHER OFFERS WAIT until the offer has been put to them (the store incentive lines stand down meanwhile). HOW THIS LEAD REACHED US says they opened it on our website -- never 'online inquiry', never Fullpath, a landing page, a campaign or an audience; the source acknowledgement stands aside (SKIPPED-fullpath). (4) The text rewrite gets WHAT THEY RESPONDED TO, and a rewrite that drops the offer's figure or the car's price the first draft carried does not ship. Replayed on both real dumps: 802 carries both store incentives ($3,000 cash first) and 'your online inquiry'; 803 carries the $409 lease on approved credit, the 2017 Sorento question and no other offer, and the Pilot at $19,616 with the credit message answered first. TESTS: fullpath-803 (new) executes _lpFullpath, the scraper capture line (lifted), populateFromData, buildUserPrompt, _lpBuildSmsRefinePrompt and _lpRefineSms (worker stubbed) with placeholder data: 28 assertions across both builds; v9.7.802 fails 12 of 14 per build (6 of them new helpers or source; its 2 controls pass). first-touch-register: the acknowledgement's early-exit count goes 6 -> 7 for SKIPPED-fullpath. VERIFIED: run-all 236 suites green, 8383 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.802-dev.)
 // Lead Pro -- popup.js  v9.7.802-dev (Dev. ADD APPT ASK, AND THREE THINGS THE THREAD HAD ALREADY SETTLED. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Kia Baytown lead 2099780329 (log326, on 801): an out-of-state CarGurus buyer in a live text thread with the sales rep -- 'still in our service department. (Not on the lot yet)', then 'I have a 2022 Kia K5 LXS (White) on the lot', and the customer answered 'Good', 'I will bring it up dere wen ii come', 'Pay cash'. The draft said the 2023 'is here in Gravity Gray', never mentioned the white one, and offered a video instead of asking when they are coming; that morning the agent regenerated the first touch ten times looking for a visit ask the out-of-state rule had removed. (1) NOT ON THE LOT: _lpRepNotOnLot reads every message of ours on the lead (not only the newest) for 'not on the lot', 'in our service department', 'in recon', 'being detailed'; a newer message saying it is on the lot or ready wins, and a message naming another year is not about this car. The unit stays ours (not sold): VEHICLE ON LEAD, PRESENCE LANGUAGE, the feed confirmation line, the INVENTORY note, the distance CONTEXT and the text rewrite all say still in service instead of 'here'. (2) THE CAR ON THE TABLE NOW: _lpOfferedUnit -- a different unit we offered ('I have a 2022 Kia K5 LXS (White) on the lot') whose first customer reply after it is not a turn-down. The prompt says the conversation moved to it; the Vehicle line points at it instead of 'THIS IS THE VEHICLE FOR THIS LEAD. Do not substitute'; the settled-colour line for the lead's car stands down; no new figure is to be worked out. (3) THEY SAID THEY WILL MAKE THE TRIP: _lpTripIntent reads the customer's own messages on the lead ('if I come get it', 'when I come', 'I'll drive up'); for an out-of-state buyer the no-visit rule gives way to: ask when they are planning to come, say what will be ready, no set times (a new level-2 visit hold). (4) ADD APPT ASK chip (Gil, 10/14: keep the out-of-state logic intact and let the agent choose): sticky for the lead like Drop Appt Ask, and the two cancel each other. On an out-of-state buyer it replaces the no-visit rule with AGENT OVERRIDE -- APPOINTMENT ASK (times inside store hours, not today by default: a new level-1 hold) and lets the suggested times through. Exit and pause still win; on any other hold the log says [LP ADD-APPT DIAG] held by. The text rewrite knows the chip, and a rewrite that drops the first draft's time does not ship. Replayed on the real dump: 801 says 'confirmed in stock ... Say we have it here', 'THIS IS THE VEHICLE FOR THIS LEAD' and no visit ask; 802 says still in service, puts the white 2022 on the table and asks when they are coming (with the chip: an appointment ask with next-day times). TESTS: remote-visit-802 (new) executes the helpers, populateFromData, buildUserPrompt, _lpBuildSmsRefinePrompt and the chip helpers with placeholder data: 32 assertions across both builds; v9.7.801 fails 12 of 16 per build (6 of them new helpers; its 4 controls pass). step2-697: the appointment gate's source check now allows the chip clause. VERIFIED: run-all 235 suites green, 8355 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.801-dev.)
 // Lead Pro -- popup.js  v9.7.801-dev (Dev. THE CAR ON A MASTERMIND LEAD IS THE PROGRAM'S PICK, NOT THE CUSTOMER'S. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Audi Lafayette Mastermind lead 2099729963 (log325): the vehicle on the lead (a 2026 Q5 Sportback Premium 2.0) was the replacement the Automotive Mastermind program suggested, and every draft treated it as the customer's choice -- 'The 2026 Q5 Sportback Premium 2.0 isn't in stock today ... Would you rather look at the other Q5 options, or wait for the Sportback?'. Gil, 10/14: they never picked that car; ask about a new version of what they drive now or another Audi, with the bridge when the model was renamed, and keep the suggested car out even when it is in stock. (1) Until the customer writes on the lead (_lpMmSuggestedVoi), the vehicle is labelled the program's suggestion everywhere it reached the prompt: the Vehicle of Interest line, the Vehicle line ('none chosen by the customer'), the inventory note (no WHAT WE HAVE answer, no stock either way), the distance CONTEXT line, the no-stock-number line and the similar-vehicles angle stand down; touch1's NEW VEHICLE and touch2's model pivot point at the new question; 800's 'Name the vehicle separately' is dropped for it. (2) New Mastermind rules: THE CAR ON THIS LEAD IS THE PROGRAM'S PICK, NOT THEIRS (not named in SMS, email, voicemail or subject, even in stock; no 'wait for it') and, on touch1-touch4, THE AUDI THEY DRIVE NOW, closing on an open question built by _lpMmModelAsk from the trade-in: 'a new [model]' when the feed has it new; the successor with the bridge when the model was renamed (A4 -> 'the new A5, which replaced the A4'; S4 -> S5); otherwise 'a newer Audi'. (3) The lead notice ('[Dealsheet]: ... [Lead pushed by]: ...') is the program's text: the scraper treats it as a program push (no inquiry read from it); populate drops the CUSTOMER'S INQUIRY block, relabels the transcript line MASTERMIND OFFER NOTICE and does not use it as their last message; the text rewrite no longer quotes it as WHAT THE CUSTOMER LAST SAID (it had a 28-day age from an older lead). (4) The text rewrite gets THE CAR ON THIS LEAD IS THE PROGRAM'S PICK, and a rewrite that names the suggested car's model when the first draft did not does not ship ([LP SMS REFINE DIAG] kept the first pass). Once they write on the lead, the normal vehicle handling; other sources unchanged. Replayed on the real dump: 800 says 'They asked about the 2026 Q5 Sportback Premium 2.0 ... NONE in stock today' and 'reference it by name'; 801 labels every mention as the program's pick and asks about the new A5, which replaced the A4. TESTS: mastermind-pick-801 (new) executes the helpers, populateFromData, buildUserPrompt, _lpBuildSmsRefinePrompt, _lpRefineSms (worker stubbed) and the scraper's program-push test (lifted) with placeholder data: 36 assertions across both builds; v9.7.800 fails 12 of 18 per build (4 of them new helpers; its 6 controls pass). VERIFIED: run-all 234 suites green, 8323 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.800-dev.)
@@ -1743,7 +1743,7 @@ function _lpBuildRelevancyProbe(items) {
     + 'RULES:\n'
     + '- Every item you return MUST cite the numbered line it came from and quote it CHARACTER FOR '
     + 'CHARACTER. Never paraphrase in the quote, never merge two lines, never add words.\n'
-    + '- Return only things a reply would be WRONG to ignore. An ordinary greeting, an acknowledgement, '
+    + '- Return only things a reply would be WRONG to ignore. An ordinary greeting, an acknowledgment, '
     + 'or something already resolved later in the history is not one.\n'
     + '- WHO SAID IT MATTERS. Each line is marked (customer), (us), (system) or (unknown). Something WE '
     + 'said is not the customer stating a preference. Something marked (unknown) is not attributable — '
@@ -1876,7 +1876,7 @@ function _lpBuildCommitProbe(notes, kinds) {
     + 'RULES:\n'
     + '- Answer only from the notes below. If they do not say it, the answer is none.\n'
     + '- "quote" must be copied CHARACTER FOR CHARACTER from a single note. Never paraphrase, '
-    + 'never summarise, never combine two notes, never add words that are not there.\n'
+    + 'never summarize, never combine two notes, never add words that are not there.\n'
     + '- A voicemail we left, a message we sent, or something an agent plans to do is NOT the '
     + 'customer committing to anything.\n'
     + '- A negated statement ("not coming in", "won\'t be able to make it") is NOT a commitment.\n'
@@ -2403,7 +2403,7 @@ function _lpBuildDayLockProbe(notes) {
     + 'RULES:\n'
     + '- Answer only from the messages below. If they did not name a day, the answer is null.\n'
     + '- "quote" must be copied CHARACTER FOR CHARACTER from a single message. Never paraphrase, '
-    + 'never summarise, never combine two messages, never add words that are not there.\n'
+    + 'never summarize, never combine two messages, never add words that are not there.\n'
     + '- A DATE OR DAY INSIDE EMAIL METADATA IS NOT THE CUSTOMER NAMING A DAY. Quoted-reply headers '
     + '("On Monday, August 10, 2026, ... wrote:"), forwarded-message headers, mail-client '
     + 'signatures and email timestamps are generated by software and say when a message was SENT. '
@@ -2446,7 +2446,7 @@ function _lpBuildOffFranchiseProbe(notes, opts) {
     + 'RULES:\n'
     + '- Answer only from the messages below. If they did not, the answer is null.\n'
     + '- "quote" must be copied CHARACTER FOR CHARACTER from a single message. Never paraphrase, '
-    + 'never summarise, never combine two messages, never add words that are not there.\n'
+    + 'never summarize, never combine two messages, never add words that are not there.\n'
     + '- THE MAKE MUST APPEAR AS A WHOLE WORD A PERSON WROTE. Letters that happen to sit inside '
     + 'another word are not a vehicle: "ram" inside "Timeframe" or "program", "kia" inside '
     + '"Kiawah", "mini" inside "minivan". If that is all you can find, the answer is null.\n'
@@ -3950,7 +3950,7 @@ function _lpHasRepText(hr) {
   return 'THEY ALREADY HAVE A SALES REP: their newest message says so ("' + hr.said + '"). This message is a short, gracious step-back that leaves them with that person'
     + (hr.rep ? ' -- on this lead that is ' + hr.rep + ', our salesperson: say ' + hr.repFirst + ' is taking care of them' : '')
     + '. Thank them, make it plain they are in good hands, and say you are here if they ever need anything. '
-    + 'No pitch, no vehicle, no offer, no appointment, and NO QUESTION of any kind -- not about timing, not about what they want. Do not apologise at length or explain our process.'
+    + 'No pitch, no vehicle, no offer, no appointment, and NO QUESTION of any kind -- not about timing, not about what they want. Do not apologize at length or explain our process.'
     + (hr.soldNote ? ' A staff note on this lead reads "Sold": do not sell to them in any form.' : '');
 }
 
@@ -4411,12 +4411,12 @@ var _LP_ACK_FRAMES = {
   brand: {
     ex1: function (n) { return 'Thanks for starting this on ' + n + '...'; },
     ex2: function (n) { return 'I saw your ' + n + ' request come through...'; },
-    tail: 'that is a place they will recognise'
+    tail: 'that is a place they will recognize'
   },
   place: {
     ex1: function (n) { return 'Thanks for starting this on ' + n + '...'; },
     ex2: function (n) { return 'I saw the request you sent through ' + n + '...'; },
-    tail: 'that is a place they will recognise'
+    tail: 'that is a place they will recognize'
   },
   owned: {
     // Already carries "your", so it takes the possessive slot itself rather than sitting behind
@@ -4424,7 +4424,7 @@ var _LP_ACK_FRAMES = {
     // through" — never "your your", never "on your chat with us".
     ex1: function (n) { return 'Thanks for ' + n + '...'; },
     ex2: function (n) { return 'I saw ' + n + ' come through...'; },
-    tail: 'that is how they reached us and they will recognise it'
+    tail: 'that is how they reached us and they will recognize it'
   }
 };
 // ONE WALK OF THE TABLE, and _lpCustomerFacingSource delegates to it. Its own signature and
@@ -4728,6 +4728,35 @@ const DEALER_ID_MAP = {
 // money-word lookahead exempt it; "3.99% APR" can never match a \b[3-8]\d{2}\b integer), and dollar
 // amounts only when welded to upside-down / negative-equity / underwater phrasing ("$2,000 down"
 // payment talk survives). Every redaction is logged so a miss or an over-redaction is diagnosable.
+// (v9.7.804) AMERICAN SPELLING, ALWAYS. Honda Baytown lead 2097505088 (log330): the draft asked "What year range or colour
+// should I watch for?" -- the model took the British spelling from this file's own instruction. Gil, 10/16: "we should always use
+// American spellings of all words." The prompts now say so and are written that way; this is the backstop on every draft before
+// it renders. "grey" is left alone: some factory paint names spell it that way, and the paint name is never changed.
+var LP_US_SPELLING = [
+  [/\b(?:colo|favo|behavio|hono|neighbo|labo|harbo|rumo|humo|flavo|savo|vigo|armo)ur(?:s|ed|ing|ful|less|ite|ites|able|ably)?\b/gi, function (w) { return w.replace(/our/i, 'or'); }],
+  [/\b(?:organ|real|recogn|apolog|priorit|personal|summar|custom|final|author|minim|maxim|optim|emphas|special|util|familiar|categor|standard|visual|memor|critic|stabil|harmon)is(?:e|ed|es|ing|ation|ations|able)\b/gi, function (w) { return w.replace(/is(e|ed|es|ing|ation|ations|able)$/i, 'iz$1'); }],
+  [/\b(?:cent|lit|fib|met)re(?:s|d)?\b/gi, function (w) { return w.replace(/re(s|d)?$/i, 'er$1'); }],
+  [/\b(?:travel|cancel|label|model|fuel|signal|total|level|channel|counsel|equal|jewel|marvel|panel|tunnel|dial)l(?:ed|ing|er|ers)\b/gi, function (w) { return w.replace(/ll(ed|ing|er|ers)$/i, 'l$1'); }],
+  [/\blicence(?:s|d)?\b/gi, function (w) { return w.replace(/cence/i, 'cense'); }],
+  [/\b(?:defence|offence)s?\b/gi, function (w) { return w.replace(/ence/i, 'ense'); }],
+  [/\benquir(?:y|ies|e|ed|es|ing)\b/gi, function (w) { return w.replace(/^en/i, 'in'); }],
+  [/\bcheques?\b/gi, function (w) { return w.replace(/que/i, 'ck'); }],
+  [/\b(?:programme|catalogue)s?\b/gi, function (w) { return w.replace(/(?:me|ue)(s?)$/i, '$1'); }],
+  [/\btyres?\b/gi, function (w) { return w.replace(/y/i, 'i'); }],
+  [/\baluminium\b/gi, function () { return 'aluminum'; }],
+  [/\b(?:acknowledg|judg|abridg)ements?\b/gi, function (w) { return w.replace(/ement/i, 'ment'); }],
+  [/\bageing\b/gi, function () { return 'aging'; }],
+  [/\bwhilst\b/gi, function () { return 'while'; }],
+  [/\bamongst\b/gi, function () { return 'among'; }],
+  [/\blearnt\b/gi, function () { return 'learned'; }]
+];
+function _lpCaseLike(src, out) { return src === src.toUpperCase() ? out.toUpperCase() : /^[A-Z]/.test(src) ? out.charAt(0).toUpperCase() + out.slice(1) : out; }
+function _lpAmericanSpelling(text) {
+  var s = String(text == null ? '' : text), n = 0;
+  LP_US_SPELLING.forEach(function (r) { s = s.replace(r[0], function (w) { var o = _lpCaseLike(w, r[1](w).toLowerCase()); if (o !== w) n++; return o; }); });
+  if (n) { try { console.log('[LP US SPELLING DIAG] ' + n + ' British spelling(s) changed to American in a draft'); } catch (e) {} }
+  return s;
+}
 function _lpFinanceGuard(text, channel){
   var s = String(text || '');
   if (!s) return s;
@@ -7839,7 +7868,7 @@ function populateFromData(d) {
     vehicleExtras.push('🚗 THE CUSTOMER NAMED A MODEL, NOT A UNIT: in their own words they want "' + d._lpNamedModel.phrase + '". No vehicle is on file, and '
       + (_nmHave ? d._lpNamedModel.count + ' units in stock match that model (for example: ' + d._lpNamedModel.sample.join('; ') + '). None of them is one THEY chose. '
                  : (d._lpNamedModel.stockKnown === false ? 'stock for that model is not shown in this prompt, so do NOT say we have one here. ' : 'no unit of that model shows in the stock feed right now, so do NOT say we have one here. '))
-      + 'Do NOT write "the one you asked about" and do NOT give a trim, powertrain, colour or single unit as theirs. They have already told you what they are '
+      + 'Do NOT write "the one you asked about" and do NOT give a trim, powertrain, color or single unit as theirs. They have already told you what they are '
       + 'shopping for, so do not ask that again: build on it' + (_nmHave ? ' — we have them in stock —' : '') + ' and ask the one thing that narrows it ('
       + (_nmUsed ? 'this lead is for a PRE-OWNED vehicle, so do not ask new or pre-owned: a year range, a trim, what matters most'
          : _imxNewNoVeh ? 'they claimed the new-car offer, so treat it as a new one: a trim, what matters most'
@@ -8260,12 +8289,12 @@ function populateFromData(d) {
     if (d._lpRepNotOnLot) vehicleExtras[vehicleExtras.length - 1] = 'IN TODAY\'S INVENTORY FEED, BUT STILL IN SERVICE: stock ' + d.stockNum + ' is ours -- in the feed, not sold -- but on ' + d._lpRepNotOnLot.date
       + ' the sales rep told the customer it is still in service and not on the lot yet. Do not say it sold or is gone; do not say it is here, on the lot or ready to see.';   // (v9.7.802)
     if (_lpColorLive) {
-      vehicleExtras.push('🎨 WHAT COLOUR THAT CONFIRMED UNIT ACTUALLY IS: stock ' + d.stockNum + ' is ' + _lpStockColor
+      vehicleExtras.push('🎨 WHAT COLOR THAT CONFIRMED UNIT ACTUALLY IS: stock ' + d.stockNum + ' is ' + _lpStockColor
         + '. That comes from the inventory feed and it is the paint on the physical car. It is NOT the same fact as the "Color:" line in the lead details — that one records what the CUSTOMER asked for, so the two agreeing proves nothing about what is on the lot. This customer asked for ' + _lpSaidColor
         + '. Work out for yourself whether ' + _lpStockColor + ' IS ' + _lpSaidColor
-        + ', and write only what is true of THIS car. SOME factory names contain the colour word and answer it outright: "Crystal Black Pearl" is black, "Platinum White Pearl" is white. MANY DO NOT, AND A MISSING WORD IS NOT EVIDENCE OF A MISMATCH — "Winter Frost Pearl" is white, "Modern Steel Metallic" is gray, "Still Night Pearl" is dark blue, "Nordic Forest Pearl" is green. Judge the colour the name actually DESCRIBES, never whether their word appears inside it. '
-        + 'WHEN YOU NAME THIS CAR\'S PAINT, USE OUR NAME FOR IT AS THE FEED WRITES IT \u2014 "' + _lpStockColor + '" \u2014 never their words for it, even when you judge it is the colour they want: "we have one in ' + _lpStockColor + '", not "the ' + _lpSaidColor + ' one you wanted is here". '
-        + 'If they named a particular shade and ours goes by a different name, that difference is theirs to judge, so name ours plainly. AND IF YOU GENUINELY CANNOT TELL what colour a paint name is, do NOT tell them we do not have the colour they asked for: that is the worse error of the two, because it is a denial about a car that may be sitting on our lot in exactly the shade they want. Give them the paint name as it is written, say you want to be certain it is the shade they have in mind, and let them tell you. IF IT IS NOT THE COLOUR THEY ASKED FOR: do NOT write that the car they want is here, do NOT say that ordering it, shipping it or bringing one in is unnecessary because we have it, and do NOT let the in-stock confirmation above stand in for a confirmation of their colour — it confirms this unit and this unit\'s paint, nothing more. Say plainly what we do have in this model, and if a unit on the SIMILAR VEHICLES list is closer to what they asked for you may name it: on a question about colour that is not an unsolicited pivot, it is the answer.');
+        + ', and write only what is true of THIS car. SOME factory names contain the color word and answer it outright: "Crystal Black Pearl" is black, "Platinum White Pearl" is white. MANY DO NOT, AND A MISSING WORD IS NOT EVIDENCE OF A MISMATCH — "Winter Frost Pearl" is white, "Modern Steel Metallic" is gray, "Still Night Pearl" is dark blue, "Nordic Forest Pearl" is green. Judge the color the name actually DESCRIBES, never whether their word appears inside it. '
+        + 'WHEN YOU NAME THIS CAR\'S PAINT, USE OUR NAME FOR IT AS THE FEED WRITES IT \u2014 "' + _lpStockColor + '" \u2014 never their words for it, even when you judge it is the color they want: "we have one in ' + _lpStockColor + '", not "the ' + _lpSaidColor + ' one you wanted is here". '
+        + 'If they named a particular shade and ours goes by a different name, that difference is theirs to judge, so name ours plainly. AND IF YOU GENUINELY CANNOT TELL what color a paint name is, do NOT tell them we do not have the color they asked for: that is the worse error of the two, because it is a denial about a car that may be sitting on our lot in exactly the shade they want. Give them the paint name as it is written, say you want to be certain it is the shade they have in mind, and let them tell you. IF IT IS NOT THE COLOR THEY ASKED FOR: do NOT write that the car they want is here, do NOT say that ordering it, shipping it or bringing one in is unnecessary because we have it, and do NOT let the in-stock confirmation above stand in for a confirmation of their color — it confirms this unit and this unit\'s paint, nothing more. Say plainly what we do have in this model, and if a unit on the SIMILAR VEHICLES list is closer to what they asked for you may name it: on a question about color that is not an unsolicited pivot, it is the answer.');
     } else if (_lpStockColor) {
       // ── (v9.7.661) AND WHEN THEY HAVE NOT ASKED, IT IS A DETAIL, NOT A QUESTION ───────────
       // LIVE, 9/15. Sheldon Williamson, Community Honda Baytown, a website lead on a specific
@@ -8306,12 +8335,12 @@ function populateFromData(d) {
       }
       if (_lcSame) {
         // (v9.7.802) not when the talk moved to another unit, or this one is still in service
-        if (!((typeof _ofrUnit !== 'undefined' && _ofrUnit) || d._lpRepNotOnLot)) vehicleExtras.push('\ud83c\udfa8 THE COLOUR IS ALREADY SETTLED — USE IT, DO NOT ASK ABOUT IT: the unit confirmed above is ' + _lpStockColor
+        if (!((typeof _ofrUnit !== 'undefined' && _ofrUnit) || d._lpRepNotOnLot)) vehicleExtras.push('\ud83c\udfa8 THE COLOR IS ALREADY SETTLED — USE IT, DO NOT ASK ABOUT IT: the unit confirmed above is ' + _lpStockColor
           + (d.colorAskSettled
-              ? ', and the colour question is closed: they first asked for ' + d.colorAskSettled + ', then ' + (d.voiSwap ? 'the store changed the vehicle on this lead to this car' : 'sent us the listing for this car') + ', and our reply told them it is ' + _lpStockColor + '. They have not asked for ' + d.colorAskSettled + ' since, so do not offer or look for a ' + d.colorAskSettled + ' one.'
-              : ', and the customer has not raised colour, trim or configuration anywhere in this conversation.')
-          + ' None of it is an open question. Use the colour as a DETAIL that shows you are looking at THEIR car — "the ' + _lpStockColor
-          + ' one" — and never as something for them to confirm. IT IS A DETAIL, NOT THE OPENING LINE: if the customer has said anything of their own — what they want, what they liked, what they just asked — THAT opens the message and the colour sits further in. A message that opens on the paint when the customer has just asked you something has put our fact ahead of their words. Do NOT ask whether that colour is the one they want, do NOT ask them to confirm the trim or the build, and do NOT make confirming the specification the point of this message: on a car we have already confirmed, that reads as though we are not sure what they asked for, and it moves the conversation backwards rather than forward. The rule about asking a qualifying question on trim or colour is written for a unit we CANNOT confirm — this one is confirmed, so it does not apply here and must not be used as this message\'s angle. If you need a different angle because you have written to them before, take one that moves them toward the visit.');
+              ? ', and the color question is closed: they first asked for ' + d.colorAskSettled + ', then ' + (d.voiSwap ? 'the store changed the vehicle on this lead to this car' : 'sent us the listing for this car') + ', and our reply told them it is ' + _lpStockColor + '. They have not asked for ' + d.colorAskSettled + ' since, so do not offer or look for a ' + d.colorAskSettled + ' one.'
+              : ', and the customer has not raised color, trim or configuration anywhere in this conversation.')
+          + ' None of it is an open question. Use the color as a DETAIL that shows you are looking at THEIR car — "the ' + _lpStockColor
+          + ' one" — and never as something for them to confirm. IT IS A DETAIL, NOT THE OPENING LINE: if the customer has said anything of their own — what they want, what they liked, what they just asked — THAT opens the message and the color sits further in. A message that opens on the paint when the customer has just asked you something has put our fact ahead of their words. Do NOT ask whether that color is the one they want, do NOT ask them to confirm the trim or the build, and do NOT make confirming the specification the point of this message: on a car we have already confirmed, that reads as though we are not sure what they asked for, and it moves the conversation backwards rather than forward. The rule about asking a qualifying question on trim or color is written for a unit we CANNOT confirm — this one is confirmed, so it does not apply here and must not be used as this message\'s angle. If you need a different angle because you have written to them before, take one that moves them toward the visit.');
       } else {
         try { console.log('[LP STOCK COLOR DIAG] withheld — the lead records "' + _lcLead
           + '" but the confirmed unit is ' + _lpStockColor + ', and the customer has not raised colour.'
@@ -15727,7 +15756,7 @@ function _lpScraperBotAuthor(msg) {
       if (_lpPriceBlock) conversationBrief = conversationBrief ? _lpPriceBlock + '\n\n' + conversationBrief : _lpPriceBlock;
       _lpD('[LP TOOL DATA DIAG] listing-site price fields REFUSED as the customer\'s inquiry -- ' + _lpTfClean.length + ' chars | '
         + (_lpTfVehChanged ? 'WITHHELD: the vehicle on the lead changed since they were quoted' + (_lpTfTime ? ' (timeframe "' + _lpTfTime + '" kept)' : '')
-                           : 'labelled as the site\'s figures, not to be quoted'));
+                           : 'labeled as the site\'s figures, not to be quoted'));
       _lpToolFieldData = '';
     }
     if (_lpToolFieldData) {
@@ -16455,11 +16484,11 @@ function _lpScraperBotAuthor(msg) {
           _fricState === 'FRESH'
             ? 'This is their MOST RECENT message — they are telling you right now. Own it plainly in the '
               + 'first sentence, answer exactly what they asked, and do NOT pitch, do NOT offer a time, and '
-              + 'do NOT change the subject to a different vehicle. One honest acknowledgement and a direct '
+              + 'do NOT change the subject to a different vehicle. One honest acknowledgment and a direct '
               + 'answer is the whole message.'
           : _fricState === 'CARRIED'
             ? 'They have ALREADY MOVED PAST IT and come back with something new — that new ask is the '
-              + 'message. Acknowledge the wasted trip in ONE clause, not a paragraph, and never re-apologise '
+              + 'message. Acknowledge the wasted trip in ONE clause, not a paragraph, and never re-apologize '
               + 'at length for something they have stopped raising; that reads as dwelling. Then do the thing '
               + 'that actually repairs it: REMOVE THE RISK OF IT HAPPENING AGAIN before you ask anything of '
               + 'them. Confirm the specific vehicle and the specific number FIRST, and only then talk about a '
@@ -16474,10 +16503,10 @@ function _lpScraperBotAuthor(msg) {
         customerConcerns.push('COLOR — SETTLED ON THE UNIT ON THE LEAD: they first asked for ' + colorMatch[0]
           + ', but since then ' + (_colorSettled.linkAt ? 'they sent us the listing for the car they want, ' : '')
           + (_colorSettled.swap ? 'the store changed the vehicle on this lead to the ' + _voiColor + ' unit, ' : '')
-          + 'and our reply told them that car is ' + _voiColor + '. That exchange is newer than the colour they named, and they have not asked for '
+          + 'and our reply told them that car is ' + _voiColor + '. That exchange is newer than the color they named, and they have not asked for '
           + colorMatch[0] + ' again. The ' + _voiColor + ' unit on the lead IS the car. Work it: do NOT go back to '
           + colorMatch[0] + ', do NOT say a ' + colorMatch[0] + ' one is here or offer to look for one, and do NOT '
-          + 'reopen the colour question. Only if they raise ' + colorMatch[0] + ' again is it back on the table.');
+          + 'reopen the color question. Only if they raise ' + colorMatch[0] + ' again is it back on the table.');
       } else if (colorMatch && _colorMismatch) {
         // The strong form. The soft "match or acknowledge" wording below was no match for a VOI
         // block that states a colour as fact and forbids substitution, so on a mismatch the
@@ -16489,7 +16518,7 @@ function _lpScraperBotAuthor(msg) {
           + colorMatch[0].toUpperCase() + '. The vehicle of interest on file is ' + _voiColor
           + ', which is the unit they ORIGINALLY inquired about — it is NOT what they are asking for now. '
           + 'Build this message around the ' + colorMatch[0] + ' one they actually want. '
-          + 'This is a COLOUR change on the SAME model, not a different vehicle, so the "do not substitute '
+          + 'This is a COLOR change on the SAME model, not a different vehicle, so the "do not substitute '
           + 'or reference other vehicles" rule does NOT apply here and must not stop you naming a '
           + colorMatch[0] + ' one. Do NOT present the ' + _voiColor + ' unit as the answer, do NOT ask them '
           + 'to reconsider it, and do NOT let its status end the conversation. If you cannot confirm a '
@@ -17120,7 +17149,7 @@ function _lpScraperBotAuthor(msg) {
         if (/\b(cancel|canceled|cancelled|cancelling|canceling)\b/i.test(anContent)
             && !/reply stop to cancel|stop to cancel|to cancel\b.*(?:message|text|sms)/i.test(anContent)) {
           isApptRelated = true;
-          apptEvent = (anDir === 'inbound' ? 'Customer cancelled appointment (' : 'Agent noted appointment cancelled (') + anLabel + '): "' + anContent.substring(0, 100).replace(/[\r\n]+/g, ' ') + '"';
+          apptEvent = (anDir === 'inbound' ? 'Customer canceled appointment (' : 'Agent noted appointment canceled (') + anLabel + '): "' + anContent.substring(0, 100).replace(/[\r\n]+/g, ' ') + '"';
           hasApptSet = false;
           hasMissedAppt = true;
           apptNotes.push(apptEvent);
@@ -21794,7 +21823,7 @@ function lookupPhone(agentName, store, dealerId) {
 // Declared ABOVE its first use rather than below it: reading a var declared further down is
 // the v9.7.422 ordering trap, and although module-level assignment would in fact beat the
 // first call here, replicating the shape is how this file keeps getting caught by it.
-var _LP_SMS_SHAPE_RULE = 'SMS: A REAL TEXT MESSAGE, WHICH IS A DIFFERENT SHAPE FROM AN EMAIL AND NOT A SHORTER VERSION OF ONE. An email works through an agenda; a text does not. WHAT MAKES IT A TEXT IS THE VOICE AND THE RHYTHM, NOT HOW MUCH YOU LEFT OUT. It leads on the thing that earns a reply and then says what actually matters, in the words a person would use. DO NOT HOLD THE SUBSTANCE BACK FOR THE EMAIL: plenty of customers read the text and never open the email, so a text that defers the real reason to come in has sent them nothing. MATCH THE DEPTH AND THE TONE OF WHAT THEY SENT YOU — the same requirement the email carries, and the half the text keeps losing. If they apologised, wrote warmly, or told you something about their life, a PERSON answers that first, and it costs almost nothing to do. A text that is accurate and has no warmth in it is not the efficient version of a good message; it is a worse message. AND A QUESTION YOU ARE ASKING THEM IS NOT A HOOK: if what they asked cannot be answered yet, say what you CAN do first and put your question at the END, where a person would put it. Opening on a request for them to repeat themselves is the coldest way to start. THOSE ARE NOT COMPETING CLAIMS ON THE FIRST SENTENCE, AND THE ORDER IS NOT LEFT TO YOU: their NAME; then, if they gave you something human to answer — an apology, a personal remark, news about their life — answer it before anything else. A COURTESY THEY PAID YOU IS NOT A LINE TO HAND BACK. If they thanked you, you have been thanked — take it and answer what they actually said. Returning their own gesture with the roles swapped, so that "thanks for checking in on me" comes back as "thanks for checking back in", tells them you read the shape of their message instead of the content, and it is worse than opening on the substance with no warmth at all; then the thing that earns a reply; then the ask. The acknowledgement does not compete with the hook. It comes BEFORE it, and it is cheap. A text that carries the warmth but buries it behind the deal has technically included it and still reads like a form — nobody thanks you for a kind sentence they reach after two hundred characters of terms. WHAT A TEXT LOOKS LIKE: lines a person would actually thumb into a phone. ONE THOUGHT PER SENTENCE — if two thoughts have to be joined with "and", "while" or a semicolon, they are two sentences, not one. THERE IS NO SENTENCE COUNT AND NO LENGTH TO HIT: say what is worth saying and stop. Open on something THEY said or want, never on what YOU are going to do — "the one you said you loved" beats "I can have it ready for you". Then the ask — and the test on it is NOT how many things you mentioned. IT IS WHETHER ONE REPLY CAN ANSWER IT. Two actions bundled under a single yes are ONE ask: "would you like me to send it and have the car ready?" gets both from one word, and that is a good ask — it gives them two reasons to reply and costs them nothing. Two different answers are TWO asks: "would the colour work for you, and do you want it already tinted or arranged after?" cannot be answered by "yes", so they pick one and the other is lost, or they answer neither. The tell is simple — write the word "yes" under your own question and see whether it means anything. IF YOU GENUINELY HAVE TO DROP ONE, KEEP THE ONE THEY RAISED. Their question outranks ours every time: ours can go in the next message, and theirs has already been waiting. READ IT BACK OUT LOUD BEFORE YOU SEND. A sentence needing a semicolon, one hanging three items off "and", one joining two clauses with "while" — THOSE ARE THREE EXAMPLES OF ONE FAILURE, NOT A CHECKLIST THAT CLEARS IT. The test is the reading: if you could not say it in one breath, or would not thumb it into a phone, it is an email sentence whatever it does or does not contain. A sentence can carry NONE of the three and still fail — a noun phrase loaded with specification (the unit, the colour, the payment, the term, the amount due, and two disclaimers) has no semicolon and no "while", runs close to forty words, and is exactly the shape that gets past a checklist. Break it into separate sentences rather than dropping what it was carrying. LEAD ON WHAT THEY CARE ABOUT, NOT ON OUR AGENDA — a text that works through our checklist and never reaches the reason THEY replied has led with exactly the wrong half. WHERE A DIRECTIVE ELSEWHERE IN THIS PROMPT REQUIRES A SENTENCE IN THE TEXT, IT GETS ONE — IT DOES NOT GET THE FIRST ONE. A block that says a sentence is mandatory is telling you what the text must CONTAIN, not what it must OPEN WITH, and a worked example it hands you is showing you that sentence, not your opening line. Write the hook first, in their terms, then fold the required sentence in behind it — often as a clause of the same sentence rather than a sentence of its own. IF THE TEXT OPENS ON SOMETHING WE ARE GOING TO DO, A REQUIRED SENTENCE HAS TAKEN THE OPENING AND THE HOOK IS WHAT GOT CUT. ONE EXCEPTION, AND IT OUTRANKS EVERYTHING ABOVE: AN AGENT LP COMMAND IS NEVER WHAT GETS CUT. If the agent asked for several distinct things, the SMS carries ALL of them, even when that makes it longer than a text you would otherwise write. End with the stacked signature — agent first name, store name, phone — each on its own line. Nothing else. No dash, no comma, no name in the message body before the signature.';
+var _LP_SMS_SHAPE_RULE = 'SMS: A REAL TEXT MESSAGE, WHICH IS A DIFFERENT SHAPE FROM AN EMAIL AND NOT A SHORTER VERSION OF ONE. An email works through an agenda; a text does not. WHAT MAKES IT A TEXT IS THE VOICE AND THE RHYTHM, NOT HOW MUCH YOU LEFT OUT. It leads on the thing that earns a reply and then says what actually matters, in the words a person would use. DO NOT HOLD THE SUBSTANCE BACK FOR THE EMAIL: plenty of customers read the text and never open the email, so a text that defers the real reason to come in has sent them nothing. MATCH THE DEPTH AND THE TONE OF WHAT THEY SENT YOU — the same requirement the email carries, and the half the text keeps losing. If they apologized, wrote warmly, or told you something about their life, a PERSON answers that first, and it costs almost nothing to do. A text that is accurate and has no warmth in it is not the efficient version of a good message; it is a worse message. AND A QUESTION YOU ARE ASKING THEM IS NOT A HOOK: if what they asked cannot be answered yet, say what you CAN do first and put your question at the END, where a person would put it. Opening on a request for them to repeat themselves is the coldest way to start. THOSE ARE NOT COMPETING CLAIMS ON THE FIRST SENTENCE, AND THE ORDER IS NOT LEFT TO YOU: their NAME; then, if they gave you something human to answer — an apology, a personal remark, news about their life — answer it before anything else. A COURTESY THEY PAID YOU IS NOT A LINE TO HAND BACK. If they thanked you, you have been thanked — take it and answer what they actually said. Returning their own gesture with the roles swapped, so that "thanks for checking in on me" comes back as "thanks for checking back in", tells them you read the shape of their message instead of the content, and it is worse than opening on the substance with no warmth at all; then the thing that earns a reply; then the ask. The acknowledgment does not compete with the hook. It comes BEFORE it, and it is cheap. A text that carries the warmth but buries it behind the deal has technically included it and still reads like a form — nobody thanks you for a kind sentence they reach after two hundred characters of terms. WHAT A TEXT LOOKS LIKE: lines a person would actually thumb into a phone. ONE THOUGHT PER SENTENCE — if two thoughts have to be joined with "and", "while" or a semicolon, they are two sentences, not one. THERE IS NO SENTENCE COUNT AND NO LENGTH TO HIT: say what is worth saying and stop. Open on something THEY said or want, never on what YOU are going to do — "the one you said you loved" beats "I can have it ready for you". Then the ask — and the test on it is NOT how many things you mentioned. IT IS WHETHER ONE REPLY CAN ANSWER IT. Two actions bundled under a single yes are ONE ask: "would you like me to send it and have the car ready?" gets both from one word, and that is a good ask — it gives them two reasons to reply and costs them nothing. Two different answers are TWO asks: "would the color work for you, and do you want it already tinted or arranged after?" cannot be answered by "yes", so they pick one and the other is lost, or they answer neither. The tell is simple — write the word "yes" under your own question and see whether it means anything. IF YOU GENUINELY HAVE TO DROP ONE, KEEP THE ONE THEY RAISED. Their question outranks ours every time: ours can go in the next message, and theirs has already been waiting. READ IT BACK OUT LOUD BEFORE YOU SEND. A sentence needing a semicolon, one hanging three items off "and", one joining two clauses with "while" — THOSE ARE THREE EXAMPLES OF ONE FAILURE, NOT A CHECKLIST THAT CLEARS IT. The test is the reading: if you could not say it in one breath, or would not thumb it into a phone, it is an email sentence whatever it does or does not contain. A sentence can carry NONE of the three and still fail — a noun phrase loaded with specification (the unit, the color, the payment, the term, the amount due, and two disclaimers) has no semicolon and no "while", runs close to forty words, and is exactly the shape that gets past a checklist. Break it into separate sentences rather than dropping what it was carrying. LEAD ON WHAT THEY CARE ABOUT, NOT ON OUR AGENDA — a text that works through our checklist and never reaches the reason THEY replied has led with exactly the wrong half. WHERE A DIRECTIVE ELSEWHERE IN THIS PROMPT REQUIRES A SENTENCE IN THE TEXT, IT GETS ONE — IT DOES NOT GET THE FIRST ONE. A block that says a sentence is mandatory is telling you what the text must CONTAIN, not what it must OPEN WITH, and a worked example it hands you is showing you that sentence, not your opening line. Write the hook first, in their terms, then fold the required sentence in behind it — often as a clause of the same sentence rather than a sentence of its own. IF THE TEXT OPENS ON SOMETHING WE ARE GOING TO DO, A REQUIRED SENTENCE HAS TAKEN THE OPENING AND THE HOOK IS WHAT GOT CUT. ONE EXCEPTION, AND IT OUTRANKS EVERYTHING ABOVE: AN AGENT LP COMMAND IS NEVER WHAT GETS CUT. If the agent asked for several distinct things, the SMS carries ALL of them, even when that makes it longer than a text you would otherwise write. End with the stacked signature — agent first name, store name, phone — each on its own line. Nothing else. No dash, no comma, no name in the message body before the signature.';
 
 // ── (v9.7.700) AUDIT M4 — THE LEAD-INDEPENDENT RULES LIVE ABOVE THE CACHE BREAKPOINT ─────────────
 // Phase 1 measured ~22.5k chars of text byte-identical across leads at three stores, all of it in the
@@ -21835,7 +21864,7 @@ var _LP_STANDING_RULES = [
   // have here". Nothing said a credit result is not ours to write.
   '- NO CREDIT DECISIONS IN WRITING: never tell the customer in a message whether they were approved, pre-approved, declined or not approved, even when a note records it. The finance team gives credit results in person or by phone. Write about the next step instead (reviewing options, the numbers, bringing the co-signer).',
   '- RULES ARE FOR YOU, NOT FOR THE CUSTOMER: follow every rule in this prompt silently. Never tell the customer what you are not assuming, what you cannot say, confirm or approve, or what you will not put in writing, and never explain why you are not saying something. Say what you CAN do and move on. ("I\'m checking on the LE rather than assuming it\'s available", "so I can\'t say it\'s approved" and "without sharing her credit information in writing" are this failure.)',
-  '- LANGUAGE: ALL responses are written in English, regardless of what language the customer used. The dealership uses an in-CRM translation tool for delivery to non-English-speaking customers. NEVER write any portion of the SMS, email, or voicemail in Spanish, French, or any non-English language. NEVER mix languages in a single message. Even if the customer\'s most recent message is in Spanish ("hola," "gracias," "cuando este") OR a prior agent has been replying in Spanish, your output must be 100% English. Do not translate phrases for them. Do not include Spanish greetings, closings, or filler phrases ("hola," "saludos," "que tenga buen dia"). The translation step happens after Lead Pro generates the message, not inside it.',
+  '- LANGUAGE: ALL responses are written in English, regardless of what language the customer used. AMERICAN ENGLISH SPELLING, ALWAYS: color, favorite, center, apologize, recognize, organize, canceled, labeled, acknowledgment, inquiry, license -- never colour, favourite, centre, apologise, recognise, organise, cancelled, labelled, acknowledgement, enquiry, licence. A factory paint name is written exactly as the factory spells it. The dealership uses an in-CRM translation tool for delivery to non-English-speaking customers. NEVER write any portion of the SMS, email, or voicemail in Spanish, French, or any non-English language. NEVER mix languages in a single message. Even if the customer\'s most recent message is in Spanish ("hola," "gracias," "cuando este") OR a prior agent has been replying in Spanish, your output must be 100% English. Do not translate phrases for them. Do not include Spanish greetings, closings, or filler phrases ("hola," "saludos," "que tenga buen dia"). The translation step happens after Lead Pro generates the message, not inside it.',
   '- EMOTIONAL CALIBRATION: If the customer\'s most recent message is emotionally elevated — urgency ("I need this NOW", "TODAY"), frustration, anger, profanity, or aggressive demand — do NOT match that energy. Respond with calm, grounded, professional tone. Acknowledge what they said directly without dismissing it, but never escalate, never use exclamation points to mirror their intensity, never adopt their urgency framing, and never use words in all caps. The dealership voice that earns trust under pressure is steady, not amplified. Mirroring heat reads as performative or unprofessional; staying calm reads as competent.',
   '',
   'OTD / PAYMENT DISCIPLINE (all stores): Do NOT offer, volunteer, tease, or promise an out-the-door total, drive-out price, monthly payment, or financing number unless the CUSTOMER has explicitly asked for it in their own message. Never lead with it, never use it as bait, never say things like "I can run your out-the-door number" or "tell me your budget and I will get you the OTD" as an opener. The exact number is the reason for the customer to connect \u2014 it is produced on a call or in person, not handed over in an outbound message. If the customer has NOT raised price/payment, focus on the vehicle, fit, availability, and the next step (call or visit). If the customer HAS explicitly raised it, acknowledge it and move toward the call/visit where the real figure is built \u2014 do not quote a specific total over text.',
@@ -22204,7 +22233,7 @@ function buildSystemPromptSmsRefine(agentFirst, storeName, phone) {
       + 'their last message is in Spanish, the text is STILL IN ENGLISH. The dealership translates '
       + 'inside the CRM after this step, on the agent\'s command, and an agent who does not read '
       + 'that language cannot check what you wrote. Never write any part of the text in Spanish, '
-      + 'French or any other language, and never mix languages in one message.',
+      + 'French or any other language, and never mix languages in one message. Spell it the American way: color, favorite, center, apologize, canceled -- never colour, favourite, centre, apologise, cancelled.',
     '  \u2022 RULES ARE FOR YOU, NOT FOR THE CUSTOMER. Follow them silently: never tell the customer what you are not '
       + 'assuming, cannot say or confirm, or will not put in writing, and never explain why. Say what you can do.',
     '  \u2022 NO CREDIT DECISIONS IN WRITING. Never tell the customer whether they were approved, pre-approved or declined '
@@ -22504,8 +22533,8 @@ function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
     // word into a text on a lead submitted that day, whose first draft said nothing of the kind.
     if (_lpMissOnThisLead(d) && LP_MISS_ACK_RX.test(String(pass1 || ''))) {
       out.push('\u2501\u2501\u2501 THE APPOINTMENT ON THIS LEAD WAS MISSED \u2501\u2501\u2501');
-      out.push('The first draft acknowledges it. Keep that acknowledgement, in the first draft\'s own words, lightly and without blame -- never "you didn\'t show up" -- '
-        + 'and keep the first draft\'s ask about getting them back in. Do not drop the acknowledgement to make the text shorter, and do not name a day the first draft does not name.');
+      out.push('The first draft acknowledges it. Keep that acknowledgment, in the first draft\'s own words, lightly and without blame -- never "you didn\'t show up" -- '
+        + 'and keep the first draft\'s ask about getting them back in. Do not drop the acknowledgment to make the text shorter, and do not name a day the first draft does not name.');
       out.push('');
     }
   } catch (eRfMiss) {}
@@ -22745,7 +22774,7 @@ function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
     + 'what someone who wanted this customer to come in would actually text, and stop when it '
     + 'is said. Do not pad it to sound thorough and do not strip it to a receipt.');
   out.push('What you must NOT do is write it AS an email. Do not work through an agenda in '
-    + 'paragraphs, do not summarise, and do not take the email and delete words out of it \u2014 '
+    + 'paragraphs, do not summarize, and do not take the email and delete words out of it \u2014 '
     + 'that last one is the exact failure this pass exists to prevent. The difference between the '
     + 'two is the voice and the rhythm, not how much you left out.');
   out.push('If the email offered appointment times, use the SAME times. Never invent different ones.');
@@ -25595,7 +25624,7 @@ function buildUserPrompt(data) {
         if (!_pvStock.saidNew && _pvStock.modelUnits > 0) {
           // They pivoted to something sitting on our own lot. This is not a dead end and the
           // customer can see our listings, so a denial here is both false and checkable.
-          vehiclePivotNote = '⚠ PIVOT TO A MODEL WE ACTUALLY HAVE: Customer is now interested in a ' + pivotModel + ' (' + _pivotBrandCap + '), and OUR OWN LOT HOLDS ' + _pvStock.modelUnits + ' pre-owned ' + pivotModel + ' unit(s) right now — read from the live inventory feed for this rooftop, which is authoritative. DO NOT tell this customer we cannot supply it and do NOT treat this as a dead end: a franchise constraint is about NEW cars, and nothing here is about a new one. Acknowledge the ' + pivotModel + ' directly, say plainly that we have pre-owned ' + pivotModel + ' here, and offer to send details or arrange a look. Do NOT name a specific trim, colour, year or unit — you have a COUNT, not a confirmed match for the one they want, so "we have pre-owned ' + pivotModel + ' on the ground" is the claim you may make and nothing more specific. The ' + (data.vehicle || 'vehicle on the lead') + ' stays in play as the comparison, not as a substitute for what they asked about.';
+          vehiclePivotNote = '⚠ PIVOT TO A MODEL WE ACTUALLY HAVE: Customer is now interested in a ' + pivotModel + ' (' + _pivotBrandCap + '), and OUR OWN LOT HOLDS ' + _pvStock.modelUnits + ' pre-owned ' + pivotModel + ' unit(s) right now — read from the live inventory feed for this rooftop, which is authoritative. DO NOT tell this customer we cannot supply it and do NOT treat this as a dead end: a franchise constraint is about NEW cars, and nothing here is about a new one. Acknowledge the ' + pivotModel + ' directly, say plainly that we have pre-owned ' + pivotModel + ' here, and offer to send details or arrange a look. Do NOT name a specific trim, color, year or unit — you have a COUNT, not a confirmed match for the one they want, so "we have pre-owned ' + pivotModel + ' on the ground" is the claim you may make and nothing more specific. The ' + (data.vehicle || 'vehicle on the lead') + ' stays in play as the comparison, not as a substitute for what they asked about.';
         } else if (!_pvStock.saidNew && _pvStock.makeUnits > 0) {
           // We carry the make used, just not that model today. The NEW/USED distinction is the
           // whole message here, and the old wording collapsed it into a flat denial.
@@ -26930,7 +26959,7 @@ function buildUserPrompt(data) {
           ...(_voiceExampleEmail ? ['Voice example (email) — for TONE only, not content: ' + _voiceExampleEmail] : []),
           ...(_voiceExampleVoicemail ? ['Voice example (voicemail) — for TONE only, not content: ' + _voiceExampleVoicemail] : []),
           '',
-          'NOTE: This is the VOICE TEMPLATE, not your identity. Your identity is set in YOUR ROLE above. Apply this voice while writing as yourself. Every vehicle, colour, day and fact in the examples is made up and belongs to no lead — never carry one into this message. Placeholders like [Customer], [Your first name], [Director], [Agent], [Store], [Vehicle] or [Brand Specialist] in the examples are PATTERNS to fill with YOUR actual identity from YOUR ROLE — never substitute another person\'s name from the lead context (Sales Rep, BD Agent, Manager, etc.). The example shows the SHAPE of the message, not the names to use.',
+          'NOTE: This is the VOICE TEMPLATE, not your identity. Your identity is set in YOUR ROLE above. Apply this voice while writing as yourself. Every vehicle, color, day and fact in the examples is made up and belongs to no lead — never carry one into this message. Placeholders like [Customer], [Your first name], [Director], [Agent], [Store], [Vehicle] or [Brand Specialist] in the examples are PATTERNS to fill with YOUR actual identity from YOUR ROLE — never substitute another person\'s name from the lead context (Sales Rep, BD Agent, Manager, etc.). The example shows the SHAPE of the message, not the names to use.',
           '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
           ''
         ];
@@ -27865,7 +27894,7 @@ function buildUserPrompt(data) {
           ageBlock.push('That went out automatically, on a template, within minutes of the lead '
             + 'arriving and before any person had read this customer\'s file. It is NOT a colleague\'s '
             + 'message. Do not refer to it as yours ("my last message", "I reached out", "as I '
-            + 'mentioned"), do not name the sender, and do not apologise for it.');
+            + 'mentioned"), do not name the sender, and do not apologize for it.');
           // ── (v9.7.659) AND IT ONLY CLAIMS "FIRST REAL PERSON" WHEN THAT IS TRUE ─────────────
           // My own v9.7.639 ended this block with "YOU ARE THE FIRST REAL PERSON TO WRITE TO THIS
           // CUSTOMER -- write like it", unconditionally, because it reads the LAST substantive
@@ -28166,14 +28195,14 @@ function buildUserPrompt(data) {
         + 'M-Chat", "Lead Log") — CRM plumbing, not a website or a place the customer has been. Naming it reads '
         + 'as a system talking, and on this lead it may not even be true. Open with the vehicle, their question, '
         + 'or something specific from their file instead. This applies to any such label appearing anywhere in '
-        + 'the transcript or notes, not just to a field labelled "source".'),
+        + 'the transcript or notes, not just to a field labeled "source".'),
     // (v9.7.651) The second half of this constraint ("ask what they are looking for instead") is a
     // DIRECTIVE, and on a lead where that question has already gone out unanswered it argues with
     // the anti-restate rules three lines below it. The prohibition — never name a vehicle that is
     // not in this prompt — is unconditional and unchanged; only the fallback instruction moves.
     // (v9.7.725) The customer has told us the model: the question this constraint falls back on is already answered.
     (data._lpNamedModel && data._lpNamedModel.phrase)
-      ? '- NEVER mention a specific vehicle model, trim, or name that does not appear in this prompt. No vehicle is on file, but the customer has told you the model they want ("' + data._lpNamedModel.phrase + '"): work from that, and do NOT ask what they are looking for. Do not pick a trim, colour or unit for them.'
+      ? '- NEVER mention a specific vehicle model, trim, or name that does not appear in this prompt. No vehicle is on file, but the customer has told you the model they want ("' + data._lpNamedModel.phrase + '"): work from that, and do NOT ask what they are looking for. Do not pick a trim, color or unit for them.'
       : (_lpQualifyingAsked(data)
       ? '- NEVER mention a specific vehicle model, trim, or name that does not appear in this prompt. If no vehicle of interest is listed on the lead, do NOT invent one. Do NOT simply ask what they are looking for either — that question has already been sent on this lead and went unanswered, so repeating it is the restate failure. Make the ask SMALLER than the one that failed. A different lever is allowed only where it asks LESS of them than the question that went unanswered — never a heavier lift such as a two-option appointment close.'
       + (_lpSoftReEngage(data)
@@ -29084,7 +29113,7 @@ function buildUserPrompt(data) {
         : data.vehicle
         ? 'Vehicle:    ' + data.vehicle + '  ← THIS IS THE VEHICLE FOR THIS LEAD. Do not substitute or reference other vehicles from the conversation history.'
         : (data._lpNamedModel && data._lpNamedModel.phrase)
-        ? 'Vehicle:    (none on file) ← The customer has named a MODEL in their own words — "' + data._lpNamedModel.phrase + '" — not a specific unit. Work from what they said (see THE CUSTOMER NAMED A MODEL above); do not present any one unit, trim or colour as the one they chose.'
+        ? 'Vehicle:    (none on file) ← The customer has named a MODEL in their own words — "' + data._lpNamedModel.phrase + '" — not a specific unit. Work from what they said (see THE CUSTOMER NAMED A MODEL above); do not present any one unit, trim or color as the one they chose.'
         : 'Vehicle:    (none specified) ← NO VEHICLE IS ATTACHED TO THIS LEAD. Do NOT reference or name any vehicle from the conversation history as the one they want — those belong to prior leads or conversations. A trade-in listed in the LEAD section is theirs and is fine to name as their trade.',
   );
 
@@ -29104,7 +29133,7 @@ function buildUserPrompt(data) {
       else if (_cwAway.length) lines.push('- At our sister store, ' + _cwAway[0].store + ': ' + _cwAway.filter(function (u) { return u.store === _cwAway[0].store; }).map(function (u) { return u.text; }).join('; ')
         + '. Name it, and offer to set up a visit at ' + _cwAway[0].store + ' to see it -- ' + (_cwRep ? _cwRep + ' can meet them there' : 'their salesperson can meet them there') + ' and go through it with them. It is our group\'s car; never treat it as a competitor\'s.');
       else lines.push('- Neither our lot' + (_cwSister ? ' nor ' + _cwSister : '') + ' has a ' + (_cw.condition ? _cw.condition + ' ' : '') + _cw.display + (_cw.notColors.length ? ' that is not ' + _cw.notColors.join(' or ') : '') + ' today.' + (_cw.notColors.length ? ' Do not offer the ' + _cw.notColors.join(' or ') + ' one again.' : '')
-        + ' Ask what year range or colour they would like, and offer to keep watch for one' + (_cwSister ? ' here and at our sister store, ' + _cwSister : '') + '.');
+        + ' Ask what year range or color they would like, and offer to keep watch for one' + (_cwSister ? ' here and at our sister store, ' + _cwSister : '') + '.');
       try { console.log('[LP CALL WANTS DIAG] ' + _cw.date + ' call: ' + _cwDesc + ' (lead vehicle: ' + data.vehicle + ') | units: ' + (_cwUnits.length ? _cwUnits.map(function (u) { return u.text + ' @ ' + u.store; }).join('; ') : 'none') + (_cw.support.length ? ' | backed by ' + _cw.support.length + ' later note(s)' : '')); } catch (eCwD) {}
     }
   } catch (eCw) {}
@@ -29540,7 +29569,7 @@ function buildUserPrompt(data) {
       // UNLESS the customer themselves signals today still works (then today is fine,
       // the Cesar case). This gives the model the missing FACT (these slots are not a
       // safe default here) rather than scripting its tone. Validated dev v210.
-      lines.push('', 'TIMING — APPOINTMENT FELL THROUGH: The prior appointment was cancelled or missed and the customer has NOT named a new time. Do NOT lead with same-day/today times as a default — re-offering today right after a cancellation reads as not listening. Acknowledge the miss, confirm they still want to come in, and ask what day works. Only offer a specific time (including today) if the customer themselves signals they are still available for it.');
+      lines.push('', 'TIMING — APPOINTMENT FELL THROUGH: The prior appointment was canceled or missed and the customer has NOT named a new time. Do NOT lead with same-day/today times as a default — re-offering today right after a cancellation reads as not listening. Acknowledge the miss, confirm they still want to come in, and ask what day works. Only offer a specific time (including today) if the customer themselves signals they are still available for it.');
     } else if (sc.notToday || (data.customerScheduleConstraint && (data.customerScheduleConstraint.indexOf('SHIFT_WORKER:') === 0 || data.customerScheduleConstraint.indexOf('OUT_OF_TOWN:') === 0))) {
       if (data.customerScheduleConstraint && data.customerScheduleConstraint.indexOf('SHIFT_WORKER:') === 0) {
         lines.push('', 'SHIFT WORKER TIMING: Do NOT offer the standard two appointment times. This customer works shift/hitch/rotation.',
@@ -29915,7 +29944,7 @@ function buildUserPrompt(data) {
           // this rule exists to prevent. It now names the MESSAGES, and applies to derived lines
           // wherever they sit.',
           'The section above carries the customer\'s actual messages AND flagged lines we produced by',
-          'scanning them. THE MESSAGES ARE THE RECORD. Every flagged, derived or summarised line —',
+          'scanning them. THE MESSAGES ARE THE RECORD. Every flagged, derived or summarized line —',
           'above this line or below it — is a reading of those messages, and a reading can be wrong.',
           'Where one contradicts what the messages plainly say, THE MESSAGES WIN, and you should write',
           'as though that line were not there.',
@@ -31736,7 +31765,7 @@ async function generateAll() {
           + ' | semicolon:' + /;/.test(_hkBody)
           + ' | "while" clause:' + /\bwhile\b/i.test(_hkBody)
           + ' \u2014 observational only, nothing branches on this row. The US/THEM verdict was'
-          + ' removed in v9.7.679: acknowledgement is first-person, so it marked good openers bad.');
+          + ' removed in v9.7.679: acknowledgment is first-person, so it marked good openers bad.');
       } catch (eHk) {}
     })();
 
@@ -31979,7 +32008,7 @@ async function generateAll() {
     } catch(e) { console.log('[LP RAW DIAG] error:', e.message); }
 
     var _canonAgentPhone = (window._leadProResolvedSigner && window._leadProResolvedSigner.phone) || '';
-    const smsText   = enforceSmsSig(_correctOurPhone(_lpFixStoreNames(_lpFinanceGuard(cleanOutput(rawSms, true), 'sms')), _canonAgentPhone)); // (v9.7.431/429) finance guard + store-name canon
+    const smsText   = enforceSmsSig(_correctOurPhone(_lpFixStoreNames(_lpFinanceGuard(((typeof _lpAmericanSpelling === 'function') ? _lpAmericanSpelling(cleanOutput(rawSms, true)) : cleanOutput(rawSms, true)), 'sms')), _canonAgentPhone)); // (v9.7.431/429) finance guard + store-name canon
     // Re-derive correct phone for email enforcement using lead data
     // Store phone is fallback only — signer.phone takes priority inside enforceEmailPhone
     var _emailStoreFallback = '';
@@ -31990,7 +32019,7 @@ async function generateAll() {
       });
       if (_eds && _eds.phone) _emailStoreFallback = _eds.phone;
     }
-    const emailText = enforceEmailPhone(_correctOurPhone(_lpFixStoreNames(_lpFinanceGuard(cleanOutput(rawEmail, false), 'email')), _canonAgentPhone), _emailStoreFallback); // (v9.7.431/429) finance guard + store-name canon
+    const emailText = enforceEmailPhone(_correctOurPhone(_lpFixStoreNames(_lpFinanceGuard(((typeof _lpAmericanSpelling === 'function') ? _lpAmericanSpelling(cleanOutput(rawEmail, false)) : cleanOutput(rawEmail, false)), 'email')), _canonAgentPhone), _emailStoreFallback); // (v9.7.431/429) finance guard + store-name canon
 
     // Detect degraded response — retry up to 2 times if we got the generic placeholder.
     // The placeholder text comes from the worker's SAFE_FALLBACK_TEXT when all cascade
@@ -32398,7 +32427,7 @@ async function generateVoicemail() {
     // (v9.7.217) Correct any hallucinated copy of our number in the VM body BEFORE the
     // callback guard runs — otherwise a wrong-digit number ("...3384") would leave the
     // callback guard thinking the correct number is absent and appending a second line.
-    vmText = _correctOurPhone(_lpFixStoreNames(_lpFinanceGuard(vmText, 'voicemail')), vmPhone); // (v9.7.431/429) finance guard + store-name canon
+    vmText = _correctOurPhone(_lpFixStoreNames(_lpFinanceGuard(((typeof _lpAmericanSpelling === 'function') ? _lpAmericanSpelling(vmText) : vmText), 'voicemail')), vmPhone); // (v9.7.431/429) finance guard + store-name canon
 
     // (v9.7.212) Callback-number guard: a voicemail with no callback number is a total
     // failure — the VM has no post-send signature enforcement like SMS does. If the model

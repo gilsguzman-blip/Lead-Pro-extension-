@@ -24,7 +24,7 @@ require('./lib/fatal-guard.js')('friction-state.test.js');
  * Pranav has one of those too, on 8/28, and it is downstream of this one: he had stopped believing
  * the car was there.
  *
- * AND READ IN CONTEXT, NOT JUST FLAGGED. A flag that always says "apologise" is the same flattening
+ * AND READ IN CONTEXT, NOT JUST FLAGGED. A flag that always says "apologize" is the same flattening
  * that put eight equal-weight concerns on this lead. The state is computed and the directive
  * changes with it — FRESH / CARRIED / SILENT. Pranav is CARRIED: he came back on 9/02 naming a
  * white Sport at 35k, which is the state Gil's GEM read correctly by hand.
@@ -116,11 +116,11 @@ check('the directive is FIRST in the concern list, ahead of the routine seven',
 check('...and says so explicitly',
   i => /THIS OUTRANKS EVERY OTHER CONCERN BELOW/.test(first(run(i, [TRIP, WHITE]))), true);
 
-check('it limits the acknowledgement to ONE clause, not a paragraph',
+check('it limits the acknowledgment to ONE clause, not a paragraph',
   i => /Acknowledge the wasted trip in ONE clause, not a paragraph/.test(first(run(i, [TRIP, WHITE]))), true);
 
 check('...and forbids re-apologising at length for something they stopped raising',
-  i => /never re-apologise\s+at length/.test(first(run(i, [TRIP, WHITE]))), true);
+  i => /never re-apologize\s+at length/.test(first(run(i, [TRIP, WHITE]))), true);
 
 check('it requires confirming the vehicle and number BEFORE any visit ask',
   i => /Confirm the specific vehicle and the specific number FIRST/.test(first(run(i, [TRIP, WHITE]))), true);

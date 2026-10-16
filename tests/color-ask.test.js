@@ -4,7 +4,7 @@
 require('./lib/fatal-guard.js')('color-ask.test.js');
 
 /**
- * color-ask.test.js — v9.7.613. THE COLOUR THE CUSTOMER ASKED FOR MUST BEAT THE ONE ON THE LEAD.
+ * color-ask.test.js — v9.7.613. THE COLOR THE CUSTOMER ASKED FOR MUST BEAT THE ONE ON THE LEAD.
  *
  * LIVE, 9/3. Pranav Patel, Community Honda Baytown, lead 2055655871. The VOI panel carries a 2026
  * CR-V Hybrid Sport in METEORITE GRAY, stock TE026441, and the CRM itself flags it "no longer in
@@ -17,18 +17,18 @@ require('./lib/fatal-guard.js')('color-ask.test.js');
  *   COLOR PREFERENCE: Customer mentioned white. Match this in your message or acknowledge
  *             availability honestly.
  *
- * The VOI side asserts a colour as fact and forbids substitution; the customer's side was a soft
+ * The VOI side asserts a color as fact and forbids substitution; the customer's side was a soft
  * "match or acknowledge". The draft stayed anchored to the dead grey unit and backed away.
  *
  * TWO DEFECTS IN THE OLD DETECTOR, both covered here:
- *   (1) it scanned the WHOLE transcript, agent messages included, so it could report a colour WE
+ *   (1) it scanned the WHOLE transcript, agent messages included, so it could report a color WE
  *       said — on this very lead our own "we currently only have the 2026 CR-V EX in black" sits
  *       in that blob;
  *   (2) it took the FIRST match in a joined blob, which is oldest or newest depending on an
  *       ordering nothing guarantees.
  *
- * The colour LIST is unchanged character for character. This changes whose colour is read and which
- * mention wins, never what counts as a colour — asserted at the end.
+ * The color LIST is unchanged character for character. This changes whose color is read and which
+ * mention wins, never what counts as a color — asserted at the end.
  *
  * Executes the SHIPPED detector. Both builds must agree.
  */
@@ -45,7 +45,7 @@ function extract(file) {
   if (a < 0) throw new Error('_lpColorRx not found — v9.7.613 detector missing');
   const endMark = "acknowledge availability honestly.');\n      }";
   const b = src.indexOf(endMark, a);
-  if (b < 0) throw new Error('colour directive end not found');
+  if (b < 0) throw new Error('color directive end not found');
   return { name: path.basename(path.dirname(file)), src, code: src.slice(a, b + endMark.length) };
 }
 
@@ -56,7 +56,7 @@ function run(impl, lines, voiColor, leadVin) {
     concernScanLines: lines,
     // The slice necessarily includes two neighbours — the trim detector (reads allTranscriptText)
     // and, from v9.7.614, the friction directive (reads _fricQuote/_fricState). Both are supplied
-    // inert so the colour code under test runs; neither is what this suite asserts on. Supplying
+    // inert so the color code under test runs; neither is what this suite asserts on. Supplying
     // them beats narrowing the slice, which would stop the extracted region matching the shipped
     // file — the property that makes these suites worth anything.
     allTranscriptText: lines.join(' '),
@@ -108,7 +108,7 @@ console.log("Pranav Patel, 9/3 — he asked for white, the lead carries grey:");
 
 const PRANAV = [AGENT_BLACK, CUST_GREY, CUST_WHITE];
 
-check('the stated colour is WHITE — his latest, not our black and not his older grey',
+check('the stated color is WHITE — his latest, not our black and not his older grey',
   i => run(i, PRANAV, VOI_GREY).stated.toLowerCase(), 'white');
 
 check('...and it is recognised as a mismatch against the VOI',
@@ -121,8 +121,8 @@ check('...names the grey unit as the ORIGINAL, not the target',
   i => /Meteorite Gray Metallic, which is the unit they ORIGINALLY inquired about/
         .test(joined(run(i, PRANAV, VOI_GREY))), true);
 
-check('...explicitly releases the "do not substitute" rule for a colour change',
-  i => /COLOUR change on the SAME model, not a different vehicle/.test(joined(run(i, PRANAV, VOI_GREY))), true);
+check('...explicitly releases the "do not substitute" rule for a color change',
+  i => /COLOR change on the SAME model, not a different vehicle/.test(joined(run(i, PRANAV, VOI_GREY))), true);
 
 check('...forbids falling back to the grey unit as the offer',
   i => /never fall back to the Meteorite Gray Metallic unit as the offer/
@@ -135,19 +135,19 @@ check('the soft "match or acknowledge" wording is NOT emitted on a mismatch',
   i => /Match this in your message or acknowledge availability honestly/
         .test(joined(run(i, PRANAV, VOI_GREY))), false);
 
-check('the diagnostic reports both colours and the verdict',
+check('the diagnostic reports both colors and the verdict',
   i => { const l = run(i, PRANAV, VOI_GREY).logs.join(' ');
          return /customerStated:white/.test(l) && /voiColor:Meteorite Gray Metallic/.test(l)
              && /mismatch:true/.test(l); }, true);
 
 // ── DEFECT 1: OUR OWN WORDS ARE NOT THE CUSTOMER'S ASK ──────────────────────
-console.log('\na colour WE said is never reported as the customer\'s ask:');
+console.log('\na color WE said is never reported as the customer\'s ask:');
 
-check('an agent-only mention yields no stated colour',
+check('an agent-only mention yields no stated color',
   i => run(i, [AGENT_BLACK], VOI_GREY).stated, '');
-check('...and no colour concern at all',
+check('...and no color concern at all',
   i => run(i, [AGENT_BLACK], VOI_GREY).concerns.length, 0);
-check('the customer\'s colour wins even when an agent named a different one later',
+check('the customer\'s color wins even when an agent named a different one later',
   i => run(i, [CUST_WHITE, '[09/03/2026 9:00 AM] [AGENT] we have a red one'], VOI_GREY).stated.toLowerCase(), 'white');
 
 // ── DEFECT 2: THE LATEST MENTION WINS, BY DATE ──────────────────────────────
@@ -162,14 +162,14 @@ check('an undated customer line loses to a dated one',
 
 // ── THE MATCHING CASE MUST NOT BE ESCALATED ─────────────────────────────────
 // The risk here is shouting at the model on a lead where nothing is wrong.
-console.log('\nwhen the colours agree, nothing changes:');
+console.log('\nwhen the colors agree, nothing changes:');
 
 check('a customer asking for grey on a grey lead is NOT a mismatch',
   i => run(i, ['[09/02/2026 1:00 PM] [CUSTOMER] still want the gray one'], VOI_GREY).mismatch, false);
 check('...and gets the plain preference line, unchanged',
   i => /COLOR PREFERENCE: Customer mentioned gray\. Match this in your message or acknowledge availability honestly\./
         .test(joined(run(i, ['[09/02/2026 1:00 PM] [CUSTOMER] still want the gray one'], VOI_GREY))), true);
-check('a lead with NO VOI colour cannot mismatch',
+check('a lead with NO VOI color cannot mismatch',
   i => run(i, [CUST_WHITE], '').mismatch, false);
 check('...and still gets the plain preference line',
   i => /COLOR PREFERENCE: Customer mentioned white/.test(joined(run(i, [CUST_WHITE], ''))), true);
@@ -177,19 +177,19 @@ check('...and still gets the plain preference line',
 // ── ROBUSTNESS ──────────────────────────────────────────────────────────────
 console.log('\nthe absent cases:');
 check('no customer lines at all', i => run(i, [], VOI_GREY).concerns.length, 0);
-check('a customer line with no colour', i => run(i, ['[09/02/2026] [CUSTOMER] what is the price'], VOI_GREY).stated, '');
+check('a customer line with no color', i => run(i, ['[09/02/2026] [CUSTOMER] what is the price'], VOI_GREY).stated, '');
 check('an unparseable date cannot throw', i => run(i, ['[99/99/9999] [CUSTOMER] white please'], VOI_GREY).stated.toLowerCase(), 'white');
-check('a non-string VOI colour is handled', i => run(i, [CUST_WHITE], undefined).mismatch, false);
+check('a non-string VOI color is handled', i => run(i, [CUST_WHITE], undefined).mismatch, false);
 
-// ── THE COLOUR LIST IS UNCHANGED ────────────────────────────────────────────
-console.log('\nwhat counts as a colour is unchanged — only whose, and which one:');
+// ── THE COLOR LIST IS UNCHANGED ────────────────────────────────────────────
+console.log('\nwhat counts as a color is unchanged — only whose, and which one:');
 for (const c of ['white','black','silver','gray','grey','blue','red','green','brown','beige','pearl','platinum']) {
   check('  "' + c + '" is still detected',
     i => run(i, ['[09/02/2026 1:00 PM] [CUSTOMER] I want ' + c], 'Nonesuch').stated.toLowerCase(), c);
 }
 
 
-// ── (v9.7.625) A COLOUR STATED ABOUT THE TRADE IS NOT A COLOUR REQUEST ────────
+// ── (v9.7.625) A COLOR STATED ABOUT THE TRADE IS NOT A COLOR REQUEST ────────
 // LIVE: Sydnie Moon (Audi Lafayette, 2075798859, 9/4). On 8/31 the agent asked, verbatim:
 // "Regarding your trade in, please let me know the VIN, mileage, interior / exterior color and if
 // the vehicle is a smoker or non." She answered "2HKRS5H5XPH711605 86k black interior and exterior
@@ -203,16 +203,16 @@ for (const c of ['white','black','silver','gray','grey','blue','red','green','br
 // SL", so the detector matched "White" and agreed with the VOI by accident. v9.7.623 removed that
 // echo — correctly — and the real reading underneath was wrong. Same family as the v9.7.622
 // trade-vs-pivot confusion: a car they are DISPOSING OF does not describe what they want to buy.
-console.log('\na colour stated about the TRADE is not a colour request:');
+console.log('\na color stated about the TRADE is not a color request:');
 
 const SYDNIE_TRADE = '[08/31/2026 12:07 PM] [CUSTOMER] 2HKRS5H5XPH711605 86k black interior and exterior non smoker';
 const ARMADA_VIN   = 'JN8AY3BA5S9001345';
 
-check('Sydnie — no colour is read off her trade answer',
+check('Sydnie — no color is read off her trade answer',
   i => run(i, [SYDNIE_TRADE], 'Aspen White Tricoat', ARMADA_VIN).stated, '');
 check('...and it says WHY it was skipped',
   i => /VIN that is not the lead vehicle/.test(run(i, [SYDNIE_TRADE], 'Aspen White Tricoat', ARMADA_VIN).tradeSkip), true);
-check('...so no colour mismatch is declared',
+check('...so no color mismatch is declared',
   i => run(i, [SYDNIE_TRADE], 'Aspen White Tricoat', ARMADA_VIN).mismatch, false);
 // The directive that shipped is the thing that must not come back.
 check('...and the "MOVED OFF THE UNIT" directive does not ship',
@@ -227,13 +227,13 @@ check('a customer-typed VIN alone marks it',
 check('the LEAD vehicle\'s own VIN is not a trade signal',
   i => run(i, ['[09/02/2026 1:00 PM] [CUSTOMER] is ' + ARMADA_VIN + ' available in black'], 'Aspen White Tricoat', ARMADA_VIN).stated.toLowerCase(), 'black');
 
-// MUST STILL FIRE — the guard must not become a blanket off-switch on colour.
-console.log('\na genuine colour ask is untouched:');
+// MUST STILL FIRE — the guard must not become a blanket off-switch on color.
+console.log('\na genuine color ask is untouched:');
 check('Pranav still asks for white',
   i => run(i, ['[09/02/2026 9:00 AM] [CUSTOMER] Elsa I am looking for 2026 white CRV Sport trim at 35k'], 'Meteorite Gray Metallic').stated.toLowerCase(), 'white');
-check('...and still mismatches the VOI colour',
+check('...and still mismatches the VOI color',
   i => run(i, ['[09/02/2026 9:00 AM] [CUSTOMER] Elsa I am looking for 2026 white CRV Sport trim at 35k'], 'Meteorite Gray Metallic').mismatch, true);
-check('a colour ask in a thread that ALSO has a trade line still reads',
+check('a color ask in a thread that ALSO has a trade line still reads',
   i => run(i, [
     '[09/02/2026 9:00 AM] [CUSTOMER] do you have that one in white',
     SYDNIE_TRADE

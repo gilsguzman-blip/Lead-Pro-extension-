@@ -17,10 +17,10 @@ require('./lib/fatal-guard.js')('stock-color.test.js');
  * Pearl, and both were in that same prompt. Gil: "It has the facts but missed on the correct
  * availability."
  *
- * Nothing in the prompt was false. The confirmation said stock P4886 is present: true. The colour
+ * Nothing in the prompt was false. The confirmation said stock P4886 is present: true. The color
  * check reported customerStated:black voiColor:Black mismatch:false: also true, and useless — the
- * VOI colour records what the CUSTOMER asked for, so it can only ever agree with what the customer
- * asked for. The colour of the CAR was never in the comparison.
+ * VOI color records what the CUSTOMER asked for, so it can only ever agree with what the customer
+ * asked for. The color of the CAR was never in the comparison.
  *
  * Drives the SHIPPED capture, the SHIPPED _lpCleanColor and the SHIPPED directive block.
  */
@@ -40,7 +40,7 @@ function extract(file) {
     if (b < 0) throw new Error(what + ' end not found');
     return src.slice(a, b + end.length);
   };
-  // The colour scrubber travels with the block — the block calls it, and a unit whose feed colour
+  // The color scrubber travels with the block — the block calls it, and a unit whose feed color
   // is a factory code must produce no claim at all.
   // (v9.7.661) The agreement gate calls _lpColorWords, so it travels too. Supplied from the SAME
   // shipped file rather than stubbed — the v9.7.613 harness lesson: a stub more generous than
@@ -109,7 +109,7 @@ function block(impl, unit, said, opts) {
   return { lines: lines, text: lines.join('\n'), logs: logs.join(' ') };
 }
 const CONFIRM = /CONFIRMED IN TODAY.S LIVE INVENTORY LOAD/;
-const PAINT   = /WHAT COLOUR THAT CONFIRMED UNIT ACTUALLY IS/;
+const PAINT   = /WHAT COLOR THAT CONFIRMED UNIT ACTUALLY IS/;
 
 const guardedImpls = require('./lib/guarded-impls.js');
 const impls = guardedImpls(BUILDS, extract);
@@ -127,7 +127,7 @@ function report(name, results, want) {
 const check = (name, fn, want) =>
   report(name, impls.map(i => { try { return JSON.stringify(fn(i)); } catch (e) { return 'THREW: ' + e.message; } }), want);
 
-console.log('\nv9.7.660 — the feed says what colour the car is');
+console.log('\nv9.7.660 — the feed says what color the car is');
 console.log('builds under test: ' + impls.map(i => i.name).join(', '));
 guardedImpls.note(impls);
 
@@ -153,11 +153,11 @@ console.log('\n(2) the lead that produced this build:');
 const V = i => block(i, { color: 'Winter Frost Pearl' }, 'black');
 
 check('the paint is stated as a fact', i => PAINT.test(V(i).text), true);
-check('...naming the actual colour', i => /stock P4886 is Winter Frost Pearl/.test(V(i).text), true);
-check('...and the colour he asked for', i => /This customer asked for black/.test(V(i).text), true);
+check('...naming the actual color', i => /stock P4886 is Winter Frost Pearl/.test(V(i).text), true);
+check('...and the color he asked for', i => /This customer asked for black/.test(V(i).text), true);
 
 // The defect was that one fact stood in for the other.
-check('it says the lead-details colour is a different fact',
+check('it says the lead-details color is a different fact',
   i => /NOT the same fact as the "Color:" line in the lead details/.test(V(i).text), true);
 check('...and that the two agreeing proves nothing',
   i => /the two agreeing proves nothing about what is on the lot/.test(V(i).text), true);
@@ -167,8 +167,8 @@ check('it forbids saying the car they want is here',
   i => /do NOT write that the car they want is here/.test(V(i).text), true);
 check('it forbids the shipping-is-unnecessary move he received',
   i => /do NOT say that ordering it, shipping it or bringing one in is unnecessary because we have it/.test(V(i).text), true);
-check('it forbids the in-stock line standing in for a colour confirmation',
-  i => /do NOT let the in-stock confirmation above stand in for a confirmation of their colour/.test(V(i).text), true);
+check('it forbids the in-stock line standing in for a color confirmation',
+  i => /do NOT let the in-stock confirmation above stand in for a confirmation of their color/.test(V(i).text), true);
 
 console.log('\n(3) the matching is left to the model, on purpose:');
 check('it asks the model to judge the match rather than asserting one',
@@ -178,36 +178,36 @@ check('it gives the names that answer it outright',
 
 // (v9.7.662) Gil: "paint on the feed data might be frosted pearl whatever and the customer says
 // white ... Most customers aren't going to ask for the formal paint name." The old sentence said a
-// paint name "usually says so plainly" and then gave two examples that BOTH contain the colour
+// paint name "usually says so plainly" and then gave two examples that BOTH contain the color
 // word — no help at all on the name that needs it.
-check('it says a missing colour word is NOT a mismatch',
+check('it says a missing color word is NOT a mismatch',
   i => /MANY DO NOT, AND A MISSING WORD IS NOT EVIDENCE OF A MISMATCH/.test(V(i).text), true);
-check('...with the names that hide their colour, Gil\'s own example first',
+check('...with the names that hide their color, Gil\'s own example first',
   i => /"Winter Frost Pearl" is white, "Modern Steel Metallic" is gray, "Still Night Pearl" is dark blue, "Nordic Forest Pearl" is green/.test(V(i).text), true);
 check('it says to judge what the name describes, not whether their word is in it',
-  i => /Judge the colour the name actually DESCRIBES, never whether their word appears inside it/.test(V(i).text), true);
+  i => /Judge the color the name actually DESCRIBES, never whether their word appears inside it/.test(V(i).text), true);
 
 // The safety net, and the reason it breaks the tie that way.
-check('an uncertain model may not deny the colour',
-  i => /IF YOU GENUINELY CANNOT TELL what colour a paint name is, do NOT tell them we do not have the colour they asked for/.test(V(i).text), true);
+check('an uncertain model may not deny the color',
+  i => /IF YOU GENUINELY CANNOT TELL what color a paint name is, do NOT tell them we do not have the color they asked for/.test(V(i).text), true);
 check('...and the asymmetry is stated so the tie breaks safely',
   i => /that is the worse error of the two, because it is a denial about a car that may be sitting on our lot/.test(V(i).text), true);
 check('...with what to do instead',
   i => /say you want to be certain it is the shade they have in mind, and let them tell you/.test(V(i).text), true);
 check('the old "usually says so plainly" sentence is gone from the directive',
   i => /because a factory paint name usually says so plainly/.test(V(i).text), false);
-// A colour table would call Winter Frost Pearl a non-match for white. It IS white.
-check('no colour table ships with the block',
+// A color table would call Winter Frost Pearl a non-match for white. It IS white.
+check('no color table ships with the block',
   i => /winterfrost|frost.*=.*white|COLOR_SYNONYMS|colou?rMap/i.test(i.block), false);
 check('the block never decides the match itself',
   i => /indexOf\(\s*_lpSaidColor|_lpSaidColor\s*\)\s*===?\s*-1/.test(i.block), false);
 
-console.log('\n(4) the colour half of the pivot ban is released, the availability half is not:');
-check('a closer unit may be named when colour is the question',
+console.log('\n(4) the color half of the pivot ban is released, the availability half is not:');
+check('a closer unit may be named when color is the question',
   i => /if a unit on the SIMILAR VEHICLES list is closer to what they asked for you may name it/.test(V(i).text), true);
 check('the ban now reads "a different unit on availability grounds"',
   i => /pivot to a different unit on availability grounds/.test(V(i).text), true);
-check('...and no longer bans pivoting on colour',
+check('...and no longer bans pivoting on color',
   i => /alternate colors\/units on availability grounds/.test(V(i).text), false);
 check('sold, moved and unavailable are still forbidden',
   i => /Do not say or imply it sold, moved, is no longer available/.test(V(i).text), true);
@@ -226,11 +226,11 @@ function silentCase(i, unit, said, opts) {
   return SILENT;
 }
 
-// (v9.7.661) "No colour asked for" is NO LONGER silent — the settled branch below now speaks on
+// (v9.7.661) "No color asked for" is NO LONGER silent — the settled branch below now speaks on
 // that lead, deliberately. What stays silent is every case where the feed gives us no paint to
-// state, plus the case where the lead colour and the feed colour disagree (section 8).
-check('the feed carries no colour for this unit', i => silentCase(i, { color: '' }, 'black'), SILENT);
-check('a factory colour CODE is not a colour', i => silentCase(i, { color: '08x8' }, 'black'), SILENT);
+// state, plus the case where the lead color and the feed color disagree (section 8).
+check('the feed carries no color for this unit', i => silentCase(i, { color: '' }, 'black'), SILENT);
+check('a factory color CODE is not a color', i => silentCase(i, { color: '08x8' }, 'black'), SILENT);
 check('neither known', i => silentCase(i, {}, ''), SILENT);
 check('a missing unit record cannot throw', i => silentCase(i, null, 'black'), SILENT);
 
@@ -240,13 +240,13 @@ check('asked but no colour in the feed',
   i => /the feed carries none for this unit, so nothing is asserted either way/.test(block(i, { color: '' }, 'black').logs), true);
 check('nothing in the feed at all',
   i => /branch:no unit colour/.test(block(i, { color: '' }, '').logs), true);
-check('the lead colour is reported too, since the two can differ',
+check('the lead color is reported too, since the two can differ',
   i => /leadColor:Black/.test(block(i, { color: 'Winter Frost Pearl' }, 'black', { lead: 'Black' }).logs), true);
 
 // ── (7) THE SCRAPER EXPORT ──────────────────────────────────────────────────
 // The detector is v9.7.613's and is not re-implemented. What this build adds is that its answer
 // leaves inlineScraper, since the inventory it must be compared against lives popup-side.
-console.log('\n(7) the stated colour leaves the scraper:');
+console.log('\n(7) the stated color leaves the scraper:');
 const SCRAPER = i => {
   const a = i.src.indexOf('\n  function inlineScraper() {');
   const b = i.src.indexOf('\n  } // end inlineScraper');
@@ -259,15 +259,15 @@ check('it reads the shipped detector rather than a second one',
 check('the popup reads the exported field',
   i => /d\.customerStatedColor/.test(i.block), true);
 
-// ── (8) THE COLOUR NOBODY ASKED ABOUT ───────────────────────────────────────
+// ── (8) THE COLOR NOBODY ASKED ABOUT ───────────────────────────────────────
 // LIVE, 9/15. Sheldon Williamson picked a specific Accord Hybrid Touring off our website an hour
 // earlier, stock TA055487 confirmed present, two outreaches already sent. The voicemail came back
 // asking him to "confirm whether that color is the one you're looking for". Gil: "messaging is
 // trying to confirm color rather than the push ahead."
-console.log('\n(8) a confirmed colour is a detail, not a question (v9.7.661):');
+console.log('\n(8) a confirmed color is a detail, not a question (v9.7.661):');
 
 const S = i => block(i, { color: 'Meteorite Gray Metallic' }, '');
-const SETTLED = /THE COLOUR IS ALREADY SETTLED/;
+const SETTLED = /THE COLOR IS ALREADY SETTLED/;
 
 check('the settled line is emitted alongside the confirmation',
   i => [S(i).lines.length, SETTLED.test(S(i).text)], [2, true]);
@@ -277,8 +277,8 @@ check('it says nothing about the build is open',
   i => /None of it is an open question/.test(S(i).text), true);
 
 // The move Sheldon received, forbidden by name.
-check('it forbids asking whether that colour is the one they want',
-  i => /Do NOT ask whether that colour is the one they want/.test(S(i).text), true);
+check('it forbids asking whether that color is the one they want',
+  i => /Do NOT ask whether that color is the one they want/.test(S(i).text), true);
 check('it forbids asking them to confirm the trim or build',
   i => /do NOT ask them to confirm the trim or the build/.test(S(i).text), true);
 check('it forbids making the specification the point of the message',
@@ -287,25 +287,25 @@ check('it says why, in the terms the agent would',
   i => /reads as though we are not sure what they asked for/.test(S(i).text), true);
 
 // A rule stated elsewhere loses to the line the model is reading — v9.7.496, .504, .507.
-check('it overturns the qualify-on-colour suggestion out loud',
+check('it overturns the qualify-on-color suggestion out loud',
   i => /written for a unit we CANNOT confirm/.test(S(i).text), true);
 check('...and points the new-angle requirement somewhere useful',
   i => /take one that moves them toward the visit/.test(S(i).text), true);
-check('the colour is offered as a detail to use',
-  i => /Use the colour as a DETAIL/.test(S(i).text), true);
+check('the color is offered as a detail to use',
+  i => /Use the color as a DETAIL/.test(S(i).text), true);
 
-console.log('\n(9) it says nothing when the colour is not actually settled:');
+console.log('\n(9) it says nothing when the color is not actually settled:');
 // The lead's Color: field is not always the paint. When they disagree, this build asserts nothing.
-check('a disagreeing lead colour withholds the line',
+check('a disagreeing lead color withholds the line',
   i => silentCase(i, { color: 'Winter Frost Pearl' }, '', { lead: 'Black' }), SILENT);
 check('...and logs why, marked as observed rather than built',
   i => /The colour is NOT settled, so nothing is asserted either way — observed, deliberately not built/
         .test(block(i, { color: 'Winter Frost Pearl' }, '', { lead: 'Black' }).logs), true);
-check('a lead with no colour at all is not a disagreement',
+check('a lead with no color at all is not a disagreement',
   i => SETTLED.test(block(i, { color: 'Meteorite Gray Metallic' }, '', { lead: '' }).text), true);
-check('identical paint names agree even with no basic colour word in them',
+check('identical paint names agree even with no basic color word in them',
   i => SETTLED.test(block(i, { color: 'Winter Frost Pearl' }, '', { lead: 'Winter Frost Pearl' }).text), true);
-check('a shared colour word is enough when the names differ',
+check('a shared color word is enough when the names differ',
   i => SETTLED.test(block(i, { color: 'Modern Steel Metallic Gray' }, '', { lead: 'Gray' }).text), true);
 check('the asked-about-colour branch still wins when they HAVE asked',
   i => [SETTLED.test(V(i).text), PAINT.test(V(i).text)], [false, true]);
@@ -323,7 +323,7 @@ check('A (control): the shipped capture keeps it',
   i => capture(i, 'P4886', LOT).color, 'Winter Frost Pearl');
 
 // B: with no unit colour the prompt returns to exactly what Vershima's carried.
-check('B: no paint stated, and the pivot ban covers colour again',
+check('B: no paint stated, and the pivot ban covers color again',
   i => { const r = block(i, null, 'black');
          return [r.lines.length, /alternate colors\/units on availability grounds/.test(r.text), PAINT.test(r.text)]; },
   [1, true, false]);
@@ -332,10 +332,10 @@ check('B (control): with the unit in hand both flip',
          return [r.lines.length, /alternate colors\/units on availability grounds/.test(r.text), PAINT.test(r.text)]; },
   [2, false, true]);
 
-// C: drop the settled branch and Sheldon's prompt says nothing about whether the colour is open.
+// C: drop the settled branch and Sheldon's prompt says nothing about whether the color is open.
 const NO_SETTLED = c => c.replace(/\} else if \(_lpStockColor\) \{/, '} else if (false) {');
 check('neuter C actually removed the settled branch', i => NO_SETTLED(i.block) !== i.block, true);
-check('C: the prompt goes quiet on a colour that is not in question',
+check('C: the prompt goes quiet on a color that is not in question',
   i => { const r = block(i, { color: 'Meteorite Gray Metallic' }, '', { mutate: NO_SETTLED });
          return [r.lines.length, SETTLED.test(r.text)]; },
   [1, false]);
@@ -345,7 +345,7 @@ check('C (control): the shipped block speaks',
 // D: the agreement gate is what keeps it off an unsettled lead.
 const NO_GATE = c => c.replace('if (_lcSame) {', 'if (true) {');
 check('neuter D actually removed the agreement gate', i => NO_GATE(i.block) !== i.block, true);
-check('D: without it, a lead recording black is told the colour is settled at Winter Frost Pearl',
+check('D: without it, a lead recording black is told the color is settled at Winter Frost Pearl',
   i => SETTLED.test(block(i, { color: 'Winter Frost Pearl' }, '', { lead: 'Black', mutate: NO_GATE }).text), true);
 check('D (control): the shipped gate withholds it',
   i => SETTLED.test(block(i, { color: 'Winter Frost Pearl' }, '', { lead: 'Black' }).text), false);
@@ -370,7 +370,7 @@ check('the settled line is untouched',
   i => [SETTLED.test(S(i).text), S(i).lines.length], [true, 2]);
 check('the withheld case still withholds',
   i => silentCase(i, { color: 'Winter Frost Pearl' }, '', { lead: 'Black' }), SILENT);
-check('the no-colour-in-feed case still ships the confirmation alone',
+check('the no-color-in-feed case still ships the confirmation alone',
   i => silentCase(i, { color: '' }, 'black'), SILENT);
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed');

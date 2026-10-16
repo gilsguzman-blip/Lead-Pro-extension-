@@ -96,7 +96,7 @@ for (const f of BUILDS) {
   check('a miss on this lead, but a first draft that never mentions it -> no MISSED section (nothing to keep)', () =>
     /THE APPOINTMENT ON THIS LEAD WAS MISSED/.test(RW(P_NEW, { freshestApptEventDays: 1, leadAgeDays: 5 })), false);
   check('control (v9.7.778; new wording): a miss on this lead and a first draft that acknowledges it -> kept, in its own words', () =>
-    /THE APPOINTMENT ON THIS LEAD WAS MISSED ━━━\nThe first draft acknowledges it\. Keep that acknowledgement, in the first draft's own words/.test(
+    /THE APPOINTMENT ON THIS LEAD WAS MISSED ━━━\nThe first draft acknowledges it\. Keep that acknowledgment, in the first draft's own words/.test(
       RW('Test, sorry we missed you yesterday. Would you still like to come in?\nAgent\nTest Store\n(555) 010-0100', { freshestApptEventDays: 1, leadAgeDays: 5 })), true);
 }
 console.log('\n' + (fail ? 'FAILED' : 'PASSED') + ' — ' + pass + ' passed, ' + fail + ' failed');

@@ -5,8 +5,8 @@ require('./lib/fatal-guard.js')('color-phrase-747.test.js');
 // Green" reached the prompt as "This customer asked for Green", and the draft wrote our Black Jade Green unit up as
 // "the 2027 Kia Telluride EX in Jade Green". Gil: "can't we leave it open enough for the model to interpret colors ...
 // Customer mentions green - Jade Green is the feed color we name it". The model keeps judging the match; it now sees
-// the customer's own words for the colour, and names our paint as the feed writes it.
-// Executes the shipped colour detector slice and the shipped popup colour block. Placeholder data only.
+// the customer's own words for the color, and names our paint as the feed writes it.
+// Executes the shipped color detector slice and the shipped popup color block. Placeholder data only.
 //
 // Usage: node tests/color-phrase-747.test.js <dev popup.js> <commercial popup.js>
 const fs = require('fs'), vm = require('vm'), path = require('path');
@@ -33,14 +33,14 @@ for (const f of BUILDS) {
     return { base: sb._statedColor, phrase: vm.runInContext('typeof _statedColorPhrase === "string" ? _statedColorPhrase : "(none)"', sb), concerns: sb.customerConcerns.join('\n') };
   };
 
-  console.log(' 1. the customer\'s own words for the colour are kept:');
+  console.log(' 1. the customer\'s own words for the color are kept:');
   const r = scan('I was looking at the Kia Telluride Ex in Jade Green');
   check('log269: "in Jade Green" -> phrase "Jade Green", base word still "Green"', () => [r.phrase, r.base], ['Jade Green', 'Green']);
   check('...and the preference line carries their words', () => /COLOR PREFERENCE: Customer mentioned Jade Green\./.test(r.concerns), true);
   check('"a Midnight Lake Blue one" -> "Midnight Lake Blue"', () => scan('do you have a Midnight Lake Blue one').phrase, 'Midnight Lake Blue');
-  check('a finish after the colour is kept: "snow white pearl" -> "snow white pearl"', () => scan('looking for snow white pearl').phrase, 'snow white pearl');
-  check('the lead\'s own vehicle words are not taken as colour: "the Telluride Jade Green" on a Telluride lead', () => scan('the Telluride Jade Green', '', '2027 Kia Telluride EX').phrase, 'Jade Green');
-  check('control (new helper): a plain colour stays plain -> "the black one" gives "black"', () => scan('I want the black one').phrase, 'black');
+  check('a finish after the color is kept: "snow white pearl" -> "snow white pearl"', () => scan('looking for snow white pearl').phrase, 'snow white pearl');
+  check('the lead\'s own vehicle words are not taken as color: "the Telluride Jade Green" on a Telluride lead', () => scan('the Telluride Jade Green', '', '2027 Kia Telluride EX').phrase, 'Jade Green');
+  check('control (new helper): a plain color stays plain -> "the black one" gives "black"', () => scan('I want the black one').phrase, 'black');
   check('control: the base word and the matching logic are unchanged ("Black exterior and white interior" -> Black)', () => { const x = scan('Black exterior and white interior', 'Panthera Metal'); return [x.base, /MOVED OFF THE UNIT ON THE LEAD: they asked for BLACK/.test(x.concerns)]; }, ['Black', true]);
   check('it leaves the scraper beside the base word', () => /customerStatedColorPhrase: \(typeof _statedColorPhrase === 'string'/.test(src), true);
 
@@ -57,7 +57,7 @@ for (const f of BUILDS) {
   check('"This customer asked for Jade Green", not just "Green"', () => [/This customer asked for Jade Green\./.test(p), /Work out for yourself whether Black Jade Green IS Jade Green/.test(p)], [true, true]);
   check('the draft names our paint as the feed writes it, never their words for it', () =>
     [/USE OUR NAME FOR IT AS THE FEED WRITES IT — "Black Jade Green"/.test(p), /"we have one in Black Jade Green", not "the Jade Green one you wanted is here"/.test(p)], [true, true]);
-  check('control: the model still judges the match (the leeway is kept)', () => /Judge the colour the name actually DESCRIBES, never whether their word appears inside it/.test(p), true);
+  check('control: the model still judges the match (the leeway is kept)', () => /Judge the color the name actually DESCRIBES, never whether their word appears inside it/.test(p), true);
   check('control: an older scrape with no phrase still reads "asked for Green"', () => /This customer asked for Green\./.test(paint('Green', '')), true);
 }
 console.log('\n' + pass + ' passed, ' + fail + ' failed');

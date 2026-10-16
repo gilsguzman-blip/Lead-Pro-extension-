@@ -79,9 +79,9 @@ for (const f of BUILDS) {
   check('the CR-V lock gives way: the Vehicle line points at the call, the inventory note stands the CR-V down', () =>
     [/THIS IS THE VEHICLE FOR THIS LEAD/.test(p), /^Vehicle: {4}2027 Honda CR-V Hybrid TrailSport {2}← what the lead came in on\. On the 10\/12 call they said they want something else/m.test(p),
      /INVENTORY: VEHICLE NOTE: The 2027 Honda CR-V Hybrid TrailSport on the lead is not what they want now/.test(p)], [false, true, true]);
-  check('nothing that fits anywhere: say so, do not offer the black one again, ask year range or colour, keep watch here and at the sister store', () => {
+  check('nothing that fits anywhere: say so, do not offer the black one again, ask year range or color, keep watch here and at the sister store', () => {
     feeds([], [LC('T1', 2023, 'Midnight Black Metallic', 'used')]); const q = prompt(); feeds([], TOY);
-    return /^- Neither our lot nor Community Toyota Baytown has a used Land Cruiser that is not black today\. Do not offer the black one again\. Ask what year range or colour they would like, and offer to keep watch for one here and at our sister store, Community Toyota Baytown\./m.test(q); }, true);
+    return /^- Neither our lot nor Community Toyota Baytown has a used Land Cruiser that is not black today\. Do not offer the black one again\. Ask what year range or color they would like, and offer to keep watch for one here and at our sister store, Community Toyota Baytown\./m.test(q); }, true);
   check('control: Honda Lafayette has no sister stores -- no Toyota store is offered, only our own lot', () => {
     const q = prompt({ dealerId: '24399', store: 'Community Honda Lafayette' });
     return [/WHAT THEY WANT NOW/.test(q), /sister store|Community Toyota/.test(q.split('\n').filter(l => /^- (?:Neither|At our)/.test(l)).join('\n'))]; }, [true, false]);

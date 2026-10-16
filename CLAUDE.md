@@ -30,3 +30,17 @@ Build them from inside each build directory so the manifest sits at the zip root
 - `bash tests/run-all.sh` fully green; the build header's assertion counts must match what
   the run actually printed, not what was planned.
 - Byte-compare every changed region between `builds/dev` and `builds/commercial`.
+
+## American spelling, always
+
+Every word a customer can see is American English: color, gray, favorite, center, apologize,
+recognize, organize, canceled, labeled, acknowledgment, inquiry, license. Gil, 10/16: "we should
+always use American spellings of all words." The model copies the wording of its instructions
+(log330: "what year range or colour should I watch for?" came from our own prompt), so:
+
+- Prompt text the model reads (system prompt, user prompt, rewrite prompts, directives, examples)
+  is written in American spelling. New code follows suit, comments included.
+- Both LANGUAGE rules (main system prompt and `buildSystemPromptSmsRefine`) require it.
+- `_lpAmericanSpelling` runs on every SMS, email and voicemail before render. It leaves "grey"
+  alone because factory paint names keep the factory's spelling.
+- Diagnostic log strings that tests match on may keep older wording; nothing customer-facing may.

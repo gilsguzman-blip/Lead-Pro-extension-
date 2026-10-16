@@ -265,11 +265,11 @@ for (const file of BUILDS) {
   check('Click & Go keeps the brand frame it always had',
     B.phrase('Hds Dr Lead - Gubagoo - Drs Digital Retailing').ex2,
     'I saw your Click & Go request come through...');
-  // The HARD CONSTRAINT's tail was hardcoded to "that is a place they will recognise" and was
+  // The HARD CONSTRAINT's tail was hardcoded to "that is a place they will recognize" and was
   // equally wrong about a possessive name. It comes from the shape now.
-  check('"a place they will recognise" is not said of a non-place',
-    B.phrase('Thirdparty Honda -').tail === 'that is a place they will recognise', false);
-  check('...but it is still said of a real one', B.phrase('Facebook').tail, 'that is a place they will recognise');
+  check('"a place they will recognize" is not said of a non-place',
+    B.phrase('Thirdparty Honda -').tail === 'that is a place they will recognize', false);
+  check('...but it is still said of a real one', B.phrase('Facebook').tail, 'that is a place they will recognize');
 
   console.log('\nthe shape travels with the name, so the two cannot drift:');
   check('every table row carries a shape',

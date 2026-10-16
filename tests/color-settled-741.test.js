@@ -7,10 +7,10 @@ require('./lib/fatal-guard.js')('color-settled-741.test.js');
 // the Panthera Metal unit is "NOT what they are asking for now ... never fall back to it", and the draft offered a
 // black S. Gil: "The customer was incorrect that it was Black with white. The model didn't pick up on the change in
 // the arc and kept the Black track."
-// The colour ask is SETTLED when, after the customer named the colour, they sent a listing link AND our reply names
-// the lead unit's paint, and they have named no colour since. Our reply alone does not settle it (the v9.7.613 case:
-// an agent re-pitching the lead's unit to a customer who asked for another colour).
-// Executes the shipped scraper detector slice and the shipped popup colour block. Placeholder data only.
+// The color ask is SETTLED when, after the customer named the color, they sent a listing link AND our reply names
+// the lead unit's paint, and they have named no color since. Our reply alone does not settle it (the v9.7.613 case:
+// an agent re-pitching the lead's unit to a customer who asked for another color).
+// Executes the shipped scraper detector slice and the shipped popup color block. Placeholder data only.
 //
 // Usage: node tests/color-settled-741.test.js <dev popup.js> <commercial popup.js>
 const fs = require('fs'), vm = require('vm'), path = require('path');
@@ -51,7 +51,7 @@ for (const f of BUILDS) {
       out: vm.runInContext('typeof _colorSettled !== "undefined" && _colorSettled ? _colorSettled.asked : ""', sb), concerns: c, logs: logs.join('\n') };
   };
 
-  console.log(' 1. the colour ask is settled by the arc:');
+  console.log(' 1. the color ask is settled by the arc:');
   const r = scan([ASK, WHITE, LINK, NAMED]);
   check('log265 shape: Black asked, listing sent, our reply names Panthera Metal -> SETTLED, not MOVED OFF', () => [r.settled, r.moved, r.out], [true, false, 'Black']);
   check('...the concern works the lead unit and closes Black, the diag says why', () =>
@@ -62,12 +62,12 @@ for (const f of BUILDS) {
   check('control: after all that they ask for black again -> MOVED OFF as before', () => { const x = scan([ASK, WHITE, LINK, NAMED, AGAIN]); return [x.moved, x.settled]; }, [true, false]);
   check('control: we named Panthera Metal only BEFORE they asked for black -> MOVED OFF as before', () => { const x = scan([EARLY, ASK, LINK]); return [x.moved, x.settled]; }, [true, false]);
 
-  console.log(' 2. the scraper hands the popup a settled colour, not the ask:');
+  console.log(' 2. the scraper hands the popup a settled color, not the ask:');
   check('customerStatedColor is blanked and colorAskSettled carries the old ask', () =>
     [/customerStatedColor: \(typeof _statedColor === 'string' && !\(typeof _colorSettled !== 'undefined' && _colorSettled\) \? _statedColor : ''\)/.test(src),
      /colorAskSettled: \(typeof _colorSettled !== 'undefined' && _colorSettled\) \? _colorSettled\.asked : ''/.test(src)], [true, true]);
 
-  console.log(' 3. the popup colour line says how it was settled:');
+  console.log(' 3. the popup color line says how it was settled:');
   const span = (mark, end) => { const i = src.indexOf(mark); return src.slice(i, src.indexOf(end, i) + end.length); };
   const clean = span('function _lpCleanColor(c){', '\n}\n') + '\n' + span('function _lpColorWords(s){', 'return set; }\n');
   const block = span('  if (_lpInvConfirmedAvailable) {\n    // ── (v9.7.660)', '\n  } else if (_audiAllAvail').replace(/ else if \(_audiAllAvail$/, '');
@@ -77,10 +77,10 @@ for (const f of BUILDS) {
     vm.createContext(sb); vm.runInContext(clean + '\n' + block, sb); return sb.vehicleExtras.join('\n');
   };
   const p = paint('Black');
-  check('settled: "the colour question is closed", names the old ask, and does not claim colour never came up', () =>
-    [/THE COLOUR IS ALREADY SETTLED/.test(p), /the colour question is closed: they first asked for Black, then sent us the listing for this car, and our reply told them it is Panthera Metal/.test(p),
-     /do not offer or look for a Black one/.test(p), /has not raised colour/.test(p)], [true, true, true, false]);
-  check('control: nothing settled -> the original "has not raised colour" line', () => { const q = paint(''); return [/has not raised colour, trim or configuration/.test(q), /question is closed/.test(q)]; }, [true, false]);
+  check('settled: "the color question is closed", names the old ask, and does not claim color never came up', () =>
+    [/THE COLOR IS ALREADY SETTLED/.test(p), /the color question is closed: they first asked for Black, then sent us the listing for this car, and our reply told them it is Panthera Metal/.test(p),
+     /do not offer or look for a Black one/.test(p), /has not raised color/.test(p)], [true, true, true, false]);
+  check('control: nothing settled -> the original "has not raised color" line', () => { const q = paint(''); return [/has not raised color, trim or configuration/.test(q), /question is closed/.test(q)]; }, [true, false]);
 }
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);

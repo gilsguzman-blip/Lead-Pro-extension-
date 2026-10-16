@@ -155,8 +155,8 @@ check('...and states the reason, so it generalises rather than patching her lead
   i => /a franchise constraint is about NEW cars/.test(rachelNote(i)), true);
 
 // A count is not a confirmed match. This restraint is what keeps the arm from becoming a promise.
-check('no specific trim, colour, year or unit may be named',
-  i => /Do NOT name a specific trim, colour, year or unit/.test(rachelNote(i)), true);
+check('no specific trim, color, year or unit may be named',
+  i => /Do NOT name a specific trim, color, year or unit/.test(rachelNote(i)), true);
 check('the lead vehicle stays as the comparison, not a substitute',
   i => /stays in play as the comparison, not as a substitute/.test(rachelNote(i)), true);
 
