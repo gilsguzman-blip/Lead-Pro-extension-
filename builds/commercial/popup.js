@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.805 (Commercial. THE CHAT'S OWN WORDS, AND WHAT WE HAVE FOR THEM; THREE THINGS READ AS THE CUSTOMER'S THAT WERE NOT. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Honda Lafayette lead 2102225210 (10/19, nine regenerations): a Gubagoo chat -- 'a Honda accord touring with a sunroof' / 'Pre-owned' / 'Black' -- on a lead whose vehicle was the bot's placeholder ('2026 Honda Accord', no trim). Every draft said 'I can check for a pre-owned black Accord Touring' and asked cash or finance; the feed held no pre-owned Touring and two new 2026 Accord Hybrid Touring in Crystal Black Pearl. One draft answered the bot's own questions ('you can reach me at ..., and my email is the one this message came from'). Gil, 10/19: name the new one and ask which. (1) _lpCustomerText reads the customer's turns of a chat transcript -- the lead's own chat sits just below the CURRENT LEAD marker, dated its day -- never the [CHAT BOT] turns, never an older lead's chat. (2) _lpWhatWeHave: when the lead's vehicle names no trim, a trim the feed carries for the model, every word of it in the customer's words, is their trim (_lpCustTrimFromWords). The feed's 'Hybrid' (Honda writes 'Accord Hybrid Touring') is set aside only when no unit of the model has the trim in exactly their words, so 'Accord Touring' finds the Touring and 'Civic Sport' still means the gas Sport. A pre-owned ask's header drops the model year (the pool spans years; on a chat lead the year is the bot's). (3) Asked for pre-owned, none matches, a new one does: 'Brand NEW (they asked for pre-owned): 2026 Accord Hybrid Touring (Crystal Black Pearl) x2' -- named as new, the question which: the new one, or keep watching for a pre-owned Touring in black. (4) The scraper: in a chat transcript only the Guest turns can be the customer's open questions (the bot's 'best phone number', 'e-mail as well', 'What day would you like to come in?' were three); 'Lead Type: m-chat' is no longer the inquiry or the last message; the chat note tells the model the [CHAT BOT] lines are the widget's questions, already answered -- never answer one. (5) Kia Baytown lead 2101887443: 'Email is fineSent from Yahoo Mail for iPhoneOn Sunday, October 18, 2026, 3:27 PM, <our assistant> wrote:' kept 'On Sunday' as theirs ('fineSent', 'iPhoneOn' have no word boundary) and the prompt said 'LOCK IN Sunday' and 'CUSTOMER NAMED A CLOSED DAY'. The quoted-reply and mail-signature cuts now also find a header run onto the last word. (6) Honda Baytown lead 2102645799 (log332): a Fullpath 'CONVERTED ON: Nurture Landing Page Nurture default ... Page converted on: Vehicle Trade-In Value - Community Honda'; the prompt said they opened the 'Nurture Landing Page Nurture default' and the voicemail the agent left said 'You were looking at the Nurture page on our website'. When CONVERTED ON names no car and no offer and reads as the campaign's internal label, what they opened is the Page converted on page, store name dropped -- 'the trade-in value page on our website', with 'they want to know what their vehicle is worth' -- in the prompt, HOW THIS LEAD REACHED US and the text rewrite; the campaign name is named once, to forbid it (and 'nurture', 'landing page', 'campaign'). The conversion note is no longer the customer's inquiry or last message (it had reached the rewrite as what they said '147 days ago'); its 'Customer message:' field still is. Replayed on the real dumps with the shipped scraper and the live feed: 2102225210 at 8:52 AM -- 804 'No specific unit confirmed ... Do NOT confirm availability of the specific TRIM, COLOR' with three bot questions open; 805 'The Accord Touring in black: NONE in stock today' and the two new Touring in Crystal Black Pearl named as new, no open questions. 2102645799 at 5:38 PM -- 804 'What they opened on our website: "Nurture Landing Page Nurture default"'; 805 'the trade-in value page on our website'. TESTS: chat-words-805 (new) runs the shipped inlineScraper in Chromium on placeholder lead pages and executes _lpCustomerText, _lpCustTrimFromWords, _lpWhatWeHave, _lpFullpath, populateFromData, buildUserPrompt and _lpBuildSmsRefinePrompt: 46 assertions across both builds; v9.7.804 fails 19 of 23 per build (2 of them checks of new fields; its 4 controls pass). sched-attribution unchanged and green (the run-on cuts carry the existing marker names). VERIFIED: run-all 239 suites green, 8,473 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.804.)
 // Lead Pro -- popup.js  v9.7.804 (Commercial. WHAT THEY SAID ON THE CALL IS WHAT THEY WANT -- AND A SISTER STORE'S CAR IS OURS TO OFFER. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Honda Baytown lead 2097505088 (log329, on 803): a Facebook lead on a 2027 CR-V Hybrid TrailSport; the customer has never written, but the 10/12 connected call's note read 'Wife wants a used landcruiser, told them about the one at Toyota but they don't want black' and a 10/16 note 'In market for Land Cruiser'. The draft: 'the Ash Green 2027 CR-V Hybrid TrailSport is here. Is there a feature you'd like me to verify?' -- the pivot detector reads only the customer's own messages ('EXCLUDED BY SCOPE (not customer speech):[Land cruiser]') and the Vehicle line said 'THIS IS THE VEHICLE FOR THIS LEAD. Do not substitute'. Gil, 10/16: offer to set up the visit at the sister store; the salesperson can cross-sell there and go with them. (1) _lpCallWants: a connected call's note naming a different model is the customer's stated want (a no-contact note backs it, never starts it), with its conditions -- used/new and colours ruled out ('don't want black'); not when the model is one they own or trade, one they ruled out, or when a newer customer message names the lead's model again. (2) _lpCallWantsUnits: our lot first, then the Baytown sister stores' live feeds, filtered by those conditions. (3) The prompt: WHAT THEY WANT NOW -- FROM THE CALL (the note quoted, the lead's model not pushed); a unit on our lot is named and the visit offered here; a sister store's unit is named and the visit offered at that store, with the salesperson meeting them there; with nothing that fits, it says so, does not re-offer the colour they ruled out, and asks year range or colour. The Vehicle line and the inventory note stand the lead's car down. Lafayette stores have no sister stores, so only our own lot is searched. (4) The text rewrite gets WHAT THEY WANT NOW, and a rewrite that brings the lead's model back when the first draft had left it does not ship. (5) AMERICAN SPELLING, ALWAYS (Gil, 10/16): the first 804 draft on this lead asked 'what year range or colour should I watch for?' -- copied from this block's own wording. Both LANGUAGE rules (main prompt and text rewrite) now require American spelling; the instruction text the model reads is written that way (41 strings: colour, acknowledgement, summarise, apologise, recognise, labelled, cancelled; diagnostic log strings kept); and _lpAmericanSpelling runs on every SMS, email and voicemail before render ('grey' left alone for factory paint names). Ten existing suites' expected prompt wording updated to match. Replayed on the real dump: 803 says 'THIS IS THE VEHICLE FOR THIS LEAD' and 'we have it here'; 804 says the conversation is about a used Land Cruiser, not black, and (with a placeholder Toyota Baytown unit) offers the visit at Community Toyota Baytown with the rep meeting them there. TESTS: us-spelling-804 (new) executes _lpAmericanSpelling, buildSystemPrompt, buildSystemPromptSmsRefine and buildUserPrompt: 18 assertions across both builds; the first 804 cut fails all 9 per build (5 of them the new helper). call-wants-804 (new) executes _lpCallWants, _lpCallWantsUnits, populateFromData, buildUserPrompt, _lpBuildSmsRefinePrompt and _lpRefineSms (worker stubbed) with placeholder data: 26 assertions across both builds; v9.7.803 fails 11 of 13 per build (5 of them new helpers; its 2 controls pass). VERIFIED: run-all 238 suites green, 8427 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.803.)
 // Lead Pro -- popup.js  v9.7.803 (Commercial. FULLPATH: THEY ACTED ON OUR OWN MARKETING, AND THE DRAFT LEADS WITH WHAT THEY ACTED ON. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Fullpath is the stores' CDP; its audience module markets to in-market customers in our own database, and a lead arrives when one of them converts. Kia Baytown lead 2100329657 (log327) converted on '2026 Kia Sorento Hybrid Lease for $409/mo for 24 months, $3,999 due at signing' and the draft pitched '$3,000 customer cash' -- the note never reached the prompt (rejected as machine fields); Honda Baytown lead 2100288374 (log328) converted on a 2019 Honda Pilot (VIN, $19,616) and wrote 'My credit is not that good'. Both prompts called it 'your online inquiry'. Gil, 10/15: quote the advertised offer prefaced with approved credit; a specific unit's price is fine; other offers wait for a later follow-up; the vehicle they own is a light trade/upgrade question ('fishing'). (1) The scraper keeps the current lead's received note when it carries 'CONVERTED ON:' (fullpathConversion, carried through the frame merge), and the merge keeps a rejected service-record frame's vehicle as the one they own (serviceVehicle). (2) _lpFullpath reads it on FullPath leads: the offer (and its figure) or the unit (vehicle, VIN for matching, advertised price), the customer's message, what they viewed, what they own, and whether our own messages have already put the figure to them. (3) WHAT THEY RESPONDED TO in the prompt: the offer quoted as advertised, prefaced 'on approved credit', in every format (the payment rules do not stop the advertised offer; they still forbid any other figure); or the car at its advertised price, the VIN never quoted; their message answered first; one light trade/upgrade question on the car they own; OTHER OFFERS WAIT until the offer has been put to them (the store incentive lines stand down meanwhile). HOW THIS LEAD REACHED US says they opened it on our website -- never 'online inquiry', never Fullpath, a landing page, a campaign or an audience; the source acknowledgement stands aside (SKIPPED-fullpath). (4) The text rewrite gets WHAT THEY RESPONDED TO, and a rewrite that drops the offer's figure or the car's price the first draft carried does not ship. Replayed on both real dumps: 802 carries both store incentives ($3,000 cash first) and 'your online inquiry'; 803 carries the $409 lease on approved credit, the 2017 Sorento question and no other offer, and the Pilot at $19,616 with the credit message answered first. TESTS: fullpath-803 (new) executes _lpFullpath, the scraper capture line (lifted), populateFromData, buildUserPrompt, _lpBuildSmsRefinePrompt and _lpRefineSms (worker stubbed) with placeholder data: 28 assertions across both builds; v9.7.802 fails 12 of 14 per build (6 of them new helpers or source; its 2 controls pass). first-touch-register: the acknowledgement's early-exit count goes 6 -> 7 for SKIPPED-fullpath. VERIFIED: run-all 236 suites green, 8383 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.802.)
 // Lead Pro -- popup.js  v9.7.802 (Commercial. ADD APPT ASK, AND THREE THINGS THE THREAD HAD ALREADY SETTLED. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Kia Baytown lead 2099780329 (log326, on 801): an out-of-state CarGurus buyer in a live text thread with the sales rep -- 'still in our service department. (Not on the lot yet)', then 'I have a 2022 Kia K5 LXS (White) on the lot', and the customer answered 'Good', 'I will bring it up dere wen ii come', 'Pay cash'. The draft said the 2023 'is here in Gravity Gray', never mentioned the white one, and offered a video instead of asking when they are coming; that morning the agent regenerated the first touch ten times looking for a visit ask the out-of-state rule had removed. (1) NOT ON THE LOT: _lpRepNotOnLot reads every message of ours on the lead (not only the newest) for 'not on the lot', 'in our service department', 'in recon', 'being detailed'; a newer message saying it is on the lot or ready wins, and a message naming another year is not about this car. The unit stays ours (not sold): VEHICLE ON LEAD, PRESENCE LANGUAGE, the feed confirmation line, the INVENTORY note, the distance CONTEXT and the text rewrite all say still in service instead of 'here'. (2) THE CAR ON THE TABLE NOW: _lpOfferedUnit -- a different unit we offered ('I have a 2022 Kia K5 LXS (White) on the lot') whose first customer reply after it is not a turn-down. The prompt says the conversation moved to it; the Vehicle line points at it instead of 'THIS IS THE VEHICLE FOR THIS LEAD. Do not substitute'; the settled-colour line for the lead's car stands down; no new figure is to be worked out. (3) THEY SAID THEY WILL MAKE THE TRIP: _lpTripIntent reads the customer's own messages on the lead ('if I come get it', 'when I come', 'I'll drive up'); for an out-of-state buyer the no-visit rule gives way to: ask when they are planning to come, say what will be ready, no set times (a new level-2 visit hold). (4) ADD APPT ASK chip (Gil, 10/14: keep the out-of-state logic intact and let the agent choose): sticky for the lead like Drop Appt Ask, and the two cancel each other. On an out-of-state buyer it replaces the no-visit rule with AGENT OVERRIDE -- APPOINTMENT ASK (times inside store hours, not today by default: a new level-1 hold) and lets the suggested times through. Exit and pause still win; on any other hold the log says [LP ADD-APPT DIAG] held by. The text rewrite knows the chip, and a rewrite that drops the first draft's time does not ship. Replayed on the real dump: 801 says 'confirmed in stock ... Say we have it here', 'THIS IS THE VEHICLE FOR THIS LEAD' and no visit ask; 802 says still in service, puts the white 2022 on the table and asks when they are coming (with the chip: an appointment ask with next-day times). TESTS: remote-visit-802 (new) executes the helpers, populateFromData, buildUserPrompt, _lpBuildSmsRefinePrompt and the chip helpers with placeholder data: 32 assertions across both builds; v9.7.801 fails 12 of 16 per build (6 of them new helpers; its 4 controls pass). step2-697: the appointment gate's source check now allows the chip clause. VERIFIED: run-all 235 suites green, 8355 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.801.)
@@ -946,8 +947,28 @@ function _lpCustomerText(d){
     var srcs = [String((d && d.conversationBrief) || ''), String((d && d.context) || '')];
     for (var i = 0; i < srcs.length; i++) {
       var lines = srcs[i].split('\n');
+      // (v9.7.805) THE CUSTOMER'S TURNS IN A CHAT TRANSCRIPT ARE THEIR WORDS. Honda Lafayette lead 2102225210: the chat that created
+      // the lead said "Honda accord touring with a sunroof" / "Pre-owned" / "Black", and none of it reached anything that reads the
+      // customer's words -- the turns are indented "[CUSTOMER] ..." lines inside a [GUBAGOO CHAT] entry, and that entry is dated at
+      // the lead's own creation, so it sits just below the CURRENT LEAD marker. Read the [CUSTOMER] turns of any chat above the
+      // marker, and of the chat directly below it when it is dated the marker's day. Never the [CHAT BOT] turns.
+      var _ctChat = false, _ctPast = false, _ctDay = '';
       for (var j = 0; j < lines.length; j++) {
-        if (/CURRENT LEAD SUBMITTED HERE/.test(lines[j])) break;
+        if (/CURRENT LEAD SUBMITTED HERE/.test(lines[j])) {
+          if (_ctPast) break;
+          _ctPast = true; _ctChat = false; _ctDay = (lines[j].match(/^\s*\[(\d{1,2}\/\d{1,2}\/\d{4})/) || [])[1] || '';
+          continue;
+        }
+        var _ctDated = lines[j].match(/^\s*\[(\d{1,2}\/\d{1,2}\/\d{4})[^\]]*\]\s*\[([^\]]+)\]/);
+        if (_ctDated) {
+          _ctChat = /^GUBAGOO CHAT$/i.test(_ctDated[2]);
+          if (_ctPast && !(_ctChat && _ctDay && _ctDated[1] === _ctDay)) break;
+        } else if (_ctChat) {
+          var _ctTurn = lines[j].match(/^\s+\[CUSTOMER\]\s*(.+)$/);
+          if (_ctTurn) out += ' ' + _ctTurn[1].trim();
+          continue;
+        }
+        if (_ctPast) continue;
         if (/^\s*\[[^\]]*\]\s*\[CUSTOMER\]/.test(lines[j])) {
           out += ' ' + lines[j].replace(/^\s*\[[^\]]*\]\s*\[CUSTOMER\]\s*/, '');
           if (lines[j + 1] && /^\s{2,}\S/.test(lines[j + 1])) out += ' ' + lines[j + 1].trim();
@@ -1179,6 +1200,7 @@ function _lpFpField(n, label) {
   return m ? m[1].replace(/\(\s*(?:www\.|https?:|[a-z0-9-]+\.(?:com|net|org))[^)]*\)/gi, '').replace(/Click here to view complete lead information/gi, '').replace(/\s+/g, ' ').trim() : '';
 }
 function _lpTitleCaps(s) { s = String(s || '').trim(); return /[a-z]/.test(s) ? s : s.replace(/\b([A-Z])([A-Z]+)\b/g, function (m, a, b) { return a + b.toLowerCase(); }); }
+var LP_FP_INTERNAL_RX = /\b(?:landing\s+page|nurture|default|template|campaign|audience|segment|journey|retarget\w*)\b/i;
 function _lpFullpath(d) {
   try {
     if (!d || !/full\s*path/i.test(String(d.leadSource || ''))) return null;
@@ -1194,6 +1216,17 @@ function _lpFullpath(d) {
     } else if (/\$\s?[\d,]+/.test(what) && /\b(?:lease|financ\w*|apr|cash|rebate|off|per month)\b|\/\s*mo\b/i.test(what)) {
       r.kind = 'offer'; r.offer = what; r.key = (what.match(/\$\s?[\d,]+/) || [''])[0].replace(/\s/g, '');
     } else r.vehicle = what;
+    // (v9.7.805) FULLPATH'S OWN NAMES ARE NOT A PAGE THE CUSTOMER SAW. Honda Baytown lead 2102645799: "CONVERTED ON: Nurture Landing
+    // Page Nurture default ... Page converted on: Vehicle Trade-In Value - Community Honda". "Nurture Landing Page" / "Nurture
+    // default" is the campaign's internal label, and the voicemail the agent left said "You were looking at the Nurture page on our
+    // website". When CONVERTED ON names no car and no offer, what they opened is the "Page converted on" page, store name dropped.
+    var pco = _lpFpField(n, 'Page converted on').replace(/\s+[-\u2013\u2014|]\s+[^-\u2013\u2014|]*\b(?:Community|Honda|Toyota|Kia|Audi|Lafayette|Baytown)\b[^-\u2013\u2014|]*$/i, '').trim();
+    r.desc = '';
+    if (r.kind === 'page') {
+      if (LP_FP_INTERNAL_RX.test(what)) { r.campaign = what; r.what = pco; r.vehicle = ''; }
+      r.trade = /\btrade[-\s]?in\b|\bvalue (?:your|my)\b|\bappraisal\b|\bwhat(?:['\u2019]s| is) (?:my|your) (?:car|vehicle) worth\b/i.test(r.what);
+      r.desc = r.trade ? 'the trade-in value page on our website' : (r.what ? 'the ' + r.what + ' page on our website' : 'a page on our website');
+    }
     var vre = /Status:\s*([^,]+),\s*Make:\s*([^,]+),\s*Model:\s*([^,]+),\s*Year:\s*(\d{4})(?:,\s*Page-Views:\s*(\d+))?/gi, vm;
     while ((vm = vre.exec(_lpFpField(n, 'Vehicles viewed')))) r.viewed.push(vm[1].trim().toLowerCase() + ' ' + vm[4] + ' ' + vm[2].trim() + ' ' + vm[3].trim() + (vm[5] ? ' (' + vm[5] + ' page view' + (vm[5] === '1' ? '' : 's') + ')' : ''));
     if (d.serviceVehicle && /\b(?:19|20)\d{2}\b/.test(String(d.serviceVehicle))) r.owned = _lpTitleCaps(d.serviceVehicle);
@@ -4148,6 +4181,29 @@ function _lpTrimOf(v) {
     return { disp: s, norm: s.toLowerCase().split(/\s+/).map(function (w) { return w.replace(/[^a-z0-9]+/g, ''); }).filter(Boolean).sort().join('|') };
   } catch (e) { return { disp: '', norm: '' }; }
 }
+// (v9.7.805) THEIR TRIM, IN THEIR WORDS. Lead 2102225210: the vehicle on the lead was the chat bot's placeholder ("2026 Honda
+// Accord", no trim) and the customer had typed "accord touring with a sunroof". When the lead's vehicle names no trim, a trim this
+// store's feed carries for the model, every word of it in the customer's own words, is the trim they asked about. Honda's feed
+// writes "Hybrid" into the model ("Accord Hybrid Touring"); the word is only kept when they said it.
+function _lpTrimObj(disp) {
+  disp = String(disp || '').replace(/\s{2,}/g, ' ').trim();
+  return { disp: disp, norm: disp.toLowerCase().split(/\s+/).map(function (w) { return w.replace(/[^a-z0-9]+/g, ''); }).filter(Boolean).sort().join('|') };
+}
+function _lpCustTrimFromWords(units, fam, text) {
+  try {
+    var toks = {};
+    String(text || '').toLowerCase().split(/\s+/).forEach(function (w) { w = w.replace(/[^a-z0-9]+/g, ''); if (w) toks[w] = 1; });
+    var best = '', bestN = 0, seen = {};
+    (units || []).forEach(function (u) {
+      if (_lpModelFamilyKey(u.vehicle) !== fam) return;
+      var t = _lpTrimOf(u.vehicle).disp; if (!t || seen[t]) return; seen[t] = 1;
+      var words = t.split(/\s+/).map(function (w) { return w.toLowerCase().replace(/[^a-z0-9]+/g, ''); }).filter(function (w) { return w && w !== 'hybrid'; });
+      if (!words.length || words.some(function (w) { return w.length < 2 || !toks[w]; })) return;
+      if (words.length > bestN) { bestN = words.length; best = toks.hybrid ? t : t.split(/\s+/).filter(function (w) { return !/^hybrid$/i.test(w); }).join(' '); }
+    });
+    return best;
+  } catch (e) { return ''; }
+}
 function _lpWhatWeHave(d) {
   try {
     if (!d || !d.vehicle || d.stockNum || d.vin || /not provided/i.test(d.vehicle) || d.isSoldDelivered) return null;
@@ -4169,6 +4225,7 @@ function _lpWhatWeHave(d) {
     var _wwConv = String(d.convState || '').toLowerCase();
     if (d.hasExitSignal || d.hasPauseSignal || _wwConv === 'exit' || _wwConv === 'pause' || _lpCustomerStateHold(d)) return null;
     var _wwTrim = _lpTrimOf(d.vehicle);
+    if (!_wwTrim.norm) { var _wwCt = _lpCustTrimFromWords(units, fam, cust); if (_wwCt) _wwTrim = _lpTrimObj(_wwCt); }   // (v9.7.805)
     var firstTouch = _wwConv === 'first-touch' && !!_wwTrim.norm && !_lpLeadHasContact(d);
     if (!colors.length && !asked && !firstTouch) return null;
     var lane = _lpCompLane(d.condition), vy = (String(d.vehicle).match(/\b(?:19|20)\d{2}\b/) || [''])[0];
@@ -4185,20 +4242,35 @@ function _lpWhatWeHave(d) {
       if (lane === 'new' && vy && _uy !== vy) { if (_adjYrs.indexOf(_uy) >= 0) adjPool.push(u); return false; }
       return true;
     });
-    var want = _lpTrimOf(d.vehicle);
-    var trimOk = function (u) { return !!want.norm && _lpTrimOf(u.vehicle).norm === want.norm; };
+    var want = _wwTrim;
+    // (v9.7.805) "HYBRID" IN THE FEED'S NAME IS NOT A DIFFERENT TRIM WHEN THAT IS THE ONLY WAY THE TRIM COMES. The 2026 Accord Touring
+    // is only built as a hybrid and the feed lists it "Accord Hybrid Touring": a customer's "Touring" matched nothing while two sat
+    // on the lot. Exact words first; only when no unit of the model has the trim in exactly those words is the feed's "Hybrid"
+    // set aside (so a "Civic Sport" still means the gas Sport while the store has one).
+    var _noHy = function (n) { return String(n || '').split('|').filter(function (w) { return w && w !== 'hybrid'; }).join('|'); };
+    var _wantHy = /(?:^|\|)hybrid(?:\||$)/.test(want.norm);
+    var _trimStrict = function (u) { return !!want.norm && _lpTrimOf(u.vehicle).norm === want.norm; };
+    var _trimSoft = function (u) { var n = _lpTrimOf(u.vehicle).norm; return !!want.norm && (n === want.norm || (!_wantHy && _noHy(n) === want.norm)); };
+    var _famAll = units.filter(function (u) { return _lpModelFamilyKey(u.vehicle) === fam; });
+    var trimOk = (!_famAll.some(_trimStrict) && _famAll.some(_trimSoft)) ? _trimSoft : _trimStrict;
     var colorOk0 = function (u) { var w = _lpColorWords(u.color); return colors.some(function (k) { return w[k]; }); };
     var adjSame = adjPool.filter(trimOk);
     if (colors.length && adjSame.some(colorOk0)) adjSame = adjSame.filter(colorOk0);
     adjSame.sort(function (a, b) { return Number(b.year || 0) - Number(a.year || 0); });   // the newer year first
-    if (!pool.length && !adjSame.length) return null;
+    // (v9.7.805) THEY ASKED FOR PRE-OWNED AND ONLY A NEW ONE MATCHES. Lead 2102225210: a pre-owned black Accord Touring; no pre-owned
+    // Touring at all, two new 2026 Accord Touring in Crystal Black Pearl. Gil, 10/19: "name the new one and ask which".
+    var newAlt = (lane === 'pre' && want.norm) ? _famAll.filter(function (u) { return String(u.condition || '').toLowerCase() === 'new' && trimOk(u) && (!colors.length || colorOk0(u)); }) : [];
+    newAlt.sort(function (a, b) { return Number(b.year || 0) - Number(a.year || 0); });
+    if (!pool.length && !adjSame.length && !newAlt.length) return null;
     var colorOk = function (u) { var w = _lpColorWords(u.color); return colors.some(function (k) { return w[k]; }); };
     var grp = function (list) { var m = {}, order = [];
       list.forEach(function (u) { var k = String(u.vehicle).replace(_LP_MAKE_RX, '').replace(/\s{2,}/g, ' ').trim() + ' (' + (u.color || 'color not listed') + ')';
         if (!m[k]) { m[k] = 0; order.push(k); } m[k]++; });
       return order.map(function (k) { return k + (m[k] > 1 ? ' x' + m[k] : ''); }).join('; '); };
-    var base = (vy ? vy + ' ' : '') + (String(((pool[0] || adjSame[0] || {}).model) || '').split(/\s+/)[0] || 'model');
+    // (v9.7.805) a pre-owned ask spans model years (the pool is not filtered by year), and on a chat lead the year is the bot's placeholder
+    var base = ((vy && lane !== 'pre') ? vy + ' ' : '') + (String(((pool[0] || adjSame[0] || newAlt[0] || {}).model) || '').split(/\s+/)[0] || 'model');
     var exact = pool.filter(function (u) { return (!want.norm || trimOk(u)) && (!colors.length || colorOk(u)); });
+    if (exact.length) newAlt = [];   // (v9.7.805) a pre-owned one is here: that is the answer
     var sameTrim = (want.norm && colors.length) ? pool.filter(function (u) { return trimOk(u) && !colorOk(u); }) : [];
     // their colour in other trims; with no colour named, every other trim of the model (v9.7.790)
     var other = !want.norm ? [] : pool.filter(function (u) { return !trimOk(u) && (!colors.length || colorOk(u)); });
@@ -4230,6 +4302,11 @@ function _lpWhatWeHave(d) {
     if (_adjLine) L.push(_adjLine);
     else if (colors.length || want.norm) L.push('- ' + wantDesc.charAt(0).toUpperCase() + wantDesc.slice(1) + ': ' + (exact.length ? 'IN STOCK -- ' + grp(exact) + '.' : 'NONE in stock today.'));
     else L.push('- In stock: ' + grp(pool.slice(0, 8)) + '.');
+    if (newAlt.length) {
+      L.push('- Brand NEW (they asked for pre-owned): ' + grp(newAlt) + '. No pre-owned one matches and this does -- the feed confirms it is here. Name it as a NEW one (never call it pre-owned, used or certified), and ask which they would rather: the new one, or for you to keep watching for a pre-owned '
+        + (want.disp || 'one') + (colors.length ? ' in ' + colors.join(' or ') : '') + '. Never give its price.');
+      try { console.log('[LP WHAT WE HAVE DIAG] asked pre-owned ' + want.disp + (colors.length ? ' in ' + colors.join('/') : '') + ' -- none pre-owned; ' + newAlt.length + ' new offered'); } catch (eNa) {}
+    }
     if (sameTrim.length) L.push('- The ' + want.disp + ' in other colors: ' + grp(sameTrim) + '. You may name these.');
     var _cw = colors.join(' or '); _cw = _cw ? _cw.charAt(0).toUpperCase() + _cw.slice(1) + ' in' : 'In';
     if (lower.length) L.push('- ' + _cw + ' a lower trim: ' + grp(lower) + '. You may mention it as an option; do not push it.');
@@ -4241,7 +4318,7 @@ function _lpWhatWeHave(d) {
                       : (_adjLine ? 'Lead with the ' + _adjName + ' as the answer. '
                       : 'If the exact one is not here, say so once, plainly, then offer what fits from the lines above and ask which they would rather. '))
       + 'The feed does not list drivetrain: do not state AWD or 2WD for these units.');
-    return { text: L.join('\n'), exact: exact.length, sameTrim: sameTrim.length, lower: lower.length, higher: higher.length, colors: colors, asked: asked, firstTouch: firstTouch, want: want.disp, otherYear: _adjName };
+    return { text: L.join('\n'), exact: exact.length, sameTrim: sameTrim.length, lower: lower.length, higher: higher.length, colors: colors, asked: asked, firstTouch: firstTouch, want: want.disp, otherYear: _adjName, newAlt: newAlt.length };
   } catch (e) { return null; }
 }
 
@@ -10674,6 +10751,11 @@ function _lpScraperBotAuthor(msg) {
         // SHAPE, not client: a quoted-reply header ends in "wrote:" whoever generated it.
         ['quoted-reply header ("On … wrote:")',  /\bOn\b[\s\S]{0,200}?\bwrote:/i],
         ['quoted-reply header (address + wrote:)', /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}[\s\S]{0,80}?\bwrote:/i],
+        // (v9.7.805) ...and the same header, or a mail-client signature, run onto the customer's last word with no space. Kia Baytown
+        // lead 2101887443: "Email is fineSent from Yahoo Mail for iPhoneOn Sunday, October 18, 2026, 3:27 PM, <our assistant> wrote:"
+        // -- "fineSent" and "iPhoneOn" have no word boundary, so "On Sunday" stayed in as theirs and the day scan locked Sunday.
+        ['quoted-reply header ("On \u2026 wrote:")',  /(?<=[a-z.!?])On\s+(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|\d)[\s\S]{0,200}?\bwrote:/],
+        ['mail-client signature',                /(?<=[a-z.!?])Sent from (?:my |the )?(?:Yahoo|Gmail|Outlook|iPhone|iPad|Android|Samsung|Galaxy|Mail\b)/],
         ['forwarded-message header',             /\bBegin forwarded message:/i],
         ['Outlook original-message divider',     /-{3,}\s*Original Message\s*-{3,}/i],
         ['Outlook header block (From:/Sent:)',   /\bFrom:[\s\S]{0,160}?\bSent:\s/i],
@@ -13053,6 +13135,9 @@ function _lpScraperBotAuthor(msg) {
               // agent's prior "what are you shopping for" touch (Greg Sujo). Reject from the inquiry
               // slot; leadSource still routes the lead as Click & Go.
               || /^\s*more info at\b/i.test(extractedCustQ)
+              // (v9.7.805) a Gubagoo chat's "CustomerComment : Click for Lead Info: <url>" is followed by the record's own fields, and
+              // lead 2102225210's inquiry -- and lastInboundMsg -- became "Lead Type: m-chat"
+              || /^\s*(?:lead type|department|visitor score)\s*:/i.test(extractedCustQ)
               || /dealertrack\.com|%2f(?:leads?|crm)%2f/i.test(extractedCustQ)
               || !/[a-z]{3,}/i.test(extractedCustQ)
               || extractedCustQ.replace(/[^a-z]/gi, '').length < 6
@@ -13085,6 +13170,15 @@ function _lpScraperBotAuthor(msg) {
             if (extractedCustQ.replace(/[^a-z0-9]/gi, '').length < 3) extractedCustQ = '';
           }
           if (!extractedCustQ || extractedCustQ.length < 5) extractedCustQ = '';
+        }
+        // (v9.7.805) A FULLPATH CONVERSION NOTE IS OUR MARKETING SYSTEM'S RECORD, NOT THE CUSTOMER'S WORDS -- only its "Customer
+        // message:" field is. Honda Baytown lead 2102645799: "CONVERTED ON: Nurture Landing Page Nurture default ... Page converted on:
+        // Vehicle Trade-In Value" went to the model as "the customer's own words ... address it directly", and to the text rewrite
+        // as what the customer last said. _lpFullpath reads the note (d.fullpathConversion) for what they acted on.
+        if (extractedCustQ && /\bCONVERTED ON\s*:/i.test(extractedCustQ)) {
+          var _fpMsgM = extractedCustQ.match(/Customer message\s*:\s*([\s\S]*?)(?=\s*(?:Lead Details|Vehicles viewed|Page converted on|Preferred Contact Method|CONVERTED ON)\s*:|\s*Show (?:Less|More)\b|$)/i);
+          extractedCustQ = _fpMsgM ? _fpMsgM[1].replace(/\s+/g, ' ').trim() : '';
+          if (extractedCustQ.length < 3) extractedCustQ = '';
         }
         if(extractedCustQ) {
           leadReceivedCustomerQuestion = extractedCustQ;
@@ -15260,11 +15354,14 @@ function _lpScraperBotAuthor(msg) {
       // it rather than a second copy. When it is not — a cutoff filter dropped them, an entry was
       // reshaped — the verbatim block is kept exactly as before, because losing the chat entirely
       // is far worse than printing it twice. Fails safe to today's behaviour, never open.
+      // (v9.7.805) lead 2102225210: the bot's questions were answered as though the customer had asked them.
+      var _gubBotNote = ' The [CHAT BOT] lines are the chat widget talking: its questions were put TO the customer, who answered them in the chat. They are not questions for you -- never answer one, and never write as if the customer asked for your phone number or email.';
       var _gubInFence = gubogooChatEntry.every(function(l){ return String(recentHistory).indexOf(l) !== -1; });
       conversationBrief = _gubInFence
         ? 'CHAT TRANSCRIPT: this customer already spoke with the chat bot before this lead was created. '
           + 'Those turns are in the CONVERSATION TRANSCRIPT below, tagged [GUBAGOO CHAT] — read them before writing.'
-        : 'CHAT TRANSCRIPT (customer already spoke with the chat bot - read this before writing):\n' + gubogooChatEntry.join('\n');
+          + _gubBotNote
+        : 'CHAT TRANSCRIPT (customer already spoke with the chat bot - read this before writing):\n' + gubogooChatEntry.join('\n') + '\n' + _gubBotNote.trim();
       _lpD('[LP CHAT BRIEF DIAG] gubagooLines:' + gubogooChatEntry.length
         + ' | allInFencedTranscript:' + _gubInFence
         + (_gubInFence ? ' — brief carries a pointer, the fenced region carries the turns'
@@ -17601,6 +17698,20 @@ function _lpScraperBotAuthor(msg) {
           // question; a text the day before had already answered it as one. That section is cut before any question is
           // looked for; the rest of the note, including a customer's own comments, is untouched.
           qbody = qbody.replace(/Total Value Adjustment[^\n]*\n[\s\S]*?(?=Net Trade-?in Value)/i, '');
+          // (v9.7.805) THE CHAT BOT'S QUESTIONS ARE NOT THEIRS. Honda Lafayette lead 2102225210: the Gubagoo chat in the lead-received
+          // note carries the bot's turns ("What's the best phone number to contact you on?", "Can you please provide your e-mail as
+          // well?", "What day would you like to come in?") and all three were read as the customer's open questions; the text rewrite
+          // answered them ("you can reach me at [phone], and my email is the one this message came from"). In a chat transcript only
+          // the Guest turns are the customer's words.
+          if (/(?:^|\n)\s*Guest\s*\(\d{1,2}\/\d{1,2}\/\d{2,4}[^)]*\)\s*:/i.test(qbody)) {
+            var _cgRe = /(\w+)\s*\(\d{1,2}\/\d{1,2}\/\d{2,4}\s+\d{1,2}:\d{2}:\d{2}\s*[ap]m\)\s*:/gi, _cgM, _cgT = [], _cgOut = [];
+            while ((_cgM = _cgRe.exec(qbody)) !== null) _cgT.push({ who: _cgM[1], at: _cgM.index, textAt: _cgRe.lastIndex });
+            for (var _cgI = 0; _cgI < _cgT.length; _cgI++) {
+              if (!/^guest$/i.test(_cgT[_cgI].who)) continue;
+              _cgOut.push(qbody.slice(_cgT[_cgI].textAt, _cgI + 1 < _cgT.length ? _cgT[_cgI + 1].at : qbody.length).replace(/\s*Related Vehicles:[\s\S]*$/i, '').trim());
+            }
+            qbody = _cgOut.join('\n');
+          }
           if (!qbody || qbody.length < 8) continue;
           // ── (v9.7.654) A QUESTION MARK WITH LETTERS TIGHT ON BOTH SIDES IS AN APOSTROPHE ─────
           // Antonio Cadena (Kia Baytown, lead 2079566626, 9/10). VinSolutions stores the CarGurus
@@ -22159,7 +22270,7 @@ function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
     var _rfFp = (typeof _lpFullpath === 'function') ? _lpFullpath(d) : null;
     if (_rfFp) {
       out.push('\u2501\u2501\u2501 WHAT THEY RESPONDED TO \u2501\u2501\u2501');
-      out.push('They opened ' + (_rfFp.kind === 'offer' ? 'our ' + _rfFp.offer : 'the ' + (_rfFp.vehicle || _rfFp.what) + (_rfFp.price ? ' at ' + _rfFp.price : '')) + ' on our website. Keep it in the text the way the first draft has it'
+      out.push('They opened ' + (_rfFp.kind === 'offer' ? 'our ' + _rfFp.offer + ' on our website' : _rfFp.kind === 'page' ? _rfFp.desc : 'the ' + (_rfFp.vehicle || _rfFp.what) + (_rfFp.price ? ' at ' + _rfFp.price : '') + ' on our website') + '. Keep it in the text the way the first draft has it'   // (v9.7.805) page: _lpFullpath's desc
         + (_rfFp.kind === 'offer' ? ' (on approved credit, the numbers as advertised)' : '') + '; never call it an online inquiry; add no other offer.');
       out.push('');
     }
@@ -27721,7 +27832,7 @@ function buildUserPrompt(data) {
     // false of "your online inquiry", which is not a place and is not what they would call it.
     // (v9.7.800) A Mastermind lead reached us as an offer, not an inquiry.
     ((typeof _lpFullpath === 'function') && _lpFullpath(data))   // (v9.7.803)
-      ? '- HOW THIS LEAD REACHED US: they acted on our own marketing -- on our website they opened ' + (_lpFullpath(data).kind === 'offer' ? 'our ' + _lpFullpath(data).offer : 'the ' + (_lpFullpath(data).vehicle || 'vehicle')) + ' and sent their details (see WHAT THEY RESPONDED TO). Never call it an "online inquiry", and never name Fullpath, a landing page, a campaign or an audience -- say they were looking at it on our website.'
+      ? '- HOW THIS LEAD REACHED US: they acted on our own marketing -- on our website they opened ' + (_lpFullpath(data).kind === 'offer' ? 'our ' + _lpFullpath(data).offer : _lpFullpath(data).kind === 'page' ? _lpFullpath(data).desc.replace(/ on our website$/, '') : 'the ' + (_lpFullpath(data).vehicle || 'vehicle')) + ' and sent their details (see WHAT THEY RESPONDED TO). Never call it an "online inquiry", and never name Fullpath, a landing page, a campaign or an audience -- say they were looking at it on our website.'
       : (sc.isAutomotiveMastermind
       ? '- HOW THIS LEAD REACHED US: the GM Private Incentive offer they received as a current Audi owner -- an offer they were selected for, NOT an inquiry they made. Never call it an "online inquiry" or say they reached out, inquired or showed interest.'
       : _lpSourceAckPhrase(data.leadSource)
@@ -28682,7 +28793,8 @@ function buildUserPrompt(data) {
       lines.push('', '\ud83c\udfaf WHAT THEY RESPONDED TO -- THEY ACTED ON OUR OWN MARKETING, AND IT IS THE REASON FOR THIS MESSAGE:');
       if (_fp.kind === 'offer') lines.push('- The offer they opened on our website: "' + _fp.offer + '". Lead with it in the SMS, the email and the voicemail. Quote it as advertised, prefaced with "on approved credit" -- e.g. "On approved credit, it is ' + _fp.key + '/mo ..." in the offer\'s own numbers. This is our own advertised offer, so the payment rules elsewhere in this prompt do not stop you quoting it as advertised; they still forbid any other figure. Do not change the numbers, add terms, or promise they qualify.');
       else if (_fp.kind === 'unit') lines.push('- The car they opened on our website: ' + _fp.vehicle + (_fp.price ? ', advertised at ' + _fp.price : '') + '. Lead with that car.' + (_fp.price ? ' You may name that advertised price; do not quote any other figure, payment or out-the-door total.' : '') + ' The VIN on the record is for matching only -- never quote it.');
-      else lines.push('- What they opened on our website: "' + _fp.what + '". Lead with it.');
+      else lines.push('- What they opened: ' + _fp.desc + '. Lead with it.' + (_fp.trade ? ' They want to know what their vehicle is worth -- helping them get that number is the reason for this message.' : ''));   // (v9.7.805)
+      if (_fp.campaign) lines.push('- "' + _fp.campaign + '" is our marketing system\'s internal name for the campaign, not a page they saw: never say it, or "nurture", "landing page" or "campaign", in the SMS, the email, the voicemail or the subject.');
       if (_fp.message) lines.push('- They also wrote: "' + _fp.message.replace(/"/g, "'") + '" -- answer that first, in your own words, then come to the ' + (_fp.kind === 'offer' ? 'offer' : 'car') + '.');
       if (_fp.viewed.length) lines.push('- What they viewed: ' + _fp.viewed.join('; ') + '.');
       if (_fp.owned) lines.push('- THEY OWN A ' + _fp.owned + ' (our service records). Fish lightly for a trade or upgrade -- one easy question, e.g. "Are you thinking about trading in your ' + _fp.owned.replace(/^((?:19|20)\d{2})\s+\S+\s+/, '$1 ') + '?" Never assume they are trading and never put a value on it.');
