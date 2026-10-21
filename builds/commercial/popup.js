@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.817 (Commercial. THE TEXT REWRITE STILL PITCHED, AND FOUR LEFTOVERS STILL PULLED TOWARD THE VISIT. Extension only; proxy v7.88, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Kia Baytown lead 2103538959 (log350, v9.7.816): the email, the voicemail and the first draft of the text all opened '[Rep] has tried reaching you by phone'; the rewrite shipped '[Customer], the 2024 GMC Sierra 1500 AT4 is the one you were looking at ... [Rep] has tried reaching you by phone.' v9.7.816 audited the main prompt and not the rewrite: its WRITE THE TEXT block still said 'lead on the thing in that email that earns a reply' and 'give them the actual reason this visit is worth making'; its in-stock block said 'the email says it is here'; its close-out block said 'replied 0.9d ago' of a STOP. (1) Under the PITCH ALREADY OUT rule the rewrite's WRITE THE TEXT is the follow-up: after our calls, 'we have been trying to reach them' right after their name, one easy way to reach us, one simple question, no pitch; with no calls, one new thing or one simple question. The pitch block puts the follow-up first and lifts the general 'reason to come in' rule; the in-stock block becomes THE VEHICLE IS STILL OURS (never gone, and not 'here' again). (2) A rewrite that moves 'trying to reach you' out of the text's first two sentences, when the first draft had it there, does not ship (new _lpTryingLead); the first draft ships unless it asked a customer who texted STOP to text. (3) The main prompt: 'trying to reach them' comes first in every format; after a STOP the easy way to reply is a call back or an email reply, never a text. Under the pitch rule the visit decision also takes out the default follow-up's 'If the customer is engaged and available, close with an appointment' and reopens no promise to have the car ready when they arrive (OPEN THREADS); other promises stand. (4) The close-out gate counts a STOP as no reply (new _lpStopOnlyReply), so its block no longer says 'replied 0.9d ago'. TESTS: pitch-follow-817 (new) executes the shipped _lpBuildSmsRefinePrompt, _lpRefineSms (worker stubbed), _lpApplyVisitDecision and _lpCloseOutEligible, and builds the main prompt through the shipped populateFromData and panel payload: 26 assertions across both builds; v9.7.816 fails 8 of 13 per build (the controls pass). A replay of log350's own scrape: the visit decision now lists the appointment close and the arrival promise among what it took out, and the rewrite's last block is the follow-up. VERIFIED: run-all 251 suites green, 8,747 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.816.)
 // Lead Pro -- popup.js  v9.7.816 (Commercial. OUR PITCH WENT UNANSWERED: ONE RULE TAKES THE PITCH OUT EVERYWHERE, AND UNANSWERED CALLS MAKE IT 'WE HAVE BEEN TRYING TO REACH YOU'. Extension only; proxy v7.88, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Kia Baytown lead 2103538959 (log349, v9.7.815), Gil: 'Message should be a follow up we've been trying to reach you... salesperson had tried to call' -- and 'Why isn't the model following the arc?' The arc was in the prompt and v9.7.815's don't-restate block fired; the same prompt also said 'Say "we have it here"', 'REQUIRED in EVERY format: One specific reason the visit is worth their time ... pre-fill most of the paperwork', 'Confirm it is available and encourage the soonest workable time', offered 9:15 / 10:30 (the times sent the day before) with a scripted next-day text, and its facts said 'Last customer reply was 0.9 days ago ... the customer replied today' (the Stop) and 'Exchange so far: 11 inbound' (his 2024 leads). Three specific instructions to one general one, and the model re-pitched. These blocks were written for first touches and replies and none of them asked whether the pitch had already gone out; v9.7.808, 810 and 815 each removed one such contradiction. New _lpPitchOut: our newest pitch on this lead (the car is here / available / ready, or times offered) with no customer words (a STOP is not words) and no connected call after it, an automated first response not counted, and the unanswered calls since our last text or email. (1) OUR PITCH IS ALREADY OUT AND UNANSWERED -- when that message offered times, a level-2 hold in the visit decision (_LP_VISIT_HOLDS): no slots, no time examples, no same-day push. When it offered none, the same line without the hold: times are not withheld (a person's 'it is here' with no times, log244-710's control). (2) Under either, the visit decision also takes out the pitch: the inventory 'Say "we have it here"' / 'Use soft language: ... "we have it here"' (now 'Our earlier message already told them it is here; do not say it again'), the distance block's required visit reason with its examples, its SMS visit reason, its 'open with the vehicle confirmation', and its 'confirm it is available' / 'encourage the soonest workable time'. The decision now runs these edits with or without a hold, and logs each in [LP VISIT DECISION DIAG]. (3) WE HAVE BEEN TRYING TO REACH THEM: unanswered calls (Machine / No Contact / left a message) since our last text or email make that the message -- who called (a teammate by first name, 'their salesperson' when it was the sales rep), how many times and when; say it warmly, one easy way to reply (a call back or a reply to the email), one simple question; not another pitch. The text rewrite gets OUR PITCH IS ALREADY OUT and keeps 'trying to reach you'. [LP PITCH OUT DIAG]. (4) THE FACTS: on a lead whose only customer message is a STOP, the arc facts carry no dated reply, no whole-record exchange counts, and this lead's outbound run (_lpOutreachOnThisLead). (5) hasApptSet joins the panel payload (the v9.7.808 guard caught _lpPitchOut reading it). A connected call (v9.7.810's call follow-up) and a real reply are unchanged. TESTS: pitch-out-816 (new) builds prompts through the shipped populateFromData and panel payload -- the visit decision runs on the finished prompt -- executes the shipped _lpBuildSmsRefinePrompt, and lifts the shipped arc-facts step: 18 assertions across both builds; v9.7.815 fails 8 of 9 per build (the reply control passes; the facts control needs the new step). A replay of log349's own scrape: the hold owns the visit, the 'trying to reach them' line names the salesperson's two calls, and the visit decision lists every pitch line it took out. VERIFIED: run-all 250 suites green, 8,721 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.815.)
 // Lead Pro -- popup.js  v9.7.815 (Commercial. A STOP IS NOT A REPLY TO THE FOLLOW-UP DIRECTIVES, AND A CAR WE ALREADY NAMED IS NOT RE-PITCHED. Extension only; proxy v7.88, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Kia Baytown lead 2103538959 (log348), Gil: 'Still reads like a first reach.' Our 10/20 6:48 PM text, email and voicemail said the Summit White 2024 GMC Sierra 1500 AT4 was here, 9:15 or 10:30 Wednesday; the customer texted 'Stop' at 6:50 and the texting system confirmed; two voicemails followed on 10/21. The 10/21 draft: the same truck, 'you viewed for $58,067', 9:15 or 10:30 Thursday. (1) THE STOP COUNTED AS A REPLY. Since v9.7.792 a STOP is not contact (_lpLeadHasContact), but buildUserPrompt's reply test still counted it: the ANTI-RESTATE block never fired ('hasReplyForDirectives: true | thinReplyText: "Stop" | WILL FIRE: false') and the prompt said 'EARLY FOLLOW-UP -- THE CUSTOMER HAS REPLIED'. When the newest customer message is a STOP keyword and nothing else on the lead is contact, it is now no reply for these directives ([LP STOP REPLY DIAG]); a real message or a connected call still is. (2) THE ANCHOR WAS THE OPT-OUT CONFIRMATION. 'You have successfully been removed from ... text messages.' was taken as our last substantive message. The scraper's trivial-outbound test now skips the texting system's opt-out replies, and buildUserPrompt falls back to our newest real send when a scrape still carries one (LP_OPTOUT_CONFIRM_RX). (3) THE TRUCK COUNTED AS NOT PUT TO THEM. _lpFullpath marked a car presented only when our messages quoted its price; the 10/20 messages named the Sierra 1500 without it, so the prompt said 'Lead with that car ... you may name that advertised price'. Our messages naming the model now count too, and v9.7.810's background wording applies. (4) The text rewrite is told not to add a price the first draft left out. The STOP handling for texting is unchanged: the SMS is drafted for the agent, with no invitation to text. TESTS: stop-restate-815 (new) builds prompts through the shipped populateFromData and panel payload, executes the shipped _lpBuildSmsRefinePrompt, and runs the shipped inlineScraper in Chromium on a placeholder lead page with our pitch, a STOP and the opt-out confirmation: 12 assertions across both builds; v9.7.814 fails 4 of 6 per build (its 2 controls pass). A replay of log348's own scrape gives the don't-restate block anchored on the 10/20 email, 'YOU HAVE ALREADY REACHED OUT', and the truck as background. VERIFIED: run-all 249 suites green, 8,703 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.814.)
 // Lead Pro -- popup.js  v9.7.814 (Commercial. A RETURN CHOSEN MONTHS BEFORE LEASE END IS AN OPTIONS CONVERSATION, NOT A TURN-IN TODAY. Extension only; proxy v7.88, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Kia Baytown lead 2103558746 (log346, v9.7.813): the customer chose 'Return Your Vehicle' on the finance company's site and v9.7.813 read it -- but her lease matures 04/09/2027, five months out, and every draft asked her to drop the EV9 off 'this afternoon at 5:45'; none asked the light question about what is next ('at most one' let the model skip it); and the email opened 'As a returning Kia customer, you can handle the return'. Gil: option (a), no turn-in now, and 'the go over options may be the better way to go with these. Being so far out offering may sway instead of just giving up and letting her walk away.' (1) The scraper keeps how far off the maturity date is (_hcaMaturity: 'near' within 120 days, the threshold its lease-status line already used, else 'far'), carried to the prompt. (2) A Return with the lease end months away: respect the choice, never argue it; no bringing the car in, no drop-off or turn-in now and no drop-off time; offer a time to go over their lease-end options together -- what returning it here involves (a pre-inspection, so there are no surprises at turn-in) and what else is open to them before then -- no pressure, nothing assumed, no figures. (3) A Return near the lease end: the turn-in made easy, as before. (4) Either way the message ENDS with one light question about what is next (was 'at most one'). (5) On a Return the KMF line no longer says to acknowledge them as a returning Kia customer. TESTS: lease-timing-814 (new) runs the shipped inlineScraper in Chromium on placeholder lead pages with a maturity five-plus months and forty days out, and builds prompts through the shipped populateFromData and panel payload: 10 assertions across both builds; v9.7.813 fails 4 of 5 per build (its control passes). lease-intent-813 follows the light-question wording. A replay of log346's own scrape gives the options conversation and the plain lease-customer line. VERIFIED: run-all 248 suites green, 8,691 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.813.)
@@ -4387,6 +4388,16 @@ function _lpSentAsk(text) {
 // here / available / ready, or times offered) with no customer words (a STOP is not words) and no connected call after it, and
 // the unanswered calls since our last text or email: { date, t, here, times, calls: [{ date, by, first, vm }] }, or null.
 var LP_PITCH_RX = /\b(?:is|are) here\b|\bavailable to see\b|\bin stock\b|\bready (?:for you )?to see\b|\bhave (?:it|the \w+|everything) ready\b|\b\d{1,2}(?::\d{2})?\s*(?:AM|PM)\b/i;
+// (v9.7.817) The only thing the customer sent on this lead is a STOP: a text-channel preference, not a reply (see v9.7.815).
+var LP_TRYING_RX = /\b(?:(?:been\s+)?(?:trying|tried)\s+(?:to\s+)?(?:reach|reaching|call|calling|get(?:ting)?\s+(?:a\s*hold|in\s+touch))|tried\s+(?:to\s+)?(?:give\s+you\s+a\s+call|calling\s+you|reaching\s+you))/i;
+// (v9.7.817) "trying to reach you" is in the text's opening: its first sentence after the name, or its second.
+function _lpTryingLead(sms) {
+  var body = String(sms || '').split('\n')[0];
+  return LP_TRYING_RX.test(body.split(/(?<=[.!?])\s+/).slice(0, 2).join(' '));
+}
+function _lpStopOnlyReply(d) {
+  try { return !!(d && LP_STOP_WORD_RX.test(String(d.lastInboundMsg || '').trim()) && !_lpLeadHasContact(d)); } catch (e) { return false; }
+}
 function _lpPitchOut(d) {
   try {
     if (d && d.hasApptSet) return null;
@@ -5001,7 +5012,7 @@ function _lpCloseOutEligible(d) {
   var outN = (_coRes && typeof _coRes.n === 'number' && _coRes.src !== 'note-count-fallback')
                ? _coRes.n
                : ((typeof sig.totalOutboundCount === 'number') ? sig.totalOutboundCount : null);
-  var replied = !!d.hasCustomerReply;
+  var replied = !!d.hasCustomerReply && !((typeof _lpStopOnlyReply === 'function') && _lpStopOnlyReply(d));   // (v9.7.817) a STOP is not a reply
   var sinceReply = (sig.lastInboundAgeDays === undefined || sig.lastInboundAgeDays === null)
                      ? null : parseFloat(sig.lastInboundAgeDays);
 
@@ -22526,10 +22537,17 @@ function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
 
   // (v9.7.755) The unit is confirmed in stock (lead 2093398081): the text may not say it is gone.
   var _rfNol = null;   // (v9.7.802) the rep told them it is still in service
+  var _rfPoW = null;   // (v9.7.817) our pitch is out and unanswered (see _lpPitchOut)
+  try { _rfPoW = (d && d.convState !== 'call-followup' && typeof _lpPitchOut === 'function') ? _lpPitchOut(d) : null; } catch (eRfPw) {}
   try { _rfNol = (d && d._lpRepNotOnLot) || ((typeof _lpRepNotOnLot === 'function') ? _lpRepNotOnLot(d) : null); } catch (eRfNl) {}
   if (d && d._lpInvConfirmedAvailable && d.vehicle && _rfNol) {
     out.push('\u2501\u2501\u2501 THE VEHICLE IS OURS, BUT STILL IN SERVICE \u2501\u2501\u2501');
     out.push('The ' + String(d.vehicle) + ' is ours (not sold), but the sales rep told the customer it is still in service and not on the lot yet. Your text must agree: do NOT say it is gone or sold, and do NOT say it is here or ready to see.');
+    out.push('');
+  } else if (d && d._lpInvConfirmedAvailable && d.vehicle && _rfPoW) {
+    // (v9.7.817) Our pitch already told them it is here: the text says neither that it is gone nor, again, that it is here.
+    out.push('\u2501\u2501\u2501 THE VEHICLE IS STILL OURS \u2501\u2501\u2501');
+    out.push('The ' + String(d.vehicle) + ' is still in stock. Do NOT say it is gone, sold or no longer available -- and do not say again that it is here; our earlier message already did.');
     out.push('');
   } else if (d && d._lpInvConfirmedAvailable && d.vehicle) {
     out.push('\u2501\u2501\u2501 THE VEHICLE IS IN STOCK \u2501\u2501\u2501');
@@ -22639,7 +22657,8 @@ function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
     if (_rfPo) {
       out.push('\u2501\u2501\u2501 OUR PITCH IS ALREADY OUT \u2501\u2501\u2501');
       out.push('Our ' + _rfPo.date + ' message already told them ' + (_rfPo.here ? 'the car is here' : 'about the car') + (_rfPo.times ? ' and offered times' : '') + ', and they have not answered. Do not put back that it is here, a time, or a reason to come in (the vehicle ready, the paperwork), even if the email has one.'
-        + (_rfPo.calls.length ? ' We have called since then and left word with no answer: if the first draft says we have been trying to reach them, keep that -- it is the reason for this text.' : ''));
+        + (_rfPo.calls.length ? ' We have called since then and left word with no answer: if the first draft says we have been trying to reach them, keep that -- it is the reason for this text, and it comes first, right after their name.' : '')
+        + ' The general rule about giving them the reason to come in does not apply to this text: that reason already went out on ' + _rfPo.date + ' and went unanswered.');
       out.push('');
     }
   } catch (eRfPo) {}
@@ -22815,6 +22834,20 @@ function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
   // WHAT REPLACES A CONSTRAINT IS A JOB DESCRIPTION. Lead on what earns a reply, answer it in
   // your own voice, give them what they need to say yes, and stop. No target, no count, no
   // floor, no ceiling.
+  // (v9.7.817) OUR PITCH IS OUT AND UNANSWERED: the job is the follow-up, not the visit. Lead 2103538959 (log350): the first draft
+  // opened "[Rep] has tried reaching you by phone"; the rewrite, told here to lead on what earns a reply and give "the actual
+  // reason this visit is worth making", opened on the truck again and moved the follow-up to its third sentence.
+  if (_rfPoW) {
+    out.push(_rfPoW.calls.length
+      ? 'This text is the follow-up to our calls. Right after their name, say we have been trying to reach them (who called, as the first draft says), then '
+        + 'give one easy way to reach us and ask one simple question. It is not a pitch: no reason to come in, no restating the car or its details, no visit ask.'
+      : 'Our earlier message already made the case to come in, and it went unanswered. Right after their name, bring one new thing or ask one simple question. '
+        + 'It is not a pitch: no reason to come in, no restating the car or its details, no visit ask.');
+    out.push('Do NOT quote their message back to them.');
+    out.push('Write what a person following up would actually text, and stop when it is said.');
+    out.push('Never state a fact the email does not state.');
+    return out.join('\n');
+  }
   out.push('Lead on the thing in that email that earns a reply. When the customer has asked '
     + 'something that is still open, that is almost always it \u2014 answer it first and answer '
     + 'it plainly.');
@@ -23009,6 +23042,16 @@ async function _lpRefineSms(pass1, emailText, d) {
       }
     } catch (eRfSa) {}
 
+    // (v9.7.817) The first pass led with "we have been trying to reach you" after our calls and the rewrite moved it out of the
+    // opening or dropped it: the first pass ships (unless it asked a customer who texted STOP to text). Lead 2103538959 (log350).
+    try {
+      var _rfPoG = (d && d.convState !== 'call-followup') ? _lpPitchOut(d) : null;
+      if (_rfPoG && _rfPoG.calls.length && _lpTryingLead(pass1) && !_lpTryingLead(out)
+          && !(_lpStopIsCurrent(d) && LP_TEXT_INVITE_RX.test(String(pass1 || '')))) {
+        console.log('[LP SMS REFINE DIAG] kept the first pass \u2014 it opened on "we have been trying to reach you" and the rewrite did not | ' + (Date.now() - t0) + 'ms');
+        return null;
+      }
+    } catch (eRfTr) {}
     // (v9.7.793) After a STOP, a rewrite that invites them to text (and the first pass did not) does not ship.
     try {
       if (_lpStopIsCurrent(d) && LP_TEXT_INVITE_RX.test(out) && !LP_TEXT_INVITE_RX.test(String(pass1 || ''))) {
@@ -23860,6 +23903,13 @@ function _lpApplyVisitDecision(text) {
       if (/^- SMS: a reason the visit is worth their time is MANDATORY/.test(t)) { drop('distance SMS visit reason (pitch already out)', l); continue; }
       if (/Confirm it is available and encourage the soonest workable time/.test(l)) { out.push(l.replace(/Confirm it is available and encourage the soonest workable time[^\u2014]*/, 'Our earlier message already confirmed it: do not confirm it again or push a visit time ')); drop('distance "confirm it is available" (pitch already out)', l); continue; }
       if (/ and encourage the soonest workable time/.test(l)) { out.push(l.replace(/ and encourage the soonest workable time[^\u2014]*/, ', and do not push a visit time ')); drop('distance "soonest workable time" (pitch already out)', l); continue; }
+      // (v9.7.817) the default follow-up's "close with an appointment", and our promise to have the car ready when they arrive
+      if (/If the customer is engaged and available, close with an appointment\./.test(l)) { out.push(l.replace(/If the customer is engaged and available, close with an appointment\./, 'Our pitch is already out and unanswered: do not close with an appointment ask in this message.')); drop('follow-up "close with an appointment" (pitch already out)', l); continue; }
+      if (/Agent committed to do something: /.test(l) && /ready (?:for you )?(?:when|for when) you (?:arrive|get here|come)|when you (?:arrive|get here|come in)|pre-?fill|paperwork|pulled (?:up|around)/i.test(l)
+          && /Check if this commitment was fulfilled in subsequent outbound\. If not, address it or honor it before asking for anything new\./.test(l)) {
+        out.push(l.replace(/Check if this commitment was fulfilled in subsequent outbound\. If not, address it or honor it before asking for anything new\./, 'That promise was part of our pitch and is kept when they come in; do not repeat it in this message.'));
+        drop('visit-readiness promise as an open thread (pitch already out)', l); continue;
+      }
       if (/REQUIRED in EVERY format: One specific reason (?:the|any) visit (?:is|would be) worth their time/.test(l)) {
         var _poWas = [l];
         while (i + 1 < lines.length && /^\s*\u2022/.test(lines[i + 1])) _poWas.push(lines[++i]);
@@ -27777,7 +27827,8 @@ function buildUserPrompt(data) {
         var _pcVm = _po.calls.some(function (c) { return c.vm; }), _pcN = _po.calls.length;
         ageBlock.push('\ud83d\udcde WE HAVE BEEN TRYING TO REACH THEM: since our last text or email, ' + _pcWho + ' called ' + (_pcN === 1 ? 'once' : _pcN + ' times') + ' (' + _pcDates.join(', ') + ')'
           + (_pcVm ? ' and left ' + (_pcN === 1 ? 'a voicemail' : 'voicemails') : '') + ', with no answer. This message is that follow-up: say warmly and plainly that we have been trying to reach them'
-          + (_pcMine ? '' : ' (you may say ' + _pcFirst + ' has been trying to reach them by phone)') + ', give one easy way to reply -- a call back, or a reply to this email -- and ask one simple question. It is not another pitch.');
+          + (_pcMine ? '' : ' (you may say ' + _pcFirst + ' has been trying to reach them by phone)') + ' -- in every format it comes first, right after their name -- then give one easy way to reply -- '
+          + (_lpStopIsCurrent(data) ? 'a call back, or a reply by email (they turned texts off, so never ask them to reply by text)' : 'a call back, or a reply to this message') + ' -- and ask one simple question. It is not another pitch.');
       }
       console.log('[LP PITCH OUT DIAG] our ' + _po.date + ' pitch is unanswered' + (_po.here ? ' | said it is here' : '') + (_po.times ? ' | offered times' : '') + ' | unanswered calls since our last text/email: ' + _po.calls.length
         + (_po.calls.length ? ' (' + _po.calls.map(function (c) { return (c.by || '?') + ' ' + c.date; }).join('; ') + ')' : '') + (_po.times ? ' -> PITCH ALREADY OUT hold (no times)' : ' -> no re-pitch; times allowed (none were offered)'));
