@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.810-dev (Dev. A WORKED NEW LEAD FOLLOWS ITS PHONE CALL, THE KEY INFORMATION ROWS SURVIVE THE FRAME MERGE, AND WHAT A FULLPATH LEAD RESPONDED TO IS NOT RE-PITCHED. Extension only; proxy v7.88, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Toyota Baytown lead 2103463134, 10/21 (log340), Gil: 'I think it still missed the mark.' The lead came in at 2:36 PM on 10/20; our text said the car was here at its price with two times; the salesperson reached the customer at 3:46 ('Outbound phone call (Contacted)', 'sent over pics'). The next day's draft said the same thing again with two new times. (1) THE CALL. v9.7.792 made a connected call turn the text and email into a follow-up to it only when the call was TODAY, so a lead that came in yesterday and was called yesterday stayed a first touch and the prompt said the customer had not replied. A connected call now counts from an hour before the lead's Created date. New _lpLastCall and a line in the prompt: THE CALL THIS FOLLOWS -- who reached them (a teammate by first name when it was not the signer), when, and the call note; nothing reads as a first reach, nothing our earlier messages said is re-sent, and when something was sent on the call (pictures, a video, numbers) the draft asks whether it came through and what they thought. Never quoted. [LP LAST CALL DIAG]. (2) THE KEY INFORMATION ROWS. v9.7.808 read them ([LP KEYINFO DIAG] rows:3 ... in shadow root) and the grab lost them twice over: every frame without the panel sent keyInfo [] -- an empty list is truthy, so the first one won the merge (v9.7.617's lesson again) -- and the dashboard frame has no lead or customer ID, so the second pass dropped its customer-level fields. An empty read is now null; the scraper takes the customer ID from a GlobalCustomerID in the frame's URL when the page has none; and the rows are taken from a frame with no customer ID when it is the only frame with rows and its ZIP or phone is the lead's own. A frame naming another customer is still refused. [LP KEYINFO MERGE DIAG] says which. (3) FULLPATH, ALREADY PUT TO THEM. The block said 'IT IS THE REASON FOR THIS MESSAGE... Lead with that car. You may name that advertised price' beside v9.7.808's 'do not restate ... its price', and the model followed it; the text rewrite, shown the price and told to keep the car 'the way the first draft has it', put '$55,948' back into a first draft that had dropped it. Once an earlier message of ours carries it, it is background: the car stays the subject, but it is not led with, re-announced as here, or re-priced (an offer is not re-quoted); the rewrite is not shown the price and is told not to put it back. Before anything has gone out, unchanged. TESTS: call-keyinfo-810 (new) runs the shipped call block, buildUserPrompt through the panel payload and _lpBuildSmsRefinePrompt, runs the shipped inlineScraper in Chromium on a page without the panel and on a dashboard whose panel is in a shadow root, and feeds what it returns through the shipped frame merge, lifted whole: 32 assertions across both builds; v9.7.809 fails 9 of 16 per build (its 7 controls pass). A replay of log340's own scrape through the panel payload gives the follow-up task, the call line naming the teammate and the pictures, and the Land Cruiser as background with no price. VERIFIED: run-all 244 suites green, 8,633 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.809-dev.)
 // Lead Pro -- popup.js  v9.7.809-dev (Dev. THE REST OF WHAT THE PROMPT READS, CARRIED. Extension only; proxy v7.88, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. v9.7.808's coverage guard found five more fields buildUserPrompt reads that the panel's payload (_lpPromptInputData) never carried. Gil, 10/21: 'If these will help with messaging let's add them.' (1) _loyaltyAcctType. The loyalty flag block reads it with no fallback, so on a KFA/AFS/KMF lead the scenario worked out 'financed' itself and used loan wording while the flag block said 'We do NOT know if they leased or financed. Stay neutral' in the same prompt. Carried, a financed customer gets 'This customer FINANCED (loan)... NEVER say your lease is coming up' and nothing contradicting it; an unknown type stays neutral. (2) vehiclePendingSale. The Facebook Marketplace branch decided 'yes it is here, come check it out' without it, against the 'may be in the process of being sold, do not confirm available' line in the lead context. Carried, that branch stops saying it is here. (3) pdTradeCount. A price pushback against a breakdown with a trade-in line was told 'No trade-in is recorded on this lead' when the trade was on the deal sheet only. (4) isInTransit and _lpRepNotOnLot change no wording today (the first is read only where a stock number is required, which an inbound car never has; the second is worked out again from the context) and are carried so the prompt and the panel cannot disagree; _lpRepNotOnLot is passed as undefined, not null, when the panel never worked it out, so the prompt still does. isDistanceBuyer and agentPhone stay off: nothing in the extension ever sets them (distance comes from ZIP/state, the customer's words and the Distance chip; the signature phone from the signer, directory, store and profile). TESTS: payload-809 (new) builds each prompt through the shipped payload literal: 18 assertions across both builds; v9.7.808 fails 6 of 9 per build (its 3 controls pass). The coverage check moves into tests/helpers/panel-payload.js, and payload-808's allowed gaps shrink to history (falls back to context), indexOf/slice (string methods) and the two never-set fields, so v9.7.808 now fails it on the five. VERIFIED: run-all 243 suites green, 8,601 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.808-dev.)
 // Lead Pro -- popup.js  v9.7.808-dev (Dev. THE PROMPT NOW GETS WHAT THE PANEL READ, A WORKED NEW LEAD IS A FOLLOW-UP, AND THE KEY INFORMATION PANEL IS READ FROM ITS SHADOW ROOT. Extension only; proxy v7.88, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Gil, 10/21, Toyota Baytown leads 2103569612 and 2103463134: 'reads like a first reach, there's already been activity and follow up from salesperson', and the Fullpath info never showed. (1) THE PAYLOAD. buildUserPrompt is handed _lpPromptInputData, an explicit field list, not the scrape, and it never carried fullpathConversion, serviceVehicle, color or autoLeadId. So the v9.7.803 Fullpath block never reached a live main prompt (both leads were told 'you came through your online inquiry' with the conversion note in hand), v9.7.806's paint-by-name could not fire, and the shipper pair never varied by lead. All four are now carried. Every earlier test handed buildUserPrompt the scrape directly, which hid this; tests/helpers/panel-payload.js lifts the shipped object literal so tests and replays go through what the panel really passes. (2) A NEW LEAD THAT HAS ALREADY BEEN WORKED. With two or more sends on this lead and no reply, the default task is no longer 'Standard first-touch response... the very first and only message' but 'Follow-up on a new lead, N touches have already gone out': no re-introduction, nothing they were already told (the car being here, its color, its price, the times offered); one new thing or one new simple question. Still not a stall. A true first touch is unchanged. (3) THE SALESPERSON'S OWN INTRO. When a rep other than the signer has texted 'this is [Rep]... I'll be the one taking care of you', the prompt says so and the draft is written as one team with them. (4) THE KEY INFORMATION PANEL. Its rows are drawn inside the shadow root of DIV.portal-shadow-container (Gil's console: document 0 rows, shadow root 17), so v9.7.807's wait and reader saw none. Both now search the document and every open shadow root; [LP KEYINFO DIAG] logs which root the rows came from, or how many roots were searched. (5) The bounced email on 2103569612 was already flagged in the panel; no change. TESTS: payload-808 (new) checks statically that every field the prompt's helpers read is carried by the payload (the pre-existing gaps are listed so a new one fails), builds the prompt through the shipped payload literal, and runs the shipped _lpKiWait and inlineScraper in Chromium on a placeholder dashboard whose panel is drawn into a shadow root 500 ms after load: 22 assertions across both builds; v9.7.807 fails 9 of 11 per build (its 2 controls pass). keyinfo-amp-807 lifts _lpKiRoots with the wait. VERIFIED: run-all 242 suites green, 8,583 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.807-dev.)
 // Lead Pro -- popup.js  v9.7.807-dev (Dev. THE KEY INFORMATION PANEL IS READ, AND AMP LEADS SAY HOW THEY REACHED US. Extension only; proxy v7.88, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Gil, 10/21, from a Toyota Baytown Fullpath lead: the customer dashboard's Key Information panel carries a Fullpath CDP Summary ('[Customer] has never purchased a vehicle or had service visits with the dealership. [They] submitted a FullPath lead on October 20, 2026, for a used 2024 Toyota Land Cruiser, viewed its vehicle listing, and opened and clicked a dealership email that day') -- use it, and fix the AMP signals while we're at it. WHY IT WAS NEVER READ: the panel (frame-customer-dashboard-selected) fills in from two requests the dashboard makes on its own after load (customer-summary and automotive-intelligence, per DevTools); every grab logged since v9.7.550 found the panel's container and none of its rows. (1) The grab's wait step, on the customer dashboard frame, waits up to 2 seconds after the notes for the first keyInfo row (_lpKiWait); other frames already wait out the 4-second cap, so grabs are not made longer. inlineScraper reads every 'keyInfo-<Name>' row -- label, text and date -- into keyInfo, logs [LP KEYINFO DIAG], and keyInfo is a customer-level field in the frame merge (a frame showing another customer does not supply it). (2) THE CRM'S OWN SUMMARY OF THIS CUSTOMER goes into the lead context as background: the Fullpath CDP summary, the AMP row ('one of our marketing emails went to them (10/3/2026)', with the email subject when the contact history has it), Buying Signals and any Customer Intelligence beyond its placeholder; never quoted or sourced; a customer who has never bought or serviced with us is never welcomed back, an owner is never treated as new; nothing they opened, clicked, viewed or browsed is ever mentioned. A Buying Signals row fills the field the AI Buying Signals arm reads when the scrape had none. (3) AMP LEADS. s.isAMP was set and read by nothing, so 'Amp - Buying Signals' and 'AMP - Service to Sales Opportunity' leads were written under the generic 'do not tell the customer where their inquiry came from'. _lpAmpKind tells the stores' AMP sources apart and HOW THIS LEAD REACHED US says: 'AMP - I'm Interested' / 'Interested in More Information' / 'Discuss Lease End' -- they answered one of our emails, a request of theirs to respond to; 'Buying Signals' -- flagged by our marketing system, they did NOT reach out (never an inquiry, never 'we noticed your activity'); 'Service to Sales' -- a service customer, not an inquiry, never 'flagged'; never the email system, the campaign, or that they clicked or were tracked. A flagged lead gets no 'came through <source>' acknowledgment. TESTS: keyinfo-amp-807 (new) runs the shipped _lpKiWait and inlineScraper in Chromium on a placeholder customer dashboard whose panel fills in 600 ms after load (and one that never does), and executes _lpAmpKind, _lpKeyInfoLines, populateFromData and buildUserPrompt: 40 assertions across both builds; v9.7.806 fails 16 of 20 per build (its 4 controls pass). first-touch-register (ack early exits 7 -> 8) and fullpath-803 (the merge field list) follow the new shape. VERIFIED: run-all 241 suites green, 8,561 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.806-dev.)
@@ -4247,6 +4248,21 @@ function _lpRepIntro(d) {
     if (!best) return null;
     var dt = best.ms ? new Date(best.ms) : null;
     return { name: best.name, date: dt ? (dt.getMonth() + 1) + '/' + dt.getDate() : '' };
+  } catch (e) { return null; }
+}
+// (v9.7.810) THE CALL THE TEXT AND EMAIL FOLLOW. The newest connected call on this lead ("Outbound phone call (Contacted)", or
+// the customer calling in) with no text or email of theirs after it. Returns { date, by, first, note, inbound } or null. On lead
+// 2103463134 the salesperson reached the customer the afternoon the lead came in and noted "sent over pics"; the next draft was
+// written from someone else's desk as though nobody had spoken to them.
+function _lpLastCall(d) {
+  try {
+    var ents = _lpThreadEntries((d && (d.history || d.context)) || ''), lastWords = 0;
+    ents.forEach(function (x) { if (/CUSTOMER/i.test(x.tag) && !/REQUEST FROM INQUIRY/i.test(x.tag) && !LP_STOP_WORD_RX.test(x.body) && x.t > lastWords) lastWords = x.t; });
+    var c = ents.filter(function (x) { return /\(Contacted\)|^Inbound phone call/i.test(x.title) && x.t >= lastWords; }).sort(function (a, b) { return b.t - a.t; })[0];
+    if (!c) return null;
+    var by = ((/\bBy:\s*([A-Z][\w'\u2019-]*(?:\s+[A-Z][\w'\u2019-]*)?)/.exec(c.raw) || [])[1] || '').trim();
+    if (/^system\b/i.test(by)) by = '';
+    return { date: c.date, by: by, first: by.split(/\s+/)[0] || '', note: String(c.body || '').replace(/https?:\/\/\S+/g, '').replace(/\s+/g, ' ').trim().slice(0, 240), inbound: /^Inbound/i.test(c.title) };
   } catch (e) { return null; }
 }
 function _lpTrimObj(disp) {
@@ -11554,7 +11570,8 @@ function _lpScraperBotAuthor(msg) {
       }catch(e){return '';}
     })();
     var dealerId=dbgI?(dbgI.getAttribute('data-dealerid')||dealerIdFromUrl):dealerIdFromUrl;
-    const customerId=dbgI?(dbgI.getAttribute('data-globalcustomerid')||''):'';
+    // (v9.7.810) The customer dashboard frame has no vindebug block; its URL may still name the customer.
+    const customerId=(dbgI?(dbgI.getAttribute('data-globalcustomerid')||''):'') || (((location.href||'').match(/GlobalCustomerID=(\d+)/i)||[])[1]||'');
 
     // Fallback lead ID detection when vindebug element is missing (VinSolutions DOM change)
     if(!autoLeadId){
@@ -15773,13 +15790,19 @@ function _lpScraperBotAuthor(msg) {
       var _lpCallToday = false, _lpCallTodayTitle = '', _lpCallTodayMs = 0;
       try {
         var _ctNow = new Date();
+        // (v9.7.810) SINCE THE LEAD CAME IN, NOT ONLY TODAY. Lead 2103463134 came in at 2:36 PM on 10/20; the salesperson reached
+        // the customer at 3:46 ("Outbound phone call (Contacted)", "sent over pics"), and the next day's draft was still a first
+        // touch that said the customer had not replied and re-sent the first text. A call counts from an hour before the lead's
+        // Created date (the transcript cutoff's own buffer) or the start of today, whichever is earlier.
+        var _ctFrom = new Date(_ctNow.getFullYear(), _ctNow.getMonth(), _ctNow.getDate()).getTime();
+        try { if (typeof leadCreatedMs !== 'undefined' && leadCreatedMs > 0 && leadCreatedMs - 3600000 < _ctFrom) _ctFrom = leadCreatedMs - 3600000; } catch (eCf) {}
         noteEls.slice(0, 60).forEach(function (item) {
           if (_lpCallToday) return;
           var _ctT = ((item.querySelector('.legacy-notes-and-history-title')||{}).innerText||'').toLowerCase().trim();
           if (!/outbound phone call \(contacted\)|inbound phone call|inbound call/.test(_ctT)) return;
           var _ctD = new Date(((item.querySelector('.notes-and-hsitory-item-date')||{}).innerText||'').trim());
           if (isNaN(_ctD.getTime())) return;
-          if (_ctD.getFullYear() === _ctNow.getFullYear() && _ctD.getMonth() === _ctNow.getMonth() && _ctD.getDate() === _ctNow.getDate()) { _lpCallToday = true; _lpCallTodayTitle = _ctT; _lpCallTodayMs = _ctD.getTime(); }
+          if (_ctD.getTime() >= _ctFrom) { _lpCallToday = true; _lpCallTodayTitle = _ctT; _lpCallTodayMs = _ctD.getTime(); }
         });
       } catch (eCt) {}
       // (v9.7.796) WHAT BLOCKS IT IS THE CUSTOMER WRITING AFTER THE CALL, NOT EVER HAVING WRITTEN. On lead 2099028967 her 24
@@ -15799,7 +15822,7 @@ function _lpScraperBotAuthor(msg) {
         });
       } catch (eWa) {}
       if (hasNewLeadToday && _lpCallToday && !_lpWroteAfterCall) {
-        _lpD('[Lead Pro] convState: fresh-today lead with a connected call today ("' + _lpCallTodayTitle + '") -> call-followup: the text and email follow that conversation');
+        _lpD('[Lead Pro] convState: new lead with a connected call on it ("' + _lpCallTodayTitle + '", ' + new Date(_lpCallTodayMs).toLocaleDateString() + ') -> call-followup: the text and email follow that conversation');
         convState = 'call-followup';
       } else if(hasNewLeadToday && !hasRealCustomerReply && (hasRecentReoptIn || contactedAgeDays === undefined || contactedAgeDays > 90)) {
         // Brand new lead submitted today with no recent contact - customer re-engaged fresh
@@ -18591,7 +18614,8 @@ function _lpScraperBotAuthor(msg) {
       customerState,customerZip,
       store,name,email,phone,agent,salesRep,manager,
       vehicle,vehicleRaw,_voiFromPanel,_voiDiag,_isServiceFrame,_leadSelectorCount,_leadSelectorIds,priorSoldVehicle,color,condition,stockNum,vin,inventoryWarning:inventoryWarningFinal,inventoryWarningFromNotes,vehiclePendingSale,noSpecificVehicle,ownedVehicle,ampEmailSubject,ownedMileage,lastServiceDate,leadAgeDays,equityData,equityAmount,equityVehicle,
-      leadSource,leadStatus: currentStatus || leadStatus,hasTrade,tradeDescription,buyingSignals,keyInfo,
+      leadSource,leadStatus: currentStatus || leadStatus,hasTrade,tradeDescription,buyingSignals,keyInfo: (keyInfo.length ? keyInfo : null),   // (v9.7.810) [] is truthy and won the merge
+      
       history, totalNoteCount, hasOutbound, isContacted, contactedAgeDays, lastOutboundMsg, lastSubstantiveOutboundMsg, noReplySinceLastOutbound, newestCustomerSignalType, newestCustomerSignalDesc, hasFreshCustomerSignal, hasCustomerReply: hasRealCustomerReply /* (v9.7.301) canonical ground truth — replaces divergent inline recomputations */, lastInboundMsg: lastInboundMsg||leadReceivedCustomerQuestion, lastInboundMs: _lastInboundMs, /* (v9.7.359) date of customer's last inbound — used to age their day-words */
       hasPauseSignal, hasExitSignal, hasRecentReactivation, isSmsOptOutOnly, smsOptOutEvidence, _smsOptOutDiag, hasTextOrEmailSent, convState,
       vrMonthlyPayment, vrDownPayment, vrCreditScore, vrAPR, vrTerm, vrLender, conversationBrief, customerSaidNotToday, customerScheduleConstraint, schedCustomerNotes, outboundSends, isLiveConversation, isRecentOutbound, recentOutboundContent,
@@ -19571,6 +19595,11 @@ function _lpScraperBotAuthor(msg) {
             }
           }
 
+          // (v9.7.810) THE KEY INFORMATION PANEL'S FRAME. The rows are on the customer dashboard frame, which has no lead ID and, on
+          // lead 2103463134 (log340), no customer ID either, so the conversation-field gate below dropped them along with
+          // everything else from it ([LP KEYINFO DIAG] rows:3 on that frame; the prompt got none). They are taken from such a
+          // frame when it is the only one with rows and its ZIP or phone is the lead's own; a frame naming another customer is still refused.
+          var _kiFrames = sorted.filter(function (fr) { return fr.result && !fr.result.autoLeadId && fr.result.keyInfo && fr.result.keyInfo.length; }).length;
           for (const frame of sorted) {
             const d = frame.result; if (!d) continue;
             if (d.autoLeadId) continue; // already handled in pass 1
@@ -19618,6 +19647,16 @@ function _lpScraperBotAuthor(msg) {
               // frame (AI Buying Signal leads), merging still happens — mirrors the
               // conversation gate's shape exactly.
               var _isLeadStateField = ['hasTrade','tradeDescription','inventoryWarning','isInTransit','isShowroomFollowUp','buyingSignals','leadAgeDays','leadStatus','ownedVehicle','deletedShowroomVisit','deletedShowroomDate'].includes(k);
+              if (k === 'keyInfo') {   // (v9.7.810) see _kiFrames
+                if (!(d.keyInfo && d.keyInfo.length) || m.keyInfo) continue;
+                var _kiZip = String(d.customerZip || '').slice(0, 5), _kiLeadZip = String(m.customerZip || '').slice(0, 5);
+                var _kiPh = String(d.phone || '').replace(/\D/g, '').slice(-10), _kiLeadPh = String(m.phone || '').replace(/\D/g, '').slice(-10);
+                var _kiOk = _customerVerified || !_pass1HadActiveFrame || (!d.customerId && _kiFrames === 1 && ((!!_kiZip && _kiZip === _kiLeadZip) || (_kiPh.length === 10 && _kiPh === _kiLeadPh)));
+                if (_kiOk) m.keyInfo = d.keyInfo;
+                console.log('[LP KEYINFO MERGE DIAG] ' + (_kiOk ? 'TAKEN' : 'REJECTED') + ' ' + d.keyInfo.length + ' row(s) from a customer-level frame | '
+                  + (_customerVerified ? 'customer ID matches' : !_pass1HadActiveFrame ? 'no lead frame' : d.customerId ? 'names customer ' + d.customerId : 'no customer ID; frames with rows:' + _kiFrames + ' zip:' + (_kiZip || '(none)') + ' lead zip:' + (_kiLeadZip || '(none)') + ' phone match:' + (_kiPh.length === 10 && _kiPh === _kiLeadPh)));
+                continue;
+              }
               if (_isIdentityField && !_customerVerified) continue;
               if (_isConversationField && !_customerVerified && _pass1HadActiveFrame) continue;
               if (_isLeadStateField && !_customerVerified && _pass1HadActiveFrame) continue;
@@ -22903,7 +22942,12 @@ function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
     var _rfFp = (typeof _lpFullpath === 'function') ? _lpFullpath(d) : null;
     if (_rfFp) {
       out.push('\u2501\u2501\u2501 WHAT THEY RESPONDED TO \u2501\u2501\u2501');
-      out.push('They opened ' + (_rfFp.kind === 'offer' ? 'our ' + _rfFp.offer + ' on our website' : _rfFp.kind === 'page' ? _rfFp.desc : 'the ' + (_rfFp.vehicle || _rfFp.what) + (_rfFp.price ? ' at ' + _rfFp.price : '') + ' on our website') + '. Keep it in the text the way the first draft has it'   // (v9.7.805) page: _lpFullpath's desc
+      // (v9.7.810) Already put to them: the first draft on lead 2103463134 had no price, and this block, showing the price and
+      // saying "keep it the way the first draft has it", got "is here at $55,948" put back.
+      if (_rfFp.presented) out.push('They opened ' + (_rfFp.kind === 'offer' ? 'our ' + _rfFp.offer + ' on our website' : _rfFp.kind === 'page' ? _rfFp.desc : 'the ' + (_rfFp.vehicle || _rfFp.what) + ' on our website')
+        + ', and our earlier messages on this lead already told them about it. Do not put the ' + (_rfFp.kind === 'offer' ? 'offer\'s numbers' : 'price, or that it is here,') + ' back into the text unless the first draft has '
+        + (_rfFp.kind === 'offer' ? 'them' : 'it') + '; never call it an online inquiry; add no other offer.');
+      else out.push('They opened ' + (_rfFp.kind === 'offer' ? 'our ' + _rfFp.offer + ' on our website' : _rfFp.kind === 'page' ? _rfFp.desc : 'the ' + (_rfFp.vehicle || _rfFp.what) + (_rfFp.price ? ' at ' + _rfFp.price : '') + ' on our website') + '. Keep it in the text the way the first draft has it'   // (v9.7.805) page: _lpFullpath's desc
         + (_rfFp.kind === 'offer' ? ' (on approved credit, the numbers as advertised)' : '') + '; never call it an online inquiry; add no other offer.');
       out.push('');
     }
@@ -27961,6 +28005,21 @@ function buildUserPrompt(data) {
         + _rpi.name + ': you may say ' + _rpi.name + ' is their person for the car. Do not introduce yourself as if you were new to them, and do not repeat ' + _rpi.name + '\'s question about how they would like to be reached.');
     }
   } catch (eRpi) {}
+  // (v9.7.810) The call this text and email follow (see _lpLastCall).
+  try {
+    var _lc = data.convState === 'call-followup' ? _lpLastCall(data) : null;
+    if (_lc) {
+      var _lcMe = String(data.agent || '').split(/\s+/)[0].toLowerCase(), _lcMate = !!_lc.first && _lc.first.toLowerCase() !== _lcMe;
+      var _lcSent = /\b(?:pics?|pictures?|photos?|video|walk-?around|numbers|quote|breakdown|link)\b/i.test(_lc.note);
+      console.log('[LP LAST CALL DIAG] ' + (_lc.inbound ? 'they called in' : (_lc.by || 'we') + ' reached them') + ' on ' + _lc.date + ' | note: "' + _lc.note.slice(0, 80) + '" | teammate:' + _lcMate + ' | something sent:' + _lcSent);
+      ageBlock.push('');
+      ageBlock.push('\ud83d\udcde THE CALL THIS FOLLOWS: ' + (_lc.inbound ? 'they called us' : (_lcMate ? _lc.first + ', your teammate,' : 'you') + ' reached them by phone') + ' on ' + _lc.date
+        + (_lc.note ? '. The call note: "' + _lc.note.replace(/"/g, "'") + '"' : '') + '. This text and email pick up from that call: they have been spoken to, so nothing may read as a first reach, and do not re-send what our earlier messages already said (the car being here, its price, the times already offered).'
+        + (_lcSent ? ' Something was sent to them on or after the call: ask whether it came through and what they thought, in your own words.' : '')
+        + (_lcMate ? ' You may say ' + _lc.first + ' spoke with them; do not write as if the call never happened.' : '')
+        + ' Never quote the call note or mention notes.');
+    }
+  } catch (eLc) {}
   // (v9.7.785) They already have a sales rep (see _lpHasRep).
   try {
     var _hr = _lpHasRep(data);
@@ -29531,8 +29590,16 @@ function buildUserPrompt(data) {
   try {
     var _fp = _lpFullpath(data);
     if (_fp) {
-      lines.push('', '\ud83c\udfaf WHAT THEY RESPONDED TO -- THEY ACTED ON OUR OWN MARKETING, AND IT IS THE REASON FOR THIS MESSAGE:');
-      if (_fp.kind === 'offer') lines.push('- The offer they opened on our website: "' + _fp.offer + '". Lead with it in the SMS, the email and the voicemail. Quote it as advertised, prefaced with "on approved credit" -- e.g. "On approved credit, it is ' + _fp.key + '/mo ..." in the offer\'s own numbers. This is our own advertised offer, so the payment rules elsewhere in this prompt do not stop you quoting it as advertised; they still forbid any other figure. Do not change the numbers, add terms, or promise they qualify.');
+      // (v9.7.810) ALREADY PUT TO THEM. On lead 2103463134 this block said "Lead with that car. You may name that advertised price"
+      // under "IT IS THE REASON FOR THIS MESSAGE" the day after our text had said both, beside v9.7.808's "do not restate ... its
+      // price", and the draft re-sent the first text with new times. Once an earlier message of ours carries it, it is the
+      // background: the car stays the subject, the pitch is not repeated.
+      lines.push('', _fp.presented
+        ? '\ud83c\udfaf WHAT THEY RESPONDED TO -- THEY ACTED ON OUR OWN MARKETING, AND OUR EARLIER MESSAGES ALREADY ANSWERED IT (BACKGROUND, NOT THE PITCH):'
+        : '\ud83c\udfaf WHAT THEY RESPONDED TO -- THEY ACTED ON OUR OWN MARKETING, AND IT IS THE REASON FOR THIS MESSAGE:');
+      if (_fp.presented && _fp.kind === 'offer') lines.push('- The offer they opened on our website: "' + _fp.offer + '". An earlier message of ours on this lead already quoted it to them: do not quote it again or lead with it. Refer to it in a few words at most, and only if it helps; never change its numbers.');
+      else if (_fp.presented && _fp.kind === 'unit') lines.push('- The car they opened on our website: ' + _fp.vehicle + (_fp.price ? ', advertised at ' + _fp.price : '') + '. Our earlier messages on this lead already told them about it -- that it is here' + (_fp.price ? ' and its price' : '') + '. It is still the car this message is about, but do NOT lead with it again, say again that it is here or available, or repeat the price: bring something new about it, or ask one simple question. The VIN on the record is for matching only -- never quote it.');
+      else if (_fp.kind === 'offer') lines.push('- The offer they opened on our website: "' + _fp.offer + '". Lead with it in the SMS, the email and the voicemail. Quote it as advertised, prefaced with "on approved credit" -- e.g. "On approved credit, it is ' + _fp.key + '/mo ..." in the offer\'s own numbers. This is our own advertised offer, so the payment rules elsewhere in this prompt do not stop you quoting it as advertised; they still forbid any other figure. Do not change the numbers, add terms, or promise they qualify.');
       else if (_fp.kind === 'unit') lines.push('- The car they opened on our website: ' + _fp.vehicle + (_fp.price ? ', advertised at ' + _fp.price : '') + '. Lead with that car.' + (_fp.price ? ' You may name that advertised price; do not quote any other figure, payment or out-the-door total.' : '') + ' The VIN on the record is for matching only -- never quote it.');
       else lines.push('- What they opened: ' + _fp.desc + '. Lead with it.' + (_fp.trade ? ' They want to know what their vehicle is worth -- helping them get that number is the reason for this message.' : ''));   // (v9.7.805)
       if (_fp.campaign) lines.push('- "' + _fp.campaign + '" is our marketing system\'s internal name for the campaign, not a page they saw: never say it, or "nurture", "landing page" or "campaign", in the SMS, the email, the voicemail or the subject.');
