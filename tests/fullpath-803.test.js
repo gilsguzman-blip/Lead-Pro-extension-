@@ -62,7 +62,7 @@ for (const f of BUILDS) {
     const box = { String }; vm.createContext(box); return vm.runInContext('var _lpFullpathNote = ""; var content = ' + JSON.stringify(content) + ';\n' + line + '\n_lpFullpathNote;', box); };
   check('the scraper keeps the current lead\'s note when it says CONVERTED ON, and nothing else', () => [cap(OFFER_NOTE) === OFFER_NOTE, cap('By: System Lead from Dealer Website')], [true, '']);
   check('the note survives the frame merge, and a rejected service-record frame\'s vehicle is kept as the one they own (source)', () =>
-    [/const historyFields = new Set\(\[[^\]]*'fullpathConversion'\]\)/.test(src), /service-record source \(not a sales lead\)[^\n]*\n[^\n]*\n\s*if \(d\.vehicle && !m\.serviceVehicle/.test(src)], [true, true]);
+    [/const historyFields = new Set\(\[[^\]]*'fullpathConversion'[^\]]*\]\)/.test(src), /service-record source \(not a sales lead\)[^\n]*\n[^\n]*\n\s*if \(d\.vehicle && !m\.serviceVehicle/.test(src)], [true, true]);
 
   console.log(' 2. the prompt leads with what they acted on:');
   const a = built(LEAD());
