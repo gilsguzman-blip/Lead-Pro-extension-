@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.816-dev (Dev. OUR PITCH WENT UNANSWERED: ONE RULE TAKES THE PITCH OUT EVERYWHERE, AND UNANSWERED CALLS MAKE IT 'WE HAVE BEEN TRYING TO REACH YOU'. Extension only; proxy v7.88, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Kia Baytown lead 2103538959 (log349, v9.7.815), Gil: 'Message should be a follow up we've been trying to reach you... salesperson had tried to call' -- and 'Why isn't the model following the arc?' The arc was in the prompt and v9.7.815's don't-restate block fired; the same prompt also said 'Say "we have it here"', 'REQUIRED in EVERY format: One specific reason the visit is worth their time ... pre-fill most of the paperwork', 'Confirm it is available and encourage the soonest workable time', offered 9:15 / 10:30 (the times sent the day before) with a scripted next-day text, and its facts said 'Last customer reply was 0.9 days ago ... the customer replied today' (the Stop) and 'Exchange so far: 11 inbound' (his 2024 leads). Three specific instructions to one general one, and the model re-pitched. These blocks were written for first touches and replies and none of them asked whether the pitch had already gone out; v9.7.808, 810 and 815 each removed one such contradiction. New _lpPitchOut: our newest pitch on this lead (the car is here / available / ready, or times offered) with no customer words (a STOP is not words) and no connected call after it, an automated first response not counted, and the unanswered calls since our last text or email. (1) OUR PITCH IS ALREADY OUT AND UNANSWERED -- when that message offered times, a level-2 hold in the visit decision (_LP_VISIT_HOLDS): no slots, no time examples, no same-day push. When it offered none, the same line without the hold: times are not withheld (a person's 'it is here' with no times, log244-710's control). (2) Under either, the visit decision also takes out the pitch: the inventory 'Say "we have it here"' / 'Use soft language: ... "we have it here"' (now 'Our earlier message already told them it is here; do not say it again'), the distance block's required visit reason with its examples, its SMS visit reason, its 'open with the vehicle confirmation', and its 'confirm it is available' / 'encourage the soonest workable time'. The decision now runs these edits with or without a hold, and logs each in [LP VISIT DECISION DIAG]. (3) WE HAVE BEEN TRYING TO REACH THEM: unanswered calls (Machine / No Contact / left a message) since our last text or email make that the message -- who called (a teammate by first name, 'their salesperson' when it was the sales rep), how many times and when; say it warmly, one easy way to reply (a call back or a reply to the email), one simple question; not another pitch. The text rewrite gets OUR PITCH IS ALREADY OUT and keeps 'trying to reach you'. [LP PITCH OUT DIAG]. (4) THE FACTS: on a lead whose only customer message is a STOP, the arc facts carry no dated reply, no whole-record exchange counts, and this lead's outbound run (_lpOutreachOnThisLead). (5) hasApptSet joins the panel payload (the v9.7.808 guard caught _lpPitchOut reading it). A connected call (v9.7.810's call follow-up) and a real reply are unchanged. TESTS: pitch-out-816 (new) builds prompts through the shipped populateFromData and panel payload -- the visit decision runs on the finished prompt -- executes the shipped _lpBuildSmsRefinePrompt, and lifts the shipped arc-facts step: 18 assertions across both builds; v9.7.815 fails 8 of 9 per build (the reply control passes; the facts control needs the new step). A replay of log349's own scrape: the hold owns the visit, the 'trying to reach them' line names the salesperson's two calls, and the visit decision lists every pitch line it took out. VERIFIED: run-all 250 suites green, 8,721 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.815-dev.)
 // Lead Pro -- popup.js  v9.7.815-dev (Dev. A STOP IS NOT A REPLY TO THE FOLLOW-UP DIRECTIVES, AND A CAR WE ALREADY NAMED IS NOT RE-PITCHED. Extension only; proxy v7.88, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Kia Baytown lead 2103538959 (log348), Gil: 'Still reads like a first reach.' Our 10/20 6:48 PM text, email and voicemail said the Summit White 2024 GMC Sierra 1500 AT4 was here, 9:15 or 10:30 Wednesday; the customer texted 'Stop' at 6:50 and the texting system confirmed; two voicemails followed on 10/21. The 10/21 draft: the same truck, 'you viewed for $58,067', 9:15 or 10:30 Thursday. (1) THE STOP COUNTED AS A REPLY. Since v9.7.792 a STOP is not contact (_lpLeadHasContact), but buildUserPrompt's reply test still counted it: the ANTI-RESTATE block never fired ('hasReplyForDirectives: true | thinReplyText: "Stop" | WILL FIRE: false') and the prompt said 'EARLY FOLLOW-UP -- THE CUSTOMER HAS REPLIED'. When the newest customer message is a STOP keyword and nothing else on the lead is contact, it is now no reply for these directives ([LP STOP REPLY DIAG]); a real message or a connected call still is. (2) THE ANCHOR WAS THE OPT-OUT CONFIRMATION. 'You have successfully been removed from ... text messages.' was taken as our last substantive message. The scraper's trivial-outbound test now skips the texting system's opt-out replies, and buildUserPrompt falls back to our newest real send when a scrape still carries one (LP_OPTOUT_CONFIRM_RX). (3) THE TRUCK COUNTED AS NOT PUT TO THEM. _lpFullpath marked a car presented only when our messages quoted its price; the 10/20 messages named the Sierra 1500 without it, so the prompt said 'Lead with that car ... you may name that advertised price'. Our messages naming the model now count too, and v9.7.810's background wording applies. (4) The text rewrite is told not to add a price the first draft left out. The STOP handling for texting is unchanged: the SMS is drafted for the agent, with no invitation to text. TESTS: stop-restate-815 (new) builds prompts through the shipped populateFromData and panel payload, executes the shipped _lpBuildSmsRefinePrompt, and runs the shipped inlineScraper in Chromium on a placeholder lead page with our pitch, a STOP and the opt-out confirmation: 12 assertions across both builds; v9.7.814 fails 4 of 6 per build (its 2 controls pass). A replay of log348's own scrape gives the don't-restate block anchored on the 10/20 email, 'YOU HAVE ALREADY REACHED OUT', and the truck as background. VERIFIED: run-all 249 suites green, 8,703 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.814-dev.)
 // Lead Pro -- popup.js  v9.7.814-dev (Dev. A RETURN CHOSEN MONTHS BEFORE LEASE END IS AN OPTIONS CONVERSATION, NOT A TURN-IN TODAY. Extension only; proxy v7.88, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Kia Baytown lead 2103558746 (log346, v9.7.813): the customer chose 'Return Your Vehicle' on the finance company's site and v9.7.813 read it -- but her lease matures 04/09/2027, five months out, and every draft asked her to drop the EV9 off 'this afternoon at 5:45'; none asked the light question about what is next ('at most one' let the model skip it); and the email opened 'As a returning Kia customer, you can handle the return'. Gil: option (a), no turn-in now, and 'the go over options may be the better way to go with these. Being so far out offering may sway instead of just giving up and letting her walk away.' (1) The scraper keeps how far off the maturity date is (_hcaMaturity: 'near' within 120 days, the threshold its lease-status line already used, else 'far'), carried to the prompt. (2) A Return with the lease end months away: respect the choice, never argue it; no bringing the car in, no drop-off or turn-in now and no drop-off time; offer a time to go over their lease-end options together -- what returning it here involves (a pre-inspection, so there are no surprises at turn-in) and what else is open to them before then -- no pressure, nothing assumed, no figures. (3) A Return near the lease end: the turn-in made easy, as before. (4) Either way the message ENDS with one light question about what is next (was 'at most one'). (5) On a Return the KMF line no longer says to acknowledge them as a returning Kia customer. TESTS: lease-timing-814 (new) runs the shipped inlineScraper in Chromium on placeholder lead pages with a maturity five-plus months and forty days out, and builds prompts through the shipped populateFromData and panel payload: 10 assertions across both builds; v9.7.813 fails 4 of 5 per build (its control passes). lease-intent-813 follows the light-question wording. A replay of log346's own scrape gives the options conversation and the plain lease-customer line. VERIFIED: run-all 248 suites green, 8,691 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.813-dev.)
 // Lead Pro -- popup.js  v9.7.813-dev (Dev. THE LEASE-END CHOICE THE CUSTOMER MADE DRIVES THE MESSAGE; THE CDP DECIDES LEASE OR FINANCE; A NEWER LEAD IS FLAGGED ON EVERY GRAB. Extension only; proxy v7.88, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Kia Baytown, 10/21. Lead 2103558746 is a KMF Customer Intent Capture lead, status NCI (Gil: Not Customer Initiated -- 'Active Kia Finance customer who has submitted their lease-end intent via www.kiafinance.com. Intents include Return Vehicle, Purchase Current Vehicle, or Purchase or Lease a New Vehicle. Not all are the same'). Its Lead received note says 'HCA_AccountType: Lease' and 'HCA_LeaseEndIntent: Return Your Vehicle'; the CDP summary read the lead as 'for a new 2024 Kia EV9 GT-Line' (the car she leases), and the drafts pitched an options-review visit. (1) THE CHOICE. The scraper reads HCA_LeaseEndIntent as 'return', 'purchase-current' or 'new' (_hcaLeaseIntent, carried to the prompt), and in the program branch it replaces the options list. Return: make the turn-in easy -- handle the return here, a time for the inspection and drop-off, all keys; no pitch, no options list, and at most one light question about what is next (Gil: 'light anything next is a good track'); it outranks the CRM summary and the vehicle on the lead about what they want. Buy the car they have: help with that purchase, no new-vehicle pitch, no figure. New: their next vehicle with us, from the program's suggested models. No choice on the lead: the options as before. (2) LEASE OR FINANCE FROM THE CDP. Where the lead's own account type is missing, the CDP summary's 'leased' / 'financed' decides (_lpCdpAcctType; Gil: 'The CDP is a good fact if it says it's a lease'), in populateFromData and buildUserPrompt alike. The lead's own account type still outranks it. (3) A NEWER LEAD, ON EVERY GRAB. The v9.7.497 newer-lead check sat inside the branch for a lead with no vehicle of interest, so it never ran on lead 1581859334 (the same customer's 2024 Sold walk-in, a 2024 EV9 on it), grabbed with the 10/20 NCI lead above it in the list. It now runs before that branch; a newer NCI lead is described as created by the manufacturer's program, not an inquiry they sent us. (4) A LATENT CRASH, FOUND BY THE NEW TEST: leadSource was declared const and the KMF/loyalty text fallback assigns it, so a page with no source field whose text names a finance program threw 'Assignment to constant variable' and the grab returned nothing. Now let. TESTS: lease-intent-813 (new) runs the shipped inlineScraper in Chromium on placeholder lead pages (a Lead received note with each of the three choices, an older lead with a vehicle under a newer NCI lead, a page with no source field) and builds prompts through the shipped populateFromData and panel payload: 24 assertions across both builds; v9.7.812 fails 8 of 12 per build (its 4 controls pass). VERIFIED: run-all 247 suites green, 8,681 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.812-dev.)
@@ -4308,6 +4309,38 @@ function _lpSentAsk(text) {
     for (var i = 0; i < parts.length; i++) if (LP_SENT_ITEM_RX.test(parts[i]) && LP_SENT_ASK_RX.test(parts[i])) return parts[i].trim();
   } catch (e) {}
   return '';
+}
+// (v9.7.816) OUR PITCH IS OUT AND UNANSWERED. Kia Baytown lead 2103538959 (log349): our 10/20 text, email and voicemail said the
+// truck was here with 9:15 / 10:30; the customer's only reply was "Stop"; the salesperson called twice the next morning and left
+// voicemails. v9.7.815's don't-restate block fired, and the same prompt still said "Say 'we have it here'", "REQUIRED in EVERY
+// format: one specific reason the visit is worth their time ... pre-fill most of the paperwork", "Confirm it is available and
+// encourage the soonest workable time", and offered 9:15 / 10:30 with a scripted text -- three to one, and the draft re-pitched.
+// Gil: "Message should be a follow up we've been trying to reach you." Returns the newest pitch of ours on this lead (the car is
+// here / available / ready, or times offered) with no customer words (a STOP is not words) and no connected call after it, and
+// the unanswered calls since our last text or email: { date, t, here, times, calls: [{ date, by, first, vm }] }, or null.
+var LP_PITCH_RX = /\b(?:is|are) here\b|\bavailable to see\b|\bin stock\b|\bready (?:for you )?to see\b|\bhave (?:it|the \w+|everything) ready\b|\b\d{1,2}(?::\d{2})?\s*(?:AM|PM)\b/i;
+function _lpPitchOut(d) {
+  try {
+    if (d && d.hasApptSet) return null;
+    var ents = _lpThreadEntries((d && (d.history || d.context)) || ''), floor = 0;
+    ents.forEach(function (x) {
+      var said = /CUSTOMER/i.test(x.tag) && !/REQUEST FROM INQUIRY/i.test(x.tag) && x.body && !LP_STOP_WORD_RX.test(x.body);
+      if ((said || /\(Contacted\)|^Inbound phone call/i.test(x.title)) && x.t > floor) floor = x.t;
+    });
+    var ours = _lpOurEntries(d).filter(function (x) { return x.t > floor; });   // newest first
+    var pitch = ours.filter(function (x) { return LP_PITCH_RX.test(x.body) && !LP_OPTOUT_CONFIRM_RX.test(x.body) && !/auto.?respon/i.test(x.title)
+      && !((typeof _lpIsBotAuthor === 'function') && _lpIsBotAuthor(x.raw)); });   // an automated first response is not our pitch
+    if (!pitch.length) return null;
+    var written = ours.filter(function (x) { return /text message|email/i.test(x.title) && !LP_OPTOUT_CONFIRM_RX.test(x.body); })[0];
+    var calls = ours.filter(function (x) {
+      return /phone call/i.test(x.title) && (/\((?:Machine|No Contact)\)/i.test(x.title) || /\bleft (?:a )?(?:message|voicemail)\b|\bno answer\b/i.test(x.body)) && (!written || x.t > written.t);
+    }).map(function (x) {
+      var by = ((/\bBy:\s*([A-Z][\w'\u2019-]*(?:\s+[A-Z][\w'\u2019-]*)?)/.exec(x.raw) || [])[1] || '').trim();
+      return { date: x.date, by: by, first: by.split(/\s+/)[0] || '', vm: /\(Machine\)/i.test(x.title) || /\bleft (?:a )?(?:message|voicemail)\b/i.test(x.body) };
+    }).reverse();
+    return { date: pitch[0].date, t: pitch[0].t, here: pitch.some(function (x) { return /\b(?:is|are) here\b|available to see|in stock|ready (?:for you )?to see/i.test(x.body); }),
+      times: pitch.some(function (x) { return /\b\d{1,2}(?::\d{2})?\s*(?:AM|PM)\b/i.test(x.body); }), calls: calls };
+  } catch (e) { return null; }
 }
 function _lpTrimObj(disp) {
   disp = String(disp || '').replace(/\s{2,}/g, ' ').trim();
@@ -23031,6 +23064,16 @@ function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
       out.push('');
     }
   } catch (eRfLc) {}
+  // (v9.7.816) Our pitch is out and unanswered: the text does not re-pitch, and when we have been calling it says so.
+  try {
+    var _rfPo = (d && d.convState !== 'call-followup' && typeof _lpPitchOut === 'function') ? _lpPitchOut(d) : null;
+    if (_rfPo) {
+      out.push('\u2501\u2501\u2501 OUR PITCH IS ALREADY OUT \u2501\u2501\u2501');
+      out.push('Our ' + _rfPo.date + ' message already told them ' + (_rfPo.here ? 'the car is here' : 'about the car') + (_rfPo.times ? ' and offered times' : '') + ', and they have not answered. Do not put back that it is here, a time, or a reason to come in (the vehicle ready, the paperwork), even if the email has one.'
+        + (_rfPo.calls.length ? ' We have called since then and left word with no answer: if the first draft says we have been trying to reach them, keep that -- it is the reason for this text.' : ''));
+      out.push('');
+    }
+  } catch (eRfPo) {}
   // (v9.7.804) What they said on the call is what the text is about.
   try {
     var _rfCw = (typeof _lpCallWants === 'function') ? _lpCallWants(d) : null;
@@ -24175,6 +24218,7 @@ var _LP_VISIT_HOLDS = [
   [3, /^ON THE CALL THEY SAID THEY ARE NOT LOOKING RIGHT NOW/, 'the call-note PAUSE (not looking right now)'],
   [3, /^THEY WILL NOT COME IN UNTIL THEY KNOW WHERE THEY STAND ON FINANCING/, 'the APPROVAL FIRST condition (no visit until they know)'],   // (v9.7.806)   // (v9.7.791)
   [3, /^THEY ALREADY HAVE A SALES REP:/, 'the ALREADY HAVE A SALES REP block'],   // (v9.7.785)
+  [2, /^OUR PITCH IS ALREADY OUT AND UNANSWERED:/, 'the PITCH ALREADY OUT rule (our pitch went unanswered)'],   // (v9.7.816)
   // (v9.7.786) The agent's "no appointment" chip was not a hold: in the morning, with room left today, the store-status line's
   // "lead with a today time ... the SUGGESTED APPOINTMENT TIMES below" stayed beside the override (imx-noappt-720 failed before 3 PM).
   [3, /^AGENT OVERRIDE \u2014 NO APPOINTMENT ASK IN THIS MESSAGE/, 'the agent\'s NO APPOINTMENT override'],
@@ -24232,13 +24276,29 @@ var _LP_VISIT_DECISION_TEXT = {
 };
 function _lpApplyVisitDecision(text) {
   var dec = _lpVisitDecision(text), edits = [], removed = [];
-  if (!dec.level) return { text: text, level: 0, owner: '', edits: edits, removed: removed, others: dec.others || [] };
+  var _poAny = /(?:^|\n)OUR PITCH IS ALREADY OUT\b/.test(String(text));   // (v9.7.816) its edits run with or without a hold
+  if (!dec.level && !_poAny) return { text: text, level: 0, owner: '', edits: edits, removed: removed, others: dec.others || [] };
   var L = dec.level, lines = String(text).split('\n'), out = [];
   var drop = function (why, was) { edits.push(why); removed.push({ why: why, was: was }); };   // (v9.7.776) was: for the dump
+  // (v9.7.816) Under the PITCH ALREADY OUT rule the pitch itself goes too, not only the times: the inventory "say it is here",
+  // the distance block's visit reason and its examples, its "open with the vehicle confirmation" and "confirm it is available".
+  var _po = _poAny;
   for (var i = 0; i < lines.length; i++) {
     var l = lines[i], t = l.replace(/^\s+/, '');
+    if (_po) {
+      if (/Say "we have it here" or "it is here and available to see"|Use soft language: "showing available" or "we have it here"/.test(l)) { out.push(l.replace(/Say "we have it here" or "it is here and available to see"|Use soft language: "showing available" or "we have it here"/, 'Our earlier message already told them it is here; do not say it again')); drop('inventory "say it is here" (pitch already out)', l); continue; }
+      if (/^- Email: Open with the vehicle\/option confirmation/.test(t)) { drop('distance email opening (pitch already out)', l); continue; }
+      if (/^- SMS: a reason the visit is worth their time is MANDATORY/.test(t)) { drop('distance SMS visit reason (pitch already out)', l); continue; }
+      if (/Confirm it is available and encourage the soonest workable time/.test(l)) { out.push(l.replace(/Confirm it is available and encourage the soonest workable time[^\u2014]*/, 'Our earlier message already confirmed it: do not confirm it again or push a visit time ')); drop('distance "confirm it is available" (pitch already out)', l); continue; }
+      if (/ and encourage the soonest workable time/.test(l)) { out.push(l.replace(/ and encourage the soonest workable time[^\u2014]*/, ', and do not push a visit time ')); drop('distance "soonest workable time" (pitch already out)', l); continue; }
+      if (/REQUIRED in EVERY format: One specific reason (?:the|any) visit (?:is|would be) worth their time/.test(l)) {
+        var _poWas = [l];
+        while (i + 1 < lines.length && /^\s*\u2022/.test(lines[i + 1])) _poWas.push(lines[++i]);
+        drop('distance visit reason and its examples (pitch already out)', _poWas.join('\n')); continue;
+      }
+    }
     // the store-hours line keeps its facts and loses the booking instruction
-    if (/^STORE STATUS RIGHT NOW: OPEN\./.test(t) && / OFFER THE SOONEST REAL OPENING FIRST/.test(l)) {
+    if (L >= 1 && /^STORE STATUS RIGHT NOW: OPEN\./.test(t) && / OFFER THE SOONEST REAL OPENING FIRST/.test(l)) {
       out.push(l.replace(/\s*OFFER THE SOONEST REAL OPENING FIRST[\s\S]*$/, ''));
       out.push('VISIT DECISION FOR THIS MESSAGE: ' + _LP_VISIT_DECISION_TEXT[L] + ' -- ' + dec.owner + ' owns this. Any slot, time example or "come in today" wording elsewhere in this prompt does not apply.');
       drop('store-status today default', l); dec._placed = true; continue;
@@ -24246,7 +24306,7 @@ function _lpApplyVisitDecision(text) {
     // same-day timing and urgency examples (level 1+); next-day examples and every slot block (level 2+)
     var _sameDay = /^(?:TIMING — (?:AFTERNOON|MORNING)|URGENCY — )/.test(t);
     var _slots = /^(?:TIMING — NEXT-DAY|SUGGESTED APPOINTMENT TIMES \(fallback only|APPOINTMENT TIMES — ADJUSTED FOR CUSTOMER ARRIVAL TIME|APPOINTMENT TIME FORMAT:)/.test(t);
-    if (_sameDay || (L >= 2 && _slots)) {
+    if ((L >= 1 && _sameDay) || (L >= 2 && _slots)) {
       var _was = [l];
       while (i + 1 < lines.length && /^\s*(?:- |Option: |First option: |Second option: |↳ )/.test(lines[i + 1])) _was.push(lines[++i]);
       drop(t.slice(0, 40), _was.join('\n'));
@@ -24279,7 +24339,7 @@ function _lpApplyVisitDecision(text) {
     out.push(l);
   }
   var res = out.join('\n');
-  if (!dec._placed) {
+  if (L && !dec._placed) {
     var marker = 'VISIT DECISION FOR THIS MESSAGE: ' + _LP_VISIT_DECISION_TEXT[L] + ' -- ' + dec.owner + ' owns this. Any slot, time example or "come in today" wording elsewhere in this prompt does not apply.';
     var at = res.indexOf('\nCURRENT TIME:');
     if (at >= 0) { var eol = res.indexOf('\n', at + 1); res = res.slice(0, eol < 0 ? res.length : eol) + '\n' + marker + (eol < 0 ? '' : res.slice(eol)); }
@@ -28140,6 +28200,29 @@ function buildUserPrompt(data) {
         + ' Never quote the call note or mention notes.');
     }
   } catch (eLc) {}
+  // (v9.7.816) Our pitch is out and unanswered (see _lpPitchOut).
+  try {
+    var _po = (data.convState === 'call-followup') ? null : _lpPitchOut(data);
+    if (_po) {
+      var _poMe = String(data.agent || '').split(/\s+/)[0].toLowerCase(), _poRep = String(data.salesRep || '').trim().toLowerCase();
+      ageBlock.push('');
+      // A hold (no times) only when the unanswered message already offered times: offering times where none were offered is new.
+      ageBlock.push(_po.times
+        ? 'OUR PITCH IS ALREADY OUT AND UNANSWERED: on ' + _po.date + ' our message told them ' + (_po.here ? 'the car is here' : 'about the car') + ' and offered times, and they have not answered it. Do not say again that it is here or available, do not offer times or a visit slot, and do not re-send the reasons to come in (the vehicle ready, the paperwork). No specific appointment times in this message. Bring one new thing, or ask one simple question.'
+        : 'OUR PITCH IS ALREADY OUT: on ' + _po.date + ' our message told them ' + (_po.here ? 'the car is here' : 'about the car') + ', and they have not answered it. Do not say again that it is here or available, and do not re-send the reasons to come in (the vehicle ready, the paperwork). Bring one new thing, or ask one simple question.');
+      if (_po.calls.length) {
+        var _pc = _po.calls[_po.calls.length - 1], _pcFirst = _pc.first, _pcMine = !_pcFirst || _pcFirst.toLowerCase() === _poMe;
+        var _pcWho = _pcMine ? 'you' : (_pc.by && _pc.by.toLowerCase() === _poRep ? _pcFirst + ', their salesperson,' : _pcFirst + ', your teammate,');
+        var _pcDates = []; _po.calls.forEach(function (c) { if (_pcDates.indexOf(c.date) < 0) _pcDates.push(c.date); });
+        var _pcVm = _po.calls.some(function (c) { return c.vm; }), _pcN = _po.calls.length;
+        ageBlock.push('\ud83d\udcde WE HAVE BEEN TRYING TO REACH THEM: since our last text or email, ' + _pcWho + ' called ' + (_pcN === 1 ? 'once' : _pcN + ' times') + ' (' + _pcDates.join(', ') + ')'
+          + (_pcVm ? ' and left ' + (_pcN === 1 ? 'a voicemail' : 'voicemails') : '') + ', with no answer. This message is that follow-up: say warmly and plainly that we have been trying to reach them'
+          + (_pcMine ? '' : ' (you may say ' + _pcFirst + ' has been trying to reach them by phone)') + ', give one easy way to reply -- a call back, or a reply to this email -- and ask one simple question. It is not another pitch.');
+      }
+      console.log('[LP PITCH OUT DIAG] our ' + _po.date + ' pitch is unanswered' + (_po.here ? ' | said it is here' : '') + (_po.times ? ' | offered times' : '') + ' | unanswered calls since our last text/email: ' + _po.calls.length
+        + (_po.calls.length ? ' (' + _po.calls.map(function (c) { return (c.by || '?') + ' ' + c.date; }).join('; ') + ')' : '') + (_po.times ? ' -> PITCH ALREADY OUT hold (no times)' : ' -> no re-pitch; times allowed (none were offered)'));
+    }
+  } catch (ePo) {}
   // (v9.7.785) They already have a sales rep (see _lpHasRep).
   try {
     var _hr = _lpHasRep(data);
@@ -30569,7 +30652,7 @@ function buildUserPrompt(data) {
   try {
     var _vd = _lpApplyVisitDecision(_vdOut);
     _lpLastVisitDecision = { level: _vd.level, owner: _vd.owner, others: _vd.others, removed: _vd.removed };   // (v9.7.776) for the dump
-    if (_vd.level) {
+    if (_vd.level || _vd.edits.length) {   // (v9.7.816) the pitch-out edits apply without a hold too
       _vdOut = _vd.text;
       console.log('[LP VISIT DECISION DIAG] level ' + _vd.level + ' (' + _LP_VISIT_DECISION_TEXT[_vd.level] + ') | owner: ' + _vd.owner
         + ' | removed or neutralised: ' + (_vd.edits.length ? _vd.edits.join(' · ') : 'nothing conflicted'));
@@ -31147,6 +31230,7 @@ async function generateAll() {
       _hcaAccountType:           lastScrapedData ? (lastScrapedData._hcaAccountType || '') : '',
       _hcaLeaseIntent:           lastScrapedData ? (lastScrapedData._hcaLeaseIntent || '') : '',   // (v9.7.813)
       _hcaMaturity:              lastScrapedData ? (lastScrapedData._hcaMaturity || '') : '',      // (v9.7.814)
+      hasApptSet:                lastScrapedData ? !!lastScrapedData.hasApptSet : false,           // (v9.7.816) _lpPitchOut reads it
       _hcaCurrentVehicle:        lastScrapedData ? (lastScrapedData._hcaCurrentVehicle || '') : '',
       _hcaSuggestedModels:       lastScrapedData ? (lastScrapedData._hcaSuggestedModels || '') : '',
       ownedMileage:              lastScrapedData ? (lastScrapedData.ownedMileage || '') : '',
@@ -31281,6 +31365,11 @@ async function generateAll() {
     // The 90-day task list still says WHEN to touch and on which channel; its [LP: ...] notes are
     // ignored. What the message is FOR is decided by the model from the facts below.
     try {
+      // (v9.7.816) A STOP-only lead has no dated customer reply: "Last customer reply was 0.9 days ago ... the customer replied
+      // today" and "Exchange so far: 11 inbound" (his 2024 leads) reached lead 2103538959's prompt beside the don't-restate block.
+      var _arcStopOnly = false, _arcLeadOut = 0;
+      try { _arcStopOnly = !!(lastScrapedData && LP_STOP_WORD_RX.test(String(lastScrapedData.lastInboundMsg || '').trim()) && !_lpLeadHasContact(lastScrapedData));
+            if (_arcStopOnly) _arcLeadOut = (_lpOutreachOnThisLead(lastScrapedData, 0) || {}).n || 0; } catch (eAso) {}
       var _cad = _lpCadence({
         leadAgeDays:     lastScrapedData ? lastScrapedData.leadAgeDays : 0,
         agentLPCommands: lastScrapedData ? (lastScrapedData.agentLPCommands || []) : [],
@@ -31289,7 +31378,7 @@ async function generateAll() {
         // (v9.7.699) P6 inputs. outboundSends is the scraper's list of real texts/emails on THIS lead
         // (calls and bounce notices excluded, bounded by the lead-created cutoff).
         lastOutreachMs:  (function () { var m = 0; try { ((lastScrapedData && lastScrapedData.outboundSends) || []).forEach(function (x) { if (x && x.ms > m) m = x.ms; }); } catch (e) {} return m; })(),
-        daysSinceReply:  (lastScrapedData && lastScrapedData.relationshipSignals) ? lastScrapedData.relationshipSignals.lastInboundAgeDays : null,
+        daysSinceReply:  _arcStopOnly ? null : (lastScrapedData && lastScrapedData.relationshipSignals) ? lastScrapedData.relationshipSignals.lastInboundAgeDays : null,   // (v9.7.816)
         consecutiveOutbound: (lastScrapedData && lastScrapedData.relationshipSignals) ? (lastScrapedData.relationshipSignals.consecutiveOutboundNoReply || 0) : 0,
         hasApptSet:      !!(lastScrapedData && lastScrapedData.hasApptSet)
       });
@@ -31312,7 +31401,8 @@ async function generateAll() {
         // "Customer replied today. Total exchange: 10 inbound / 8 outbound" 150 lines above and
         // "The customer has never replied to anything on this lead" below. Andrea Pardon's prompt
         // carried the same false line the day before; it went unnoticed because for her it was true.
-        daysSinceReply:      (_arcSig.lastInboundAgeDays !== undefined && _arcSig.lastInboundAgeDays !== null)
+        daysSinceReply:      _arcStopOnly ? null   // (v9.7.816)
+                               : (_arcSig.lastInboundAgeDays !== undefined && _arcSig.lastInboundAgeDays !== null)
                                ? _arcSig.lastInboundAgeDays : null,
         // (v9.7.587) BOTH HALVES, OR THE LINE LIES. v9.7.586 passed totalInbound and not
         // totalOutbound. Because the render is gated on `if (inb || outb)`, a zero-zero pair used to
@@ -31320,11 +31410,11 @@ async function generateAll() {
         // visible falsehood: Keisha's rescan rendered "Exchange so far: 15 inbound / 0 outbound"
         // directly beneath "Total exchange: 15 inbound / 10 outbound" from the relationship reading.
         // Half a fix to a contradiction is a new contradiction.
-        totalInbound:        (_arcSig.totalInboundCount  !== undefined && _arcSig.totalInboundCount  !== null)
+        totalInbound:        _arcStopOnly ? null : (_arcSig.totalInboundCount  !== undefined && _arcSig.totalInboundCount  !== null)
                                ? _arcSig.totalInboundCount : null,
-        totalOutbound:       (_arcSig.totalOutboundCount !== undefined && _arcSig.totalOutboundCount !== null)
+        totalOutbound:       _arcStopOnly ? null : (_arcSig.totalOutboundCount !== undefined && _arcSig.totalOutboundCount !== null)
                                ? _arcSig.totalOutboundCount : null,
-        consecutiveOutbound: _arcSig.consecutiveOutboundNoReply || 0,
+        consecutiveOutbound: _arcStopOnly ? _arcLeadOut : (_arcSig.consecutiveOutboundNoReply || 0),
         // (v9.7.699) P6: the calendar reading, not the progress one.
         cadence:             (_cad && _cad.calendar && _cad.calendar.line)
                                ? { day: _cad.calendar.touch ? _cad.calendar.touch.day : null, status: _cad.calendar.status, line: _cad.calendar.line }
