@@ -29,22 +29,10 @@ function check(name, fn, want) {
 }
 
 // Fields a helper may read without the payload carrying them: history falls back to context in every helper that reads it;
-// the rest are read directly by buildUserPrompt and were absent before this build (listed so a NEW gap fails).
-const KNOWN = ['history', 'indexOf', 'slice', '_loyaltyAcctType', '_lpRepNotOnLot', 'agentPhone', 'isDistanceBuyer', 'isInTransit', 'pdTradeCount', 'vehiclePendingSale'];
-function coverage(src) {
-  const bu = src.indexOf('function buildUserPrompt(data) {'), bend = src.indexOf('\nfunction ', bu + 10), body = src.slice(bu, bend);
-  const pa = src.indexOf('    var _lpPromptInputData = {'), pe = src.indexOf('\n    };', pa), lit = src.slice(pa, pe);
-  const keys = new Set();   // "name, agent, salesRep: leadSalesRep," -- shorthand and keyed, several to a line
-  lit.split('\n').forEach(l => { const rx = /(?:^|,)\s*([A-Za-z_$][\w$]*)\s*(?=:|,|$)/g; let m; l = l.split('//')[0]; while ((m = rx.exec(l))) keys.add(m[1]); });
-  const fbody = (name) => { const m = new RegExp('\\nfunction ' + name.replace(/\$/g, '\\$') + '\\((\\w+)[^)]*\\)\\s*\\{').exec(src); if (!m) return null;
-    let i = m.index + m[0].length, depth = 1; while (depth && i < src.length) { const c = src[i++]; if (c === '{') depth++; else if (c === '}') depth--; } return { p: m[1], b: src.slice(m.index + m[0].length, i) }; };
-  const missing = {};
-  const add = (who, f) => { if (keys.has(f) || KNOWN.includes(f)) return; const l = missing[who] = missing[who] || []; if (!l.includes(f)) l.push(f); };
-  new Set(body.match(/\b_lp[A-Za-z0-9_]+(?=\(data\b)/g) || []).forEach(fn => { const fb = fbody(fn); if (!fb) return;
-    (fb.b.match(new RegExp('\\b' + fb.p + '\\.([A-Za-z_$][\\w$]*)', 'g')) || []).forEach(x => add(fn, x.split('.')[1])); });
-  (body.match(/\bdata\.([A-Za-z_$][\w$]*)/g) || []).forEach(x => add('buildUserPrompt', x.split('.')[1]));
-  return missing;
-}
+// indexOf/slice are string methods the scan mistakes for fields. (v9.7.809) The five other gaps this build found are carried
+// now; isDistanceBuyer and agentPhone stay off because nothing ever sets them. Any NEW gap fails.
+const KNOWN = ['history', 'indexOf', 'slice', 'agentPhone', 'isDistanceBuyer'];
+const coverage = (src) => panelPayload.coverage(src, KNOWN);
 
 const E = (when, tag, title, body) => '[' + when + '] [' + tag + '] ' + title + '\n  ' + body + '\n';
 const MARK = '[10/20/2026 8:24 PM] [=== CURRENT LEAD SUBMITTED HERE ===]\n  This is when the current inquiry was submitted.\n';
