@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.806 (Commercial. THE INTERIOR IS NOT THE PAINT; A SHIPPING QUESTION IS ANSWERED; A STOP IS NOT THEIR LAST WORD; NO VISIT UNTIL THEY KNOW ABOUT CREDIT. Extension + Data Tool; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Four 10/21 dumps. (1) Honda Baytown lead 2102985701 (TrueCar): 'BUILD: 2026 Honda Prelude Hybrid Winter Frost Pearl / Black' is paint / interior, and every draft said the black Prelude was not in stock -- 'black' was read as the paint, 'Winter Frost Pearl' has no basic color word, and TrueCar's 'Prelude Hybrid' never matched the feed's 'Prelude Base', so the inventory answer said NONE with a Prelude on the lot. _lpInteriorAsk reads the interior apart (after the slash on a BUILD line, or a color with interior/seats/leather/cloth); a paint name with no basic color word is matched by name (_lpPaintNameAsked); 'Hybrid' alone is no trim on a model that only comes as a hybrid; units show their interior ('2026 Prelude Base (Boost Blue Pearl, Black Leather interior)') and a line says what the interior they asked for means and that one not on record is not to be claimed either way. The Data Tool now keeps the vAuto Interior column (field 'interior', as written; blank stays null) and lists it among the customer-safe fields; the proxy stores units as sent. (2) Honda Baytown lead 2103597607: 'Si lo compro podran traerlo hasta Maryland' was answered 'I can help sort out delivery to Maryland once we've worked through the vehicle details' -- transport was a late-stage topic. Gil, 10/21: they arrange their own shipping and we coordinate with the shipper; name a couple of companies, not all. When the customer asks how the car gets to them (English or Spanish, their own messages on this lead), THEY ASKED ABOUT GETTING THE CAR TO THEM answers it in every format: glad to work with them; they arrange the transport company and we coordinate the pickup with the shipper; two of uShip, Ship That Car, Sherpa Auto Transport and Montway Auto Transport, chosen by lead ID (_lpShipperPair); never 'we deliver/ship it', never put off. The late-stage lines and the first-touch 'not a transport discussion' close stand down; the standing line no longer names fixed companies; the text rewrite says the same with the same two. (3) Honda Lafayette lead 2079590323: her only message was 'Stop' (10/14) and on 10/21 the email said 'I'll leave the Accord inquiry here' and the voicemail 'I can't leave a voicemail after [customer]'s STOP request'. A STOP keyword as the newest customer message now gets a line saying it turns off texts and nothing else: the email and voicemail are the normal next touch, with no mention, apology or close-out because of it; the text rewrite no longer shows 'Stop' as what they last said. (4) Honda Lafayette lead 2065141269: on the 10/5 call 'she has bad credit and doesn't want to make an appointment unless she for sure can get approved'; on 10/21 every draft pushed the August gray Accord with 'I can have the details ready before you arrive' and the visit decision allowed times. _lpApprovalFirst reads that condition from a customer message or a call note (until a later note or message says they were approved): THEY WILL NOT COME IN UNTIL THEY KNOW WHERE THEY STAND ON FINANCING owns the message (the application we sent, or an offer to send one; no visit, no approval promise; the car one supporting line at most) and is a level-3 visit hold; the rewrite says the same. The lead's color had been read as 'option' from 'Subject: Another Accord LX color option'; a lowercase word with no color in it is no longer a paint color. Replayed on the real dumps with each dump's held inventory: 2102985701 -- 805 'The 2026 Prelude Hybrid in black: NONE in stock today'; 806 'The 2026 Prelude in Winter Frost Pearl: NONE in stock today' and '2026 Prelude Base (Boost Blue Pearl, Black Leather interior)' with the interior read apart (interior as the Data Tool will now carry it). 2103597607 -- the shipping block with two companies, the late-stage lines gone. 2079590323 -- the STOP line, and 'Stop' out of the rewrite. 2065141269 -- the approval-first block, visit level 3 (805: level 1). TESTS: transport-interior-806 (new) runs the shipped Data Tool page and inlineScraper in Chromium and executes _lpInteriorAsk, _lpWhatWeHave, _lpShipAsk, _lpShipperPair, _lpApprovalFirst, populateFromData, buildUserPrompt, _lpVisitDecision and _lpBuildSmsRefinePrompt with placeholder data: 48 assertions (2 Data Tool, 23 per build); v9.7.805 and the previous Data Tool fail 22 of 25 (5 of them new helpers; its 3 controls pass). VERIFIED: run-all 240 suites green, 8,521 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.805.)
 // Lead Pro -- popup.js  v9.7.805 (Commercial. THE CHAT'S OWN WORDS, AND WHAT WE HAVE FOR THEM; THREE THINGS READ AS THE CUSTOMER'S THAT WERE NOT. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Honda Lafayette lead 2102225210 (10/19, nine regenerations): a Gubagoo chat -- 'a Honda accord touring with a sunroof' / 'Pre-owned' / 'Black' -- on a lead whose vehicle was the bot's placeholder ('2026 Honda Accord', no trim). Every draft said 'I can check for a pre-owned black Accord Touring' and asked cash or finance; the feed held no pre-owned Touring and two new 2026 Accord Hybrid Touring in Crystal Black Pearl. One draft answered the bot's own questions ('you can reach me at ..., and my email is the one this message came from'). Gil, 10/19: name the new one and ask which. (1) _lpCustomerText reads the customer's turns of a chat transcript -- the lead's own chat sits just below the CURRENT LEAD marker, dated its day -- never the [CHAT BOT] turns, never an older lead's chat. (2) _lpWhatWeHave: when the lead's vehicle names no trim, a trim the feed carries for the model, every word of it in the customer's words, is their trim (_lpCustTrimFromWords). The feed's 'Hybrid' (Honda writes 'Accord Hybrid Touring') is set aside only when no unit of the model has the trim in exactly their words, so 'Accord Touring' finds the Touring and 'Civic Sport' still means the gas Sport. A pre-owned ask's header drops the model year (the pool spans years; on a chat lead the year is the bot's). (3) Asked for pre-owned, none matches, a new one does: 'Brand NEW (they asked for pre-owned): 2026 Accord Hybrid Touring (Crystal Black Pearl) x2' -- named as new, the question which: the new one, or keep watching for a pre-owned Touring in black. (4) The scraper: in a chat transcript only the Guest turns can be the customer's open questions (the bot's 'best phone number', 'e-mail as well', 'What day would you like to come in?' were three); 'Lead Type: m-chat' is no longer the inquiry or the last message; the chat note tells the model the [CHAT BOT] lines are the widget's questions, already answered -- never answer one. (5) Kia Baytown lead 2101887443: 'Email is fineSent from Yahoo Mail for iPhoneOn Sunday, October 18, 2026, 3:27 PM, <our assistant> wrote:' kept 'On Sunday' as theirs ('fineSent', 'iPhoneOn' have no word boundary) and the prompt said 'LOCK IN Sunday' and 'CUSTOMER NAMED A CLOSED DAY'. The quoted-reply and mail-signature cuts now also find a header run onto the last word. (6) Honda Baytown lead 2102645799 (log332): a Fullpath 'CONVERTED ON: Nurture Landing Page Nurture default ... Page converted on: Vehicle Trade-In Value - Community Honda'; the prompt said they opened the 'Nurture Landing Page Nurture default' and the voicemail the agent left said 'You were looking at the Nurture page on our website'. When CONVERTED ON names no car and no offer and reads as the campaign's internal label, what they opened is the Page converted on page, store name dropped -- 'the trade-in value page on our website', with 'they want to know what their vehicle is worth' -- in the prompt, HOW THIS LEAD REACHED US and the text rewrite; the campaign name is named once, to forbid it (and 'nurture', 'landing page', 'campaign'). The conversion note is no longer the customer's inquiry or last message (it had reached the rewrite as what they said '147 days ago'); its 'Customer message:' field still is. Replayed on the real dumps with the shipped scraper and the live feed: 2102225210 at 8:52 AM -- 804 'No specific unit confirmed ... Do NOT confirm availability of the specific TRIM, COLOR' with three bot questions open; 805 'The Accord Touring in black: NONE in stock today' and the two new Touring in Crystal Black Pearl named as new, no open questions. 2102645799 at 5:38 PM -- 804 'What they opened on our website: "Nurture Landing Page Nurture default"'; 805 'the trade-in value page on our website'. TESTS: chat-words-805 (new) runs the shipped inlineScraper in Chromium on placeholder lead pages and executes _lpCustomerText, _lpCustTrimFromWords, _lpWhatWeHave, _lpFullpath, populateFromData, buildUserPrompt and _lpBuildSmsRefinePrompt: 46 assertions across both builds; v9.7.804 fails 19 of 23 per build (2 of them checks of new fields; its 4 controls pass). sched-attribution unchanged and green (the run-on cuts carry the existing marker names). VERIFIED: run-all 239 suites green, 8,473 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.804.)
 // Lead Pro -- popup.js  v9.7.804 (Commercial. WHAT THEY SAID ON THE CALL IS WHAT THEY WANT -- AND A SISTER STORE'S CAR IS OURS TO OFFER. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Honda Baytown lead 2097505088 (log329, on 803): a Facebook lead on a 2027 CR-V Hybrid TrailSport; the customer has never written, but the 10/12 connected call's note read 'Wife wants a used landcruiser, told them about the one at Toyota but they don't want black' and a 10/16 note 'In market for Land Cruiser'. The draft: 'the Ash Green 2027 CR-V Hybrid TrailSport is here. Is there a feature you'd like me to verify?' -- the pivot detector reads only the customer's own messages ('EXCLUDED BY SCOPE (not customer speech):[Land cruiser]') and the Vehicle line said 'THIS IS THE VEHICLE FOR THIS LEAD. Do not substitute'. Gil, 10/16: offer to set up the visit at the sister store; the salesperson can cross-sell there and go with them. (1) _lpCallWants: a connected call's note naming a different model is the customer's stated want (a no-contact note backs it, never starts it), with its conditions -- used/new and colours ruled out ('don't want black'); not when the model is one they own or trade, one they ruled out, or when a newer customer message names the lead's model again. (2) _lpCallWantsUnits: our lot first, then the Baytown sister stores' live feeds, filtered by those conditions. (3) The prompt: WHAT THEY WANT NOW -- FROM THE CALL (the note quoted, the lead's model not pushed); a unit on our lot is named and the visit offered here; a sister store's unit is named and the visit offered at that store, with the salesperson meeting them there; with nothing that fits, it says so, does not re-offer the colour they ruled out, and asks year range or colour. The Vehicle line and the inventory note stand the lead's car down. Lafayette stores have no sister stores, so only our own lot is searched. (4) The text rewrite gets WHAT THEY WANT NOW, and a rewrite that brings the lead's model back when the first draft had left it does not ship. (5) AMERICAN SPELLING, ALWAYS (Gil, 10/16): the first 804 draft on this lead asked 'what year range or colour should I watch for?' -- copied from this block's own wording. Both LANGUAGE rules (main prompt and text rewrite) now require American spelling; the instruction text the model reads is written that way (41 strings: colour, acknowledgement, summarise, apologise, recognise, labelled, cancelled; diagnostic log strings kept); and _lpAmericanSpelling runs on every SMS, email and voicemail before render ('grey' left alone for factory paint names). Ten existing suites' expected prompt wording updated to match. Replayed on the real dump: 803 says 'THIS IS THE VEHICLE FOR THIS LEAD' and 'we have it here'; 804 says the conversation is about a used Land Cruiser, not black, and (with a placeholder Toyota Baytown unit) offers the visit at Community Toyota Baytown with the rep meeting them there. TESTS: us-spelling-804 (new) executes _lpAmericanSpelling, buildSystemPrompt, buildSystemPromptSmsRefine and buildUserPrompt: 18 assertions across both builds; the first 804 cut fails all 9 per build (5 of them the new helper). call-wants-804 (new) executes _lpCallWants, _lpCallWantsUnits, populateFromData, buildUserPrompt, _lpBuildSmsRefinePrompt and _lpRefineSms (worker stubbed) with placeholder data: 26 assertions across both builds; v9.7.803 fails 11 of 13 per build (5 of them new helpers; its 2 controls pass). VERIFIED: run-all 238 suites green, 8427 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.803.)
 // Lead Pro -- popup.js  v9.7.803 (Commercial. FULLPATH: THEY ACTED ON OUR OWN MARKETING, AND THE DRAFT LEADS WITH WHAT THEY ACTED ON. Extension only; proxy v7.88, reporter v1.24 and dashboard v1.11 unchanged. Fullpath is the stores' CDP; its audience module markets to in-market customers in our own database, and a lead arrives when one of them converts. Kia Baytown lead 2100329657 (log327) converted on '2026 Kia Sorento Hybrid Lease for $409/mo for 24 months, $3,999 due at signing' and the draft pitched '$3,000 customer cash' -- the note never reached the prompt (rejected as machine fields); Honda Baytown lead 2100288374 (log328) converted on a 2019 Honda Pilot (VIN, $19,616) and wrote 'My credit is not that good'. Both prompts called it 'your online inquiry'. Gil, 10/15: quote the advertised offer prefaced with approved credit; a specific unit's price is fine; other offers wait for a later follow-up; the vehicle they own is a light trade/upgrade question ('fishing'). (1) The scraper keeps the current lead's received note when it carries 'CONVERTED ON:' (fullpathConversion, carried through the frame merge), and the merge keeps a rejected service-record frame's vehicle as the one they own (serviceVehicle). (2) _lpFullpath reads it on FullPath leads: the offer (and its figure) or the unit (vehicle, VIN for matching, advertised price), the customer's message, what they viewed, what they own, and whether our own messages have already put the figure to them. (3) WHAT THEY RESPONDED TO in the prompt: the offer quoted as advertised, prefaced 'on approved credit', in every format (the payment rules do not stop the advertised offer; they still forbid any other figure); or the car at its advertised price, the VIN never quoted; their message answered first; one light trade/upgrade question on the car they own; OTHER OFFERS WAIT until the offer has been put to them (the store incentive lines stand down meanwhile). HOW THIS LEAD REACHED US says they opened it on our website -- never 'online inquiry', never Fullpath, a landing page, a campaign or an audience; the source acknowledgement stands aside (SKIPPED-fullpath). (4) The text rewrite gets WHAT THEY RESPONDED TO, and a rewrite that drops the offer's figure or the car's price the first draft carried does not ship. Replayed on both real dumps: 802 carries both store incentives ($3,000 cash first) and 'your online inquiry'; 803 carries the $409 lease on approved credit, the 2017 Sorento question and no other offer, and the Pilot at $19,616 with the credit message answered first. TESTS: fullpath-803 (new) executes _lpFullpath, the scraper capture line (lifted), populateFromData, buildUserPrompt, _lpBuildSmsRefinePrompt and _lpRefineSms (worker stubbed) with placeholder data: 28 assertions across both builds; v9.7.802 fails 12 of 14 per build (6 of them new helpers or source; its 2 controls pass). first-touch-register: the acknowledgement's early-exit count goes 6 -> 7 for SKIPPED-fullpath. VERIFIED: run-all 236 suites green, 8383 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.802.)
@@ -1185,6 +1186,45 @@ function _lpAddApptOn(d) {
     var lid = String((d && d.autoLeadId) || (typeof window !== 'undefined' && window._activeLeadId) || '');
     return !!(a && lid && String(a) === lid);
   } catch (e) { return false; }
+}
+// (v9.7.806) THEY ASKED HOW THE CAR GETS TO THEM. Honda Baytown lead 2103597607: a customer in Maryland asked the store's
+// assistant "Si lo compro podran traerlo hasta Maryland" (if I buy it, can you bring it to Maryland?), and the draft said "I can
+// help sort out delivery to Maryland once we've worked through the vehicle details" -- the prompt calls transport a late-stage
+// topic and allowed only "we will sort out the logistics once we lock in the deal". Gil, 10/21: we gladly work with them; they
+// arrange their own shipping and we coordinate with the shipper -- name a couple of companies (uShip, Ship That Car, Sherpa Auto
+// Transport, Montway Auto Transport), not all of them. The pair is chosen by lead ID, so a lead keeps the same two.
+var LP_SHIP_ASK_RX = /\b(?:ship(?:ped|ping)?|deliver(?:y|ed)?|transport(?:ed|ing)?|haul(?:ed)?)\b[^.?!\n]{0,40}\b(?:to (?:me|my|us|our|[A-Z][a-z]+)|here|home|out of state|my state)\b|\b(?:can|could|would|will|do|does) (?:you|y'?all|the dealer(?:ship)?)\b[^.?!\n]{0,20}\b(?:ship|deliver|bring|send|transport|haul)\b|\b(?:shipping|delivery|transport) (?:options?|costs?|available|possible)\b|\bhome delivery\b|\b(?:traer|llevar|enviar|mandar|transportar|entregar)(?:lo|la|melo|mela|nos)?\b[^.?!\n]{0,40}\b(?:hasta|a|en)\b|\benv[i\u00ed]o\b|\bentrega a domicilio\b/i;
+var LP_SHIPPERS = ['uShip', 'Ship That Car', 'Sherpa Auto Transport', 'Montway Auto Transport'];
+function _lpShipAsk(d) {
+  try { var c = _lpCustEntries(d); for (var i = 0; i < c.length; i++) if (LP_SHIP_ASK_RX.test(c[i].body)) return c[i].body.slice(0, 160); } catch (e) {}
+  return '';
+}
+function _lpShipperPair(d) {
+  var id = String((d && d.autoLeadId) || ''), h = 0;
+  for (var i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) % 9973;
+  var a = h % 4, b = (a + 1 + (Math.floor(h / 4) % 3)) % 4;
+  return [LP_SHIPPERS[a], LP_SHIPPERS[b]];
+}
+// (v9.7.806) THEY WILL NOT COME IN UNTIL THEY KNOW THEY ARE APPROVED. Honda Lafayette lead 2065141269: on 10/5 she called in --
+// "she has bad credit and doesn't want to make an appointment unless she for sure can get approved" -- and we sent the finance
+// application link. On 10/21 every draft pushed the Meteorite Gray Accord LX first offered in August, with "I can have the
+// details ready before you arrive", and the visit decision allowed appointment times. Read from what they said (a message or a
+// call note); it stands until a later note or message says they were approved.
+var LP_APPROVAL_FIRST_RX = /\b(?:appointment|appt|come in|coming in|come down|come by|visit|drive (?:up|down|over)|make the trip)\b[^.!?\n]{0,60}\b(?:unless|until|till|before|without)\b[^.!?\n]{0,40}\b(?:approv\w*|financ\w*|credit)\b|\bapprov\w*\b[^.!?\n]{0,25}\b(?:first|before (?:coming|making|setting|an appointment|(?:i|we|she|he|they) come))\b/i;
+function _lpApprovalFirst(d) {
+  try {
+    var ents = _lpThreadEntries((d && (d.history || d.context)) || '').sort(function (a, b) { return b.t - a.t; });
+    for (var i = 0; i < ents.length; i++) {
+      var e = ents[i], cust = /CUSTOMER/i.test(e.tag) && !/REQUEST FROM INQUIRY/i.test(e.tag), call = /phone call/i.test(e.title);
+      if ((!cust && !call) || !LP_APPROVAL_FIRST_RX.test(e.body)) continue;
+      var met = ents.some(function (x) { return x.t > e.t && !/^AGENT$/i.test(String(x.tag || '').trim() + (/phone call/i.test(x.title) ? 'x' : ''))
+        && /\b(?:got|was|is|been|were|are)\s+(?:pre-?)?approved\b|\bapproval (?:came|is in|went through)\b/i.test(x.body) && !/\bnot\s+(?:pre-?)?approved\b/i.test(x.body); });
+      if (met) return null;
+      var link = ents.some(function (x) { return x.t >= e.t && /^AGENT$/i.test(String(x.tag || '').trim()) && /financ\w* application|credit application|credit app\b|finance-application|apply online/i.test(x.body); });
+      return { date: e.date, quote: e.body.slice(0, 200), linkSent: link };
+    }
+  } catch (err) {}
+  return null;
 }
 // (v9.7.803) FULLPATH: THEY ACTED ON OUR OWN MARKETING. Fullpath is the stores' CDP; its audience module markets to in-market
 // customers in our own database, and a lead arrives when one of them converts on what we showed them. Two on 10/15: Kia Baytown
@@ -4185,6 +4225,31 @@ function _lpTrimOf(v) {
 // Accord", no trim) and the customer had typed "accord touring with a sunroof". When the lead's vehicle names no trim, a trim this
 // store's feed carries for the model, every word of it in the customer's own words, is the trim they asked about. Honda's feed
 // writes "Hybrid" into the model ("Accord Hybrid Touring"); the word is only kept when they said it.
+// (v9.7.806) AN INTERIOR IS NOT THE PAINT. Honda Baytown lead 2102985701 (TrueCar): "BUILD: 2026 Honda Prelude Hybrid Winter Frost
+// Pearl / Black" -- the paint, then the interior -- and every draft said "the black Prelude Hybrid isn't in stock" (later "the
+// black-interior Prelude Hybrid isn't in stock", which nothing on record could say). The interior they asked for is read apart
+// from the paint: after the slash on TrueCar's BUILD line, or a color named with interior/seats/leather/cloth. The rest of the
+// text is what the paint is read from.
+var LP_INT_COLOR = '(black|ebony|jet black|charcoal|gray|grey|graphite|white|ivory|cream|beige|tan|saddle|brown|red|blue|parchment|almond|espresso)';
+function _lpInteriorAsk(text) {
+  try {
+    var t = String(text || ''), color = '', rest = t, m;
+    m = /\bBUILD\s*:[^\n]*?\/\s*([A-Za-z][A-Za-z -]{1,30}?)\s*(?=$|\n|\||[.,;)])/i.exec(t);
+    if (m) { color = m[1].trim(); rest = t.slice(0, m.index) + t.slice(m.index).replace(/\/\s*[A-Za-z][A-Za-z -]{1,30}?\s*(?=$|\n|\||[.,;)])/, ' '); }
+    var rx = new RegExp('\\b' + LP_INT_COLOR + '\\s+(?:(?:leather|leatherette|cloth)\\s+)?(?:interior|inside|seats?|seating|upholstery)\\b|\\b' + LP_INT_COLOR
+      + '\\s+(?:leather|leatherette|cloth)\\b|\\b(?:interior|inside|seats?)\\s+(?:in|of|that is|is)?\\s*' + LP_INT_COLOR + '\\b', 'i');
+    m = rx.exec(rest);
+    if (m) { color = color || m[1] || m[2] || m[3]; rest = rest.replace(m[0], ' '); }
+    return color ? { color: String(color).toLowerCase().replace('grey', 'gray'), rest: rest } : null;
+  } catch (e) { return null; }
+}
+// A factory paint name with no basic color word in it ("Winter Frost Pearl") is matched by its name: the color on the lead, when
+// the customer's own text names it.
+function _lpPaintNameAsked(paint, text) {
+  var p = String(paint || '').replace(/\s*\([^)]*\)\s*$/, '').trim();
+  if (p.length < 4 || Object.keys(_lpColorWords(p)).length) return '';
+  return String(text || '').toLowerCase().indexOf(p.toLowerCase()) >= 0 ? p : '';
+}
 function _lpTrimObj(disp) {
   disp = String(disp || '').replace(/\s{2,}/g, ' ').trim();
   return { disp: disp, norm: disp.toLowerCase().split(/\s+/).map(function (w) { return w.replace(/[^a-z0-9]+/g, ''); }).filter(Boolean).sort().join('|') };
@@ -4216,7 +4281,11 @@ function _lpWhatWeHave(d) {
     var cust = (typeof _lpCustomerText === 'function') ? _lpCustomerText(d) : String(d.lastInboundMsg || '');
     var ctx = String(d.conversationBrief || '') + '\n' + String(d.context || '');
     var cp = ctx.match(/COLOR PREFERENCE: Customer mentioned ([^.\n]+)\./);
-    var colors = Object.keys(_lpColorWords(cp ? cp[1] : cust));
+    var _wwInt = _lpInteriorAsk(cust);   // (v9.7.806) the interior they asked for is not the paint
+    var colors = Object.keys(_lpColorWords(cp && !_wwInt ? cp[1] : (_wwInt ? _wwInt.rest : cust)));
+    var _wwPaint = colors.length ? '' : _lpPaintNameAsked(d.color, _wwInt ? _wwInt.rest : cust);
+    if (_wwPaint) colors.push(_wwPaint);
+    var _paintOk = function (u) { return !!_wwPaint && String(u.color || '').toLowerCase().indexOf(_wwPaint.toLowerCase()) >= 0; };
     var asked = LP_AVAIL_ASK_RX.test(cust);
     // (v9.7.790) A FIRST-TOUCH LEAD THAT NAMES A TRIM IS ITSELF THE QUESTION "DO YOU HAVE THIS?". Lead 2098953366 (2026 Pilot AWD
     // Black Edition, Thirdparty Honda, no stock number, the customer typed nothing): the feed held exactly one Black Edition, in
@@ -4253,7 +4322,15 @@ function _lpWhatWeHave(d) {
     var _trimSoft = function (u) { var n = _lpTrimOf(u.vehicle).norm; return !!want.norm && (n === want.norm || (!_wantHy && _noHy(n) === want.norm)); };
     var _famAll = units.filter(function (u) { return _lpModelFamilyKey(u.vehicle) === fam; });
     var trimOk = (!_famAll.some(_trimStrict) && _famAll.some(_trimSoft)) ? _trimSoft : _trimStrict;
-    var colorOk0 = function (u) { var w = _lpColorWords(u.color); return colors.some(function (k) { return w[k]; }); };
+    // (v9.7.806) "Hybrid" and nothing else is no trim at all when the model only comes as a hybrid: TrueCar's "Prelude Hybrid" is
+    // the feed's "Prelude Base" (lead 2102985701 read NONE with a Prelude on the lot). Where the feed has hybrid and gas versions,
+    // "Hybrid" still means the hybrid ones.
+    if (want.norm && !_noHy(want.norm) && !_famAll.some(_trimStrict)) {
+      var _hyIn = function (u) { return /(?:^|\|)hybrid(?:\||$)/.test(_lpTrimOf(u.vehicle).norm) || /\bhybrid\b/i.test(String(u.model || '')); };
+      trimOk = _famAll.some(_hyIn) ? _hyIn : function () { return true; };
+      want = { disp: '', norm: want.norm };
+    }
+    var colorOk0 = function (u) { var w = _lpColorWords(u.color); return colors.some(function (k) { return w[k]; }) || _paintOk(u); };
     var adjSame = adjPool.filter(trimOk);
     if (colors.length && adjSame.some(colorOk0)) adjSame = adjSame.filter(colorOk0);
     adjSame.sort(function (a, b) { return Number(b.year || 0) - Number(a.year || 0); });   // the newer year first
@@ -4262,9 +4339,9 @@ function _lpWhatWeHave(d) {
     var newAlt = (lane === 'pre' && want.norm) ? _famAll.filter(function (u) { return String(u.condition || '').toLowerCase() === 'new' && trimOk(u) && (!colors.length || colorOk0(u)); }) : [];
     newAlt.sort(function (a, b) { return Number(b.year || 0) - Number(a.year || 0); });
     if (!pool.length && !adjSame.length && !newAlt.length) return null;
-    var colorOk = function (u) { var w = _lpColorWords(u.color); return colors.some(function (k) { return w[k]; }); };
+    var colorOk = function (u) { var w = _lpColorWords(u.color); return colors.some(function (k) { return w[k]; }) || _paintOk(u); };
     var grp = function (list) { var m = {}, order = [];
-      list.forEach(function (u) { var k = String(u.vehicle).replace(_LP_MAKE_RX, '').replace(/\s{2,}/g, ' ').trim() + ' (' + (u.color || 'color not listed') + ')';
+      list.forEach(function (u) { var k = String(u.vehicle).replace(_LP_MAKE_RX, '').replace(/\s{2,}/g, ' ').trim() + ' (' + (u.color || 'color not listed') + (u.interior ? ', ' + u.interior + ' interior' : '') + ')';   // (v9.7.806) interior
         if (!m[k]) { m[k] = 0; order.push(k); } m[k]++; });
       return order.map(function (k) { return k + (m[k] > 1 ? ' x' + m[k] : ''); }).join('; '); };
     // (v9.7.805) a pre-owned ask spans model years (the pool is not filtered by year), and on a chat lead the year is the bot's placeholder
@@ -4307,12 +4384,18 @@ function _lpWhatWeHave(d) {
         + (want.disp || 'one') + (colors.length ? ' in ' + colors.join(' or ') : '') + '. Never give its price.');
       try { console.log('[LP WHAT WE HAVE DIAG] asked pre-owned ' + want.disp + (colors.length ? ' in ' + colors.join('/') : '') + ' -- none pre-owned; ' + newAlt.length + ' new offered'); } catch (eNa) {}
     }
-    if (sameTrim.length) L.push('- The ' + want.disp + ' in other colors: ' + grp(sameTrim) + '. You may name these.');
+    if (sameTrim.length) L.push('- The ' + (want.disp || base) + ' in other colors: ' + grp(sameTrim) + '. You may name these.');
     var _cw = colors.join(' or '); _cw = _cw ? _cw.charAt(0).toUpperCase() + _cw.slice(1) + ' in' : 'In';
     if (lower.length) L.push('- ' + _cw + ' a lower trim: ' + grp(lower) + '. You may mention it as an option; do not push it.');
     // (v9.7.790) With none of their trim in stock there is no price to rank against: every other trim stays unnamed, and is called
     // "other trims", not "above" -- an EX-L is not above a TrailSport.
     if (higher.length) L.push('- ' + _cw + (refMin ? ' a trim above what they asked for: ' : ' other trims: ') + (higher.length === 1 ? 'one unit' : higher.length + ' units') + '. Do NOT name them or their trims. Say it the way the store does: "we do have other options if you\'d like to come take a look at them" (if this message allows a visit ask; otherwise, that you have other options and can send details).');
+    if (_wwInt) {   // (v9.7.806)
+      L.push('- The interior they asked for: ' + _wwInt.color + '. That is the inside of the car, not the paint -- never say the car "in ' + _wwInt.color + '" is or is not here because of it. '
+        + 'Each unit above shows its interior where the feed has one (", Black Leather interior"): when a unit has theirs, say so plainly ("with the ' + _wwInt.color + ' interior you wanted"). '
+        + 'A unit with no interior shown, or only the material (", Leather interior"), has no interior color on record -- do not say it has or lacks theirs.');
+      try { console.log('[LP WHAT WE HAVE DIAG] interior asked: ' + _wwInt.color + ' -- read apart from the paint' + (_wwPaint ? ' | paint by name: ' + _wwPaint : '')); } catch (eWi) {}
+    }
     L.push('This answers what they asked. Tell them plainly. Do NOT say you still need to check, verify or confirm availability on this model -- the feed has been checked for this grab. '
       + (exact.length ? 'The unit(s) listed as IN STOCK are confirmed by the feed: this outranks any line in this prompt that says the vehicle\'s presence is not confirmed. '
                       : (_adjLine ? 'Lead with the ' + _adjName + ' as the answer. '
@@ -11877,7 +11960,9 @@ function _lpScraperBotAuthor(msg) {
     // mapped to Pre-Owned to preserve downstream semantics; raw granularity stays visible in
     // the DIAG's invType field), regex fallback.
     const condition = (LP_PD_PRIMARY && _pdCondH) ? _pdCondH : _rgxCondition;
-    const color=tm([/Color[:\s]+([A-Za-z ]{3,25})(?:\n|Mfr|Stock|VIN|Warning|\s{3})/i]);
+    const color=(function(_c){   // (v9.7.806) "Subject: Another Accord LX color option" read the color as "option" (lead 2065141269)
+      _c=String(_c||'').trim(); return (/^[a-z]/.test(_c) && !/\b(?:black|white|gr[ae]y|silver|blue|red|green|gold|beige|tan|brown|bronze|orange|yellow|purple|maroon|burgundy|charcoal|pearl|metallic)\b/i.test(_c)) ? '' : _c;
+    })(tm([/Color[:\s]+([A-Za-z ]{3,25})(?:\n|Mfr|Stock|VIN|Warning|\s{3})/i]));
     // Extract customer state from buyer address - "City, ST 00000" OR "City, ST, 00000"
     // (VinSolutions renders both: space-separated and comma-separated state/ZIP). (v9.7.226)
     var customerState = '';
@@ -22056,6 +22141,10 @@ function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
     lastIn = '';
     try { console.log('[LP SMS REFINE DIAG] the last "customer" message is the Mastermind lead notice -- left out of the rewrite'); } catch (eRfPn) {}
   }
+  if (lastIn && (typeof LP_STOP_WORD_RX !== 'undefined') && LP_STOP_WORD_RX.test(lastIn)) {   // (v9.7.806) the STOP keyword is not their words -- see THEY TEXTED STOP
+    lastIn = '';
+    try { console.log('[LP SMS REFINE DIAG] the last customer message is a STOP keyword -- left out of the rewrite'); } catch (eRfSw) {}
+  }
   if (d.inboundPreVisit && String(d.lastInboundMsg || '').trim()) {
     try { console.log('[LP SMS REFINE DIAG] last customer text predates the showroom visit -- left out of the rewrite (v9.7.195 rule)'); } catch (ePv) {}
   }
@@ -22305,10 +22394,24 @@ function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
   try {
     if (_lpStopIsCurrent(d)) {
       out.push('━━━ THEY TEXTED STOP ━━━');
-      out.push('Their newest message opted them out of texts. Do not invite them to text: no "text me", "reply here" or "send me a text". If the first draft points them anywhere, keep it to calling or email.');
+      out.push('Their newest message opted them out of texts. Do not invite them to text: no "text me", "reply here" or "send me a text". If the first draft points them anywhere, keep it to calling or email. The STOP is not something to answer: do not mention it, apologize, or say you will stop contacting them.');
       out.push('');
     }
   } catch (eRfStop) {}
+  // (v9.7.806) Their shipping question and their approval-first condition: the text says what the email says.
+  try {
+    if (_lpShipAsk(d)) {
+      var _rfShp = _lpShipperPair(d);
+      out.push('\u2501\u2501\u2501 THEY ASKED ABOUT GETTING THE CAR TO THEM \u2501\u2501\u2501');
+      out.push('The text answers it too, as the email does: we will gladly work with them on it; they arrange the transport company (' + _rfShp[0] + ' or ' + _rfShp[1] + ') and we coordinate the pickup with the shipper. Never say we deliver or ship it, and do not put it off.');
+      out.push('');
+    }
+    if (_lpApprovalFirst(d)) {
+      out.push('\u2501\u2501\u2501 THEY WILL NOT COME IN UNTIL THEY KNOW WHERE THEY STAND ON FINANCING \u2501\u2501\u2501');
+      out.push('The text is about their finance application, as the email is. No visit ask, no appointment times, and no promise or hint of an approval.');
+      out.push('');
+    }
+  } catch (eRfSa) {}
   // (v9.7.785) They already have a sales rep: the text steps back too.
   try {
     var _rfHr = _lpHasRep(d);
@@ -23392,7 +23495,8 @@ var _LP_VISIT_HOLDS = [
   [3, /HARD RULE: do NOT offer an appointment time|FINAL CLOSE RULE FOR THIS MESSAGE: Do NOT end with an appointment/, 'the DEAL CONDITION rule'],
   [3, /NOT TODAY: Customer explicitly said they cannot or do not want to come in right now/, 'NOT TODAY (not any day)'],
   [3, /^EXIT SIGNAL:/, 'the EXIT rule'],
-  [3, /^ON THE CALL THEY SAID THEY ARE NOT LOOKING RIGHT NOW/, 'the call-note PAUSE (not looking right now)'],   // (v9.7.791)
+  [3, /^ON THE CALL THEY SAID THEY ARE NOT LOOKING RIGHT NOW/, 'the call-note PAUSE (not looking right now)'],
+  [3, /^THEY WILL NOT COME IN UNTIL THEY KNOW WHERE THEY STAND ON FINANCING/, 'the APPROVAL FIRST condition (no visit until they know)'],   // (v9.7.806)   // (v9.7.791)
   [3, /^THEY ALREADY HAVE A SALES REP:/, 'the ALREADY HAVE A SALES REP block'],   // (v9.7.785)
   // (v9.7.786) The agent's "no appointment" chip was not a hold: in the morning, with room left today, the store-status line's
   // "lead with a today time ... the SUGGESTED APPOINTMENT TIMES below" stayed beside the override (imx-noappt-720 failed before 3 PM).
@@ -24124,13 +24228,13 @@ function buildUserPrompt(data) {
     scenarioDirective = 'TASK: Distance buyer — customer is out of state or has explicitly asked about delivery/shipping. They cannot easily come in. Adjust the entire approach.';
     scenarioRules = [
       '- This customer cannot easily come in. Their actual questions come first: price, what is possible remotely, and the numbers.',
-      '- TRANSPORT/SHIPPING IS A LATE-STAGE TOPIC. Do NOT lead with the delivery process or explain how the vehicle gets to them at first or early touch — it is premature and exposes a limitation before the deal is alive. If the customer flagged delivery, acknowledge it lightly and reassuringly (e.g. "we will sort out the logistics once we lock in the deal") and move the conversation to the vehicle and the numbers.',
+      ((typeof _lpShipAsk === 'function' && _lpShipAsk(data)) ? '- TRANSPORT: they asked about it -- answer it in this message as THEY ASKED ABOUT GETTING THE CAR TO THEM says (they arrange the transport company, we coordinate the pickup with the shipper).' : '- TRANSPORT/SHIPPING IS A LATE-STAGE TOPIC. Do NOT lead with the delivery process or explain how the vehicle gets to them at first or early touch \u2014 it is premature and exposes a limitation before the deal is alive. If the customer flagged delivery, acknowledge it lightly and reassuringly (e.g. "we will sort out the logistics once we lock in the deal") and move the conversation to the vehicle and the numbers.'),   // (v9.7.806)
       '- When transport IS the real next step (the deal is moving): the dealership does NOT deliver directly — the customer arranges their own transport and we help coordinate it through a third-party shipper. Do NOT say "we deliver" or "we ship it to you"; say "we can help coordinate transport." Do not volunteer the do-not-deliver fact before it is relevant.',
       '- Focus on what we CAN do remotely: detailed photos, video walkaround, out-the-door pricing, remote paperwork.',
       (sc && sc.mayStateDistance)
         ? '- True remote buyer (out-of-state / asked to buy remotely): make the remote path easy \u2014 numbers, a video, a call to confirm the unit. Do NOT name how far away they are, in miles or in time (v9.7.700).'
         : '- DO NOT STATE THE DISTANCE. This is a drivable in-state buyer. Use the distance silently to pre-stage an efficient visit (have the exact car ready, confirm stock first), but never tell them how many miles away they are or call it a drive \u2014 that builds a wall. Treat them like a local buyer with the visit pre-arranged.',
-      '- Close with the next concrete step: a phone call to go over numbers or a quote — not a transport discussion at first touch.',
+      ((typeof _lpShipAsk === 'function' && _lpShipAsk(data)) ? '- Close with the next concrete step: a phone call to go over numbers or a quote.' : '- Close with the next concrete step: a phone call to go over numbers or a quote — not a transport discussion at first touch.'),   // (v9.7.806)
     ].join('\n');
 
 
@@ -27245,6 +27349,41 @@ function buildUserPrompt(data) {
       ageBlock.push('🔴 ON THE CALL THEY SAID THEY ARE NOT LOOKING RIGHT NOW (' + _csh.date + ', recorded in the call note): treat it exactly as if they had written it. Acknowledge it with zero pressure and leave the door open. No visit ask or times, no pitch, no vehicle or inventory push, and NO QUESTIONS of any kind. Never quote or mention the call note.');
     }
   } catch (eCsh) {}
+  // (v9.7.806) A bare STOP is the keyword that turns off our texts, not their last word to us (lead 2079590323: the email said "I'll
+  // leave the Accord inquiry here" and the voicemail "I can't leave a voicemail after [customer]'s STOP request").
+  try {
+    if (_lpStopIsCurrent(data)) {
+      console.log('[LP STOP DIAG] newest customer message is a STOP keyword -> texts off only; email and voicemail are the normal next touch');
+      ageBlock.push('');
+      ageBlock.push('\ud83d\udcf5 THEIR NEWEST MESSAGE IS A "STOP" TO OUR TEXTS -- NOT SOMETHING THEY SAID TO US: it is the keyword that turns off our texts, and the system has already confirmed it. '
+        + 'It turns off texting and nothing else: it is not a reply, a complaint or a request to end the conversation, and any line in this prompt that treats "Stop" as their last message is superseded by this one. '
+        + 'Write the email and the voicemail as the normal next touch on this lead, as if that keyword were not there. Do NOT mention it, acknowledge it, apologize for reaching out, or say you will stop contacting them or close their inquiry because of it. The voicemail is a real voicemail, in your own voice.');
+    }
+  } catch (eStp) {}
+  // (v9.7.806) They asked how the car gets to them (see _lpShipAsk).
+  try {
+    var _shq = _lpShipAsk(data);
+    if (_shq) {
+      var _shp = _lpShipperPair(data);
+      console.log('[LP SHIPPING DIAG] they asked: "' + _shq + '" | shippers named: ' + _shp.join(' + '));
+      ageBlock.push('');
+      ageBlock.push('\ud83d\ude9a THEY ASKED ABOUT GETTING THE CAR TO THEM: "' + _shq.replace(/"/g, "'") + '". It is their question -- answer it in this message, plainly and warmly, in every format: '
+        + 'we will gladly work with them on it; they arrange the transport company, and we coordinate the pickup with the shipper. Name two companies as examples, these two and no others: '
+        + _shp[0] + ' or ' + _shp[1] + '. Never say we deliver it, ship it, bring it or get it to them, or that delivery is included; no "unfortunately" or "we can only"; and do not put it off ("once we lock in the deal", "we can sort out the logistics later"). Then carry on with the rest of the message.');
+    }
+  } catch (eShp) {}
+  // (v9.7.806) They will not come in until they know they are approved (see _lpApprovalFirst).
+  try {
+    var _apf = _lpApprovalFirst(data);
+    if (_apf) {
+      console.log('[LP APPROVAL FIRST DIAG] ' + _apf.date + ': "' + _apf.quote + '" | application sent: ' + _apf.linkSent + ' -> full visit hold; the application is the message');
+      ageBlock.push('');
+      ageBlock.push('\ud83d\udd34 THEY WILL NOT COME IN UNTIL THEY KNOW WHERE THEY STAND ON FINANCING (' + _apf.date + '): "' + _apf.quote.replace(/"/g, "'") + '". That is the live thread, and it is what this message is about. '
+        + (_apf.linkSent ? 'We sent them the finance application: ask, simply, whether they had a chance to complete it' : 'Ask whether they would like to send in a finance application')
+        + ' -- once it is in, our finance team reviews it and goes over their options with them before they plan a visit. No visit ask and no appointment times. '
+        + 'Never promise or hint at an approval, never say whether they are approved, and never say "no problem" about credit. Any color, inventory or vehicle line in this prompt is background here -- one short supporting line at most, never the lead.');
+    }
+  } catch (eApf) {}
   // (v9.7.785) They already have a sales rep (see _lpHasRep).
   try {
     var _hr = _lpHasRep(data);
@@ -28399,8 +28538,8 @@ function buildUserPrompt(data) {
           : _rbVisit === 'trip' ? '- THEY SAID THEY WILL MAKE THE TRIP: in their own words on this lead -- "' + _lpTripIntent(data).replace(/"/g, "'") + '". The visit is on the table: ask when they are planning to come, and give them a reason the trip is worth it (what will be ready for them). Let them name the day -- do NOT push set appointment times on them.'
           : '- Do NOT push an in-person visit or offer appointment times as the ask — they are remote.',
         _rbVisit ? '' : '- Do NOT say "stop by", "swing by", "come see us", "when you arrive", or anything implying a near-term physical visit as the next step.',
-        '- TRANSPORT/SHIPPING IS A LATE-STAGE TOPIC — do NOT explain how the vehicle gets to them (third-party shipper, transport coordination, the fact that we do not deliver) at first or early touch; that exposes a limitation before the deal is alive. If the customer flagged delivery, acknowledge it lightly and reassuringly — e.g. "we will sort out the logistics once we lock in the deal" — and keep the early message on confirming the vehicle and opening the numbers/trade conversation.',
-        '- When transport IS the real next step (the deal is moving): the dealer does NOT arrange or pay for shipping — the customer arranges their own transport (e.g. uShip, Montway) and we assist with the process. NEVER say "we ship to you" or "we handle shipping"; say "we can help coordinate transport." Do not volunteer that we do not deliver before it is relevant.',
+        ((typeof _lpShipAsk === 'function' && _lpShipAsk(data)) ? '- TRANSPORT: they asked about it -- answer it in this message as THEY ASKED ABOUT GETTING THE CAR TO THEM says (they arrange the transport company, we coordinate the pickup with the shipper).' : '- TRANSPORT/SHIPPING IS A LATE-STAGE TOPIC \u2014 do NOT explain how the vehicle gets to them (third-party shipper, transport coordination, the fact that we do not deliver) at first or early touch; that exposes a limitation before the deal is alive. If the customer flagged delivery, acknowledge it lightly and reassuringly \u2014 e.g. "we will sort out the logistics once we lock in the deal" \u2014 and keep the early message on confirming the vehicle and opening the numbers/trade conversation.'),   // (v9.7.806)
+        '- When transport IS the real next step (the deal is moving): the dealer does NOT arrange or pay for shipping \u2014 the customer arranges their own transport (a transport company) and we assist with the process. NEVER say "we ship to you" or "we handle shipping"; say "we can help coordinate transport." Do not volunteer that we do not deliver before it is relevant.',
         _rbVisit ? '' : '- Focus on what CAN be done remotely: photos/video walkaround, financing application, deal structure.',
         _rbVisit ? '' : '- Ask ONE qualifying question to move the deal forward: financing or cash? Trade-in? Which trim/color? Timeline?',
         '- Tone: efficient and helpful. They want to know if this is doable — not a sales pitch about the vehicle.',

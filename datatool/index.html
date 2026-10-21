@@ -138,7 +138,7 @@
       <div class="statline" id="inv-statline"></div>
       <table><thead><tr><th>Store</th><th>Dealer ID</th><th style="text-align:right">Units</th><th style="text-align:right">Priced</th><th>New / CPO / Used</th></tr></thead><tbody id="inv-rows"></tbody></table>
       <div class="note"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#33b06a" stroke-width="1.6"><path d="M12 2 4 5v6c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V5z" stroke-linejoin="round"></path><path d="m9 12 2 2 4-4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
-        <span><b>Confidential data stayed on your machine.</b> Only customer-safe fields are written — stock, VIN, vehicle, class, body, color, odometer, days-on-lot, price. Cost, markup, water, book, appraised value, and trade numbers were read and discarded.</span></div>
+        <span><b>Confidential data stayed on your machine.</b> Only customer-safe fields are written — stock, VIN, vehicle, class, body, color, interior, odometer, days-on-lot, price. Cost, markup, water, book, appraised value, and trade numbers were read and discarded.</span></div>
     </div>
     <details>
       <summary>Send to Lead Pro</summary>
@@ -231,7 +231,7 @@ const CUR_YEAR=new Date().getFullYear();
 const TODAY=new Date().toISOString().slice(0,10);
 const DEALER_MAP={"Community Toyota TX":["6189","Toyota Baytown"],"Community Kia TX":["6190","Kia Baytown"],"Community Honda TX":["6191","Honda Baytown"],"Community Honda of Lafayette":["24399","Honda Lafayette"],"Audi Lafayette":["21135","Audi Lafayette"]};
 const ID2LABEL={"6189":"Toyota Baytown","6190":"Kia Baytown","6191":"Honda Baytown","24399":"Honda Lafayette","21135":"Audi Lafayette"};
-const INV_SAFE=["stock","vin","vehicle","year","make","model","condition","certified","class","body","color","odometer","daysOnLot","price"];
+const INV_SAFE=["stock","vin","vehicle","year","make","model","condition","certified","class","body","color","interior","odometer","daysOnLot","price"];
 
 const $=id=>document.getElementById(id);
 const num=v=>{if(v==null||v==='')return null;const f=Number(v);return isNaN(f)?null:f;};
@@ -958,7 +958,7 @@ $('inv-go').addEventListener('click',()=>{ try{
       const vin=str(get(r,'VIN')),stock=str(get(r,'Stock #'));if(!vin&&!stock)continue;
       const certified=String(get(r,'Certified')||'').trim().toLowerCase()==='yes';const condition=(f.pool==='used'&&certified)?'cpo':f.pool;
       const veh=str(get(r,'Vehicle'));const[year,make,model]=parseVehicle(veh);let price=int(get(r,'Price'));if(price===null)price=int(get(r,'AskingPrice'));
-      const unit={stock,vin,vehicle:veh,year,make,model,condition,certified,class:str(get(r,'Class')),body:str(get(r,'Body')),color:str(get(r,'Color')),odometer:int(get(r,'Odometer')),daysOnLot:int(get(r,'Age')),price};
+      const unit={stock,vin,vehicle:veh,year,make,model,condition,certified,class:str(get(r,'Class')),body:str(get(r,'Body')),color:str(get(r,'Color')),interior:str(get(r,'Interior')),odometer:int(get(r,'Odometer')),daysOnLot:int(get(r,'Age')),price};
       const[did,label]=DEALER_MAP[dealer];(stores[did]=stores[did]||{store:label,units:{}}).units[vin||stock]=unit;stats.kept++;}}
   for(const did in stores)for(const k in Object.values(stores[did].units)[0]||{})if(!INV_SAFE.includes(k))throw new Error('non-safe field leaked: '+k);
   const out={generated:TODAY,type:'inventory',source:'vAuto Merchandising export (browser)',storeUnitCounts:{},stores:{}};
