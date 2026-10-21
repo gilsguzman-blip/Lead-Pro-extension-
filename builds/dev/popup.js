@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.818-dev (Dev. THE PRICE THEY ASKED FOR WENT OUT -- AND THE PROMPT TALKED ABOUT EVERYTHING ELSE. Extension only; proxy v7.88, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Kia Baytown lead 2102063788 (log352, v9.7.817): the customer emailed for out-the-door prices on two Telluride Hybrid trims (AWD required, tow package, any color except Black Jade Green, email preferred); the salesperson texted the selling price, fees, tax and total drive-out on one of them. The draft: '[Customer], I appreciate you clarifying that AWD is required ... Is AWD still a must for the black EX?' Gil: 'Messaging should have been about the provided pricing. Although the pricing was for another trim.' Nothing in the prompt said the quote went out, and five lines pointed elsewhere, three of them misreadings. (1) New _lpQuoteOut: our newest text or email after the customer's newest words, carrying a dollar figure and a price word, on a lead where they asked for a price (bot sends and opt-out confirmations not counted), its sender from the note, the call beside it or 'this is [name]'. THE PRICE THEY ASKED FOR WENT OUT names who sent it and quotes it: the touch follows up on it -- did it reach them, does it answer what they asked, and if it covers another trim or only part of the request, say so and that the rest is being priced; the total may be named, no other figures. Under it the finished prompt's 'a genuinely different angle', the vehicle lock ('do not reference other vehicles') and the soft re-engage's 'change the angle' point at the quote; the pitch line points at it; the inventory answer stands down. The text rewrite gets the same fact and, under the pitch rule, the follow-up as its job. (2) A color after except / other than / but not / anything but / color but / not / no is excluded, never asked for (the scraper's stated-color reader, the inventory answer, the wanted-color reader; new _lpStripColorExclusions). (3) 'AWD, required' / 'must be all-wheel drive' is a stated requirement (new _lpDriveRequired): DRIVETRAIN REQUIREMENT, never ask whether it is a must; the rewrite drops the question. (4) 'Total out-the-door' no longer reads as a total loss. (5) 'selling price ... the vehicle' no longer reads as the customer selling. TESTS: quote-out-818 (new) builds prompts through the shipped populateFromData and panel payload and executes the shipped color detector slice, _lpBuildSmsRefinePrompt, _lpDriveRequired and _lpVehicleTotaledNow: 32 assertions across both builds; v9.7.817 fails 12 of 16 per build (the four controls pass). A replay of log352's own scrape: the quote line names the salesperson and the $61,282.75 total, the visit decision lists the different angle, the vehicle lock and the soft re-engage among what it changed, and the totaled and seller blocks are gone. VERIFIED: run-all 252 suites green, 8,779 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.817-dev.)
 // Lead Pro -- popup.js  v9.7.817-dev (Dev. THE TEXT REWRITE STILL PITCHED, AND FOUR LEFTOVERS STILL PULLED TOWARD THE VISIT. Extension only; proxy v7.88, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Kia Baytown lead 2103538959 (log350, v9.7.816): the email, the voicemail and the first draft of the text all opened '[Rep] has tried reaching you by phone'; the rewrite shipped '[Customer], the 2024 GMC Sierra 1500 AT4 is the one you were looking at ... [Rep] has tried reaching you by phone.' v9.7.816 audited the main prompt and not the rewrite: its WRITE THE TEXT block still said 'lead on the thing in that email that earns a reply' and 'give them the actual reason this visit is worth making'; its in-stock block said 'the email says it is here'; its close-out block said 'replied 0.9d ago' of a STOP. (1) Under the PITCH ALREADY OUT rule the rewrite's WRITE THE TEXT is the follow-up: after our calls, 'we have been trying to reach them' right after their name, one easy way to reach us, one simple question, no pitch; with no calls, one new thing or one simple question. The pitch block puts the follow-up first and lifts the general 'reason to come in' rule; the in-stock block becomes THE VEHICLE IS STILL OURS (never gone, and not 'here' again). (2) A rewrite that moves 'trying to reach you' out of the text's first two sentences, when the first draft had it there, does not ship (new _lpTryingLead); the first draft ships unless it asked a customer who texted STOP to text. (3) The main prompt: 'trying to reach them' comes first in every format; after a STOP the easy way to reply is a call back or an email reply, never a text. Under the pitch rule the visit decision also takes out the default follow-up's 'If the customer is engaged and available, close with an appointment' and reopens no promise to have the car ready when they arrive (OPEN THREADS); other promises stand. (4) The close-out gate counts a STOP as no reply (new _lpStopOnlyReply), so its block no longer says 'replied 0.9d ago'. TESTS: pitch-follow-817 (new) executes the shipped _lpBuildSmsRefinePrompt, _lpRefineSms (worker stubbed), _lpApplyVisitDecision and _lpCloseOutEligible, and builds the main prompt through the shipped populateFromData and panel payload: 26 assertions across both builds; v9.7.816 fails 8 of 13 per build (the controls pass). A replay of log350's own scrape: the visit decision now lists the appointment close and the arrival promise among what it took out, and the rewrite's last block is the follow-up. VERIFIED: run-all 251 suites green, 8,747 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.816-dev.)
 // Lead Pro -- popup.js  v9.7.816-dev (Dev. OUR PITCH WENT UNANSWERED: ONE RULE TAKES THE PITCH OUT EVERYWHERE, AND UNANSWERED CALLS MAKE IT 'WE HAVE BEEN TRYING TO REACH YOU'. Extension only; proxy v7.88, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Kia Baytown lead 2103538959 (log349, v9.7.815), Gil: 'Message should be a follow up we've been trying to reach you... salesperson had tried to call' -- and 'Why isn't the model following the arc?' The arc was in the prompt and v9.7.815's don't-restate block fired; the same prompt also said 'Say "we have it here"', 'REQUIRED in EVERY format: One specific reason the visit is worth their time ... pre-fill most of the paperwork', 'Confirm it is available and encourage the soonest workable time', offered 9:15 / 10:30 (the times sent the day before) with a scripted next-day text, and its facts said 'Last customer reply was 0.9 days ago ... the customer replied today' (the Stop) and 'Exchange so far: 11 inbound' (his 2024 leads). Three specific instructions to one general one, and the model re-pitched. These blocks were written for first touches and replies and none of them asked whether the pitch had already gone out; v9.7.808, 810 and 815 each removed one such contradiction. New _lpPitchOut: our newest pitch on this lead (the car is here / available / ready, or times offered) with no customer words (a STOP is not words) and no connected call after it, an automated first response not counted, and the unanswered calls since our last text or email. (1) OUR PITCH IS ALREADY OUT AND UNANSWERED -- when that message offered times, a level-2 hold in the visit decision (_LP_VISIT_HOLDS): no slots, no time examples, no same-day push. When it offered none, the same line without the hold: times are not withheld (a person's 'it is here' with no times, log244-710's control). (2) Under either, the visit decision also takes out the pitch: the inventory 'Say "we have it here"' / 'Use soft language: ... "we have it here"' (now 'Our earlier message already told them it is here; do not say it again'), the distance block's required visit reason with its examples, its SMS visit reason, its 'open with the vehicle confirmation', and its 'confirm it is available' / 'encourage the soonest workable time'. The decision now runs these edits with or without a hold, and logs each in [LP VISIT DECISION DIAG]. (3) WE HAVE BEEN TRYING TO REACH THEM: unanswered calls (Machine / No Contact / left a message) since our last text or email make that the message -- who called (a teammate by first name, 'their salesperson' when it was the sales rep), how many times and when; say it warmly, one easy way to reply (a call back or a reply to the email), one simple question; not another pitch. The text rewrite gets OUR PITCH IS ALREADY OUT and keeps 'trying to reach you'. [LP PITCH OUT DIAG]. (4) THE FACTS: on a lead whose only customer message is a STOP, the arc facts carry no dated reply, no whole-record exchange counts, and this lead's outbound run (_lpOutreachOnThisLead). (5) hasApptSet joins the panel payload (the v9.7.808 guard caught _lpPitchOut reading it). A connected call (v9.7.810's call follow-up) and a real reply are unchanged. TESTS: pitch-out-816 (new) builds prompts through the shipped populateFromData and panel payload -- the visit decision runs on the finished prompt -- executes the shipped _lpBuildSmsRefinePrompt, and lifts the shipped arc-facts step: 18 assertions across both builds; v9.7.815 fails 8 of 9 per build (the reply control passes; the facts control needs the new step). A replay of log349's own scrape: the hold owns the visit, the 'trying to reach them' line names the salesperson's two calls, and the visit decision lists every pitch line it took out. VERIFIED: run-all 250 suites green, 8,721 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.815-dev.)
 // Lead Pro -- popup.js  v9.7.815-dev (Dev. A STOP IS NOT A REPLY TO THE FOLLOW-UP DIRECTIVES, AND A CAR WE ALREADY NAMED IS NOT RE-PITCHED. Extension only; proxy v7.88, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Kia Baytown lead 2103538959 (log348), Gil: 'Still reads like a first reach.' Our 10/20 6:48 PM text, email and voicemail said the Summit White 2024 GMC Sierra 1500 AT4 was here, 9:15 or 10:30 Wednesday; the customer texted 'Stop' at 6:50 and the texting system confirmed; two voicemails followed on 10/21. The 10/21 draft: the same truck, 'you viewed for $58,067', 9:15 or 10:30 Thursday. (1) THE STOP COUNTED AS A REPLY. Since v9.7.792 a STOP is not contact (_lpLeadHasContact), but buildUserPrompt's reply test still counted it: the ANTI-RESTATE block never fired ('hasReplyForDirectives: true | thinReplyText: "Stop" | WILL FIRE: false') and the prompt said 'EARLY FOLLOW-UP -- THE CUSTOMER HAS REPLIED'. When the newest customer message is a STOP keyword and nothing else on the lead is contact, it is now no reply for these directives ([LP STOP REPLY DIAG]); a real message or a connected call still is. (2) THE ANCHOR WAS THE OPT-OUT CONFIRMATION. 'You have successfully been removed from ... text messages.' was taken as our last substantive message. The scraper's trivial-outbound test now skips the texting system's opt-out replies, and buildUserPrompt falls back to our newest real send when a scrape still carries one (LP_OPTOUT_CONFIRM_RX). (3) THE TRUCK COUNTED AS NOT PUT TO THEM. _lpFullpath marked a car presented only when our messages quoted its price; the 10/20 messages named the Sierra 1500 without it, so the prompt said 'Lead with that car ... you may name that advertised price'. Our messages naming the model now count too, and v9.7.810's background wording applies. (4) The text rewrite is told not to add a price the first draft left out. The STOP handling for texting is unchanged: the SMS is drafted for the agent, with no invitation to text. TESTS: stop-restate-815 (new) builds prompts through the shipped populateFromData and panel payload, executes the shipped _lpBuildSmsRefinePrompt, and runs the shipped inlineScraper in Chromium on a placeholder lead page with our pitch, a STOP and the opt-out confirmation: 12 assertions across both builds; v9.7.814 fails 4 of 6 per build (its 2 controls pass). A replay of log348's own scrape gives the don't-restate block anchored on the 10/20 email, 'YOU HAVE ALREADY REACHED OUT', and the truck as background. VERIFIED: run-all 249 suites green, 8,703 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.814-dev.)
@@ -700,7 +701,7 @@ function _lpVehicleTotaledNow(s){
   // (v9.7.429/427) Loss form REQUIRED on the loose alternatives — bare "total" matched
   // "its total price" / "it's total garbage" / "call it a total win" and flipped healthy
   // trades to insurance-settlement framing.
-  if (/\b(total(?:ed|ing)?\s+(?:loss|out|it\s+out)|(?:declar|deem|call|rul|consider|mark|writ)(?:e|es|ed|ing)?\s+(?:it\s+|the\s+\w+\s+|this\s+)?(?:as\s+|a\s+)?total(?:ed\b|\s*loss)|it'?s?\s+(?:a\s+)?total(?:ed\b|\s+loss)|being\s+total(?:ed|led)|got\s+total(?:ed|led)|was\s+total(?:ed|led)|total(?:ed|led)\s+(?:at|by|in))\b/i.test(t)) return true;
+  if (/\b(total(?:ed|ing)?\s+(?:loss|out(?![\s-]+the[\s-]+door)|it\s+out)|(?:declar|deem|call|rul|consider|mark|writ)(?:e|es|ed|ing)?\s+(?:it\s+|the\s+\w+\s+|this\s+)?(?:as\s+|a\s+)?total(?:ed\b|\s*loss)|it'?s?\s+(?:a\s+)?total(?:ed\b|\s+loss)|being\s+total(?:ed|led)|got\s+total(?:ed|led)|was\s+total(?:ed|led)|total(?:ed|led)\s+(?:at|by|in))\b/i.test(t)) return true;
   // (B) Wreck / accident + active insurance claim co-occurrence.
   if (/\b(wreck(?:ed)?|accident|collision|crash(?:ed)?)\b/i.test(t) && /\b(insurance|claim|adjuster|payout|settlement|gap)\b/i.test(t)) return true;
   // (C) (v9.7.396/394 SITUATIONAL) Customers rarely say the clinical word "totaled" — they
@@ -1334,9 +1335,22 @@ function _lpDriveAsked(d) {
     return LP_DRIVE_RX.test(String(d.lastInboundMsg || ''));
   } catch (e) { return false; }
 }
+// (v9.7.818) "-AWD, required" is a requirement they stated, not a question (lead 2102063788: the draft asked "Is AWD still a must?").
+var LP_DRIVE_REQ_RX = /\b(awd|4wd|fwd|rwd|4x4|all[- ]?wheel(?:[- ]drive)?|four[- ]?wheel(?:[- ]drive)?)\b\s*[,:-]?\s*(?:is\s+)?(?:required|a\s+must|must|mandatory|non[- ]?negotiable|needed|necessary)\b|\b(?:need|needs|must\s+(?:have|be)|requires?|required|has\s+to\s+be|have\s+to\s+have)\s+(?:an?\s+|to\s+be\s+)?(awd|4wd|fwd|rwd|4x4|all[- ]?wheel(?:[- ]drive)?|four[- ]?wheel(?:[- ]drive)?)\b/i;
+function _lpDriveRequired(d) {
+  try {
+    var m = LP_DRIVE_REQ_RX.exec(String((d && d.lastInboundMsg) || '')); if (!m) return '';
+    var w = String(m[1] || m[2]).toLowerCase();
+    return /^all/.test(w) ? 'AWD' : /^four|4x4/.test(w) ? '4WD' : w.toUpperCase();
+  } catch (e) { return ''; }
+}
 function _lpDriveLine(d) {
   var dv = d && d.voiDrivetrain && _LP_DRIVE_NAME[d.voiDrivetrain] ? d.voiDrivetrain : '';
   var veh = String((d && d.vehicle) || 'the vehicle on this lead');
+  var req = _lpDriveRequired(d);
+  if (req) return 'They told us ' + req + ' is required. That is settled: never ask whether ' + req + ' is a must or still required. '
+    + (dv ? 'The ' + veh + ' on this lead is ' + _LP_DRIVE_NAME[dv] + ' (VinSolutions\' record of this unit). ' : '')
+    + 'For ' + (dv ? 'any OTHER vehicle' : 'any vehicle') + ' we do NOT have the drivetrain on record: do not say it is AWD, FWD, RWD or 4WD -- say you will make sure what you send them is ' + req + '.';
   return 'They asked about the drivetrain. ' + (dv ? 'The ' + veh + ' on this lead is ' + _LP_DRIVE_NAME[dv] + ' (VinSolutions\' record of this unit) -- answer with that. ' : '')
     + 'For ' + (dv ? 'any OTHER vehicle' : 'any vehicle') + ' -- an alternative, a comparable, an inventory suggestion' + (dv ? '' : ', or the vehicle on this lead') + ' -- we do NOT have its drivetrain on record: '
     + 'do not say it is AWD, FWD, RWD or 4WD. Say you will confirm it for them (or ask whether AWD is a must), and keep moving.';
@@ -4330,6 +4344,40 @@ function _lpTryingLead(sms) {
 function _lpStopOnlyReply(d) {
   try { return !!(d && LP_STOP_WORD_RX.test(String(d.lastInboundMsg || '').trim()) && !_lpLeadHasContact(d)); } catch (e) { return false; }
 }
+// (v9.7.818) THE PRICE THEY ASKED FOR WENT OUT. Kia Baytown lead 2102063788 (log352): the customer asked for out-the-door prices on two
+// Telluride Hybrid trims; the salesperson texted the selling price, fees, tax and total drive-out on one of them; the draft asked
+// whether AWD was still a must. Our newest text or email after the customer's newest message, carrying a dollar figure and a price
+// word, on a lead where they asked for a price: { date, t, by, first, body, total }.
+var LP_PRICE_ASK_RX = /\b(?:out[- ]the[- ]door|OTD|drive[- ]?out|(?:best|your|the|a|bottom[- ]line)\s+price|pricing|price\s+(?:on|for)|quote|numbers\s+on|how\s+much)\b/i;
+var LP_QUOTE_FIG_RX = /\$\s?\d{1,3}(?:,\d{3})+(?:\.\d{2})?|\$\s?\d{4,}(?:\.\d{2})?/;
+var LP_QUOTE_WORD_RX = /\b(?:selling\s+price|sale\s+price|out[- ]the[- ]door|OTD|drive[- ]?out|total|price|payment)\b/i;
+function _lpQuoteOut(d) {
+  try {
+    if (!d || d.hasApptSet || d.convState === 'call-followup') return null;
+    var cust = _lpCustEntries(d), lastWords = cust.length ? cust[0].t : 0;
+    if (!cust.some(function (x) { return LP_PRICE_ASK_RX.test(x.body); })) return null;
+    var ours = _lpOurEntries(d), q = null;
+    for (var i = 0; i < ours.length && ours[i].t > lastWords; i++) {
+      var x = ours[i];
+      if (/text message|email/i.test(x.title) && LP_QUOTE_FIG_RX.test(x.body) && LP_QUOTE_WORD_RX.test(x.body) && !LP_OPTOUT_CONFIRM_RX.test(x.body)
+          && !((typeof _lpIsBotAuthor === 'function') && _lpIsBotAuthor(x.raw))) { q = x; break; }
+    }
+    if (!q) return null;
+    var byOf = function (r) { return ((/\bBy:\s*([A-Z][\w'\u2019-]*(?:\s+[A-Z][\w'\u2019-]*)?)/.exec(r) || [])[1] || '').trim(); };
+    var by = byOf(q.raw);
+    if (!by) ours.forEach(function (y) { if (!by && Math.abs(y.t - q.t) <= 15 * 60000) by = byOf(y.raw); });   // the call they made with it
+    if (!by) by = ((/\bthis is ([A-Z][a-z]+)\b/.exec(q.body) || [])[1] || '');
+    var tm = /(?:total|drive[- ]?out|out[- ]the[- ]door|OTD)[^$]{0,40}(\$\s?[\d,]+(?:\.\d{2})?)/i.exec(q.body);
+    return { date: q.date, t: q.t, by: by, first: by.split(/\s+/)[0] || '', body: q.body.replace(/\s+/g, ' ').trim().slice(0, 400), total: tm ? tm[1].replace(/\s/g, '') : '' };
+  } catch (e) { return null; }
+}
+function _lpQuoteWho(q, d) {
+  var me = String((d && d.agent) || '').split(/\s+/)[0].toLowerCase(), rep = String((d && d.salesRep) || '').trim().toLowerCase();
+  if (!q.first) return 'we';
+  if (q.first.toLowerCase() === me) return 'you';
+  if (q.by && (q.by.toLowerCase() === rep || (rep && rep.split(/\s+/)[0].indexOf(q.first.toLowerCase()) === 0))) return (q.by.split(/\s+/).length > 1 ? q.first : rep.split(/\s+/)[0].replace(/^./, function (c) { return c.toUpperCase(); })) + ', their salesperson,';
+  return q.first + ', your teammate,';
+}
 function _lpPitchOut(d) {
   try {
     if (d && d.hasApptSet) return null;
@@ -4376,6 +4424,7 @@ function _lpWhatWeHave(d) {
   try {
     if (!d || !d.vehicle || d.stockNum || d.vin || /not provided/i.test(d.vehicle) || d.isSoldDelivered) return null;
     if ((typeof _lpMmSuggestedVoi === 'function') && _lpMmSuggestedVoi(d)) return null;   // (v9.7.801) nobody asked about the program's pick
+    if ((typeof _lpQuoteOut === 'function') && _lpQuoteOut(d)) return null;   // (v9.7.818) the price they asked for already went out
     var fam = _lpModelFamilyKey(d.vehicle); if (!fam) return null;
     var c = _lpValueFactCache[d.dealerId], units = c && c.inv && c.inv.units;
     if (!units || !units.length) return null;
@@ -4385,7 +4434,7 @@ function _lpWhatWeHave(d) {
     var ctx = String(d.conversationBrief || '') + '\n' + String(d.context || '');
     var cp = ctx.match(/COLOR PREFERENCE: Customer mentioned ([^.\n]+)\./);
     var _wwInt = _lpInteriorAsk(cust);   // (v9.7.806) the interior they asked for is not the paint
-    var colors = Object.keys(_lpColorWords(cp && !_wwInt ? cp[1] : (_wwInt ? _wwInt.rest : cust)));
+    var colors = Object.keys(_lpColorWords(_lpStripColorExclusions(cp && !_wwInt ? cp[1] : (_wwInt ? _wwInt.rest : cust))));   // (v9.7.818)
     var _wwPaint = colors.length ? '' : _lpPaintNameAsked(d.color, _wwInt ? _wwInt.rest : cust);
     if (_wwPaint) colors.push(_wwPaint);
     var _paintOk = function (u) { return !!_wwPaint && String(u.color || '').toLowerCase().indexOf(_wwPaint.toLowerCase()) >= 0; };
@@ -6493,7 +6542,12 @@ function _lpParseDealBuilder(text){
 // "want white"). Intent cues exclude bare "the"/"a" so non-color uses ("black lab", "green light",
 // "the white one still available") do not trigger. Used by the color-mismatch guard.
 function _lpColorWords(s){ var set={}, m=String(s||'').toLowerCase().match(/\b(white|black|gray|grey|silver|blue|red|green|gold|beige|tan|brown|bronze|copper|orange|yellow|purple|maroon|burgundy|charcoal|gunmetal|champagne|ivory|cream|navy|teal)\b/g); if(m) m.forEach(function(w){ set[w==='grey'?'gray':w]=1; }); return set; }
+// (v9.7.818) A COLOR THEY EXCLUDED IS NOT A COLOR THEY ASKED FOR. Kia Baytown lead 2102063788 (log352): "Any exterior color is
+// acceptable except Black Jade Green" became "they asked for BLACK" and an inventory answer for "the EX in black or green".
+var LP_COLOR_EXCL_RX = /\b(?:(?:except(?:\s+for)?|other\s+than|but\s+not|anything\s+but|colou?rs?\s+but|excluding|avoid(?:ing)?|(?:do\s*n['\u2019]?t|do\s+not|don['\u2019]?t)\s+(?:want|like))\s+(?:(?:a|an|the|any|in)\s+)?(?:[a-z]+\s+){0,2}?|(?:not|no|never)\s+(?:(?:a|an|the|in)\s+)?)(?:white|black|gray|grey|silver|blue|red|green|gold|beige|tan|brown|bronze|copper|orange|yellow|purple|maroon|burgundy|charcoal|gunmetal|champagne|ivory|cream|navy|teal|pearl|platinum)(?:\s+(?:[a-z]+\s+)?(?:white|black|gray|grey|silver|blue|red|green|gold|beige|tan|brown|pearl|metallic|matte|tricoat|mica))*\b/gi;
+function _lpStripColorExclusions(s) { return String(s || '').replace(LP_COLOR_EXCL_RX, ' '); }
 function _lpWantedColorWords(s){
+  s = _lpStripColorExclusions(s);
   var t=String(s||'').toLowerCase(), set={};
   function add(w){ if(w) set[w==='grey'?'gray':w]=1; }
   var base='(white|black|gray|grey|silver|blue|red|green|gold|beige|tan|brown|bronze|copper|orange|yellow|purple|maroon|burgundy|charcoal|gunmetal|champagne|ivory|cream|navy|teal)';
@@ -7879,7 +7933,7 @@ function populateFromData(d) {
   try {
     if (d.voiDrivetrain && _LP_DRIVE_NAME[d.voiDrivetrain]) vehicleExtras.push('DRIVETRAIN: ' + _LP_DRIVE_NAME[d.voiDrivetrain] + ' -- VinSolutions\' own record of this unit.');
     if (_lpDriveAsked(d)) {
-      vehicleExtras.push('🚙 DRIVETRAIN QUESTION: ' + _lpDriveLine(d));
+      vehicleExtras.push('🚙 DRIVETRAIN ' + (_lpDriveRequired(d) ? 'REQUIREMENT' : 'QUESTION') + ': ' + _lpDriveLine(d));
       console.log('[LP DRIVETRAIN DIAG] asked: "' + String(d.lastInboundMsg || '').slice(0, 60) + '" | on record for the vehicle on the lead: ' + (d.voiDrivetrain || 'no'));
     }
   } catch (eDvP) {}
@@ -8187,7 +8241,8 @@ function populateFromData(d) {
   var ctxForVehicleCheck = _lpCtxCurrent;
   var contextMentionsVehicle = /\b(pilot|odyssey|civic|accord|cr-v|crv|hr-v|hrv|ridgeline|passport|highlander|camry|corolla|rav4|tacoma|tundra|sequoia|4runner|venza|sienna|k5|sportage|telluride|sorento|seltos|carnival|stinger|ev6|niro|q3|q5|q7|q8|a3|a4|a5|a6|a7|a8|e-tron|etron|silverado|f-150|f150|ram|explorer|bronco|mustang|equinox|traverse|tahoe|suburban|yukon|escalade|chevy|chevrolet|ford|gmc|dodge|jeep|nissan|altima|rogue|pathfinder|armada|frontier|hyundai|santa fe|tucson|elantra|ioniq|palisade|genesis)\b/i.test(ctxForVehicleCheck);
   // Seller-intent detection — customer appears to be selling, not buying
-  var sellerIntent = /i might have.*buyer|have.*buyer for you|looking to sell|want to sell|selling my|sell.*vehicle|sell.*car|sell.*truck/i.test(ctxForVehicleCheck);
+  // (v9.7.818) "sell.*vehicle" read "The selling price is $57,155 ... have the vehicle ready" (lead 2102063788) as a seller.
+  var sellerIntent = /i might have.*buyer|have.*buyer for you|looking to sell|want to sell|selling my|\bsell(?:ing)?\s+(?:my|our|his|her|their|the|this|a|an)\s+(?:[\w-]+\s+){0,3}?(?:vehicle|car|truck|suv)\b/i.test(ctxForVehicleCheck);
   // (v9.7.480/475 STAGE 2) Authoritative empty: PageData present with NO LeadVehicle and a
   // ZERO-length VehiclesOfInterest array means the blank panel is REAL — the customer genuinely
   // has no vehicle on the lead — not a render failure. The model can ask what they're shopping
@@ -16806,6 +16861,7 @@ function _lpScraperBotAuthor(msg) {
           // is the cutter every other customer-text reader here already uses.
           var _clAuth = String(line);
           try { if (typeof _lpCustomerAuthoredPart === 'function') _clAuth = _lpCustomerAuthoredPart(_clAuth).text; } catch (eCa) { _clAuth = String(line); }
+          _clAuth = _clAuth.replace(/\b(?:(?:except(?:\s+for)?|other\s+than|but\s+not|anything\s+but|colou?rs?\s+but|excluding|avoid(?:ing)?|(?:do\s*n['\u2019]?t|do\s+not|don['\u2019]?t)\s+(?:want|like))\s+(?:(?:a|an|the|any|in)\s+)?(?:[a-z]+\s+){0,2}?|(?:not|no|never)\s+(?:(?:a|an|the|in)\s+)?)(?:white|black|gray|grey|silver|blue|red|green|gold|beige|tan|brown|bronze|copper|orange|yellow|purple|maroon|burgundy|charcoal|gunmetal|champagne|ivory|cream|navy|teal|pearl|platinum)(?:\s+(?:[a-z]+\s+)?(?:white|black|gray|grey|silver|blue|red|green|gold|beige|tan|brown|pearl|metallic|matte|tricoat|mica))*\b/gi, ' ');   // (v9.7.818) "except Black Jade Green" is not an ask
           var cm = _clAuth.match(_lpColorRx);
           if (!cm) return;
           var _tr = _lpColorLineIsTrade(line);
@@ -23093,6 +23149,16 @@ function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
       out.push('');
     }
   } catch (eRfPo) {}
+  // (v9.7.818) The price they asked for went out: the text follows up on it.
+  try {
+    var _rfQo = (typeof _lpQuoteOut === 'function') ? _lpQuoteOut(d) : null;
+    if (_rfQo) {
+      out.push('\u2501\u2501\u2501 THE PRICE THEY ASKED FOR WENT OUT \u2501\u2501\u2501');
+      out.push('On ' + _rfQo.date + ' ' + _lpQuoteWho(_rfQo, d) + ' sent them a price ("' + _rfQo.body.replace(/"/g, "'") + '"). '
+        + 'This text follows up on it: keep the first draft\'s follow-up on that price, first, right after their name -- whether it came through, and anything it did not cover that we are getting priced. Add no figures the first draft does not state.');
+      out.push('');
+    }
+  } catch (eRfQo) {}
   // (v9.7.804) What they said on the call is what the text is about.
   try {
     var _rfCw = (typeof _lpCallWants === 'function') ? _lpCallWants(d) : null;
@@ -23115,7 +23181,7 @@ function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
   try {
     if (_lpDriveAsked(d)) {
       out.push('\u2501\u2501\u2501 THE DRIVETRAIN \u2501\u2501\u2501');
-      out.push(_lpDriveLine(d) + ' Keep whatever the first draft says about it; do not add a drivetrain the first draft does not state.');
+      out.push(_lpDriveLine(d) + (_lpDriveRequired(d) ? ' If the first draft asks whether it is still required, leave that question out. Do not' : ' Keep whatever the first draft says about it; do not') + ' add a drivetrain the first draft does not state.');   // (v9.7.818)
       out.push('');
     }
   } catch (eRfDv) {}
@@ -23269,7 +23335,10 @@ function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
   // opened "[Rep] has tried reaching you by phone"; the rewrite, told here to lead on what earns a reply and give "the actual
   // reason this visit is worth making", opened on the truck again and moved the follow-up to its third sentence.
   if (_rfPoW) {
-    out.push(_rfPoW.calls.length
+    var _rfQoW = null; try { _rfQoW = _lpQuoteOut(d); } catch (eRfQw) {}   // (v9.7.818)
+    out.push(_rfQoW
+      ? 'This text follows up on the price we sent. Right after their name, ask whether it came through, and say what we are getting priced if the first draft does. It is not a pitch: no reason to come in, no visit ask.'
+      : _rfPoW.calls.length
       ? 'This text is the follow-up to our calls. Right after their name, say we have been trying to reach them (who called, as the first draft says), then '
         + 'give one easy way to reach us and ask one simple question. It is not a pitch: no reason to come in, no restating the car or its details, no visit ask.'
       : 'Our earlier message already made the case to come in, and it went unanswered. Right after their name, bring one new thing or ask one simple question. '
@@ -24320,7 +24389,8 @@ var _LP_VISIT_DECISION_TEXT = {
 function _lpApplyVisitDecision(text) {
   var dec = _lpVisitDecision(text), edits = [], removed = [];
   var _poAny = /(?:^|\n)OUR PITCH IS ALREADY OUT\b/.test(String(text));   // (v9.7.816) its edits run with or without a hold
-  if (!dec.level && !_poAny) return { text: text, level: 0, owner: '', edits: edits, removed: removed, others: dec.others || [] };
+  var _qoAny = /THE PRICE THEY ASKED FOR WENT OUT: /.test(String(text));   // (v9.7.818)
+  if (!dec.level && !_poAny && !_qoAny) return { text: text, level: 0, owner: '', edits: edits, removed: removed, others: dec.others || [] };
   var L = dec.level, lines = String(text).split('\n'), out = [];
   var drop = function (why, was) { edits.push(why); removed.push({ why: why, was: was }); };   // (v9.7.776) was: for the dump
   // (v9.7.816) Under the PITCH ALREADY OUT rule the pitch itself goes too, not only the times: the inventory "say it is here",
@@ -24328,6 +24398,21 @@ function _lpApplyVisitDecision(text) {
   var _po = _poAny;
   for (var i = 0; i < lines.length; i++) {
     var l = lines[i], t = l.replace(/^\s+/, '');
+    // (v9.7.818) The price they asked for went out: what this message is about is following up on it.
+    if (_qoAny) {
+      if (/Re-engage with a genuinely different angle: a concrete new reason to act now, a specific next step, or a question you have not already asked\./.test(l)) {
+        l = l.replace(/Re-engage with a genuinely different angle: a concrete new reason to act now, a specific next step, or a question you have not already asked\./, 'The price we sent since then is that reply: follow up on it (see THE PRICE THEY ASKED FOR WENT OUT).');
+        drop('"a genuinely different angle" (the price went out)', lines[i]);
+      }
+      if (/\u2190 THIS IS THE VEHICLE FOR THIS LEAD\. Do not substitute or reference other vehicles from the conversation history\./.test(l)) {
+        l = l.replace(/THIS IS THE VEHICLE FOR THIS LEAD\. Do not substitute or reference other vehicles from the conversation history\./, 'THE VEHICLE ON THIS LEAD. The price we sent (see THE PRICE THEY ASKED FOR WENT OUT) may be for another trim or vehicle they asked about: name that one when you follow up on it. Do not substitute any other.');
+        drop('vehicle lock (the price went out)', lines[i]);
+      }
+      if (/Soft re-engage \u2014 change the angle, do not press for an appointment hard\./.test(l)) {
+        l = l.replace(/change the angle, do not press/, 'follow up on the price we sent, do not press');
+        drop('soft re-engage "change the angle" (the price went out)', lines[i]);
+      }
+    }
     if (_po) {
       if (/Say "we have it here" or "it is here and available to see"|Use soft language: "showing available" or "we have it here"/.test(l)) { out.push(l.replace(/Say "we have it here" or "it is here and available to see"|Use soft language: "showing available" or "we have it here"/, 'Our earlier message already told them it is here; do not say it again')); drop('inventory "say it is here" (pitch already out)', l); continue; }
       if (/^- Email: Open with the vehicle\/option confirmation/.test(t)) { drop('distance email opening (pitch already out)', l); continue; }
@@ -28260,6 +28345,7 @@ function buildUserPrompt(data) {
       ageBlock.push(_po.times
         ? 'OUR PITCH IS ALREADY OUT AND UNANSWERED: on ' + _po.date + ' our message told them ' + (_po.here ? 'the car is here' : 'about the car') + ' and offered times, and they have not answered it. Do not say again that it is here or available, do not offer times or a visit slot, and do not re-send the reasons to come in (the vehicle ready, the paperwork). No specific appointment times in this message. Bring one new thing, or ask one simple question.'
         : 'OUR PITCH IS ALREADY OUT: on ' + _po.date + ' our message told them ' + (_po.here ? 'the car is here' : 'about the car') + ', and they have not answered it. Do not say again that it is here or available, and do not re-send the reasons to come in (the vehicle ready, the paperwork). Bring one new thing, or ask one simple question.');
+      if (_lpQuoteOut(data)) ageBlock[ageBlock.length - 1] = ageBlock[ageBlock.length - 1].replace(/ Bring one new thing, or ask one simple question\.$/, ' This message follows up on the price we sent (see THE PRICE THEY ASKED FOR WENT OUT).');   // (v9.7.818)
       if (_po.calls.length) {
         var _pc = _po.calls[_po.calls.length - 1], _pcFirst = _pc.first, _pcMine = !_pcFirst || _pcFirst.toLowerCase() === _poMe;
         var _pcWho = _pcMine ? 'you' : (_pc.by && _pc.by.toLowerCase() === _poRep ? _pcFirst + ', their salesperson,' : _pcFirst + ', your teammate,');
@@ -28274,6 +28360,19 @@ function buildUserPrompt(data) {
         + (_po.calls.length ? ' (' + _po.calls.map(function (c) { return (c.by || '?') + ' ' + c.date; }).join('; ') + ')' : '') + (_po.times ? ' -> PITCH ALREADY OUT hold (no times)' : ' -> no re-pitch; times allowed (none were offered)'));
     }
   } catch (ePo) {}
+  // (v9.7.818) The price they asked for went out (see _lpQuoteOut).
+  try {
+    var _qo = _lpQuoteOut(data);
+    if (_qo) {
+      var _qoWho = _lpQuoteWho(_qo, data);
+      ageBlock.push('');
+      ageBlock.push('\ud83d\udcb2 THE PRICE THEY ASKED FOR WENT OUT: on ' + _qo.date + ' ' + _qoWho + ' sent them a price: "' + _qo.body.replace(/"/g, "'") + '". '
+        + 'This message follows up on it -- that is what this touch is about, not a new angle. Ask whether it reached them and whether it answers what they asked for, and offer the next step on it, the way they asked to hear from us. '
+        + 'Check it against their request: if it is for a different vehicle, trim or configuration than they asked about, or covers only part of what they asked for, say so plainly and say you are getting the rest priced the same way. '
+        + 'You may name the vehicle it was for' + (_qo.total ? ' and its total (' + _qo.total + ')' : '') + '; do not restate its other figures, never invent a price, and do not re-ask anything they already told us.');
+      console.log('[LP QUOTE OUT DIAG] ' + _qo.date + ' price sent by ' + (_qo.by || '(unknown)') + ' -> ' + _qoWho + (_qo.total ? ' | total ' + _qo.total : '') + ' | the message follows up on it; the inventory answer stands down');
+    }
+  } catch (eQo) {}
   // (v9.7.785) They already have a sales rep (see _lpHasRep).
   try {
     var _hr = _lpHasRep(data);
