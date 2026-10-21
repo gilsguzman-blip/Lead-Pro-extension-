@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.813 (Commercial. THE LEASE-END CHOICE THE CUSTOMER MADE DRIVES THE MESSAGE; THE CDP DECIDES LEASE OR FINANCE; A NEWER LEAD IS FLAGGED ON EVERY GRAB. Extension only; proxy v7.88, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Kia Baytown, 10/21. Lead 2103558746 is a KMF Customer Intent Capture lead, status NCI (Gil: Not Customer Initiated -- 'Active Kia Finance customer who has submitted their lease-end intent via www.kiafinance.com. Intents include Return Vehicle, Purchase Current Vehicle, or Purchase or Lease a New Vehicle. Not all are the same'). Its Lead received note says 'HCA_AccountType: Lease' and 'HCA_LeaseEndIntent: Return Your Vehicle'; the CDP summary read the lead as 'for a new 2024 Kia EV9 GT-Line' (the car she leases), and the drafts pitched an options-review visit. (1) THE CHOICE. The scraper reads HCA_LeaseEndIntent as 'return', 'purchase-current' or 'new' (_hcaLeaseIntent, carried to the prompt), and in the program branch it replaces the options list. Return: make the turn-in easy -- handle the return here, a time for the inspection and drop-off, all keys; no pitch, no options list, and at most one light question about what is next (Gil: 'light anything next is a good track'); it outranks the CRM summary and the vehicle on the lead about what they want. Buy the car they have: help with that purchase, no new-vehicle pitch, no figure. New: their next vehicle with us, from the program's suggested models. No choice on the lead: the options as before. (2) LEASE OR FINANCE FROM THE CDP. Where the lead's own account type is missing, the CDP summary's 'leased' / 'financed' decides (_lpCdpAcctType; Gil: 'The CDP is a good fact if it says it's a lease'), in populateFromData and buildUserPrompt alike. The lead's own account type still outranks it. (3) A NEWER LEAD, ON EVERY GRAB. The v9.7.497 newer-lead check sat inside the branch for a lead with no vehicle of interest, so it never ran on lead 1581859334 (the same customer's 2024 Sold walk-in, a 2024 EV9 on it), grabbed with the 10/20 NCI lead above it in the list. It now runs before that branch; a newer NCI lead is described as created by the manufacturer's program, not an inquiry they sent us. (4) A LATENT CRASH, FOUND BY THE NEW TEST: leadSource was declared const and the KMF/loyalty text fallback assigns it, so a page with no source field whose text names a finance program threw 'Assignment to constant variable' and the grab returned nothing. Now let. TESTS: lease-intent-813 (new) runs the shipped inlineScraper in Chromium on placeholder lead pages (a Lead received note with each of the three choices, an older lead with a vehicle under a newer NCI lead, a page with no source field) and builds prompts through the shipped populateFromData and panel payload: 24 assertions across both builds; v9.7.812 fails 8 of 12 per build (its 4 controls pass). VERIFIED: run-all 247 suites green, 8,681 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.812.)
 // Lead Pro -- popup.js  v9.7.812 (Commercial. THE CDP SUMMARY IS THE READ ON THE CUSTOMER; THE BROWSING INTERESTS ARE DROPPED WHERE IT EXISTS. Extension only; proxy v7.88, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Kia Baytown lead 2103558746 (KMF Customer Intent Capture, 10/21): the Key Information panel's Fullpath CDP summary ('[Customer] leased one vehicle and has many service visits with the dealership...') sat beside a Buying Signals row, 'Browsing. Interests: Expedition, Silverado 1500, New.', which v9.7.807's fill-in turned into 'BUYING SIGNAL DATA: ... use these interests to make the message feel personally relevant'. Gil: the summary works on every lead type and is the better read; the intelligence 'tends to lead the model down the wrong path'; 'drop the interests on AI Buying Signals leads too -- we'll run with the CDP info when available. Only the Baytown store will have it for now. Lafayette stores will not have it so it can gather info as before.' New _lpCdpSummary. WHERE THE SUMMARY IS ON THE PANEL: (1) it leads the CRM summary block, named the best read on the customer -- who they are to us comes from it and it wins any disagreement about that; the Buying Signals and Customer Intelligence rows are left out (the AMP row stays). (2) No panel fill-in of the buying-signals field and no 'BUYING SIGNAL DATA' line ([LP CDP DIAG] logs the drop). (3) The panel payload hands buildUserPrompt no interests and carries keyInfo; classifyScenario's buyingSignalData is empty. (4) AI Buying Signals leads: no SHOPPING SIGNALS block; written from the summary -- no vehicle, make or body style they looked at, nothing about how we know they may be in the market, one open question (PLAY C). WHERE IT IS NOT (the Lafayette stores today): everything as before, interests included. TESTS: cdp-812 (new) builds each prompt through the shipped populateFromData and panel payload: 12 assertions across both builds; v9.7.811 fails 4 of 6 per build (its 2 no-summary controls pass). A replay of the lead's own scrape as an AI Buying Signals lead names the Expedition and Silverado 3 times on v9.7.811 and none on v9.7.812. VERIFIED: run-all 246 suites green, 8,657 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.811.)
 // Lead Pro -- popup.js  v9.7.811 (Commercial. THE TEXT REWRITE KEEPS THE CALL. Extension only; proxy v7.88, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Toyota Baytown lead 2103463134, 10/21 (log341), Gil: 'Nope still missed.' v9.7.810 got everything up to the last step right: call-followup, the Key Information rows taken ([LP KEYINFO MERGE DIAG] TAKEN 3 row(s)), the call line ([LP LAST CALL DIAG] ... 'sent over pics'), an email asking whether the photos the salesperson sent came through, and a first-draft text that did the same. The SMS rewrite then shipped 'I can have the 2024 Land Cruiser 1958 ready for you to see this afternoon. Would 4:00 PM work?' -- the day before's text again. It had never been told about the call, and it is told to give 'the reason this visit is worth making'. (1) The rewrite prompt gets THE CALL THIS TEXT FOLLOWS on a call-followup lead: who reached them (a teammate by first name) and when; not a first reach, nothing re-sent; and when the first draft asks about something we sent, that question is the reason for the text -- kept, right after their name, in its own words, with any visit offer after it, never instead of it. (2) The safety net, beside v9.7.778's missed-appointment rule: when the first draft asks whether something we sent came through (photos, pictures, a video or walkaround, numbers, a quote, a link -- 'come through', 'did you get', 'a chance to look', 'what you thought') and the rewrite does not, the first draft ships, logged [LP SMS REFINE DIAG] kept the first pass. New _lpSentAsk. TESTS: call-refine-811 (new) executes the shipped _lpSentAsk, _lpBuildSmsRefinePrompt and _lpRefineSms (worker stubbed) on log341's own first draft, email and rewrite: 12 assertions across both builds; v9.7.810 fails 3 of 6 per build (one is the new helper; its 3 controls pass). VERIFIED: run-all 245 suites green, 8,645 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.810.)
 // Lead Pro -- popup.js  v9.7.810 (Commercial. A WORKED NEW LEAD FOLLOWS ITS PHONE CALL, THE KEY INFORMATION ROWS SURVIVE THE FRAME MERGE, AND WHAT A FULLPATH LEAD RESPONDED TO IS NOT RE-PITCHED. Extension only; proxy v7.88, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Toyota Baytown lead 2103463134, 10/21 (log340), Gil: 'I think it still missed the mark.' The lead came in at 2:36 PM on 10/20; our text said the car was here at its price with two times; the salesperson reached the customer at 3:46 ('Outbound phone call (Contacted)', 'sent over pics'). The next day's draft said the same thing again with two new times. (1) THE CALL. v9.7.792 made a connected call turn the text and email into a follow-up to it only when the call was TODAY, so a lead that came in yesterday and was called yesterday stayed a first touch and the prompt said the customer had not replied. A connected call now counts from an hour before the lead's Created date. New _lpLastCall and a line in the prompt: THE CALL THIS FOLLOWS -- who reached them (a teammate by first name when it was not the signer), when, and the call note; nothing reads as a first reach, nothing our earlier messages said is re-sent, and when something was sent on the call (pictures, a video, numbers) the draft asks whether it came through and what they thought. Never quoted. [LP LAST CALL DIAG]. (2) THE KEY INFORMATION ROWS. v9.7.808 read them ([LP KEYINFO DIAG] rows:3 ... in shadow root) and the grab lost them twice over: every frame without the panel sent keyInfo [] -- an empty list is truthy, so the first one won the merge (v9.7.617's lesson again) -- and the dashboard frame has no lead or customer ID, so the second pass dropped its customer-level fields. An empty read is now null; the scraper takes the customer ID from a GlobalCustomerID in the frame's URL when the page has none; and the rows are taken from a frame with no customer ID when it is the only frame with rows and its ZIP or phone is the lead's own. A frame naming another customer is still refused. [LP KEYINFO MERGE DIAG] says which. (3) FULLPATH, ALREADY PUT TO THEM. The block said 'IT IS THE REASON FOR THIS MESSAGE... Lead with that car. You may name that advertised price' beside v9.7.808's 'do not restate ... its price', and the model followed it; the text rewrite, shown the price and told to keep the car 'the way the first draft has it', put '$55,948' back into a first draft that had dropped it. Once an earlier message of ours carries it, it is background: the car stays the subject, but it is not led with, re-announced as here, or re-priced (an offer is not re-quoted); the rewrite is not shown the price and is told not to put it back. Before anything has gone out, unchanged. TESTS: call-keyinfo-810 (new) runs the shipped call block, buildUserPrompt through the panel payload and _lpBuildSmsRefinePrompt, runs the shipped inlineScraper in Chromium on a page without the panel and on a dashboard whose panel is in a shadow root, and feeds what it returns through the shipped frame merge, lifted whole: 32 assertions across both builds; v9.7.809 fails 9 of 16 per build (its 7 controls pass). A replay of log340's own scrape through the panel payload gives the follow-up task, the call line naming the teammate and the pictures, and the Land Cruiser as background with no price. VERIFIED: run-all 244 suites green, 8,633 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.809.)
@@ -4273,6 +4274,12 @@ function _lpKeyInfoRows(d) {
 function _lpCdpSummary(d) {
   try { var r = _lpKeyInfoRows(d).filter(function (k) { return /summary/i.test(String(k.key || '')); })[0]; return r ? String(r.blurb || '').trim() : ''; } catch (e) { return ''; }
 }
+// (v9.7.813) Lease or finance, from the CDP summary ("[Customer] leased one vehicle..."), used only when the lead's own account
+// type is missing (Gil: "The CDP is a good fact if it says it's a lease"). '' when it says neither or both.
+function _lpCdpAcctType(d) {
+  var t = _lpCdpSummary(d), l = /\bleased\b/i.test(t), f = /\bfinanced\b/i.test(t);
+  return l && !f ? 'lease' : f && !l ? 'finance' : '';
+}
 function _lpKeyInfoLines(d) {
   var cdp = !!_lpCdpSummary(d);
   var rows = _lpKeyInfoRows(d).filter(function (k) { return !cdp || !/buying|enrichment|intelligence/i.test(String(k.key || '') + ' ' + String(k.label || '')); })   // (v9.7.812)
@@ -8013,6 +8020,7 @@ function populateFromData(d) {
     vehicleExtras.push('');
     vehicleExtras.push('🔀 A NEWER LEAD EXISTS FOR THIS CUSTOMER — and it is NOT the lead you are working. Submitted ' + d.newerLead.date + ' via "' + d.newerLead.source + '"' + (d.newerLead.status ? ' (status: ' + d.newerLead.status + ')' : '') + ', while the lead in front of you is older. Its details are not loaded here, so do NOT invent or assume what it contains.'
       + (_nlTrade ? ' That source is a TRADE submission, which means this customer very likely provided trade information AFTER the lead you are looking at — treat any "no trade on file" state here as incomplete rather than settled, and do not tell them we have nothing on their trade.' : '')
+      + (/^NCI$/i.test(String(d.newerLead.status || '').trim()) ? ' Its status, NCI, means NOT CUSTOMER INITIATED: the manufacturer\'s program created it (for example from what they did on the manufacturer\'s own finance site), so it is not an inquiry they sent us -- never say they reached out or asked us for anything.' : '')   // (v9.7.813)
       + ' Write in a way that stays true if the newer lead contains something you cannot see: keep the message about where THEY are in the process, invite them to confirm the current details, and avoid flat claims about what we do or do not have on file for them.');
     console.log('[LP NEWER-LEAD DIAG] newer sibling lead ' + d.newerLead.leadId + ' (' + d.newerLead.date + ', ' + d.newerLead.source + (d.newerLead.status ? ', ' + d.newerLead.status : '') + ') post-dates the active lead — flagged as possibly carrying newer info');
   }
@@ -10019,6 +10027,7 @@ function populateFromData(d) {
     var _loyaltyAcctType =
         (d._hcaAccountType === 'finance') ? 'finance'
       : (d._hcaAccountType === 'lease')   ? 'lease'
+      : _lpCdpAcctType(d) ? _lpCdpAcctType(d)   // (v9.7.813)
       : /off.?lease/.test(_lsType)        ? 'lease'
       : /off.?loan/.test(_lsType)         ? 'finance'
       : /kfa/.test(_lsType)               ? 'finance'
@@ -11966,6 +11975,49 @@ function _lpScraperBotAuthor(msg) {
     // ID namespace than AutoLeadID, so rows cannot be matched to the active lead directly);
     // (3) never accept a row vehicle that also appears in the TradeInfoPanel — that is the
     // customer's trade, not a VOI.
+    // (v9.7.813) Moved out of the no-vehicle branch below, where it sat since v9.7.497: it only ran on a lead with no vehicle of
+    // interest, so it never ran on Kia Baytown lead 1581859334 (a 2024 Sold walk-in with a 2024 EV9 on it), opened 10/21 while
+    // the customer's 10/20 KMF Customer Intent Capture lead sat above it in the lead list. It reads only the lead list.
+    // (v9.7.497/492 — NEWER SIBLING LEAD) Gil, David Cornell (Kia Baytown): his ACTIVE lead
+    // is a 6/25 KMF LUV Program lead with no trade, while a NEWER 7/24 Tradepending lead on
+    // the same customer sits in the selector marked Duplicate — and Tradepending leads are
+    // trade submissions by definition. LP works only the active lead, so the newer trade
+    // information is invisible and the response is built on a stale picture.
+    // We deliberately do NOT scrape or merge the sibling lead's frame: that is exactly the
+    // cross-lead contamination the v9.7.480 ID-CONFLICT rejection exists to prevent, and the
+    // sibling's panel is not rendered anyway. What the LeadSelector row DOES give us for
+    // free — status, created date, source — is enough to say "something newer exists, and
+    // here is what kind of lead it is", which is the part a human can act on.
+    var _newerLead = null;
+    try {
+      var _activeKey = String(autoLeadId || '');
+      var _selRows = document.querySelectorAll('#LeadSelector tr[data-row-key], [id*="LeadSelector"] .ant-table-tbody > tr[data-row-key]');
+      for (var _si = 0; _si < _selRows.length; _si++) {
+        var _srow = _selRows[_si];
+        var _skey = _srow.getAttribute('data-row-key') || '';
+        if (!_skey || _skey === _activeKey) continue;
+        var _scells = _srow.querySelectorAll('td');
+        var _stxt = [];
+        for (var _ci = 0; _ci < _scells.length; _ci++) _stxt.push((_scells[_ci].innerText || '').trim());
+        var _sjoin = _stxt.join(' | ');
+        var _sdate = (_sjoin.match(/\b(\d{1,2}\/\d{1,2}\/\d{2,4})\b/) || [])[1] || '';
+        if (!_sdate) continue;
+        var _sms2 = Date.parse(_sdate.replace(/(\d{1,2})\/(\d{1,2})\/(\d{2})$/, '$1/$2/20$3'));
+        if (!(_sms2 > 0)) continue;
+        // Only leads NEWER than the one being worked. Without the active lead's created
+        // date there is nothing to compare against, so stay silent rather than guess.
+        var _activeMs = _pdCreatedH ? Date.parse(_pdCreatedH + 'Z') : 0;
+        if (!(_activeMs > 0) || !(_sms2 > _activeMs)) continue;
+        var _sstatus = (_stxt[0] || '').trim();
+        var _ssource = '';
+        for (var _cj = 0; _cj < _stxt.length; _cj++) {
+          if (/[A-Za-z]{4,}/.test(_stxt[_cj]) && !/^\d/.test(_stxt[_cj]) && _stxt[_cj] !== _sstatus) { _ssource = _stxt[_cj]; break; }
+        }
+        if (!_newerLead || _sms2 > _newerLead.ms) {
+          _newerLead = { ms: _sms2, date: _sdate, status: _sstatus, source: _ssource, leadId: _skey };
+        }
+      }
+    } catch (eNl) { _newerLead = null; }
     if (!vehicle && !_voiPlaceholder) {
       try {
         var _lsPanelEl = (
@@ -11990,46 +12042,6 @@ function _lpScraperBotAuthor(msg) {
               if (_lsRows.indexOf(_lsRowsDrk[_dri]) === -1) _lsRows.push(_lsRowsDrk[_dri]);
             }
           } catch(eDrk) {}
-          // (v9.7.497/492 — NEWER SIBLING LEAD) Gil, David Cornell (Kia Baytown): his ACTIVE lead
-          // is a 6/25 KMF LUV Program lead with no trade, while a NEWER 7/24 Tradepending lead on
-          // the same customer sits in the selector marked Duplicate — and Tradepending leads are
-          // trade submissions by definition. LP works only the active lead, so the newer trade
-          // information is invisible and the response is built on a stale picture.
-          // We deliberately do NOT scrape or merge the sibling lead's frame: that is exactly the
-          // cross-lead contamination the v9.7.480 ID-CONFLICT rejection exists to prevent, and the
-          // sibling's panel is not rendered anyway. What the LeadSelector row DOES give us for
-          // free — status, created date, source — is enough to say "something newer exists, and
-          // here is what kind of lead it is", which is the part a human can act on.
-          var _newerLead = null;
-          try {
-            var _activeKey = String(autoLeadId || '');
-            var _selRows = document.querySelectorAll('#LeadSelector tr[data-row-key], [id*="LeadSelector"] .ant-table-tbody > tr[data-row-key]');
-            for (var _si = 0; _si < _selRows.length; _si++) {
-              var _srow = _selRows[_si];
-              var _skey = _srow.getAttribute('data-row-key') || '';
-              if (!_skey || _skey === _activeKey) continue;
-              var _scells = _srow.querySelectorAll('td');
-              var _stxt = [];
-              for (var _ci = 0; _ci < _scells.length; _ci++) _stxt.push((_scells[_ci].innerText || '').trim());
-              var _sjoin = _stxt.join(' | ');
-              var _sdate = (_sjoin.match(/\b(\d{1,2}\/\d{1,2}\/\d{2,4})\b/) || [])[1] || '';
-              if (!_sdate) continue;
-              var _sms2 = Date.parse(_sdate.replace(/(\d{1,2})\/(\d{1,2})\/(\d{2})$/, '$1/$2/20$3'));
-              if (!(_sms2 > 0)) continue;
-              // Only leads NEWER than the one being worked. Without the active lead's created
-              // date there is nothing to compare against, so stay silent rather than guess.
-              var _activeMs = _pdCreatedH ? Date.parse(_pdCreatedH + 'Z') : 0;
-              if (!(_activeMs > 0) || !(_sms2 > _activeMs)) continue;
-              var _sstatus = (_stxt[0] || '').trim();
-              var _ssource = '';
-              for (var _cj = 0; _cj < _stxt.length; _cj++) {
-                if (/[A-Za-z]{4,}/.test(_stxt[_cj]) && !/^\d/.test(_stxt[_cj]) && _stxt[_cj] !== _sstatus) { _ssource = _stxt[_cj]; break; }
-              }
-              if (!_newerLead || _sms2 > _newerLead.ms) {
-                _newerLead = { ms: _sms2, date: _sdate, status: _sstatus, source: _ssource, leadId: _skey };
-              }
-            }
-          } catch (eNl) { _newerLead = null; }
 
           var _tradeTxt = '';
           try { var _tpEl = document.querySelector('[id*="TradeInfoPanel"]'); _tradeTxt = _tpEl ? (_tpEl.innerText || '') : ''; } catch(e0) {}
@@ -12458,7 +12470,9 @@ function _lpScraperBotAuthor(msg) {
       qs('[class*="leadSource"] span'),
       qs('[class*="lead-source"] span')
     ]);
-    const leadSource=firstOf([
+    // (v9.7.813) let, not const: the KMF/loyalty fallback below assigns it, and on a page with no source field whose text names a
+    // finance program that assignment threw "Assignment to constant variable" and the whole scrape returned nothing.
+    let leadSource=firstOf([
       gid('ActiveLeadPanelWONotesAndHistory1__LeadSourceName'),
       gid('ActiveLeadPanel1__LeadSourceName'),
       qs('span[id*="LeadSourceName"]'),
@@ -12655,6 +12669,7 @@ function _lpScraperBotAuthor(msg) {
     // now lives popup-side in populateFromData, next to [LP PHONE DIAG].
 
     var _hcaAccountType = ''; // (regression fix) HCA finance/lease flag — captured in note loop, returned below
+    var _hcaLeaseIntent = ''; // (v9.7.813) HCA_LeaseEndIntent: 'return' | 'purchase-current' | 'new'
     var _hcaCurrentVehicle = '';  // (v9.7.222) KFA "Current car:" parsed to a clean year+model, returned below
     var _hcaSuggestedModels = ''; // (v9.7.222) KFA "Suggested Model 1/2:" parsed to plain names, returned below
     const noteEls = Array.from(document.querySelectorAll('.notes-and-history-item')||[]);
@@ -13495,7 +13510,14 @@ function _lpScraperBotAuthor(msg) {
             tfsData.push('Equity position: customer MAY have positive equity (lender projection, NOT verified — say POSSIBLE equity, never confirmed; NEVER state a dollar amount; the first step you offer is a no-obligation appraisal of their current vehicle, then options follow from that)');
           }
         }
-        if(intentMatch) tfsData.push('Customer intent: ' + intentMatch[1].trim().replace(/_/g,' ').toLowerCase());
+        if(intentMatch) {
+          // (v9.7.813) The choice the customer made on the finance company's site. Kia Baytown lead 2103558746 (KMF Customer Intent
+          // Capture, NCI): "HCA_LeaseEndIntent: Return Your Vehicle" -- the CDP summary read the same lead as "for a new 2024 Kia
+          // EV9 GT-Line" (the car she leases), and the drafts pitched an options-review visit. Cut at the next field.
+          var _hiRaw = intentMatch[1].split(/\s+HCA_|\/\/\//)[0].trim();
+          _hcaLeaseIntent = /\breturn/i.test(_hiRaw) ? 'return' : /purchase\s+(?:your\s+|the\s+)?current|\bbuy\s*out\b|\bkeep\b/i.test(_hiRaw) ? 'purchase-current' : /\bnew\b/i.test(_hiRaw) ? 'new' : '';
+          tfsData.push('Customer intent: ' + _hiRaw.replace(/_/g,' ').toLowerCase());
+        }
         if(acctTypeRaw) tfsData.push('Account type: ' + acctTypeRaw + (isFinanceAcct ? ' (FINANCE — this customer is buying/paid, NOT leasing. Never use lease language: no "lease return", no "residual buyout", no "lease coming up".)' : isLeaseAcct ? ' (LEASE)' : ''));
         // (v9.7.222) Surface the customer's actual current vehicle so the message can name it
         // ("your 2023 Kia Rio") instead of a generic "your current Kia", and surface the program's
@@ -18336,7 +18358,7 @@ function _lpScraperBotAuthor(msg) {
       pastVisitNotes,
       hasConfirmedVisit,
       relationshipSignals,
-      _hcaAccountType,
+      _hcaAccountType, _hcaLeaseIntent,
       _hcaCurrentVehicle,
       _hcaSuggestedModels,
       pageSnippet:TEXT.substring(0,8000),
@@ -24372,6 +24394,7 @@ function buildUserPrompt(data) {
     var loyTypeRaw = data._loyaltyAcctType
       || ((data._hcaAccountType === 'finance') ? 'finance'
         : (data._hcaAccountType === 'lease')   ? 'lease'
+        : _lpCdpAcctType(data) ? _lpCdpAcctType(data)   // (v9.7.813)
         : /off.?lease/i.test(lsLower2)          ? 'lease'
         : (/off.?loan/i.test(lsLower2) || isKFAlead) ? 'finance'
         : 'unknown');
@@ -24409,7 +24432,15 @@ function buildUserPrompt(data) {
         '- ' + timingLine,
         '- Open by acknowledging their current vehicle and the upcoming ' + termNoun + ' end.'
       ]),
-      isLeaseType
+      // (v9.7.813) The choice they made on the finance company's site replaces the options list. Gil, 10/21, on a Return:
+      // "light anything next is a good track."
+      data._hcaLeaseIntent === 'return'
+        ? '- THEIR LEASE-END CHOICE: on the finance company\'s site they chose to RETURN the vehicle. That is what they want, and it outranks the CRM summary and the vehicle on the lead about what they want. Make the turn-in easy: offer to handle the return here and set a time for the inspection and drop-off (they bring all keys). No sales pitch and no list of options. At most one light question about what is next for them, e.g. whether they would like to see what is next while they are here.'
+        : data._hcaLeaseIntent === 'purchase-current'
+        ? '- THEIR LEASE-END CHOICE: on the finance company\'s site they chose to BUY THE VEHICLE THEY HAVE. Help with that purchase: the next step to get it started and a time to do it. No new-vehicle pitch, and no residual, payoff or price figure.'
+        : data._hcaLeaseIntent === 'new'
+        ? '- THEIR LEASE-END CHOICE: on the finance company\'s site they chose to PURCHASE OR LEASE A NEW VEHICLE. Their next vehicle with us is the subject: start from the program\'s suggested models, if any, and ask what they want this time.'
+        : isLeaseType
         ? '- Options: return and lease new, purchase at residual, or switch to finance. Let them lead.'
         : isFinanceType
         ? '- Options: pay off and keep, trade the equity toward something new, or refinance. They OWN this on a loan — there is no "lease return" or "residual buyout". Frame around payoff and equity, never lease.'
@@ -30610,6 +30641,7 @@ async function generateAll() {
       ownedVehicle:              lastScrapedData ? (lastScrapedData.ownedVehicle || '') : '',
       priorSoldVehicle:          lastScrapedData ? (lastScrapedData.priorSoldVehicle || '') : '',
       _hcaAccountType:           lastScrapedData ? (lastScrapedData._hcaAccountType || '') : '',
+      _hcaLeaseIntent:           lastScrapedData ? (lastScrapedData._hcaLeaseIntent || '') : '',   // (v9.7.813)
       _hcaCurrentVehicle:        lastScrapedData ? (lastScrapedData._hcaCurrentVehicle || '') : '',
       _hcaSuggestedModels:       lastScrapedData ? (lastScrapedData._hcaSuggestedModels || '') : '',
       ownedMileage:              lastScrapedData ? (lastScrapedData.ownedMileage || '') : '',
