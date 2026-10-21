@@ -51,7 +51,9 @@ const LEAD = (x) => Object.assign({ autoLeadId: 'TEST001A', name: 'Test Buyer', 
     const sa = src.indexOf('  function inlineScraper() {'), sbx = src.indexOf('  } // end inlineScraper', sa);
     const scraper = src.slice(sa, sbx + 3);
     const wa = src.indexOf('      function _lpKiWait(done) {'), wb = wa >= 0 ? src.indexOf('\n      }\n', wa) : -1;
-    const waiter = (wa >= 0 && wb > wa) ? src.slice(wa, wb + 8) : '';
+    // (v9.7.808) _lpKiWait searches shadow roots through _lpKiRoots, a one-line helper declared just above it.
+    const ra = src.indexOf('      function _lpKiRoots() {');
+    const waiter = (wa >= 0 && wb > wa) ? (ra >= 0 ? src.slice(ra, src.indexOf('\n', ra) + 1) : '') + src.slice(wa, wb + 8) : '';
     const visit = async (html, wait) => {
       const page = await br.newPage();
       await page.route('**/*', r => /\/CarDashboard\/dash$/.test(r.request().url()) ? r.fulfill({ status: 200, contentType: 'text/html; charset=utf-8', body: html }) : r.abort());
