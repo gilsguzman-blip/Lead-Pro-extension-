@@ -79,9 +79,9 @@ const LEAD = (x) => Object.assign({ autoLeadId: '1000000002', name: 'Test Buyer'
     const cur = await intentOf('Purchase Your Current Vehicle'), nw = await intentOf('Purchase or Lease a New Vehicle');
     check('..."Purchase Your Current Vehicle" and "Purchase or Lease a New Vehicle": buying the car they have, and a new vehicle', () => [cur._hcaLeaseIntent, nw._hcaLeaseIntent], ['purchase-current', 'new']);
     const pRet = viaPanel(LEAD({ _hcaAccountType: 'lease', _hcaLeaseIntent: 'return' }), ['loyalty']);
-    check('a Return: make the turn-in easy, no pitch, at most one light question about what is next; it outranks the CRM summary; no options list',
+    check('a Return: make the turn-in easy, no pitch, ends with one light question about what is next (v9.7.814); it outranks the CRM summary; no options list',
       () => [/THEIR LEASE-END CHOICE: on the finance company's site they chose to RETURN the vehicle/.test(pRet), /outranks the CRM summary/.test(pRet),
-        /At most one light question about what is next for them/.test(pRet), /- Options: return and lease new, purchase at residual/.test(pRet)], [true, true, true, false]);
+        /End with one light question about what is next for them/.test(pRet), /- Options: return and lease new, purchase at residual/.test(pRet)], [true, true, true, false]);
     check('a purchase of the car they have, and a new vehicle, get their own lines',
       () => [/they chose to BUY THE VEHICLE THEY HAVE/.test(viaPanel(LEAD({ _hcaAccountType: 'lease', _hcaLeaseIntent: 'purchase-current' }), ['loyalty'])),
         /they chose to PURCHASE OR LEASE A NEW VEHICLE\. Their next vehicle with us is the subject/.test(viaPanel(LEAD({ _hcaAccountType: 'lease', _hcaLeaseIntent: 'new' }), ['loyalty']))], [true, true]);
