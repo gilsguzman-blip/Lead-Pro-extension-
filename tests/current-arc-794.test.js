@@ -107,16 +107,17 @@ for (const f of BUILDS) {
     return [r.dropped.map(q => q.question), r.keep.map(q => q.question)]; }, [['Can you itemize the 832 in fees?'], ['and what APR would I get?']]);
 
   console.log(' 3. the text rewrite reads his newest message as his, and older questions as older:');
-  const RP = (d) => quiet(() => run('_lpBuildSmsRefinePrompt')('pass1 text', 'email text', d));
+  // (v9.7.819) the rewrite carries only the questions the email or the first draft took up: these emails take them up
+  const RP = (d, em) => quiet(() => run('_lpBuildSmsRefinePrompt')('pass1 text', em || 'email text', d));
   const rp = RP(LEAD(RATE_MSG, { context: SOLD_CTX, relationshipSignals: SIG([{ date: '10/09/2026 10:26 AM', question: 'when it does go down to 0 or 1.9' },
     { date: '10/09/2026 10:26 AM', question: 'when the incentives get a little more aggressive' }]) }));
   check('his rate message is shown IN HIS OWN WORDS -- not "about the vehicle that has since sold, background only"', () =>
     [/WHAT THE CUSTOMER LAST SAID, IN THEIR OWN WORDS/.test(rp), /ABOUT THE VEHICLE THAT HAS SINCE SOLD/.test(rp), /THE VEHICLE THEY ASKED ABOUT HAS SOLD ━━━\nTheir earlier questions/.test(rp)], [true, false, false]);
-  const rp2 = RP(LEAD(RATE_MSG, { relationshipSignals: SIG([{ date: '09/16/2026 9:54 PM', question: 'do you have any that does not have tint', older: true }]) }));
+  const rp2 = RP(LEAD(RATE_MSG, { relationshipSignals: SIG([{ date: '09/16/2026 9:54 PM', question: 'do you have any that does not have tint', older: true }]) }), 'On the rate: I will watch it. And I am checking for one that does not have tint.');
   check('a question from before his newest message is listed as EARLIER, never as the opening', () =>
     [/QUESTIONS OF THEIRS THAT ARE STILL OPEN/.test(rp2), /EARLIER QUESTIONS, ASKED BEFORE THEIR MOST RECENT MESSAGE ━━━\n  - "do you have any that does not have tint" \(09\/16\/2026\)\nOnly if still open, and only after the text answers their most recent message/.test(rp2)], [false, true]);
   check('control: a question in his newest message is still the open question', () =>
-    /QUESTIONS OF THEIRS THAT ARE STILL OPEN ━━━\n  - "when can I come in"/.test(RP(LEAD('when can I come in', { relationshipSignals: SIG([{ date: '10/09/2026 10:26 AM', question: 'when can I come in', older: false }]) }))), true);
+    /QUESTIONS OF THEIRS THAT ARE STILL OPEN ━━━\n  - "when can I come in"/.test(RP(LEAD('when can I come in', { relationshipSignals: SIG([{ date: '10/09/2026 10:26 AM', question: 'when can I come in', older: false }]) }), 'You can come in Thursday.')), true);
 
   console.log(' 4. the relationship reading does not put an older question ahead of his newest message:');
   const RR = (uq) => quiet(() => run('renderRelationshipReading')({ convState: 'active-follow-up', relationshipSignals: SIG(uq) }));

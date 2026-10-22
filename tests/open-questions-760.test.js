@@ -55,8 +55,10 @@ for (const f of BUILDS) {
   console.log('\n' + path.basename(path.dirname(f)) + '/' + path.basename(f));
   const sb = loadPopup(f, { withAuth: true });
   const prompt = (d) => { vm.runInContext('leadContext = ""; window._lpNoApptLeadId = ""; window._lpSuppressApptChip = false;', sb); return sb.__lp.buildUserPrompt(d); };
-  const refine = (d) => { sb.__d = d; vm.runInContext('leadContext = "";', sb);
-    return vm.runInContext('_lpBuildSmsRefinePrompt("Test, the EV9 you asked about has sold. A 2026 EV9 Land is here.\\nAgent", "Subject: EV9\\n\\nHi Test,\\n\\nThe EV9 has sold.\\n\\nAgent Name", globalThis.__d)', sb); };
+  // (v9.7.819) The rewrite carries only the questions the email or the first draft took up; EM_FEES is an email that does.
+  const EM_FEES = 'Subject: EV9\n\nHi Test,\n\nHere are the 832 in fees, itemized so you can compare.\n\nAgent Name';
+  const refine = (d, em) => { sb.__d = d; sb.__em = em || 'Subject: EV9\n\nHi Test,\n\nThe EV9 has sold.\n\nAgent Name'; vm.runInContext('leadContext = "";', sb);
+    return vm.runInContext('_lpBuildSmsRefinePrompt("Test, the EV9 you asked about has sold. A 2026 EV9 Land is here.\\nAgent", globalThis.__em, globalThis.__d)', sb); };
   const p1 = prompt(lead(NEWS)), r1 = refine(lead(NEWS));
 
   console.log(' 1. lead 2091734847 shape: the unit sold and this message tells them:');
@@ -79,15 +81,17 @@ for (const f of BUILDS) {
     () => /The customer put a SPECIFIC DEAL CONDITION on the table/.test(p1), false);
 
   console.log(' 2. controls:');
-  const p0 = prompt(lead('', { inventoryWarning: false })), r0 = refine(lead('', { inventoryWarning: false }));
+  const p0 = prompt(lead('', { inventoryWarning: false })), r0 = refine(lead('', { inventoryWarning: false }), EM_FEES);
   check('control: unit not sold -> the fee question stays open in both prompts',
     () => [/may not have been answered:[^\n]*itemize the 832/.test(p0), /QUESTIONS OF THEIRS THAT ARE STILL OPEN[\s\S]{0,80}itemize the 832/.test(r0)], [true, true]);
   check('control: unit not sold -> the deal trigger still fires on the condition', () => /The customer put a SPECIFIC DEAL CONDITION on the table/.test(p0), true);
   check('control: unit not sold -> her last message is shown in her own words, and the open-questions line stays',
     () => [/WHAT THE CUSTOMER LAST SAID, IN THEIR OWN WORDS/.test(r0), /There are open questions from the customer that may not have been answered/.test(p0)], [true, true]);
-  const pT = prompt(lead(TOLD)), rT = refine(lead(TOLD));
+  const pT = prompt(lead(TOLD)), rT = refine(lead(TOLD), EM_FEES);
   check('control: customer ALREADY TOLD it sold -> a later question may be about the alternative, so it stays open',
     () => [/may not have been answered:[^\n]*itemize the 832/.test(pT), /QUESTIONS OF THEIRS THAT ARE STILL OPEN/.test(rT)], [true, true]);
+  check('(v9.7.819) an open question the email and first draft did not take up is not handed to the rewrite',
+    () => /QUESTIONS OF THEIRS THAT ARE STILL OPEN[\s\S]{0,80}itemize the 832/.test(refine(lead('', { inventoryWarning: false }))), false);
   const pN = prompt(lead(NEWS, { relationshipSignals: sig([{ date: D_C, question: 'Does it have captain chairs?' }]) }));
   check('control: a non-number question on the sold unit is left to the sold notice (not rewritten as moot)',
     () => [/may not have been answered:[^\n]*captain chairs/.test(pN), /were about the vehicle that has SOLD/.test(pN)], [true, false]);

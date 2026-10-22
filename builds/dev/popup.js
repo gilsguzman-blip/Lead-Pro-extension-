@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.819-dev (Dev. A CRM FIELD BECAME THE CUSTOMER'S QUESTION, NEVER AGED, AND THE TEXT REWRITE ANSWERED IT. Extension only; proxy v7.88, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Honda Baytown lead 2079723069 (log354): the KBB Instant Cash Offer note prints 'Traffic Source: KBB ? Mobile' (a dash the page shows as '?'). The open-question reader took 'Traffic Source: KBB ?' as the customer's question; 45 days and 43 of our messages later the prompt still called it 'the highest-leverage move this message can make'; the email and the first draft of the text ignored it, and the rewrite shipped '[Customer], I see your question about whether the traffic source was KBB.' Gil: 'why didn't it take all the history into account ... Is this just a band aid or a true fix?' Three fixes, so the next misread cannot steer the text either. (1) THE READERS: a CRM field line -- a known label (Traffic Source, Offer Amount, Offer Link, Source, Lead Type, Vehicle, VIN, Price ...) or any 'Label: value ? word' line -- is the record, never the customer's question or inquiry (one rule, _LP_CRM_FIELD_LINE_RX, in the open-question reader and the lead-received inquiry reader); the KBB Instant Cash Offer note is structured CRM data. (2) AN OPEN QUESTION AGES OUT (new _lpStaleQuestions): once five of our texts or emails have gone out after it, or it is 30+ days old with three of ours after it, it is background -- 'an early question of theirs, now background ... not what this message answers' -- not 'may not have been answered' and not 'the highest-leverage move'. A question with fewer of ours after it stays open: we may never have answered it. (3) THE REWRITE FOLLOWS THE DRAFT THAT SAW THE WHOLE THREAD: it is handed only the open questions the email or the first draft took up (new _lpTookUpQuestion, two of the question's words or all of a short one, by five-letter stem), none that aged out; and a rewrite that takes up a question neither of them did does not ship -- the first pass does. TESTS: question-source-819 (new) runs the SHIPPED inlineScraper in Chromium on placeholder lead pages and executes buildUserPrompt (through the panel payload), _lpBuildSmsRefinePrompt and _lpRefineSms (worker stubbed): 18 assertions across both builds; v9.7.818 fails 4 of 9 per build (the five controls pass). open-questions-760 and current-arc-794 give the rewrite an email that takes the question up (+1 control: one that does not is not handed over). A replay of log354's own scrape: the KBB line is background, the 'highest-leverage' line is gone, and the rewrite gets no open question. VERIFIED: run-all 253 suites green, 8,799 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.818-dev.)
 // Lead Pro -- popup.js  v9.7.818-dev (Dev. THE PRICE THEY ASKED FOR WENT OUT -- AND THE PROMPT TALKED ABOUT EVERYTHING ELSE. Extension only; proxy v7.88, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Kia Baytown lead 2102063788 (log352, v9.7.817): the customer emailed for out-the-door prices on two Telluride Hybrid trims (AWD required, tow package, any color except Black Jade Green, email preferred); the salesperson texted the selling price, fees, tax and total drive-out on one of them. The draft: '[Customer], I appreciate you clarifying that AWD is required ... Is AWD still a must for the black EX?' Gil: 'Messaging should have been about the provided pricing. Although the pricing was for another trim.' Nothing in the prompt said the quote went out, and five lines pointed elsewhere, three of them misreadings. (1) New _lpQuoteOut: our newest text or email after the customer's newest words, carrying a dollar figure and a price word, on a lead where they asked for a price (bot sends and opt-out confirmations not counted), its sender from the note, the call beside it or 'this is [name]'. THE PRICE THEY ASKED FOR WENT OUT names who sent it and quotes it: the touch follows up on it -- did it reach them, does it answer what they asked, and if it covers another trim or only part of the request, say so and that the rest is being priced; the total may be named, no other figures. Under it the finished prompt's 'a genuinely different angle', the vehicle lock ('do not reference other vehicles') and the soft re-engage's 'change the angle' point at the quote; the pitch line points at it; the inventory answer stands down. The text rewrite gets the same fact and, under the pitch rule, the follow-up as its job. (2) A color after except / other than / but not / anything but / color but / not / no is excluded, never asked for (the scraper's stated-color reader, the inventory answer, the wanted-color reader; new _lpStripColorExclusions). (3) 'AWD, required' / 'must be all-wheel drive' is a stated requirement (new _lpDriveRequired): DRIVETRAIN REQUIREMENT, never ask whether it is a must; the rewrite drops the question. (4) 'Total out-the-door' no longer reads as a total loss. (5) 'selling price ... the vehicle' no longer reads as the customer selling. TESTS: quote-out-818 (new) builds prompts through the shipped populateFromData and panel payload and executes the shipped color detector slice, _lpBuildSmsRefinePrompt, _lpDriveRequired and _lpVehicleTotaledNow: 32 assertions across both builds; v9.7.817 fails 12 of 16 per build (the four controls pass). A replay of log352's own scrape: the quote line names the salesperson and the $61,282.75 total, the visit decision lists the different angle, the vehicle lock and the soft re-engage among what it changed, and the totaled and seller blocks are gone. VERIFIED: run-all 252 suites green, 8,779 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.817-dev.)
 // Lead Pro -- popup.js  v9.7.817-dev (Dev. THE TEXT REWRITE STILL PITCHED, AND FOUR LEFTOVERS STILL PULLED TOWARD THE VISIT. Extension only; proxy v7.88, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Kia Baytown lead 2103538959 (log350, v9.7.816): the email, the voicemail and the first draft of the text all opened '[Rep] has tried reaching you by phone'; the rewrite shipped '[Customer], the 2024 GMC Sierra 1500 AT4 is the one you were looking at ... [Rep] has tried reaching you by phone.' v9.7.816 audited the main prompt and not the rewrite: its WRITE THE TEXT block still said 'lead on the thing in that email that earns a reply' and 'give them the actual reason this visit is worth making'; its in-stock block said 'the email says it is here'; its close-out block said 'replied 0.9d ago' of a STOP. (1) Under the PITCH ALREADY OUT rule the rewrite's WRITE THE TEXT is the follow-up: after our calls, 'we have been trying to reach them' right after their name, one easy way to reach us, one simple question, no pitch; with no calls, one new thing or one simple question. The pitch block puts the follow-up first and lifts the general 'reason to come in' rule; the in-stock block becomes THE VEHICLE IS STILL OURS (never gone, and not 'here' again). (2) A rewrite that moves 'trying to reach you' out of the text's first two sentences, when the first draft had it there, does not ship (new _lpTryingLead); the first draft ships unless it asked a customer who texted STOP to text. (3) The main prompt: 'trying to reach them' comes first in every format; after a STOP the easy way to reply is a call back or an email reply, never a text. Under the pitch rule the visit decision also takes out the default follow-up's 'If the customer is engaged and available, close with an appointment' and reopens no promise to have the car ready when they arrive (OPEN THREADS); other promises stand. (4) The close-out gate counts a STOP as no reply (new _lpStopOnlyReply), so its block no longer says 'replied 0.9d ago'. TESTS: pitch-follow-817 (new) executes the shipped _lpBuildSmsRefinePrompt, _lpRefineSms (worker stubbed), _lpApplyVisitDecision and _lpCloseOutEligible, and builds the main prompt through the shipped populateFromData and panel payload: 26 assertions across both builds; v9.7.816 fails 8 of 13 per build (the controls pass). A replay of log350's own scrape: the visit decision now lists the appointment close and the arrival promise among what it took out, and the rewrite's last block is the follow-up. VERIFIED: run-all 251 suites green, 8,747 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.816-dev.)
 // Lead Pro -- popup.js  v9.7.816-dev (Dev. OUR PITCH WENT UNANSWERED: ONE RULE TAKES THE PITCH OUT EVERYWHERE, AND UNANSWERED CALLS MAKE IT 'WE HAVE BEEN TRYING TO REACH YOU'. Extension only; proxy v7.88, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Kia Baytown lead 2103538959 (log349, v9.7.815), Gil: 'Message should be a follow up we've been trying to reach you... salesperson had tried to call' -- and 'Why isn't the model following the arc?' The arc was in the prompt and v9.7.815's don't-restate block fired; the same prompt also said 'Say "we have it here"', 'REQUIRED in EVERY format: One specific reason the visit is worth their time ... pre-fill most of the paperwork', 'Confirm it is available and encourage the soonest workable time', offered 9:15 / 10:30 (the times sent the day before) with a scripted next-day text, and its facts said 'Last customer reply was 0.9 days ago ... the customer replied today' (the Stop) and 'Exchange so far: 11 inbound' (his 2024 leads). Three specific instructions to one general one, and the model re-pitched. These blocks were written for first touches and replies and none of them asked whether the pitch had already gone out; v9.7.808, 810 and 815 each removed one such contradiction. New _lpPitchOut: our newest pitch on this lead (the car is here / available / ready, or times offered) with no customer words (a STOP is not words) and no connected call after it, an automated first response not counted, and the unanswered calls since our last text or email. (1) OUR PITCH IS ALREADY OUT AND UNANSWERED -- when that message offered times, a level-2 hold in the visit decision (_LP_VISIT_HOLDS): no slots, no time examples, no same-day push. When it offered none, the same line without the hold: times are not withheld (a person's 'it is here' with no times, log244-710's control). (2) Under either, the visit decision also takes out the pitch: the inventory 'Say "we have it here"' / 'Use soft language: ... "we have it here"' (now 'Our earlier message already told them it is here; do not say it again'), the distance block's required visit reason with its examples, its SMS visit reason, its 'open with the vehicle confirmation', and its 'confirm it is available' / 'encourage the soonest workable time'. The decision now runs these edits with or without a hold, and logs each in [LP VISIT DECISION DIAG]. (3) WE HAVE BEEN TRYING TO REACH THEM: unanswered calls (Machine / No Contact / left a message) since our last text or email make that the message -- who called (a teammate by first name, 'their salesperson' when it was the sales rep), how many times and when; say it warmly, one easy way to reply (a call back or a reply to the email), one simple question; not another pitch. The text rewrite gets OUR PITCH IS ALREADY OUT and keeps 'trying to reach you'. [LP PITCH OUT DIAG]. (4) THE FACTS: on a lead whose only customer message is a STOP, the arc facts carry no dated reply, no whole-record exchange counts, and this lead's outbound run (_lpOutreachOnThisLead). (5) hasApptSet joins the panel payload (the v9.7.808 guard caught _lpPitchOut reading it). A connected call (v9.7.810's call follow-up) and a real reply are unchanged. TESTS: pitch-out-816 (new) builds prompts through the shipped populateFromData and panel payload -- the visit decision runs on the finished prompt -- executes the shipped _lpBuildSmsRefinePrompt, and lifts the shipped arc-facts step: 18 assertions across both builds; v9.7.815 fails 8 of 9 per build (the reply control passes; the facts control needs the new step). A replay of log349's own scrape: the hold owns the visit, the 'trying to reach them' line names the salesperson's two calls, and the visit decision lists every pitch line it took out. VERIFIED: run-all 250 suites green, 8,721 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.815-dev.)
@@ -11159,6 +11160,10 @@ function tryExecuteScript(tab, statusEl, dot) {
   statusEl.textContent = 'Reading frames…';
 
   function inlineScraper() {
+    // (v9.7.819) A CRM FIELD LINE IN A NOTE ("Traffic Source: KBB ? Mobile", "Offer Amount: $5,648") is the record, not the
+    // customer's words: never their question or their inquiry. A known label, or any "Label: value ? word" line (a character the
+    // page could not show, printed as "?").
+    var _LP_CRM_FIELD_LINE_RX = /^\s*(?:(?:traffic\s+source|offer\s+(?:amount|link)|source|lead\s+(?:type|source)|vehicle|trade(?:-in)?|stock(?:\s*#|\s+number)?|vin|price|msrp|year|make|model|trim|mileage|odometer|color|condition|by)\s*:|[A-Z][A-Za-z ]{1,25}:\s*[^?\n]*\s\?\s+\S)/i;
     // ── (v9.7.694) THE AGENT-CONTEXT PREAMBLE, DEFINED ONCE ─────────────────────────────────
     // Two byte-identical 1,263-character copies of this string lived in the two _hasPostVisitNote
     // branches below — the competing transcript carriers v9.7.629 recorded — and any edit had to
@@ -13663,6 +13668,14 @@ function _lpScraperBotAuthor(msg) {
           || content.match(/\nNote:\s*([^\n]{10,200})/i);
         // Direct question pattern - customer typed something that looks like a question or statement
         var directQuestion = content.match(/(?:^|\n)([^\n]{5,150}\?)(?:\s|$)/m);
+        // (v9.7.819) A CRM FIELD IS NOT A QUESTION. Honda Baytown lead 2079723069 (log354): the KBB Instant Cash Offer note
+        // prints "Traffic Source: KBB ? Mobile" (a dash the page shows as "?"), and "Traffic Source: KBB ?" went out as the
+        // customer's open question -- 45 days and 43 of our messages later the text asked about it. A "Label: value" field
+        // line, or a "?" with a word on each side, is the record, not their words.
+        if (directQuestion) {
+          var _dqLine = (String(content).split(/\n/).filter(function (l) { return l.indexOf(directQuestion[1].trim()) >= 0; })[0]) || directQuestion[1];
+          if (typeof _LP_CRM_FIELD_LINE_RX !== 'undefined' && _LP_CRM_FIELD_LINE_RX.test(_dqLine)) directQuestion = null;
+        }
         // (v9.7.224) Gubagoo VR / financing intake notes contain form-field PROMPTS that end in
         // "?" — e.g. "How much were repair costs?" — which are questions the FORM asks the customer,
         // NOT questions the customer asked us. directQuestion was grabbing them and injecting them
@@ -13670,7 +13683,7 @@ function _lpScraperBotAuthor(msg) {
         // costs, which vehicle...". In a structured intake dump the customer's real input comes from
         // the chat / Consumer-requests extractors, never a bare "?" line — so don't trust
         // directQuestion (or the freeform PPC fallback) here.
-        var _isStructuredIntake = /virtual retailing|visitor score|previous page views|net trade-in value|opened vr|click & go|loan payoff:|trade-in value:|kbb value range|estimate or real payoff/i.test(content);
+        var _isStructuredIntake = /virtual retailing|visitor score|previous page views|net trade-in value|opened vr|click & go|loan payoff:|trade-in value:|kbb value range|estimate or real payoff|offer amount\s*:|traffic source\s*:|offer link\s*:/i.test(content);   // (v9.7.819) the KBB Instant Cash Offer note
         if(_isStructuredIntake) directQuestion = null;
         // Customer instruction pattern - "When responding please include X", "Please provide X"
         var custInstruction = content.match(/(?:when responding|please (?:include|provide|send|give)|I(?:'d| would) like to (?:know|see|get)|can you (?:include|provide|send))\s+([^\n]{5,200})/i);
@@ -18430,6 +18443,8 @@ function _lpScraperBotAuthor(msg) {
           // before splitting -- whole tokens only, so the words around them are untouched.
           qbody = qbody.replace(/\S*(?:https?:\/\/|www\.|%2[fF]|%3[aAfF])\S*/g, ' ')
                        .replace(/\b[\w-]+\.(?:com|net|org|us|io|ly)\/\S*/gi, ' ');
+          // (v9.7.819) CRM field lines are the record, not their question (lead 2079723069: "Traffic Source: KBB ? Mobile").
+          if (typeof _LP_CRM_FIELD_LINE_RX !== 'undefined') qbody = qbody.split('\n').filter(function (l) { return !_LP_CRM_FIELD_LINE_RX.test(l); }).join('\n');
           // Find sentences ending with ? (explicit questions)
           var qs = qbody.match(/[^.!?\n]{8,200}\?/g) || [];
           // ── (v9.7.666) A QUESTION WITHOUT A QUESTION MARK IS STILL A QUESTION ──────────────
@@ -22857,6 +22872,36 @@ function _lpSoldNoticeInPrompt(d) {
   // about the alternative and stays open.
   return ctx.indexOf('🔴 VEHICLE STATUS: SOLD — this specific unit is no longer available') > -1;
 }
+// (v9.7.819) AN OPEN QUESTION AGES OUT. Lead 2079723069 (log354): a "question" from the minute the lead arrived, 45 days and 43
+// of our messages earlier, was still "the highest-leverage move this message can make". Once five of our texts or emails have
+// gone out after it, or it is 30+ days old with three of ours after it, it is background: the thread has moved on, whether or not
+// we ever answered it. Returns { keep, stale } with { after, days } on each stale one.
+function _lpStaleQuestions(uq, d) {
+  var keep = [], stale = [];
+  try {
+    var ours = (typeof _lpOurEntries === 'function') ? _lpOurEntries(d).filter(function (x) { return /text message|email/i.test(x.title); }) : [];
+    (uq || []).forEach(function (q) {
+      var t = q && q.date ? new Date(String(q.date)).getTime() : NaN;
+      if (!(t > 0)) { keep.push(q); return; }
+      var after = ours.filter(function (x) { return x.t > t; }).length, days = Math.floor((Date.now() - t) / 86400000);
+      if (after >= 5 || (days >= 30 && after >= 3)) stale.push(Object.assign({}, q, { after: after, days: days })); else keep.push(q);
+    });
+  } catch (e) { return { keep: uq || [], stale: [] }; }
+  return { keep: keep, stale: stale };
+}
+// (v9.7.819) Did a message take this question up? Two of the question's own words in it (or all of them, for a one- or two-word question).
+var _LP_Q_STOP = /^(?:the|and|you|your|for|with|what|are|was|can|how|does|did|have|has|this|that|will|would|could|any|our|about|from|there|they|them|when|where|which|who|why|its|just|get|not|but|all|out|yes|may|much|more|also|still|like|want|know|need|please|thanks|thank|there|here|then|than|been|were|is|it|do|be|to|of|in|on|at|or|if|so|me|my|we|us|an|a|i)$/;
+function _lpQuestionWords(q) {
+  var seen = {};
+  return (String((q && q.question) || q || '').toLowerCase().match(/[a-z0-9$]+/g) || []).filter(function (w) { if (w.length < 3 || _LP_Q_STOP.test(w) || seen[w]) return false; seen[w] = 1; return true; });
+}
+function _lpTookUpQuestion(q, text) {
+  var ws = _lpQuestionWords(q); if (!ws.length) return false;
+  var stem = function (w) { return w.length > 5 ? w.slice(0, 5) : w; };   // "itemize" / "itemized"
+  var have = {}; (String(text || '').toLowerCase().match(/[a-z0-9$]+/g) || []).forEach(function (w) { have[stem(w)] = 1; });
+  var hits = ws.filter(function (w) { return have[stem(w)]; }).length;
+  return hits >= 2 || (ws.length <= 2 && hits === ws.length);
+}
 function _lpMootSoldQuestions(uq, d) {
   var out = { keep: uq || [], dropped: [] };
   try {
@@ -22938,6 +22983,9 @@ function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
     }
     // (v9.7.794) A question asked before their most recent message is not the opening (lead 2082559456: the rewrite opened
     // "I can help with the darker window tint question", four weeks and six of his messages after he asked it).
+    // (v9.7.819) The draft that saw the whole thread decides which questions this text answers: only the ones the email or the
+    // first draft took up, and none that have aged out (lead 2079723069: neither took up "Traffic Source: KBB ?"; the rewrite did).
+    if (typeof _lpStaleQuestions === 'function' && typeof _lpTookUpQuestion === 'function') uq = _lpStaleQuestions(uq, d).keep.filter(function (q) { return _lpTookUpQuestion(q, String(emailText || '') + '\n' + String(pass1 || '')); });
     var _uqCur = uq.filter(function (q) { return !(q && q.older); }), _uqOld = uq.filter(function (q) { return !!(q && q.older); });
     if (_uqCur.length) {
       out.push('\u2501\u2501\u2501 QUESTIONS OF THEIRS THAT ARE STILL OPEN \u2501\u2501\u2501');
@@ -23552,6 +23600,16 @@ async function _lpRefineSms(pass1, emailText, d) {
         return null;
       }
     } catch (eRfTr) {}
+    // (v9.7.819) The rewrite took up a question of theirs that neither the email nor the first draft did: the first pass ships.
+    try {
+      var _rfQs = (typeof _lpTookUpQuestion !== 'function') ? [] : ((d && d.relationshipSignals && d.relationshipSignals.unansweredQuestions) || []).filter(function (q) {
+        return _lpTookUpQuestion(q, out) && !_lpTookUpQuestion(q, emailText) && !_lpTookUpQuestion(q, pass1);
+      });
+      if (_rfQs.length) {
+        console.log('[LP SMS REFINE DIAG] kept the first pass \u2014 the rewrite took up a question neither the email nor the first draft did ("' + String(_rfQs[0].question || '').slice(0, 80) + '") | ' + (Date.now() - t0) + 'ms');
+        return null;
+      }
+    } catch (eRfQs) {}
     // (v9.7.793) After a STOP, a rewrite that invites them to text (and the first pass did not) does not ship.
     try {
       if (_lpStopIsCurrent(d) && LP_TEXT_INVITE_RX.test(out) && !LP_TEXT_INVITE_RX.test(String(pass1 || ''))) {
@@ -23956,7 +24014,13 @@ function renderRelationshipReading(data) {
   }
   // (v9.7.794) A question asked before their most recent message does not outrank it (lead 2082559456: a 9/16 tint question
   // over a 10/9 message about the rate). It is still listed, as earlier, to pick up after -- never instead.
-  var _rrCurQ = _rrMoot.keep.filter(function (q) { return !(q && q.older); }), _rrOldQ = _rrMoot.keep.filter(function (q) { return !!(q && q.older); });
+  var _rrAge = (typeof _lpStaleQuestions === 'function') ? _lpStaleQuestions(_rrMoot.keep, data) : { keep: _rrMoot.keep, stale: [] };   // (v9.7.819) questions that have aged out are background
+  if (_rrAge.stale.length) {
+    forwardBits.push('An early question of theirs, now background: ' + _rrAge.stale.slice(-2).map(function (q) { return '"' + String(q.question || '').replace(/"/g, "'").substring(0, 120) + '" (' + String(q.date || '').split(' ')[0] + ', ' + q.after + ' of our messages since)'; }).join(' / ')
+      + '. The conversation has moved on since; it is not what this message answers, and do not bring it up now.');
+    try { console.log('[LP OPEN THREAD DIAG] aged out: ' + _rrAge.stale.map(function (q) { return '"' + String(q.question || '').slice(0, 60) + '" (' + q.days + 'd, ' + q.after + ' of ours since)'; }).join('; ') + ' -- background, not an open question'); } catch (e) {}
+  }
+  var _rrCurQ = _rrAge.keep.filter(function (q) { return !(q && q.older); }), _rrOldQ = _rrAge.keep.filter(function (q) { return !!(q && q.older); });
   var _rrQx = function (arr) { return arr.slice(-3).map(function(q){
       return '"' + q.question.replace(/"/g,"'").substring(0,120) + '"' + (q.date ? ' (' + q.date + ')' : '');
     }); };
@@ -24008,7 +24072,7 @@ function renderRelationshipReading(data) {
     interp.push('Pricing is an open friction point. If it is an affordability concern, avoid leading with payment math and frame value first. If it is a valuation challenge (price vs KBB/market/book), the customer wants the price justified — address why the unit is priced where it is before moving to a visit. Match the response to the kind of objection.');
   }
   // (v9.7.81) New interpretation rules for the new categories
-  if (s.hasUnansweredQuestions && !(_rrMoot && _rrMoot.dropped.length && !_rrMoot.keep.length)) {   // (v9.7.763) not when every one was a sold unit's moot number question
+  if (s.hasUnansweredQuestions && (_rrCurQ.length || _rrOldQ.length)) {   // (v9.7.819) none left once moot (v9.7.763) or aged-out questions are taken out   // (v9.7.763) not when every one was a sold unit's moot number question
     if (!_rrCurQ.length) interp.push('Their most recent message is what this one answers. An earlier question of theirs may still be open -- pick it up after that, not instead of it.');   // (v9.7.794)
     else interp.push('There are open questions from the customer that may not have been answered. Read the transcript carefully — if any are still unanswered, addressing them is the highest-leverage move this message can make. The customer is more likely to be silent because we did not answer than because they lost interest.');
   }
