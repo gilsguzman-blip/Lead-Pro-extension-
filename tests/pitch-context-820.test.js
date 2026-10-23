@@ -59,10 +59,11 @@ for (const f of BUILDS) {
       + '  var p = Promise.resolve(r); p.finally = function (fn) { return Promise.resolve(r).then(function (v) { fn(); return v; }); }; return p; };');
     const ol = sb.console.log; sb.console.log = (...x) => logs.push(x.join(' '));
     let out; try { out = await run('_lpRefineSms(' + JSON.stringify(PASS1) + ', ' + JSON.stringify(EMAIL) + ', globalThis.__d)'); } catch (e) { out = 'THREW ' + e.message; }
-    sb.console.log = ol; return [out === null ? null : 'shipped', logs.some(l => /kept the first pass — under the pitch rule the rewrite cut it to a bare question/.test(l))]; };
+    sb.console.log = ol; return [out === null ? null : 'shipped', logs.some(l => /kept the first pass — (?:under the pitch rule )?the rewrite cut it to a bare question/.test(l))]; };
   check('log355: "[Customer], would you prefer we contact you by text, email, or not at all?" -> the first pass ships, logged', await refine(BARE, LEAD()), [null, true]);
   check('control: a rewrite that keeps where things stand ships', await refine(KEPT, LEAD()), ['shipped', false]);
-  check('control: no pitch rule (they replied) -> a one-question rewrite is not stopped by this catch', await refine(BARE, LEAD({ reply: 'What would you give me for it?' })), ['shipped', false]);
+  // (v9.7.821) the catch now holds on every lead, so the old "no pitch rule" control is the same verdict (see bare-question-821)
+  check('(v9.7.821) no pitch rule (they replied) -> the bare-question catch holds there too', await refine(BARE, LEAD({ reply: 'What would you give me for it?' })), [null, true]);
 }
 console.log('\n' + (fail ? 'FAILED' : 'PASSED') + ' — ' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);
