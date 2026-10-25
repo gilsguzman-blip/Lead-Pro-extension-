@@ -33,7 +33,7 @@ function run(system, replies) {
     caches: { default: { match: () => Promise.resolve(undefined), put: () => Promise.resolve() } } };
   box.fetch = (url, o) => {
     const payload = o && o.body ? JSON.parse(o.body) : null;
-    if (payload && payload.model === 'gpt-4.1-nano') return Promise.resolve(new Response(JSON.stringify({ choices: [{ message: { content: 'NO' }, finish_reason: 'stop' }], usage: USAGE })));
+    if (payload && (payload.model === 'gpt-4.1-nano' || /You are a binary classifier/.test(JSON.stringify(payload.messages || '')))) return Promise.resolve(new Response(JSON.stringify({ choices: [{ message: { content: 'NO' }, finish_reason: 'stop' }], usage: USAGE })));
     const body = replies[calls.length] !== undefined ? replies[calls.length] : replies[replies.length - 1];
     calls.push(payload && payload.model);
     return Promise.resolve(new Response(JSON.stringify({ choices: [{ message: { content: body }, finish_reason: 'stop' }], usage: USAGE }), { status: 200, headers: { 'Content-Type': 'application/json' } }));

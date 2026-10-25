@@ -72,7 +72,7 @@ function run({ script, effort, sys, user, contract, classifyAs, kv }) {
   const answer = (text) => reply(200, { choices: [{ message: { content: text }, finish_reason: 'stop' }], usage: USAGE });
   box.fetch = (url, o) => {
     const payload = o && o.body ? JSON.parse(o.body) : null;
-    if (payload && payload.model === 'gpt-4.1-nano') return Promise.resolve(answer(classifyAs || 'NO'));   // the classifier
+    if (payload && (payload.model === 'gpt-4.1-nano' || /You are a binary classifier/.test(JSON.stringify(payload.messages || '')))) return Promise.resolve(answer(classifyAs || 'NO'));   // the classifier (v7.89: on gpt-4.1-mini, the emergency tier's model, so it is told apart by its prompt)
     const timer = timers[timers.length - 1];
     const step = (script || [])[n++] || 'ok';
     calls.push({ model: payload && payload.model, timeoutMs: timer ? timer.ms : null, payload });
