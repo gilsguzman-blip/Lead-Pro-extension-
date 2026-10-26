@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.826-dev (Dev. THE EXCHANGE THIS MESSAGE ANSWERS. Extension only; proxy v7.89, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Toyota Baytown lead 2105834775 (log362): a Click & Go credit app at 2:44; at 2:56 the BD agent texted 'I can have it ready this afternoon. Would 5:00 or 5:45 work?'; at 3:02 the customer answered 'Yes'. A scraper rule from v9.7.256 discarded the bare 'Yes' (written for 'Reply YES to receive texts'), the lead was labeled a first touch, and the draft re-pitched the car and the application and offered 5:15. Gil: 'That should have been a given ... We need to be better than applying constant band-aids.' The cause was structural: labels computed before the model reads the thread (first touch, silence, thin reply) outranked the thread when they were wrong. One principle, three places: when the customer wrote last, their message answers ours right before it. (1) Scraper: a bare yes / ok is a real reply unless the message of ours right before it is an opt-in prompt. (2) buildUserPrompt: a lead whose newest text or email is the customer's answer to ours is never a first touch, whatever the label upstream said ([LP EXCHANGE DIAG]). (3) _lpLastExchange: THE EXCHANGE THIS MESSAGE ANSWERS -- our message and their answer side by side, after the conversation and ahead of the scenario, in the prompt and in the text rewrite; any line claiming they have not replied is named wrong. A yes to two or more offered times asks which, with the same times; a yes to one time confirms it and stops; times older than 12 hours are re-asked; the thin-reply 'same as silence' line stands down. TESTS: exchange-826 (new) runs the shipped inlineScraper in Chromium and executes buildUserPrompt through the panel payload and _lpBuildSmsRefinePrompt: 22 assertions across both builds; v9.7.825 fails 8 of 11 per build (the 3 controls pass). VERIFIED: run-all 261 suites green, 8,934 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.825.)
 // Lead Pro -- popup.js  v9.7.825-dev (Dev. THE CUSTOMER IS TALKING WITH US; A TEAMMATE'S ANSWER IS THEIRS; A SECOND APPLICANT; THE EARLIER CHAPTER STAYS PUT. Extension only; proxy v7.89, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Honda Lafayette lead 2055144034 (log360, v9.7.824): the customer texted 'Ok' and 'Can you send 2 application', and a minute later the salesperson texted the finance-application link. The draft, signed by the BD agent: 'the application link I sent can be completed separately by each of the two applicants. You also asked about monthly payments ...' (1) _lpCustomerTalking: their newest message came after one of ours, within 3 days, with at most one of ours since -> the phone-up task says a live conversation, and its 'has not responded' and silence lines stand down (v9.7.823 did this only for a yes to an offer). (2) _lpTeammateAnswered: our text or email after their newest message, within 6 hours, by someone other than the signer -> THEIR NEWEST MESSAGE WAS ALREADY ANSWERED names who answered and how; never 'I sent', and nothing about how a form or link works beyond what our messages or the prompt state. (3) _lpSecondApplicant (Gil, 10/26: 'the link can be used by the second applicant or filled out jointly as a Co-buyer on the app'): a second application, co-buyer, co-signer, joint application, or a spouse or partner applying, since the reactivation or in the last 14 days, with a finance-application link of ours on the lead -> A SECOND APPLICANT states exactly that, in every format. (4) After a reactivation the relationship reading drops recurring topics whose mentions predate the note (the July call note's 'monthly payments'), and the reactivation line covers earlier calls and notes: never tell them they asked about it. TESTS: teammate-825 (new) builds the prompt through the shipped populateFromData and panel payload: 22 assertions across both builds; v9.7.824 fails 5 of 11 per build (the 6 controls pass). VERIFIED: run-all 260 suites green, 8,912 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.824.)
 // Lead Pro -- popup.js  v9.7.824-dev (Dev. "SEND" AND "BRING" ALONE ARE NOT SHIPPING. Extension only; proxy v7.89, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Honda Lafayette lead 2055144034 (log359, v9.7.823): after the salesperson sent the credit application the customer texted 'Can you send 2 application'. LP_SHIP_ASK_RX (v9.7.806) took any 'can you ... send' or 'can you ... bring' as a question about getting the car to them, so the prompt carried THEY ASKED ABOUT GETTING THE CAR TO THEM and the text and email opened on two transport companies ('Subject: Two applications and transport'). 'Bring' or 'drive' now needs the car (it, them, one, the truck) and a place (to me / my house, here, home, out here); 'send' needs a vehicle noun and a place. Ship / deliver / transport / haul and the Spanish shapes are unchanged; 'can you guys drive it out here' is newly read. The rest of v9.7.823 behaved on this grab: the two 9:46 texts were glued, the July 'Yes' was not, the reactivation line fired, and the request was closed by the 9:47 link. TESTS: ship-send-824 (new) builds the prompt through the shipped populateFromData and panel payload and executes _lpShipAsk: 12 assertions across both builds; v9.7.823 fails 4 of 6 per build (the 2 controls pass). VERIFIED: run-all 259 suites green, 8,890 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.823.)
 // Lead Pro -- popup.js  v9.7.823-dev (Dev. A YES TO OUR OFFER IS A YES; A REACTIVATED LEAD STARTS A NEW CHAPTER. Extension only; proxy v7.89, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Honda Lafayette lead 2055144034 (log358): three months after it went quiet the lead was reactivated, the salesperson called and texted 'What I can do to save you as much time as possible, is send over a credit app', and the customer answered 'Ok'. The draft treated that as silence. (1) BURST TEXTS: the scraper glued two July texts onto the October 'Ok' ('Yes / Ok') because it compared the next two notes with each other, not with the message it held; the window is now measured from the held message, and an unknown date never glues. (2) _lpAcceptedOffer: a short yes (ok / yes / sure / sounds good / go ahead) right after our text or email offered to do something is acceptance. A THEY SAID YES TO OUR OFFER line has the message deliver it -- for a credit app, the finance-application link already sent on the lead -- and the thin-reply 'same as silence' line and the phone-up 'has not responded' lines stand down. (3) hasPriceQuoteSent needs real evidence in one sentence: a sending word next to a price word, with a figure or a quote word ('monthly payments, ... wanted one sent over' no longer counts). (4) _lpReactivated: after a 'has reactivated this lead' note 14+ days past the last message either way, what came after is the conversation and the earlier thread is background; links we already sent may be reused. (5) A '*** ... ***' banner or an all-caps system line with a '?' (TrueCar 'NO MATCHING VIN ? HONOR YOUR DISCOUNT', Honda Baytown 10/24) is a CRM record line, never the customer's question or inquiry. (6) Add Appt Ask: the same times in every format; the text rewrite keeps the first draft's times when the email has none. (7) META LEAK: a text rewrite that talks about the email, the first draft or what it may not invent ('Those times aren't specified in the email, so I shouldn't invent them', Civic LX 10/24) does not ship, and any such sentence is cut from the text, email and voicemail before render. TESTS: offer-yes-823 (new) runs the shipped inlineScraper in Chromium and executes buildUserPrompt through the panel payload, _lpBuildSmsRefinePrompt, _lpRefineSms and the render backstop: 38 assertions across both builds; v9.7.822 fails 13 of 19 per build (the 6 controls pass). VERIFIED: run-all 258 suites green, 8,878 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.822.)
@@ -4499,6 +4500,48 @@ function _lpSecondApplicant(d) {
     if (!link) return null;
     return { said: String(c.body).replace(/\s+/g, ' ').trim().slice(0, 160), link: link };
   } catch (e) { return null; }
+}
+// (v9.7.826) THE EXCHANGE THIS MESSAGE ANSWERS. Toyota Baytown lead 2105834775 (log362): at 2:56 the BD agent texted "I can have it
+// ready this afternoon. Would 5:00 or 5:45 work?"; at 3:02 the customer answered "Yes". A scraper rule from v9.7.256 discarded the
+// bare "Yes" (it was written for "Reply YES to receive texts"), the lead was labeled a first touch, and the draft re-pitched the car
+// and the application and offered 5:15. Every reader before this one was a label about the conversation; this is the conversation:
+// when the customer wrote last, their message answers ours right before it, and the prompt puts the two side by side.
+// Our newest text or email before their newest text or email reply, within 7 days, with nothing of ours since.
+// Returns { ours, oursDate, oursT, theirs, theirsDate, by, asked, yes, times, stale } or null.
+var LP_EX_TIME_RX = /\b\d{1,2}:\d{2}\s*(?:[AP]\.?M\.?)?|\b\d{1,2}\s*[AP]\.?M\.?\b/gi;
+var LP_OPTIN_ASK_RX = /\breply\s+["“]?yes\b|\btext\s+["“]?yes\b|\brespond\s+(?:with\s+)?["“]?yes\b|\bopt[\s-]?in\b|\bto\s+(?:receive|get)\s+(?:text|sms)/i;
+function _lpLastExchange(d) {
+  try {
+    var c = _lpCustEntries(d).filter(function (x) { return /text|sms|email/i.test(x.title) && !/lead received|auto.?respon|phone call/i.test(x.title); })[0];
+    if (!c) return null;
+    var ours = _lpOurEntries(d).filter(function (x) { return /text message|email/i.test(x.title) && !LP_OPTOUT_CONFIRM_RX.test(x.body); });
+    if (ours.some(function (x) { return x.t > c.t; })) return null;   // we already answered it
+    var o = ours.filter(function (x) { return x.t <= c.t; })[0];
+    if (!o || c.t - o.t > 7 * 86400000) return null;
+    var ob = String(o.body).replace(/\s*Reply STOP to (?:cancel|opt out|unsubscribe)\.?/i, '').replace(/\s+/g, ' ').trim();
+    var said = String(c.body).replace(/\s+/g, ' ').trim();
+    var yes = said.length <= 60 && LP_YES_RX.test(said) && LP_YES_WORD_RX.test(said);
+    if (yes && LP_OPTIN_ASK_RX.test(ob)) return null;   // a yes to an opt-in prompt is plumbing, not an answer
+    var tq = ob.split(/(?<=[.!?])\s+/).filter(function (s) { return /\?/.test(s) && (s.match(LP_EX_TIME_RX) || []).length; }).pop() || '';
+    var times = (tq.match(LP_EX_TIME_RX) || []).map(function (t) { return t.replace(/\s+/g, ' ').trim(); });
+    var by = '', sends = ((d && d.outboundSends) || []).filter(function (x) { return x && x.body && Math.abs((x.ms || 0) - o.t) <= 2 * 60000; });
+    if (sends.length) by = _lpOutboundAuthor(String(sends[0].body), d.agent);
+    return { ours: ob.slice(0, 400), oursDate: o.date, oursT: o.t, theirs: said.slice(0, 300), theirsDate: c.date, by: by,
+      asked: /\?/.test(ob) || LP_OFFER_RX.test(ob), yes: yes, times: times, stale: times.length > 0 && Date.now() - o.t > 12 * 3600000 };
+  } catch (e) { return null; }
+}
+function _lpExchangeLines(ex, d) {
+  var who = !ex.by || _lpSameAgent(ex.by, d && d.agent) ? 'you' : _lpQuoteWho({ by: ex.by, first: ex.by.split(/\s+/)[0] }, d).replace(/,$/, '');
+  var out = ['━━━ THE EXCHANGE THIS MESSAGE ANSWERS ━━━',
+    'Our message (' + ex.oursDate + ', sent by ' + who + '): "' + ex.ours.replace(/"/g, "'") + '"',
+    'Their reply (' + ex.theirsDate + '): "' + ex.theirs.replace(/"/g, "'") + '"',
+    'Their reply answers that message: read it as an answer to it, not on its own. A yes accepts what our message asked or offered; a choice picks from what it offered; a question asks about it. '
+      + 'They are talking with us: this is not a first touch and not silence, and any line below that says they have not replied is wrong.'];
+  if (ex.yes && ex.times.length >= 2) out.push('They said yes to coming in but did not say which time. Confirm they are coming, ask which of the times our message offered works ('
+    + ex.times.join(' or ') + ') -- the same times, no new ones -- and say what will be ready for them. Do not re-pitch the vehicle or repeat what our message already said.');
+  else if (ex.yes && ex.times.length === 1) out.push('They said yes to ' + ex.times[0] + '. Confirm it cleanly, say what will be ready for them, and stop. Do not offer other times or re-pitch.');
+  if (ex.stale) out.push('Those times were offered on ' + ex.oursDate + '; if they have passed, say so simply and ask when they can come instead.');
+  return out;
 }
 function _lpTrimObj(disp) {
   disp = String(disp || '').replace(/\s{2,}/g, ' ').trim();
@@ -16063,14 +16106,26 @@ function _lpScraperBotAuthor(msg) {
       }
 
       // Check if customer has sent a real inbound text/email reply
-      var hasRealCustomerReply = noteEls.slice(0,80).some(function(item){
+      // (v9.7.826) A bare "Yes" / "ok" is plumbing only when it answers an opt-in prompt ("Reply YES to receive texts"). After our
+      // text or email asked them something ("Would 5:00 or 5:45 work?") it is their answer -- lead 2105834775 was labeled a first
+      // touch because this check threw that answer away.
+      var _lpYesAnswersUs = function (idx) {
+        for (var j = idx + 1; j < Math.min(noteEls.length, idx + 30); j++) {
+          var jd = (noteEls[j].getAttribute('data-direction')||'').toLowerCase(), jt = ((noteEls[j].querySelector('.legacy-notes-and-history-title')||{}).innerText||'').toLowerCase();
+          if (jd !== 'outbound' || !/text message|email/.test(jt)) continue;
+          var jc = ((noteEls[j].querySelector('.notes-and-history-item-content')||{}).innerText||'');
+          return !/\breply\s+["\u201c]?yes\b|\btext\s+["\u201c]?yes\b|\brespond\s+(?:with\s+)?["\u201c]?yes\b|\bopt[\s-]?in\b|\bto\s+(?:receive|get)\s+(?:text|sms)/i.test(jc);
+        }
+        return false;
+      };
+      var hasRealCustomerReply = noteEls.slice(0,80).some(function(item, idx){
         var dir = (item.getAttribute('data-direction')||'').toLowerCase();
         var title = ((item.querySelector('.legacy-notes-and-history-title')||{}).innerText||'').toLowerCase();
         var content = ((item.querySelector('.notes-and-history-item-content')||{}).innerText||'').trim();
         var isRealInboundText = dir === 'inbound' && /inbound text|inbound sms|text message/i.test(title)
           && content && content.length > 3
           && !/lead received|auto response|opted out|stop$/i.test(content)
-          && !_isTrivialConfirmation(content);
+          && (!_isTrivialConfirmation(content) || (_inboundBody(content).length > 0 && _lpYesAnswersUs(idx)));
         var isRealEmailReply = dir === 'inbound' && /email reply from prospect|email from prospect/i.test(title)
           && content && content.length > 3;
         return isRealInboundText || isRealEmailReply;
@@ -23557,6 +23612,7 @@ function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
     + 'paragraphs, do not summarize, and do not take the email and delete words out of it \u2014 '
     + 'that last one is the exact failure this pass exists to prevent. The difference between the '
     + 'two is the voice and the rhythm, not how much you left out.');
+  try { var _rfEx = _lpLastExchange(d); if (_rfEx) { out.push(''); _lpExchangeLines(_rfEx, d).forEach(function (l) { out.push(l); }); out.push(''); } } catch (eRfEx) {}   // (v9.7.826)
   out.push('If the email offered appointment times, use the SAME times. If the email has none and the first draft does, keep the first draft\'s times. Never invent different ones, and never mention the email or the first draft in the text.');   // (v9.7.823)
   out.push('Never state a fact the email does not state.');
   out.push('AND THE MIRROR OF THAT, WHICH MATTERS MORE: if the email states something that changes '
@@ -24733,6 +24789,15 @@ function _lpVisitDecisionDumpText(v) {
 }
 
 function buildUserPrompt(data) {
+  // (v9.7.826) THE CUSTOMER WROTE LAST, SO THIS IS NOT A FIRST TOUCH. Whatever a reader upstream decided, a lead whose newest
+  // text or email is the customer's answer to ours is a conversation (see _lpLastExchange).
+  try {
+    var _lpEx0 = (typeof _lpLastExchange === 'function') ? _lpLastExchange(data) : null;
+    if (_lpEx0 && data.convState === 'first-touch') {
+      console.log('[LP EXCHANGE DIAG] convState first-touch -> active-follow-up: the customer answered our ' + _lpEx0.oursDate + ' message ("' + _lpEx0.theirs.slice(0, 60) + '")');
+      data.convState = 'active-follow-up'; data.hasCustomerReply = true;
+    }
+  } catch (eEx0) {}
   if (data && data._lpRepNotOnLot === undefined) { try { data._lpRepNotOnLot = (typeof _lpRepNotOnLot === 'function') ? _lpRepNotOnLot(data) : null; } catch (eNol2) {} }   // (v9.7.802)
   const sc   = classifyScenario(data);
   const hasRealOutbound = !!(data.hasOutbound);
@@ -29087,8 +29152,11 @@ function buildUserPrompt(data) {
             + 'It is shown here so you do not repeat it, nothing more.');
         }
         var _lpYesOffer = null; try { _lpYesOffer = _lpAcceptedOffer(data); } catch (eYo) {}   // (v9.7.823)
+        var _lpExT = null; try { _lpExT = _lpLastExchange(data); } catch (eExT) {}   // (v9.7.826)
         ageBlock.push(_lpYesOffer
           ? 'The customer answered that message with "' + _lpYesOffer.said.substring(0,60) + '" -- a yes to what it offered, not silence (see THEY SAID YES TO OUR OFFER). It is shown here so you do not repeat its pitch or ask again whether they want it.'
+          : (_lpExT && _lpExT.asked)
+          ? 'The customer answered that message with "' + _lpExT.theirs.substring(0,60) + '" -- an answer to what it asked, not silence (see THE EXCHANGE THIS MESSAGE ANSWERS). It is shown here so you do not repeat it.'
           : _lpThinReply
           ? 'The customer replied, but with a short acknowledgment that adds no new information ("' + _lpThinReplyText.substring(0,60) + '") — for restate purposes this is the same as silence. A reworded version of your last message — same pitch, same options, same ask — IS a restate, and restating is the failure here. Acknowledge their reply, then move somewhere the last message did not: a smaller/simpler next step, one genuinely new piece of information, or something specific from THIS customer\'s history not yet used. Do not just repeat the questions or offer you already made.'
           : (_asBot && _asFresh)
@@ -31090,6 +31158,17 @@ function buildUserPrompt(data) {
       }
     }
   } catch (e) { /* order is a preference, never a reason to fail a generation */ }
+  // (v9.7.826) The exchange this message answers goes directly ahead of the scenario, after the conversation itself.
+  try {
+    var _lpEx = _lpLastExchange(data);
+    if (_lpEx) {
+      var _exAt = _out.indexOf('━━━ SCENARIO ━━━');
+      var _exLines = [''].concat(_lpExchangeLines(_lpEx, data)).concat(['']);
+      if (_exAt > -1) _out.splice.apply(_out, [_exAt, 0].concat(_exLines)); else _out = _out.concat(_exLines);
+      console.log('[LP EXCHANGE DIAG] their ' + _lpEx.theirsDate + ' reply "' + _lpEx.theirs.slice(0, 60) + '" answers our ' + _lpEx.oursDate + ' message'
+        + (_lpEx.yes ? ' | a yes' : '') + (_lpEx.times.length ? ' | times offered: ' + _lpEx.times.join(', ') : '') + (_lpEx.stale ? ' | stale' : ''));
+    }
+  } catch (eEx) {}
   // (v9.7.775) the visit decision, made once on the finished prompt -- see _lpApplyVisitDecision
   var _vdOut = _out.join('\n');
   try {
