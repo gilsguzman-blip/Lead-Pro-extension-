@@ -351,7 +351,9 @@ check('every _lpDraftHistory mention is inside the collector, the prompt block o
   // (v9.7.704) A FIFTH, and a READER: the PHASE 2 example pool drops topics a rejected draft already asked,
   // and rotates by how many there were. Named here on purpose, per the rule above.
   i => { const spans = [i.capture, i.promptBlk, i.variance, 'factVerdicts: window._lpFactVerdicts || {}, draftHistory: window._lpDraftHistory || [],',
-                        "var _r2Rej = (typeof window !== 'undefined' && window && Array.isArray(window._lpDraftHistory)) ? window._lpDraftHistory : [];"];
+                        "var _r2Rej = (typeof window !== 'undefined' && window && Array.isArray(window._lpDraftHistory)) ? window._lpDraftHistory : [];",
+                        // (v9.7.827) A SIXTH, and a READER: _lpIsRegenPass lets a regen move "we have been trying to reach you". Named here on purpose.
+                        "try { return typeof window !== 'undefined' && !!((Array.isArray(window._lpDraftHistory) && window._lpDraftHistory.length) || window._lpRegenDirective); } catch (e) { return false; }"];
          let n = 0, from = 0, loose = 0;
          for (;;) {
            const k = i.body.indexOf('_lpDraftHistory', from);
