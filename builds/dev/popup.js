@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.825-dev (Dev. THE CUSTOMER IS TALKING WITH US; A TEAMMATE'S ANSWER IS THEIRS; A SECOND APPLICANT; THE EARLIER CHAPTER STAYS PUT. Extension only; proxy v7.89, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Honda Lafayette lead 2055144034 (log360, v9.7.824): the customer texted 'Ok' and 'Can you send 2 application', and a minute later the salesperson texted the finance-application link. The draft, signed by the BD agent: 'the application link I sent can be completed separately by each of the two applicants. You also asked about monthly payments ...' (1) _lpCustomerTalking: their newest message came after one of ours, within 3 days, with at most one of ours since -> the phone-up task says a live conversation, and its 'has not responded' and silence lines stand down (v9.7.823 did this only for a yes to an offer). (2) _lpTeammateAnswered: our text or email after their newest message, within 6 hours, by someone other than the signer -> THEIR NEWEST MESSAGE WAS ALREADY ANSWERED names who answered and how; never 'I sent', and nothing about how a form or link works beyond what our messages or the prompt state. (3) _lpSecondApplicant (Gil, 10/26: 'the link can be used by the second applicant or filled out jointly as a Co-buyer on the app'): a second application, co-buyer, co-signer, joint application, or a spouse or partner applying, since the reactivation or in the last 14 days, with a finance-application link of ours on the lead -> A SECOND APPLICANT states exactly that, in every format. (4) After a reactivation the relationship reading drops recurring topics whose mentions predate the note (the July call note's 'monthly payments'), and the reactivation line covers earlier calls and notes: never tell them they asked about it. TESTS: teammate-825 (new) builds the prompt through the shipped populateFromData and panel payload: 22 assertions across both builds; v9.7.824 fails 5 of 11 per build (the 6 controls pass). VERIFIED: run-all 260 suites green, 8,912 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.824.)
 // Lead Pro -- popup.js  v9.7.824-dev (Dev. "SEND" AND "BRING" ALONE ARE NOT SHIPPING. Extension only; proxy v7.89, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Honda Lafayette lead 2055144034 (log359, v9.7.823): after the salesperson sent the credit application the customer texted 'Can you send 2 application'. LP_SHIP_ASK_RX (v9.7.806) took any 'can you ... send' or 'can you ... bring' as a question about getting the car to them, so the prompt carried THEY ASKED ABOUT GETTING THE CAR TO THEM and the text and email opened on two transport companies ('Subject: Two applications and transport'). 'Bring' or 'drive' now needs the car (it, them, one, the truck) and a place (to me / my house, here, home, out here); 'send' needs a vehicle noun and a place. Ship / deliver / transport / haul and the Spanish shapes are unchanged; 'can you guys drive it out here' is newly read. The rest of v9.7.823 behaved on this grab: the two 9:46 texts were glued, the July 'Yes' was not, the reactivation line fired, and the request was closed by the 9:47 link. TESTS: ship-send-824 (new) builds the prompt through the shipped populateFromData and panel payload and executes _lpShipAsk: 12 assertions across both builds; v9.7.823 fails 4 of 6 per build (the 2 controls pass). VERIFIED: run-all 259 suites green, 8,890 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.823.)
 // Lead Pro -- popup.js  v9.7.823-dev (Dev. A YES TO OUR OFFER IS A YES; A REACTIVATED LEAD STARTS A NEW CHAPTER. Extension only; proxy v7.89, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Honda Lafayette lead 2055144034 (log358): three months after it went quiet the lead was reactivated, the salesperson called and texted 'What I can do to save you as much time as possible, is send over a credit app', and the customer answered 'Ok'. The draft treated that as silence. (1) BURST TEXTS: the scraper glued two July texts onto the October 'Ok' ('Yes / Ok') because it compared the next two notes with each other, not with the message it held; the window is now measured from the held message, and an unknown date never glues. (2) _lpAcceptedOffer: a short yes (ok / yes / sure / sounds good / go ahead) right after our text or email offered to do something is acceptance. A THEY SAID YES TO OUR OFFER line has the message deliver it -- for a credit app, the finance-application link already sent on the lead -- and the thin-reply 'same as silence' line and the phone-up 'has not responded' lines stand down. (3) hasPriceQuoteSent needs real evidence in one sentence: a sending word next to a price word, with a figure or a quote word ('monthly payments, ... wanted one sent over' no longer counts). (4) _lpReactivated: after a 'has reactivated this lead' note 14+ days past the last message either way, what came after is the conversation and the earlier thread is background; links we already sent may be reused. (5) A '*** ... ***' banner or an all-caps system line with a '?' (TrueCar 'NO MATCHING VIN ? HONOR YOUR DISCOUNT', Honda Baytown 10/24) is a CRM record line, never the customer's question or inquiry. (6) Add Appt Ask: the same times in every format; the text rewrite keeps the first draft's times when the email has none. (7) META LEAK: a text rewrite that talks about the email, the first draft or what it may not invent ('Those times aren't specified in the email, so I shouldn't invent them', Civic LX 10/24) does not ship, and any such sentence is cut from the text, email and voicemail before render. TESTS: offer-yes-823 (new) runs the shipped inlineScraper in Chromium and executes buildUserPrompt through the panel payload, _lpBuildSmsRefinePrompt, _lpRefineSms and the render backstop: 38 assertions across both builds; v9.7.822 fails 13 of 19 per build (the 6 controls pass). VERIFIED: run-all 258 suites green, 8,878 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.822.)
 // Lead Pro -- popup.js  v9.7.822-dev (Dev. THE SHIPPING QUESTION, AS PHONES TYPE IT. Extension only; proxy v7.88, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Kia Baytown lead 2104748576 (log357, v9.7.820): '[Customer]: Well I wanted to know if y’all ship the trucks I live abt 4-5 hours away' did not match LP_SHIP_ASK_RX -- the phone typed a curly apostrophe in 'y’all' (the pattern took only a straight one) and 'if ... ship' was not one of its shapes -- so the v9.7.806 block (they arrange the transport company, we coordinate the pickup with the shipper, two shippers named) never reached the prompt, and the draft improvised 'I can help arrange shipping'. Gil: 'the logic we built to give referrals and help coordinate didn't fire.' (1) LP_SHIP_ASK_RX takes the curly apostrophe, and reads if / whether / do / can / would + you / y'all / you guys / they + ship / deliver / transport / haul, and 'y'all ship ...' alone; 'if you could send me pics' and 'I hope you deliver great service' still do not match. (2) LP_AVAIL_ASK_RX ('what do y'all have', 'do y'all still have it') takes the curly apostrophe too. TESTS: ship-ask-822 (new) builds the prompt through the shipped populateFromData and panel payload and executes _lpShipAsk, LP_AVAIL_ASK_RX and _lpBuildSmsRefinePrompt: 12 assertions across both builds; v9.7.821 fails 5 of 6 per build (the control passes). VERIFIED: run-all 256 suites green, 8,837 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.821-dev.)
@@ -4453,6 +4454,50 @@ function _lpReactivated(d) {
     ents.forEach(function (x) { if (x.t < r.t && /^(?:AGENT|CUSTOMER)$/i.test(String(x.tag || '').trim()) && x.t > prior) prior = x.t; });
     if (!prior || r.t - prior < 14 * 86400000) return null;
     return { date: r.date, t: r.t, gap: Math.round((r.t - prior) / 86400000) };
+  } catch (e) { return null; }
+}
+// (v9.7.825) THE CUSTOMER IS TALKING WITH US. Same lead (log360): she texted "Can you send 2 application" 40 minutes earlier, and
+// the phone-up block still said she "has not responded to multiple attempts" and to "acknowledge the silence". True when their
+// newest message came after one of ours, within 3 days, with at most one of ours since. Returns { date, t } or null.
+function _lpCustomerTalking(d) {
+  try {
+    var c = _lpCustEntries(d)[0]; if (!c || Date.now() - c.t > 3 * 86400000) return null;
+    var ours = _lpOurEntries(d);
+    if (!ours.some(function (x) { return x.t < c.t; })) return null;
+    if (ours.filter(function (x) { return x.t > c.t && /text message|email/i.test(x.title); }).length > 1) return null;
+    return { date: c.date, t: c.t };
+  } catch (e) { return null; }
+}
+// (v9.7.825) A TEAMMATE ALREADY ANSWERED THEM. Same lead: at 9:47 the salesperson answered "Can you send 2 application" with the
+// finance-application link, and the draft, signed by the BD agent, said "the application link I sent". Their newest message, then
+// our text or email after it (within 6 hours) by someone other than the signer. Returns { said, date, body, by, first } or null.
+function _lpTeammateAnswered(d) {
+  try {
+    var c = _lpCustEntries(d)[0]; if (!c) return null;
+    var ans = _lpOurEntries(d).filter(function (x) { return x.t >= c.t && x.t - c.t <= 6 * 3600000 && /text message|email/i.test(x.title) && !LP_OPTOUT_CONFIRM_RX.test(x.body); }).pop();
+    if (!ans) return null;
+    var raw = String((d && d.lastOutboundMsg) || ''), by = '';
+    var sends = ((d && d.outboundSends) || []).slice().sort(function (a, b) { return (b.ms || 0) - (a.ms || 0); });
+    if (sends.length && sends[0].body) raw = String(sends[0].body);
+    if (_lpIsBotAuthor(raw)) return null;
+    by = _lpOutboundAuthor(raw, d.agent);
+    if (!by || _lpSameAgent(by, d.agent)) return null;
+    return { said: String(c.body).replace(/\s+/g, ' ').trim().slice(0, 160), date: c.date, body: String(ans.body).replace(/\s+/g, ' ').trim().slice(0, 300), by: by, first: by.split(/\s+/)[0] };
+  } catch (e) { return null; }
+}
+// (v9.7.825) A SECOND APPLICANT. Gil, 10/26, on the same lead: the finance-application link can be used by the second applicant,
+// or the two can fill it out jointly with the second person as the co-buyer on the app. Read from the customer's messages since
+// the reactivation note (or the last 14 days); needs a finance-application link of ours on the lead. Returns { said, link } or null.
+var LP_SECOND_APP_RX = /\b(?:2|two|second|2nd|another|both)\s+(?:credit\s+|finance\s+)?app(?:lication)?s?\b|\bco-?\s?(?:buyer|signer|applicant|borrower)\b|\bjoint(?:ly)?\b[^.?!\n]{0,25}\bapp|\b(?:my|her|his)\s+(?:husband|wife|spouse|partner|mom|mother|dad|father|boyfriend|girlfriend|fianc\w*)\b[^.?!\n]{0,40}\b(?:apply|app|application|sign)/i;
+function _lpSecondApplicant(d) {
+  try {
+    var ra = (typeof _lpReactivated === 'function') ? _lpReactivated(d) : null, floor = ra ? ra.t : Date.now() - 14 * 86400000;
+    var c = _lpCustEntries(d).filter(function (x) { return x.t >= floor && LP_SECOND_APP_RX.test(x.body); })[0];
+    if (!c) return null;
+    var link = '';
+    _lpOurEntries(d).some(function (x) { var m = /https?:\/\/\S*(?:financ|credit|apply|applica|pre-?qual|pre-?approv)\S*/i.exec(x.body); if (m) link = m[0].replace(/[).,;:!?]+$/, ''); return !!m; });
+    if (!link) return null;
+    return { said: String(c.body).replace(/\s+/g, ' ').trim().slice(0, 160), link: link };
   } catch (e) { return null; }
 }
 function _lpTrimObj(disp) {
@@ -24075,9 +24120,16 @@ function renderRelationshipReading(data) {
       useCase:       'Family / use-case (kids, work, towing)',
       competitor:    'Other vehicles or dealerships'
     };
+    var _tmRa = null; try { _tmRa = (typeof _lpReactivated === 'function') ? _lpReactivated(data) : null; } catch (eTmRa) {}   // (v9.7.825)
     for (var tk in s.topicMentions) {
       var tm = s.topicMentions[tk];
       var _tmMentions = tm.mentions;
+      // (v9.7.825) After a reactivation, a topic from the earlier chapter is not a recurring topic of this one: the July call note
+      // "vehicles that only require monthly payments" came back three months later as "You also asked about monthly payments".
+      if (_tmRa) {
+        _tmMentions = _tmMentions.filter(function (m) { var t = m.date ? new Date(m.date).getTime() : NaN; return !isNaN(t) && t >= _tmRa.t; });
+        if (_tmMentions.length < 2) { console.log('[LP TOPIC FILTER DIAG] ' + tk + ' DROPPED -- its mentions predate the ' + _tmRa.date + ' reactivation'); continue; }
+      }
       if (tk === 'competitor') {
         _tmMentions = tm.mentions.filter(function(m){ return _lpIsRealCompetitor(m.sentence); });
         if (!_tmMentions.length) {
@@ -25532,8 +25584,10 @@ function buildUserPrompt(data) {
   } else if (sc.isPhoneUp) {
     var puFollowUp = (sc.isFollowUp && hasRealOutbound) || hasPriceQuoteSent;
     var _puYes = null; try { _puYes = (typeof _lpAcceptedOffer === 'function') ? _lpAcceptedOffer(data) : null; } catch (ePuYes) {}   // (v9.7.823)
+    var _puTalk = null; try { _puTalk = (!_puYes && typeof _lpCustomerTalking === 'function') ? _lpCustomerTalking(data) : null; } catch (ePuTk) {}   // (v9.7.825)
     scenarioDirective = puFollowUp
       ? (_puYes ? 'TASK: Phone-up lead — the customer just said yes to what we offered. This is NOT a first-touch message.'
+         : _puTalk ? 'TASK: Phone-up lead — the customer is in a live conversation with us (their newest message is from ' + _puTalk.date + '). This is NOT a first-touch message.'
                : 'TASK: Phone-up lead — multiple outreach attempts made, customer has not responded. This is NOT a first-touch message.')
       : 'TASK: Phone-up lead — customer called in first. This follow-up continues a real conversation that already happened.';
     scenarioRules = puFollowUp ? [
@@ -25544,8 +25598,9 @@ function buildUserPrompt(data) {
       '- If agent notes indicate a payment was sent: the customer has the numbers. Their silence likely means the number didn\'t land right, they are comparing, or timing isn\'t there yet. Address that directly.',
       '- Different agent picking up the thread: if the prior calls were made by another agent, do NOT claim ownership. Write as if you are aware of what was sent but do not say "I called you" or "I left a voicemail" unless you did.',
       '- Frame the next step as low-friction: a quick question, a new angle, an easier path to a decision — not another "come in today."'
-    ].filter(function (r) { return !_puYes || !/has not responded|silence/i.test(r); })   // (v9.7.823) they answered: see THEY SAID YES TO OUR OFFER
-      .concat(_puYes ? ['- The customer just answered our offer with a yes (see THEY SAID YES TO OUR OFFER). Do not acknowledge silence or look for a new angle: deliver what was offered.'] : [])
+    ].filter(function (r) { return !(_puYes || _puTalk) || !/has not responded|silence/i.test(r); })   // (v9.7.823/825) they are answering us
+      .concat(_puYes ? ['- The customer just answered our offer with a yes (see THEY SAID YES TO OUR OFFER). Do not acknowledge silence or look for a new angle: deliver what was offered.']
+        : _puTalk ? ['- The customer is answering us now. Do not acknowledge silence or look for a pattern-break: continue from what they said last.'] : [])
       .join('\n') : [
       '- Customer called in first. A real conversation already happened. Never treat this as a cold intro.',
       '- BD Agent may not have been on the call — never say "it was great speaking with you." Say: "following up on your call with us."',
@@ -28564,6 +28619,7 @@ function buildUserPrompt(data) {
       ageBlock.push('');
       ageBlock.push('\ud83d\udd04 THIS LEAD WAS REACTIVATED ON ' + _ra.date + ', after ' + _ra.gap + ' days with no messages either way. What happened after that note is the conversation now; '
         + 'everything before it is background. Do not bring back details from the earlier chapter (a budget, a vehicle they said they found, an inventory link, an old question) as if they were current, and do not ask about them again. '
+        + 'That includes what they said on earlier calls and in earlier notes (payments, budget, credit): never tell them they asked about it; only what they have said since the note counts. '
         + 'A link we already sent them, such as the finance application, may be sent again when it fits.');
       console.log('[LP REACTIVATED DIAG] reactivated ' + _ra.date + ' after ' + _ra.gap + ' quiet days -> earlier thread is background');
     }
@@ -28585,6 +28641,28 @@ function buildUserPrompt(data) {
       console.log('[LP OFFER YES DIAG] ' + _ao.date + ' offer "' + _ao.offer.slice(0, 80) + '" | customer: "' + _ao.said + '"' + (_ao.credit ? ' | credit app' + (_ao.link ? ' | link in thread' : ' | no link in thread') : '') + ' -> the message delivers it; thin-reply/silence lines stand down');
     }
   } catch (eAo) {}
+  // (v9.7.825) A teammate already answered their newest message (see _lpTeammateAnswered).
+  try {
+    var _ta = _lpTeammateAnswered(data);
+    if (_ta) {
+      var _taWho = _lpQuoteWho({ by: _ta.by, first: _ta.first }, data);
+      ageBlock.push('');
+      ageBlock.push('\u21aa THEIR NEWEST MESSAGE WAS ALREADY ANSWERED: they wrote "' + _ta.said.replace(/"/g, "'") + '" (' + _ta.date + '), and ' + _taWho + ' answered it: "' + _ta.body.replace(/"/g, "'") + '". '
+        + 'You did not send that -- never write "I sent", "the link I sent" or "my last message"; it is ' + _ta.first + '\'s (you may say ' + _ta.first + ' sent it). '
+        + 'This message follows that answer: do not present it again as new, and say nothing about how a form, link or process works beyond what our messages or this prompt state.');
+      console.log('[LP TEAMMATE ANSWERED DIAG] "' + _ta.said.slice(0, 60) + '" answered by ' + _ta.by + ' -> not ours to claim');
+    }
+  } catch (eTa) {}
+  // (v9.7.825) A second applicant on the finance application (see _lpSecondApplicant).
+  try {
+    var _sa2 = _lpSecondApplicant(data);
+    if (_sa2) {
+      ageBlock.push('');
+      ageBlock.push('\ud83d\udc65 A SECOND APPLICANT: they wrote "' + _sa2.said.replace(/"/g, "'") + '". The finance application covers that: the second person can use the same link (' + _sa2.link + ') for their own application, '
+        + 'or the two of them can fill it out together, with the second person added as the co-buyer on the application. Say that plainly in every format (the link may be sent again), and say nothing else about how the form works.');
+      console.log('[LP SECOND APPLICANT DIAG] "' + _sa2.said.slice(0, 60) + '" -> same link, or jointly with a co-buyer');
+    }
+  } catch (eSa2) {}
   // (v9.7.785) They already have a sales rep (see _lpHasRep).
   try {
     var _hr = _lpHasRep(data);
