@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.829 (Commercial. EVERY READER OF THE CUSTOMER'S SITUATION READS OUR NOTES ABOUT THEM. Extension only; proxy v7.89, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. v9.7.828 taught the schedule reader that a connected call note reports the customer's words; its header named three more readers that judged the customer's situation from their own messages only. Gil: 'build 829'. One definition, _lpNoteAboutThem (a connected or inbound call, or a general / appointment / showroom note about them -- he, she, they, customer), now feeds: (1) the schedule reader (828's gate, now shared); (2) the declined-alternative reader, with a notes-only third-person shape ('said he doesn't want the black one'); (3) price pushback ('said the price is too high' -> negative reply, superseded as before by a later customer message); (4) a reschedule after a booked appointment ('she can't make it Tuesday, needs to reschedule'), logged as a note saying so. Our own texts and emails are never their words, and readers that ask whether THEY replied keep reading their messages only. TESTS: notes-about-them-829 (new) runs the shipped inlineScraper in Chromium: 16 assertions across both builds; v9.7.828 fails the 3 new readers per build (the 4 controls and 828's schedule reader pass). VERIFIED: run-all 264 suites green, 8,986 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.828.)
 // Lead Pro -- popup.js  v9.7.828 (Commercial. A NOTE ABOUT THE CUSTOMER IS READ LIKE THEIR OWN MESSAGE. Extension only; proxy v7.89, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Kia Baytown lead 2105429946 (log367, v9.7.827): the salesperson reached the customer -- 'Outbound phone call (Contacted)': 'not a good time- hes at work// call him after 3pm' -- and the draft offered '9:15 AM or 10:30 AM Tuesday'. The model had the note, twice; the schedule reader read the customer's own messages only, so the suggested-times block offered morning slots as if nothing said otherwise. Gil: 'The model should ingest every note not just pieces.' (1) The schedule reader reads a connected call note, and a general / appointment note about them (he, she, they, customer), the same way as their messages; our own texts and emails are not read as theirs. (2) 'after N' is a start time ('call him after 3pm', 'free after 5'): a PM time feeds the arrival-time slots, so suggested times move after it. (3) The fallback slots yield to a timing in a message OR in any of our notes about them. (4) A bare '2026 Honda' on the lead gave the variant-mismatch check a key with no model, and the pattern built from it threw; both halves must now be words. AUDIT, not changed here: other readers that judge the customer's situation from their messages only -- the declined-alternative reader, price pushback (negative state), and 'need to reschedule / can't make it' -- would miss the same words in a connected call note; readers that must stay customer-only: did they reply, their last message, STOP, open questions answered, the newest customer signal. TESTS: call-note-schedule-828 (new) runs the shipped inlineScraper in Chromium and executes buildUserPrompt through the panel payload: 14 assertions across both builds; v9.7.827 fails 6 of 7 per build (the control passes). VERIFIED: run-all 263 suites green, 8,970 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.827.)
 // Lead Pro -- popup.js  v9.7.827 (Commercial. ROOM TO REGENERATE, AND FOUR WRONG READINGS FROM THE 10/26 REPORT. Extension only; proxy v7.89, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. (1) The Key Information panel's load error ('Failed to fetch customer summary banner preview text', Honda Lafayette lead 2105314541, log364) reached the prompt as the CDP summary, under the rule that the summary is the best read on the customer; LP_KI_PLACEHOLDER_RX now drops load errors and empty placeholders. (2) The same lead claimed '$1000 OFF TSRP ON ALL NEW HONDAS' with no vehicle; the ask-smaller rule and a Pre-Owned condition field produced 'Would you reply new or used?', and the draft said 'I see you were asking about the $1,000 savings'. A claimed new-only offer settles new or used (the small question is which kind or which model), and any claimed offer is never described as something they asked. (3) The pitch-out line says 'our message invited them in' on a lead with no vehicle, not 'told them about the car'. (4) 'We have been trying to reach you' still leads the first draft (Gil's ruling), but on a regen or chip (_lpIsRegenPass) it may move later or shrink to a clause, in the prompt, the text rewrite and its guard: nine regens on Kia lead 2105429946 opened identically. (5) Store hours are for scheduling: not listed in the message unless the customer asked ('We're open Monday through Saturday, 9 AM to 8 PM' on two leads). TESTS: regen-room-827 (new) executes _lpKeyInfoLines, _lpCdpSummary, _lpImxOfferGuidance, buildUserPrompt through the panel payload, _lpBuildSmsRefinePrompt and _lpRefineSms: 22 assertions across both builds; v9.7.826 fails 7 of 11 per build (the 4 controls pass). VERIFIED: run-all 262 suites green, 8,956 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.826.)
 // Lead Pro -- popup.js  v9.7.826 (Commercial. THE EXCHANGE THIS MESSAGE ANSWERS. Extension only; proxy v7.89, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Toyota Baytown lead 2105834775 (log362): a Click & Go credit app at 2:44; at 2:56 the BD agent texted 'I can have it ready this afternoon. Would 5:00 or 5:45 work?'; at 3:02 the customer answered 'Yes'. A scraper rule from v9.7.256 discarded the bare 'Yes' (written for 'Reply YES to receive texts'), the lead was labeled a first touch, and the draft re-pitched the car and the application and offered 5:15. Gil: 'That should have been a given ... We need to be better than applying constant band-aids.' The cause was structural: labels computed before the model reads the thread (first touch, silence, thin reply) outranked the thread when they were wrong. One principle, three places: when the customer wrote last, their message answers ours right before it. (1) Scraper: a bare yes / ok is a real reply unless the message of ours right before it is an opt-in prompt. (2) buildUserPrompt: a lead whose newest text or email is the customer's answer to ours is never a first touch, whatever the label upstream said ([LP EXCHANGE DIAG]). (3) _lpLastExchange: THE EXCHANGE THIS MESSAGE ANSWERS -- our message and their answer side by side, after the conversation and ahead of the scenario, in the prompt and in the text rewrite; any line claiming they have not replied is named wrong. A yes to two or more offered times asks which, with the same times; a yes to one time confirms it and stops; times older than 12 hours are re-asked; the thin-reply 'same as silence' line stands down. TESTS: exchange-826 (new) runs the shipped inlineScraper in Chromium and executes buildUserPrompt through the panel payload and _lpBuildSmsRefinePrompt: 22 assertions across both builds; v9.7.825 fails 8 of 11 per build (the 3 controls pass). VERIFIED: run-all 261 suites green, 8,934 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.825.)
@@ -11291,6 +11292,19 @@ function _lpScraperBotAuthor(msg) {
       var b=_inboundBody(c);
       return b.length <= 2 || /^(y|yes|yes please|yes thanks|ok|okay|k|start|sounds good|c)[\s.!]*$/i.test(b);
     }
+    // (v9.7.829) A NOTE WE WROTE ABOUT THE CUSTOMER REPORTS THEIR SITUATION IN THEIR WORDS. One definition for every reader that
+    // judges the customer's situation (schedule, a declined alternative, price pushback, a reschedule): a connected call, an
+    // inbound call, or a general / appointment / showroom note that is about them (he, she, they, customer). Our own texts and
+    // emails are never their words. Readers that ask whether THEY replied, or what THEY last said, do not use this.
+    function _lpNoteAboutThem(el){
+      try {
+        var t = ((el.querySelector('.legacy-notes-and-history-title')||{}).innerText||'').toLowerCase().trim();
+        if (/outbound phone call \(contacted\)|^inbound phone call|^inbound call/.test(t)) return true;
+        if (!/^(?:general note|note|appointment|showroom|call note)/.test(t)) return false;
+        var c = ((el.querySelector('.notes-and-history-item-content')||{}).innerText||'');
+        return /\b(?:he|she|him|her|his|they|them|their|cust(?:omer)?|client)\b/i.test(c);
+      } catch (e) { return false; }
+    }
     function qs(s) {
       try { const e=document.querySelector(s); return e?(e.innerText||e.textContent||e.value||'').trim():''; } catch(x){return '';}
     }
@@ -15332,13 +15346,8 @@ function _lpScraperBotAuthor(msg) {
       // words: Kia Baytown lead 2105429946, a connected call, "not a good time- hes at work// call him after 3pm" -- and the
       // draft offered 9:15 or 10:30 AM. A connected call note is read like their message; a general note when it is about them
       // (him / her / they / customer). Our own texts and emails are not.
-      var _ntAboutThem = false;
-      if (!isInboundNote) {
-        var _ntBody0 = ((noteEls[nti].querySelector('.notes-and-history-item-content')||{}).innerText||'');
-        _ntAboutThem = /outbound phone call \(contacted\)/i.test(ntTitleCheck)
-          || (/^(?:general note|note|appointment|showroom|call note)/i.test(ntTitleCheck.trim()) && /\b(?:he|she|him|her|his|they|them|their|cust(?:omer)?|client)\b/i.test(_ntBody0));
-        if (_ntAboutThem) isInboundNote = true;
-      }
+      var _ntAboutThem = !isInboundNote && ((typeof _lpNoteAboutThem === 'function') && _lpNoteAboutThem(noteEls[nti]));   // (v9.7.829) one shared definition
+      if (_ntAboutThem) isInboundNote = true;
       // [LP SCHED GATE] - log every note's gate decision to trace why constraint detection isn't reaching the email reply
       try { _lpD('[LP SCHED GATE]', { noteIndex: nti, dir: ntDir || '(empty)', title: ntTitleCheck.substring(0,100), passesGate: isInboundNote }); } catch(e) {}
       // (v9.7.795) A NOTE FROM A CLOSED LEAD IS NOT THIS CUSTOMER'S SCHEDULE NOW. Toyota Baytown lead 2099028967 (log316):
@@ -15653,7 +15662,9 @@ function _lpScraperBotAuthor(msg) {
       // structure ("not the X, just" / "not the X only") is specific enough to carry a short
       // capture without widening what matches.
       { re: /not\s+(?:the|a)\s+(.{2,40})\s*(?:,\s*just|\.?\s*only)/i,      needsContrast: false },
-      { re: /(?:prefer|stick\s+(?:with|to))\s+(.{5,60})\s+only/i,          needsContrast: false }
+      { re: /(?:prefer|stick\s+(?:with|to))\s+(.{5,60})\s+only/i,          needsContrast: false },
+      // (v9.7.829) A note about them says it in the third person: "said he doesn't want the black one".
+      { re: /\b(?:does\s*n['\u2019]?t|does\s+not|did\s*n['\u2019]?t|did\s+not)\s+(?:want|like|care\s+for)\s+(?:the|a|an)\s+(.{2,40})/i, needsContrast: false, noteOnly: true }
     ];
     // An explicit exclusion somewhere in the same message.
     var _daContrast = /\bnot\s+(?:the|a|an|interested|looking|open)\b|\binstead\s+of\b|\brather\s+than\b|\bdon'?t\s+want\b|\bno\s+thanks?\b/i;
@@ -15682,9 +15693,11 @@ function _lpScraperBotAuthor(msg) {
       var daNtText = ((noteEls[dai].querySelector('.notes-and-history-item-content')||{}).innerText||'').toLowerCase();
       if(!daNtText) daNtText = ((noteEls[dai].querySelector('.note-content')||{}).innerText||'').toLowerCase();
       if(!daNtText) daNtText = ((noteEls[dai].querySelector('[class*="content"]')||{}).innerText||'').toLowerCase();
-      if(!daIsInbound) continue;
+      var daAboutThem = !daIsInbound && ((typeof _lpNoteAboutThem === 'function') && _lpNoteAboutThem(noteEls[dai]));   // (v9.7.829) a call note says it too
+      if(!daIsInbound && !daAboutThem) continue;
       inboundScanned++;
       for(var dp=0; dp<declinedPatterns.length; dp++) {
+        if (declinedPatterns[dp].noteOnly && !daAboutThem) continue;
         var dm = daNtText.match(declinedPatterns[dp].re);
         if(dm) {
           // A bare "just looking for X" needs an exclusion in the same message to be a decline.
@@ -15736,7 +15749,8 @@ function _lpScraperBotAuthor(msg) {
           || /<[^>]+\b(?:data-sentiment|data-tag)\s*=\s*["']negative["']/i.test(html);
         // Explicit price-pushback language from customer (inbound only) - "Stop" is opt-out, not concern
         var isStopOptOut = /^stop[\s.!]*$/i.test(content);
-        var hasPricePushback = dir === 'inbound' && !isStopOptOut && content.length > 5
+        // (v9.7.829) ...or a note about them ("said the price is too high").
+        var hasPricePushback = (dir === 'inbound' || ((typeof _lpNoteAboutThem === 'function') && _lpNoteAboutThem(item))) && !isStopOptOut && content.length > 5
           && /too (high|expensive|much|pricey)|can.t afford|out of (my|our) budget|over (my|our) budget|that.s a lot|too pricy|way too|not in (my|our) budget|pricing.*high|price.*high|asking too much|over priced|overpriced|sticker.*shock/i.test(content);
         return hasSentimentTag || hasPricePushback;
       }
@@ -17572,13 +17586,14 @@ function _lpScraperBotAuthor(msg) {
         // Customer inbound with rescheduling language
         // (v9.7.727) Only when an appointment was booked before it. Otherwise "I can't make it" is declining a
         // time we OFFERED -- the transcript still carries it, and the logistical-constraint rule still reads it.
-        else if (anDir === 'inbound' && /need to reschedule|can.t make it|cannot make it|want to reschedule/i.test(anContent) && !_apptBooked) {
+        // (v9.7.829) The same words in a note about them ("needs to reschedule", "can't make it") are the same request.
+        else if ((anDir === 'inbound' || ((typeof _lpNoteAboutThem === 'function') && _lpNoteAboutThem(noteEls[ani]))) && /needs? to reschedule|can.t make it|cannot make it|wants? to reschedule|asked to reschedule/i.test(anContent) && !_apptBooked) {
           _lpD('[LP APPT DIAG] "' + anContent.replace(/^[\s\S]*?(?:received by:[^\n]*\n)?/i, '').substring(0, 60).replace(/[\r\n]+/g, ' ')
             + '" (' + anLabel + ') -- no appointment was booked before it; read as declining an offered time, not a reschedule or a missed appointment');
         }
-        else if (anDir === 'inbound' && /need to reschedule|can.t make it|cannot make it|want to reschedule/i.test(anContent)) {
+        else if ((anDir === 'inbound' || ((typeof _lpNoteAboutThem === 'function') && _lpNoteAboutThem(noteEls[ani]))) && /needs? to reschedule|can.t make it|cannot make it|wants? to reschedule|asked to reschedule/i.test(anContent)) {
           isApptRelated = true;
-          apptEvent = 'Customer requested reschedule (' + anLabel + '): "' + anContent.substring(0, 100).replace(/[\r\n]+/g, ' ') + '"';
+          apptEvent = (anDir === 'inbound' ? 'Customer requested reschedule (' : 'A note says the customer needs to reschedule (') + anLabel + '): "' + anContent.substring(0, 100).replace(/[\r\n]+/g, ' ') + '"';
           customerRepliedRescheduleFlag = true;
           hasMissedAppt = true;
           hasApptSet = false;
