@@ -290,7 +290,7 @@ check('...and the system prompt says a nameless refine is not a refine',
 check('the shared shape rule itself is NOT forked — still one definition',
   i => (i.src.match(/'SMS: A REAL TEXT MESSAGE/g) || []).length, 1);
 check('it pins the appointment times to the email, so the two cannot disagree',
-  i => /use the SAME times\. Never invent different ones/.test(userPrompt(i, AIMEE)), true);
+  i => /use the SAME times\. If the email has none and the first draft does, keep the first draft's times\. Never invent different ones/.test(userPrompt(i, AIMEE)), true);   // (v9.7.823) wording extended
 check('it forbids inventing a fact the email does not state',
   i => /Never state a fact the email does not state/.test(userPrompt(i, AIMEE)), true);
 check('the whole turn is small — this is the size ratio the pass exists for',

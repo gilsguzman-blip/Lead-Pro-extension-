@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.823-dev (Dev. A YES TO OUR OFFER IS A YES; A REACTIVATED LEAD STARTS A NEW CHAPTER. Extension only; proxy v7.89, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Honda Lafayette lead 2055144034 (log358): three months after it went quiet the lead was reactivated, the salesperson called and texted 'What I can do to save you as much time as possible, is send over a credit app', and the customer answered 'Ok'. The draft treated that as silence. (1) BURST TEXTS: the scraper glued two July texts onto the October 'Ok' ('Yes / Ok') because it compared the next two notes with each other, not with the message it held; the window is now measured from the held message, and an unknown date never glues. (2) _lpAcceptedOffer: a short yes (ok / yes / sure / sounds good / go ahead) right after our text or email offered to do something is acceptance. A THEY SAID YES TO OUR OFFER line has the message deliver it -- for a credit app, the finance-application link already sent on the lead -- and the thin-reply 'same as silence' line and the phone-up 'has not responded' lines stand down. (3) hasPriceQuoteSent needs real evidence in one sentence: a sending word next to a price word, with a figure or a quote word ('monthly payments, ... wanted one sent over' no longer counts). (4) _lpReactivated: after a 'has reactivated this lead' note 14+ days past the last message either way, what came after is the conversation and the earlier thread is background; links we already sent may be reused. (5) A '*** ... ***' banner or an all-caps system line with a '?' (TrueCar 'NO MATCHING VIN ? HONOR YOUR DISCOUNT', Honda Baytown 10/24) is a CRM record line, never the customer's question or inquiry. (6) Add Appt Ask: the same times in every format; the text rewrite keeps the first draft's times when the email has none. (7) META LEAK: a text rewrite that talks about the email, the first draft or what it may not invent ('Those times aren't specified in the email, so I shouldn't invent them', Civic LX 10/24) does not ship, and any such sentence is cut from the text, email and voicemail before render. TESTS: offer-yes-823 (new) runs the shipped inlineScraper in Chromium and executes buildUserPrompt through the panel payload, _lpBuildSmsRefinePrompt, _lpRefineSms and the render backstop: 38 assertions across both builds; v9.7.822 fails 13 of 19 per build (the 6 controls pass). VERIFIED: run-all 258 suites green, 8,878 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.822.)
 // Lead Pro -- popup.js  v9.7.822-dev (Dev. THE SHIPPING QUESTION, AS PHONES TYPE IT. Extension only; proxy v7.88, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Kia Baytown lead 2104748576 (log357, v9.7.820): '[Customer]: Well I wanted to know if y’all ship the trucks I live abt 4-5 hours away' did not match LP_SHIP_ASK_RX -- the phone typed a curly apostrophe in 'y’all' (the pattern took only a straight one) and 'if ... ship' was not one of its shapes -- so the v9.7.806 block (they arrange the transport company, we coordinate the pickup with the shipper, two shippers named) never reached the prompt, and the draft improvised 'I can help arrange shipping'. Gil: 'the logic we built to give referrals and help coordinate didn't fire.' (1) LP_SHIP_ASK_RX takes the curly apostrophe, and reads if / whether / do / can / would + you / y'all / you guys / they + ship / deliver / transport / haul, and 'y'all ship ...' alone; 'if you could send me pics' and 'I hope you deliver great service' still do not match. (2) LP_AVAIL_ASK_RX ('what do y'all have', 'do y'all still have it') takes the curly apostrophe too. TESTS: ship-ask-822 (new) builds the prompt through the shipped populateFromData and panel payload and executes _lpShipAsk, LP_AVAIL_ASK_RX and _lpBuildSmsRefinePrompt: 12 assertions across both builds; v9.7.821 fails 5 of 6 per build (the control passes). VERIFIED: run-all 256 suites green, 8,837 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.821-dev.)
 // Lead Pro -- popup.js  v9.7.821-dev (Dev. OUR OWN USED MERCEDES WAS 'A BRAND WE DON'T CARRY', AND THE BARE-QUESTION CATCH NOW HOLDS ON EVERY LEAD. Extension only; proxy v7.88, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. From the 10/22 daily report. (1) Kia Baytown lead 2103933995 (AI Buying Signals): the vehicle on the lead was our own used 2020 Mercedes-Benz GLC 300, stock on file, on the Kia lot; the AI Buying Signal cross-brand matrix read 'mercedes' off the vehicle, never asked whether we hold it, and the drafts said '[Customer], we don't carry Mercedes-Benz ... so I can't show you the GLC 300' and then 'the GLC 300 is here, but we don't carry Mercedes-Benz'. Gil: 'The GLC referenced is a pre-owned in stock.' Now, as in _lpOffFranchiseGate and the brand-mismatch check (v9.7.739): when the unit on the lead carries our stock number or VIN, or we hold used units of that make, and it is not marked new, it is not cross-brand ([LP CROSS-BRAND DIAG]). (2) The v9.7.820 catch -- a rewrite cut down to a single question when the first draft had more does not ship -- held only under the PITCH ALREADY OUT rule; on 10/22 agents hit expand on '[Customer], would you like to come see the CR-V?' and '[Customer], would you and your wife still like to look it over together?'. Gil: 'Extend the bare question also.' It now holds on every lead, and the showroom ONE CONCRETE OFFER block says the offer closes the text, it is not the whole text. TESTS: bare-question-821 (new) executes the shipped classifyScenario, _lpBuildSmsRefinePrompt and _lpRefineSms (worker stubbed): 16 assertions across both builds; v9.7.820 fails 4 of 8 per build (the four controls pass). pitch-context-820's no-pitch control now expects the catch. VERIFIED: run-all 255 suites green, 8,825 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.820-dev.)
 // Lead Pro -- popup.js  v9.7.820-dev (Dev. THE PITCH RULE'S REWRITE STRIPPED THE TEXT TO A BARE QUESTION. Extension only; proxy v7.88, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Honda Baytown lead 2079723069 (log355, v9.7.819): the first draft read '[Customer], it's been quiet since the team reached out about your Yukon appraisal. How would you prefer we handle future contact: text, email, or not at all?'; the rewrite shipped '[Customer], would you prefer we contact you by text, email, or not at all?' Gil: 'First text was too short, chip helped on second pass.' The v9.7.817 rewrite branch for the PITCH ALREADY OUT rule said 'no restating the car or its details', which cost the context, and it had dropped the 'do not strip it to a receipt' guidance the normal branch carries. (1) That branch now forbids re-sending the pitch (that it is here, a time, a reason to come in) and a visit ask, and says naming what we reached out about -- the car, their trade, the appraisal -- is fine. (2) It keeps what the first draft says about where things stand (who reached out, about what): length is the rewrite's to judge, but not a bare question. (3) Under the pitch rule, a rewrite cut down to a single question when the first draft had more does not ship -- the first pass does, logged. The expand chip is unchanged. TESTS: pitch-context-820 (new) executes the shipped _lpBuildSmsRefinePrompt and _lpRefineSms (worker stubbed): 10 assertions across both builds; v9.7.819 fails 3 of 5 per build (the two controls pass). VERIFIED: run-all 254 suites green, 8,809 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.819-dev.)
@@ -4408,6 +4409,48 @@ function _lpPitchOut(d) {
       times: pitch.some(function (x) { return /\b\d{1,2}(?::\d{2})?\s*(?:AM|PM)\b/i.test(x.body); }), calls: calls };
   } catch (e) { return null; }
 }
+// (v9.7.823) A YES TO OUR OFFER. Honda Lafayette lead 2055144034 (log358): the rep texted "What I can do to save you as much time
+// as possible, is send over a credit app" and the customer answered "Ok". The prompt called that a short acknowledgment that is
+// "the same as silence", the phone-up block said the customer "has not responded", and the draft re-pitched. A short yes right
+// after our message offered to do something is acceptance: the message does it. Returns { date, t, offer, said, link, credit, by }.
+var LP_OFFER_RX = /\b(?:I|we)(?:\s+can|\s+could|\s+will|['’]ll|\s+would\s+be\s+happy\s+to|['’]d\s+be\s+happy\s+to|\s+am\s+happy\s+to)\b[^.?!]{0,60}?\b(?:send|text|e-?mail|get|set\s+up|put\s+together|pull|run|hold|book|schedule|reserve|forward|share)\b|\b(?:would|do)\s+you\s+(?:like|want)\s+(?:me|us)\s+to\b|\bwant\s+me\s+to\b|\bwhat\s+(?:I|we)\s+can\s+do\b[^?!]{0,100}?\b(?:send|get|set\s+up|put\s+together|pull|run|hold)\b|\b(?:shall|should|can|may)\s+(?:I|we)\s+(?:send|text|e-?mail|get|set\s+up|pull|run|hold|book|schedule|reserve)\b|\blet\s+me\s+(?:send|get|set\s+up|pull|run)\b/i;
+var LP_YES_RX = /^(?:(?:ok(?:ay)?|k+|yes(?:\s+(?:ma['’]?am|sir))?|yeah|yea|yep|yup|sure|sounds\s+good|go\s+ahead|please(?:\s+do)?|that\s+works|that['’]?s\s+fine|fine|perfect|great|absolutely|definitely|send\s+it(?:\s+over)?|alright|all\s+right|thanks?|thank\s+you|ty|cool|that\s+would\s+be\s+great)[\s.,!]*)+$/i;
+var LP_YES_WORD_RX = /\b(?:ok(?:ay)?|k+|yes|yeah|yea|yep|yup|sure|sounds\s+good|go\s+ahead|please|that\s+works|fine|perfect|absolutely|definitely|send\s+it|alright|all\s+right|would\s+be\s+great)\b/i;
+function _lpAcceptedOffer(d) {
+  try {
+    if (!d || d.hasApptSet) return null;
+    var cust = _lpCustEntries(d); if (!cust.length) return null;
+    var said = String(cust[0].body || '').replace(/\s+/g, ' ').trim();
+    if (!said || said.length > 60 || !LP_YES_RX.test(said) || !LP_YES_WORD_RX.test(said)) return null;
+    var ours = _lpOurEntries(d).filter(function (x) { return /text message|email/i.test(x.title) && !LP_OPTOUT_CONFIRM_RX.test(x.body) && !/auto.?respon/i.test(x.title); });
+    if (ours.some(function (x) { return x.t > cust[0].t; })) return null;   // we already answered it
+    var asked = ours.filter(function (x) { return x.t <= cust[0].t; })[0];
+    if (!asked || cust[0].t - asked.t > 3 * 86400000) return null;
+    if (cust.slice(1).some(function (c) { return c.t >= asked.t && !LP_YES_RX.test(String(c.body).trim()); })) return null;
+    var offer = String(asked.body).replace(/\s+/g, ' ').split(/(?<=[.!?])\s+/).filter(function (s) { return LP_OFFER_RX.test(s); }).pop();
+    if (!offer) return null;
+    offer = offer.replace(/\s*Reply STOP to (?:cancel|opt out|unsubscribe)\.?/i, '').trim().slice(0, 240);
+    var credit = /\bcredit\s+app|\b(?:finance|financing|credit|loan)\s+(?:application|app)\b|\bpre-?(?:qualif|approv)|\bapplication\b/i.test(offer), link = '';
+    if (credit) _lpOurEntries(d).some(function (x) {
+      var m = /https?:\/\/\S*(?:financ|credit|apply|applica|pre-?qual|pre-?approv)\S*/i.exec(x.body); if (m) link = m[0].replace(/[).,;:!?]+$/, ''); return !!m; });
+    var by = ((/\bthis is ([A-Z][a-z]+)\b/.exec(asked.body) || [])[1] || '');
+    return { date: asked.date, t: asked.t, offer: offer, said: said, link: link, credit: credit, by: by };
+  } catch (e) { return null; }
+}
+// (v9.7.823) A REACTIVATED LEAD STARTS A NEW CHAPTER. On the same lead the July budget, the inventory link and "I found one" were
+// read as the current conversation three months later. After a "has reactivated this lead" note at least 14 days past the last
+// message either way, what came after the note is the conversation; what came before is background. Returns { date, t, gap }.
+function _lpReactivated(d) {
+  try {
+    var ents = _lpThreadEntries((d && (d.history || d.context)) || '');
+    var r = ents.filter(function (x) { return /\breactivated this lead\b|\blead (?:re)?activated\b/i.test(x.title + ' ' + x.body); }).sort(function (a, b) { return b.t - a.t; })[0];
+    if (!r) return null;
+    var prior = 0;
+    ents.forEach(function (x) { if (x.t < r.t && /^(?:AGENT|CUSTOMER)$/i.test(String(x.tag || '').trim()) && x.t > prior) prior = x.t; });
+    if (!prior || r.t - prior < 14 * 86400000) return null;
+    return { date: r.date, t: r.t, gap: Math.round((r.t - prior) / 86400000) };
+  } catch (e) { return null; }
+}
 function _lpTrimObj(disp) {
   disp = String(disp || '').replace(/\s{2,}/g, ' ').trim();
   return { disp: disp, norm: disp.toLowerCase().split(/\s+/).map(function (w) { return w.replace(/[^a-z0-9]+/g, ''); }).filter(Boolean).sort().join('|') };
@@ -5142,7 +5185,24 @@ function _lpAmericanSpelling(text) {
   var s = String(text == null ? '' : text), n = 0;
   LP_US_SPELLING.forEach(function (r) { s = s.replace(r[0], function (w) { var o = _lpCaseLike(w, r[1](w).toLowerCase()); if (o !== w) n++; return o; }); });
   if (n) { try { console.log('[LP US SPELLING DIAG] ' + n + ' British spelling(s) changed to American in a draft'); } catch (e) {} }
+  if (typeof _lpScrubMetaLeak === 'function') s = _lpScrubMetaLeak(s);   // (v9.7.823) every SMS, email and voicemail passes here
   return s;
+}
+// (v9.7.823) THE DRAFT TALKING ABOUT ITS OWN INSTRUCTIONS. Honda Baytown, 10/24, Civic LX after the Add Appt Ask chip: the text
+// rewrite shipped "Those times aren't specified in the email, so I shouldn't invent them." A sentence about the email we were
+// given, the first draft, or what the writer may not invent is never for the customer: a rewrite that brings one in does not
+// ship (the first pass does), and any such sentence left in a text, email or voicemail is cut before it is shown.
+var LP_META_LEAK_RX = /(?:\bnot|n['\u2019]t)\s+(?:been\s+)?(?:specified|mentioned|listed|included|given|stated|provided|offered)\s+in\s+the\s+e-?mail\b|\b(?:specified|mentioned|listed|included|given|stated|provided|offered)\s+in\s+the\s+(?:(?:first\s+|original\s+)?draft|prompt|instructions?)\b|\bthe\s+e-?mail\s+(?:does\s*n['\u2019]?t|does\s+not|did\s*n['\u2019]?t|did\s+not)\s+(?:say|mention|specify|list|include|give|offer|state)\b|\bthe\s+(?:first|original|earlier|previous)\s+(?:draft|pass)\b|\bthe\s+rewrite\b|\b(?:my|the)\s+instructions\b|\bI\s+(?:should\s*n['\u2019]?t|should\s+not|wo\s*n['\u2019]?t|will\s+not|must\s+not|must\s*n['\u2019]?t)\s+(?:invent|fabricate)\b|\bI\s+(?:should\s*n['\u2019]?t|should\s+not)\s+make\s+(?:up|\w+\s+up)\b/i;
+function _lpScrubMetaLeak(text) {
+  var s = String(text == null ? '' : text), cut = [];
+  if (!LP_META_LEAK_RX.test(s)) return s;
+  var out = s.split('\n').map(function (line) {
+    if (!LP_META_LEAK_RX.test(line)) return line;
+    var kept = line.split(/(?<=[.!?])\s+/).filter(function (x) { if (LP_META_LEAK_RX.test(x)) { cut.push(x.trim()); return false; } return true; }).join(' ');
+    return kept.trim() ? kept : null;
+  }).filter(function (l) { return l !== null; }).join('\n');
+  try { console.log('[LP META LEAK DIAG] cut ' + cut.length + ' sentence(s) about the drafting itself: ' + cut.map(function (x) { return '"' + x.slice(0, 80) + '"'; }).join(' | ')); } catch (e) {}
+  return out;
 }
 function _lpFinanceGuard(text, channel){
   var s = String(text || '');
@@ -11169,7 +11229,12 @@ function tryExecuteScript(tab, statusEl, dot) {
     // (v9.7.819) A CRM FIELD LINE IN A NOTE ("Traffic Source: KBB ? Mobile", "Offer Amount: $5,648") is the record, not the
     // customer's words: never their question or their inquiry. A known label, or any "Label: value ? word" line (a character the
     // page could not show, printed as "?").
-    var _LP_CRM_FIELD_LINE_RX = /^\s*(?:(?:traffic\s+source|offer\s+(?:amount|link)|source|lead\s+(?:type|source)|vehicle|trade(?:-in)?|stock(?:\s*#|\s+number)?|vin|price|msrp|year|make|model|trim|mileage|odometer|color|condition|by)\s*:|[A-Z][A-Za-z ]{1,25}:\s*[^?\n]*\s\?\s+\S)/i;
+    var _LP_CRM_FIELD_LINE_RX_819 = /^\s*(?:(?:traffic\s+source|offer\s+(?:amount|link)|source|lead\s+(?:type|source)|vehicle|trade(?:-in)?|stock(?:\s*#|\s+number)?|vin|price|msrp|year|make|model|trim|mileage|odometer|color|condition|by)\s*:|[A-Z][A-Za-z ]{1,25}:\s*[^?\n]*\s\?\s+\S)/i;
+    // (v9.7.823) A SYSTEM FLAG IS NOT A QUESTION. TrueCar prints banners such as "*** NO MATCHING VIN — HONOR YOUR DISCOUNT ON
+    // LOCATE/ORDER ***"; the dash shows as "?", and the draft told the customer their inquiry "came through with 'NO MATCHING VIN?'"
+    // (Honda Baytown, 10/24). A "***" banner line, or an all-caps line with a "?" and a system word, is the record too.
+    var _LP_SYS_FLAG_LINE_RX = /^\s*\*{3}|^(?=[^a-z]*$)(?=[^\n]*\?)(?=[^\n]*\b(?:VIN|STOCK|MATCH(?:ING|ED)?|FOUND|INVENTORY|DEALER|LEAD|SOURCE|PRICE|MSRP|TRIM|DISCOUNT|OFFER|BUILD|ZIP|N\/A|UNKNOWN|NONE)\b)/;
+    var _LP_CRM_FIELD_LINE_RX = { test: function (l) { l = String(l == null ? '' : l); return _LP_CRM_FIELD_LINE_RX_819.test(l) || _LP_SYS_FLAG_LINE_RX.test(l); } };
     // ── (v9.7.694) THE AGENT-CONTEXT PREAMBLE, DEFINED ONCE ─────────────────────────────────
     // Two byte-identical 1,263-character copies of this string lived in the two _hasPostVisitNote
     // branches below — the competing transcript carriers v9.7.629 recorded — and any edit had to
@@ -17349,19 +17414,14 @@ function _lpScraperBotAuthor(msg) {
             lastInboundMsg = sanitize(_lpStripNoteMeta(iiContent)).substring(0,800);
             _lastInboundMs = iiDateMs;
           } else if(lastInboundMsg.length < 400) {
-            // Check if this next inbound is from same day (burst messages like "How much?" + "Please")
-            var prevDateMs = iiDateMs;
-            var firstMsgDate = iiDateMs;
-            // Only combine if within 5 minutes of each other
-            var nextEl = noteEls[ii+1];
-            if(nextEl && (nextEl.getAttribute('data-direction')||'').toLowerCase() === 'inbound') {
-              var nextDateText = ((nextEl.querySelector('.notes-and-hsitory-item-date')||{}).innerText||'').trim();
-              var nextDateMs = nextDateText ? new Date(nextDateText).getTime() : 0;
-              if(Math.abs(firstMsgDate - nextDateMs) < 10*60*1000) {
-                // Within 10 minutes - prepend (older message first for context)
-                var nextContent = ((nextEl.querySelector('.notes-and-history-item-content')||{}).innerText||'').trim();
-                lastInboundMsg = sanitize(_lpStripNoteMeta(nextContent)).substring(0,800) + ' / ' + lastInboundMsg;
-              }
+            // (v9.7.823) Burst texts ("How much?" + "Please") are glued oldest-first. The window is
+            // measured from the message we already hold to THIS note. It used to compare this note
+            // with the one after it, so two July texts a minute apart rode along with an October
+            // "Ok" ("Yes / Ok"). Both dates must parse; an unknown date never glues.
+            if(_lastInboundMs > 0 && iiDateMs > 0 && Math.abs(_lastInboundMs - iiDateMs) < 10*60*1000) {
+              lastInboundMsg = sanitize(_lpStripNoteMeta(iiContent)).substring(0,800) + ' / ' + lastInboundMsg;
+              _lastInboundMs = Math.max(_lastInboundMs, iiDateMs);
+              continue;
             }
             break;
           } else {
@@ -23448,7 +23508,7 @@ function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
     + 'paragraphs, do not summarize, and do not take the email and delete words out of it \u2014 '
     + 'that last one is the exact failure this pass exists to prevent. The difference between the '
     + 'two is the voice and the rhythm, not how much you left out.');
-  out.push('If the email offered appointment times, use the SAME times. Never invent different ones.');
+  out.push('If the email offered appointment times, use the SAME times. If the email has none and the first draft does, keep the first draft\'s times. Never invent different ones, and never mention the email or the first draft in the text.');   // (v9.7.823)
   out.push('Never state a fact the email does not state.');
   out.push('AND THE MIRROR OF THAT, WHICH MATTERS MORE: if the email states something that changes '
     + 'what they should DO or EXPECT \u2014 a vehicle no longer being available, a price, a '
@@ -23520,6 +23580,12 @@ async function _lpRefineSms(pass1, emailText, d) {
     }
     var out = obj && typeof obj.sms === 'string' ? obj.sms.trim() : '';
     if (!out) { console.log('[LP SMS REFINE DIAG] kept the first pass \u2014 no sms field in the response'); return null; }
+    // (v9.7.823) The rewrite talked about the email or the first draft ("Those times aren't specified in the email, so I shouldn't
+    // invent them"): the first pass ships.
+    if (typeof LP_META_LEAK_RX !== 'undefined' && LP_META_LEAK_RX.test(out) && !LP_META_LEAK_RX.test(String(pass1 || ''))) {
+      console.log('[LP SMS REFINE DIAG] kept the first pass \u2014 the rewrite talked about its own instructions ("' + String((out.match(LP_META_LEAK_RX) || [''])[0]).slice(0, 80) + '") | ' + (Date.now() - t0) + 'ms');
+      return null;
+    }
 
     // ── (v9.7.675) A SAFETY NET, AND IT IS NOT A LANGUAGE DETECTOR ───────────────────────────
     // log213, Juan at Community Honda Baytown. His last message is "Y yo". The main call obeyed
@@ -24633,7 +24699,13 @@ function buildUserPrompt(data) {
   // This happens when sales reps send numbers via personal phone or external channels
   // that don't register as outbound in VinSolutions. The model needs to know this
   // so it doesn't write a first-touch availability message to someone who has the numbers.
-  const hasPriceQuoteSent = /sent.*payment|sent.*price|sent.*quote|approximate.*payment|payment.*sent|price.*sent|numbers.*sent|sent.*numbers|sent.*estimate/i.test(data.context || '');
+  // (v9.7.823) Real evidence only: within one sentence, a sending word next to a price word, with a figure or a quote word.
+  // The old loose match read a phone note ("monthly payments, ... wanted one sent over to her") as a payment quote already out.
+  const hasPriceQuoteSent = String(data.context || '').split(/[.!?](?:\s+|$)|\n/).some(function (s) {
+    if (/\b(?:sent|texted|emailed)\s+(?:\w+\s+){0,2}(?:payments?|pricing|numbers|quote|estimate)\b|\bapproximate\s+payments?\b/i.test(s)) return true;
+    return /\b(?:sent|texted|emailed)\b[^,;]{0,60}\b(?:payments?|price|pricing|quote|numbers|estimate|figures|breakdown|worksheet)\b|\b(?:payments?|price|pricing|quote|numbers|estimate|figures|breakdown|worksheet)\b[^,;]{0,40}\b(?:sent|texted|emailed)\b/i.test(s)
+      && (/\$\s?\d|\b\d{1,3}(?:,\d{3})+\b|\b\d{3,}\s*(?:\/\s*mo|a month|per month|monthly)\b/i.test(s) || /\b(?:quote|numbers|estimate|figures|breakdown|worksheet)\b/i.test(s));
+  });
   // (v9.7.88) Phone resolution: prefer the RESOLVED SIGNER's phone, then
   // agent directory, then store-level fallback. Prior order put store phone
   // first, which leaked the Internet Director's number (281-837-3382) into
@@ -25455,8 +25527,10 @@ function buildUserPrompt(data) {
 
   } else if (sc.isPhoneUp) {
     var puFollowUp = (sc.isFollowUp && hasRealOutbound) || hasPriceQuoteSent;
+    var _puYes = null; try { _puYes = (typeof _lpAcceptedOffer === 'function') ? _lpAcceptedOffer(data) : null; } catch (ePuYes) {}   // (v9.7.823)
     scenarioDirective = puFollowUp
-      ? 'TASK: Phone-up lead — multiple outreach attempts made, customer has not responded. This is NOT a first-touch message.'
+      ? (_puYes ? 'TASK: Phone-up lead — the customer just said yes to what we offered. This is NOT a first-touch message.'
+               : 'TASK: Phone-up lead — multiple outreach attempts made, customer has not responded. This is NOT a first-touch message.')
       : 'TASK: Phone-up lead — customer called in first. This follow-up continues a real conversation that already happened.';
     scenarioRules = puFollowUp ? [
       '- CRITICAL: Prior outreach has already been made — likely multiple calls and texts. Do NOT write as if this is the first contact. Read the call notes for what was already discussed and build from there.',
@@ -25466,7 +25540,9 @@ function buildUserPrompt(data) {
       '- If agent notes indicate a payment was sent: the customer has the numbers. Their silence likely means the number didn\'t land right, they are comparing, or timing isn\'t there yet. Address that directly.',
       '- Different agent picking up the thread: if the prior calls were made by another agent, do NOT claim ownership. Write as if you are aware of what was sent but do not say "I called you" or "I left a voicemail" unless you did.',
       '- Frame the next step as low-friction: a quick question, a new angle, an easier path to a decision — not another "come in today."'
-    ].join('\n') : [
+    ].filter(function (r) { return !_puYes || !/has not responded|silence/i.test(r); })   // (v9.7.823) they answered: see THEY SAID YES TO OUR OFFER
+      .concat(_puYes ? ['- The customer just answered our offer with a yes (see THEY SAID YES TO OUR OFFER). Do not acknowledge silence or look for a new angle: deliver what was offered.'] : [])
+      .join('\n') : [
       '- Customer called in first. A real conversation already happened. Never treat this as a cold intro.',
       '- BD Agent may not have been on the call — never say "it was great speaking with you." Say: "following up on your call with us."',
       '- If call notes exist, reference the most important thing discussed: vehicle, price question, trade, timing.',
@@ -28477,6 +28553,34 @@ function buildUserPrompt(data) {
       console.log('[LP QUOTE OUT DIAG] ' + _qo.date + ' price sent by ' + (_qo.by || '(unknown)') + ' -> ' + _qoWho + (_qo.total ? ' | total ' + _qo.total : '') + ' | the message follows up on it; the inventory answer stands down');
     }
   } catch (eQo) {}
+  // (v9.7.823) A reactivated lead starts a new chapter (see _lpReactivated).
+  try {
+    var _ra = _lpReactivated(data);
+    if (_ra) {
+      ageBlock.push('');
+      ageBlock.push('\ud83d\udd04 THIS LEAD WAS REACTIVATED ON ' + _ra.date + ', after ' + _ra.gap + ' days with no messages either way. What happened after that note is the conversation now; '
+        + 'everything before it is background. Do not bring back details from the earlier chapter (a budget, a vehicle they said they found, an inventory link, an old question) as if they were current, and do not ask about them again. '
+        + 'A link we already sent them, such as the finance application, may be sent again when it fits.');
+      console.log('[LP REACTIVATED DIAG] reactivated ' + _ra.date + ' after ' + _ra.gap + ' quiet days -> earlier thread is background');
+    }
+  } catch (eRa) {}
+  // (v9.7.823) They said yes to our offer (see _lpAcceptedOffer).
+  try {
+    var _ao = _lpAcceptedOffer(data);
+    if (_ao) {
+      var _aoWho = _lpQuoteWho({ by: _ao.by, first: _ao.by }, data);
+      var _aoDo = _ao.credit
+        ? (_ao.link ? 'send the credit application now -- the link already sent on this lead is ' + _ao.link + ' -- and say briefly what happens next (once it is filled out, we can have most of the paperwork done before they come in)'
+                    : 'say the credit application is on its way (never invent a link) and say briefly what happens next (once it is filled out, we can have most of the paperwork done before they come in)')
+        : 'do it, or say plainly that it is on its way, and say briefly what happens next';
+      ageBlock.push('');
+      ageBlock.push('\u2705 THEY SAID YES TO OUR OFFER: on ' + _ao.date + ' ' + _aoWho + ' offered: "' + _ao.offer.replace(/"/g, "'") + '", and the customer answered "' + _ao.said.replace(/"/g, "'") + '". '
+        + 'That is a yes, not silence and not an acknowledgment to look past. This message delivers what was offered: ' + _aoDo + '. '
+        + 'Do not ask again whether they want it, do not re-pitch the vehicle, do not remark on a gap or on earlier silence, and ask nothing beyond one easy next step. '
+        + (_ao.link ? 'Sending that link again is the point of this message, not a repeat. In the voicemail, do not read the link aloud; say it is on its way by text and email.' : ''));
+      console.log('[LP OFFER YES DIAG] ' + _ao.date + ' offer "' + _ao.offer.slice(0, 80) + '" | customer: "' + _ao.said + '"' + (_ao.credit ? ' | credit app' + (_ao.link ? ' | link in thread' : ' | no link in thread') : '') + ' -> the message delivers it; thin-reply/silence lines stand down');
+    }
+  } catch (eAo) {}
   // (v9.7.785) They already have a sales rep (see _lpHasRep).
   try {
     var _hr = _lpHasRep(data);
@@ -28900,7 +29004,10 @@ function buildUserPrompt(data) {
             + 'You may reference it as something the team or the store sent, or not at all. '
             + 'It is shown here so you do not repeat it, nothing more.');
         }
-        ageBlock.push(_lpThinReply
+        var _lpYesOffer = null; try { _lpYesOffer = _lpAcceptedOffer(data); } catch (eYo) {}   // (v9.7.823)
+        ageBlock.push(_lpYesOffer
+          ? 'The customer answered that message with "' + _lpYesOffer.said.substring(0,60) + '" -- a yes to what it offered, not silence (see THEY SAID YES TO OUR OFFER). It is shown here so you do not repeat its pitch or ask again whether they want it.'
+          : _lpThinReply
           ? 'The customer replied, but with a short acknowledgment that adds no new information ("' + _lpThinReplyText.substring(0,60) + '") — for restate purposes this is the same as silence. A reworded version of your last message — same pitch, same options, same ask — IS a restate, and restating is the failure here. Acknowledge their reply, then move somewhere the last message did not: a smaller/simpler next step, one genuinely new piece of information, or something specific from THIS customer\'s history not yet used. Do not just repeat the questions or offer you already made.'
           : (_asBot && _asFresh)
             // (v9.7.639) "Acknowledge the silence" is nonsense when the silence is a few hours old
@@ -34077,7 +34184,7 @@ var _regenDirectives = {
   'lead-credit':   'Soften the credit framing. No approval language, no qualification language. Use options-based language. The visit is about exploring what fits, not vetting them. Reassure without being patronizing.',
   'no-appt':       'Remove the appointment ask entirely. Replace the close with a question that invites the next reply rather than a commitment. Lead Pro should sound like it\'s opening a conversation, not closing one.',
   // (v9.7.802) the agent choosing to ask for the visit where the out-of-state rule holds it back (see _lpAddApptOn)
-  'add-appt':      'Ask for the appointment: invite the customer in with one or two specific times inside store hours, and say what will be ready for them. If the VISIT DECISION line in this prompt still holds the visit back, follow it.',
+  'add-appt':      'Ask for the appointment: invite the customer in with one or two specific times inside store hours, the same times in every format (the text, the email and the voicemail), and say what will be ready for them. If the VISIT DECISION line in this prompt still holds the visit back, follow it.',
   'add-urgency':   'Add a justified, real urgency element — vehicle activity, schedule constraint, market context. NEVER fabricate urgency. If you cannot find a real reason, use scarcity of the agent\'s availability ("I only have a couple slots open this week") rather than inventing inventory pressure.'
 };
 document.querySelectorAll('.regen-chip').forEach(function(chip) {

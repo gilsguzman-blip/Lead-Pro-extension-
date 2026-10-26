@@ -128,7 +128,7 @@ for (const file of BUILDS) {
   check('lastInboundMsg is stripped before sanitize',
     /lastInboundMsg = sanitize\(_lpStripNoteMeta\(iiContent\)\)/.test(B.src), true);
   check('...including the burst-message prepend',
-    /sanitize\(_lpStripNoteMeta\(nextContent\)\)/.test(B.src), true);
+    /sanitize\(_lpStripNoteMeta\(iiContent\)\)\.substring\(0,800\) \+ ' \/ ' \+ lastInboundMsg/.test(B.src), true);   // (v9.7.823) the burst note is the one in hand
   // (v9.7.634) Outbound is no longer left untouched — it now goes through _lpStripRouting, which
   // removes the CRM's "Sent to: <phone> / Sent by: <agent>" header while KEEPING the subject.
   // v9.7.623's decision is unchanged and is what these two now assert: inbound loses its subject,
