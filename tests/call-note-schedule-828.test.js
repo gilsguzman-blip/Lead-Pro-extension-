@@ -77,7 +77,12 @@ const GEN = (body) => note('400000006', 'General-Note', '', '10/26/2026 10:10 AM
       phone: '(555) 010-0199', email: 'test@example.com', customerZip: '00000', relationshipSignals: { unansweredQuestions: [] }, history: '', conversationBrief: '' }, x || {});
 
     console.log(' 2. the prompt: the times follow the note; the fallback yields to notes too:');
-    const p = viaPanel(LEAD({ customerScheduleConstraint: c1 }));
+    // (v9.7.832) The suggested times are computed from the clock: pinned to 10:00 AM Central so the check does not depend on when the
+    // suite runs (late in the day there is no slot left after 3 PM, and the block is not printed). Same freeze as arrival-time-795.
+    const restoreClock = run('(function(){ var RD = Date; var FIX = new RD("2026-10-26T10:00:00-05:00").getTime();'
+      + ' function FD(){ if (!(this instanceof FD)) return new RD(FIX).toString(); return arguments.length ? new (Function.prototype.bind.apply(RD, [null].concat([].slice.call(arguments))))() : new RD(FIX); }'
+      + ' FD.now = function(){ return FIX; }; FD.parse = RD.parse; FD.UTC = RD.UTC; FD.prototype = RD.prototype; var prev = Date; Date = FD; return function(){ Date = prev; }; })()');
+    let p; try { p = viaPanel(LEAD({ customerScheduleConstraint: c1 })); } finally { restoreClock(); }
     const adj = /APPOINTMENT TIMES — ADJUSTED FOR CUSTOMER ARRIVAL TIME \(use exactly\):\nFirst option: (\d{1,2}):(\d{2}) (AM|PM)[^\n]*\nSecond option: (\d{1,2}):(\d{2}) (AM|PM)/.exec(p);
     const h24 = (h, m) => (m === 'PM' && +h < 12 ? +h + 12 : +h);
     check('the suggested times are after 3 PM (no 9:15 or 10:30 AM)', adj ? [h24(adj[1], adj[3]) >= 15, h24(adj[4], adj[6]) >= 15] : 'no adjusted block', [true, true]);

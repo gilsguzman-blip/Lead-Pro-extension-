@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.832-dev (Dev. FULLPATH'S TEXT CONVERSATIONS: THE LEAD IS THEIR REPLY TO OUR TEXT, NOT A PAGE ON OUR WEBSITE. Extension only; proxy v7.89, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Fullpath's assistant texts customers from our database, and when one replies the lead arrives as 'CONVERTED ON: SMS' with the exchange in the note ('Conversation: role: delivery content: ... role: user content: ... role: bot content: ...'). Toyota Baytown lead 2106255852 (log371): 'We've just listed the 2026 Toyota Camry XSE for $42,082' -> 'Can I trade in my 2024 Camry XSE?'. The prompt said 'on our website they opened the SMS page' (our first text had already said it), 'CRM CONFIRMS: no vehicle of interest', the inquiry was the note's trailer 'Conversation may have continued after this message', and the bot's 'What condition is your Camry in?' was filed as the customer's open question with a 'content:' label. Kia Baytown lead 2106267729 (log372): 'a special financing deal on the new 2026 Kia K5 for you - 1.9% APR 48 mos' -> 'what cha got ?', then a call, a link and 'i'm good'. (1) _lpFpTurns reads the exchange into turns (links and opt-out lines removed); the scraper keeps an identical copy. (2) _lpFullpath: a conversation is via:'text'; our first text is what they responded to -- a car with its listed price, or an offer (an APR or a payment) on a car -- their turns are their words, a bot turn after them is not a person, the signature name is never used, and live:true once they have written to us since. (3) HOW THIS LEAD REACHED US: they replied to a text we sent them; never a page, the website or an online inquiry. (4) WHAT THEY RESPONDED TO: before anyone on our team has answered, their reply is the reason for this message and the car or offer leads; once they have written since, it is how the conversation started (background), and the offer stays usable. (5) The car in our text is the subject when no vehicle is on file: the Vehicle line, the never-invent rule and the CRM-confirms-no-vehicle block yield to it. (6) The scraper's inquiry is their turns, and the open-question reader reads their turns only. (7) No 'are you thinking about trading in' when they asked about trading. (8) The note is kept to 4,000 characters (was 900). (9) The text rewrite is told the same. TESTS: fullpath-sms-832 (new) executes _lpFullpath, buildUserPrompt through populateFromData and _lpBuildSmsRefinePrompt, and runs the shipped inlineScraper in Chromium: 30 assertions across both builds; v9.7.831 fails 13 of 15 per build (the 2 website controls pass). ALSO: call-note-schedule-828's suggested-times check read the real clock and failed after about 2 PM Central (no slot left after 3 PM); it is pinned to 10:00 AM Central, and v9.7.827 still fails 6 of 7. VERIFIED: run-all 267 suites green, 9,056 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.831.)
 // Lead Pro -- popup.js  v9.7.831-dev (Dev. A STAFF NOTE OF THE VISIT ENDS THE APPOINTMENT, AND THE DAY IT REPORTS IS THE CUSTOMER'S. Extension only; proxy v7.89, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Kia Baytown lead 2104004243 (log369, on v9.7.830): a reminder and a connected call ('appt. confirmed for today at 6:30pm') on 10/26, then a 7:41 PM General Note 'Showed / Test drove the 2026 Sorento ... talking about coming back in on Friday'. The next day the prompt still said 'THERE IS A LIVE APPOINTMENT ON THIS LEAD' and the visit decision belonged to the LIVE APPOINTMENT block; and the day-lock comprehension probe removed the Friday the regex had found ('comprehension read 1 note(s) and found none'), because it was told every entry was a message the customer sent and that a day in an agent note never counts. (1) Scraper: _lpVisitNote -- a general / appointment / showroom / call note that records the visit in the past tense (showed, test drove, came in, stopped by, visited the store) counts as a visit for _lastVisitMs, so the v9.7.775 rule ends an appointment the visit followed. 'No show', 'didn't come in', 'wants to test drive' and 'lead came in' do not count. (2) schedCustomerNotes entries carry about:true for a note about them (the v9.7.829 definition); _lpBuildFactInputs tags those entries LP_STAFF_NOTE_TAG for the day-lock probe. (3) _lpBuildDayLockProbe: when a staff note is present, the prompt says so, and a day the note says the CUSTOMER will come or is available counts; a day the staff member plans for themselves ('will call him Monday', 'follow up Friday') does not. With no staff notes the wording is unchanged. (4) _lpVerifyCommitQuote skips the tag, so a quote must come from the note's own words. TESTS: visit-kept-831 (new) runs the shipped scraper in Chromium plus the shipped probe builder and fact inputs: 24 assertions across both builds; v9.7.830 fails 5 of 12 per build (the 7 controls pass). VERIFIED: run-all 266 suites green, 9,026 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.830.)
 // Lead Pro -- popup.js  v9.7.830-dev (Dev. THE NEWEST EVENT ON THE LEAD MAY BE OUR NOTE, NOT THEIR LAST MESSAGE. Extension only; proxy v7.89, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Kia Baytown lead 2104004243 (log368): on a 10/21 call the customer asked about a Sorento EX in Wolf Gray; on 10/26 our text said 'Ex Sorento Wolf Gray' and they texted 'Headed your way'; at 7:41 PM the salesperson noted 'Showed / Test drove the 2026 Sorento (CPO) - Black #P2962 ... talking about coming back in on Friday', and the lead was changed to that car. The prompt still said 'THE CUSTOMER HAS MOVED OFF THE UNIT ON THE LEAD: they asked for GRAY', 'TRIM/CONFIG PREFERENCE: EX', offered Wolf Gray units, and the v9.7.826 exchange block showed 'Ex Sorento Wolf Gray' -> 'Headed your way' as what the message answers. The text went back to the Wolf Gray EX. (1) Scraper: a note about them, after the color they named, that says they drove or were shown the unit on the lead (its stock number, or test drove / showed + its model) SETTLES the color on that unit (the v9.7.741 settlement, a third way in), and a trim they named before it is background. (2) _lpNewestNote: the newest note about them (visit, test drive, connected call) newer than their last message is 'THE NEWEST EVENT ON THIS LEAD' -- write from it; if they drove the lead's unit, earlier asks are background. (3) The exchange block steps aside when such a note exists. (4) The similar-vehicle and alternate-condition lists stand down when they drove the lead's unit. (5) The settled-color line says a note showed them the car, not that they sent a listing. TESTS: newest-note-830 (new) executes the shipped scraper color/trim slice and buildUserPrompt through the panel payload: 16 assertions across both builds; v9.7.829 fails 5 of 8 per build (the 3 controls pass). VERIFIED: run-all 265 suites green, 9,002 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.829.)
 // Lead Pro -- popup.js  v9.7.829-dev (Dev. EVERY READER OF THE CUSTOMER'S SITUATION READS OUR NOTES ABOUT THEM. Extension only; proxy v7.89, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. v9.7.828 taught the schedule reader that a connected call note reports the customer's words; its header named three more readers that judged the customer's situation from their own messages only. Gil: 'build 829'. One definition, _lpNoteAboutThem (a connected or inbound call, or a general / appointment / showroom note about them -- he, she, they, customer), now feeds: (1) the schedule reader (828's gate, now shared); (2) the declined-alternative reader, with a notes-only third-person shape ('said he doesn't want the black one'); (3) price pushback ('said the price is too high' -> negative reply, superseded as before by a later customer message); (4) a reschedule after a booked appointment ('she can't make it Tuesday, needs to reschedule'), logged as a note saying so. Our own texts and emails are never their words, and readers that ask whether THEY replied keep reading their messages only. TESTS: notes-about-them-829 (new) runs the shipped inlineScraper in Chromium: 16 assertions across both builds; v9.7.828 fails the 3 new readers per build (the 4 controls and 828's schedule reader pass). VERIFIED: run-all 264 suites green, 8,986 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.828.)
@@ -1210,6 +1211,35 @@ function _lpFpField(n, label) {
   var m = re.exec(n);
   return m ? m[1].replace(/\(\s*(?:www\.|https?:|[a-z0-9-]+\.(?:com|net|org))[^)]*\)/gi, '').replace(/Click here to view complete lead information/gi, '').replace(/\s+/g, ' ').trim() : '';
 }
+// (v9.7.832) FULLPATH'S TEXT CONVERSATIONS. "CONVERTED ON: SMS" is not a page: the lead is the customer's reply to a text our
+// marketing system sent them (signed by its assistant, e.g. "Hi, it's <name> from Community Toyota"), and the note carries the
+// exchange as "Conversation: role: delivery content: ... role: user content: ... role: bot content: ...". Toyota Baytown lead
+// 2106255852 ("We've just listed the 2026 Toyota Camry XSE for $42,082" -> "Can I trade in my 2024 Camry XSE?") and Kia Baytown
+// lead 2106267729 ("a special financing deal on the new 2026 Kia K5 for you - 1.9% APR 48 mos" -> "what cha got ?") were told
+// they "opened the SMS page on our website", that no vehicle was on file, and their inquiry was the note's trailing "Conversation
+// may have continued after this message". Returns the turns, oldest first: { role, them (the customer's turn), text } with links
+// and opt-out lines removed. The scraper keeps an identical copy (it runs in the page and cannot see this one).
+function _lpFpTurns(s) {
+  s = String(s || '').replace(/\s+/g, ' ');
+  var ci = s.search(/\bConversation\s*:\s*role\s*:/i); if (ci < 0) return [];
+  s = s.slice(ci).replace(/^Conversation\s*:\s*/i, '').replace(/\s*\bnote\s*:\s*Conversation may have continued[\s\S]*$/i, '').replace(/\s*\bShow (?:Less|More)\b[\s\S]*$/i, '');
+  var re = /\brole\s*:\s*([a-z_]+)\s+content\s*:\s*/gi, m, k = [];
+  while ((m = re.exec(s))) k.push({ role: m[1].toLowerCase(), at: m.index, from: re.lastIndex });
+  return k.map(function (x, i) {
+    var t = s.slice(x.from, i + 1 < k.length ? k[i + 1].at : s.length)
+      .replace(/\S*(?:https?:\/\/|www\.|%2[fF])\S*/g, ' ')
+      .replace(/\s*Reply STOP to (?:opt out|cancel|unsubscribe|end)[^.!?]*[.!?]?/gi, ' ')
+      .replace(/\s+([.,!?:])/g, '$1').replace(/\s{2,}/g, ' ').trim();
+    return { role: x.role, them: /^(?:user|customer|guest|consumer|lead)$/.test(x.role), text: t };
+  }).filter(function (x) { return x.text; });
+}
+// The car or offer a Fullpath lead responded to, when it names a vehicle: it is the subject even with no vehicle on the lead.
+function _lpFpCar(d) {
+  try { var fp = _lpFullpath(d); return (fp && fp.vehicle && (fp.kind === 'unit' || fp.kind === 'offer')) ? fp : null; } catch (e) { return null; }
+}
+function _lpFpAbout(fp) {
+  return fp.kind === 'offer' ? ' about our offer, "' + fp.offer + '"' + (fp.vehicle ? ' on the ' + fp.vehicle : '') : fp.vehicle ? ' about the ' + fp.vehicle + (fp.price ? ' at ' + fp.price : '') : '';
+}
 function _lpTitleCaps(s) { s = String(s || '').trim(); return /[a-z]/.test(s) ? s : s.replace(/\b([A-Z])([A-Z]+)\b/g, function (m, a, b) { return a + b.toLowerCase(); }); }
 var LP_FP_INTERNAL_RX = /\b(?:landing\s+page|nurture|default|template|campaign|audience|segment|journey|retarget\w*)\b/i;
 function _lpFullpath(d) {
@@ -1237,6 +1267,30 @@ function _lpFullpath(d) {
       if (LP_FP_INTERNAL_RX.test(what)) { r.campaign = what; r.what = pco; r.vehicle = ''; }
       r.trade = /\btrade[-\s]?in\b|\bvalue (?:your|my)\b|\bappraisal\b|\bwhat(?:['\u2019]s| is) (?:my|your) (?:car|vehicle) worth\b/i.test(r.what);
       r.desc = r.trade ? 'the trade-in value page on our website' : (r.what ? 'the ' + r.what + ' page on our website' : 'a page on our website');
+    }
+    // (v9.7.832) A text conversation: what they responded to is our first text, their words are their own turns. See _lpFpTurns.
+    var turns = _lpFpTurns(n);
+    if (turns.length) {
+      var first = turns[0].them ? '' : turns[0].text, ui = -1;
+      for (var ti = 0; ti < turns.length; ti++) if (turns[ti].them) { ui = ti; break; }
+      r.via = 'text'; r.pitch = first; r.page = ''; r.campaign = ''; r.vin = '';
+      r.replies = turns.filter(function (x) { return x.them; }).map(function (x) { return x.text; });
+      r.message = r.replies.join(' / ');
+      r.botReply = ui >= 0 ? turns.slice(ui + 1).filter(function (x) { return !x.them; }).map(function (x) { return x.text; }).join(' ') : '';
+      r.sender = (first.match(/\b([A-Z][a-z]{1,15}) from [A-Z]/) || ['', ''])[1];
+      var pv = first.match(/\b((?:19|20)\d{2}\s+[A-Z][\w-]*(?:\s+[A-Z0-9][\w-]*){0,4})/);
+      var po = first.match(/(?:\$\s?[\d,]{2,}(?:\s*\/\s*mo\w*)?|\d+(?:\.\d+)?\s*%\s*APR)[^.!?]{0,60}/i);
+      r.vehicle = pv ? pv[1] : ''; r.price = ''; r.offer = ''; r.key = '';
+      if (po && (/%\s*APR/i.test(po[0]) || /\b(?:lease|financ\w*|apr|per month)\b|\/\s*mo\b/i.test(first))) {
+        r.kind = 'offer'; r.offer = po[0].replace(/[\s.,-]+$/, '').trim();
+        r.key = (r.offer.match(/\$\s?[\d,]+|\d+(?:\.\d+)?\s*%/) || [''])[0].replace(/\s/g, '');
+      } else if (r.vehicle) {
+        r.kind = 'unit'; r.price = (first.match(/\$\s?[\d,]{3,}/) || [''])[0].replace(/\s/g, ''); r.key = r.price;
+      } else { r.kind = 'page'; r.desc = 'our text'; }
+      r.what = first;
+      r.trade = /\btrade/i.test(r.message);
+      // They have written to us since: the conversation is past the text that started it.
+      r.live = _lpCustEntries(d).length > 0;
     }
     var vre = /Status:\s*([^,]+),\s*Make:\s*([^,]+),\s*Model:\s*([^,]+),\s*Year:\s*(\d{4})(?:,\s*Page-Views:\s*(\d+))?/gi, vm;
     while ((vm = vre.exec(_lpFpField(n, 'Vehicles viewed')))) r.viewed.push(vm[1].trim().toLowerCase() + ' ' + vm[4] + ' ' + vm[2].trim() + ' ' + vm[3].trim() + (vm[5] ? ' (' + vm[5] + ' page view' + (vm[5] === '1' ? '' : 's') + ')' : ''));
@@ -8490,7 +8544,8 @@ function populateFromData(d) {
          : 'new or pre-owned, a trim, what matters most')
       + '), or offer to send a few options.');
   }
-  if (!d.vehicle && !d._lpNamedModel && !stageActive && d.pdPresent && !d.pdHasLeadVehicle && (d.pdVoiCount || 0) === 0) {
+  if (!d.vehicle && !d._lpNamedModel && !stageActive && d.pdPresent && !d.pdHasLeadVehicle && (d.pdVoiCount || 0) === 0
+      && !((typeof _lpFpCar === 'function') && _lpFpCar(d))) {   // (v9.7.832) the car in our text is the subject
     // (v9.7.651) BRANCHES ON WHETHER WE HAVE ALREADY ASKED. The "ask directly and confidently"
     // instruction is right the first time and wrong the third: on Brennan Mitchell it was still
     // being issued after the same question had gone out by text at 8:52 AM and by email at 8:53 AM
@@ -11604,6 +11659,21 @@ function _lpScraperBotAuthor(msg) {
         return /\b(?:he|she|him|her|his|they|them|their|cust(?:omer)?|client)\b/i.test(c);
       } catch (e) { return false; }
     }
+    // (v9.7.832) Identical copy of the top-level _lpFpTurns (see there): this function runs in the page.
+    function _lpFpTurns(s) {
+      s = String(s || '').replace(/\s+/g, ' ');
+      var ci = s.search(/\bConversation\s*:\s*role\s*:/i); if (ci < 0) return [];
+      s = s.slice(ci).replace(/^Conversation\s*:\s*/i, '').replace(/\s*\bnote\s*:\s*Conversation may have continued[\s\S]*$/i, '').replace(/\s*\bShow (?:Less|More)\b[\s\S]*$/i, '');
+      var re = /\brole\s*:\s*([a-z_]+)\s+content\s*:\s*/gi, m, k = [];
+      while ((m = re.exec(s))) k.push({ role: m[1].toLowerCase(), at: m.index, from: re.lastIndex });
+      return k.map(function (x, i) {
+        var t = s.slice(x.from, i + 1 < k.length ? k[i + 1].at : s.length)
+          .replace(/\S*(?:https?:\/\/|www\.|%2[fF])\S*/g, ' ')
+          .replace(/\s*Reply STOP to (?:opt out|cancel|unsubscribe|end)[^.!?]*[.!?]?/gi, ' ')
+          .replace(/\s+([.,!?:])/g, '$1').replace(/\s{2,}/g, ' ').trim();
+        return { role: x.role, them: /^(?:user|customer|guest|consumer|lead)$/.test(x.role), text: t };
+      }).filter(function (x) { return x.text; });
+    }
     // (v9.7.831) A STAFF NOTE THAT RECORDS A VISIT IS A VISIT. Only a "Showroom Visit" entry used to count,
     // so lead 2104004243 kept "appt. confirmed for today at 6:30pm" as a live appointment after a 7:41 PM
     // General Note said "Showed / Test drove the 2026 Sorento". Past tense only -- "wants to test drive",
@@ -13852,7 +13922,7 @@ function _lpScraperBotAuthor(msg) {
         }
         if(isCurrentLeadStart) {
           firstLeadReceivedSeen = true;
-          if (/\bCONVERTED ON\s*:/i.test(content || '')) _lpFullpathNote = String(content).replace(/\s+/g, ' ').trim().slice(0, 900);   // (v9.7.803)
+          if (/\bCONVERTED ON\s*:/i.test(content || '')) _lpFullpathNote = String(content).replace(/\s+/g, ' ').trim().slice(0, 4000);   // (v9.7.803; 900 -> 4000 in v9.7.832, a longer text conversation)
           _lpMarkerMs = noteMs > 0 ? noteMs : 0; _lpMarkerDate = date || '';   // (v9.7.695) see declaration
           // If this lead note is significantly newer than the original created date,
           // this is a re-activated/recycled lead. Tighten the cutoff so old outbound
@@ -14114,6 +14184,10 @@ function _lpScraperBotAuthor(msg) {
           var _fpMsgM = extractedCustQ.match(/Customer message\s*:\s*([\s\S]*?)(?=\s*(?:Lead Details|Vehicles viewed|Page converted on|Preferred Contact Method|CONVERTED ON)\s*:|\s*Show (?:Less|More)\b|$)/i);
           extractedCustQ = _fpMsgM ? _fpMsgM[1].replace(/\s+/g, ' ').trim() : '';
           if (extractedCustQ.length < 3) extractedCustQ = '';
+        }
+        // (v9.7.832) A FULLPATH TEXT CONVERSATION: their words are their own turns, never the bot's or the note's trailer.
+        if (/\bCONVERTED ON\s*:/i.test(content || '') && (typeof _lpFpTurns === 'function') && _lpFpTurns(content).length) {
+          extractedCustQ = _lpFpTurns(content).filter(function (x) { return x.them; }).map(function (x) { return x.text; }).join(' / ');
         }
         if(extractedCustQ) {
           leadReceivedCustomerQuestion = extractedCustQ;
@@ -18757,6 +18831,10 @@ function _lpScraperBotAuthor(msg) {
               _cgOut.push(qbody.slice(_cgT[_cgI].textAt, _cgI + 1 < _cgT.length ? _cgT[_cgI + 1].at : qbody.length).replace(/\s*Related Vehicles:[\s\S]*$/i, '').trim());
             }
             qbody = _cgOut.join('\n');
+          }
+          // (v9.7.832) The same for a Fullpath text conversation: "role: user" turns only, without the "content:" label.
+          if ((typeof _lpFpTurns === 'function') && /\bConversation\s*:\s*role\s*:/i.test(qbody.replace(/\s+/g, ' '))) {
+            qbody = _lpFpTurns(qbody).filter(function (x) { return x.them; }).map(function (x) { return x.text; }).join('\n');
           }
           if (!qbody || qbody.length < 8) continue;
           // ── (v9.7.654) A QUESTION MARK WITH LETTERS TIGHT ON BOTH SIDES IS AN APOSTROPHE ─────
@@ -23516,7 +23594,11 @@ function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
       out.push('\u2501\u2501\u2501 WHAT THEY RESPONDED TO \u2501\u2501\u2501');
       // (v9.7.810) Already put to them: the first draft on lead 2103463134 had no price, and this block, showing the price and
       // saying "keep it the way the first draft has it", got "is here at $55,948" put back.
-      if (_rfFp.presented) out.push('They opened ' + (_rfFp.kind === 'offer' ? 'our ' + _rfFp.offer + ' on our website' : _rfFp.kind === 'page' ? _rfFp.desc : 'the ' + (_rfFp.vehicle || _rfFp.what) + ' on our website')
+      if (_rfFp.via === 'text') out.push('They replied to our text' + _lpFpAbout(_rfFp) + '. '   // (v9.7.832)
+        + ((_rfFp.presented || _rfFp.live) ? 'The conversation has moved on since; it is background, not the pitch. '
+            : 'Keep it in the text the way the first draft has it (if the first draft does not name the ' + (_rfFp.kind === 'offer' ? 'offer' : 'price') + ', do not add it). ')
+        + 'Never call it an online inquiry or say they were on our website' + (_rfFp.sender ? ', and never sign or refer to "' + _rfFp.sender + '"' : '') + '; add no other offer.');
+      else if (_rfFp.presented) out.push('They opened ' + (_rfFp.kind === 'offer' ? 'our ' + _rfFp.offer + ' on our website' : _rfFp.kind === 'page' ? _rfFp.desc : 'the ' + (_rfFp.vehicle || _rfFp.what) + ' on our website')
         + ', and our earlier messages on this lead already told them about it. Do not put the ' + (_rfFp.kind === 'offer' ? 'offer\'s numbers' : 'price, or that it is here,') + ' back into the text unless the first draft has '
         + (_rfFp.kind === 'offer' ? 'them' : 'it') + '; never call it an online inquiry; add no other offer.');
       else out.push('They opened ' + (_rfFp.kind === 'offer' ? 'our ' + _rfFp.offer + ' on our website' : _rfFp.kind === 'page' ? _rfFp.desc : 'the ' + (_rfFp.vehicle || _rfFp.what) + (_rfFp.price ? ' at ' + _rfFp.price : '') + ' on our website') + '. Keep it in the text the way the first draft has it' + (_rfFp.kind === 'offer' ? '' : ' (if the first draft does not name the price, do not add it)')   // (v9.7.815)   // (v9.7.805) page: _lpFullpath's desc
@@ -29534,7 +29616,10 @@ function buildUserPrompt(data) {
     // (v9.7.637) The tail is supplied by the shape too — "that is a place they will recognise" is
     // false of "your online inquiry", which is not a place and is not what they would call it.
     // (v9.7.800) A Mastermind lead reached us as an offer, not an inquiry.
-    ((typeof _lpFullpath === 'function') && _lpFullpath(data))   // (v9.7.803)
+    ((typeof _lpFullpath === 'function') && _lpFullpath(data) && _lpFullpath(data).via === 'text')   // (v9.7.832)
+      ? '- HOW THIS LEAD REACHED US: they REPLIED TO A TEXT WE SENT THEM' + _lpFpAbout(_lpFullpath(data)) + ' -- this lead is their reply (see WHAT THEY RESPONDED TO). They were not on our website and filled out no form: never say they were looking at a page, checking out our website or sent an online inquiry, and never name Fullpath, a campaign, an audience, an assistant or a bot'
+        + (_lpFullpath(data).sender ? ', or "' + _lpFullpath(data).sender + '" (the automated text\'s signature -- nobody on our team)' : '') + '. If you mention it, say they replied to our text.'
+    : ((typeof _lpFullpath === 'function') && _lpFullpath(data))   // (v9.7.803)
       ? '- HOW THIS LEAD REACHED US: they acted on our own marketing -- on our website they opened ' + (_lpFullpath(data).kind === 'offer' ? 'our ' + _lpFullpath(data).offer : _lpFullpath(data).kind === 'page' ? _lpFullpath(data).desc.replace(/ on our website$/, '') : 'the ' + (_lpFullpath(data).vehicle || 'vehicle')) + ' and sent their details (see WHAT THEY RESPONDED TO). Never call it an "online inquiry", and never name Fullpath, a landing page, a campaign or an audience -- say they were looking at it on our website.'
       : (sc.isAutomotiveMastermind
       ? '- HOW THIS LEAD REACHED US: the GM Private Incentive offer they received as a current Audi owner -- an offer they were selected for, NOT an inquiry they made. Never call it an "online inquiry" or say they reached out, inquired or showed interest.'
@@ -29555,7 +29640,9 @@ function buildUserPrompt(data) {
     // the anti-restate rules three lines below it. The prohibition — never name a vehicle that is
     // not in this prompt — is unconditional and unchanged; only the fallback instruction moves.
     // (v9.7.725) The customer has told us the model: the question this constraint falls back on is already answered.
-    (data._lpNamedModel && data._lpNamedModel.phrase)
+    (!data.vehicle && (typeof _lpFpCar === 'function') && _lpFpCar(data))   // (v9.7.832)
+      ? '- NEVER mention a specific vehicle model, trim, or name that does not appear in this prompt. No vehicle is on file, but they responded to our ' + (_lpFpCar(data).via === 'text' ? 'text' : 'marketing') + ' about the ' + _lpFpCar(data).vehicle + ': that is the car this conversation is about. Do NOT ask what they are looking for, and do not pick a trim, color or unit for them.'
+    : (data._lpNamedModel && data._lpNamedModel.phrase)
       ? '- NEVER mention a specific vehicle model, trim, or name that does not appear in this prompt. No vehicle is on file, but the customer has told you the model they want ("' + data._lpNamedModel.phrase + '"): work from that, and do NOT ask what they are looking for. Do not pick a trim, color or unit for them.'
       : (_lpQualifyingAsked(data)
       ? '- NEVER mention a specific vehicle model, trim, or name that does not appear in this prompt. If no vehicle of interest is listed on the lead, do NOT invent one. Do NOT simply ask what they are looking for either — that question has already been sent on this lead and went unanswered, so repeating it is the restate failure. Make the ask SMALLER than the one that failed. A different lever is allowed only where it asks LESS of them than the question that went unanswered — never a heavier lift such as a two-option appointment close.'
@@ -30468,6 +30555,8 @@ function buildUserPrompt(data) {
         ? 'Vehicle:    ' + data.vehicle + '  ← THIS IS THE VEHICLE FOR THIS LEAD. Do not substitute or reference other vehicles from the conversation history.'
         : (data._lpNamedModel && data._lpNamedModel.phrase)
         ? 'Vehicle:    (none on file) ← The customer has named a MODEL in their own words — "' + data._lpNamedModel.phrase + '" — not a specific unit. Work from what they said (see THE CUSTOMER NAMED A MODEL above); do not present any one unit, trim or color as the one they chose.'
+        : ((typeof _lpFpCar === 'function') && _lpFpCar(data))   // (v9.7.832)
+        ? 'Vehicle:    (none on file) ← the car they responded to is the ' + _lpFpCar(data).vehicle + ', in ' + (_lpFpCar(data).via === 'text' ? 'our text to them' : 'our marketing') + ' (see WHAT THEY RESPONDED TO). Work from it; do not ask what they are looking for.'
         : 'Vehicle:    (none specified) ← NO VEHICLE IS ATTACHED TO THIS LEAD. Do NOT reference or name any vehicle from the conversation history as the one they want — those belong to prior leads or conversations. A trade-in listed in the LEAD section is theirs and is fine to name as their trade.',
   );
 
@@ -30494,7 +30583,25 @@ function buildUserPrompt(data) {
   // (v9.7.803) See _lpFullpath.
   try {
     var _fp = _lpFullpath(data);
-    if (_fp) {
+    if (_fp && _fp.via === 'text') {
+      // (v9.7.832) THEY REPLIED TO OUR TEXT. Before anyone on our team has written back, their reply is the reason for this
+      // message; once they have written to us since (lead 2106267729: a call, a link, "i'm good"), the text is how it started.
+      var _fpBg = !!(_fp.presented || _fp.live), _fpQ = function (s) { return String(s || '').replace(/"/g, "'"); };
+      lines.push('', _fpBg
+        ? '\ud83c\udfaf HOW THIS CONVERSATION STARTED -- THEY REPLIED TO A TEXT WE SENT (BACKGROUND: THE CONVERSATION SINCE IS WHAT THIS MESSAGE ANSWERS):'
+        : '\ud83c\udfaf WHAT THEY RESPONDED TO -- THEY REPLIED TO A TEXT WE SENT, AND THEIR REPLY IS THE REASON FOR THIS MESSAGE:');
+      if (_fp.pitch) lines.push('- Our text to them (an automated marketing text, sent before this lead existed): "' + _fpQ(_fp.pitch) + '"');
+      if (_fp.kind === 'unit') lines.push('- The car in it: the ' + _fp.vehicle + (_fp.price ? ', listed at ' + _fp.price : '') + '. '
+        + (_fpBg ? 'It is how this started: keep it in view, but do not re-pitch it or repeat the price.'
+                 : 'That is the car they responded to: name it.' + (_fp.price ? ' You may name that listed price; do not quote any other figure, payment or out-the-door total.' : '')));
+      else if (_fp.kind === 'offer') lines.push('- The offer in it: "' + _fp.offer + '"' + (_fp.vehicle ? ' on the ' + _fp.vehicle : '') + '. '
+        + (_fpBg ? 'It is still an angle you may use if it fits where the conversation is now (as advertised, on approved credit), but it is not the subject unless they come back to it.'
+                 : 'Lead with it. Quote it as advertised, prefaced with "on approved credit". It is our own advertised offer, so the payment rules elsewhere in this prompt do not stop you quoting it as advertised; they still forbid any other figure. Do not change its numbers, add terms, or promise they qualify.'));
+      if (_fp.replies.length) lines.push('- Their reply: ' + _fp.replies.map(function (x) { return '"' + _fpQ(x) + '"'; }).join(', then ')
+        + (_fpBg ? ' -- what they have said since, in the thread, comes after this.'
+                 : ' -- their own words, and nobody on our team has answered them yet. Answer it first, plainly and in your own voice, then come to the ' + (_fp.kind === 'offer' ? 'offer' : _fp.kind === 'unit' ? 'car' : 'next step') + '.'));
+      if (_fp.botReply) lines.push('- An automated reply went back before anyone on our team wrote: "' + _fpQ(_fp.botReply) + '". It is not something a person said: never quote or refer to it, and do not repeat a question it asked word for word.');
+    } else if (_fp) {
       // (v9.7.810) ALREADY PUT TO THEM. On lead 2103463134 this block said "Lead with that car. You may name that advertised price"
       // under "IT IS THE REASON FOR THIS MESSAGE" the day after our text had said both, beside v9.7.808's "do not restate ... its
       // price", and the draft re-sent the first text with new times. Once an earlier message of ours carries it, it is the
@@ -30510,11 +30617,13 @@ function buildUserPrompt(data) {
       if (_fp.campaign) lines.push('- "' + _fp.campaign + '" is our marketing system\'s internal name for the campaign, not a page they saw: never say it, or "nurture", "landing page" or "campaign", in the SMS, the email, the voicemail or the subject.');
       if (_fp.message) lines.push('- They also wrote: "' + _fp.message.replace(/"/g, "'") + '" -- answer that first, in your own words, then come to the ' + (_fp.kind === 'offer' ? 'offer' : 'car') + '.');
       if (_fp.viewed.length) lines.push('- What they viewed: ' + _fp.viewed.join('; ') + '.');
-      if (_fp.owned) lines.push('- THEY OWN A ' + _fp.owned + ' (our service records). Fish lightly for a trade or upgrade -- one easy question, e.g. "Are you thinking about trading in your ' + _fp.owned.replace(/^((?:19|20)\d{2})\s+\S+\s+/, '$1 ') + '?" Never assume they are trading and never put a value on it.');
-      lines.push(_fp.presented
+    }
+    if (_fp) {
+      if (_fp.owned && !_fp.trade) lines.push('- THEY OWN A ' + _fp.owned + ' (our service records). Fish lightly for a trade or upgrade -- one easy question, e.g. "Are you thinking about trading in your ' + _fp.owned.replace(/^((?:19|20)\d{2})\s+\S+\s+/, '$1 ') + '?" Never assume they are trading and never put a value on it.');
+      lines.push((_fp.presented || _fp.live)
         ? '- It has already been put to them; another current offer may now be used as a secondary angle, never ahead of it.'
         : '- OTHER OFFERS WAIT: do not add or lead with any other incentive, rebate or special in this message -- they are for a later follow-up if this does not land.');
-      try { console.log('[LP FULLPATH DIAG] ' + _fp.kind + ': "' + (_fp.offer || _fp.vehicle || _fp.what) + '"' + (_fp.price ? ' at ' + _fp.price : '') + (_fp.message ? ' | wrote: "' + _fp.message + '"' : '') + (_fp.owned ? ' | owns: ' + _fp.owned : '') + ' | already put to them: ' + _fp.presented); } catch (eFpD) {}
+      try { console.log('[LP FULLPATH DIAG] ' + (_fp.via === 'text' ? 'via text (' + (_fp.live ? 'they have written since' : 'their reply is the latest') + ') ' : '') + _fp.kind + ': "' + (_fp.offer || _fp.vehicle || _fp.what) + '"' + (_fp.price ? ' at ' + _fp.price : '') + (_fp.message ? ' | wrote: "' + _fp.message + '"' : '') + (_fp.owned ? ' | owns: ' + _fp.owned : '') + ' | already put to them: ' + _fp.presented); } catch (eFpD) {}
     }
   } catch (eFp) {}
   if (sc.isAudi && sc.salesRep) lines.push('Brand Specialist: ' + sc.salesRep);
