@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.831-dev (Dev. A STAFF NOTE OF THE VISIT ENDS THE APPOINTMENT, AND THE DAY IT REPORTS IS THE CUSTOMER'S. Extension only; proxy v7.89, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Kia Baytown lead 2104004243 (log369, on v9.7.830): a reminder and a connected call ('appt. confirmed for today at 6:30pm') on 10/26, then a 7:41 PM General Note 'Showed / Test drove the 2026 Sorento ... talking about coming back in on Friday'. The next day the prompt still said 'THERE IS A LIVE APPOINTMENT ON THIS LEAD' and the visit decision belonged to the LIVE APPOINTMENT block; and the day-lock comprehension probe removed the Friday the regex had found ('comprehension read 1 note(s) and found none'), because it was told every entry was a message the customer sent and that a day in an agent note never counts. (1) Scraper: _lpVisitNote -- a general / appointment / showroom / call note that records the visit in the past tense (showed, test drove, came in, stopped by, visited the store) counts as a visit for _lastVisitMs, so the v9.7.775 rule ends an appointment the visit followed. 'No show', 'didn't come in', 'wants to test drive' and 'lead came in' do not count. (2) schedCustomerNotes entries carry about:true for a note about them (the v9.7.829 definition); _lpBuildFactInputs tags those entries LP_STAFF_NOTE_TAG for the day-lock probe. (3) _lpBuildDayLockProbe: when a staff note is present, the prompt says so, and a day the note says the CUSTOMER will come or is available counts; a day the staff member plans for themselves ('will call him Monday', 'follow up Friday') does not. With no staff notes the wording is unchanged. (4) _lpVerifyCommitQuote skips the tag, so a quote must come from the note's own words. TESTS: visit-kept-831 (new) runs the shipped scraper in Chromium plus the shipped probe builder and fact inputs: 24 assertions across both builds; v9.7.830 fails 5 of 12 per build (the 7 controls pass). VERIFIED: run-all 266 suites green, 9,026 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.830.)
 // Lead Pro -- popup.js  v9.7.830-dev (Dev. THE NEWEST EVENT ON THE LEAD MAY BE OUR NOTE, NOT THEIR LAST MESSAGE. Extension only; proxy v7.89, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Kia Baytown lead 2104004243 (log368): on a 10/21 call the customer asked about a Sorento EX in Wolf Gray; on 10/26 our text said 'Ex Sorento Wolf Gray' and they texted 'Headed your way'; at 7:41 PM the salesperson noted 'Showed / Test drove the 2026 Sorento (CPO) - Black #P2962 ... talking about coming back in on Friday', and the lead was changed to that car. The prompt still said 'THE CUSTOMER HAS MOVED OFF THE UNIT ON THE LEAD: they asked for GRAY', 'TRIM/CONFIG PREFERENCE: EX', offered Wolf Gray units, and the v9.7.826 exchange block showed 'Ex Sorento Wolf Gray' -> 'Headed your way' as what the message answers. The text went back to the Wolf Gray EX. (1) Scraper: a note about them, after the color they named, that says they drove or were shown the unit on the lead (its stock number, or test drove / showed + its model) SETTLES the color on that unit (the v9.7.741 settlement, a third way in), and a trim they named before it is background. (2) _lpNewestNote: the newest note about them (visit, test drive, connected call) newer than their last message is 'THE NEWEST EVENT ON THIS LEAD' -- write from it; if they drove the lead's unit, earlier asks are background. (3) The exchange block steps aside when such a note exists. (4) The similar-vehicle and alternate-condition lists stand down when they drove the lead's unit. (5) The settled-color line says a note showed them the car, not that they sent a listing. TESTS: newest-note-830 (new) executes the shipped scraper color/trim slice and buildUserPrompt through the panel payload: 16 assertions across both builds; v9.7.829 fails 5 of 8 per build (the 3 controls pass). VERIFIED: run-all 265 suites green, 9,002 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.829.)
 // Lead Pro -- popup.js  v9.7.829-dev (Dev. EVERY READER OF THE CUSTOMER'S SITUATION READS OUR NOTES ABOUT THEM. Extension only; proxy v7.89, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. v9.7.828 taught the schedule reader that a connected call note reports the customer's words; its header named three more readers that judged the customer's situation from their own messages only. Gil: 'build 829'. One definition, _lpNoteAboutThem (a connected or inbound call, or a general / appointment / showroom note about them -- he, she, they, customer), now feeds: (1) the schedule reader (828's gate, now shared); (2) the declined-alternative reader, with a notes-only third-person shape ('said he doesn't want the black one'); (3) price pushback ('said the price is too high' -> negative reply, superseded as before by a later customer message); (4) a reschedule after a booked appointment ('she can't make it Tuesday, needs to reschedule'), logged as a note saying so. Our own texts and emails are never their words, and readers that ask whether THEY replied keep reading their messages only. TESTS: notes-about-them-829 (new) runs the shipped inlineScraper in Chromium: 16 assertions across both builds; v9.7.828 fails the 3 new readers per build (the 4 controls and 828's schedule reader pass). VERIFIED: run-all 264 suites green, 8,986 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.828.)
 // Lead Pro -- popup.js  v9.7.828-dev (Dev. A NOTE ABOUT THE CUSTOMER IS READ LIKE THEIR OWN MESSAGE. Extension only; proxy v7.89, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Kia Baytown lead 2105429946 (log367, v9.7.827): the salesperson reached the customer -- 'Outbound phone call (Contacted)': 'not a good time- hes at work// call him after 3pm' -- and the draft offered '9:15 AM or 10:30 AM Tuesday'. The model had the note, twice; the schedule reader read the customer's own messages only, so the suggested-times block offered morning slots as if nothing said otherwise. Gil: 'The model should ingest every note not just pieces.' (1) The schedule reader reads a connected call note, and a general / appointment note about them (he, she, they, customer), the same way as their messages; our own texts and emails are not read as theirs. (2) 'after N' is a start time ('call him after 3pm', 'free after 5'): a PM time feeds the arrival-time slots, so suggested times move after it. (3) The fallback slots yield to a timing in a message OR in any of our notes about them. (4) A bare '2026 Honda' on the lead gave the variant-mismatch check a key with no model, and the pattern built from it threw; both halves must now be words. AUDIT, not changed here: other readers that judge the customer's situation from their messages only -- the declined-alternative reader, price pushback (negative state), and 'need to reschedule / can't make it' -- would miss the same words in a connected call note; readers that must stay customer-only: did they reply, their last message, STOP, open questions answered, the newest customer signal. TESTS: call-note-schedule-828 (new) runs the shipped inlineScraper in Chromium and executes buildUserPrompt through the panel payload: 14 assertions across both builds; v9.7.827 fails 6 of 7 per build (the control passes). VERIFIED: run-all 263 suites green, 8,970 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.827.)
@@ -2021,7 +2022,10 @@ function _lpVerifyCommitQuote(quote, notes) {
   var q = String(quote || '').replace(/\s+/g, ' ').trim().toLowerCase();
   if (q.length < 4) return 0;
   for (var i = 0; i < notes.length; i++) {
-    var n = String(notes[i] || '').replace(/\s+/g, ' ').trim().toLowerCase();
+    var n = String(notes[i] || '');
+    // (v9.7.831) The staff-note tag is our label, not the note: a quote must come from the note's own words.
+    if (typeof LP_STAFF_NOTE_TAG === 'string' && n.indexOf(LP_STAFF_NOTE_TAG) === 0) n = n.substring(LP_STAFF_NOTE_TAG.length);
+    n = n.replace(/\s+/g, ' ').trim().toLowerCase();
     if (n.indexOf(q) >= 0) return i + 1;
   }
   return 0;
@@ -2515,12 +2519,23 @@ var LP_FACT_DETECTORS = {
 // header reading "On Monday, August 10, 2026, 3:00 PM, Kaylee Guzman ... wrote:". The v9.7.565
 // stripper already removes that before the text ever reaches here — this probe never sees it — but
 // the rule is stated anyway so the model is not relying on the stripper having been perfect.
+// (v9.7.831) A note our staff wrote about the customer reaches the day-lock probe with this tag in
+// front of it. Without it the probe was told every entry was "a message the customer sent" and that a
+// day inside "an agent note" never counts -- so it threw out "Showed / Test drove ... talking about
+// coming back in on Friday" (lead 2104004243) and the Friday the customer gave was lost.
+var LP_STAFF_NOTE_TAG = '(A NOTE OUR STAFF WROTE ABOUT THE CUSTOMER) ';
 function _lpBuildDayLockProbe(notes) {
   var lines = [];
+  var anyStaff = false;
   for (var i = 0; i < notes.length; i++) {
-    lines.push('[' + (i + 1) + '] ' + String(notes[i] || '').replace(/\s+/g, ' ').trim());
+    var _nt = String(notes[i] || '');
+    if (_nt.indexOf(LP_STAFF_NOTE_TAG) === 0) anyStaff = true;
+    lines.push('[' + (i + 1) + '] ' + _nt.replace(/\s+/g, ' ').trim());
   }
-  return 'Below are messages a car dealership customer sent. Decide exactly ONE thing: did the '
+  return 'Below are messages a car dealership customer sent'
+    + (anyStaff ? ', and notes our staff wrote about what the customer told them (those entries start with '
+      + LP_STAFF_NOTE_TAG.trim() + ')' : '')
+    + '. Decide exactly ONE thing: did the '
     + 'CUSTOMER say which DAY they are available or will come in?\n\n'
     + 'RULES:\n'
     + '- Answer only from the messages below. If they did not name a day, the answer is null.\n'
@@ -2530,8 +2545,16 @@ function _lpBuildDayLockProbe(notes) {
     + '("On Monday, August 10, 2026, ... wrote:"), forwarded-message headers, mail-client '
     + 'signatures and email timestamps are generated by software and say when a message was SENT. '
     + 'They are never a statement of availability.\n'
-    + '- A day inside text the DEALERSHIP wrote — a quoted prior email, an agent note, a subject '
-    + 'line — is not the customer naming a day, even when it appears inside the customer\'s reply.\n'
+    + '- A day inside text the DEALERSHIP wrote — a quoted prior email, an agent note quoted inside '
+    + 'the customer\'s reply, a subject line — is not the customer naming a day, even when it appears '
+    + 'inside the customer\'s reply.\n'
+    + (anyStaff
+      ? '- AN ENTRY MARKED AS A STAFF NOTE reports what the customer said or plans. A day the note says '
+        + 'the CUSTOMER will or may come in, or is available ("talking about coming back in on Friday", '
+        + '"he said he can come Saturday", "customer wants to come in Tuesday") counts as the customer '
+        + 'naming that day; quote the note\'s words. A day the STAFF MEMBER plans for themselves ("will '
+        + 'call him Monday", "follow up Friday", "send numbers Tuesday") is not the customer naming a day.\n'
+      : '')
     + '- A day the customer RULED OUT ("I cannot do Monday", "not Tuesday") is NOT them naming '
     + 'that day as their availability. The answer for that day is null.\n'
     + '- "today", "tomorrow", "this weekend" and "next week" are NOT day names for this question — '
@@ -3130,7 +3153,10 @@ function _lpBuildFactInputs(data, deps) {
     var sn = (data.schedCustomerNotes && data.schedCustomerNotes.length)
       ? data.schedCustomerNotes
       : ((deps.scraped && deps.scraped.schedCustomerNotes) || []);
-    out[LP_FACT_IDS.DAYLOCK] = { notes: sn.map(function (n) { return String((n && n.text) || ''); })
+    out[LP_FACT_IDS.DAYLOCK] = { notes: sn.map(function (n) {
+                                          var _t = String((n && n.text) || '');
+                                          return (n && n.about && _t.trim()) ? LP_STAFF_NOTE_TAG + _t : _t;
+                                        })
                                         .filter(function (t) { return t.trim().length > 0; }) };
   } catch (e) { out[LP_FACT_IDS.DAYLOCK] = { notes: [] }; }
 
@@ -11578,6 +11604,28 @@ function _lpScraperBotAuthor(msg) {
         return /\b(?:he|she|him|her|his|they|them|their|cust(?:omer)?|client)\b/i.test(c);
       } catch (e) { return false; }
     }
+    // (v9.7.831) A STAFF NOTE THAT RECORDS A VISIT IS A VISIT. Only a "Showroom Visit" entry used to count,
+    // so lead 2104004243 kept "appt. confirmed for today at 6:30pm" as a live appointment after a 7:41 PM
+    // General Note said "Showed / Test drove the 2026 Sorento". Past tense only -- "wants to test drive",
+    // "no show", "didn't come in" and "a text came in" are not visits.
+    function _lpVisitNote(el){
+      try {
+        var t = ((el.querySelector('.legacy-notes-and-history-title')||{}).innerText||'').toLowerCase().trim();
+        if (!/^(?:general note|note|appointment|showroom|call note|visit)/.test(t)) return false;
+        var c = ((el.querySelector('.notes-and-history-item-content')||{}).innerText||'').replace(/^\s*By:[^\n]*\n?/i, '');
+        var rx = /(?:^|[^a-z])(showed(?=\s*(?:up\b|\/|[,.;:!-]|$|\s+(?:and|for|at|in|today|tonight|this)\b))|test[\s-]?drove|took (?:it|the \w+|a \w+) (?:for )?a test[\s-]?drive|came in(?=\s+(?:today|tonight|this|and|to|for|with|at)\b|[,.;!]|\s*$)|stopped (?:in|by)\b|visited (?:the )?(?:store|showroom|dealership|us)\b|was in (?:the )?(?:store|showroom|dealership)\b)/ig;
+        var m;
+        while ((m = rx.exec(c))) {
+          // The words just before the match, inside the same sentence: "didn't come in", "if he came in",
+          // "the lead came in" and "no show" negate or reassign it.
+          var before = c.substring(Math.max(0, m.index - 40), m.index + m[0].length - m[1].length).toLowerCase();
+          before = before.split(/[.!?;\n]/).pop();
+          if (/\b(?:no|not|didn'?t|did not|never|won'?t|will not|wont|hasn'?t|has not|if|lead|text|email|call|message)\b(?:\s+[a-z']+){0,2}\s*$/.test(before)) continue;
+          return true;
+        }
+        return false;
+      } catch (e) { return false; }
+    }
     function qs(s) {
       try { const e=document.querySelector(s); return e?(e.innerText||e.textContent||e.value||'').trim():''; } catch(x){return '';}
     }
@@ -15752,7 +15800,8 @@ function _lpScraperBotAuthor(msg) {
         if (ntCustomerText) {
           schedCustomerNotes.push({ i: nti, title: ntTitle.substring(0, 60),
                                     text: ntCustomerText.substring(0, 1200),
-                                    cutBy: ntCut.cutBy || '' });
+                                    cutBy: ntCut.cutBy || '',
+                                    about: !!_ntAboutThem });   // (v9.7.831) a staff note about them
         }
         // If the cut leaves nothing, the note carries no customer-authored words at all — a bare
         // "Thank you." above a quoted thread, or a reply that is nothing but the quote. Detecting
@@ -17587,7 +17636,7 @@ function _lpScraperBotAuthor(msg) {
     try {
       for(var vi=0; vi<noteEls.length; vi++){
         var vTitle = ((noteEls[vi].querySelector('.legacy-notes-and-history-title')||{}).innerText||'');
-        if(/showroom\s*visit/i.test(vTitle)){
+        if(/showroom\s*visit/i.test(vTitle) || ((typeof _lpVisitNote === 'function') && _lpVisitNote(noteEls[vi]))){
           var vDateText = ((noteEls[vi].querySelector('.notes-and-hsitory-item-date')||{}).innerText||'').trim();
           var vMs = vDateText ? new Date(vDateText).getTime() : 0;
           if(vMs > _lastVisitMs) _lastVisitMs = vMs;
@@ -18046,7 +18095,7 @@ function _lpScraperBotAuthor(msg) {
       if (hasApptSet && typeof _lastVisitMs === 'number' && _lastVisitMs > 0 && _apptSetMs > 0 && _lastVisitMs >= _apptSetMs) {
         hasApptSet = false;
         apptDetails = '';
-        apptTimeline.push('Appointment kept: the customer came in (showroom visit after the reminder) -- it is not upcoming');
+        apptTimeline.push('Appointment kept: the customer came in (a showroom visit or a staff note of the visit after the reminder) -- it is not upcoming');
         _lpD('[LP APPT DIAG] appointment kept -- a showroom visit is newer than the evidence that set it; not a live appointment');
       }
 
