@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.835 (Commercial. WHAT A WEBSITE SHOPPER WAS LOOKING AT WHEN THEY ASKED, AND NO VISIT ASK IN A TEXT WHEN THE PROMPT DECIDED ON NONE. Ships with proxy v7.90 (its /clickpath); reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Honda Lafayette lead 2106212974 (log377): a Contact Us form whose only words were 'still on the lot?', no vehicle on the lead ('2026 Honda Any/All'), and three of our emails asking him to send the model or a link -- the draft asked a fourth time ('What model or listing are you asking about?'). The received note links the store site's Dealer eProcess Click Path, which showed Homepage -> New Honda Accord Sedan (a search page) -> Contact Us -> this lead, and a later visit (10/29) to the new CR-V with another inquiry. (1) Scraper: the current lead's received note's Click Path link (https://<site>/resrc/leadinfo/clickpath/<n>) is carried as clickPathUrl. (2) _lpLoadClickPath: at generate time, beside the fact probes, the proxy's /clickpath is asked for it (memoized 10 minutes, 4 s timeout, any failure = as before). (3) _lpClickPathLines: WHAT THEY WERE LOOKING AT ON OUR WEBSITE WHEN THEY SENT THIS -- the vehicle details page (a unit, checked against stock) or search page (a model, with what we have of it in the matching condition), that their message is about it, never to ask what they want and never to say or imply we saw what they viewed; a lead condition field that disagrees with the page gives way; a newer visit is named. (4) The Vehicle line, the never-invent rule and the grab-time 'CRM CONFIRMS: no vehicle of interest' line give way to it (_lpClickCar). Audi Lafayette lead 2107090639 (waiting on the sales team): the email gave room, the text ended 'What day and time would work for you to come in?'; Toyota Baytown leads 2103828793 and 2106333188 the same shape. The text rewrite told every lead to give 'the actual reason this visit is worth making'. (5) When the visit decision is level 3 (no visit ask, no times) the rewrite is told so instead, and (6) a rewrite that adds a visit or time ask (LP_VISIT_ASK_RX) the first pass did not make does not ship. TESTS: click-path-835 (new) runs the shipped inlineScraper in Chromium and executes _lpLoadClickPath, populateFromData, buildUserPrompt, _lpBuildSmsRefinePrompt and _lpRefineSms: 30 assertions across both builds; v9.7.834 fails 11 of 15 per build (the 4 controls pass). worker-v790 (new) for the proxy; run-all now runs proxy v7.90. VERIFIED: run-all 271 suites green, 9,127 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.834.)
 // Lead Pro -- popup.js  v9.7.834 (Commercial. 'THE SAME MODEL' IS THE SAME MODEL, AND A PAINT THAT NAMES ANOTHER COLOR IS NOT THE ONE THEY ASKED FOR. Extension only; proxy v7.89, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Toyota Baytown lead 2082278892, regrabbed on v9.7.833: with the comparables narrowed to the models the customer named, the ALTERNATE CONDITION list offered 'the same model is also on our lot as used: 2024 Toyota Highlander LE (Midnight Black Metallic); 2018 Toyota Highlander LE (Celestial Silver Metallic)' on a Grand Highlander lead -- the strict score shares the word 'Highlander', and the two used Highlanders tied for the top -- and the draft offered the Midnight Black one ('one more option alongside the Grand Highlander') to a customer who asked for white, past the v9.7.833 color clause. (1) The alternate-condition list scores only units of the lead's own model family (_lpModelFamilyKey), and a family check in its loop. (2) _lpPaintFitsAsked: when they asked for a color, a unit whose paint name carries a different base color word ('Midnight Black Metallic' for white) is dropped before scoring, so a fitting unit can take its place; a paint with no color word ('Blueprint', 'Wind Chill Pearl') stays, with the v9.7.833 clause telling the model to judge it. The similar-vehicles list gets the same paint filter. Toyota Baytown lead 2104784814 regrabbed on v9.7.833 as intended: no ZERO-CONTACT banner, no close-out rung, and the newest event is the 10/27 call. TESTS: same-model-834 (new) executes populateFromData: 8 assertions across both builds; v9.7.833 fails 3 of 4 per build (the control passes). VERIFIED: run-all 269 suites green, 9,090 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.833.)
 // Lead Pro -- popup.js  v9.7.833 (Commercial. A CONNECTED CALL IS CONTACT, A PAUSE IS NOT AN EXIT, AND THE MODELS AND COLOR THEY NAMED LIMIT THE OTHER OPTIONS. Extension only; proxy v7.89, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. From the 10/27 report's rejected sessions, regrabbed on v9.7.832. Toyota Baytown lead 2104784814 (TradePending, 4 days; log373): on 10/23 the customer said on a call he would reach out if he liked the offer; on 10/27 the salesperson reached him again ('Outbound phone call (Contacted)': 'Follow up this weekend'). The prompt opened 'ZERO-CONTACT LEAD: this customer has not replied', the newest-note reader passed over the 10/27 call (no he/she in it) for the 10/23 note, and the pause took the lead to 'PHASE 5 -- GRACEFUL CLOSE-OUT': four drafts offered to close the file, the last 'text, email, or no further messages from us?'. Toyota Baytown lead 2082278892 (KBB, the day's only thumbs-down): the customer asked for a white Grand Highlander XLE AWD 'and possible a 4 runner'; the similar-vehicles angle supplied a Blueprint CPO Highlander Hybrid, and our text asked 'Would that color work for you?'. (1) _lpCallTalked / _lpTalkedOnCall: a connected or inbound call whose note records something said is contact; 'Na', no answer, left message, hung up and a silent pick-up (the v9.7.430 case) are not. (2) _lpNewestNote takes such a call without needing a pronoun. (3) populateFromData: a lead with one is not 'never replied', so no ZERO-CONTACT banner and no zero-contact rung. (4) The stalled rung skips the calendar for an exit only, not a pause. (5) SIMILAR VEHICLES IN STOCK keeps only the models the customer's own messages name, when they name any. (6) _lpAskedColorClause: the similar-vehicles and alternate-condition lists carry the color they asked for -- name a unit only if its paint is that color, never ask whether another color would work. (7) Scraper: a Fullpath conversion note is no longer stashed as TOOL-SUPPLIED DEAL DATA ('do NOT quote them'), which contradicted the Fullpath block that allows the listed price (Honda Baytown lead 2106268554). TESTS: call-contact-833 (new) executes the shipped helpers, populateFromData and buildUserPrompt, and runs the shipped inlineScraper in Chromium: 26 assertions across both builds; v9.7.832 fails 7 of 13 per build (the 6 controls pass). VERIFIED: run-all 268 suites green, 9,082 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.832.)
 // Lead Pro -- popup.js  v9.7.832 (Commercial. FULLPATH'S TEXT CONVERSATIONS: THE LEAD IS THEIR REPLY TO OUR TEXT, NOT A PAGE ON OUR WEBSITE. Extension only; proxy v7.89, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Fullpath's assistant texts customers from our database, and when one replies the lead arrives as 'CONVERTED ON: SMS' with the exchange in the note ('Conversation: role: delivery content: ... role: user content: ... role: bot content: ...'). Toyota Baytown lead 2106255852 (log371): 'We've just listed the 2026 Toyota Camry XSE for $42,082' -> 'Can I trade in my 2024 Camry XSE?'. The prompt said 'on our website they opened the SMS page' (our first text had already said it), 'CRM CONFIRMS: no vehicle of interest', the inquiry was the note's trailer 'Conversation may have continued after this message', and the bot's 'What condition is your Camry in?' was filed as the customer's open question with a 'content:' label. Kia Baytown lead 2106267729 (log372): 'a special financing deal on the new 2026 Kia K5 for you - 1.9% APR 48 mos' -> 'what cha got ?', then a call, a link and 'i'm good'. (1) _lpFpTurns reads the exchange into turns (links and opt-out lines removed); the scraper keeps an identical copy. (2) _lpFullpath: a conversation is via:'text'; our first text is what they responded to -- a car with its listed price, or an offer (an APR or a payment) on a car -- their turns are their words, a bot turn after them is not a person, the signature name is never used, and live:true once they have written to us since. (3) HOW THIS LEAD REACHED US: they replied to a text we sent them; never a page, the website or an online inquiry. (4) WHAT THEY RESPONDED TO: before anyone on our team has answered, their reply is the reason for this message and the car or offer leads; once they have written since, it is how the conversation started (background), and the offer stays usable. (5) The car in our text is the subject when no vehicle is on file: the Vehicle line, the never-invent rule and the CRM-confirms-no-vehicle block yield to it. (6) The scraper's inquiry is their turns, and the open-question reader reads their turns only. (7) No 'are you thinking about trading in' when they asked about trading. (8) The note is kept to 4,000 characters (was 900). (9) The text rewrite is told the same. TESTS: fullpath-sms-832 (new) executes _lpFullpath, buildUserPrompt through populateFromData and _lpBuildSmsRefinePrompt, and runs the shipped inlineScraper in Chromium: 30 assertions across both builds; v9.7.831 fails 13 of 15 per build (the 2 website controls pass). ALSO: call-note-schedule-828's suggested-times check read the real clock and failed after about 2 PM Central (no slot left after 3 PM); it is pinned to 10:00 AM Central, and v9.7.827 still fails 6 of 7. VERIFIED: run-all 267 suites green, 9,056 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.831.)
@@ -3321,6 +3322,90 @@ function _lpFactMemoKey(inputs, deps) {
     for (var i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
     return lead + '|' + (h >>> 0).toString(16) + ':' + s.length;
   } catch (e) { return ''; }
+}
+// (v9.7.835) WHAT A WEBSITE SHOPPER WAS LOOKING AT WHEN THEY ASKED. Honda Lafayette lead 2106212974: a Contact Us form whose only
+// words were "still on the lot?", no vehicle on the lead ("2026 Honda Any/All"), and three of our emails asking him to send the model
+// or a link -- the draft asked a fourth time. The received note links the store site's Dealer eProcess click path, which showed
+// Homepage -> New Honda Accord Sedan (search page) -> Contact Us -> this lead. The extension cannot reach the store's site, so the
+// proxy (v7.90 /clickpath) reads the page and returns its sessions. Fetched at generate time beside the fact probes; memoized per link
+// for 10 minutes; any failure or a 4 s timeout resolves null and the prompt is as before.
+var _lpClickPathCache = {};
+function _lpLoadClickPath(d) {
+  try {
+    var u = String((d && d.clickPathUrl) || '');
+    if (!/^https:\/\/[^\/]+\/resrc\/leadinfo\/clickpath\/\d{5,12}\/?$/.test(u)) return Promise.resolve(null);
+    var hit = _lpClickPathCache[u];
+    if (hit && Date.now() - hit.at < 600000) return Promise.resolve(hit.v);
+    var base = (typeof window !== 'undefined' && window._leadProWorkerBase) ? window._leadProWorkerBase : '';
+    if (!base && typeof LEADPRO_PROXY_URL !== 'undefined' && LEADPRO_PROXY_URL) base = LEADPRO_PROXY_URL.replace(/\/generate$/, '').replace(/\/$/, '');
+    if (!base || typeof fetch !== 'function') return Promise.resolve(null);
+    var t0 = Date.now();
+    var req = fetch(base + '/clickpath?u=' + encodeURIComponent(u)).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+      var v = (j && j.ok && Array.isArray(j.sessions)) ? j : null;
+      if (v) _lpClickPathCache[u] = { at: Date.now(), v: v };
+      var cc = v ? _lpClickCar({ clickPath: v }) : null;
+      try { console.log('[LP CLICK PATH DIAG] ' + (v ? v.sessions.length + ' session(s) | this lead: ' + (cc ? cc.name : 'no vehicle page') : 'no answer') + ' | ' + (Date.now() - t0) + 'ms'); } catch (e) {}
+      return v;
+    }).catch(function () { return null; });
+    return Promise.race([req, new Promise(function (res) { setTimeout(function () { res(null); }, 4000); })]);
+  } catch (e) { return Promise.resolve(null); }
+}
+// The current lead's session (the one marked current), its vehicles, and the sessions after it. null when none names a vehicle.
+function _lpClickPath(d) {
+  try {
+    var cp = d && d.clickPath; if (!cp || !Array.isArray(cp.sessions)) return null;
+    var ss = cp.sessions, ci = -1;
+    for (var i = 0; i < ss.length; i++) if (ss[i] && ss[i].current) ci = i;
+    if (ci < 0) return null;
+    var veh = (ss[ci].vehicles || []).filter(function (v) { return v && v.name; });
+    if (!veh.length) return null;
+    return { date: ss[ci].date || '', vehicles: veh, later: ss.slice(ci + 1).filter(function (s) { return s && (s.vehicles || []).length; }) };
+  } catch (e) { return null; }
+}
+// The one vehicle the current session points at: a vehicle details page first, else the last search page.
+function _lpClickCar(d) {
+  var c = _lpClickPath(d); if (!c) return null;
+  var units = c.vehicles.filter(function (v) { return v.kind === 'unit'; });
+  return units.length ? units[units.length - 1] : c.vehicles[c.vehicles.length - 1];
+}
+// What we have of a click-path vehicle in the store's inventory feed, or null when the feed is not loaded.
+function _lpClickStock(d, v) {
+  try {
+    var inv = (d && _lpValueFactCache[d.dealerId] && _lpValueFactCache[d.dealerId].inv && _lpValueFactCache[d.dealerId].inv.units) || [];
+    if (!inv.length) return null;
+    if (v.kind === 'unit' && v.stock) {
+      var u = inv.filter(function (x) { return String(x.stock || x.stockNum || '').toUpperCase() === String(v.stock).toUpperCase(); })[0];
+      return { found: !!u, label: u ? (u.vehicle + (_lpCleanColor(u.color) ? ' in ' + _lpCleanColor(u.color) : '')) : '' };
+    }
+    var m = _lpModelsIn(v.name); if (!m.length) return null;
+    var rx = _lpModelRx(m[0].name), want = /^new\b/i.test(v.name) ? 'new' : /^(?:used|pre-?owned|certified|cpo)\b/i.test(v.name) ? 'used' : '';
+    var hits = inv.filter(function (x) { var c = _lpUnitCondition(x); return rx.test(String(x.vehicle || '')) && (!want || (want === 'new' ? c === 'new' : c && c !== 'new')); });
+    return { count: hits.length, examples: hits.slice(0, 3).map(function (x) { return x.vehicle + (_lpCleanColor(x.color) ? ' in ' + _lpCleanColor(x.color) : ''); }) };
+  } catch (e) { return null; }
+}
+function _lpClickPathLines(d) {
+  var c = _lpClickPath(d); if (!c) return [];
+  var name = function (v) { return v.kind === 'unit' ? 'the ' + v.name + (v.stock ? ' (stock ' + v.stock + ')' : '') : 'our ' + v.name + ' listings (a search page, not one car)'; };
+  var ask = String((d && d.lastInboundMsg) || '').replace(/\s+/g, ' ').trim();
+  var out = ['', '\ud83d\udd0e WHAT THEY WERE LOOKING AT ON OUR WEBSITE WHEN THEY SENT THIS (the store site\'s own record of the visit):',
+    '- Right before they sent it' + (c.date ? ' (' + c.date + ')' : '') + ', they were on ' + c.vehicles.map(name).join(', then ') + '.'
+      + (ask && ask.length <= 160 ? ' Their message ("' + ask.replace(/"/g, "'") + '") is about that.' : ' Their inquiry is about that.')];
+  c.vehicles.forEach(function (v) {
+    var st = _lpClickStock(d, v);
+    if (!st) return;
+    if (v.kind === 'unit') out.push('- ' + v.name + (v.stock ? ' (stock ' + v.stock + ')' : '') + ': ' + (st.found ? 'in our current inventory (' + st.label + ').' : 'NOT in our current inventory feed -- do not say it is here; offer to check on it, or what we have like it.'));
+    else out.push('- ' + v.name + ': ' + (st.count ? st.count + ' in our current inventory, e.g. ' + st.examples.join('; ') + '.' : 'none in our current inventory feed -- do not say we have one; offer to check.'));
+  });
+  out.push('- So answer them about that, plainly and specifically. Do NOT ask what vehicle they are looking for: this is it. NEVER say or imply that you saw what they looked at, browsed or clicked, or that we can see it -- write as someone who simply knows what they asked about.');
+  var cond = String((d && d.condition) || '');
+  var car = _lpClickCar(d);
+  if (car && cond && ((/^new\b/i.test(car.name) && /pre-?owned|used|certified|cpo/i.test(cond)) || (/^(?:used|pre-?owned|certified)\b/i.test(car.name) && /^new$/i.test(cond))))
+    out.push('- The lead\'s condition field says ' + cond + '; the page they were on was ' + car.name.split(' ')[0].toLowerCase() + '. Go by the page.');
+  c.later.slice(-2).forEach(function (s) {
+    out.push('- Since then' + (s.date ? ' (' + s.date + ')' : '') + ' they were back on our site looking at ' + s.vehicles.map(name).join(', then ') + ((s.leads || []).length ? ', and sent another inquiry' : '')
+      + '. Their interest may have moved there: it is fine to cover both, the newer one included.');
+  });
+  return out;
 }
 function _lpPrepareFactVerdicts(data, deps) {
   try {
@@ -11611,6 +11696,7 @@ function _lpScraperBotAuthor(msg) {
     // are — tool output, unverified, not to be quoted — which is the store's existing rule for
     // trade and payment numbers, not a new one.
     var _lpToolFieldData='';
+    var _lpClickPathUrl='';   // (v9.7.835) the current lead's Dealer eProcess "Click Path" link (read by the proxy's /clickpath)
     var _lpFullpathNote='';   // (v9.7.803) the current lead's received note when it is a Fullpath conversion ("CONVERTED ON: ...")
     // SHAPE, NOT FIELD NAME. A "TradeInVehicleComment" blocklist is enumeration, and this file has
     // been bitten by enumerating the shapes it happened to have seen more times than by anything
@@ -13676,6 +13762,7 @@ function _lpScraperBotAuthor(msg) {
         }
         if(isCurrentLeadStart) {
           firstLeadReceivedSeen = true;
+          try { var _cpA = _contentEl && _contentEl.querySelector('a[href*="/resrc/leadinfo/clickpath/"]'); if (_cpA && /^https:\/\/[^\/]+\/resrc\/leadinfo\/clickpath\/\d{5,12}\/?$/.test(_cpA.href || '')) _lpClickPathUrl = _cpA.href; } catch (eCpA) {}   // (v9.7.835)
           if (/\bCONVERTED ON\s*:/i.test(content || '')) _lpFullpathNote = String(content).replace(/\s+/g, ' ').trim().slice(0, 4000);   // (v9.7.803; 900 -> 4000 in v9.7.832, a longer text conversation)
           _lpMarkerMs = noteMs > 0 ? noteMs : 0; _lpMarkerDate = date || '';   // (v9.7.695) see declaration
           // If this lead note is significantly newer than the original created date,
@@ -18980,6 +19067,7 @@ function _lpScraperBotAuthor(msg) {
       voiDrivetrain: (typeof _voiDrive === 'string') ? _voiDrive : '',
       // (v9.7.803) the Fullpath conversion note on this lead -- what they acted on (see _lpFullpath)
       fullpathConversion: (typeof _lpFullpathNote === 'string') ? _lpFullpathNote : '',
+      clickPathUrl: (typeof _lpClickPathUrl === 'string') ? _lpClickPathUrl : '',   // (v9.7.835)
       scrapedAt:Date.now(),
       // (v9.7.51) Frame freshness signals -- used to identify which iframe was
       // most recently loaded. When VinSolutions SPA shell holds multiple
@@ -19333,7 +19421,7 @@ function _lpScraperBotAuthor(msg) {
           });
 
           const m = {};
-          const historyFields = new Set(['totalNoteCount','history','conversationBrief','convState','hasExitSignal','hasPauseSignal','lastInboundMsg','lastInboundMs','lastOutboundMsg','lastSubstantiveOutboundMsg','noReplySinceLastOutbound','newestCustomerSignalType','newestCustomerSignalDesc','hasFreshCustomerSignal','isContacted','hasOutbound','fullpathConversion','keyInfo']);
+          const historyFields = new Set(['totalNoteCount','history','conversationBrief','convState','hasExitSignal','hasPauseSignal','lastInboundMsg','lastInboundMs','lastOutboundMsg','lastSubstantiveOutboundMsg','noReplySinceLastOutbound','newestCustomerSignalType','newestCustomerSignalDesc','hasFreshCustomerSignal','isContacted','hasOutbound','clickPathUrl','fullpathConversion','keyInfo']);
           // Track best store — prefer non-empty over empty, specific over generic
           let bestStore = '';
 
@@ -22974,6 +23062,8 @@ function _lpMootSoldQuestions(uq, d) {
 // (v9.7.763) Worded so there is nothing to recite: 760's "do NOT promise, send or itemize those figures" came back to the
 // customer as "I can't itemize the fees for the EV9 Light Long Range because it has sold" (log284) -- a rule narrated.
 var _LP_MOOT_SOLD_LINE = 'Their earlier questions about that deal\'s numbers (QUOTED) were about the vehicle that has SOLD, so they are moot. Leave them out of the message entirely: do not answer them, do not say you cannot, and do not explain why -- the sale itself is the news. Tell them it sold and pivot to the alternative; if they want numbers, offer them on the alternative.';
+// (v9.7.835) A visit or time ask in a text: come in / stop by / come back, a day-or-time question, "when can you come", two times offered.
+var LP_VISIT_ASK_RX = /\b(?:come (?:in|by|back|see)|stop (?:in|by)|swing by|drop by|visit us|(?:what|which) (?:day|time)s?\b[^.?!\n]{0,40}\b(?:work|good|best|come)|when (?:can|could|would|will) you (?:come|stop|make it|be able)|\d{1,2}(?::\d{2})?\s*(?:am|pm)?\s+or\s+\d{1,2}(?::\d{2})?\s*(?:am|pm))/i;
 function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
   d = d || {};
   var out = [];
@@ -23469,7 +23559,13 @@ function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
     + 'repeat their words in quotation marks. A person answers the question; they do not read it '
     + 'aloud first.');
   out.push('Open with their first name.');
-  out.push('Then give them the substance \u2014 the actual reason this visit is worth making, in '
+  // (v9.7.835) WHEN THE PROMPT DECIDED ON NO VISIT ASK, THE TEXT MAKES NONE. Audi Lafayette lead 2107090639 (waiting to hear from
+  // the sales team): the email gave room, the text ended "What day and time would work for you to come in?"; Toyota Baytown leads
+  // 2103828793 and 2106333188 the same shape. This line told every rewrite to give "the reason this visit is worth making".
+  var _rfVd = (typeof _lpLastVisitDecision === 'object' && _lpLastVisitDecision) ? _lpLastVisitDecision : null;
+  if (_rfVd && _rfVd.level === 3) out.push('Then give them the substance the email gives, in their terms. This message makes NO visit ask and offers NO time ('
+    + (_rfVd.owner || 'the visit decision') + '): no "come in", "stop by" or "come back", no day or time, no "when can you come". The email makes none, and the text must not add one.');
+  else out.push('Then give them the substance \u2014 the actual reason this visit is worth making, in '
     + 'their terms. If that reason is two things, it is two things. DO NOT HOLD IT BACK FOR THE '
     + 'EMAIL TO CARRY: plenty of customers read the text and never open the email, so a text that '
     + 'defers the reason to come in has sent them nothing.');
@@ -23695,6 +23791,14 @@ async function _lpRefineSms(pass1, emailText, d) {
         return null;
       }
     } catch (eRfQs) {}
+    // (v9.7.835) The prompt decided on no visit ask, and the rewrite added one the first pass did not make: the first pass ships.
+    try {
+      var _rfVd2 = (typeof _lpLastVisitDecision === 'object' && _lpLastVisitDecision) ? _lpLastVisitDecision : null;
+      if (_rfVd2 && _rfVd2.level === 3 && LP_VISIT_ASK_RX.test(out) && !LP_VISIT_ASK_RX.test(String(pass1 || ''))) {
+        console.log('[LP SMS REFINE DIAG] kept the first pass \u2014 the prompt decided on no visit ask (' + (_rfVd2.owner || '?') + ') and the rewrite added one ("' + (out.match(LP_VISIT_ASK_RX) || [''])[0] + '") | ' + (Date.now() - t0) + 'ms');
+        return null;
+      }
+    } catch (eRfVa) {}
     // (v9.7.793) After a STOP, a rewrite that invites them to text (and the first pass did not) does not ship.
     try {
       if (_lpStopIsCurrent(d) && LP_TEXT_INVITE_RX.test(out) && !LP_TEXT_INVITE_RX.test(String(pass1 || ''))) {
@@ -29236,7 +29340,9 @@ function buildUserPrompt(data) {
     // the anti-restate rules three lines below it. The prohibition — never name a vehicle that is
     // not in this prompt — is unconditional and unchanged; only the fallback instruction moves.
     // (v9.7.725) The customer has told us the model: the question this constraint falls back on is already answered.
-    (!data.vehicle && (typeof _lpFpCar === 'function') && _lpFpCar(data))   // (v9.7.832)
+    (!data.vehicle && (typeof _lpClickCar === 'function') && _lpClickCar(data))   // (v9.7.835)
+      ? '- NEVER mention a specific vehicle model, trim, or name that does not appear in this prompt. No vehicle is on file, but the store website shows what they were looking at when they wrote (' + _lpClickCar(data).name + '): that is what this message is about. Do NOT ask what they are looking for, and never say how you know.'
+    : (!data.vehicle && (typeof _lpFpCar === 'function') && _lpFpCar(data))   // (v9.7.832)
       ? '- NEVER mention a specific vehicle model, trim, or name that does not appear in this prompt. No vehicle is on file, but they responded to our ' + (_lpFpCar(data).via === 'text' ? 'text' : 'marketing') + ' about the ' + _lpFpCar(data).vehicle + ': that is the car this conversation is about. Do NOT ask what they are looking for, and do not pick a trim, color or unit for them.'
     : (data._lpNamedModel && data._lpNamedModel.phrase)
       ? '- NEVER mention a specific vehicle model, trim, or name that does not appear in this prompt. No vehicle is on file, but the customer has told you the model they want ("' + data._lpNamedModel.phrase + '"): work from that, and do NOT ask what they are looking for. Do not pick a trim, color or unit for them.'
@@ -30151,6 +30257,8 @@ function buildUserPrompt(data) {
         ? 'Vehicle:    ' + data.vehicle + '  ← THIS IS THE VEHICLE FOR THIS LEAD. Do not substitute or reference other vehicles from the conversation history.'
         : (data._lpNamedModel && data._lpNamedModel.phrase)
         ? 'Vehicle:    (none on file) ← The customer has named a MODEL in their own words — "' + data._lpNamedModel.phrase + '" — not a specific unit. Work from what they said (see THE CUSTOMER NAMED A MODEL above); do not present any one unit, trim or color as the one they chose.'
+        : ((typeof _lpClickCar === 'function') && _lpClickCar(data))   // (v9.7.835)
+        ? 'Vehicle:    (none on file) ← what they were looking at when they sent this: ' + _lpClickCar(data).name + ' (see WHAT THEY WERE LOOKING AT ON OUR WEBSITE). Work from it; do not ask what they are looking for.'
         : ((typeof _lpFpCar === 'function') && _lpFpCar(data))   // (v9.7.832)
         ? 'Vehicle:    (none on file) ← the car they responded to is the ' + _lpFpCar(data).vehicle + ', in ' + (_lpFpCar(data).via === 'text' ? 'our text to them' : 'our marketing') + ' (see WHAT THEY RESPONDED TO). Work from it; do not ask what they are looking for.'
         : 'Vehicle:    (none specified) ← NO VEHICLE IS ATTACHED TO THIS LEAD. Do NOT reference or name any vehicle from the conversation history as the one they want — those belong to prior leads or conversations. A trade-in listed in the LEAD section is theirs and is fine to name as their trade.',
@@ -30222,6 +30330,7 @@ function buildUserPrompt(data) {
       try { console.log('[LP FULLPATH DIAG] ' + (_fp.via === 'text' ? 'via text (' + (_fp.live ? 'they have written since' : 'their reply is the latest') + ') ' : '') + _fp.kind + ': "' + (_fp.offer || _fp.vehicle || _fp.what) + '"' + (_fp.price ? ' at ' + _fp.price : '') + (_fp.message ? ' | wrote: "' + _fp.message + '"' : '') + (_fp.owned ? ' | owns: ' + _fp.owned : '') + ' | already put to them: ' + _fp.presented); } catch (eFpD) {}
     }
   } catch (eFp) {}
+  try { if (typeof _lpClickPathLines === 'function') { var _cpl = _lpClickPathLines(data); if (_cpl.length) lines.push.apply(lines, _cpl); } } catch (eCpl) {}   // (v9.7.835)
   if (sc.isAudi && sc.salesRep) lines.push('Brand Specialist: ' + sc.salesRep);
 
   // Zero-contact stalled leads: suppress entire appointment engine
@@ -31565,6 +31674,7 @@ async function generateAll() {
     // parallel behind a 4.5s timeout, so the worst case is ONE probe's latency added to a
     // generation that already takes 4-8s, and the timeout guarantees it is bounded. It never
     // rejects: any failure resolves to "fall back to regex", which is today's behaviour exactly.
+    var _lpCpWait = (typeof _lpLoadClickPath === 'function') ? _lpLoadClickPath(lastScrapedData) : Promise.resolve(null);   // (v9.7.835)
     try {
       await _lpPrepareFactVerdicts({
         context: leadContext,
@@ -31577,6 +31687,17 @@ async function generateAll() {
     } catch (_lpFactErr) {
       try { window._lpFactVerdicts = {}; console.log('[LP FACT DIAG] prepare threw — every detector falls back to regex:', _lpFactErr && _lpFactErr.message); } catch (e) {}
     }
+    // (v9.7.835) What they were looking at on the store's site, read while the probes ran. The no-vehicle line was written into
+    // leadContext at grab time, before this was known; it comes out when the click path names what they asked about.
+    try {
+      var _lpCpR = await _lpCpWait;
+      if (lastScrapedData) lastScrapedData.clickPath = _lpCpR || null;
+      if (_lpCpR && (typeof _lpClickCar === 'function') && _lpClickCar({ clickPath: _lpCpR })) {
+        var _lpCpBefore = leadContext.length;
+        leadContext = leadContext.replace(/^CRM CONFIRMS: no vehicle of interest is on file[^\n]*\n?/m, '');
+        if (leadContext.length !== _lpCpBefore) console.log('[LP CLICK PATH DIAG] the "no vehicle of interest" line comes out -- the click path shows what they were looking at');
+      }
+    } catch (eCpW) {}
     // Apply the two scrape-time verdicts and strip the fences. Runs even when every flag is off,
     // because the fences must come out either way.
     try {
@@ -31732,6 +31853,8 @@ async function generateAll() {
       // hand), while the text rewrite, which is handed the scrape, had it. The v9.7.710 trap again; tests/payload-808 now
       // fails when a helper reads a field this object does not carry.
       fullpathConversion:        lastScrapedData ? (lastScrapedData.fullpathConversion || '') : '',
+      clickPath:                 lastScrapedData ? (lastScrapedData.clickPath || null) : null,   // (v9.7.835) see _lpLoadClickPath
+      lastInboundMsg:            lastScrapedData ? (lastScrapedData.lastInboundMsg || '') : '',
       serviceVehicle:            lastScrapedData ? (lastScrapedData.serviceVehicle || '') : '',
       color:                     lastScrapedData ? (lastScrapedData.color || '') : '',
       autoLeadId:                lastScrapedData ? (lastScrapedData.autoLeadId || '') : '',
