@@ -94,13 +94,14 @@ const RECEIVED = (link) => note('Inbound', '10/27/2026 11:08 AM', 'Lead received
     const p = built(LEAD({ clickPath: SESSIONS }));
     check('WHAT THEY WERE LOOKING AT: the new Accord Sedan search page, their "still on the lot?" is about that, and what we have of it new', () =>
       [/WHAT THEY WERE LOOKING AT ON OUR WEBSITE WHEN THEY SENT THIS/.test(p),
-       /^- Right before they sent it \(Tuesday, October 27, 2026\), they were on our New Honda Accord Sedan listings \(a search page, not one car\)\. Their message \("still on the lot\?"\) is about that\.$/m.test(p),
-       /^- New Honda Accord Sedan: 2 in our current inventory, e\.g\. 2026 Honda Accord Sedan SE in Platinum White Pearl; 2026 Honda Accord Sedan LX in Crystal Black Pearl\.$/m.test(p)], [true, true, true]);
+       /^- Right before they sent it \(Tuesday, October 27, 2026\), they were on our New Honda Accord Sedan listings \(the model, not one car\)\. Their message \("still on the lot\?"\) is about that\.$/m.test(p),
+       /^- New Honda Accord Sedan: 2 in our current inventory, e\.g\. 2026 Honda Accord Sedan SE in Platinum White Pearl; 2026 Honda Accord Sedan LX in Crystal Black Pearl\./m.test(p)], [true, true, true]);
     check('it never says how we know, and does not ask what they want; the Pre-Owned condition field gives way to the page', () =>
       [/NEVER say or imply that you saw what they looked at, browsed or clicked/.test(p), /Do NOT ask what vehicle they are looking for: this is it/.test(p),
        /The lead's condition field says Pre-Owned; the page they were on was new\. Go by the page\./.test(p)], [true, true, true]);
-    check('the newer visit is there too: back on 10/29 looking at the new CR-V, with another inquiry', () =>
-      /^- Since then \(Thursday, October 29, 2026\) they were back on our site looking at our New Honda CR-V listings \(a search page, not one car\), and sent another inquiry\./m.test(p), true);
+    // (v9.7.836) A later visit is background and is never named (it was "fine to cover both" in v9.7.835; see click-path-836).
+    check('the newer visit is background: they have been back since, and the vehicle they have not mentioned is never named', () =>
+      [/^- BACKGROUND, NOT FOR THE MESSAGE: they have been back on our site since/m.test(p), /CR-V/.test(p)], [true, false]);
     check('the no-vehicle lines give way: the Vehicle line and the never-invent rule name it; no "NO VEHICLE IS ATTACHED"', () =>
       [/^Vehicle:\s+\(none on file\) ← what they were looking at when they sent this: New Honda Accord Sedan/m.test(p), /^- NEVER mention a specific vehicle[^\n]*the store website shows what they were looking at when they wrote \(New Honda Accord Sedan\)/m.test(p),
        /NO VEHICLE IS ATTACHED/.test(p)], [true, true, false]);
