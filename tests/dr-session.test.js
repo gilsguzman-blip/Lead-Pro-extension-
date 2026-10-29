@@ -91,7 +91,7 @@ function stepsFor(impl, data, code) {
   return { steps: sb.__steps, block: sb.__block };
 }
 function followUpRules(impl, drSteps, vrProgress, code) {
-  const sb = { drSteps: drSteps, vrProgress: vrProgress, __out: null };
+  const sb = { drSteps: drSteps, vrProgress: vrProgress, _vrAppNext: false, _vrAppLine: '', __out: null };   // (v9.7.839) the arm reads the credit-app step; off here, see otd-creditapp-839
   vm.createContext(sb);
   vm.runInContext('__out = ' + (code || impl.followUp) + ';', sb);
   return sb.__out;
