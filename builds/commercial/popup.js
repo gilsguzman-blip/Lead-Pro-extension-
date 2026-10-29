@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.840 (Commercial. CLICK & GO IS NAMED IN A FORMAT THAT HAS NOT NAMED IT; THE TEXT REWRITE DOES NOT REOPEN ON WHAT OUR LAST TEXT SAID. Extension only; proxy v7.90, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Toyota Baytown lead 2107371352 (log382, v9.7.839): our 4:58 text already said 'I saw you built a payment in Click & Go'; the next text did not say it again, and [LP CLICK&GO BRAND DIAG] logged sms:MISSING. Gil: 'is it wrong, though? Remember the first reach already went out ... that has Click & Go mentioned', then 'let's be consistent'. The same capture: the first pass opened on the drive-out numbers, and the rewrite opened on the RAV4 being 'here and available' -- what the 4:58 text had already said. (1) _lpClickGoNamed reads our texts and emails on this lead: the follow-up arm's BRAND line asks for Click & Go only in a format that has not named it (the email when our text did, the text when our email did); both named, neither has to, once in passing if it fits; neither named, the v9.7.787 line unchanged. (2) [LP CLICK&GO BRAND DIAG] reports a format that already named it as 'not needed (named in our 10/29 text)', not MISSING. (3) Text rewrite: when our newest text said the car is here, the customer has not written since, and the rewrite opens on the car being here while the first pass opened on something else, the first pass ships. TESTS: clickgo-840 (new) builds the prompt through the shipped panel payload and executes _lpRefineSms: 18 assertions across both builds; v9.7.839 fails 5 of 9 per build (the 4 controls pass). clickgo-787 expects the email-only line on its fixture (our text already named Click & Go); dr-session's sandbox carries the brand line. VERIFIED: run-all 276 suites green, 9,235 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.839.)
 // Lead Pro -- popup.js  v9.7.839 (Commercial. THEY ASKED FOR THE OUT-THE-DOOR PRICE ON THE CALL; BAYTOWN FOLLOWS UP WITH THE DRIVE-OUT, LAFAYETTE DOES NOT, AND BOTH PUSH THE VISIT; THE CREDIT APPLICATION IS THE NEXT STEP. Extension only; proxy v7.90, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Toyota Baytown lead 2107371352 (log381, Click & Go): the call note said 'interested. wants OTD', and the text rewrite opened 'the out-the-door figure you asked about is something we can go through together at the dealership' -- to someone who asked for it, a no; it closed asking for a good time for a call minutes after the call. The session note said 'Credit App: Not Started' and nothing offered it. Gil, 10/29: 'The Baytown stores agents can follow up with Drive out. Lafayette stores we can not due to parish tax variances. Although we would like them to come in and review the drive out. So we would push for an appointment regardless.' (1) _lpOtdAsk: the newest out-the-door ask on this lead -- a customer message with an out-the-door phrase, or a call or note of ours saying they want it (not one saying we sent it); none for a customer quiet 14+ days. (2) Baytown (any store but the two Lafayette stores): a new OUT-THE-DOOR PRICE block says they asked (a call counts as asking), not to open on it or put it off to a visit or a call, to say plainly the drive-out numbers are being put together with no figure of our own, then to ask for the appointment to go over them, asking again about times our last message offered. Lafayette: the parish policy stands; it now names the ask and says to open on the car or the proposal, give the parish reason in one sentence and push the visit. Neither fires when a figure already went out. [LP OTD ASK DIAG] logs the decision. (3) The scraper reads 'Credit App: Not Started' and the payment type off the Click & Go note (vrCreditAppNotStarted, vrPayType, carried in the panel payload); a financed or leased session with the application not started is offered the secure credit application once, in the text and the email, never instead of the visit and never with a score, tier, approval or rate. [LP CREDIT APP STEP DIAG]. (4) Text rewrite, on a lead with an out-the-door ask: a rewrite that opens by putting the price off ('in person', 'at the dealership', 'go over it together', 'on a call') when the first pass did not -- or, at Baytown, puts it off anywhere -- does not ship. Replayed on log381's capture: both blocks appear and nothing else changes. TESTS: otd-creditapp-839 (new) runs the shipped inlineScraper in Chromium, builds the prompt through the shipped panel payload and executes _lpRefineSms: 34 assertions across both builds; v9.7.838 fails 12 of 17 per build (the 5 controls pass). VERIFIED: run-all 275 suites green, 9,217 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.838.)
 // Lead Pro -- popup.js  v9.7.838 (Commercial. A LATER INQUIRY IS SOMETHING THEY TOLD US; THE EXTRA VEHICLE IS ADDED, NOT OPTIONAL; THE YES SURVIVES THE REWRITE. Extension only; proxy v7.90, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Honda Lafayette lead 2106212974 on v9.7.837 (log379): the CR-V suggestion was 'you may add' and both generations left it out; the second generation's text rewrite turned '<name>, yes--we have new Accord Sedans here right now...' into '<name>, I can send you a few new Accord Sedan options...'. Gil: 'the additional unit should automatically be added with the right messaging as a suggestion and not a spy situation. Now in this case the path shows lead submitted on the CR-V. We can see this .... right??' -- yes: the 10/29 session ends 'Lead Submitted - <another lead>'. (1) _lpClickLater decides the later visit once: 'inquiry' when that session submitted a lead -- named as their inquiry ('and I see you also asked about the CR-V; we have plenty of those here too'), even without a natural pairing, and honestly when none is in stock; 'suggest' when browsed only, a natural pairing and in stock (the v9.7.837 rules); otherwise 'general'. Inquiry and suggestion are ADDED, in the email and the text; never as browsing. (2) A console line flags the second inquiry so the agent can look for a second lead or a duplicate customer in the CRM. (3) Text rewrite, click-path leads: a first pass that answered 'yes', or named the inquiry or suggestion, ships when the rewrite drops it. TESTS: click-path-838 (new) executes _lpClickPathLines and _lpRefineSms: 22 assertions across both builds; v9.7.837 fails 8 of 11 per build (the 3 controls pass). click-path-835 now expects the real page's 10/29 lead to be named as an inquiry; click-path-836/837 use a browse-only later visit, and 837 accepts 'ADD'. VERIFIED: run-all 274 suites green, 9,183 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.837.)
 // Lead Pro -- popup.js  v9.7.837 (Commercial. A LATER WEBSITE VISIT MAY BE OFFERED AS OUR OWN SUGGESTION -- ONLY A MODEL WE HAVE, A NATURAL PAIRING, AND NEVER AS SOMETHING THEY LOOKED AT. Extension only; proxy v7.90, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Gil, 10/29, on Honda Lafayette lead 2106212974 (asked 'still on the lot?' about new Accord Sedans, back on 10/29 looking at new CR-Vs): mention the chance he is widening his search without disclosing that we saw it. A salesperson would offer a CR-V to an Accord shopper unprompted. Then: 'what if it's a used car and he was looking at a Kia K5 and searched for a Toyota Camry?' -- 'yes add all three'. (1) LP_MODEL_SEGMENT / _lpModelPairing: the newest later visit's model may be suggested when it pairs naturally with the one they asked about -- same make and a neighboring type (sedan and compact SUV, small and compact SUV, a truck and a midsize or larger SUV); for a USED shopper another make of the SAME type (a used K5 and a used Camry); a new shopper stays with the brand. (2) _lpPairStock: only when the store has it, in the condition they were shopping. (3) The suggestion is one line, after the answer, framed as ours ('if you are also weighing an SUV, a lot of Accord shoppers compare it with the CR-V'; same type: 'if you are open to comparing, a lot of K5 shoppers also look at the Camry'), never as something they looked at, never 'shifted', 'now' or 'still'. Anything else gets a general 'if you are open to other options' line, no model named. (4) LP_BROWSE_REVEAL_RX: on a lead with a click path, a text rewrite that says we saw their browsing ('your search has shifted', 'I saw you were looking at') and the first pass did not, does not ship. TESTS: click-path-837 (new) executes _lpClickPathLines and _lpRefineSms: 22 assertions across both builds; v9.7.836 fails 6 of 11 per build (the 5 that check nothing is named or that a rewrite ships pass there too). the later-visit checks in click-path-835 and click-path-836 follow the new behavior. VERIFIED: run-all 273 suites green, 9,161 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.836.)
@@ -1639,6 +1640,26 @@ function _lpOtdAsk(d) {
     });
     return best;
   } catch (e) { return null; }
+}
+// (v9.7.840) WHERE WE HAVE ALREADY NAMED CLICK & GO ON THIS LEAD, BY FORMAT: { text: '10/29' | '', email: '' } (the newest of each).
+// Toyota Baytown lead 2107371352 (log382): our 4:58 text already said "you built a payment in Click & Go"; the next text did not
+// say it again and the brand line logged MISSING. Gil: "is it wrong, though?" -- no: a format that has named it does not need to.
+var LP_CLICK_GO_RX = /click\s*(?:&|and)\s*go/i;
+function _lpClickGoNamed(d) {
+  var r = { text: '', email: '' };
+  try {
+    _lpOurEntries(d).forEach(function (x) {
+      if (!LP_CLICK_GO_RX.test(x.body)) return;
+      var k = /text message/i.test(x.title) ? 'text' : /email/i.test(x.title) ? 'email' : '';
+      if (k && !r[k]) r[k] = x.date;
+    });
+  } catch (e) {}
+  return r;
+}
+// (v9.7.840) The text opens on the car being here / available / ready to see.
+var LP_HERE_RX = /\b(?:is|are)\s+(?:here|in stock|available|on (?:the|our) lot)\b|\bready (?:for you )?to see\b/i;
+function _lpOpensOnHere(sms) {
+  return LP_HERE_RX.test(String(sms || '').split(/\n/)[0].split(/(?<=[.!?])\s+/)[0] || '');
 }
 function _lpIsLafayette(d) {
   return !!d && (String(d.dealerId) === '24399' || String(d.dealerId) === '21135' || /lafayette/i.test(d.store || ''));
@@ -24092,6 +24113,16 @@ async function _lpRefineSms(pass1, emailText, d) {
         }
       }
     } catch (eRfCk) {}
+    // (v9.7.840) Our newest text already said the car is here, nothing from the customer since, and the rewrite opens on it again
+    // when the first pass opened on something new: the first pass ships. Lead 2107371352 (log382). Last, so a guard
+    // with a more specific reason logs it.
+    try {
+      var _rfLastTxt = _lpOurEntries(d).filter(function (x) { return /text message/i.test(x.title); })[0], _rfCust = _lpCustEntries(d)[0];
+      if (_rfLastTxt && LP_HERE_RX.test(_rfLastTxt.body) && !(_rfCust && _rfCust.t > _rfLastTxt.t) && _lpOpensOnHere(out) && !_lpOpensOnHere(pass1)) {
+        console.log('[LP SMS REFINE DIAG] kept the first pass \u2014 the rewrite opened on the car being here, which our ' + _rfLastTxt.date + ' text already said | ' + (Date.now() - t0) + 'ms');
+        return null;
+      }
+    } catch (eRfHere) {}
     console.log('[LP SMS REFINE DIAG] ran | ' + (Date.now() - t0) + 'ms | shipped:pass2'
       + '\n    pass1: ' + JSON.stringify(String(pass1).slice(0, 220))
       + '\n    pass2: ' + JSON.stringify(out.slice(0, 220)));
@@ -25307,6 +25338,14 @@ function buildUserPrompt(data) {
     var _vrAppNext = !!data.vrCreditAppNotStarted && !data.vrCreditApp && !data.vrCompleted && !/cash/i.test(data.vrPayType || '') && !_drQuiet;
     var _vrAppLine = '- THE NEXT STEP THEY CAN TAKE BEFORE COMING IN: their Click & Go session shows the credit application was NOT started. Offer once, in BOTH the text and the email, to send them the secure credit application so their financing is ready when they come in -- e.g. "I can send you the secure credit application so your financing is ready when you get here." It is an offer, not a requirement, and it does not replace the visit. Never mention a credit score, a tier, an approval or a rate.';
     try { if (data.vrCreditAppNotStarted) console.log('[LP CREDIT APP STEP DIAG] credit app not started | pay type:' + (data.vrPayType || '(none)') + ' | offered:' + _vrAppNext); } catch (eVa) {}
+    // (v9.7.840) THE BRAND IN A FORMAT THAT HAS NOT NAMED IT. Our earlier texts and emails on this lead are read: a format that
+    // already named Click & Go does not have to again; the other still does. Neither named: the v9.7.787 line, unchanged.
+    var _cgNamed = _lpClickGoNamed(data);
+    var _cgBrandLine = (!_cgNamed.text && !_cgNamed.email) ? '- BRAND: name Click & Go once in BOTH the SMS and the email, in passing -- "the deal you started on Click & Go", "your Click & Go application", "since you started on Click & Go". Not as the opener and not as news: they know where they started; the name is how we keep that thread visible.'
+      : (_cgNamed.text && _cgNamed.email)
+        ? '- BRAND: our ' + _cgNamed.text + ' text and ' + _cgNamed.email + ' email already named Click & Go, so neither format has to say it again; if it fits, once, in passing. Never as the opener or as news.'
+        : '- BRAND: name Click & Go once in the ' + (_cgNamed.text ? 'EMAIL' : 'SMS') + ', in passing -- "the deal you started on Click & Go", "since you started on Click & Go". Our ' + (_cgNamed.text || _cgNamed.email)
+          + ' ' + (_cgNamed.text ? 'text' : 'email') + ' already named it, so the ' + (_cgNamed.text ? 'text' : 'email') + ' does not have to say it again. Not as the opener and not as news.';
     var clickGoHasOutreach = data.hasOutbound || data.isContacted;
     scenarioDirective = (clickGoHasOutreach
       ? 'TASK: Click & Go lead with PRIOR OUTREACH already made. This is a follow-up — NOT a first introduction. Do NOT re-introduce yourself as if this is first contact. React to where the conversation actually stands.'
@@ -25336,7 +25375,7 @@ function buildUserPrompt(data) {
         // it miss on a lead earlier." The two first-contact arms require it; this arm -- the one nearly every Click & Go lead
         // takes, because the store's assistant answers within minutes -- did not, and the generic source block forbade naming
         // it again once a message had. Named once, in passing, in both formats; not as the opener or as news (v9.7.650).
-        .concat(['- BRAND: name Click & Go once in BOTH the SMS and the email, in passing -- "the deal you started on Click & Go", "your Click & Go application", "since you started on Click & Go". Not as the opener and not as news: they know where they started; the name is how we keep that thread visible.'])
+        .concat([_cgBrandLine])
         .concat(['- Never say Gubagoo, virtual retailing platform, digital retailing, or "dynamic credit app".'])
         .concat(_vrAppNext ? [_vrAppLine] : [])
         .join('\n')
@@ -33331,7 +33370,10 @@ async function generateAll() {
         var _cgSrc = (typeof _lpSourceAckPhrase === 'function') ? _lpSourceAckPhrase(lastScrapedData && lastScrapedData.leadSource) : null;
         if (_cgSrc && _cgSrc.name === 'Click & Go') {
           var _cgRx = /click\s*(?:&|and)\s*go/i;
-          console.log('[LP CLICK&GO BRAND DIAG] sms:' + (_cgRx.test(rawSms || '') ? 'named' : 'MISSING') + ' | email:' + (_cgRx.test(rawEmail || '') ? 'named' : 'MISSING'));
+          // (v9.7.840) A format our earlier messages on this lead already named it in is not a miss.
+          var _cgDone = _lpClickGoNamed(lastScrapedData || {});
+          var _cgSay = function (t, k) { return _cgRx.test(t || '') ? 'named' : _cgDone[k] ? 'not needed (named in our ' + _cgDone[k] + ' ' + k + ')' : 'MISSING'; };
+          console.log('[LP CLICK&GO BRAND DIAG] sms:' + _cgSay(rawSms, 'text') + ' | email:' + _cgSay(rawEmail, 'email'));
         }
       } catch (eCgB) {}
       // (v9.7.554) Per-channel coverage of the agent's LP command. Amber Johnson's three-part

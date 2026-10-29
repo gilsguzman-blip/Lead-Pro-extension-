@@ -91,7 +91,8 @@ function stepsFor(impl, data, code) {
   return { steps: sb.__steps, block: sb.__block };
 }
 function followUpRules(impl, drSteps, vrProgress, code) {
-  const sb = { drSteps: drSteps, vrProgress: vrProgress, _vrAppNext: false, _vrAppLine: '', __out: null };   // (v9.7.839) the arm reads the credit-app step; off here, see otd-creditapp-839
+  const sb = { drSteps: drSteps, vrProgress: vrProgress, _vrAppNext: false, _vrAppLine: '', __out: null,
+    _cgBrandLine: '- BRAND: name Click & Go once in BOTH the SMS and the email, in passing -- "the deal you started on Click & Go", "your Click & Go application", "since you started on Click & Go". Not as the opener and not as news: they know where they started; the name is how we keep that thread visible.' };   // (v9.7.840) nothing named yet; see clickgo-840   // (v9.7.839) the arm reads the credit-app step; off here, see otd-creditapp-839
   vm.createContext(sb);
   vm.runInContext('__out = ' + (code || impl.followUp) + ';', sb);
   return sb.__out;

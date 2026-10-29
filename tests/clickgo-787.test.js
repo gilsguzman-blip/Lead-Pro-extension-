@@ -43,8 +43,9 @@ for (const f of BUILDS) {
 
   console.log(' 1. the brand sticks on a follow-up:');
   const p = up(CG());
-  check('a Click & Go follow-up (we already said "Click & Go") carries BRAND: name it once in BOTH the SMS and the email, in passing', () =>
-    /- BRAND: name Click & Go once in BOTH the SMS and the email, in passing -- "the deal you started on Click & Go"/.test(p), true);
+  // (v9.7.840) Our text already named it, so the brand line now asks for it in the email only -- see clickgo-840.
+  check('a Click & Go follow-up (our text already said "Click & Go") carries BRAND: name it once in the email, in passing', () =>
+    /- BRAND: name Click & Go once in the EMAIL, in passing -- "the deal you started on Click & Go"/.test(p), true);
   check('and nothing in the prompt forbids naming it again (the generic source block stands aside for Click & Go)', () =>
     [/YOU HAVE ALREADY SAID SO TO THIS CUSTOMER/.test(p), logs.some(l => /SKIPPED-click-and-go/.test(l))], [false, true]);
   check('control: a dealer-website follow-up that already said "our website" is still told not to re-announce it', () => {
