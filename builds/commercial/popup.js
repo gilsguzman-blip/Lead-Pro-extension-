@@ -3384,6 +3384,39 @@ function _lpClickStock(d, v) {
     return { count: hits.length, examples: hits.slice(0, 3).map(function (x) { return x.vehicle + (_lpCleanColor(x.color) ? ' in ' + _lpCleanColor(x.color) : ''); }) };
   } catch (e) { return null; }
 }
+// (v9.7.837) WHEN A LATER VISIT CAN BE OFFERED AS OUR OWN SUGGESTION. Gil, 10/29, on lead 2106212974 (asked "still on the lot?"
+// about new Accord Sedans; back on 10/29 looking at the new CR-V): mention the chance he is widening his search without disclosing
+// we saw it. A salesperson would offer a CR-V to an Accord shopper unprompted -- the sedan / compact SUV cross-shop -- so a later
+// model that is a NATURAL PAIRING with the one they asked about may be suggested, once, as our idea. Anything else (an Accord to a
+// Ridgeline) would be a coincidence that gives us away: only a general "other options" offer. Segments: car 0, small SUV 1,
+// compact SUV 2, midsize SUV 3, three-row SUV 4, large SUV 5; vans and trucks apart.
+var LP_MODEL_SEGMENT = {
+  honda: { civic: 'car', accord: 'car', 'hr-v': 'suv1', 'cr-v': 'suv2', passport: 'suv3', prologue: 'suv3', pilot: 'suv4', odyssey: 'van', ridgeline: 'truck' },
+  toyota: { corolla: 'car', camry: 'car', prius: 'car', crown: 'car', 'corolla cross': 'suv1', rav4: 'suv2', bz4x: 'suv2', bz: 'suv2', venza: 'suv3', '4runner': 'suv3',
+    'land cruiser': 'suv3', highlander: 'suv4', 'grand highlander': 'suv4', sequoia: 'suv5', sienna: 'van', tacoma: 'truck', tundra: 'truck' },
+  kia: { k4: 'car', k5: 'car', forte: 'car', soul: 'suv1', seltos: 'suv1', niro: 'suv1', sportage: 'suv2', ev6: 'suv2', sorento: 'suv3', telluride: 'suv4', ev9: 'suv4', carnival: 'van' },
+  audi: { a3: 'car', a4: 'car', a5: 'car', a6: 'car', s3: 'car', s4: 'car', s5: 'car', q3: 'suv1', q4: 'suv2', q5: 'suv2', q6: 'suv2', q7: 'suv4', q8: 'suv3' }
+};
+function _lpModelSegOf(name) {
+  var t = String(name || ''), best = null;
+  Object.keys(LP_MODEL_SEGMENT).forEach(function (mk) {
+    if (!new RegExp('\\b' + mk + '\\b', 'i').test(t)) return;
+    Object.keys(LP_MODEL_SEGMENT[mk]).forEach(function (m) {
+      if ((!best || m.length > best.model.length) && _lpModelRx(m).test(t)) best = { make: mk, model: m, seg: LP_MODEL_SEGMENT[mk][m] };
+    });
+  });
+  return best;
+}
+function _lpModelPairing(a, b) {
+  var x = _lpModelSegOf(a), y = _lpModelSegOf(b);
+  if (!x || !y || x.make !== y.make || x.model === y.model) return null;
+  var rank = function (s) { return s === 'car' ? 0 : /^suv(\d)$/.test(s) ? +s.slice(3) : s === 'van' ? 4 : -9; };
+  var ok = (x.seg === 'truck' || y.seg === 'truck') ? ((x.seg === 'truck' && y.seg === 'truck') || /^suv[345]$/.test(x.seg === 'truck' ? y.seg : x.seg))
+    : Math.abs(rank(x.seg) - rank(y.seg)) <= 1 || ((x.seg === 'car' && y.seg === 'suv2') || (y.seg === 'car' && x.seg === 'suv2'));
+  if (!ok) return null;
+  return { from: x, to: y, kind: y.seg === 'car' ? 'a sedan' : y.seg === 'van' ? 'a minivan' : y.seg === 'truck' ? 'a truck' : 'an SUV' };
+}
+function _lpModelDisplay(m) { return (typeof _lpModelName === 'function') ? _lpModelName(m) : m; }
 function _lpClickPathLines(d) {
   var c = _lpClickPath(d); if (!c) return [];
   var name = function (v) { return v.kind === 'unit' ? 'the ' + v.name + (v.stock ? ' (stock ' + v.stock + ')' : '') : 'our ' + v.name + ' listings (the model, not one car)'; };
@@ -3408,7 +3441,14 @@ function _lpClickPathLines(d) {
   // (v9.7.836) A LATER VISIT IS BACKGROUND, NEVER NAMED. On lead 2106212974 the block said the customer was back on 10/29 looking at
   // the new CR-V and that it was "fine to cover both"; the draft asked "Accord or a CR-V now?" and "If your search has shifted to the
   // CR-V" -- a car he never mentioned to us, which tells him we watched his browsing. Only that a later visit exists is said, no names.
-  if (c.later.length) out.push('- BACKGROUND, NOT FOR THE MESSAGE: they have been back on our site since and looked at other vehicles, which they have not mentioned to us. Do NOT name any vehicle they have not mentioned to us, and do not say or imply their search moved or ask whether it did -- that would show we watched their browsing. At most, offer to help with anything else they are considering.');
+  if (c.later.length) {
+    // (v9.7.837) The newest later visit, offered as our own idea when it pairs naturally with what they asked about.
+    var _lv = c.later[c.later.length - 1].vehicles, _lvCar = _lv[_lv.length - 1], _pair = (car && _lvCar) ? _lpModelPairing(car.name, _lvCar.name) : null;
+    if (_pair) out.push('- THEY MAY BE OPEN TO ANOTHER MODEL. After you answer their question, you may add ONE line offering the ' + _lpModelDisplay(_pair.to.model)
+      + ' as something we can show them too, framed as OUR suggestion -- for example: "if you are also weighing ' + _pair.kind + ', a lot of ' + _lpModelDisplay(_pair.from.model)
+      + ' shoppers compare it with the ' + _lpModelDisplay(_pair.to.model) + ', so I can line up both." NEVER say or imply they looked at it or that we can see what they browsed, and never "has your search shifted", "now" or "still". Name no other vehicle they have not mentioned to us.');
+    else out.push('- THEY MAY BE OPEN TO OTHER OPTIONS. After you answer their question, you may add one line such as "if you are open to other options, I can show you what fits." Name no vehicle they have not mentioned to us, and never say or imply their search moved -- that would show we watched their browsing.');
+  }
   return out;
 }
 function _lpPrepareFactVerdicts(data, deps) {
@@ -23066,6 +23106,8 @@ function _lpMootSoldQuestions(uq, d) {
 // (v9.7.763) Worded so there is nothing to recite: 760's "do NOT promise, send or itemize those figures" came back to the
 // customer as "I can't itemize the fees for the EV9 Light Long Range because it has sold" (log284) -- a rule narrated.
 var _LP_MOOT_SOLD_LINE = 'Their earlier questions about that deal\'s numbers (QUOTED) were about the vehicle that has SOLD, so they are moot. Leave them out of the message entirely: do not answer them, do not say you cannot, and do not explain why -- the sale itself is the news. Tell them it sold and pivot to the alternative; if they want numbers, offer them on the alternative.';
+// (v9.7.837) Words that tell a customer we watched their browsing: "you were looking at", "I saw you viewed", "your search has shifted".
+var LP_BROWSE_REVEAL_RX = /\b(?:(?:saw|see|noticed|notice) (?:that )?you(?:'ve| have| were)? (?:been )?(?:looking|browsing|viewing|checking|viewed|browsed|looked)|you(?:'ve| have| were)? (?:been )?(?:browsing|viewing|checking out)|you (?:looked at|viewed|browsed)|(?:search|interest) (?:has |may have |had )?(?:shifted|moved|changed))\b/i;
 // (v9.7.835) A visit or time ask in a text: come in / stop by / come back, a day-or-time question, "when can you come", two times offered.
 var LP_VISIT_ASK_RX = /\b(?:come (?:in|by|back|see)|stop (?:in|by)|swing by|drop by|visit us|(?:what|which) (?:day|time)s?\b[^.?!\n]{0,40}\b(?:work|good|best|come)|when (?:can|could|would|will) you (?:come|stop|make it|be able)|\d{1,2}(?::\d{2})?\s*(?:am|pm)?\s+or\s+\d{1,2}(?::\d{2})?\s*(?:am|pm))/i;
 function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
@@ -23795,6 +23837,13 @@ async function _lpRefineSms(pass1, emailText, d) {
         return null;
       }
     } catch (eRfQs) {}
+    // (v9.7.837) A click path is on this lead and the rewrite says we saw their browsing (the first pass did not): the first pass ships.
+    try {
+      if (d && d.clickPath && LP_BROWSE_REVEAL_RX.test(out) && !LP_BROWSE_REVEAL_RX.test(String(pass1 || ''))) {
+        console.log('[LP SMS REFINE DIAG] kept the first pass \u2014 the rewrite said we saw their browsing ("' + (out.match(LP_BROWSE_REVEAL_RX) || [''])[0] + '") | ' + (Date.now() - t0) + 'ms');
+        return null;
+      }
+    } catch (eRfBr) {}
     // (v9.7.835) The prompt decided on no visit ask, and the rewrite added one the first pass did not make: the first pass ships.
     try {
       var _rfVd2 = (typeof _lpLastVisitDecision === 'object' && _lpLastVisitDecision) ? _lpLastVisitDecision : null;
