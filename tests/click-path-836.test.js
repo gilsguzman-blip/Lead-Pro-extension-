@@ -46,12 +46,14 @@ for (const f of BUILDS) {
   const block = (p.split('\ud83d\udd0e WHAT THEY WERE LOOKING AT ON OUR WEBSITE WHEN THEY SENT THIS')[1] || '').split('\n\n')[0];
 
   console.log(' 1. the later visit is never named:');
-  check('lead 2106212974: the 10/29 CR-V visit is not in the prompt by name, and nothing says it is fine to cover it', () =>
-    [/CR-V/.test(p), /fine to cover both/.test(p)], [false, false]);
-  check('it is background: they have been back and looked at other vehicles; do not name them or say their search moved', () =>
-    /^- BACKGROUND, NOT FOR THE MESSAGE: they have been back on our site since and looked at other vehicles, which they have not mentioned to us\. Do NOT name any vehicle they have not mentioned to us, and do not say or imply their search moved/m.test(block), true);
+  // (v9.7.837) The later visit may now be offered as OUR suggestion (see click-path-837); what v9.7.836 fixed still holds: the prompt
+  // never says they looked at it and never says it is fine to cover both.
+  check('lead 2106212974: the prompt never says they were back looking at the CR-V, and nothing says it is fine to cover both', () =>
+    [/back on our site looking at/.test(p), /fine to cover both/.test(p)], [false, false]);
+  check('the later visit is never presented as something they looked at: it is "our suggestion" or a general offer, with the browsing rule', () =>
+    /^- THEY MAY BE OPEN TO (?:ANOTHER MODEL|OTHER OPTIONS)\..*NEVER say or imply they looked at it|^- THEY MAY BE OPEN TO OTHER OPTIONS\..*never say or imply their search moved/m.test(block), true);
   const p1 = built(LEAD({ clickPath: { ok: true, sessions: [SESSIONS.sessions[0]] } }));
-  check('control: with no later visit there is no background line', () => /BACKGROUND, NOT FOR THE MESSAGE/.test(p1), false);
+  check('control: with no later visit there is no later-visit line', () => /THEY MAY BE OPEN TO/.test(p1), false);
 
   console.log(' 2. a plain yes when it is in stock:');
   check('2 new Accord Sedans in stock -> "The answer to their question is YES" with the wording, and no hedging about checking one car', () =>

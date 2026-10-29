@@ -99,9 +99,10 @@ const RECEIVED = (link) => note('Inbound', '10/27/2026 11:08 AM', 'Lead received
     check('it never says how we know, and does not ask what they want; the Pre-Owned condition field gives way to the page', () =>
       [/NEVER say or imply that you saw what they looked at, browsed or clicked/.test(p), /Do NOT ask what vehicle they are looking for: this is it/.test(p),
        /The lead's condition field says Pre-Owned; the page they were on was new\. Go by the page\./.test(p)], [true, true, true]);
-    // (v9.7.836) A later visit is background and is never named (it was "fine to cover both" in v9.7.835; see click-path-836).
-    check('the newer visit is background: they have been back since, and the vehicle they have not mentioned is never named', () =>
-      [/^- BACKGROUND, NOT FOR THE MESSAGE: they have been back on our site since/m.test(p), /CR-V/.test(p)], [true, false]);
+    // (v9.7.836/837) A later visit is never named as something they looked at; with no CR-V in this fixture's stock it is only the
+    // general "other options" line (v9.7.837 suggests a model only when we have it -- see click-path-837).
+    check('the newer visit is not named: no CR-V in stock here, so only the general "other options" line', () =>
+      [/^- THEY MAY BE OPEN TO OTHER OPTIONS\./m.test(p), /CR-V/.test(p)], [true, false]);
     check('the no-vehicle lines give way: the Vehicle line and the never-invent rule name it; no "NO VEHICLE IS ATTACHED"', () =>
       [/^Vehicle:\s+\(none on file\) ← what they were looking at when they sent this: New Honda Accord Sedan/m.test(p), /^- NEVER mention a specific vehicle[^\n]*the store website shows what they were looking at when they wrote \(New Honda Accord Sedan\)/m.test(p),
        /NO VEHICLE IS ATTACHED/.test(p)], [true, true, false]);
