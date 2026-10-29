@@ -19,9 +19,10 @@ function check(name, fn, want) {
   const g = JSON.stringify(got), w = JSON.stringify(want);
   if (g === w) { pass++; console.log('  ok   ' + name); } else { fail++; console.log('  FAIL ' + name + '\n        expected ' + w + '\n        got      ' + g); }
 }
+// (v9.7.838) The later session is browse-only here (no lead submitted); a later inquiry is named outright -- see click-path-838.
 const SESSIONS = { ok: true, lead: '100000002', sessions: [
   { date: 'Tuesday, October 27, 2026', leads: ['100000002'], current: true, pages: [], vehicles: [{ kind: 'model', name: 'New Honda Accord Sedan', dwell: '3m 14s' }] },
-  { date: 'Thursday, October 29, 2026', leads: ['100000003'], current: false, pages: [], vehicles: [{ kind: 'model', name: 'New Honda CR-V', dwell: '2m 45s' }] }] };
+  { date: 'Thursday, October 29, 2026', leads: [], current: false, pages: [], vehicles: [{ kind: 'model', name: 'New Honda CR-V', dwell: '2m 45s' }] }] };
 const E = (date, time, tag, title, body) => '[' + date + ' ' + time + '] [' + tag + '] ' + title + '\n  ' + body + '\n';
 const MARK = '[10/27/2026 11:08 AM] [=== CURRENT LEAD SUBMITTED HERE ===]\n  This is when the current inquiry was submitted.\n';
 const OURS = E('10/29/2026', '11:20 AM', 'AGENT', 'Email reply to prospect', 'Test, could you send me the model or a link to the listing? Agent Name');

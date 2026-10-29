@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.838-dev (Dev. A LATER INQUIRY IS SOMETHING THEY TOLD US; THE EXTRA VEHICLE IS ADDED, NOT OPTIONAL; THE YES SURVIVES THE REWRITE. Extension only; proxy v7.90, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Honda Lafayette lead 2106212974 on v9.7.837 (log379): the CR-V suggestion was 'you may add' and both generations left it out; the second generation's text rewrite turned '<name>, yes--we have new Accord Sedans here right now...' into '<name>, I can send you a few new Accord Sedan options...'. Gil: 'the additional unit should automatically be added with the right messaging as a suggestion and not a spy situation. Now in this case the path shows lead submitted on the CR-V. We can see this .... right??' -- yes: the 10/29 session ends 'Lead Submitted - <another lead>'. (1) _lpClickLater decides the later visit once: 'inquiry' when that session submitted a lead -- named as their inquiry ('and I see you also asked about the CR-V; we have plenty of those here too'), even without a natural pairing, and honestly when none is in stock; 'suggest' when browsed only, a natural pairing and in stock (the v9.7.837 rules); otherwise 'general'. Inquiry and suggestion are ADDED, in the email and the text; never as browsing. (2) A console line flags the second inquiry so the agent can look for a second lead or a duplicate customer in the CRM. (3) Text rewrite, click-path leads: a first pass that answered 'yes', or named the inquiry or suggestion, ships when the rewrite drops it. TESTS: click-path-838 (new) executes _lpClickPathLines and _lpRefineSms: 22 assertions across both builds; v9.7.837 fails 8 of 11 per build (the 3 controls pass). click-path-835 now expects the real page's 10/29 lead to be named as an inquiry; click-path-836/837 use a browse-only later visit, and 837 accepts 'ADD'. VERIFIED: run-all 274 suites green, 9,183 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.837.)
 // Lead Pro -- popup.js  v9.7.837-dev (Dev. A LATER WEBSITE VISIT MAY BE OFFERED AS OUR OWN SUGGESTION -- ONLY A MODEL WE HAVE, A NATURAL PAIRING, AND NEVER AS SOMETHING THEY LOOKED AT. Extension only; proxy v7.90, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Gil, 10/29, on Honda Lafayette lead 2106212974 (asked 'still on the lot?' about new Accord Sedans, back on 10/29 looking at new CR-Vs): mention the chance he is widening his search without disclosing that we saw it. A salesperson would offer a CR-V to an Accord shopper unprompted. Then: 'what if it's a used car and he was looking at a Kia K5 and searched for a Toyota Camry?' -- 'yes add all three'. (1) LP_MODEL_SEGMENT / _lpModelPairing: the newest later visit's model may be suggested when it pairs naturally with the one they asked about -- same make and a neighboring type (sedan and compact SUV, small and compact SUV, a truck and a midsize or larger SUV); for a USED shopper another make of the SAME type (a used K5 and a used Camry); a new shopper stays with the brand. (2) _lpPairStock: only when the store has it, in the condition they were shopping. (3) The suggestion is one line, after the answer, framed as ours ('if you are also weighing an SUV, a lot of Accord shoppers compare it with the CR-V'; same type: 'if you are open to comparing, a lot of K5 shoppers also look at the Camry'), never as something they looked at, never 'shifted', 'now' or 'still'. Anything else gets a general 'if you are open to other options' line, no model named. (4) LP_BROWSE_REVEAL_RX: on a lead with a click path, a text rewrite that says we saw their browsing ('your search has shifted', 'I saw you were looking at') and the first pass did not, does not ship. TESTS: click-path-837 (new) executes _lpClickPathLines and _lpRefineSms: 22 assertions across both builds; v9.7.836 fails 6 of 11 per build (the 5 that check nothing is named or that a rewrite ships pass there too). the later-visit checks in click-path-835 and click-path-836 follow the new behavior. VERIFIED: run-all 273 suites green, 9,161 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.836.)
 // Lead Pro -- popup.js  v9.7.836-dev (Dev. A LATER WEBSITE VISIT IS NEVER NAMED, AND 'STILL ON THE LOT?' GETS A PLAIN YES. Extension only; proxy v7.90, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Honda Lafayette lead 2106212974 on v9.7.835 (log378): the click path worked -- the prompt named the new Accord Sedan search page and 61 in stock -- but the block also said the customer was back on 10/29 looking at the new CR-V and that it was 'fine to cover both'. The draft asked 'Accord or a CR-V now?' and 'If your search has shifted to the CR-V', a car he never mentioned to us, which tells him we watched his browsing. With 61 in stock the text also hedged 'I'll check on a specific one before confirming availability'. Gil: 'build 836 with the plainer in-stock answer too'. (1) _lpClickPathLines: a later visit is background only -- no vehicle names, never to say or imply the search moved; at most an offer to help with anything else they are considering. (2) In stock, the answer to their question is YES, said plainly ('yes, we have new Accord Sedans here right now'; a vehicle details page in stock: 'it is here'); a model page is 'the model, not one car', so no hedging about checking a specific one. Not in stock is unchanged. TESTS: click-path-836 (new) executes populateFromData and buildUserPrompt: 12 assertions across both builds; v9.7.835 fails 4 of 6 per build (the 2 controls pass). click-path-835's two wording checks follow the new text. VERIFIED: run-all 272 suites green, 9,139 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.835.)
 // Lead Pro -- popup.js  v9.7.835-dev (Dev. WHAT A WEBSITE SHOPPER WAS LOOKING AT WHEN THEY ASKED, AND NO VISIT ASK IN A TEXT WHEN THE PROMPT DECIDED ON NONE. Ships with proxy v7.90 (its /clickpath); reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Honda Lafayette lead 2106212974 (log377): a Contact Us form whose only words were 'still on the lot?', no vehicle on the lead ('2026 Honda Any/All'), and three of our emails asking him to send the model or a link -- the draft asked a fourth time ('What model or listing are you asking about?'). The received note links the store site's Dealer eProcess Click Path, which showed Homepage -> New Honda Accord Sedan (a search page) -> Contact Us -> this lead, and a later visit (10/29) to the new CR-V with another inquiry. (1) Scraper: the current lead's received note's Click Path link (https://<site>/resrc/leadinfo/clickpath/<n>) is carried as clickPathUrl. (2) _lpLoadClickPath: at generate time, beside the fact probes, the proxy's /clickpath is asked for it (memoized 10 minutes, 4 s timeout, any failure = as before). (3) _lpClickPathLines: WHAT THEY WERE LOOKING AT ON OUR WEBSITE WHEN THEY SENT THIS -- the vehicle details page (a unit, checked against stock) or search page (a model, with what we have of it in the matching condition), that their message is about it, never to ask what they want and never to say or imply we saw what they viewed; a lead condition field that disagrees with the page gives way; a newer visit is named. (4) The Vehicle line, the never-invent rule and the grab-time 'CRM CONFIRMS: no vehicle of interest' line give way to it (_lpClickCar). Audi Lafayette lead 2107090639 (waiting on the sales team): the email gave room, the text ended 'What day and time would work for you to come in?'; Toyota Baytown leads 2103828793 and 2106333188 the same shape. The text rewrite told every lead to give 'the actual reason this visit is worth making'. (5) When the visit decision is level 3 (no visit ask, no times) the rewrite is told so instead, and (6) a rewrite that adds a visit or time ask (LP_VISIT_ASK_RX) the first pass did not make does not ship. TESTS: click-path-835 (new) runs the shipped inlineScraper in Chromium and executes _lpLoadClickPath, populateFromData, buildUserPrompt, _lpBuildSmsRefinePrompt and _lpRefineSms: 30 assertions across both builds; v9.7.834 fails 11 of 15 per build (the 4 controls pass). worker-v790 (new) for the proxy; run-all now runs proxy v7.90. VERIFIED: run-all 271 suites green, 9,127 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.834.)
@@ -3371,6 +3372,28 @@ function _lpPairStock(d, pair, cond) {
   } catch (e) { return 0; }
 }
 function _lpModelDisplay(m) { return (typeof _lpModelName === 'function') ? _lpModelName(m) : m; }
+// (v9.7.838) THE LATER VISIT, DECIDED ONCE. Gil, 10/29, on lead 2106212974: "if we have the intel and have a good path to follow the
+// additional unit should automatically be added with the right messaging as a suggestion and not a spy situation" -- and the click
+// path's 10/29 session ends "Lead Submitted - <another lead>": he filled out a form on the new CR-V page, so the CR-V is something he
+// TOLD us. Returns { mode: 'inquiry' | 'suggest' | 'general', display, n (in stock; null when the feed is not loaded), ... } or null.
+//   inquiry -- the later session submitted a lead: name it as their inquiry, with what we have.
+//   suggest -- browsed only, a natural pairing (v9.7.837 rules), in stock: our suggestion.
+//   general -- anything else: a general "other options" line, no model named.
+function _lpClickLater(d, car) {
+  try {
+    var c = _lpClickPath(d); if (!c || !c.later.length) return null;
+    var s = c.later[c.later.length - 1], v = s.vehicles[s.vehicles.length - 1]; if (!v) return null;
+    car = car || _lpClickCar(d);
+    var seg = _lpModelSegOf(v.name), cond = _lpNameCond(v.name) || (car ? _lpNameCond(car.name) : '');
+    var display = seg ? _lpModelDisplay(seg.model) : String(v.name).replace(/^\s*(?:new|used|pre-?owned|certified|cpo)\s+/i, '').replace(/^(?:19|20)\d{2}\s+/, '').replace(/^\S+\s+/, '');
+    var inv = (d && _lpValueFactCache[d.dealerId] && _lpValueFactCache[d.dealerId].inv && _lpValueFactCache[d.dealerId].inv.units) || null;
+    var n = (seg && inv && inv.length) ? _lpPairStock(d, { to: seg }, cond) : (v.kind === 'unit' && v.stock && inv) ? inv.filter(function (x) { return String(x.stock || x.stockNum || '').toUpperCase() === String(v.stock).toUpperCase(); }).length : null;
+    if ((s.leads || []).length) return { mode: 'inquiry', display: display, n: n, date: s.date || '', leads: s.leads, cond: cond };
+    var pair = car ? _lpModelPairing(car.name, v.name) : null;
+    if (pair && n) return { mode: 'suggest', display: display, n: n, cond: cond, pair: pair, from: _lpModelDisplay(pair.from.model) };
+    return { mode: 'general', display: display, n: n };
+  } catch (e) { return null; }
+}
 function _lpClickPathLines(d) {
   var c = _lpClickPath(d); if (!c) return [];
   var name = function (v) { return v.kind === 'unit' ? 'the ' + v.name + (v.stock ? ' (stock ' + v.stock + ')' : '') : 'our ' + v.name + ' listings (the model, not one car)'; };
@@ -3395,20 +3418,22 @@ function _lpClickPathLines(d) {
   // (v9.7.836) A LATER VISIT IS BACKGROUND, NEVER NAMED. On lead 2106212974 the block said the customer was back on 10/29 looking at
   // the new CR-V and that it was "fine to cover both"; the draft asked "Accord or a CR-V now?" and "If your search has shifted to the
   // CR-V" -- a car he never mentioned to us, which tells him we watched his browsing. Only that a later visit exists is said, no names.
-  if (c.later.length) {
-    // (v9.7.837) The newest later visit, offered as our own idea when it pairs naturally with what they asked about.
-    var _lv = c.later[c.later.length - 1].vehicles, _lvCar = _lv[_lv.length - 1], _pair = (car && _lvCar) ? _lpModelPairing(car.name, _lvCar.name) : null;
-    // (v9.7.837) Only a model we have, in the condition they were shopping.
-    var _pCond = _pair ? (_lpNameCond(_lvCar.name) || _lpNameCond(car.name)) : '', _pN = _pair ? _lpPairStock(d, _pair, _pCond) : 0;
-    try { console.log('[LP CLICK PATH DIAG] later visit: ' + (_lvCar ? _lvCar.name : '?') + ' | pairing with ' + (car ? car.name : '?') + ': ' + (_pair ? (_pair.from.make !== _pair.to.make ? 'used, same type' : 'same brand') + ' | in stock: ' + _pN : 'none') + ' -> ' + (_pair && _pN ? 'suggest it' : 'general offer')); } catch (eLv) {}
-    var _from = _pair ? _lpModelDisplay(_pair.from.model) : '', _to = _pair ? _lpModelDisplay(_pair.to.model) : '';
-    if (_pair && _pN) out.push('- THEY MAY BE OPEN TO ANOTHER MODEL. After you answer their question, you may add ONE line offering the ' + (_pCond === 'used' ? 'used ' : '') + _to
-      + ' as something we can show them too (we have ' + _pN + ' in stock), framed as OUR suggestion -- for example: "'
-      + (_pair.same ? 'if you are open to comparing, a lot of ' + _from + ' shoppers also look at the ' + _to + ', and we have a few here.'
-                    : 'if you are also weighing ' + _pair.kind + ', a lot of ' + _from + ' shoppers compare it with the ' + _to + ', so I can line up both.')
+  // (v9.7.838) The later visit, decided once (see _lpClickLater) and ADDED, not left optional.
+  var lt = _lpClickLater(d, car);
+  try {
+    if (lt) console.log('[LP CLICK PATH DIAG] later visit: ' + lt.display + ' -> ' + lt.mode + (lt.n != null ? ' | in stock: ' + lt.n : ''));
+    if (lt && lt.mode === 'inquiry') console.log('[LP CLICK PATH DIAG] they sent another inquiry from the store site (' + lt.leads.join(', ') + ', ' + lt.display + ', ' + lt.date + ') -- it may be a second lead in the CRM or on a duplicate customer: check before working this one');
+  } catch (eLt) {}
+  if (lt && lt.mode === 'inquiry') out.push('- THEY ALSO SENT US AN INQUIRY ABOUT THE ' + lt.display.toUpperCase() + (lt.date ? ' (' + lt.date + ')' : '') + ': they filled out a form on our site about it, so it is something they told us. '
+      + 'After you answer their question, ADD one line acknowledging it as their inquiry, in the email and the text -- e.g. "and I see you also asked about the ' + lt.display + '; '
+      + (lt.n ? 'we have ' + (lt.n > 3 ? 'plenty of those' : lt.n === 1 ? 'one' : 'a few') + ' here too, so I can line up both."' : lt.n === 0 ? 'we do not have one in stock right now, but I can check what is coming in."' : 'I can line up both."')
+      + ' Say they asked or reached out about it; NEVER say they looked at it, viewed or browsed it, and never "your search has shifted", "now" or "still".');
+  else if (lt && lt.mode === 'suggest') out.push('- THEY MAY BE OPEN TO ANOTHER MODEL. After you answer their question, ADD ONE line offering the ' + (lt.cond === 'used' ? 'used ' : '') + lt.display
+      + ' as something we can show them too (we have ' + lt.n + ' in stock), framed as OUR suggestion, in the email and the text -- for example: "'
+      + (lt.pair.same ? 'if you are open to comparing, a lot of ' + lt.from + ' shoppers also look at the ' + lt.display + ', and we have a few here.'
+                      : 'if you are also weighing ' + lt.pair.kind + ', a lot of ' + lt.from + ' shoppers compare it with the ' + lt.display + ', so I can line up both.')
       + '" NEVER say or imply they looked at it or that we can see what they browsed, and never "has your search shifted", "now" or "still". Name no other vehicle they have not mentioned to us.');
-    else out.push('- THEY MAY BE OPEN TO OTHER OPTIONS. After you answer their question, you may add one line such as "if you are open to other options, I can show you what fits." Name no vehicle they have not mentioned to us, and never say or imply their search moved -- that would show we watched their browsing.');
-  }
+  else if (lt) out.push('- THEY MAY BE OPEN TO OTHER OPTIONS. After you answer their question, you may add one line such as "if you are open to other options, I can show you what fits." Name no vehicle they have not mentioned to us, and never say or imply their search moved -- that would show we watched their browsing.');
   return out;
 }
 function _lpPrepareFactVerdicts(data, deps) {
@@ -24296,6 +24321,22 @@ async function _lpRefineSms(pass1, emailText, d) {
         return null;
       }
     } catch (eRfQs) {}
+    // (v9.7.838) On a click-path lead the first pass answered "yes" (it is on the lot) and the rewrite dropped it, or the first pass
+    // named the later inquiry or suggestion and the rewrite dropped that: the first pass ships. Lead 2106212974 (log379): "<name>, yes--we
+    // have new Accord Sedans here right now..." rewritten to "<name>, I can send you a few new Accord Sedan options...".
+    try {
+      if (d && d.clickPath) {
+        var _rfP1b = String(pass1 || '').split(/\n/)[0], _rfLt = (typeof _lpClickLater === 'function') ? _lpClickLater(d) : null;
+        if (/^[^.?!]*\byes\b/i.test(_rfP1b) && !/\byes\b/i.test(out)) {
+          console.log('[LP SMS REFINE DIAG] kept the first pass \u2014 it answered yes and the rewrite dropped it | ' + (Date.now() - t0) + 'ms');
+          return null;
+        }
+        if (_rfLt && (_rfLt.mode === 'inquiry' || _rfLt.mode === 'suggest') && _lpModelRx(_rfLt.display).test(String(pass1 || '')) && !_lpModelRx(_rfLt.display).test(out)) {
+          console.log('[LP SMS REFINE DIAG] kept the first pass \u2014 it named the ' + _rfLt.display + ' (' + _rfLt.mode + ') and the rewrite dropped it | ' + (Date.now() - t0) + 'ms');
+          return null;
+        }
+      }
+    } catch (eRfYes) {}
     // (v9.7.837) A click path is on this lead and the rewrite says we saw their browsing (the first pass did not): the first pass ships.
     try {
       if (d && d.clickPath && LP_BROWSE_REVEAL_RX.test(out) && !LP_BROWSE_REVEAL_RX.test(String(pass1 || ''))) {

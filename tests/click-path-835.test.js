@@ -101,8 +101,10 @@ const RECEIVED = (link) => note('Inbound', '10/27/2026 11:08 AM', 'Lead received
        /The lead's condition field says Pre-Owned; the page they were on was new\. Go by the page\./.test(p)], [true, true, true]);
     // (v9.7.836/837) A later visit is never named as something they looked at; with no CR-V in this fixture's stock it is only the
     // general "other options" line (v9.7.837 suggests a model only when we have it -- see click-path-837).
-    check('the newer visit is not named: no CR-V in stock here, so only the general "other options" line', () =>
-      [/^- THEY MAY BE OPEN TO OTHER OPTIONS\./m.test(p), /CR-V/.test(p)], [true, false]);
+    // (v9.7.838) The 10/29 session submitted a lead (as on the real page): it is their inquiry, named as one, never as browsing; this
+    // fixture's stock has no CR-V, so it says so.
+    check('the newer visit is their inquiry: named as something they asked about; none in stock here, so it says so; never as browsing', () =>
+      [/^- THEY ALSO SENT US AN INQUIRY ABOUT THE CR-V \(Thursday, October 29, 2026\)/m.test(p), /we do not have one in stock right now, but I can check what is coming in/.test(p), /back on our site looking at/.test(p)], [true, true, false]);
     check('the no-vehicle lines give way: the Vehicle line and the never-invent rule name it; no "NO VEHICLE IS ATTACHED"', () =>
       [/^Vehicle:\s+\(none on file\) ← what they were looking at when they sent this: New Honda Accord Sedan/m.test(p), /^- NEVER mention a specific vehicle[^\n]*the store website shows what they were looking at when they wrote \(New Honda Accord Sedan\)/m.test(p),
        /NO VEHICLE IS ATTACHED/.test(p)], [true, true, false]);

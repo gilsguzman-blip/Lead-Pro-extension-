@@ -22,7 +22,7 @@ function check(name, fn, want) {
 async function acheck(name, fn, want) { let got; try { got = await fn(); } catch (e) { got = 'THREW: ' + e.message; } check(name, () => got, want); }
 const CP = (asked, later) => ({ ok: true, sessions: [
   { date: 'Tuesday, October 27, 2026', leads: ['1'], current: true, pages: [], vehicles: [{ kind: 'model', name: asked }] },
-  { date: 'Thursday, October 29, 2026', leads: ['2'], current: false, pages: [], vehicles: [{ kind: 'model', name: later }] }] });
+  { date: 'Thursday, October 29, 2026', leads: [], current: false, pages: [], vehicles: [{ kind: 'model', name: later }] }] });   // (v9.7.838) browse only; an inquiry is click-path-838
 const U = (v, c, s, cond) => ({ vehicle: v, color: c, stock: s, stockNum: s, condition: cond, type: cond === 'new' ? 'New' : 'Used' });
 const LEAD = (x) => Object.assign({ autoLeadId: 'TEST001A', name: 'Test Buyer', firstName: 'Test', agent: 'Agent Name', vehicle: '', condition: '',
   dealerId: 'TST1', store: 'Test Store', leadSource: 'Contact Us', convState: 'active-follow-up', leadAgeDays: 2, hasOutbound: true, hasCustomerReply: false,
@@ -42,7 +42,7 @@ for (const f of BUILDS) {
   stock([U('2026 Honda Accord SE', 'Crystal Black Pearl', 'TEST0A1', 'new'), U('2026 Honda CR-V EX', 'Meteorite Gray Metallic', 'TEST0C1', 'new'), U('2026 Honda CR-V Sport', 'Radiant Red Metallic', 'TEST0C2', 'new')]);
   const a = lines(CP('New Honda Accord Sedan', 'New Honda CR-V'));
   check('the CR-V is offered as OUR suggestion, once, after the answer, with how many we have', () =>
-    [/^- THEY MAY BE OPEN TO ANOTHER MODEL\. After you answer their question, you may add ONE line offering the CR-V as something we can show them too \(we have 2 in stock\), framed as OUR suggestion/m.test(a),
+    [/^- THEY MAY BE OPEN TO ANOTHER MODEL\. After you answer their question, (?:you may add|ADD) ONE line offering the CR-V as something we can show them too \(we have 2 in stock\), framed as OUR suggestion/m.test(a),   // (v9.7.838) now ADD
      /"if you are also weighing an SUV, a lot of Accord shoppers compare it with the CR-V, so I can line up both\."/.test(a)], [true, true]);
   check('and never as something they looked at', () => /NEVER say or imply they looked at it or that we can see what they browsed, and never "has your search shifted", "now" or "still"/.test(a), true);
   stock([U('2026 Honda Accord SE', 'Crystal Black Pearl', 'TEST0A1', 'new')]);
