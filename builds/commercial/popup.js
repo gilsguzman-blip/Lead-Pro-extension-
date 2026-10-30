@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.845 (Commercial. THE POWERTRAIN OF THE VEHICLE ON THE LEAD, FROM VINSOLUTIONS' RECORD, WHEN WHAT THEY RAISED IS ABOUT IT. Extension only; proxy v7.91, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Honda Lafayette lead 2107308865 (log386): she test-drove the Passport, 'does not want a CVT or a turbo', and 'said the passport has some low speed hesitation, and bumpy shifts'; both drafts repeated that back to her and answered none of it. VinSolutions' record of the unit (LeadVehicle) says 'Regular Gasoline V-6 3.5 L/212' and '10-Speed Automatic w/OD' -- a V6 with a conventional automatic. Gil: 'it would be smart if we can trust the facts when we have them. in those cases'. (1) The scraper reads EngineName and TransmissionName off the same record, under the same conditions, as the v9.7.797 drivetrain (voiEngine, voiTransmission; [LP POWERTRAIN DIAG]). (2) _lpPowertrain puts them in words (3.5L V6; 10-speed automatic; CVT or not; turbo or not, from the record's own words). (3) When a customer message or a note of ours about them raises the engine or transmission (CVT, turbo, transmission, shifting, V6, cylinders, engine -- never our own texts or emails), the lead context carries the record as a fact that may be stated, what they raised, and: when the record answers it, say so plainly once in the email and the text ('the Passport has the 3.5L V6 with a 10-speed automatic, so no CVT and no turbo'); when it conflicts, do not claim it and do not raise it; about how it drove, no cause and no promise, someone can go over it; no other powertrain detail. Nothing raised, or no record: nothing added. Replayed on log386's capture (engine and transmission as the scraper now reads them): the block names the note and answers no CVT, no turbo. TESTS: powertrain-845 (new) executes the shipped scraper span, _lpPowertrain and the prompt through the shipped panel payload: 24 assertions across both builds; v9.7.844 fails 9 of 12 per build (the 3 controls pass). VERIFIED: run-all 282 suites green, 9,334 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.844.)
 // Lead Pro -- popup.js  v9.7.844 (Commercial. A VISIT ASK WRITTEN AS A QUESTION. Extension only; proxy v7.91, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Honda Lafayette lead 2107308865 (log385, on v9.7.843 -- the website mention is gone): she test-drove the Passport and 'will let me know after she does further research', so the prompt decided on no visit ask (the PAUSE rule, level 3). The first draft closed 'I’m here if you want to revisit it later.'; the text rewrite closed 'Want to revisit it and go over new options together?' and shipped, because v9.7.835's guard (LP_VISIT_ASK_RX) knew 'come in', 'stop by', 'what time works' and two times, not this. LP_VISIT_ASK_RX now also counts a question asking them to revisit, see it again, take another look or go over something ('want / like / ready / care / open to ...?'), and a question to revisit or go over something together. The statement form ('I’m here if you want to revisit it later.') is not an ask and stays allowed. The qualified-buyer APR offer in the same drafts stays: Gil, 10/30: 'I think the offer is safe here as it may be a deciding factor.' TESTS: visit-question-844 (new) executes LP_VISIT_ASK_RX and _lpRefineSms: 14 assertions across both builds; v9.7.843 fails 3 of 7 per build (the 4 controls pass). VERIFIED: run-all 281 suites green, 9,310 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.843.)
 // Lead Pro -- popup.js  v9.7.843 (Commercial. AFTER A VISIT, HOW THE LEAD REACHED US IS NOT NEWS. Extension only; proxy v7.91, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Honda Lafayette lead 2107308865 (log384): a website lead who came in and test-drove a Passport; the follow-up opened '<name>, thanks for reaching out through our website.' Three places put it there: the SOURCE ACKNOWLEDGMENT block took its first-contact arm (no outreach yet) and showed 'I saw the request you sent through our website...'; the source constraint said 'you may say the customer came through our website'; and the text rewrite was told 'The first draft names our website -- keep that mention'. Gil: 'This was a showroom follow up that fact isn't needed.' On a showroom follow-up: (1) the acknowledgment block stands down ([LP SOURCE ACK DIAG] outcome:SKIPPED-showroom); (2) the source constraint says they came in, the visit is the context, and not to mention how the lead reached us; (3) the rewrite is not told to keep the mention. Fullpath, Mastermind and AMP keep their own lines. Replayed on log384's capture: the block is gone and the only 'our website' left is inside the do-not line. TESTS: showroom-source-843 (new) builds the prompt through the shipped panel payload and executes _lpBuildSmsRefinePrompt: 12 assertions across both builds; v9.7.842 fails 4 of 6 per build (the 2 controls pass). first-touch-register counts the new early exit (9). VERIFIED: run-all 280 suites green, 9,296 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.842.)
 // Lead Pro -- popup.js  v9.7.842 (Commercial. FROM THE 10/30 REPORT: STORE HOURS NOBODY ASKED FOR, OUR NOTES AND THEIR BROWSING COME OUT AT RENDER; PAUSING FOLLOW-UP IS A WITHDRAWAL. Ships with proxy v7.91 (a short translation is not an empty response); reporter v1.24, dashboard v1.11 and the Data Tool unchanged. (1) _lpHouseGuard runs on every text, email and voicemail before render: a sentence listing the store's days or hours goes when the customer never asked about hours (Cars.com lead 2107725373 shipped 'We’re open Monday through Saturday.'); a sentence about our notes or records goes (Tradepending lead 2104804008: 'The last note I have from you is the inbound call on Monday.'); 'you viewed / looked at / browsed' before 'on our website' goes (Fullpath lead 2107879658: 'the 2026 Toyota bZ offer you viewed on our website' -> 'the 2026 Toyota bZ offer on our website'). [LP HOUSE GUARD] logs each removal. (2) Lead 2104804008, 6 days old and not eligible to be closed out, was offered 'Would you prefer that I pause follow-up for now?' and 'would you rather use the TradePending estimate as your reference for now?' (rejected three times). The close-out ban names 'would you prefer that I pause follow-up' and 'or would you rather leave it for now', and LP_WITHDRAW_RX counts pausing or holding off on follow-up and 'leave it for now', so a rewrite that adds one does not ship. (3) PROXY v7.91: the 10/30 translate failures (11:16-11:19 CT, every tier 'Empty response') were the 150-character draft floor rejecting a translated text; a translate call's {"translation":"..."} reply now passes it, as the SMS rewrite's reply has since v7.88. The double name on lead 2107319795 ('[name] [name],') waits for its dump. TESTS: house-guard-842 (new) executes _lpHouseGuard, the ban text, LP_WITHDRAW_RX and _lpRefineSms: 26 assertions across both builds; v9.7.841 fails all 13 per build (it has no guard to call). worker-v791 (new, 7; v7.90 fails the 2 new, its 5 controls pass). us-spelling-804 accepts the guard inside the render chain; safe-fallback-contract allows the v7.91 translate exception beside the v7.88 one. VERIFIED: run-all 279 suites green, 9,284 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.841.)
@@ -1471,6 +1472,45 @@ var LP_HOLD_TALK_RX = /\b(?:can(?:no|['\u2019])t|cannot|(?:do|does|will)\s+not|w
 // Did the customer ask to hold / reserve / put a deposit on it?
 var LP_HOLD_ASK_RX = /\b(?:hold|reserve|set\s+(?:it|\w+)\s+aside|save\s+(?:it|the\s+\w+)\s+for\s+me|put\s+(?:a\s+)?(?:deposit|money\s+down)|deposit)\b/i;
 var LP_DRIVE_RX = /\b(?:awd|fwd|rwd|4wd|2wd|4x4|4x2|all[- ]?wheel(?:[- ]drive)?|front[- ]?wheel(?:[- ]drive)?|rear[- ]?wheel(?:[- ]drive)?|four[- ]?wheel(?:[- ]drive)?)\b/i;
+// (v9.7.845) THE POWERTRAIN OF THE VEHICLE ON THE LEAD, WHEN WHAT THEY RAISED IS ABOUT IT. Honda Lafayette lead 2107308865 (log386):
+// she test-drove the Passport, "does not want a CVT or a turbo", and "said the passport has some low speed hesitation, and bumpy
+// shifts"; both drafts repeated that back to her and answered none of it. VinSolutions' record of the unit: "Regular Gasoline V-6
+// 3.5 L/212", "10-Speed Automatic w/OD" -- a V6 with a conventional automatic, no CVT and no turbo. Gil: "it would be smart if we
+// can trust the facts when we have them. in those cases". _lpPowertrain(d) reads the record; _lpPowertrainConcern(d) finds the
+// newest customer message or note of ours about them (never our own text or email) that raises the engine or transmission.
+var LP_PT_CONCERN_RX = /\bCVT\b|\bturbo\w*|\btransmission\b|\bshift(?:s|ing|ed)?\b|\bV-?6\b|\bV-?8\b|\b(?:4|four|6|six)[- ]?cyl(?:inder)?\b|\bengine\b/i;
+function _lpPowertrain(d) {
+  var e = String((d && d.voiEngine) || ''), t = String((d && d.voiTransmission) || '');
+  if (!e && !t) return null;
+  var r = { engine: '', trans: '', cvt: null, turbo: null, hybrid: /hybrid|electric/i.test(e + ' ' + t) };
+  if (e) {
+    var m = e.match(/\b([VIH])-?(\d{1,2})\s+([\d.]+)\s*L\b/i);
+    r.engine = m ? m[3] + 'L ' + (/^v$/i.test(m[1]) ? 'V' + m[2] : m[2] + '-cylinder') : e.replace(/\/\d+$/, '');
+    r.turbo = /turbo|supercharg/i.test(e);
+  }
+  if (t) {
+    r.cvt = /\bCVT\b|continuously variable|\bvariable\b/i.test(t);
+    var sp = t.match(/\b(\d{1,2})-?speed\b/i);
+    r.trans = r.cvt ? 'CVT' : (sp ? sp[1] + '-speed ' : '') + (/manual/i.test(t) ? 'manual' : 'automatic');
+  }
+  return r;
+}
+function _lpPowertrainConcern(d) {
+  try {
+    var hits = [];
+    _lpThreadEntries((d && (d.history || d.context)) || '').forEach(function (x) {
+      var ours = /^AGENT$/i.test(String(x.tag || '').trim()) && /text message|email/i.test(String(x.title || ''));
+      if (ours || !x.body || !LP_PT_CONCERN_RX.test(x.body)) return;
+      var sent = String(x.body).replace(/^\s*By:\s*[A-Z][\w'’-]*(?:\s+[A-Z][\w'’-]*)?\s*/, '').split(/(?<=[.!?])\s+/).filter(function (p) { return LP_PT_CONCERN_RX.test(p); });
+      if (sent.length) hits.push({ t: x.t, date: x.date, words: sent.join(' ').replace(/\s+/g, ' ').trim(), customer: /CUSTOMER/i.test(x.tag) });
+    });
+    if (!hits.length) return null;
+    hits.sort(function (a, b) { return a.t - b.t; });
+    var seen = {}, words = [];
+    hits.forEach(function (h) { var k = h.words.toLowerCase(); if (!seen[k]) { seen[k] = 1; words.push(h.words); } });
+    return { t: hits[hits.length - 1].t, date: hits[hits.length - 1].date, words: words.join(' / ').slice(0, 240), customer: hits.some(function (h) { return h.customer; }) };
+  } catch (e) { return null; }
+}
 var _LP_DRIVE_NAME = { AWD: 'AWD (all-wheel drive)', FWD: 'FWD (front-wheel drive)', RWD: 'RWD (rear-wheel drive)', '4WD': '4WD (four-wheel drive)', '2WD': '2WD' };
 function _lpDriveAsked(d) {
   try {
@@ -8579,6 +8619,26 @@ function populateFromData(d) {
   // (v9.7.797) the vehicle on the lead's drivetrain, and the rule for any unit we do not have it for
   try {
     if (d.voiDrivetrain && _LP_DRIVE_NAME[d.voiDrivetrain]) vehicleExtras.push('DRIVETRAIN: ' + _LP_DRIVE_NAME[d.voiDrivetrain] + ' -- VinSolutions\' own record of this unit.');
+    // (v9.7.845) the engine and transmission, stated only when what they raised is about them (see _lpPowertrain)
+    var _ptR = _lpPowertrain(d), _ptC = _ptR ? _lpPowertrainConcern(d) : null;
+    if (_ptR && _ptC) {
+      var _ptFacts = [], _ptAns = [];
+      if (_ptR.engine) _ptFacts.push('engine: ' + _ptR.engine + (_ptR.turbo === false && !_ptR.hybrid ? ' (no turbo)' : _ptR.turbo ? ' (turbocharged)' : ''));
+      if (_ptR.trans) _ptFacts.push('transmission: ' + _ptR.trans + (_ptR.cvt === false ? ' (not a CVT)' : ''));
+      var _ptW = _ptC.words.toLowerCase();
+      if (/\bcvt\b/.test(_ptW) && _ptR.cvt === false) _ptAns.push('no CVT');
+      if (/turbo/.test(_ptW) && _ptR.turbo === false && !_ptR.hybrid) _ptAns.push('no turbo');
+      var _ptMismatch = (/\bcvt\b/.test(_ptW) && _ptR.cvt === true) || (/turbo/.test(_ptW) && _ptR.turbo === true);
+      var _ptVeh = String(d.vehicle || '').replace(/^\s*(?:19|20)\d{2}\s+\S+\s+/, '').split(/\s+/)[0] || 'it';
+      vehicleExtras.push('\u2699 THE POWERTRAIN OF THIS UNIT -- VinSolutions\' own record of it, so it is a fact you may state: ' + _ptFacts.join('; ') + '. '
+        + (_ptC.customer ? 'They wrote' : 'Our note about them says') + ' (' + _ptC.date + '): "' + _ptC.words.replace(/"/g, "'") + '". '
+        + (_ptMismatch ? 'The record does NOT avoid what they raised: do not say it does, and do not bring the powertrain up yourself.'
+          : (_ptAns.length ? 'This answers it: say so plainly, once, in the email and the text -- e.g. "the ' + _ptVeh + ' has the ' + (_ptR.engine || 'engine') + (_ptR.trans ? ' with a ' + _ptR.trans : '') + ', so ' + _ptAns.join(' and ') + '." '
+            : 'Use it to answer what they raised, plainly and only as far as these facts go. ')
+          + 'If they described how it drove (the shifting, a hesitation), do not explain the cause or promise it is normal or fixed; you may offer to have someone go over it with them.')
+        + ' Never state any other engine, transmission or powertrain detail.');
+      console.log('[LP POWERTRAIN DIAG] raised (' + (_ptC.customer ? 'customer' : 'our note') + ' ' + _ptC.date + '): "' + _ptC.words.slice(0, 70) + '" | record: ' + _ptFacts.join('; ') + ' | ' + (_ptMismatch ? 'record conflicts -- not claimed' : (_ptAns.length ? 'answers: ' + _ptAns.join(', ') : 'stated as reference')));
+    }
     if (_lpDriveAsked(d)) {
       vehicleExtras.push('🚙 DRIVETRAIN ' + (_lpDriveRequired(d) ? 'REQUIREMENT' : 'QUESTION') + ': ' + _lpDriveLine(d));
       console.log('[LP DRIVETRAIN DIAG] asked: "' + String(d.lastInboundMsg || '').slice(0, 60) + '" | on record for the vehicle on the lead: ' + (d.voiDrivetrain || 'no'));
@@ -12079,6 +12139,16 @@ function _lpScraperBotAuthor(msg) {
       }
       _lpD('[LP DRIVETRAIN DIAG] vehicle on the lead: ' + (_voiDrive ? _voiDrive + ' (' + _voiDriveSrc + ')' : 'not on record' + (_voiSwap ? ' (the store changed the vehicle on this lead -- not read)' : '')));
     } catch (eDv) { _voiDrive = ''; }
+    // (v9.7.845) ITS ENGINE AND TRANSMISSION, FROM THE SAME RECORD AND UNDER THE SAME CONDITIONS. Honda Lafayette lead 2107308865
+    // (log386): LeadVehicle carries "EngineName":"Regular Gasoline V-6 3.5 L/212" and "TransmissionName":"10-Speed Automatic w/OD".
+    var _voiEngine = '', _voiTrans = '';
+    try {
+      if (!_voiSwap && !(autoLeadId && _pdLeadIdH && autoLeadId !== _pdLeadIdH)) {
+        _voiEngine = String(_pdH_V.EngineName || '').replace(/\s+/g, ' ').trim().slice(0, 80);
+        _voiTrans = String(_pdH_V.TransmissionName || _pdH_V.Transmission || '').replace(/\s+/g, ' ').trim().slice(0, 80);
+      }
+      if (_voiEngine || _voiTrans) _lpD('[LP POWERTRAIN DIAG] vehicle on the lead: engine "' + (_voiEngine || '-') + '" | transmission "' + (_voiTrans || '-') + '" (VinSolutions record)');
+    } catch (eVp) { _voiEngine = ''; _voiTrans = ''; }
     // ── (v9.7.480/475 — STAGE 2) authoritative array + certified facts from the hoist ──────────
     // Trades[] carries TYPED trade records (YearName/Make/Model/ModelTrim/Mileage — confirmed on
     // the Christina Fregia dump: 2023 Kia Telluride S, 52,000 mi) and VehiclesOfInterest[] is an
@@ -19284,6 +19354,9 @@ function _lpScraperBotAuthor(msg) {
       voiSwap: (typeof _voiSwap !== 'undefined' && _voiSwap) ? _voiSwap : null,
       // (v9.7.797) the vehicle on the lead's drivetrain (AWD/FWD/RWD/4WD/2WD), from VinSolutions' own record of it.
       voiDrivetrain: (typeof _voiDrive === 'string') ? _voiDrive : '',
+      // (v9.7.845) its engine and transmission, from the same record
+      voiEngine: (typeof _voiEngine === 'string') ? _voiEngine : '',
+      voiTransmission: (typeof _voiTrans === 'string') ? _voiTrans : '',
       // (v9.7.803) the Fullpath conversion note on this lead -- what they acted on (see _lpFullpath)
       fullpathConversion: (typeof _lpFullpathNote === 'string') ? _lpFullpathNote : '',
       clickPathUrl: (typeof _lpClickPathUrl === 'string') ? _lpClickPathUrl : '',   // (v9.7.835)
