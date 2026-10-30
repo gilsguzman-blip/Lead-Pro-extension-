@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.841 (Commercial. A BOX THAT DID NOT TRANSLATE IS RETRIED, THEN SAID SO; A BOX ALREADY IN SPANISH IS LEFT ALONE. Extension only; proxy v7.90, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Toyota Baytown, 10/30 (log383): parked on the email, the agent pressed translate; the email came back in Spanish, the text stayed in English, the button said 'Translated!' and nothing reached the console. Gil: 'Bug?' Yes, and not the tab: the button sends every box as its own request, and a request that came back as the proxy's fallback, an error or no usable reply returned the original English silently. A second press translated the text and sent the already-Spanish email through again. (1) _lpTranslateOne returns { text, ok, why } and counts a reply as translated only when it reads as Spanish (_lpLooksSpanish); _lpTranslateAll retries a box once when it did not come back in Spanish. (2) A box already in Spanish is not sent again. (3) The button names a box that still did not translate ('Text didn’t translate — tap again') instead of 'Translated!', and returns to the HTML's own label (it used to come back as 'Mx Espanol'). (4) [LP TRANSLATE DIAG] logs every press: each box translated, translated after a retry, NOT TRANSLATED (fallback / error / no-reply / unchanged), already Spanish or empty. TESTS: translate-841 (new) executes _lpTranslateAll and the shipped click handler with the proxy stubbed: 16 assertions across both builds; v9.7.840 fails 7 of 8 per build (the control passes). VERIFIED: run-all 277 suites green, 9,251 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.840.)
 // Lead Pro -- popup.js  v9.7.840 (Commercial. CLICK & GO IS NAMED IN A FORMAT THAT HAS NOT NAMED IT; THE TEXT REWRITE DOES NOT REOPEN ON WHAT OUR LAST TEXT SAID. Extension only; proxy v7.90, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Toyota Baytown lead 2107371352 (log382, v9.7.839): our 4:58 text already said 'I saw you built a payment in Click & Go'; the next text did not say it again, and [LP CLICK&GO BRAND DIAG] logged sms:MISSING. Gil: 'is it wrong, though? Remember the first reach already went out ... that has Click & Go mentioned', then 'let's be consistent'. The same capture: the first pass opened on the drive-out numbers, and the rewrite opened on the RAV4 being 'here and available' -- what the 4:58 text had already said. (1) _lpClickGoNamed reads our texts and emails on this lead: the follow-up arm's BRAND line asks for Click & Go only in a format that has not named it (the email when our text did, the text when our email did); both named, neither has to, once in passing if it fits; neither named, the v9.7.787 line unchanged. (2) [LP CLICK&GO BRAND DIAG] reports a format that already named it as 'not needed (named in our 10/29 text)', not MISSING. (3) Text rewrite: when our newest text said the car is here, the customer has not written since, and the rewrite opens on the car being here while the first pass opened on something else, the first pass ships. TESTS: clickgo-840 (new) builds the prompt through the shipped panel payload and executes _lpRefineSms: 18 assertions across both builds; v9.7.839 fails 5 of 9 per build (the 4 controls pass). clickgo-787 expects the email-only line on its fixture (our text already named Click & Go); dr-session's sandbox carries the brand line. VERIFIED: run-all 276 suites green, 9,235 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.839.)
 // Lead Pro -- popup.js  v9.7.839 (Commercial. THEY ASKED FOR THE OUT-THE-DOOR PRICE ON THE CALL; BAYTOWN FOLLOWS UP WITH THE DRIVE-OUT, LAFAYETTE DOES NOT, AND BOTH PUSH THE VISIT; THE CREDIT APPLICATION IS THE NEXT STEP. Extension only; proxy v7.90, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Toyota Baytown lead 2107371352 (log381, Click & Go): the call note said 'interested. wants OTD', and the text rewrite opened 'the out-the-door figure you asked about is something we can go through together at the dealership' -- to someone who asked for it, a no; it closed asking for a good time for a call minutes after the call. The session note said 'Credit App: Not Started' and nothing offered it. Gil, 10/29: 'The Baytown stores agents can follow up with Drive out. Lafayette stores we can not due to parish tax variances. Although we would like them to come in and review the drive out. So we would push for an appointment regardless.' (1) _lpOtdAsk: the newest out-the-door ask on this lead -- a customer message with an out-the-door phrase, or a call or note of ours saying they want it (not one saying we sent it); none for a customer quiet 14+ days. (2) Baytown (any store but the two Lafayette stores): a new OUT-THE-DOOR PRICE block says they asked (a call counts as asking), not to open on it or put it off to a visit or a call, to say plainly the drive-out numbers are being put together with no figure of our own, then to ask for the appointment to go over them, asking again about times our last message offered. Lafayette: the parish policy stands; it now names the ask and says to open on the car or the proposal, give the parish reason in one sentence and push the visit. Neither fires when a figure already went out. [LP OTD ASK DIAG] logs the decision. (3) The scraper reads 'Credit App: Not Started' and the payment type off the Click & Go note (vrCreditAppNotStarted, vrPayType, carried in the panel payload); a financed or leased session with the application not started is offered the secure credit application once, in the text and the email, never instead of the visit and never with a score, tier, approval or rate. [LP CREDIT APP STEP DIAG]. (4) Text rewrite, on a lead with an out-the-door ask: a rewrite that opens by putting the price off ('in person', 'at the dealership', 'go over it together', 'on a call') when the first pass did not -- or, at Baytown, puts it off anywhere -- does not ship. Replayed on log381's capture: both blocks appear and nothing else changes. TESTS: otd-creditapp-839 (new) runs the shipped inlineScraper in Chromium, builds the prompt through the shipped panel payload and executes _lpRefineSms: 34 assertions across both builds; v9.7.838 fails 12 of 17 per build (the 5 controls pass). VERIFIED: run-all 275 suites green, 9,217 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.838.)
 // Lead Pro -- popup.js  v9.7.838 (Commercial. A LATER INQUIRY IS SOMETHING THEY TOLD US; THE EXTRA VEHICLE IS ADDED, NOT OPTIONAL; THE YES SURVIVES THE REWRITE. Extension only; proxy v7.90, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Honda Lafayette lead 2106212974 on v9.7.837 (log379): the CR-V suggestion was 'you may add' and both generations left it out; the second generation's text rewrite turned '<name>, yes--we have new Accord Sedans here right now...' into '<name>, I can send you a few new Accord Sedan options...'. Gil: 'the additional unit should automatically be added with the right messaging as a suggestion and not a spy situation. Now in this case the path shows lead submitted on the CR-V. We can see this .... right??' -- yes: the 10/29 session ends 'Lead Submitted - <another lead>'. (1) _lpClickLater decides the later visit once: 'inquiry' when that session submitted a lead -- named as their inquiry ('and I see you also asked about the CR-V; we have plenty of those here too'), even without a natural pairing, and honestly when none is in stock; 'suggest' when browsed only, a natural pairing and in stock (the v9.7.837 rules); otherwise 'general'. Inquiry and suggestion are ADDED, in the email and the text; never as browsing. (2) A console line flags the second inquiry so the agent can look for a second lead or a duplicate customer in the CRM. (3) Text rewrite, click-path leads: a first pass that answered 'yes', or named the inquiry or suggestion, ships when the rewrite drops it. TESTS: click-path-838 (new) executes _lpClickPathLines and _lpRefineSms: 22 assertions across both builds; v9.7.837 fails 8 of 11 per build (the 3 controls pass). click-path-835 now expects the real page's 10/29 lead to be named as an inquiry; click-path-836/837 use a browse-only later visit, and 837 accepts 'ADD'. VERIFIED: run-all 274 suites green, 9,183 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.837.)
@@ -10973,17 +10974,82 @@ document.getElementById('btnClear').addEventListener('click', clearFields);
 })();
 
 // ── Translate to Spanish ──────────────────────────────────────────
+// (v9.7.841) A BOX THAT DID NOT TRANSLATE IS RETRIED, THEN SAID SO; A BOX ALREADY IN SPANISH IS LEFT ALONE. Toyota Baytown, 10/30
+// (log383): parked on the email, the agent pressed translate; the email came back in Spanish and the text stayed in English, with
+// "Translated!" on the button and nothing in the console. Each box is its own request, and a request that came back as the proxy's
+// fallback, an error or no usable reply returned the original English silently. A second press re-translated the Spanish email.
+var LP_ES_WORD_RX = /\b(?:el|la|los|las|que|para|con|por|usted|su|sus|una|un|est[aá]|tiene|le|lo|del|al|es|muy|gracias|hola|puedo|quiere|nuestro|nuestra|podemos|tenemos|aqu[ií]|cu[aá]ndo|d[ií]a|ma[nñ]ana|hoy)\b/gi;
+var LP_EN_WORD_RX = /\b(?:the|and|you|your|to|for|with|is|are|we|our|this|that|have|it|of|would|can|here|about|let|me|know)\b/gi;
+function _lpLooksSpanish(text) {
+  var t = String(text || ''), es = (t.match(LP_ES_WORD_RX) || []).length + (t.match(/[¿¡ñ]/g) || []).length, en = (t.match(LP_EN_WORD_RX) || []).length;
+  return es >= 3 && es > en * 1.5;
+}
+// One box: { text, ok, why } -- ok only when Spanish came back. why: translated | fallback | error | no-reply | unchanged | skipped.
+async function _lpTranslateOne(text, label, endpoint) {
+  if (!text || text.length < 5) return { text: text, ok: true, why: 'skipped' };
+  var prompt = [
+    'Translate this dealership BDC ' + label + ' message to conversational Mexican Spanish.',
+    'Keep tone warm and natural. Keep names, phone numbers, store names, and times exactly as-is.',
+    // (v9.7.755) 10/2: one translated email turned "Internet Sales Coordinator" into Spanish, the next left it in English.
+    'Translate the job title in the signature too (for example "Internet Sales Coordinator" -> "Coordinador(a) de Ventas por Internet", "Audi Concierge" stays "Audi Concierge"), so no English line is left under a Spanish message.',
+    'CRITICAL: Preserve ALL line breaks exactly as they appear in the original. The email signature must remain stacked on separate lines — do NOT join signature lines with commas.',
+    'Return ONLY a JSON object with this exact shape: {"translation": "<the translated text>"}. The translation field must contain the full translated message including all line breaks (use \\n for line breaks within the string). Return ONLY this JSON — no markdown, no explanation.',
+    '',
+    'ORIGINAL TEXT TO TRANSLATE:',
+    text
+  ].join('\n');
+  var data;
+  try {
+    var resp = await fetch(endpoint.url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(_lpAttachLicense({
+        system_instruction: { parts: [{ text: 'You are a professional automotive BDC translator. Translate to natural Mexican Spanish. Always return your translation wrapped in {"translation": "..."} JSON. Preserve line breaks as \\n in the JSON string.' }] },
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.2, maxOutputTokens: 3000, responseMimeType: 'application/json' }
+      })) // (v9.7.379/377 W3) — closes _lpAttachLicense(
+    });
+    data = await resp.json();
+  } catch (e) { return { text: text, ok: false, why: 'error' }; }
+  if (!data || !data.candidates || !data.candidates[0]) return { text: text, ok: false, why: 'no-reply' };
+  if (data.candidates[0]._fallback) return { text: text, ok: false, why: 'fallback' }; // (v9.7.379/377 W4) fallback ≠ translation
+  var raw = String((data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0] && data.candidates[0].content.parts[0].text) || '').trim();
+  // Strip markdown code fences if present
+  raw = raw.replace(/^```[a-z]*\n?/i, '').replace(/\n?```$/, '').trim();
+  var out = raw;
+  // Parse JSON wrapper to extract the translation
+  try {
+    var parsed = JSON.parse(raw);
+    if (typeof parsed === 'object' && parsed !== null) {
+      out = parsed.translation || parsed.text || parsed.message || parsed.sms || parsed.email || parsed.voicemail || parsed.body || parsed.content || '';
+      if (!out && parsed.error) { console.warn('[Lead Pro] Translation API returned error:', parsed.error); return { text: text, ok: false, why: 'error' }; }
+    }
+  } catch (e) {
+    // Not valid JSON — use the raw text if it reads as Spanish (checked below).
+  }
+  if (!out) return { text: text, ok: false, why: 'no-reply' };
+  if (out.trim() === text.trim() || !_lpLooksSpanish(out)) return { text: text, ok: false, why: 'unchanged' };
+  return { text: out, ok: true, why: 'translated' };
+}
+// Every box with text: already Spanish -> left alone; otherwise translated, and retried once if it did not come back in Spanish.
+// Returns [{ key, label, text, ok, why, tries }].
+async function _lpTranslateAll(boxes, endpoint) {
+  return Promise.all(boxes.map(async function (b) {
+    if (!b.text || b.text.length < 5) return { key: b.key, label: b.label, text: b.text, ok: true, why: 'empty', tries: 0 };
+    if (_lpLooksSpanish(b.text)) return { key: b.key, label: b.label, text: b.text, ok: true, why: 'already Spanish', tries: 0 };
+    var r = await _lpTranslateOne(b.text, b.kind, endpoint), tries = 1;
+    if (!r.ok) { r = await _lpTranslateOne(b.text, b.kind, endpoint); tries = 2; }
+    return { key: b.key, label: b.label, text: r.text, ok: r.ok, why: r.why, tries: tries };
+  }));
+}
+
 document.getElementById('btnTranslate').addEventListener('click', async function() {
   const btn = this;
-  const smsEl   = document.getElementById('output-sms');
-  const emailEl = document.getElementById('output-email');
-  const vmEl    = document.getElementById('output-vm');
+  const label0 = btn.dataset.lpLabel || (btn.dataset.lpLabel = btn.textContent);   // (v9.7.841) the HTML's own label comes back
+  const els = { sms: document.getElementById('output-sms'), email: document.getElementById('output-email'), vm: document.getElementById('output-vm') };
+  const val = function (k) { return (els[k] && els[k].value) ? els[k].value.trim() : ''; };
 
-  const smsText   = (smsEl   && smsEl.value)   ? smsEl.value.trim()   : '';
-  const emailText = (emailEl && emailEl.value)  ? emailEl.value.trim() : '';
-  const vmText    = (vmEl    && vmEl.value)     ? vmEl.value.trim()    : '';
-
-  if (!smsText && !emailText && !vmText) {
+  if (!val('sms') && !val('email') && !val('vm')) {
     alert('Generate messages first, then translate.');
     return;
   }
@@ -10994,74 +11060,31 @@ document.getElementById('btnTranslate').addEventListener('click', async function
   btn.classList.add('translating');
   btn.textContent = 'Traduciendo...';
 
-  async function translateOne(text, label) {
-    if (!text || text.length < 5) return text;
-    const prompt = [
-      'Translate this dealership BDC ' + label + ' message to conversational Mexican Spanish.',
-      'Keep tone warm and natural. Keep names, phone numbers, store names, and times exactly as-is.',
-      // (v9.7.755) 10/2: one translated email turned "Internet Sales Coordinator" into Spanish, the next left it in English.
-      'Translate the job title in the signature too (for example "Internet Sales Coordinator" -> "Coordinador(a) de Ventas por Internet", "Audi Concierge" stays "Audi Concierge"), so no English line is left under a Spanish message.',
-      'CRITICAL: Preserve ALL line breaks exactly as they appear in the original. The email signature must remain stacked on separate lines — do NOT join signature lines with commas.',
-      'Return ONLY a JSON object with this exact shape: {"translation": "<the translated text>"}. The translation field must contain the full translated message including all line breaks (use \\n for line breaks within the string). Return ONLY this JSON — no markdown, no commentary, no other fields.',
-      '',
-      'ORIGINAL TEXT TO TRANSLATE:',
-      text
-    ].join('\n');
-    const resp = await fetch(endpoint.url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(_lpAttachLicense({
-        system_instruction: { parts: [{ text: 'You are a professional automotive BDC translator. Translate to natural Mexican Spanish. Always return your translation wrapped in {"translation": "..."} JSON. Preserve line breaks as \\n in the JSON string.' }] },
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.2, maxOutputTokens: 3000, responseMimeType: 'application/json' }
-      })) // (v9.7.379/377 W3) — closes _lpAttachLicense(
-    });
-    const data = await resp.json();
-    if (!data.candidates || !data.candidates[0]) return text;
-    if (data.candidates[0]._fallback) return text; // (v9.7.379/377 W4) fallback ≠ translation
-    var raw = (data?.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
-    // Strip markdown code fences if present
-    raw = raw.replace(/^```[a-z]*\n?/i, '').replace(/\n?```$/,'').trim();
-    // Parse JSON wrapper to extract the translation
-    try {
-      var parsed = JSON.parse(raw);
-      if (typeof parsed === 'object' && parsed !== null) {
-        var unwrapped = parsed.translation || parsed.text || parsed.message ||
-                        parsed.sms || parsed.email || parsed.voicemail ||
-                        parsed.body || parsed.content || '';
-        if (unwrapped) return unwrapped;
-        // If error field present, surface it but return original text so user isn't left with garbage
-        if (parsed.error) {
-          console.warn('[Lead Pro] Translation API returned error:', parsed.error);
-          return text;
-        }
-      }
-    } catch(e) {
-      // Not valid JSON — fall through and use raw text. May happen if model
-      // returned plain text despite the instruction. Better than nothing.
-    }
-    return raw || text;
-  }
-
   try {
-    const [transSMS, transEmail, transVM] = await Promise.all([
-      translateOne(smsText, 'SMS'),
-      translateOne(emailText, 'email'),
-      translateOne(vmText, 'voicemail')
-    ]);
-
-    if (transSMS   && smsEl)   { smsEl.value   = transSMS;   updateWordCount('sms'); }
-    if (transEmail && emailEl) { emailEl.value  = transEmail; updateWordCount('email'); }
-    if (transVM    && vmEl)    { vmEl.value     = transVM;    updateWordCount('vm'); }
-
-    btn.textContent = 'Translated!';
-    setTimeout(function() { btn.textContent = 'Mx Espanol'; btn.classList.remove('translating'); }, 2000);
+    const res = await _lpTranslateAll([
+      { key: 'sms', label: 'Text', kind: 'SMS', text: val('sms') },
+      { key: 'email', label: 'Email', kind: 'email', text: val('email') },
+      { key: 'vm', label: 'Voicemail', kind: 'voicemail', text: val('vm') }
+    ], endpoint);
+    res.forEach(function (r) { if (r.ok && r.tries && r.text && els[r.key]) { els[r.key].value = r.text; updateWordCount(r.key); } });
+    try {
+      console.log('[LP TRANSLATE DIAG] ' + res.map(function (r) { return r.label.toLowerCase() + ':' + (r.tries ? (r.ok ? 'translated' : 'NOT TRANSLATED (' + r.why + ')') + (r.tries > 1 ? ' after a retry' : '') : r.why); }).join(' | '));
+    } catch (eTd) {}
+    const missed = res.filter(function (r) { return !r.ok; }).map(function (r) { return r.label; });
+    btn.classList.remove('translating');
+    if (missed.length) {
+      btn.textContent = missed.join(', ') + ' didn’t translate — tap again';
+      setTimeout(function() { btn.textContent = label0; }, 6000);
+    } else {
+      btn.textContent = 'Translated!';
+      setTimeout(function() { btn.textContent = label0; }, 2000);
+    }
 
   } catch(err) {
     console.error('[Lead Pro] Translation error:', err);
     btn.textContent = 'Error — try again';
     btn.classList.remove('translating');
-    setTimeout(function() { btn.textContent = 'Mx Espanol'; }, 3000);
+    setTimeout(function() { btn.textContent = label0; }, 3000);
   }
 });
 
