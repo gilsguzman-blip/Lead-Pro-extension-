@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>
+      Lead Pro · Feedback Gatherer
+    </title>
+    <style>
+      :root{
+    --bg:#0d1117; --panel:#161b22; --panel2:#1c222b; --line:#30363d; --line2:#21262d;
+    --ink:#e6edf3; --mute:#8b949e; --faint:#6e7681;
+    --brand:#58a6ff;
+    --down:#f85149; --downbg:#2a1416; --downline:#5d2326;
+    --ship:#3fb950; --shipbg:#11261a; --shipline:#1f5132;
+    --amber:#d29922;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.5}
+  a{color:var(--brand)}
+  button{font-family:inherit;cursor:pointer}
+  input{font-family:inherit}
+  .wrap{max-width:1100px;margin:0 auto;padding:22px 20px 120px}
+
+  /* Header */
+  header{display:flex;flex-wrap:wrap;align-items:flex-end;gap:18px;border-bottom:1px solid var(--line);padding-bottom:18px;margin-bottom:20px}
+  .brand{display:flex;flex-direction:column;gap:3px;min-width:230px}
+  .brand .kicker{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--faint);font-weight:600}
+  .brand h1{margin:0;font-size:21px;font-weight:680;letter-spacing:-.01em}
+  .brand .sub{font-size:12.5px;color:var(--mute)}
+  .controls{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-left:auto}
+  .field{display:flex;flex-direction:column;gap:5px}
+  .field label{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);font-weight:600}
+  .field input{background:var(--panel);border:1px solid var(--line);color:var(--ink);border-radius:7px;padding:8px 10px;font-size:13px}
+  .field input[type=date]{color-scheme:dark;min-width:140px}
+  .field input.url{min-width:300px;font-family:var(--mono);font-size:12px}
+  .field input.key{min-width:190px;font-family:var(--mono);font-size:12px}
+  .field input:focus{outline:2px solid var(--brand);outline-offset:-1px;border-color:var(--brand)}
+  .btn{background:var(--brand);color:#0a1422;border:0;border-radius:7px;padding:9px 16px;font-size:13px;font-weight:650}
+  .btn:hover{filter:brightness(1.08)}
+  .btn:disabled{opacity:.5;cursor:default}
+  .btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+  .btn.ghost:hover{border-color:var(--brand);color:var(--brand);filter:none}
+
+  .status{font-size:12.5px;color:var(--mute);min-height:18px;margin:-6px 0 16px}
+  .status.err{color:var(--down)}
+  .status .spin{display:inline-block;width:11px;height:11px;border:2px solid var(--line);border-top-color:var(--brand);border-radius:50%;animation:sp .7s linear infinite;vertical-align:-1px;margin-right:7px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+
+  /* Summary */
+  .summary{display:none;gap:14px;margin-bottom:18px}
+  .summary.on{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+  .tile{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:13px 15px}
+  .tile .n{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+  .tile .l{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin-top:2px}
+  .tile.down .n{color:var(--down)} .tile.ship .n{color:var(--ship)}
+  .tile .break{margin-top:9px;display:flex;flex-direction:column;gap:4px}
+  .tile .break .r{display:flex;justify-content:space-between;font-size:11.5px;color:var(--mute);gap:8px}
+  .tile .break .r b{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+
+  /* Toolbar / filters */
+  .toolbar{display:none;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--line2)}
+  .toolbar.on{display:flex}
+  .filtergroup{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+  .filtergroup .gl{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);font-weight:600;margin-right:2px}
+  .chip{background:var(--panel);border:1px solid var(--line);color:var(--mute);border-radius:999px;padding:4px 11px;font-size:12px;font-weight:550}
+  .chip.on{background:var(--panel2);border-color:var(--brand);color:var(--ink)}
+  .chip:hover{color:var(--ink)}
+  .count{margin-left:auto;font-size:12.5px;color:var(--mute);font-variant-numeric:tabular-nums}
+  .count b{color:var(--ink)}
+
+  /* Pair cards */
+  .rows{display:flex;flex-direction:column;gap:14px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:11px;overflow:hidden}
+  .chead{display:flex;flex-wrap:wrap;align-items:center;gap:9px;padding:11px 15px;border-bottom:1px solid var(--line2);background:var(--panel2)}
+  .badge{font-size:11px;font-weight:680;letter-spacing:.03em;padding:3px 9px;border-radius:6px;text-transform:uppercase}
+  .badge.down{background:var(--downbg);color:var(--down);border:1px solid var(--downline)}
+  .badge.neutral{background:#2a230f;color:var(--amber);border:1px solid #5a4711}
+  .badge.weak_up{background:#11261a;color:var(--ship);border:1px solid var(--shipline)}
+  .chead .who{font-weight:620;font-size:13.5px}
+  .chead .meta{font-size:12px;color:var(--mute);display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .chead .meta .dot{color:var(--faint)}
+  .chead .time{margin-left:auto;font-size:11.5px;color:var(--faint);font-family:var(--mono);white-space:nowrap}
+  /* Deep link to the lead in VinSolutions. Only rendered when the feedback record carries an
+     autoLeadId (extension v9.7.489+); older records show nothing rather than a dead link. */
+  .chead .vinlink{font-size:11.5px;text-decoration:none;padding:2px 9px;border-radius:999px;
+    border:1px solid rgba(88,166,255,.45);color:var(--brand);white-space:nowrap;line-height:1.6}
+  .chead .vinlink:hover{background:rgba(88,166,255,.14);color:#cfe0ff;border-color:rgba(88,166,255,.8)}
+  .tag{font-size:10.5px;font-family:var(--mono);color:var(--mute);background:var(--bg);border:1px solid var(--line2);border-radius:5px;padding:2px 6px}
+  .tag.flag{color:var(--amber);border-color:#4a3a0e}
+
+  .pair{display:grid;grid-template-columns:1fr 30px 1fr;align-items:stretch}
+  @media(max-width:720px){.pair{grid-template-columns:1fr;}.arrow{display:none!important}}
+  .side{padding:13px 15px}
+  .side .sl{font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;font-weight:680;margin-bottom:8px;display:flex;align-items:center;gap:7px}
+  .side.prior{background:var(--downbg)} .side.prior .sl{color:var(--down)}
+  .side.final{background:var(--shipbg)} .side.final .sl{color:var(--ship)}
+  .side.prior{border-right:1px solid var(--line2)}
+  .arrow{display:flex;align-items:center;justify-content:center;color:var(--faint);font-size:16px;background:linear-gradient(90deg,var(--downbg),var(--shipbg))}
+  .msg{font-family:var(--mono);font-size:12px;line-height:1.55;white-space:pre-wrap;word-break:break-word;color:var(--ink);margin:0 0 10px}
+  .msg:last-child{margin-bottom:0}
+  .ch{font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);font-weight:650;margin:0 0 3px}
+  .none{font-family:var(--sans);font-style:italic;color:var(--faint);font-size:12px}
+  .emailtoggle{font-size:11.5px;color:var(--brand);background:none;border:0;padding:2px 0;margin-top:2px}
+  .emailbody{display:none} .emailbody.on{display:block}
+
+  /* Empty / states */
+  .empty{display:none;border:1px dashed var(--line);border-radius:11px;padding:40px 24px;text-align:center;color:var(--mute)}
+  .empty.on{display:block}
+  .empty h3{margin:0 0 6px;color:var(--ink);font-weight:620;font-size:15px}
+  .empty p{margin:0;font-size:13px}
+
+  /* Export bar */
+  .exportbar{position:fixed;left:0;right:0;bottom:0;background:rgba(13,17,23,.94);backdrop-filter:blur(8px);border-top:1px solid var(--line);padding:12px 20px;display:none;z-index:5}
+  .exportbar.on{display:block}
+  .exportbar .inner{max-width:1100px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+  .exportbar .lead{font-size:12.5px;color:var(--mute)}
+  .exportbar .lead b{color:var(--ink)}
+  .exportbar .sp{margin-left:auto;display:flex;gap:10px;flex-wrap:wrap}
+  .toast{position:fixed;bottom:74px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--ship);color:#04130a;font-weight:650;font-size:13px;padding:9px 16px;border-radius:8px;opacity:0;transition:.25s;pointer-events:none;z-index:9}
+  .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <div class="brand">
+          <span class="kicker">          Lead Pro
+</span>
+          <h1>
+            Feedback Gatherer
+          </h1>
+          <span class="sub">          Pull the 👎 / regen draft pairs and package them for analysis.
+</span>
+        </div>
+        <div class="controls">
+          <div class="field">
+            <label>
+              Worker URL
+            </label>
+            <input class="url" id="worker" value="https://leadpro-proxy.gilsguzman.workers.dev" spellcheck="false" />
+          </div>
+          <!-- (v1.5) No key in this file and no Pages Function. The page calls the worker directly and
+           asks for the director key once; it is kept in this browser only (localStorage). -->
+          <div class="field">
+            <label>
+              From (Central)
+            </label>
+            <input type="date" id="from" />
+          </div>
+          <div class="field">
+            <label>
+              To (Central)
+            </label>
+            <input type="date" id="to" />
+          </div>
+          <button class="btn" id="fetch">
+            Gather
+          </button>
+        </div>
+      </header>
+      <div class="status" id="status">
+      </div>
+      <section class="summary" id="summary">
+      </section>
+      <div class="toolbar" id="toolbar">
+        <div class="filtergroup" id="f-rating">
+        </div>
+        <div class="filtergroup" id="f-store">
+        </div>
+        <div class="filtergroup" id="f-scenario">
+        </div>
+        <div class="count" id="count">
+        </div>
+      </div>
+      <div class="empty" id="empty">
+        <h3>
+          Nothing gathered yet
+        </h3>
+        <p>
+          Pick a date range and hit
+          <b>          Gather
+</b>
+          . Pairs only appear for sessions where an agent thumbed down or regenerated — clean first-try copies carry no content by design.
+        </p>
+      </div>
+      <div class="rows" id="rows">
+      </div>
+    </div>
+    <div class="exportbar" id="exportbar">
+      <div class="inner">
+        <span class="lead">        Packaging
+        <b id="exp-count">        0
+</b>
+        pairs for
+        <b id="exp-range"></b>
+        — PII already scrubbed at capture.
+</span>
+        <div class="sp">
+          <button class="btn ghost" id="copyjson">
+            Copy JSON
+          </button>
+          <button class="btn ghost" id="dlmd">
+            Download Markdown
+          </button>
+          <button class="btn" id="dljson">
+            Download JSON for Claude
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="toast" id="toast">
+    </div>
+    <script>
+      "use strict";
+const $ = id => document.getElementById(id);
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+// ---- state ----
+const state = { all:[], view:[], range:{from:'',to:''}, filters:{rating:new Set(), store:new Set(), scenario:new Set()} };
+
+// (v1.5) Director key — asked for once, kept in this browser only. v1.3/v1.4 relied on a Pages
+// Function that injected a DIRECTOR_KEY secret, so rotating the key meant a redeploy that an
+// upload-only Pages project can't do. Now a refused key just prompts for the current one.
+const DIRECTOR_KEY_STORE = 'lp_director_key';
+function directorKey(askAgain){
+  let k='';
+  if(!askAgain){ try{ k=localStorage.getItem(DIRECTOR_KEY_STORE)||''; }catch(e){} }
+  if(!k){
+    k=String((typeof prompt==='function' && prompt(askAgain
+      ? 'That director key was refused. Enter the current one (kept in this browser only):'
+      : 'Lead Pro director key (kept in this browser only):'))||'').trim();
+    try{ if(k) localStorage.setItem(DIRECTOR_KEY_STORE,k); else localStorage.removeItem(DIRECTOR_KEY_STORE); }catch(e){}
+  }
+  return k;
+}
+
+// ---- Central date helpers (browser side) ----
+function centralToday(){
+  return new Intl.DateTimeFormat('en-CA',{timeZone:'America/Chicago',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+}
+function fmtCentral(utcIso){
+  try{
+    return new Intl.DateTimeFormat('en-US',{timeZone:'America/Chicago',month:'short',day:'2-digit',hour:'numeric',minute:'2-digit',hour12:true}).format(new Date(utcIso))+' CT';
+  }catch(e){ return utcIso; }
+}
+function enumerateDays(from,to){
+  const out=[]; let d=from;
+  // string-safe daily increment via Date in UTC (date-only, no tz drift for enumeration)
+  let cur=new Date(from+'T00:00:00Z'); const end=new Date(to+'T00:00:00Z');
+  if(isNaN(cur)||isNaN(end)||cur>end) return out;
+  while(cur<=end && out.length<31){ out.push(cur.toISOString().slice(0,10)); cur.setUTCDate(cur.getUTCDate()+1); }
+  return out;
+}
+
+// ---- defaults ----
+(function init(){
+  const today=centralToday();
+  const wk=new Date(today+'T00:00:00Z'); wk.setUTCDate(wk.getUTCDate()-6);
+  $('to').value=today; $('from').value=wk.toISOString().slice(0,10);
+})();
+
+// ---- fetch ----
+$('fetch').addEventListener('click', gather);
+async function gather(){
+  // (v1.5) call the worker directly (it allows X-LP-Key cross-origin).
+  const base=String($('worker').value||'').trim().replace(/\/+$/,'');
+  const from=$('from').value, to=$('to').value;
+  if(!base){ setStatus('Enter the worker URL first.',true); return; }
+  if(!from||!to){ setStatus('Pick both a From and To date.',true); return; }
+  const days=enumerateDays(from,to);
+  if(!days.length){ setStatus('That range is empty or backwards — From must be on or before To (max 31 days).',true); return; }
+
+  let key=directorKey(false);
+  if(!key){ setStatus('A director key is needed to gather feedback.',true); return; }
+
+  $('fetch').disabled=true; state.all=[]; state.range={from,to};
+  const seen=new Set(); let done=0;
+  for(const day of days){
+    setStatus(`<span class="spin"></span>Gathering ${day} … (${done}/${days.length} days, ${state.all.length} pairs)`);
+    try{
+      const url=`${base}/feedback/drafts?date=${day}`;
+      let res=await fetch(url,{headers:{'X-LP-Key':key}});
+      if(res.status===403){
+        // (v1.5) refused key: ask once for the current one, retry, and keep it if it works.
+        key=directorKey(true);
+        if(!key) throw new Error('No director key entered.');
+        res=await fetch(url,{headers:{'X-LP-Key':key}});
+      }
+      if(res.status===403){ throw new Error('403 — that director key was refused. It must be an active director-persona license key.'); }
+      if(!res.ok){ throw new Error(`HTTP ${res.status} from ${base}/feedback/drafts`); }
+      // (v1.4) Content-type guard: a wrong Worker URL can return an HTML page, and the only
+      // symptom would be JSON.parse choking on "<". Name the cause instead.
+      const ct=(res.headers.get('content-type')||'').toLowerCase();
+      if(!ct.includes('json')){
+        const peek=(await res.text()).slice(0,60).replace(/\s+/g,' ').trim();
+        throw new Error(`${base}/feedback/drafts returned ${ct||'no content-type'} instead of JSON. `
+          + `Check the Worker URL field. Received: "${peek}…"`);
+      }
+      const j=await res.json();
+      (j.rows||[]).forEach(r=>{ if(r&&r.id&&!seen.has(r.id)){ seen.add(r.id); state.all.push(r); } });
+    }catch(err){
+      $('fetch').disabled=false;
+      // (v1.4) esc() the message: setStatus writes with innerHTML, so an error containing "<"
+      // (e.g. a peek at an HTML fallback body) was silently truncating the rest of the sentence.
+      setStatus(`Couldn't reach the API on ${day}: ${esc(err && err.message ? err.message : String(err))}`,true);
+      return;
+    }
+    done++;
+  }
+  $('fetch').disabled=false;
+  state.all.sort((a,b)=> a.ts<b.ts?1:-1);
+  buildFilters(); applyFilters();
+  setStatus(`Gathered ${state.all.length} pair${state.all.length===1?'':'s'} across ${days.length} day${days.length===1?'':'s'} (${from} → ${to}, Central).`);
+}
+function setStatus(html,err){ const el=$('status'); el.innerHTML=html; el.classList.toggle('err',!!err); }
+
+// ---- summary + filters ----
+function tally(field){ const m={}; state.all.forEach(r=>{ const k=(field==='rating')?r.rating:(r.meta&&r.meta[field])||'unknown'; m[k]=(m[k]||0)+1; }); return m; }
+function tallyView(field){ const m={}; state.view.forEach(r=>{ const k=(field==='rating')?r.rating:(r.meta&&r.meta[field])||'unknown'; m[k]=(m[k]||0)+1; }); return m; }
+
+function buildFilters(){
+  // rating chips (fixed order), store + scenario chips (data-driven)
+  chipRow('f-rating','Rating',['down','neutral','weak_up'].filter(r=>tally('rating')[r]),'rating',tally('rating'));
+  const stores=Object.keys(tally('store')).sort();
+  const scenarios=Object.keys(tally('scenario')).sort();
+  chipRow('f-store','Store',stores,'store',tally('store'));
+  chipRow('f-scenario','Scenario',scenarios,'scenario',tally('scenario'));
+}
+function chipRow(elId,label,keys,dim,counts){
+  const el=$(elId); el.innerHTML='';
+  if(!keys.length){ return; }
+  el.insertAdjacentHTML('beforeend',`<span class="gl">${esc(label)}</span>`);
+  keys.forEach(k=>{
+    const b=document.createElement('button'); b.className='chip'; b.textContent=`${k} (${counts[k]||0})`;
+    b.dataset.k=k;
+    b.onclick=()=>{ const set=state.filters[dim]; set.has(k)?set.delete(k):set.add(k); b.classList.toggle('on'); applyFilters(); };
+    el.appendChild(b);
+  });
+}
+
+function applyFilters(){
+  const f=state.filters;
+  state.view=state.all.filter(r=>{
+    const m=r.meta||{};
+    if(f.rating.size && !f.rating.has(r.rating)) return false;
+    if(f.store.size && !f.store.has(m.store||'unknown')) return false;
+    if(f.scenario.size && !f.scenario.has(m.scenario||'unknown')) return false;
+    return true;
+  });
+  renderSummary(); renderRows(); renderExportBar();
+  $('summary').classList.toggle('on',state.all.length>0);
+  $('toolbar').classList.toggle('on',state.all.length>0);
+  $('empty').classList.toggle('on',state.all.length===0);
+}
+
+function renderSummary(){
+  const rv=tallyView('rating'), sc=tallyView('scenario'), ls=tallyView('leadSource');
+  const top=(m,n)=>Object.entries(m).sort((a,b)=>b[1]-a[1]).slice(0,n);
+  const breakRows=(m)=>top(m,4).map(([k,v])=>`<div class="r"><span>${esc(k)}</span><b>${v}</b></div>`).join('')||'<div class="r"><span>—</span></div>';
+  $('summary').innerHTML=`
+    <div class="tile"><div class="n">${state.view.length}</div><div class="l">Pairs shown</div></div>
+    <div class="tile down"><div class="n">${rv.down||0}</div><div class="l">Thumbed down</div></div>
+    <div class="tile ship"><div class="n">${(rv.neutral||0)+(rv.weak_up||0)}</div><div class="l">Shipped after fix</div></div>
+    <div class="tile"><div class="l">By scenario</div><div class="break">${breakRows(sc)}</div></div>
+    <div class="tile"><div class="l">By lead source</div><div class="break">${breakRows(ls)}</div></div>`;
+}
+
+function routeTags(route){
+  if(!route) return '';
+  const t=[];
+  if(route.exitSignal) t.push('exit');
+  if(route.pauseSignal) t.push('pause');
+  if(route.freshLeadActive) t.push('fresh');
+  if(route.directorMode) t.push('director:'+route.directorMode);
+  return t.map(x=>`<span class="tag flag">${esc(x)}</span>`).join('');
+}
+
+function draftBlock(d){
+  if(!d) return '<div class="none">— no prior (first-draft reject; nothing was replaced)</div>';
+  const sms=(d.sms||'').trim(), email=(d.email||'').trim(), vm=(d.voicemail||'').trim();
+  let h='';
+  if(sms){ h+=`<div class="ch">SMS</div><p class="msg">${esc(sms)}</p>`; }
+  const eid='e'+Math.random().toString(36).slice(2,8);
+  if(email){
+    h+=`<button class="emailtoggle" onclick="(function(b){var x=b.nextElementSibling;x.classList.toggle('on');b.textContent=x.classList.contains('on')?'Hide email':'Show email';})(this)">Show email</button>`;
+    h+=`<div class="emailbody" id="${eid}"><div class="ch" style="margin-top:8px">Email</div><p class="msg">${esc(email)}</p></div>`;
+  }
+  if(vm){ h+=`<div class="ch" style="margin-top:8px">Voicemail</div><p class="msg">${esc(vm)}</p>`; }
+  if(!sms&&!email&&!vm) h='<div class="none">— empty</div>';
+  return h;
+}
+
+function renderRows(){
+  const wrap=$('rows');
+  if(!state.view.length){ wrap.innerHTML = state.all.length? '<div class="empty on"><h3>No pairs match these filters</h3><p>Clear a chip above to widen the set.</p></div>' : ''; return; }
+  wrap.innerHTML = state.view.map(r=>{
+    const m=r.meta||{};
+    const chips=[m.scenario,m.leadSource,m.convState].filter(Boolean).map(x=>`<span class="tag">${esc(x)}</span>`).join('');
+    const regen=r.regenCount?`<span class="dot">·</span> ${r.regenCount} regen${r.regenCount>1?'s':''}`:'';
+    const chipsUsed=(r.chipsUsed&&r.chipsUsed.length)?`<span class="dot">·</span> chip: ${esc(r.chipsUsed.join(', '))}`:'';
+    // Deep link straight to this lead in VinSolutions. Uses the /vinconnect/#/ SPA-shell form so
+    // the CRM's own routing and session survive the jump (the bare /CarDashboard/ path also
+    // resolves but lands outside the shell). GlobalCustomerID is appended only when present —
+    // AutoLeadID alone still resolves the lead. Feedback written before extension v9.7.489 has no
+    // autoLeadId, so the link is omitted entirely rather than rendered dead.
+    const vinLink = m.autoLeadId
+      ? `<a class="vinlink" target="_blank" rel="noopener" title="Open this lead in VinSolutions" href="https://vinsolutions.app.coxautoinc.com/vinconnect/#/CarDashboard/Pages/LeadManagement/logcall.aspx?AutoLeadID=${encodeURIComponent(m.autoLeadId)}${m.customerId ? `&GlobalCustomerID=${encodeURIComponent(m.customerId)}` : ''}">open lead &#8599;</a>`
+      : '';
+    // Stock # / VIN tail, so vehicle-side questions can be answered without opening the lead.
+    const unitTag = (m.stockNum || m.vin)
+      ? `<span class="dot">·</span> ${esc(m.stockNum || '')}${(m.stockNum && m.vin) ? ' / ' : ''}${esc((m.vin || '').slice(-8))}`
+      : '';
+    return `<div class="card">
+      <div class="chead">
+        <span class="badge ${esc(r.rating)}">${esc(r.rating==='neutral'?'regen→shipped':r.rating)}</span>
+        <span class="who">${esc(m.store||'—')}</span>
+        <span class="meta">${esc(m.agent||'')} ${chips} ${routeTags(m.route)} ${regen} ${chipsUsed} ${unitTag}</span>
+        <span class="time">${esc(fmtCentral(r.ts))}</span>
+        ${vinLink}
+      </div>
+      <div class="pair">
+        <div class="side prior">
+          <div class="sl">✕ Rejected (prior)</div>
+          ${draftBlock(r.drafts&&r.drafts.prior)}
+        </div>
+        <div class="arrow">→</div>
+        <div class="side final">
+          <div class="sl">✓ ${r.rating==='down'?'Thumbed-down draft':'Shipped (final)'}</div>
+          ${draftBlock(r.drafts&&r.drafts.final)}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ---- export ----
+function renderExportBar(){
+  const on=state.view.length>0;
+  $('exportbar').classList.toggle('on',on);
+  $('exp-count').textContent=state.view.length;
+  $('exp-range').textContent=`${state.range.from} → ${state.range.to}`;
+}
+function buildExport(){
+  const sum=(field)=>{ const m={}; state.view.forEach(r=>{ const k=(field==='rating')?r.rating:(r.meta&&r.meta[field])||'unknown'; m[k]=(m[k]||0)+1; }); return m; };
+  return {
+    export:"leadpro-feedback-pairs",
+    generatedAt:new Date().toISOString(),
+    range:{from:state.range.from,to:state.range.to,tz:"America/Chicago"},
+    filtersApplied:{
+      rating:[...state.filters.rating], store:[...state.filters.store], scenario:[...state.filters.scenario]
+    },
+    summary:{
+      total:state.view.length,
+      byRating:sum('rating'), byScenario:sum('scenario'),
+      byLeadSource:sum('leadSource'), byStore:sum('store')
+    },
+    rows:state.view.map(r=>{
+      const m=r.meta||{};
+      return {
+        id:r.id, ts:r.ts, tsCentral:fmtCentral(r.ts),
+        rating:r.rating, regenCount:r.regenCount||0, chipsUsed:r.chipsUsed||[],
+        store:m.store, agent:m.agent, scenario:m.scenario, leadSource:m.leadSource,
+        convState:m.convState, leadAgeDays:m.leadAgeDays, route:m.route||null,
+        // Record locators (extension v9.7.489+). IDs only — no customer contact data ever.
+        autoLeadId:m.autoLeadId||'', customerId:m.customerId||'',
+        stockNum:m.stockNum||'', vin:m.vin||'',
+        // Prebuilt so an exported row is click-through-able without reassembling anything.
+        vinUrl: m.autoLeadId
+          ? `https://vinsolutions.app.coxautoinc.com/vinconnect/#/CarDashboard/Pages/LeadManagement/logcall.aspx?AutoLeadID=${m.autoLeadId}${m.customerId ? '&GlobalCustomerID=' + m.customerId : ''}`
+          : '',
+        drafts:r.drafts
+      };
+    })
+  };
+  // Note: director key intentionally never appears anywhere in this object.
+}
+function buildMarkdown(){
+  const x=buildExport(); const L=[];
+  L.push(`# Lead Pro feedback pairs — ${x.range.from} → ${x.range.to} (Central)`);
+  L.push(`Generated ${x.generatedAt}. ${x.summary.total} pairs.`);
+  L.push(``);
+  L.push(`Rating: ${Object.entries(x.summary.byRating).map(([k,v])=>`${k} ${v}`).join(' · ')}`);
+  L.push(`Scenario: ${Object.entries(x.summary.byScenario).map(([k,v])=>`${k} ${v}`).join(' · ')}`);
+  L.push(`Source: ${Object.entries(x.summary.byLeadSource).map(([k,v])=>`${k} ${v}`).join(' · ')}`);
+  L.push(``);
+  x.rows.forEach((r,i)=>{
+    L.push(`## ${i+1}. ${r.store||'—'} · ${r.rating} · ${r.scenario||'?'} / ${r.leadSource||'?'} / ${r.convState||'?'}`);
+    const rt=r.route?Object.entries(r.route).filter(([k,v])=>v).map(([k,v])=>`${k}=${v}`).join(' '):'';
+    L.push(`_${r.tsCentral} · agent ${r.agent||'?'} · ${r.regenCount} regen · age ${r.leadAgeDays??'?'}d${rt?' · route: '+rt:''}_`);
+    L.push(``);
+    L.push(`**Rejected (prior):**`);
+    L.push('```');
+    L.push(r.drafts&&r.drafts.prior ? ((r.drafts.prior.sms||'').trim()||'(no sms)') : '(none — first-draft reject)');
+    L.push('```');
+    L.push(`**${r.rating==='down'?'Thumbed-down':'Shipped (final)'}:**`);
+    L.push('```');
+    L.push(r.drafts&&r.drafts.final ? ((r.drafts.final.sms||'').trim()||'(no sms)') : '(none)');
+    L.push('```');
+    L.push(``);
+  });
+  return L.join('\n');
+}
+function dl(name,text,type){
+  const b=new Blob([text],{type}); const u=URL.createObjectURL(b);
+  const a=document.createElement('a'); a.href=u; a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(u),2000);
+}
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('on'); setTimeout(()=>t.classList.remove('on'),1600); }
+function stamp(){ return `${state.range.from}_${state.range.to}`; }
+
+$('dljson').addEventListener('click',()=>{ dl(`leadpro-feedback_${stamp()}.json`, JSON.stringify(buildExport(),null,2),'application/json'); toast('JSON downloaded'); });
+$('dlmd').addEventListener('click',()=>{ dl(`leadpro-feedback_${stamp()}.md`, buildMarkdown(),'text/markdown'); toast('Markdown downloaded'); });
+$('copyjson').addEventListener('click',async()=>{
+  try{ await navigator.clipboard.writeText(JSON.stringify(buildExport(),null,2)); toast('Copied — paste into Claude'); }
+  catch(e){ toast('Copy blocked — use Download instead'); }
+});
+    </script>
+  </body>
+</html>
