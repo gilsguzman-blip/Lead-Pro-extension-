@@ -48,9 +48,10 @@ for (const f of BUILDS) {
     quiet(() => us('our hour your four tour advertise promise exercise cancellation controlled')), 'our hour your four tour advertise promise exercise cancellation controlled');
   check('control: a factory paint name keeps its own spelling ("Magnetic Grey Metallic")', () => quiet(() => us('the Magnetic Grey Metallic one')), 'the Magnetic Grey Metallic one');
   check('every draft passes through it before it renders: text, email and voicemail (source)', () =>
-    [/_lpFinanceGuard\(\(\(typeof _lpAmericanSpelling === 'function'\) \? _lpAmericanSpelling\(cleanOutput\(rawSms, true\)\)/.test(src),
-     /_lpFinanceGuard\(\(\(typeof _lpAmericanSpelling === 'function'\) \? _lpAmericanSpelling\(cleanOutput\(rawEmail, false\)\)/.test(src),
-     /_lpFinanceGuard\(\(\(typeof _lpAmericanSpelling === 'function'\) \? _lpAmericanSpelling\(vmText\)/.test(src)], [true, true, true]);
+    // (v9.7.842) _lpHouseGuard may sit between the finance guard and the spelling pass.
+    [/_lpFinanceGuard\((?:_lpHouseGuard\()?\(\(typeof _lpAmericanSpelling === 'function'\) \? _lpAmericanSpelling\(cleanOutput\(rawSms, true\)\)/.test(src),
+     /_lpFinanceGuard\((?:_lpHouseGuard\()?\(\(typeof _lpAmericanSpelling === 'function'\) \? _lpAmericanSpelling\(cleanOutput\(rawEmail, false\)\)/.test(src),
+     /_lpFinanceGuard\((?:_lpHouseGuard\()?\(\(typeof _lpAmericanSpelling === 'function'\) \? _lpAmericanSpelling\(vmText\)/.test(src)], [true, true, true]);
 
   console.log(' 2. the prompts ask for it, and are written that way:');
   const sys = quiet(() => sb.__lp.buildSystemPrompt(LEAD()));

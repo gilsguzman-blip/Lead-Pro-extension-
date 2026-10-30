@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.842-dev (Dev. FROM THE 10/30 REPORT: STORE HOURS NOBODY ASKED FOR, OUR NOTES AND THEIR BROWSING COME OUT AT RENDER; PAUSING FOLLOW-UP IS A WITHDRAWAL. Ships with proxy v7.91 (a short translation is not an empty response); reporter v1.24, dashboard v1.11 and the Data Tool unchanged. (1) _lpHouseGuard runs on every text, email and voicemail before render: a sentence listing the store's days or hours goes when the customer never asked about hours (Cars.com lead 2107725373 shipped 'We’re open Monday through Saturday.'); a sentence about our notes or records goes (Tradepending lead 2104804008: 'The last note I have from you is the inbound call on Monday.'); 'you viewed / looked at / browsed' before 'on our website' goes (Fullpath lead 2107879658: 'the 2026 Toyota bZ offer you viewed on our website' -> 'the 2026 Toyota bZ offer on our website'). [LP HOUSE GUARD] logs each removal. (2) Lead 2104804008, 6 days old and not eligible to be closed out, was offered 'Would you prefer that I pause follow-up for now?' and 'would you rather use the TradePending estimate as your reference for now?' (rejected three times). The close-out ban names 'would you prefer that I pause follow-up' and 'or would you rather leave it for now', and LP_WITHDRAW_RX counts pausing or holding off on follow-up and 'leave it for now', so a rewrite that adds one does not ship. (3) PROXY v7.91: the 10/30 translate failures (11:16-11:19 CT, every tier 'Empty response') were the 150-character draft floor rejecting a translated text; a translate call's {"translation":"..."} reply now passes it, as the SMS rewrite's reply has since v7.88. The double name on lead 2107319795 ('[name] [name],') waits for its dump. TESTS: house-guard-842 (new) executes _lpHouseGuard, the ban text, LP_WITHDRAW_RX and _lpRefineSms: 26 assertions across both builds; v9.7.841 fails all 13 per build (it has no guard to call). worker-v791 (new, 7; v7.90 fails the 2 new, its 5 controls pass). us-spelling-804 accepts the guard inside the render chain; safe-fallback-contract allows the v7.91 translate exception beside the v7.88 one. VERIFIED: run-all 279 suites green, 9,284 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.841.)
 // Lead Pro -- popup.js  v9.7.841-dev (Dev. A BOX THAT DID NOT TRANSLATE IS RETRIED, THEN SAID SO; A BOX ALREADY IN SPANISH IS LEFT ALONE. Extension only; proxy v7.90, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Toyota Baytown, 10/30 (log383): parked on the email, the agent pressed translate; the email came back in Spanish, the text stayed in English, the button said 'Translated!' and nothing reached the console. Gil: 'Bug?' Yes, and not the tab: the button sends every box as its own request, and a request that came back as the proxy's fallback, an error or no usable reply returned the original English silently. A second press translated the text and sent the already-Spanish email through again. (1) _lpTranslateOne returns { text, ok, why } and counts a reply as translated only when it reads as Spanish (_lpLooksSpanish); _lpTranslateAll retries a box once when it did not come back in Spanish. (2) A box already in Spanish is not sent again. (3) The button names a box that still did not translate ('Text didn’t translate — tap again') instead of 'Translated!', and returns to the HTML's own label (it used to come back as 'Mx Espanol'). (4) [LP TRANSLATE DIAG] logs every press: each box translated, translated after a retry, NOT TRANSLATED (fallback / error / no-reply / unchanged), already Spanish or empty. TESTS: translate-841 (new) executes _lpTranslateAll and the shipped click handler with the proxy stubbed: 16 assertions across both builds; v9.7.840 fails 7 of 8 per build (the control passes). VERIFIED: run-all 277 suites green, 9,251 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.840.)
 // Lead Pro -- popup.js  v9.7.840-dev (Dev. CLICK & GO IS NAMED IN A FORMAT THAT HAS NOT NAMED IT; THE TEXT REWRITE DOES NOT REOPEN ON WHAT OUR LAST TEXT SAID. Extension only; proxy v7.90, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Toyota Baytown lead 2107371352 (log382, v9.7.839): our 4:58 text already said 'I saw you built a payment in Click & Go'; the next text did not say it again, and [LP CLICK&GO BRAND DIAG] logged sms:MISSING. Gil: 'is it wrong, though? Remember the first reach already went out ... that has Click & Go mentioned', then 'let's be consistent'. The same capture: the first pass opened on the drive-out numbers, and the rewrite opened on the RAV4 being 'here and available' -- what the 4:58 text had already said. (1) _lpClickGoNamed reads our texts and emails on this lead: the follow-up arm's BRAND line asks for Click & Go only in a format that has not named it (the email when our text did, the text when our email did); both named, neither has to, once in passing if it fits; neither named, the v9.7.787 line unchanged. (2) [LP CLICK&GO BRAND DIAG] reports a format that already named it as 'not needed (named in our 10/29 text)', not MISSING. (3) Text rewrite: when our newest text said the car is here, the customer has not written since, and the rewrite opens on the car being here while the first pass opened on something else, the first pass ships. TESTS: clickgo-840 (new) builds the prompt through the shipped panel payload and executes _lpRefineSms: 18 assertions across both builds; v9.7.839 fails 5 of 9 per build (the 4 controls pass). clickgo-787 expects the email-only line on its fixture (our text already named Click & Go); dr-session's sandbox carries the brand line. VERIFIED: run-all 276 suites green, 9,235 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.839.)
 // Lead Pro -- popup.js  v9.7.839-dev (Dev. THEY ASKED FOR THE OUT-THE-DOOR PRICE ON THE CALL; BAYTOWN FOLLOWS UP WITH THE DRIVE-OUT, LAFAYETTE DOES NOT, AND BOTH PUSH THE VISIT; THE CREDIT APPLICATION IS THE NEXT STEP. Extension only; proxy v7.90, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Toyota Baytown lead 2107371352 (log381, Click & Go): the call note said 'interested. wants OTD', and the text rewrite opened 'the out-the-door figure you asked about is something we can go through together at the dealership' -- to someone who asked for it, a no; it closed asking for a good time for a call minutes after the call. The session note said 'Credit App: Not Started' and nothing offered it. Gil, 10/29: 'The Baytown stores agents can follow up with Drive out. Lafayette stores we can not due to parish tax variances. Although we would like them to come in and review the drive out. So we would push for an appointment regardless.' (1) _lpOtdAsk: the newest out-the-door ask on this lead -- a customer message with an out-the-door phrase, or a call or note of ours saying they want it (not one saying we sent it); none for a customer quiet 14+ days. (2) Baytown (any store but the two Lafayette stores): a new OUT-THE-DOOR PRICE block says they asked (a call counts as asking), not to open on it or put it off to a visit or a call, to say plainly the drive-out numbers are being put together with no figure of our own, then to ask for the appointment to go over them, asking again about times our last message offered. Lafayette: the parish policy stands; it now names the ask and says to open on the car or the proposal, give the parish reason in one sentence and push the visit. Neither fires when a figure already went out. [LP OTD ASK DIAG] logs the decision. (3) The scraper reads 'Credit App: Not Started' and the payment type off the Click & Go note (vrCreditAppNotStarted, vrPayType, carried in the panel payload); a financed or leased session with the application not started is offered the secure credit application once, in the text and the email, never instead of the visit and never with a score, tier, approval or rate. [LP CREDIT APP STEP DIAG]. (4) Text rewrite, on a lead with an out-the-door ask: a rewrite that opens by putting the price off ('in person', 'at the dealership', 'go over it together', 'on a call') when the first pass did not -- or, at Baytown, puts it off anywhere -- does not ship. Replayed on log381's capture: both blocks appear and nothing else changes. TESTS: otd-creditapp-839 (new) runs the shipped inlineScraper in Chromium, builds the prompt through the shipped panel payload and executes _lpRefineSms: 34 assertions across both builds; v9.7.838 fails 12 of 17 per build (the 5 controls pass). VERIFIED: run-all 275 suites green, 9,217 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.838.)
@@ -5453,12 +5454,13 @@ function _lpRung2Examples(ctx) {
 function _lpCloseOutBanText(reason) {
   return 'This lead is not at a point where withdrawing is the right move (' + reason + '). '
     + 'Do NOT write "should I close this out", "I will stop reaching out", "I will take you off my list", '
-    + '"last time I will bother you", or any variation that hands them an exit. Several outreaches in a '
+    + '"last time I will bother you", "would you prefer that I pause follow-up", "or would you rather leave it for now", '
+    + 'or any variation that hands them an exit. Several outreaches in a '
     + 'few days is OUR cadence running, not the customer going cold — do not treat it as a dead lead. '
     + 'Acknowledging that it has been quiet is fine; withdrawing is not. Move the conversation forward '
     + 'with one specific, easy thing to respond to.';
 }
-var LP_WITHDRAW_RX = /\b(?:i(?:'|\u2019)?ll|i will|we(?:'|\u2019)?ll|we will|i(?:'|\u2019)?m going to|i am going to)\s+(?:stop\b|step back\b|leave you (?:alone|be)\b|close (?:out )?(?:your|the|this)\b|take you off\b|stop (?:reaching|following|texting|contacting))|\bclose (?:out )?(?:your|this|the) (?:file|inquiry|request|lead)\b|\bstop reaching out\b|\btake you off (?:my|our|the) list\b|\bno (?:more|further) (?:follow-?ups?|contact|messages)\b|\b(?:keep|leave) (?:your file|it|this) open\b/i;
+var LP_WITHDRAW_RX = /\b(?:i(?:'|\u2019)?ll|i will|we(?:'|\u2019)?ll|we will|i(?:'|\u2019)?m going to|i am going to)\s+(?:stop\b|step back\b|leave you (?:alone|be)\b|close (?:out )?(?:your|the|this)\b|take you off\b|stop (?:reaching|following|texting|contacting))|\bclose (?:out )?(?:your|this|the) (?:file|inquiry|request|lead)\b|\bstop reaching out\b|\btake you off (?:my|our|the) list\b|\bno (?:more|further) (?:follow-?ups?|contact|messages)\b|\b(?:keep|leave) (?:your file|it|this) open\b|\bpause (?:the |my |our |your )?follow-?ups?\b|\bhold off (?:on )?(?:reaching out|following up|contacting)\b|\bleave it (?:there|for now)\b/i;   // (v9.7.842) lead 2104804008
 // (v9.7.769) A credit result stated to the customer: "you weren't pre-approved", "you've been approved", "you were declined".
 // Needs the customer as the subject, so "if financing is approved" and "subject to credit approval" are not matched.
 var LP_CREDIT_DECISION_RX = /\byou(?:['\u2019](?:re|ve))?(?:\s+(?:are|were|weren['\u2019]?t|wasn['\u2019]?t|have|haven['\u2019]?t|got|did(?:n['\u2019]?t)?|been|not|already|now|also))*\s+(?:been\s+|get\s+|got\s+)?(?:pre-?approved|approved|declined|denied)\b/i;
@@ -5681,6 +5683,44 @@ function _lpFinanceGuard(text, channel){
     .replace(/\s+([.,;!?])/g, '$1').replace(/[ \t]{2,}/g, ' ');
   if (hits.length) console.log('[LP FINANCE GUARD] redacted ' + hits.length + ' sensitive finance figure(s) from ' + (channel || 'draft') + ': ' + hits.join(' | '));
   return out;
+}
+
+// (v9.7.842) THREE THINGS A DRAFT TELLS THE CUSTOMER THAT IT MUST NOT, REMOVED AT RENDER (every text, email and voicemail).
+// From the 10/30 report: (1) store hours nobody asked for -- "We're open Monday through Saturday." (Cars.com lead 2107725373,
+// shipped; the prompt already says not to list the hours unless asked); (2) our notes -- "The last note I have from you is the
+// inbound call on Monday." (Tradepending lead 2104804008); (3) their browsing -- "the 2026 Toyota bZ offer you viewed on our
+// website" (Fullpath lead 2107879658). A sentence listing the store's days or hours goes when the customer never asked about
+// hours; a sentence about our notes or records goes; "you viewed / looked at / browsed" before "on our website" goes, leaving
+// "the offer on our website". [LP HOUSE GUARD] logs each removal.
+var LP_HOURS_OPEN_RX = /\b(?:we(?:'|’)re|we are|(?:the |our )?(?:store|showroom|dealership) is)\s+open\b|\b(?:our|store|showroom) hours\b/i;
+var LP_DAY_RANGE_RX = /\b(?:mon|tues|wednes|thurs|fri|satur|sun)day\s*(?:-|–|through|thru|to)\s*(?:mon|tues|wednes|thurs|fri|satur|sun)day\b|\b\d{1,2}(?::\d{2})?\s*(?:am|pm)\s*(?:-|–|to)\s*\d{1,2}(?::\d{2})?\s*(?:am|pm)\b/i;
+var LP_HOURS_ASKED_RX = /\b(?:hours?|open|clos(?:e|es|ed|ing)|what time|until when|sunday|saturday|weekend)\b/i;
+var LP_NOTES_SAY_RX = /\b(?:the last note (?:i|we) have|(?:our|my) (?:notes|records) (?:show|say|indicate|have)|according to (?:our|my) (?:notes|records)|(?:in|from|on) (?:our|my) notes)\b/i;
+var LP_VIEWED_SITE_RX = /\s+(?:that |which )?you (?:viewed|looked at|browsed|checked out|were (?:looking at|viewing|browsing))(?=\s+(?:on|at) (?:our|the) (?:website|web site|site))/gi;
+function _lpHouseGuard(text, channel) {
+  var s = String(text || '');
+  if (!s) return s;
+  var hits = [], d = (typeof lastScrapedData !== 'undefined' && lastScrapedData) || {};
+  var asked = false;
+  try {
+    asked = LP_HOURS_ASKED_RX.test(String(d.lastInboundMsg || ''))
+      || ((typeof _lpCustEntries === 'function') ? _lpCustEntries(d) : []).some(function (x) { return LP_HOURS_ASKED_RX.test(x.body); });
+  } catch (e) {}
+  s = s.replace(LP_VIEWED_SITE_RX, function (m) { hits.push('browsing: "' + m.trim() + '"'); return ''; });
+  var lines = s.split('\n'), out = [];
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i];
+    if (!line.trim()) { out.push(line); continue; }
+    var parts = line.split(/(?<=[.!?])\s+/), kept = parts.filter(function (p) {
+      if (!asked && LP_HOURS_OPEN_RX.test(p) && LP_DAY_RANGE_RX.test(p) && !/\?\s*$/.test(p)) { hits.push('hours: "' + p.trim().slice(0, 70) + '"'); return false; }
+      if (LP_NOTES_SAY_RX.test(p)) { hits.push('notes: "' + p.trim().slice(0, 70) + '"'); return false; }
+      return true;
+    });
+    if (kept.length || !parts.length) out.push(kept.join(' '));
+  }
+  if (!hits.length) return text;
+  try { console.log('[LP HOUSE GUARD] ' + (channel || 'draft') + ': removed ' + hits.join(' | ')); } catch (e) {}
+  return out.join('\n').replace(/\n{3,}/g, '\n\n').replace(/^\n+/, '');
 }
 
 // STORE-NAME CANON — "Community Toyota BAytown" shipped in a customer email signature on 7/13.
@@ -33981,7 +34021,7 @@ async function generateAll() {
     } catch(e) { console.log('[LP RAW DIAG] error:', e.message); }
 
     var _canonAgentPhone = (window._leadProResolvedSigner && window._leadProResolvedSigner.phone) || '';
-    const smsText   = enforceSmsSig(_correctOurPhone(_lpFixStoreNames(_lpFinanceGuard(((typeof _lpAmericanSpelling === 'function') ? _lpAmericanSpelling(cleanOutput(rawSms, true)) : cleanOutput(rawSms, true)), 'sms')), _canonAgentPhone)); // (v9.7.431/429) finance guard + store-name canon
+    const smsText   = enforceSmsSig(_correctOurPhone(_lpFixStoreNames(_lpFinanceGuard(_lpHouseGuard(((typeof _lpAmericanSpelling === 'function') ? _lpAmericanSpelling(cleanOutput(rawSms, true)) : cleanOutput(rawSms, true)), 'sms'), 'sms')), _canonAgentPhone)); // (v9.7.431/429) finance guard + store-name canon
     // Re-derive correct phone for email enforcement using lead data
     // Store phone is fallback only — signer.phone takes priority inside enforceEmailPhone
     var _emailStoreFallback = '';
@@ -33992,7 +34032,7 @@ async function generateAll() {
       });
       if (_eds && _eds.phone) _emailStoreFallback = _eds.phone;
     }
-    const emailText = enforceEmailPhone(_correctOurPhone(_lpFixStoreNames(_lpFinanceGuard(((typeof _lpAmericanSpelling === 'function') ? _lpAmericanSpelling(cleanOutput(rawEmail, false)) : cleanOutput(rawEmail, false)), 'email')), _canonAgentPhone), _emailStoreFallback); // (v9.7.431/429) finance guard + store-name canon
+    const emailText = enforceEmailPhone(_correctOurPhone(_lpFixStoreNames(_lpFinanceGuard(_lpHouseGuard(((typeof _lpAmericanSpelling === 'function') ? _lpAmericanSpelling(cleanOutput(rawEmail, false)) : cleanOutput(rawEmail, false)), 'email'), 'email')), _canonAgentPhone), _emailStoreFallback); // (v9.7.431/429) finance guard + store-name canon
 
     // Detect degraded response — retry up to 2 times if we got the generic placeholder.
     // The placeholder text comes from the worker's SAFE_FALLBACK_TEXT when all cascade
@@ -34400,7 +34440,7 @@ async function generateVoicemail() {
     // (v9.7.217) Correct any hallucinated copy of our number in the VM body BEFORE the
     // callback guard runs — otherwise a wrong-digit number ("...3384") would leave the
     // callback guard thinking the correct number is absent and appending a second line.
-    vmText = _correctOurPhone(_lpFixStoreNames(_lpFinanceGuard(((typeof _lpAmericanSpelling === 'function') ? _lpAmericanSpelling(vmText) : vmText), 'voicemail')), vmPhone); // (v9.7.431/429) finance guard + store-name canon
+    vmText = _correctOurPhone(_lpFixStoreNames(_lpFinanceGuard(_lpHouseGuard(((typeof _lpAmericanSpelling === 'function') ? _lpAmericanSpelling(vmText) : vmText), 'voicemail'), 'voicemail')), vmPhone); // (v9.7.431/429) finance guard + store-name canon
 
     // (v9.7.212) Callback-number guard: a voicemail with no callback number is a total
     // failure — the VM has no post-send signature enforcement like SMS does. If the model
