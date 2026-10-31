@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.846-dev (Dev. FROM SATURDAY 10/31 ON 9.7.845: A TIME TODAY THAT HAD PASSED, STORE HOURS THE 842 CHECK MISSED, A STREET ADDRESS COPIED FROM THE THREAD, AND A LOGISTICS ANSWER FULL OF FIGURES. Extension only; proxy v7.91, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. (1) _lpPastTimeGuard, before render, every format: a sentence about today ('today', 'this morning/afternoon/evening', 'tonight') naming a time already past has its times replaced, one for one, by the slot engine's own today pair (computeAppointmentTimes); with no slot left today it is left for the agent and the console says so. Honda Lafayette CarGurus lead 2108097289: at 9:13 AM Saturday the draft offered '9 AM or 10 AM today' (the agent changed it before sending). [LP PAST TIME GUARD]. (2) The v9.7.842 hours check also counts 'from 9 to 7' and 'open until 7' in a statement -- the same lead's 'We’re open until 7 today and from 9 to 7 Monday'; a time offer phrased as a question is still kept. (3) _lpAddressGuard: a street number of one of our stores followed by another street name is set to the config's (LP_DEALER_INFO). Audi Lafayette Autotrader lead 2108158988: 'The address is 6160 Johnson St.' -- copied from the CRM's own appointment-reminder text in the thread; the store is on Johnston St, and the customer corrected the agent. [LP ADDRESS GUARD]. When the customer's newest message asks where we are, the prompt gives OUR ADDRESS from the config and says not to copy one from the thread. (4) When the newest message is only logistics (the address, a time, who to ask for) and not money, the prompt says to answer exactly that, briefly, without repeating budget, down payment, payment or price figures and without a new pitch -- the same lead's reply carried the $18,359 listing and her '$500 down and $400 monthly target' and was rejected twice. [LP LOGISTICS DIAG]. Not changed: the VinSolutions appointment-reminder template for Audi Lafayette still says 'Johnson St.' -- that is in the CRM, not Lead Pro. TESTS: render-checks-846 (new) executes _lpPastTimeGuard with the clock pinned, _lpHouseGuard, _lpAddressGuard and the prompt through the shipped panel payload: 32 assertions across both builds; v9.7.845 fails 14 of 16 per build (the 2 controls pass). us-spelling-804 accepts the two new guards in the render chain. VERIFIED: run-all 283 suites green, 9,366 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.845.)
 // Lead Pro -- popup.js  v9.7.845-dev (Dev. THE POWERTRAIN OF THE VEHICLE ON THE LEAD, FROM VINSOLUTIONS' RECORD, WHEN WHAT THEY RAISED IS ABOUT IT. Extension only; proxy v7.91, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Honda Lafayette lead 2107308865 (log386): she test-drove the Passport, 'does not want a CVT or a turbo', and 'said the passport has some low speed hesitation, and bumpy shifts'; both drafts repeated that back to her and answered none of it. VinSolutions' record of the unit (LeadVehicle) says 'Regular Gasoline V-6 3.5 L/212' and '10-Speed Automatic w/OD' -- a V6 with a conventional automatic. Gil: 'it would be smart if we can trust the facts when we have them. in those cases'. (1) The scraper reads EngineName and TransmissionName off the same record, under the same conditions, as the v9.7.797 drivetrain (voiEngine, voiTransmission; [LP POWERTRAIN DIAG]). (2) _lpPowertrain puts them in words (3.5L V6; 10-speed automatic; CVT or not; turbo or not, from the record's own words). (3) When a customer message or a note of ours about them raises the engine or transmission (CVT, turbo, transmission, shifting, V6, cylinders, engine -- never our own texts or emails), the lead context carries the record as a fact that may be stated, what they raised, and: when the record answers it, say so plainly once in the email and the text ('the Passport has the 3.5L V6 with a 10-speed automatic, so no CVT and no turbo'); when it conflicts, do not claim it and do not raise it; about how it drove, no cause and no promise, someone can go over it; no other powertrain detail. Nothing raised, or no record: nothing added. Replayed on log386's capture (engine and transmission as the scraper now reads them): the block names the note and answers no CVT, no turbo. TESTS: powertrain-845 (new) executes the shipped scraper span, _lpPowertrain and the prompt through the shipped panel payload: 24 assertions across both builds; v9.7.844 fails 9 of 12 per build (the 3 controls pass). VERIFIED: run-all 282 suites green, 9,334 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.844.)
 // Lead Pro -- popup.js  v9.7.844-dev (Dev. A VISIT ASK WRITTEN AS A QUESTION. Extension only; proxy v7.91, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Honda Lafayette lead 2107308865 (log385, on v9.7.843 -- the website mention is gone): she test-drove the Passport and 'will let me know after she does further research', so the prompt decided on no visit ask (the PAUSE rule, level 3). The first draft closed 'I’m here if you want to revisit it later.'; the text rewrite closed 'Want to revisit it and go over new options together?' and shipped, because v9.7.835's guard (LP_VISIT_ASK_RX) knew 'come in', 'stop by', 'what time works' and two times, not this. LP_VISIT_ASK_RX now also counts a question asking them to revisit, see it again, take another look or go over something ('want / like / ready / care / open to ...?'), and a question to revisit or go over something together. The statement form ('I’m here if you want to revisit it later.') is not an ask and stays allowed. The qualified-buyer APR offer in the same drafts stays: Gil, 10/30: 'I think the offer is safe here as it may be a deciding factor.' TESTS: visit-question-844 (new) executes LP_VISIT_ASK_RX and _lpRefineSms: 14 assertions across both builds; v9.7.843 fails 3 of 7 per build (the 4 controls pass). VERIFIED: run-all 281 suites green, 9,310 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.843.)
 // Lead Pro -- popup.js  v9.7.843-dev (Dev. AFTER A VISIT, HOW THE LEAD REACHED US IS NOT NEWS. Extension only; proxy v7.91, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Honda Lafayette lead 2107308865 (log384): a website lead who came in and test-drove a Passport; the follow-up opened '<name>, thanks for reaching out through our website.' Three places put it there: the SOURCE ACKNOWLEDGMENT block took its first-contact arm (no outreach yet) and showed 'I saw the request you sent through our website...'; the source constraint said 'you may say the customer came through our website'; and the text rewrite was told 'The first draft names our website -- keep that mention'. Gil: 'This was a showroom follow up that fact isn't needed.' On a showroom follow-up: (1) the acknowledgment block stands down ([LP SOURCE ACK DIAG] outcome:SKIPPED-showroom); (2) the source constraint says they came in, the visit is the context, and not to mention how the lead reached us; (3) the rewrite is not told to keep the mention. Fullpath, Mastermind and AMP keep their own lines. Replayed on log384's capture: the block is gone and the only 'our website' left is inside the do-not line. TESTS: showroom-source-843 (new) builds the prompt through the shipped panel payload and executes _lpBuildSmsRefinePrompt: 12 assertions across both builds; v9.7.842 fails 4 of 6 per build (the 2 controls pass). first-touch-register counts the new early exit (9). VERIFIED: run-all 280 suites green, 9,296 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.842.)
@@ -5735,7 +5736,7 @@ function _lpFinanceGuard(text, channel){
 // hours; a sentence about our notes or records goes; "you viewed / looked at / browsed" before "on our website" goes, leaving
 // "the offer on our website". [LP HOUSE GUARD] logs each removal.
 var LP_HOURS_OPEN_RX = /\b(?:we(?:'|’)re|we are|(?:the |our )?(?:store|showroom|dealership) is)\s+open\b|\b(?:our|store|showroom) hours\b/i;
-var LP_DAY_RANGE_RX = /\b(?:mon|tues|wednes|thurs|fri|satur|sun)day\s*(?:-|–|through|thru|to)\s*(?:mon|tues|wednes|thurs|fri|satur|sun)day\b|\b\d{1,2}(?::\d{2})?\s*(?:am|pm)\s*(?:-|–|to)\s*\d{1,2}(?::\d{2})?\s*(?:am|pm)\b/i;
+var LP_DAY_RANGE_RX = /\b(?:mon|tues|wednes|thurs|fri|satur|sun)day\s*(?:-|–|through|thru|to)\s*(?:mon|tues|wednes|thurs|fri|satur|sun)day\b|\b\d{1,2}(?::\d{2})?\s*(?:am|pm)\s*(?:-|–|to)\s*\d{1,2}(?::\d{2})?\s*(?:am|pm)\b|\bfrom\s+\d{1,2}(?::\d{2})?\s*(?:am|pm)?\s*(?:-|–|to|until)\s*\d{1,2}\b|\buntil\s+\d{1,2}(?::\d{2})?\s*(?:am|pm)?\b/i;   // (v9.7.846) "open until 7 today and from 9 to 7 Monday" (lead 2108097289)
 var LP_HOURS_ASKED_RX = /\b(?:hours?|open|clos(?:e|es|ed|ing)|what time|until when|sunday|saturday|weekend)\b/i;
 var LP_NOTES_SAY_RX = /\b(?:the last note (?:i|we) have|(?:our|my) (?:notes|records) (?:show|say|indicate|have)|according to (?:our|my) (?:notes|records)|(?:in|from|on) (?:our|my) notes)\b/i;
 var LP_VIEWED_SITE_RX = /\s+(?:that |which )?you (?:viewed|looked at|browsed|checked out|were (?:looking at|viewing|browsing))(?=\s+(?:on|at) (?:our|the) (?:website|web site|site))/gi;
@@ -5763,6 +5764,61 @@ function _lpHouseGuard(text, channel) {
   if (!hits.length) return text;
   try { console.log('[LP HOUSE GUARD] ' + (channel || 'draft') + ': removed ' + hits.join(' | ')); } catch (e) {}
   return out.join('\n').replace(/\n{3,}/g, '\n\n').replace(/^\n+/, '');
+}
+
+// (v9.7.846) A TIME TODAY THAT HAS ALREADY PASSED. Honda Lafayette CarGurus lead 2108097289, Saturday 10/31: at 9:13 AM the draft
+// offered "Would 9 AM or 10 AM today work?" (the agent changed it to 10 AM or 2 PM before sending). The prompt says a time today must
+// not have passed; nothing checked the draft. A sentence about today ("today", "this morning/afternoon/evening", "tonight") that names
+// a time already past has its times replaced by the slot engine's own today pair (computeAppointmentTimes), one for one; when the engine
+// has no slot left today the sentence is left alone and the console says so. [LP PAST TIME GUARD].
+var LP_TODAY_WORD_RX = /\btoday\b|\bthis (?:morning|afternoon|evening)\b|\btonight\b/i;
+var LP_CLOCK_RX = /\b(1[0-2]|0?[1-9])(?::([0-5]\d))?\s*([ap])\.?\s?m\.?(?![a-z])/gi;
+function _lpPastTimeGuard(text, channel) {
+  var s = String(text || '');
+  if (!s || !LP_TODAY_WORD_RX.test(s)) return text;
+  var c = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' })), now = c.getHours() * 60 + c.getMinutes();
+  var hits = [], appt = null;
+  var out = s.split('\n').map(function (line) {
+    return line.split(/(?<=[.!?])\s+/).map(function (sent) {
+      if (!LP_TODAY_WORD_RX.test(sent)) return sent;
+      var times = [], m; LP_CLOCK_RX.lastIndex = 0;
+      while ((m = LP_CLOCK_RX.exec(sent))) { var h = parseInt(m[1], 10) % 12 + (/p/i.test(m[3]) ? 12 : 0); times.push({ text: m[0], mins: h * 60 + (m[2] ? parseInt(m[2], 10) : 0) }); }
+      if (!times.length || !times.some(function (t) { return t.mins < now; }) || times.length > 2) return sent;
+      if (!appt) { try { appt = computeAppointmentTimes((typeof lastScrapedData !== 'undefined' && lastScrapedData && lastScrapedData.store) || (typeof selectedStore !== 'undefined' ? selectedStore : '')); } catch (e) { appt = {}; } }
+      if (!appt || appt.dayLabel !== 'today') { hits.push('"' + times.map(function (t) { return t.text; }).join(' / ') + '" has passed; no slot left today -- left for the agent'); return sent; }
+      var slots = [String(appt.time1).replace(/\s*today$/, ''), String(appt.time2).replace(/\s*today$/, '')], i = 0;
+      var fixed = sent.replace(LP_CLOCK_RX, function () { return slots[Math.min(i++, 1)]; });
+      hits.push('"' + times.map(function (t) { return t.text; }).join(' / ') + '" -> "' + slots.slice(0, times.length).join(' / ') + '"');
+      return fixed;
+    }).join(' ');
+  }).join('\n');
+  if (!hits.length) return text;
+  try { console.log('[LP PAST TIME GUARD] ' + (channel || 'draft') + ' at ' + c.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) + ': ' + hits.join(' | ')); } catch (e) {}
+  return out;
+}
+// (v9.7.846) OUR STREET ADDRESS, AS OUR CONFIG HAS IT. Audi Lafayette Autotrader lead 2108158988, 10/31: the draft gave "6160 Johnson
+// St." -- copied from the CRM's own appointment-reminder text in the thread; the store is on Johnston St (LP_DEALER_INFO), and the
+// customer corrected the agent. A street number of one of our stores followed by a different street name is set to the config's.
+function _lpAddressGuard(text, channel) {
+  var s = String(text || '');
+  if (!s) return text;
+  var hits = [];
+  try {
+    Object.keys(LP_DEALER_INFO).forEach(function (k) {
+      var street = String(LP_DEALER_INFO[k].address || '').split(',')[0].trim(), mm = street.match(/^(\d+)\s+(.*\S)\s+(\S+)$/);
+      if (!mm) return;
+      var suf = /^(?:st|street)$/i.test(mm[3]) ? '(?:St|Street)' : /^(?:fwy|freeway)$/i.test(mm[3]) ? '(?:Fwy|Freeway)' : /^(?:thruway|thwy|throughway)$/i.test(mm[3]) ? '(?:Thruway|Thwy|Throughway)' : mm[3];
+      var rx = new RegExp('\\b' + mm[1] + '\\s+((?:[A-Za-z]+\\.?\\s+){1,3}?)' + suf + '\\b', 'g');
+      s = s.replace(rx, function (whole, name) {
+        if (name.replace(/[.\s]+/g, ' ').trim().toLowerCase() === mm[2].toLowerCase()) return whole;
+        hits.push('"' + whole + '" -> "' + street + '"');
+        return street;
+      });
+    });
+  } catch (e) { return text; }
+  if (!hits.length) return text;
+  try { console.log('[LP ADDRESS GUARD] ' + (channel || 'draft') + ': ' + hits.join(' | ')); } catch (e) {}
+  return s;
 }
 
 // STORE-NAME CANON — "Community Toyota BAytown" shipped in a customer email signature on 7/13.
@@ -30212,6 +30268,22 @@ function buildUserPrompt(data) {
   if (inventoryNote &&  vehiclePivotNote && !suppressInventory) lines.push('INVENTORY (original lead vehicle - customer has pivoted away from this): ' + inventoryNote, '');
   if (audiNote)      lines.push(audiNote, '');
   if (hondaLafNote)  lines.push(hondaLafNote, '');
+  // (v9.7.846) THEIR NEWEST MESSAGE IS ONLY ABOUT LOGISTICS. Audi Lafayette lead 2108158988, 10/31: she asked for the address and
+  // proposed 10 AM; the draft answered and added the $18,359 listing and her "$500 down and $400 monthly target" -- rejected twice;
+  // she later wrote "ALL. I. NEED. TO. KNOW. IS. YOUR. NAME". And when they ask where we are, our address, not one from the thread.
+  try {
+    var _lgMsg = String(data.lastInboundMsg || '').replace(/\.\s*/g, ' ').replace(/\s+/g, ' ').trim();
+    var _lgAddr = /\baddress\b|\bwhere (?:are|r) (?:you|u|y'?all)\b|\blocat(?:ion|ed)\b|\bdirections\b/i.test(_lgMsg);
+    var _lgOnly = _lgMsg && /\baddress\b|\bwhere (?:are|r) (?:you|u|y'?all)\b|\blocat(?:ion|ed)\b|\bdirections\b|\bwhat time\b|\bhow (?:bout|about) \d|\b\d{1,2}(?::\d{2})? ?(?:am|pm)\b|\byour name\b|\bwho (?:will|do|should|am) i\b|\bask for\b/i.test(_lgMsg)
+      && !/\b(?:price|pricing|payment|monthly|a month|down|trade|financ\w*|credit|approv\w*|rate|apr|discount|deal|cost|otd|out the door|still available|available\?)\b/i.test(_lgMsg);
+    var _lgInfo = (typeof LP_DEALER_INFO === 'object' && LP_DEALER_INFO[String(data.dealerId || '')]) || null;
+    if (_lgAddr && _lgInfo) lines.push('OUR ADDRESS: ' + _lgInfo.address + '. They asked where we are: give exactly this address. An address written elsewhere in the thread (including our own reminder texts) may be wrong -- never copy one from there.', '');
+    if (_lgOnly) {
+      lines.push('📍 THEIR NEWEST MESSAGE IS ABOUT LOGISTICS ("' + String(data.lastInboundMsg || '').replace(/\s+/g, ' ').trim().slice(0, 120).replace(/"/g, "'") + '"). Answer exactly that, briefly: confirm the time if they proposed one, give OUR ADDRESS if they asked for it, and say who they will meet if they asked. '
+        + 'Do NOT repeat budget, down payment, monthly payment or price figures back to them, and do not add a new pitch, a listing price or a second question.', '');
+      console.log('[LP LOGISTICS DIAG] newest message is logistics only: "' + _lgMsg.slice(0, 60) + '" | address asked: ' + _lgAddr + (_lgInfo ? '' : ' (no store address on file)'));
+    }
+  } catch (eLg) {}
   // ── GROUP-WIDE OTD / PAYMENT DISCIPLINE (v9.7.344) — ALL stores ──
   // Never volunteer or offer an out-the-door total, drive-out number, monthly
   // payment, or financing figure as an opener or unprompted pitch. The number is
@@ -34102,7 +34174,7 @@ async function generateAll() {
     } catch(e) { console.log('[LP RAW DIAG] error:', e.message); }
 
     var _canonAgentPhone = (window._leadProResolvedSigner && window._leadProResolvedSigner.phone) || '';
-    const smsText   = enforceSmsSig(_correctOurPhone(_lpFixStoreNames(_lpFinanceGuard(_lpHouseGuard(((typeof _lpAmericanSpelling === 'function') ? _lpAmericanSpelling(cleanOutput(rawSms, true)) : cleanOutput(rawSms, true)), 'sms'), 'sms')), _canonAgentPhone)); // (v9.7.431/429) finance guard + store-name canon
+    const smsText   = enforceSmsSig(_correctOurPhone(_lpFixStoreNames(_lpFinanceGuard(_lpAddressGuard(_lpPastTimeGuard(_lpHouseGuard(((typeof _lpAmericanSpelling === 'function') ? _lpAmericanSpelling(cleanOutput(rawSms, true)) : cleanOutput(rawSms, true)), 'sms'), 'sms'), 'sms'), 'sms')), _canonAgentPhone)); // (v9.7.431/429) finance guard + store-name canon
     // Re-derive correct phone for email enforcement using lead data
     // Store phone is fallback only — signer.phone takes priority inside enforceEmailPhone
     var _emailStoreFallback = '';
@@ -34113,7 +34185,7 @@ async function generateAll() {
       });
       if (_eds && _eds.phone) _emailStoreFallback = _eds.phone;
     }
-    const emailText = enforceEmailPhone(_correctOurPhone(_lpFixStoreNames(_lpFinanceGuard(_lpHouseGuard(((typeof _lpAmericanSpelling === 'function') ? _lpAmericanSpelling(cleanOutput(rawEmail, false)) : cleanOutput(rawEmail, false)), 'email'), 'email')), _canonAgentPhone), _emailStoreFallback); // (v9.7.431/429) finance guard + store-name canon
+    const emailText = enforceEmailPhone(_correctOurPhone(_lpFixStoreNames(_lpFinanceGuard(_lpAddressGuard(_lpPastTimeGuard(_lpHouseGuard(((typeof _lpAmericanSpelling === 'function') ? _lpAmericanSpelling(cleanOutput(rawEmail, false)) : cleanOutput(rawEmail, false)), 'email'), 'email'), 'email'), 'email')), _canonAgentPhone), _emailStoreFallback); // (v9.7.431/429) finance guard + store-name canon
 
     // Detect degraded response — retry up to 2 times if we got the generic placeholder.
     // The placeholder text comes from the worker's SAFE_FALLBACK_TEXT when all cascade
@@ -34521,7 +34593,7 @@ async function generateVoicemail() {
     // (v9.7.217) Correct any hallucinated copy of our number in the VM body BEFORE the
     // callback guard runs — otherwise a wrong-digit number ("...3384") would leave the
     // callback guard thinking the correct number is absent and appending a second line.
-    vmText = _correctOurPhone(_lpFixStoreNames(_lpFinanceGuard(_lpHouseGuard(((typeof _lpAmericanSpelling === 'function') ? _lpAmericanSpelling(vmText) : vmText), 'voicemail'), 'voicemail')), vmPhone); // (v9.7.431/429) finance guard + store-name canon
+    vmText = _correctOurPhone(_lpFixStoreNames(_lpFinanceGuard(_lpAddressGuard(_lpPastTimeGuard(_lpHouseGuard(((typeof _lpAmericanSpelling === 'function') ? _lpAmericanSpelling(vmText) : vmText), 'voicemail'), 'voicemail'), 'voicemail'), 'voicemail')), vmPhone); // (v9.7.431/429) finance guard + store-name canon
 
     // (v9.7.212) Callback-number guard: a voicemail with no callback number is a total
     // failure — the VM has no post-send signature enforcement like SMS does. If the model
