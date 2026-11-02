@@ -97,6 +97,7 @@ function build(impl, data, opts) {
     lines: [],
     _inStateFar: opts.inStateFar === undefined ? true : !!opts.inStateFar,
     _dbSoldUnit: !!opts.soldUnit,
+    _lpSpecialTrip: !!opts.specialTrip, LP_VISIT_RADIUS_MILES: 75,   // (v9.7.847) upstream miles verdict; no case here is a special trip
     distanceContext: opts.distanceContext || '',
     _hasCustomerReplied: opts.replied === undefined ? undefined : () => !!opts.replied,
     console: { log: () => {} }

@@ -68,6 +68,8 @@ function load(file) {
     + '  var lines = [];\n'
     + '  var flags = { includes: function(f){ return (opts.flags || []).indexOf(f) !== -1; } };\n'
     + '  var _bpLocalVeto = !!opts.localVeto, _geoOutOfState = !!opts.outOfState, _inStateFar = !!opts.inStateFar;\n'
+    // (v9.7.847) the miles verdict computed upstream of this block; every case here predates it (no special trip)
+    + '  var _lpSpecialTrip = !!opts.specialTrip, _lpMiles = null, LP_VISIT_RADIUS_MILES = 75;\n'
     + '  var _hasCustomerReplied = function(){ return !!opts.replied; };\n'
     // Supplied as a controlled INPUT, not a stub that guesses at production behaviour — the
     // v9.7.616 lesson, where a stub more generous than the shipped code passed an assertion the
@@ -146,7 +148,8 @@ for (const file of BUILDS) {
   // distanceContext is emitted by BOTH branches. A remote buyer is not being asked to drive, but
   // "confirm it is available" is still a false statement about a car we sold.
   console.log('\nthe remote/out-of-state branch carries the correction too:');
-  const remoteSold = run(B, true, { outOfState: true });
+  // (v9.7.847) the strict remote branch is now for a customer who says so; by address alone it is the special-trip variant
+  const remoteSold = run(B, true, { outOfState: true, customerText: 'Can you ship to Louisiana?' });
   check('it took the remote branch', /REMOTE \/ OUT-OF-STATE BUYER/.test(remoteSold), true);
   check('...and still drops the availability claim', /Confirm it is available/.test(remoteSold), false);
   check('...and still says the unit is sold', /is SOLD/.test(remoteSold), true);

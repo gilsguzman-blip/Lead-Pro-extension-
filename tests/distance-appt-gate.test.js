@@ -107,6 +107,7 @@ function build(impl, data, opts) {
     // every pre-existing case in this suite is in, so none of them changed meaning. The two
     // gates are orthogonal and the case at the end of this file pins that they stay so.
     _dbSoldUnit: !!opts.soldUnit,
+    _lpSpecialTrip: !!opts.specialTrip, LP_VISIT_RADIUS_MILES: 75,   // (v9.7.847) upstream miles verdict; no case here is a special trip
     distanceContext: opts.distanceContext || '',
     _hasCustomerReplied: opts.replied === undefined ? undefined : () => !!opts.replied,
     isRemoteBuyer: !!opts.remote,   // (v9.7.697) the appointment gate now reads it; local by default

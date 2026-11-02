@@ -103,8 +103,14 @@ for (const f of BUILDS) {
      /Do NOT push an in-person visit/.test(p), /^VISIT DECISION FOR THIS MESSAGE: no specific appointment times and no same-day push in this message; invite them in only as that instruction allows -- the REMOTE BUYER who said they will make the trip/m.test(p)],
     [true, false, true]);
   const pN = prompt({ history: THREAD(CASH, ASK, HOWMUCH), conversationBrief: 'CONVERSATION TRANSCRIPT (newest first):\n---\n' + THREAD(CASH, ASK, HOWMUCH) + '---' });
-  check('control: a remote buyer who said nothing of the kind keeps the out-of-state rule -- no visit ask (level 3)', () =>
-    [/^- Do NOT push an in-person visit or offer appointment times as the ask/m.test(pN), /^VISIT DECISION FOR THIS MESSAGE: no visit ask and no appointment times in this message -- the REMOTE \/ OUT-OF-STATE BUYER block/m.test(pN)], [true, true]);
+  // (v9.7.847) Gil, 11/2: past 75 miles a visit is a special trip -- one soft invitation, no times (level 2). The no-visit rule
+  // (level 3) is now for a buyer who says they are buying remotely.
+  check('control: an out-of-state buyer who said nothing of the kind -> a special trip: soft invitation, no times (level 2)', () =>
+    [/^- Do NOT push an in-person visit or offer appointment times as the ask/m.test(pN), /^VISIT DECISION FOR THIS MESSAGE: no specific appointment times and no same-day push in this message; invite them in only as that instruction allows -- the SPECIAL TRIP rule/m.test(pN)], [false, true]);
+  const CASH_SHIP = E('1:59 PM', 'CUSTOMER', 'Inbound Text Message', 'Pay cash. Can you ship to Louisiana?');
+  const pS = prompt({ lastInboundMsg: 'Pay cash. Can you ship to Louisiana?', history: THREAD(CASH_SHIP, ASK, HOWMUCH), conversationBrief: 'CONVERSATION TRANSCRIPT (newest first):\n---\n' + THREAD(CASH_SHIP, ASK, HOWMUCH) + '---' });
+  check('control: one who asks us to ship it keeps the out-of-state rule -- no visit ask (level 3)', () =>
+    [/^- Do NOT push an in-person visit or offer appointment times as the ask/m.test(pS), /^VISIT DECISION FOR THIS MESSAGE: no visit ask and no appointment times in this message -- the REMOTE \/ OUT-OF-STATE BUYER block/m.test(pS)], [true, true]);
 
   console.log(' 4. Add Appt Ask (new chip):');
   const pA = prompt({ history: THREAD(CASH, ASK, HOWMUCH), conversationBrief: 'CONVERSATION TRANSCRIPT (newest first):\n---\n' + THREAD(CASH, ASK, HOWMUCH) + '---' }, { chip: 'TEST001A' });

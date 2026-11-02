@@ -99,8 +99,8 @@ for (const f of BUILDS) {
   console.log(' 3. the lead source\'s search ZIP over a mailing address:');
   check('lead 2096861231 shape: CA PO Box address, "Search ZIP was 77520, 9 miles from your dealership" -> no REMOTE block', () =>
     /REMOTE \/ OUT-OF-STATE BUYER: Customer is NOT local/.test(up(L3(SZ('77520', 9)))), false);
-  check('control: the same address with no search ZIP -> REMOTE, as before', () => /REMOTE \/ OUT-OF-STATE BUYER: Customer is NOT local/.test(up(L3(''))), true);
-  check('control: a search ZIP 420 miles away and outside the local set -> still REMOTE', () => /REMOTE \/ OUT-OF-STATE BUYER: Customer is NOT local/.test(up(L3(SZ('10001', 420)))), true);
+  check('control: the same address with no search ZIP -> REMOTE, as before', () => /REMOTE \/ OUT-OF-STATE BUYER: Customer is NOT local|OUT-OF-AREA BUYER: this customer lives/.test(up(L3(''))), true);   // (v9.7.847) either: not local
+  check('control: a search ZIP 420 miles away and outside the local set -> still REMOTE', () => /REMOTE \/ OUT-OF-STATE BUYER: Customer is NOT local|OUT-OF-AREA BUYER: this customer lives/.test(up(L3(SZ('10001', 420)))), true);   // (v9.7.847)
   check('(new helper) the parse: zip, miles, local', () => { const r = fn('_lpSearchZipLocal')({ dealerId: '6190', context: SZ('77520', 9) }); return r && [r.zip, r.miles, r.local]; }, ['77520', 9, true]);
 
   console.log(' 4. a new lead on a customer already in conversation:');

@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.847 (Commercial. FROM MONDAY 11/2 ON 9.7.846: DISTANCE IS MILES, NO TIMES AFTER 'WILL CALL ME BACK', AND WHAT A DRAFT MUST NOT SAY. Extension only; proxy v7.91, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. (1) Gil, 11/2: '75 miles is a good marker ... relevant for LA as well. Anything beyond that would be a special trip ... a soft ask for a visit.' LP_VISIT_RADIUS_MILES = 75, measured from the ZIP (ZIP3 centroid) after the local-ZIP set. Out of state within 75 miles is the distance tier (a visit ask, the distance never said). Beyond 75 miles, in state or out, a visit is a special trip: one soft invitation, no times, no day (a level-2 hold, the SPECIAL TRIP rule). Out of state by address alone now gets 'OUT-OF-AREA BUYER' with that soft line instead of the no-visit rule; the no-visit rule stays for a customer who says they are buying remotely ('ship to', 'not local', 'out of state') and for the Distance chip. Kia Baytown lead 2108597971 (Louisiana, about 110 miles): four regenerations of 'video walkaround ... remotely', then the agent wrote the visit ask herself. Every remote block now says never to tell them they are remote, and the soft path no longer hands the model the word 'remotely'. [LP DISTANCE MILES DIAG]. (2) _lpCallBack: the call the text follows says the customer will call us back ('Will call me back', 'will text me', 'will get back to me'; not our own 'I will call him back'), within two days: 'THEY SAID THEY WILL CALL US BACK' -- no appointment time in any format (level 2, the CALL-BACK rule). Gil: 'no times after will call back.' Toyota Baytown lead 2108628902: the text rewrite had added 'Would 2:15 or 3:00 work better?'. The text rewrite is now told 'no time' at any level-2 hold, and a rewrite that adds a time the first pass did not offer is not shipped (LP_TIME_OFFER_RX). [LP CALL BACK DIAG]. (3) The scraper's own-claims capture: 'isn't in stock today' was recorded as WE SAID IT WAS AVAILABLE (lead 2108628902) under 'do not contradict'. A negated match is now WE SAID IT IS NOT IN STOCK, and when it is the newest claim the prompt says not to write as though it is here. The regex is inline because the scraper is injected. (4) At render (_lpHouseGuard): 'the Ridgeline you viewed' loses 'you viewed' anywhere, not only before 'on our website' (Honda Baytown Fullpath lead 2108640226; 'you looked at' and 'in person' are left alone), and the Fullpath block says never to say what they viewed; a 'since you're handling this remotely,' / 'since you're out of state,' clause goes and the sentence stays; hours without 'we're open' go -- 'Audi Lafayette is open until 7 today' (lead 2108656923) and 'Monday through Saturday, 9 AM to 7 PM' (lead 2108459212). (5) A draft that opens on the signer's own first name has it replaced by the customer's, not kept behind it ('<customer>, <agent>, I understand', lead 2108656923); the prepend keeps 'I' capitalized; a titled sign-off ('<agent>, your Concierge') no longer stays above the canonical signature. From the 11/2 feedback export: a chip's output is the next row's draft, so Add Appt Ask did take effect on its first press on both leads where it was pressed. TESTS: visit-radius-847 (new) executes buildUserPrompt through the shipped panel payload, _lpCallBack, _lpRefineSms, the scraper's claim statement, _lpHouseGuard, the opener guard and enforceSmsSig: 56 assertions across both builds; v9.7.846 fails 23 of 28 per build (the 5 controls pass). remote-visit-802: an out-of-state buyer by address alone is now the special trip (level 2); one who asks us to ship keeps level 3. stuck-leads-784 accepts either not-local header. fact-arbitration, distance-appt-gate and sms-hook-order supply the new upstream input (no special trip), and fact-arbitration's remote case is driven by the customer's own words. VERIFIED: run-all 284 suites green, 9,424 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.846.)
 // Lead Pro -- popup.js  v9.7.846 (Commercial. FROM SATURDAY 10/31 ON 9.7.845: A TIME TODAY THAT HAD PASSED, STORE HOURS THE 842 CHECK MISSED, A STREET ADDRESS COPIED FROM THE THREAD, AND A LOGISTICS ANSWER FULL OF FIGURES. Extension only; proxy v7.91, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. (1) _lpPastTimeGuard, before render, every format: a sentence about today ('today', 'this morning/afternoon/evening', 'tonight') naming a time already past has its times replaced, one for one, by the slot engine's own today pair (computeAppointmentTimes); with no slot left today it is left for the agent and the console says so. Honda Lafayette CarGurus lead 2108097289: at 9:13 AM Saturday the draft offered '9 AM or 10 AM today' (the agent changed it before sending). [LP PAST TIME GUARD]. (2) The v9.7.842 hours check also counts 'from 9 to 7' and 'open until 7' in a statement -- the same lead's 'We’re open until 7 today and from 9 to 7 Monday'; a time offer phrased as a question is still kept. (3) _lpAddressGuard: a street number of one of our stores followed by another street name is set to the config's (LP_DEALER_INFO). Audi Lafayette Autotrader lead 2108158988: 'The address is 6160 Johnson St.' -- copied from the CRM's own appointment-reminder text in the thread; the store is on Johnston St, and the customer corrected the agent. [LP ADDRESS GUARD]. When the customer's newest message asks where we are, the prompt gives OUR ADDRESS from the config and says not to copy one from the thread. (4) When the newest message is only logistics (the address, a time, who to ask for) and not money, the prompt says to answer exactly that, briefly, without repeating budget, down payment, payment or price figures and without a new pitch -- the same lead's reply carried the $18,359 listing and her '$500 down and $400 monthly target' and was rejected twice. [LP LOGISTICS DIAG]. Not changed: the VinSolutions appointment-reminder template for Audi Lafayette still says 'Johnson St.' -- that is in the CRM, not Lead Pro. TESTS: render-checks-846 (new) executes _lpPastTimeGuard with the clock pinned, _lpHouseGuard, _lpAddressGuard and the prompt through the shipped panel payload: 32 assertions across both builds; v9.7.845 fails 14 of 16 per build (the 2 controls pass). us-spelling-804 accepts the two new guards in the render chain. VERIFIED: run-all 283 suites green, 9,366 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.845.)
 // Lead Pro -- popup.js  v9.7.845 (Commercial. THE POWERTRAIN OF THE VEHICLE ON THE LEAD, FROM VINSOLUTIONS' RECORD, WHEN WHAT THEY RAISED IS ABOUT IT. Extension only; proxy v7.91, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Honda Lafayette lead 2107308865 (log386): she test-drove the Passport, 'does not want a CVT or a turbo', and 'said the passport has some low speed hesitation, and bumpy shifts'; both drafts repeated that back to her and answered none of it. VinSolutions' record of the unit (LeadVehicle) says 'Regular Gasoline V-6 3.5 L/212' and '10-Speed Automatic w/OD' -- a V6 with a conventional automatic. Gil: 'it would be smart if we can trust the facts when we have them. in those cases'. (1) The scraper reads EngineName and TransmissionName off the same record, under the same conditions, as the v9.7.797 drivetrain (voiEngine, voiTransmission; [LP POWERTRAIN DIAG]). (2) _lpPowertrain puts them in words (3.5L V6; 10-speed automatic; CVT or not; turbo or not, from the record's own words). (3) When a customer message or a note of ours about them raises the engine or transmission (CVT, turbo, transmission, shifting, V6, cylinders, engine -- never our own texts or emails), the lead context carries the record as a fact that may be stated, what they raised, and: when the record answers it, say so plainly once in the email and the text ('the Passport has the 3.5L V6 with a 10-speed automatic, so no CVT and no turbo'); when it conflicts, do not claim it and do not raise it; about how it drove, no cause and no promise, someone can go over it; no other powertrain detail. Nothing raised, or no record: nothing added. Replayed on log386's capture (engine and transmission as the scraper now reads them): the block names the note and answers no CVT, no turbo. TESTS: powertrain-845 (new) executes the shipped scraper span, _lpPowertrain and the prompt through the shipped panel payload: 24 assertions across both builds; v9.7.844 fails 9 of 12 per build (the 3 controls pass). VERIFIED: run-all 282 suites green, 9,334 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.844.)
 // Lead Pro -- popup.js  v9.7.844 (Commercial. A VISIT ASK WRITTEN AS A QUESTION. Extension only; proxy v7.91, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Honda Lafayette lead 2107308865 (log385, on v9.7.843 -- the website mention is gone): she test-drove the Passport and 'will let me know after she does further research', so the prompt decided on no visit ask (the PAUSE rule, level 3). The first draft closed 'I’m here if you want to revisit it later.'; the text rewrite closed 'Want to revisit it and go over new options together?' and shipped, because v9.7.835's guard (LP_VISIT_ASK_RX) knew 'come in', 'stop by', 'what time works' and two times, not this. LP_VISIT_ASK_RX now also counts a question asking them to revisit, see it again, take another look or go over something ('want / like / ready / care / open to ...?'), and a question to revisit or go over something together. The statement form ('I’m here if you want to revisit it later.') is not an ask and stays allowed. The qualified-buyer APR offer in the same drafts stays: Gil, 10/30: 'I think the offer is safe here as it may be a deciding factor.' TESTS: visit-question-844 (new) executes LP_VISIT_ASK_RX and _lpRefineSms: 14 assertions across both builds; v9.7.843 fails 3 of 7 per build (the 4 controls pass). VERIFIED: run-all 281 suites green, 9,310 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.843.)
@@ -4759,7 +4760,25 @@ function _lpLastCall(d) {
     if (!c) return null;
     var by = ((/\bBy:\s*([A-Z][\w'\u2019-]*(?:\s+[A-Z][\w'\u2019-]*)?)/.exec(c.raw) || [])[1] || '').trim();
     if (/^system\b/i.test(by)) by = '';
-    return { date: c.date, by: by, first: by.split(/\s+/)[0] || '', note: String(c.body || '').replace(/https?:\/\/\S+/g, '').replace(/\s+/g, ' ').trim().slice(0, 240), inbound: /^Inbound/i.test(c.title) };
+    return { date: c.date, t: c.t, by: by, first: by.split(/\s+/)[0] || '', note: String(c.body || '').replace(/https?:\/\/\S+/g, '').replace(/\s+/g, ' ').trim().slice(0, 240), inbound: /^Inbound/i.test(c.title) };
+  } catch (e) { return null; }
+}
+// (v9.7.847) THEY SAID THEY WILL CALL US BACK. Toyota Baytown lead 2108628902: at 9:50 the salesperson reached him and noted
+// "Will call me back"; at 12:14 the text and email asked "Would 2:15 or 3:00 work better?". Gil: "no times after will call
+// back." The customer's promise to call (call me/us back, will text me, will get back to me), not ours ("I will call him back").
+// Returns { date, by, first, quote } from the call this text follows when its note says so and it is from the last two days.
+var LP_CALLBACK_RX = /\b(?:will|wil|'ll|’ll|would|going to|gonna)\s+(?:call|text|reach out to|get back to|give)\s+(?:me|us)\b|\bcall(?:s|ing)?\s+(?:me|us)\s+back\b|\b(?:will|'ll|’ll)\s+call\s+back\b/i;
+function _lpCallBack(d) {
+  try {
+    var lc = (d && d.convState === 'call-followup') ? _lpLastCall(d) : null;
+    if (!lc || lc.inbound || !lc.note) return null;
+    var parts = lc.note.split(/(?<=[.?!])\s+/), q = '';
+    for (var i = 0; i < parts.length; i++) {
+      if (LP_CALLBACK_RX.test(parts[i]) && !/\b(?:i|we)\s+(?:will|'ll|’ll|would|am going to)\s+call\b/i.test(parts[i])) { q = parts[i].trim(); break; }
+    }
+    if (!q) return null;
+    if (lc.t && (Date.now() - lc.t) > 2 * 86400000) return null;
+    return { date: lc.date, by: lc.by, first: lc.first, quote: q.slice(0, 120) };
   } catch (e) { return null; }
 }
 // (v9.7.811) "Did the photos [Rep] sent over come through?" -- a question about something we sent. Returns the words that
@@ -5783,6 +5802,17 @@ var LP_DAY_RANGE_RX = /\b(?:mon|tues|wednes|thurs|fri|satur|sun)day\s*(?:-|–|t
 var LP_HOURS_ASKED_RX = /\b(?:hours?|open|clos(?:e|es|ed|ing)|what time|until when|sunday|saturday|weekend)\b/i;
 var LP_NOTES_SAY_RX = /\b(?:the last note (?:i|we) have|(?:our|my) (?:notes|records) (?:show|say|indicate|have)|according to (?:our|my) (?:notes|records)|(?:in|from|on) (?:our|my) notes)\b/i;
 var LP_VIEWED_SITE_RX = /\s+(?:that |which )?you (?:viewed|looked at|browsed|checked out|were (?:looking at|viewing|browsing))(?=\s+(?:on|at) (?:our|the) (?:website|web site|site))/gi;
+// (v9.7.847) Three more, from 11/2. (4) Their browsing anywhere, not only before "on our website": Honda Baytown Fullpath lead
+// 2108640226 went out with "the Crystal Black Pearl Ridgeline you viewed is ready" (the relative clause goes; "I saw you viewed"
+// is left to the sentence checks, since cutting it would leave "I saw the Ridgeline"). (5) Telling them they are remote: Kia Baytown
+// lead 2108597971, "Since you're handling this remotely, I can send a video walkaround" (the clause goes, the sentence stays).
+// (6) Hours without "we're open": "Audi Lafayette is open until 7 today" (lead 2108656923) and "You're welcome to see it in person
+// Monday through Saturday, 9 AM to 7 PM." (lead 2108459212): a sentence with a day range and a clock range lists our hours.
+var LP_VIEWED_ANY_RX = /(?<!\b(?:saw|see|seen|noticed?|know|knew))\s+(?:that |which )?you(?:'ve|’ve| have)? (?:viewed|browsed|were (?:viewing|browsing))\b(?!\s+(?:it |them )?(?:in person|at the (?:store|dealership|showroom)|here|when you|on your visit|during your visit))/gi;
+var LP_REMOTE_SAY_RX = /\b(?:since|because|as|given that)\s+you(?:'re|’re| are)\s+(?:(?:handling|doing|buying|shopping|working on|coordinating)\s+(?:this|it|things|everything|the (?:purchase|deal))\s+(?:remotely|from (?:a distance|afar|out of (?:town|state)|where you are))|out of (?:town|state)|not local|not in the area|(?:so )?far away)\s*,\s*([A-Za-z])/gi;
+var LP_IS_OPEN_RX = /\b(?:is|are) open (?:until|till|from|today|tonight|(?:mon|tues|wednes|thurs|fri|satur|sun)day)\b/i;
+var LP_WEEKDAY_SPAN_RX = /\b(?:mon|tues|wednes|thurs|fri|satur|sun)day\s*(?:-|–|through|thru|to)\s*(?:mon|tues|wednes|thurs|fri|satur|sun)day\b/i;
+var LP_CLOCK_SPAN_RX = /\b\d{1,2}(?::\d{2})?\s*(?:am|pm)?\s*(?:-|–|to|until)\s*\d{1,2}(?::\d{2})?\s*(?:am|pm)\b/i;
 function _lpHouseGuard(text, channel) {
   var s = String(text || '');
   if (!s) return s;
@@ -5793,12 +5823,18 @@ function _lpHouseGuard(text, channel) {
       || ((typeof _lpCustEntries === 'function') ? _lpCustEntries(d) : []).some(function (x) { return LP_HOURS_ASKED_RX.test(x.body); });
   } catch (e) {}
   s = s.replace(LP_VIEWED_SITE_RX, function (m) { hits.push('browsing: "' + m.trim() + '"'); return ''; });
+  s = s.replace(LP_VIEWED_ANY_RX, function (m) { hits.push('browsing: "' + m.trim() + '"'); return ''; });   // (v9.7.847)
+  s = s.replace(LP_REMOTE_SAY_RX, function (m, c, off, all) {   // (v9.7.847)
+    hits.push('remote: "' + m.slice(0, -1).trim() + '"');
+    return /(?:^|[.!?]\s+|\n\s*)$/.test(all.slice(0, off)) ? c.toUpperCase() : c;
+  });
   var lines = s.split('\n'), out = [];
   for (var i = 0; i < lines.length; i++) {
     var line = lines[i];
     if (!line.trim()) { out.push(line); continue; }
     var parts = line.split(/(?<=[.!?])\s+/), kept = parts.filter(function (p) {
       if (!asked && LP_HOURS_OPEN_RX.test(p) && LP_DAY_RANGE_RX.test(p) && !/\?\s*$/.test(p)) { hits.push('hours: "' + p.trim().slice(0, 70) + '"'); return false; }
+      if (!asked && !/\?\s*$/.test(p) && ((LP_IS_OPEN_RX.test(p) && LP_DAY_RANGE_RX.test(p)) || (LP_WEEKDAY_SPAN_RX.test(p) && LP_CLOCK_SPAN_RX.test(p)))) { hits.push('hours: "' + p.trim().slice(0, 70) + '"'); return false; }   // (v9.7.847)
       if (LP_NOTES_SAY_RX.test(p)) { hits.push('notes: "' + p.trim().slice(0, 70) + '"'); return false; }
       return true;
     });
@@ -5972,6 +6008,8 @@ function _haversineMiles(lat1, lng1, lat2, lng2) {
 // centroid table. Returns null when either the store or the ZIP prefix is unknown
 // (caller then falls back to the state-mismatch rule). The 100-mile threshold is
 // applied by the caller, not here.
+// (v9.7.847) Gil, 11/2: "the Houston area edge to edge is about 75 miles ... Anything beyond that would be a special trip."
+var LP_VISIT_RADIUS_MILES = 75;
 function _customerDistanceMiles(dealerId, customerZip) {
   try {
     var store = STORE_COORDS[String(dealerId)];
@@ -8794,18 +8832,21 @@ function populateFromData(d) {
   // KNOWINGLY and explained, never by quietly reverting as if the earlier message never happened.
   try {
     var _scK = d.selfClaims || {};
-    var _scList = ['available','sold','appointment'].filter(function(k){ return _scK[k] && _scK[k].text; })
+    var _scList = ['available','unavailable','sold','appointment'].filter(function(k){ return _scK[k] && _scK[k].text; })
       .sort(function(x,y){ return _scK[x].ms - _scK[y].ms; });
     if (_scList.length) {
       var _scConflict = (_scK.available && _scK.sold);
       vehicleExtras.push('');
       vehicleExtras.push('🧾 WHAT WE HAVE ALREADY TOLD THIS CUSTOMER (our own prior outbound messages, oldest first — these are commitments on the record):');
       _scList.forEach(function(k){
-        vehicleExtras.push('  • [' + _scK[k].date + '] ' + (k === 'sold' ? 'WE SAID IT SOLD' : k === 'available' ? 'WE SAID IT WAS AVAILABLE' : 'WE CONFIRMED AN APPOINTMENT') + ': "' + _scK[k].text + '"'
+        vehicleExtras.push('  • [' + _scK[k].date + '] ' + (k === 'sold' ? 'WE SAID IT SOLD' : k === 'available' ? 'WE SAID IT WAS AVAILABLE' : k === 'unavailable' ? 'WE SAID IT IS NOT IN STOCK' : 'WE CONFIRMED AN APPOINTMENT') + ': "' + _scK[k].text + '"'
           + (_swOld && k !== 'appointment' && _swOld(_scK[k].text) ? ' — ABOUT THE ORIGINAL VEHICLE, WHICH IS NO LONGER THE ONE ON THIS LEAD: not a commitment about the car on the lead now, and not to be repeated' : ''));
       });
       vehicleExtras.push('- Do NOT contradict the MOST RECENT of these without saying so plainly. If the newest thing we told them was that the vehicle sold, you may not now write as though it is available, ask whether they are "still interested in it", or invite them to come see it — to the customer that reads as though nobody here remembers the conversation.');
       vehicleExtras.push('- If the situation genuinely changed (a sold unit came back when a deal fell through, an appointment moved), SAY THAT explicitly — "it actually came back available" — so the change is visible and honest rather than a silent reversal.');
+      if (_scList.filter(function (k) { return k !== 'appointment'; }).pop() === 'unavailable') {   // (v9.7.847)
+        vehicleExtras.push('- THE NEWEST THING WE TOLD THEM ABOUT THIS VEHICLE IS THAT IT IS NOT IN STOCK. Do not write as though it is here or available, and do not invite them to come see it. If it has since arrived, say so plainly.');
+      }
       if (_scConflict && _scK.sold.ms > _scK.available.ms) {
         vehicleExtras.push('- ⚠ WE TOLD THEM IT WAS AVAILABLE, THEN LATER TOLD THEM IT SOLD. The SOLD message is the newer one and is what they currently believe. Treat that as the standing position unless you explicitly correct it.');
       }
@@ -14681,7 +14722,9 @@ function _lpScraperBotAuthor(msg) {
             // instead of the sold car. Widened to 90 so the 120-char slice is the single stated
             // bound; [^.!?] still stops at the end of the sentence, so nothing runs on.
             if ((_scM = _scContent.match(/[^.!?]{0,70}\b(?:has sold|is sold|already sold|has been sold|no longer available|sold already)\b[^.!?]{0,90}/i))) _scAdd('sold', _scM[0]);
-            if ((_scM = _scContent.match(/[^.!?]{0,70}\b(?:is here|here and (?:ready|available)|available to see|still available|in stock|ready for you to see)\b[^.!?]{0,90}/i))) _scAdd('available', _scM[0]);
+            // (v9.7.847) "isn't in stock today" is the opposite claim. Toyota Baytown lead 2108628902: our 9:27 text said the SR
+            // Double Cab "isn't in stock today", and the prompt quoted it back as WE SAID IT WAS AVAILABLE under "do not contradict".
+            if ((_scM = _scContent.match(/[^.!?]{0,70}\b(?:is here|here and (?:ready|available)|available to see|still available|in stock|ready for you to see)\b[^.!?]{0,90}/i))) _scAdd(/\b(?:isn['’]t|is not|aren['’]t|are not|wasn['’]t|not|no longer)\s+(?:currently\s+|yet\s+|actually\s+)?(?:here|in stock|available)\b/i.test(_scM[0]) ? 'unavailable' : 'available', _scM[0]);   // (inline: this runs inside the injected scraper)
             if ((_scM = _scContent.match(/[^.!?]{0,70}\b(?:confirmed for|your appointment (?:on|is)|see you (?:on|at)|scheduled for)\b[^.!?]{0,90}/i))) _scAdd('appointment', _scM[0]);
           }
         } catch (eSc) {}
@@ -23413,6 +23456,8 @@ var _LP_MOOT_SOLD_LINE = 'Their earlier questions about that deal\'s numbers (QU
 // (v9.7.837) Words that tell a customer we watched their browsing: "you were looking at", "I saw you viewed", "your search has shifted".
 var LP_BROWSE_REVEAL_RX = /\b(?:(?:saw|see|noticed|notice) (?:that )?you(?:'ve| have| were)? (?:been )?(?:looking|browsing|viewing|checking|viewed|browsed|looked)|you(?:'ve| have| were)? (?:been )?(?:browsing|viewing|checking out)|you (?:looked at|viewed|browsed)|(?:search|interest) (?:has |may have |had )?(?:shifted|moved|changed))\b/i;
 // (v9.7.835) A visit or time ask in a text: come in / stop by / come back, a day-or-time question, "when can you come", two times offered.
+// (v9.7.847) An appointment time offered: "2:15 or 3:00", "10 AM", "3:30 PM". The signature's phone number is not one.
+var LP_TIME_OFFER_RX = /\b\d{1,2}(?::\d{2})?\s*(?:a\.?m\.?|p\.?m\.?)(?![a-z])|\b\d{1,2}(?::\d{2})?\s+or\s+\d{1,2}:\d{2}\b|\b\d{1,2}:\d{2}\s+or\s+\d{1,2}(?::\d{2})?\b/i;
 var LP_VISIT_ASK_RX = /\b(?:come (?:in|by|back|see)|stop (?:in|by)|swing by|drop by|visit us|(?:what|which) (?:day|time)s?\b[^.?!\n]{0,40}\b(?:work|good|best|come)|when (?:can|could|would|will) you (?:come|stop|make it|be able)|\d{1,2}(?::\d{2})?\s*(?:am|pm)?\s+or\s+\d{1,2}(?::\d{2})?\s*(?:am|pm)|\b(?:want|like|ready|care|open) to (?:revisit|see it again|take another look|go over)\b[^.?!\n]*\?|\b(?:revisit|go over)\b[^.?!\n]{0,60}\btogether\b[^.?!\n]*\?)/i;   // (v9.7.844) question forms: lead 2107308865
 function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
   d = d || {};
@@ -23915,6 +23960,9 @@ function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
   var _rfVd = (typeof _lpLastVisitDecision === 'object' && _lpLastVisitDecision) ? _lpLastVisitDecision : null;
   if (_rfVd && _rfVd.level === 3) out.push('Then give them the substance the email gives, in their terms. This message makes NO visit ask and offers NO time ('
     + (_rfVd.owner || 'the visit decision') + '): no "come in", "stop by" or "come back", no day or time, no "when can you come". The email makes none, and the text must not add one.');
+  // (v9.7.847) No times: lead 2108628902's rewrite added "Would 2:15 or 3:00 work better?" after "Will call me back".
+  else if (_rfVd && _rfVd.level === 2) out.push('Then give them the substance the email gives, in their terms. This message offers NO appointment time ('
+    + (_rfVd.owner || 'the visit decision') + '): no clock time, no "2:15 or 3:00", no "what time works", no "this afternoon". A light invitation is fine if the email makes one; the text must not add a time.');
   else out.push('Then give them the substance \u2014 the actual reason this visit is worth making, in '
     + 'their terms. If that reason is two things, it is two things. DO NOT HOLD IT BACK FOR THE '
     + 'EMAIL TO CARRY: plenty of customers read the text and never open the email, so a text that '
@@ -24181,6 +24229,12 @@ async function _lpRefineSms(pass1, emailText, d) {
       var _rfVd2 = (typeof _lpLastVisitDecision === 'object' && _lpLastVisitDecision) ? _lpLastVisitDecision : null;
       if (_rfVd2 && _rfVd2.level === 3 && LP_VISIT_ASK_RX.test(out) && !LP_VISIT_ASK_RX.test(String(pass1 || ''))) {
         console.log('[LP SMS REFINE DIAG] kept the first pass \u2014 the prompt decided on no visit ask (' + (_rfVd2.owner || '?') + ') and the rewrite added one ("' + (out.match(LP_VISIT_ASK_RX) || [''])[0] + '") | ' + (Date.now() - t0) + 'ms');
+        return null;
+      }
+      // (v9.7.847) No appointment times (level 2), and the rewrite added one the first pass did not offer.
+      var _rfNoSig = function (x) { return String(x || '').split(/\n\s*\n/)[0]; };
+      if (_rfVd2 && _rfVd2.level === 2 && LP_TIME_OFFER_RX.test(_rfNoSig(out)) && !LP_TIME_OFFER_RX.test(_rfNoSig(pass1))) {
+        console.log('[LP SMS REFINE DIAG] kept the first pass \u2014 the prompt decided on no appointment times (' + (_rfVd2.owner || '?') + ') and the rewrite added one ("' + (_rfNoSig(out).match(LP_TIME_OFFER_RX) || [''])[0] + '") | ' + (Date.now() - t0) + 'ms');
         return null;
       }
     } catch (eRfVa) {}
@@ -24995,6 +25049,8 @@ var _LP_VISIT_HOLDS = [
   // (v9.7.802) the out-of-state buyer the agent chose to invite in, and the one who said they will make the trip
   [1, /^AGENT OVERRIDE -- APPOINTMENT ASK FOR AN OUT-OF-STATE BUYER/, 'the agent\'s ADD APPT ASK chip (out-of-state: times, but not today by default)'],
   [2, /^THEY SAID THEY WILL MAKE THE TRIP:/, 'the REMOTE BUYER who said they will make the trip (ask when, no set times)'],
+  [2, /^A VISIT IS A SPECIAL TRIP FOR THIS CUSTOMER/, 'the SPECIAL TRIP rule (more than 75 miles: one soft invitation, no times)'],   // (v9.7.847)
+  [2, /^THEY SAID THEY WILL CALL US BACK \(on the /, 'the CALL-BACK rule (they said they will call us)'],   // (v9.7.847)
   [2, /^DO NOT offer appointment times\. DO NOT write duration\./, 'the stalled-lead re-engagement block'],
   [2, /The visit already happened\. Do NOT push a same-day appointment or offer times/, 'the SHOWROOM FOLLOW-UP block'],
   [2, /FIRST HUMAN TOUCH — LIGHT ASK, NO TIMES/, 'FIRST HUMAN TOUCH'],
@@ -29018,6 +29074,16 @@ function buildUserPrompt(data) {
         + ' Never quote the call note or mention notes.');
     }
   } catch (eLc) {}
+  // (v9.7.847) They said on that call that they will call us back (see _lpCallBack).
+  try {
+    var _cbk = _lpCallBack(data);
+    if (_cbk) {
+      console.log('[LP CALL BACK DIAG] ' + _cbk.date + ' (' + (_cbk.by || 'our call') + '): "' + _cbk.quote + '" -> they will call us: no appointment times');
+      ageBlock.push('');
+      ageBlock.push('THEY SAID THEY WILL CALL US BACK (on the ' + _cbk.date + ' call): the next move is theirs. This message offers NO appointment time in any format: no clock times, no "would 2:15 or 3:00 work", no "what time works", no "this afternoon". '
+        + 'Give them one useful thing for when they do call, and make it easy to reach you; a light "whenever you are ready" is fine. Do not press, and never quote the call note.');
+    }
+  } catch (eCbk) {}
   // (v9.7.816) Our pitch is out and unanswered (see _lpPitchOut).
   try {
     var _po = (data.convState === 'call-followup') ? null : _lpPitchOut(data);
@@ -30156,6 +30222,22 @@ function buildUserPrompt(data) {
         + ' the address on file (' + (data.customerState || '?') + ' ' + (data.customerZip || '?') + ') is not where they are shopping from.');
     }
   } catch (_szPE) {}
+  // (v9.7.847) DISTANCE IS MILES, NOT THE STATE LINE. Kia Baytown lead 2108597971: a Louisiana customer about 110 miles out
+  // got the out-of-state "no visit" rules and "since you're handling this remotely"; the agent regenerated four times and wrote
+  // "would you like to come see it?" herself. Gil, 11/2: "75 miles is a good marker ... relevant for LA as well. Anything beyond
+  // that would be a special trip for most customers. Maybe if there is a soft ask for a visit." So: out of state within 75 miles
+  // is the distance tier (a visit ask, the distance never said); beyond 75 miles, in state or out, a visit is a special trip -- one
+  // soft invitation, no times. Only a customer who says they are buying remotely (or the agent's chip) keeps the no-visit rules.
+  var _lpMiles = null, _lpSpecialTrip = false, _lpNearOos = false;
+  try {
+    if (_localSetHit !== true && data.customerZip && _dealerIdForDist) {
+      _lpMiles = (_distMiles != null) ? _distMiles : _customerDistanceMiles(_dealerIdForDist, data.customerZip);
+    }
+    if (_geoOutOfState && _lpMiles != null && _lpMiles <= LP_VISIT_RADIUS_MILES) { _geoOutOfState = false; _inStateFar = true; _lpNearOos = true; }
+    else if (_geoOutOfState || (_inStateFar && _lpMiles != null && _lpMiles > LP_VISIT_RADIUS_MILES)) _lpSpecialTrip = true;
+    if (_lpMiles != null || _lpSpecialTrip) console.log('[LP DISTANCE MILES DIAG] about ' + (_lpMiles == null ? '?' : Math.round(_lpMiles)) + ' miles | '
+      + (_lpNearOos ? 'out of state but within ' + LP_VISIT_RADIUS_MILES + ' -> the distance tier (visit ask)' : _lpSpecialTrip ? 'a special trip (beyond ' + LP_VISIT_RADIUS_MILES + ' or unknown, out of state) -> one soft visit invitation, no times' : 'within ' + LP_VISIT_RADIUS_MILES + ' -> unchanged'));
+  } catch (eMi) {}
   var _bpExplicitReq = _lpExplicitDistanceReq(data.lastInboundMsg);
   var _bpLocalVeto   = (_localSetHit === true) && !_bpExplicitReq;
   if (_bpLocalVeto) { flags = flags.filter(function(_bpf){ return _bpf !== 'distance'; }); }
@@ -30287,15 +30369,18 @@ function buildUserPrompt(data) {
     // customer's own inbound for exactly this reason), v9.7.411 and v9.7.539. Read only what the
     // CUSTOMER wrote; the ZIP/state facts above are what carry a remote lead the customer never
     // spoke about, and a manual chip still overrides everything.
+    var _rbSaid = /ship(?:ping)? to|not (?:local|in the (?:local )?area|nearby)|not (?:located|based) (?:in|near)|out of state|out.of.state/i.test(_lpCustomerText(data));   // (v9.7.847)
     var isRemoteBuyer = _manualDistance || _geoOutOfState || /ship(?:ping)? to|not (?:local|in the (?:local )?area|nearby)|not (?:located|based) (?:in|near)|out of state|out.of.state/i.test(_lpCustomerText(data));
     // (v9.7.802) An out-of-state buyer the agent chose to invite in (Add Appt Ask), or one who said in their own words that they
     // will make the trip. Neither changes the out-of-state rule for anyone else.
-    var _rbVisit = '';
+    var _rbVisit = '', _rbSoft = false;
     try {
       if (isRemoteBuyer && !((typeof _lpTouchHold === 'function') && _lpTouchHold(data))) {
         if ((typeof _lpAddApptOn === 'function') && _lpAddApptOn(data)) _rbVisit = 'chip';
         else if ((typeof _lpTripIntent === 'function') && _lpTripIntent(data)) _rbVisit = 'trip';
       }
+      // (v9.7.847) Only the address says they are far (they never said they are buying remotely, and no chip): a special trip.
+      _rbSoft = isRemoteBuyer && !_rbVisit && !_manualDistance && !_rbSaid && !((typeof _lpTouchHold === 'function') && _lpTouchHold(data));
       if (_rbVisit) console.log('[LP REMOTE VISIT DIAG] ' + (_rbVisit === 'chip' ? 'the agent pressed Add Appt Ask -- the out-of-state no-visit rule stands aside for this lead' : 'they said they will make the trip ("' + _lpTripIntent(data) + '") -- ask when, no set times'));
     } catch (eRbV) {}
     // ── (v9.7.655) AN EXITING LEAD GETS NO CONTEXT LINE AT ALL ──────────────────────────────
@@ -30315,7 +30400,7 @@ function buildUserPrompt(data) {
       distanceContext = 'Distance buyer: the visit must be worth their time -- the owner offer, an appraisal of their current Audi and the models they would want, ready when they arrive. The vehicle on this lead is the program\'s pick, not theirs: do not name it.';
     } else if ((typeof _lpOfferedUnit === 'function') && _lpOfferedUnit(data)) {   // (v9.7.802) the conversation moved to the unit we offered
       distanceContext = 'The conversation is about the ' + _lpOfferedUnit(data).unit + ' we offered (see THE CAR ON THE TABLE NOW)'
-        + (isRemoteBuyer && _rbVisit === 'chip' ? '. The agent wants a visit asked for (see the AGENT OVERRIDE above)' : isRemoteBuyer && _rbVisit === 'trip' ? '. They said they will make the trip: ask when they plan to come, and say what will be ready for them' : isRemoteBuyer ? '. They are remote: the next step is remote (details, video, numbers), not a visit time' : '')
+        + (isRemoteBuyer && _rbVisit === 'chip' ? '. The agent wants a visit asked for (see the AGENT OVERRIDE above)' : isRemoteBuyer && _rbVisit === 'trip' ? '. They said they will make the trip: ask when they plan to come, and say what will be ready for them' : isRemoteBuyer ? (_rbSoft ? '. The next step is a video walkaround, the details or the numbers; a visit would be a special trip for them, so no visit time' : '. They are remote: the next step is remote (details, video, numbers), not a visit time') : '')
         + ' -- do NOT promise to hold or set aside an in-stock unit (we do not reserve on-lot cars).';
     } else if (data.vehicle && _dbSoldUnit) {
       // (v9.7.631) The distance FACT still applies and still shapes the offer — they are far, so
@@ -30341,7 +30426,7 @@ function buildUserPrompt(data) {
       // (v9.7.697) Presence only when the feed confirms it; and a REMOTE buyer is not asked for a visit
       // time here — Jalen Garner (Audi Lafayette, Mississippi, 9/23) got "do not imply a near-term visit"
       // and "encourage the soonest workable time" in the same prompt.
-      distanceContext = 'Customer is interested in the ' + data.vehicle + '. ' + (data._lpInvConfirmedAvailable && data._lpRepNotOnLot ? 'It is ours, but the sales rep told them it is still in service and not on the lot yet \u2014 do not say it is here' : data._lpInvConfirmedAvailable ? 'Confirm it is available' : 'Its presence on the lot is NOT confirmed by today\'s inventory feed \u2014 do not say it is here') + (isRemoteBuyer && _rbVisit === 'chip' ? '. The agent wants a visit asked for (see the AGENT OVERRIDE above)' : isRemoteBuyer && _rbVisit === 'trip' ? '. They said they will make the trip: ask when they plan to come, and say what will be ready for them' : isRemoteBuyer ? '. They are remote: the next step is remote (details, video, numbers), not a visit time' : ' and encourage the soonest workable time, with what will be ready for them as the reason (never the drive or the trip)') + ' — do NOT promise to hold or set aside an in-stock unit (we do not reserve on-lot cars). If it is in transit/inbound, securing it before arrival is appropriate.';
+      distanceContext = 'Customer is interested in the ' + data.vehicle + '. ' + (data._lpInvConfirmedAvailable && data._lpRepNotOnLot ? 'It is ours, but the sales rep told them it is still in service and not on the lot yet \u2014 do not say it is here' : data._lpInvConfirmedAvailable ? 'Confirm it is available' : 'Its presence on the lot is NOT confirmed by today\'s inventory feed \u2014 do not say it is here') + (isRemoteBuyer && _rbVisit === 'chip' ? '. The agent wants a visit asked for (see the AGENT OVERRIDE above)' : isRemoteBuyer && _rbVisit === 'trip' ? '. They said they will make the trip: ask when they plan to come, and say what will be ready for them' : isRemoteBuyer ? (_rbSoft ? '. The next step is a video walkaround, the details or the numbers; a visit would be a special trip for them, so no visit time' : '. They are remote: the next step is remote (details, video, numbers), not a visit time') : ' and encourage the soonest workable time, with what will be ready for them as the reason (never the drive or the trip)') + ' — do NOT promise to hold or set aside an in-stock unit (we do not reserve on-lot cars). If it is in transit/inbound, securing it before arrival is appropriate.';
     }
     if (isRemoteBuyer) {
       // (v9.7.225) Conditional visit: some remote buyers WILL drive in, but only after the
@@ -30349,14 +30434,16 @@ function buildUserPrompt(data) {
       // mention a visit" — it's "don't front-run the condition by pushing times now." Detect
       // that stance and soften the no-visit directive into a numbers-first sequence.
       var _conditionalVisit = /if .{0,40}(price|number|deal|right)|come in .{0,30}(if|once|after)|then .{0,15}come in|would .{0,15}come in|come down .{0,30}(if|once)/i.test((data.lastInboundMsg || ''));
-      lines.push('🔴 REMOTE / OUT-OF-STATE BUYER: Customer is NOT local.',
+      lines.push(_rbSoft ? '🔴 OUT-OF-AREA BUYER: this customer lives ' + (_lpMiles != null ? 'more than ' + LP_VISIT_RADIUS_MILES + ' miles' : 'out of state') + ' from the store (INTERNAL fact -- shapes the offer, never the wording).' : '🔴 REMOTE / OUT-OF-STATE BUYER: Customer is NOT local.',
         _rbVisit === 'chip' ? '- AGENT OVERRIDE -- APPOINTMENT ASK FOR AN OUT-OF-STATE BUYER: the agent chose to invite this customer in. Ask for the visit with one or two specific times inside store hours. They are not local, so give them room to make the trip: offer the next open day or later, not later today, unless they said they are on the way. Make the trip worth it -- say what will be ready for them when they arrive.'
           : _rbVisit === 'trip' ? '- THEY SAID THEY WILL MAKE THE TRIP: in their own words on this lead -- "' + _lpTripIntent(data).replace(/"/g, "'") + '". The visit is on the table: ask when they are planning to come, and give them a reason the trip is worth it (what will be ready for them). Let them name the day -- do NOT push set appointment times on them.'
+          : _rbSoft ? '- A VISIT IS A SPECIAL TRIP FOR THIS CUSTOMER: lead with a video walkaround, photos, the numbers or the credit application, and you may close with ONE soft, no-pressure invitation to come see it when the time is right. No appointment times, no day, and the visit is never the main ask.'
           : '- Do NOT push an in-person visit or offer appointment times as the ask — they are remote.',
-        _rbVisit ? '' : '- Do NOT say "stop by", "swing by", "come see us", "when you arrive", or anything implying a near-term physical visit as the next step.',
+        '- NEVER tell them they are remote, out of state, not local or far away: no "since you are handling this remotely", "since you are out of state", "from where you are", "from a distance". Offer the options; do not describe them.',
+        (_rbVisit || _rbSoft) ? (_rbSoft ? '- Never "stop by" or "swing by" -- this is a special trip, not an errand.' : '') : '- Do NOT say "stop by", "swing by", "come see us", "when you arrive", or anything implying a near-term physical visit as the next step.',
         ((typeof _lpShipAsk === 'function' && _lpShipAsk(data)) ? '- TRANSPORT: they asked about it -- answer it in this message as THEY ASKED ABOUT GETTING THE CAR TO THEM says (they arrange the transport company, we coordinate the pickup with the shipper).' : '- TRANSPORT/SHIPPING IS A LATE-STAGE TOPIC \u2014 do NOT explain how the vehicle gets to them (third-party shipper, transport coordination, the fact that we do not deliver) at first or early touch; that exposes a limitation before the deal is alive. If the customer flagged delivery, acknowledge it lightly and reassuringly \u2014 e.g. "we will sort out the logistics once we lock in the deal" \u2014 and keep the early message on confirming the vehicle and opening the numbers/trade conversation.'),   // (v9.7.806)
         '- When transport IS the real next step (the deal is moving): the dealer does NOT arrange or pay for shipping \u2014 the customer arranges their own transport (a transport company) and we assist with the process. NEVER say "we ship to you" or "we handle shipping"; say "we can help coordinate transport." Do not volunteer that we do not deliver before it is relevant.',
-        _rbVisit ? '' : '- Focus on what CAN be done remotely: photos/video walkaround, financing application, deal structure.',
+        (_rbVisit || _rbSoft) ? '' : '- Focus on what CAN be done remotely: photos/video walkaround, financing application, deal structure.',
         _rbVisit ? '' : '- Ask ONE qualifying question to move the deal forward: financing or cash? Trade-in? Which trim/color? Timeline?',
         '- Tone: efficient and helpful. They want to know if this is doable — not a sales pitch about the vehicle.',
         (_conditionalVisit && !_rbVisit) ? '- CONDITIONAL VISIT: This customer has said they WOULD come in, but only once the numbers work. Do NOT push times now — that front-runs their condition. Lead with the numbers remotely (pricing, what is negotiable, deal structure); frame the visit as the payoff AFTER you have agreed on a number, not the next step. Honor the sequence they set: deal first, drive second.' : '',
@@ -30444,6 +30531,7 @@ function buildUserPrompt(data) {
               + ', and the pre-staging is context for when they are ready, not an ask.')
                         : ' — and invite it once you have given them a concrete reason.')
           + ' The reason names what is READY FOR THEM, never the distance they would cover.')),
+        (_lpSpecialTrip && !_dbExit && !_dbApptOff ? '- A VISIT IS A SPECIAL TRIP FOR THIS CUSTOMER: they live more than ' + LP_VISIT_RADIUS_MILES + ' miles from the store. Make the invitation soft and no-pressure -- one invitation to come see it when the time is right, after a video walkaround, photos or the numbers. No appointment times and no day.' : undefined),
         '- NEVER say "stop by", "swing by", or "come see us" — these feel like casual asks for a significant trip.',
         // (v9.7.631) The JUSTIFICATION half survives a sold unit — it is the whole point of the
         // distance treatment and a far buyer must never feel they might drive for nothing. What
@@ -30784,6 +30872,8 @@ function buildUserPrompt(data) {
       if (_fp.viewed.length) lines.push('- What they viewed: ' + _fp.viewed.join('; ') + '.');
     }
     if (_fp) {
+      // (v9.7.847) lead 2108640226: "the Crystal Black Pearl Ridgeline you viewed is ready" (this block said "opened" and "viewed").
+      lines.push('- What they opened or viewed is how we know what to talk about, never something to say: no "you viewed", "you looked at it online", "you opened", "you browsed". Name the car or the offer, or say they asked about it.');
       if (_fp.owned && !_fp.trade) lines.push('- THEY OWN A ' + _fp.owned + ' (our service records). Fish lightly for a trade or upgrade -- one easy question, e.g. "Are you thinking about trading in your ' + _fp.owned.replace(/^((?:19|20)\d{2})\s+\S+\s+/, '$1 ') + '?" Never assume they are trading and never put a value on it.');
       lines.push((_fp.presented || _fp.live)
         ? '- It has already been put to them; another current offer may now be used as a secondary angle, never ahead of it.'
@@ -32975,6 +33065,9 @@ async function generateAll() {
       // we don't accidentally strip a name mentioned mid-message (e.g.
       // "Mike said he would call Kristen").
       stripped = stripped.replace(new RegExp('([.!?])\\s+' + signerFirst + '\\s*$', 'i'), '$1').trimEnd();
+      // (v9.7.847) A sign-off with a title on the name line, "<agent>, your Concierge" (lead 2108656923), stayed above the canonical
+      // signature: "<agent>, your Concierge\n<agent>\nAudi Concierge | Audi Lafayette".
+      stripped = stripped.replace(new RegExp('\\n[-\u2013\u2014\\s]*' + signerFirst + ',?\\s+(?:your\\s+|the\\s+)?(?:[A-Z][\\w&]*\\s+){0,3}(?:Concierge|Coordinator|Specialist|Consultant|Advisor|Representative|Assistant|Manager)\\s*$', 'i'), '').trimEnd();
     }
     if (agentFull && agentFull !== agentFirst) {
       stripped = stripped.replace(new RegExp('\\n' + agentFull.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '\\s*$', 'i'), '').trimEnd();
@@ -33356,6 +33449,21 @@ async function generateAll() {
       // guard did not find the record name, prepended it and lower-cased the model's word: "<record name>, <nickname>, no
       // need to rush". A draft that already opens on a capitalised name THIS LEAD'S OWN NOTES use is addressed; it is
       // left alone. Common opening words are not names.
+      // (v9.7.847) THE DRAFT OPENED ON OUR OWN NAME. Audi Lafayette lead 2108656923 (11/2): the model opened "<agent>, I understand..."
+      // with the concierge's own name, this guard prepended the customer's and lower-cased it: "<customer>, <agent>, I understand".
+      // The signer's name in the opener is swapped for the customer's, not kept behind it.
+      try {
+        var _opAgent = String((typeof window !== 'undefined' && window._leadProResolvedSigner && window._leadProResolvedSigner.firstName)
+          || (lastScrapedData && lastScrapedData.agent) || '').trim().split(/\s+/)[0] || '';
+        if (!hasName && firstName && _opAgent.length > 1 && _opAgent.toLowerCase() !== String(firstName).toLowerCase()) {
+          var _opAm = rawSms.match(new RegExp('^\\s*' + _opAgent.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*,\\s*', 'i'));
+          if (_opAm) {
+            rawSms = firstName + ', ' + rawSms.slice(_opAm[0].length);
+            hasName = true;
+            console.log('[LP SMS OPENER DIAG] opened with the signer\'s own name "' + _opAgent + '" \u2014 replaced with the customer\'s first name');
+          }
+        }
+      } catch (eOpA) {}
       var _opNick = '';
       try {
         var _opM = !hasName && firstName ? rawSms.match(/^\s*([A-Z][a-z'\u2019\-]{1,20}),\s/) : null;
@@ -33369,7 +33477,8 @@ async function generateAll() {
       } else
       if (!hasName && firstName) {
         // Prepend rather than rewrite: the sentence the model wrote is kept intact.
-        rawSms = firstName + ', ' + rawSms.trim().replace(/^([A-Z])/, function (m0) { return m0.toLowerCase(); });
+        // (v9.7.847) "I" stays "I": "<name>, i understand" (lead 2108656923's first draft) is not a sentence.
+        rawSms = firstName + ', ' + rawSms.trim().replace(/^([A-Z])(?![’'\s]|$)/, function (m0) { return m0.toLowerCase(); });
         try { console.log('[LP SMS OPENER DIAG] prepended the first name \u2014 the model opened without it'); } catch (eOp) {}
       } else {
         try { console.log('[LP SMS OPENER DIAG] opener already carries the first name \u2014 untouched'); } catch (eOp2) {}
