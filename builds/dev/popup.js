@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.849-dev (Dev. THE STEP-BACK, AS AGREED WITH GIL 11/2. Extension only; proxy v7.91, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Honda Lafayette lead 2107319795: 4 days old, the customer said on the phone she would let us know when she can come in, three texts since; the draft said 'I've reached out a few times about the 2024 CR-V LX, so I'll give you some space. Would you like me to check back another time?' Giving room on a pause is right; counting our messages and asking whether to keep following up is not. _lpStepBackAllowed: the step-back question (check back later, keep following up, stop) belongs only to a lead 21+ days old with 5+ outreaches and no reply (the close-out gate without its pause shortcut), or one where the customer declined. PROMPT: the system prompt's ONE-SIDED rule no longer offers 'an honest "should we step back"' to every one-sided lead -- it says never to count or point out our own messages and when the question belongs; the pause block adds no counting our messages, no asking whether to check back, one useful line and the door; the young-lead ban list adds 'would you like me to check back another time' and 'I've reached out a few times'. The text rewrite, on a pause, is told to give room and ask nothing. GUARDS: a rewrite that counts our messages or asks whether to check back where the first pass did not, on a lead not at the step-back point, does not ship (checked last, so the withdrawal guards log their own reasons). Before render, on such a lead: 'I've reached out a few times about the CR-V, so I'll give you some space' keeps 'I'll give you some space'; a sentence that only counts our messages goes; 'Would you like me to check back another time?' goes; a leading '<name>, ' is kept. 'We have been trying to reach you' (816) is not a count and stays. No trailing space is left where a last sentence went. TESTS: stepback-849 (new) executes _lpStepBackAllowed, the prompt through the shipped panel payload, _lpBuildSmsRefinePrompt, _lpRefineSms and _lpHouseGuard: 26 assertions across both builds; v9.7.848 fails 10 of 13 per build (the 3 controls pass). VERIFIED: run-all 286 suites green, 9,474 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.848.)
 // Lead Pro -- popup.js  v9.7.848-dev (Dev. THE FIRST NAME ALONE, AND NEVER WHERE IN THE ONLINE TOOL THEY WERE. Extension only; proxy v7.91, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. (1) Honda Lafayette lead 2107319795: the customer's first name is two letters, and drafts opened '<first> <last>,' in the text and 'Hi <first> <last>,' in the email (10/30, two rejected; one such text went out). The prompt now carries 'First name: <first>' beside the full name, with 'address them by this first name alone ... never the full name, even when the first name is short'. Before render (_lpHouseGuard, every format), a line that opens with the full name as the greeting ('<first> <last>,', 'Hi <first> <last>,') is cut to the first name; the full name later in a message is left alone. The opener check now finds the first name as a whole word: a two-letter name was found inside 'Thanks' or 'that', so a text with no name passed as named. (2) Gil, 11/2: 'drop the review page wording.' Kia Baytown Click & Go lead 2108537212: 'Since you reached the Review page after building your payment' in the text and the email. The Click & Go block no longer names the page they stopped on ('stopped before finishing'), and says never to tell them which page or screen of the tool they reached; what they built is still named. Before render, a 'since you reached the X page,' clause goes, and a sentence that is only about it goes (a leading '<name>, ' is kept). Gubagoo links, closed: the 'Virtual Retailing Deal' page needs a login, the public 'Lead Info' page repeats the CRM note, and its 'other customer leads' are other people's submissions -- nothing is followed. TESTS: names-pages-848 (new) executes the prompt through the shipped panel payload, the Click & Go block, _lpHouseGuard and the opener guard: 24 assertions across both builds; v9.7.847 fails 8 of 12 per build (the 4 controls pass). dr-session and quiet-sweep-737 expect 'stopped before finishing' instead of the page. VERIFIED: run-all 285 suites green, 9,448 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.847.)
 // Lead Pro -- popup.js  v9.7.847-dev (Dev. FROM MONDAY 11/2 ON 9.7.846: DISTANCE IS MILES, NO TIMES AFTER 'WILL CALL ME BACK', AND WHAT A DRAFT MUST NOT SAY. Extension only; proxy v7.91, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. (1) Gil, 11/2: '75 miles is a good marker ... relevant for LA as well. Anything beyond that would be a special trip ... a soft ask for a visit.' LP_VISIT_RADIUS_MILES = 75, measured from the ZIP (ZIP3 centroid) after the local-ZIP set. Out of state within 75 miles is the distance tier (a visit ask, the distance never said). Beyond 75 miles, in state or out, a visit is a special trip: one soft invitation, no times, no day (a level-2 hold, the SPECIAL TRIP rule). Out of state by address alone now gets 'OUT-OF-AREA BUYER' with that soft line instead of the no-visit rule; the no-visit rule stays for a customer who says they are buying remotely ('ship to', 'not local', 'out of state') and for the Distance chip. Kia Baytown lead 2108597971 (Louisiana, about 110 miles): four regenerations of 'video walkaround ... remotely', then the agent wrote the visit ask herself. Every remote block now says never to tell them they are remote, and the soft path no longer hands the model the word 'remotely'. [LP DISTANCE MILES DIAG]. (2) _lpCallBack: the call the text follows says the customer will call us back ('Will call me back', 'will text me', 'will get back to me'; not our own 'I will call him back'), within two days: 'THEY SAID THEY WILL CALL US BACK' -- no appointment time in any format (level 2, the CALL-BACK rule). Gil: 'no times after will call back.' Toyota Baytown lead 2108628902: the text rewrite had added 'Would 2:15 or 3:00 work better?'. The text rewrite is now told 'no time' at any level-2 hold, and a rewrite that adds a time the first pass did not offer is not shipped (LP_TIME_OFFER_RX). [LP CALL BACK DIAG]. (3) The scraper's own-claims capture: 'isn't in stock today' was recorded as WE SAID IT WAS AVAILABLE (lead 2108628902) under 'do not contradict'. A negated match is now WE SAID IT IS NOT IN STOCK, and when it is the newest claim the prompt says not to write as though it is here. The regex is inline because the scraper is injected. (4) At render (_lpHouseGuard): 'the Ridgeline you viewed' loses 'you viewed' anywhere, not only before 'on our website' (Honda Baytown Fullpath lead 2108640226; 'you looked at' and 'in person' are left alone), and the Fullpath block says never to say what they viewed; a 'since you're handling this remotely,' / 'since you're out of state,' clause goes and the sentence stays; hours without 'we're open' go -- 'Audi Lafayette is open until 7 today' (lead 2108656923) and 'Monday through Saturday, 9 AM to 7 PM' (lead 2108459212). (5) A draft that opens on the signer's own first name has it replaced by the customer's, not kept behind it ('<customer>, <agent>, I understand', lead 2108656923); the prepend keeps 'I' capitalized; a titled sign-off ('<agent>, your Concierge') no longer stays above the canonical signature. From the 11/2 feedback export: a chip's output is the next row's draft, so Add Appt Ask did take effect on its first press on both leads where it was pressed. TESTS: visit-radius-847 (new) executes buildUserPrompt through the shipped panel payload, _lpCallBack, _lpRefineSms, the scraper's claim statement, _lpHouseGuard, the opener guard and enforceSmsSig: 56 assertions across both builds; v9.7.846 fails 23 of 28 per build (the 5 controls pass). remote-visit-802: an out-of-state buyer by address alone is now the special trip (level 2); one who asks us to ship keeps level 3. stuck-leads-784 accepts either not-local header. fact-arbitration, distance-appt-gate and sms-hook-order supply the new upstream input (no special trip), and fact-arbitration's remote case is driven by the customer's own words. VERIFIED: run-all 284 suites green, 9,424 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.846.)
 // Lead Pro -- popup.js  v9.7.846-dev (Dev. FROM SATURDAY 10/31 ON 9.7.845: A TIME TODAY THAT HAD PASSED, STORE HOURS THE 842 CHECK MISSED, A STREET ADDRESS COPIED FROM THE THREAD, AND A LOGISTICS ANSWER FULL OF FIGURES. Extension only; proxy v7.91, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. (1) _lpPastTimeGuard, before render, every format: a sentence about today ('today', 'this morning/afternoon/evening', 'tonight') naming a time already past has its times replaced, one for one, by the slot engine's own today pair (computeAppointmentTimes); with no slot left today it is left for the agent and the console says so. Honda Lafayette CarGurus lead 2108097289: at 9:13 AM Saturday the draft offered '9 AM or 10 AM today' (the agent changed it before sending). [LP PAST TIME GUARD]. (2) The v9.7.842 hours check also counts 'from 9 to 7' and 'open until 7' in a statement -- the same lead's 'We’re open until 7 today and from 9 to 7 Monday'; a time offer phrased as a question is still kept. (3) _lpAddressGuard: a street number of one of our stores followed by another street name is set to the config's (LP_DEALER_INFO). Audi Lafayette Autotrader lead 2108158988: 'The address is 6160 Johnson St.' -- copied from the CRM's own appointment-reminder text in the thread; the store is on Johnston St, and the customer corrected the agent. [LP ADDRESS GUARD]. When the customer's newest message asks where we are, the prompt gives OUR ADDRESS from the config and says not to copy one from the thread. (4) When the newest message is only logistics (the address, a time, who to ask for) and not money, the prompt says to answer exactly that, briefly, without repeating budget, down payment, payment or price figures and without a new pitch -- the same lead's reply carried the $18,359 listing and her '$500 down and $400 monthly target' and was rejected twice. [LP LOGISTICS DIAG]. Not changed: the VinSolutions appointment-reminder template for Audi Lafayette still says 'Johnson St.' -- that is in the CRM, not Lead Pro. TESTS: render-checks-846 (new) executes _lpPastTimeGuard with the clock pinned, _lpHouseGuard, _lpAddressGuard and the prompt through the shipped panel payload: 32 assertions across both builds; v9.7.845 fails 14 of 16 per build (the 2 controls pass). us-spelling-804 accepts the two new guards in the render chain. VERIFIED: run-all 283 suites green, 9,366 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.845.)
@@ -5518,6 +5519,7 @@ function _lpCloseOutBanText(reason) {
   return 'This lead is not at a point where withdrawing is the right move (' + reason + '). '
     + 'Do NOT write "should I close this out", "I will stop reaching out", "I will take you off my list", '
     + '"last time I will bother you", "would you prefer that I pause follow-up", "or would you rather leave it for now", '
+    + '"would you like me to check back another time", "I\'ve reached out a few times", '   // (v9.7.849)
     + 'or any variation that hands them an exit. Several outreaches in a '
     + 'few days is OUR cadence running, not the customer going cold — do not treat it as a dead lead. '
     + 'Acknowledging that it has been quiet is fine; withdrawing is not. Move the conversation forward '
@@ -5575,6 +5577,20 @@ function _lpCloseOutAskedText(co) {
   return 'ALREADY ASKED ON THIS LEAD, NO ANSWER: ' + said + '. Do NOT ask that again; if you offer an out, use a different move.';
 }
 
+// (v9.7.849) THE STEP-BACK, AGREED WITH GIL 11/2. Honda Lafayette lead 2107319795 (4 days old; she said she would let us know
+// when she can come in): "I've reached out a few times about the 2024 CR-V LX, so I'll give you some space. Would you like me to
+// check back another time?" Giving room is right on a pause; counting our messages and asking whether to keep following up is
+// not -- that question belongs to a lead 21+ days old with 5+ outreaches and no reply, or one where the customer declined.
+// _lpStepBackAllowed is that rule (the close-out gate without its pause shortcut); LP_OUR_COUNT_RX and LP_CHECKBACK_ASK_RX are
+// what the rewrite guard and the render check look for.
+var LP_OUR_COUNT_RX = /\b(?:I|we)(?:\s+know\s+(?:I|we))?(?:'ve|’ve|\s+have)\s+(?:reached out|followed up|texted|emailed|called|tried(?:\s+to\s+reach\s+you)?|been\s+trying(?:\s+to\s+reach\s+you)?)\s+(?:you\s+)?(?:a few|several|a couple(?:\s+of)?|multiple|many|a number of)\s+times\b|\b(?:I|we)(?:\s+know\s+(?:I|we))?(?:'ve|’ve|\s+have)\s+sent\s+(?:you\s+)?(?:a few|several|a couple(?:\s+of)?|multiple|many|a number of|a lot of)\s+(?:messages|texts|emails|notes)\b/i;
+var LP_CHECKBACK_ASK_RX = /\b(?:would you like|do you want|want|should|shall|would you prefer|would it help if|is it okay if|is it ok if)\s+(?:(?:that\s+)?(?:me|us|I|we)\s+(?:to\s+)?)(?:check back|check in later|follow up (?:later|another time)|reach out (?:later|another time|again later)|touch base (?:later|another time)|stop|pause|hold off|step back|keep (?:in touch|following up|reaching out)|give you (?:some )?(?:space|room))\b(?=[^?\n]*\?)/i;
+function _lpStepBackAllowed(d) {
+  d = d || {};
+  if (d.hasExitSignal || String(d.convState || '').toLowerCase() === 'exit') return true;
+  var c = Object.assign({}, d, { hasPauseSignal: false, convState: String(d.convState || '').toLowerCase() === 'pause' ? 'active-follow-up' : d.convState });
+  try { return !!_lpCloseOutEligible(c).eligible; } catch (e) { return false; }
+}
 function _lpCloseOutEligible(d) {
   d = d || {};
   var sig  = d.relationshipSignals || {};
@@ -5810,6 +5826,29 @@ function _lpHouseGuard(text, channel) {
     var keepI = c === 'I' && /^[\s'’]/.test(all.slice(off + m.length));
     return lead + (name || '') + (c ? (name && !keepI ? c.toLowerCase() : c) : '');
   });
+  // (v9.7.849) Not at the step-back point: "I've reached out a few times about the CR-V, so I'll give you some space" keeps
+  // "I'll give you some space"; a sentence that only counts our messages goes; "Would you like me to check back another time?" goes.
+  try {
+    if (!_lpStepBackAllowed(d)) {
+      var _sbCount = new RegExp('(?:' + LP_OUR_COUNT_RX.source + ')[^.!?\\n]*?,?\\s+so\\s+([A-Za-z])', 'gi');
+      s = s.replace(_sbCount, function (m, c, off, all) {
+        hits.push('our count: "' + m.slice(0, -1).trim().slice(0, 70) + '"');
+        return /(?:^|[.!?]\s+|\n\s*)$/.test(all.slice(0, off)) ? c.toUpperCase() : c;
+      });
+      var _sbSent = function (rx, label) {
+        var srx = new RegExp('(^|\\n|[.!?]\\s+)([A-Z][A-Za-z\'’-]*,\\s+)?([^.!?\\n]*(?:' + rx.source + ')[^.!?\\n]*[.!?])[ \\t]*([A-Za-z])?', 'gi');
+        s = s.replace(srx, function () {
+          var a = arguments, n = a.length, lead = a[1], name = a[2], sent = a[3], c = a[n - 3], off = a[n - 2], all = a[n - 1], m = a[0];
+          if (typeof c !== 'string') c = '';
+          hits.push(label + ': "' + String(sent).trim().slice(0, 70) + '"');
+          var keepI = c === 'I' && /^[\s'’]/.test(all.slice(off + m.length));
+          return lead + (name || '') + (c ? (name && !keepI ? c.toLowerCase() : c) : '');
+        });
+      };
+      _sbSent(LP_OUR_COUNT_RX, 'our count');
+      _sbSent(LP_CHECKBACK_ASK_RX, 'check-back ask');
+    }
+  } catch (eSb) {}
   try { var _fng = _lpFullNameGreeting(s, d); if (_fng.hit) { s = _fng.s; hits.push('full name as the greeting: "' + _fng.hit + '"'); } } catch (eFng) {}   // (v9.7.848)
   s = s.replace(LP_REMOTE_SAY_RX, function (m, c, off, all) {   // (v9.7.847)
     hits.push('remote: "' + m.slice(0, -1).trim() + '"');
@@ -5829,7 +5868,7 @@ function _lpHouseGuard(text, channel) {
   }
   if (!hits.length) return text;
   try { console.log('[LP HOUSE GUARD] ' + (channel || 'draft') + ': removed ' + hits.join(' | ')); } catch (e) {}
-  return out.join('\n').replace(/\n{3,}/g, '\n\n').replace(/^\n+/, '');
+  return out.join('\n').replace(/[ \t]+(?=\n|$)/g, '').replace(/\n{3,}/g, '\n\n').replace(/^\n+/, '');   // (v9.7.849) no space left where a last sentence went
 }
 
 // (v9.7.846) A TIME TODAY THAT HAS ALREADY PASSED. Honda Lafayette CarGurus lead 2108097289, Saturday 10/31: at 9:13 AM the draft
@@ -23566,7 +23605,7 @@ function buildSystemPrompt(personaId) {
     '- sustained (8-14 prior notes): You have been working this lead. Read your prior messages. Do NOT recycle openers, phrasings, or angles you already used.',
     '- heavy (15+ prior notes): A lot of history. Every opener you reach for, check the transcript first to make sure you have not already used it.',
     '',
-    'ONE-SIDED CONVERSATIONS: When attempt density is sustained or heavy AND customer responses are zero, you are in a one-sided conversation. The customer has read every message you sent and chosen not to respond. Acknowledge that reality directly rather than sending another optimistic check-in. A pattern-break, an honest "should we step back," or a different angle entirely serves better than another generic outreach. Earn their attention by being different from what was already sent.',
+    'ONE-SIDED CONVERSATIONS: When attempt density is sustained or heavy AND customer responses are zero, you are in a one-sided conversation. The customer has read every message you sent and chosen not to respond. Do not send another optimistic check-in: a pattern-break or a different angle entirely serves better than another generic outreach. Never count or point out our own messages ("I\'ve reached out a few times", "I know I\'ve sent several messages"). Asking whether to keep following up, check back later or stop belongs only to a lead 21+ days old with 5+ outreaches and no reply, or one where the customer asked us to stop. Earn their attention by being different from what was already sent.',
     '',
     'FRESH-LEAD GUARD: If the user prompt indicates a fresh-lead guard is active (Day 0-1 lead with historical notes from prior interactions), the customer\'s prior history is BACKGROUND CONTEXT, not the current conversation. Treat it as a fresh inquiry — they came back to you. Do not frame this as recovery. Do not pretend you have been chasing them. They submitted a new lead today.',
     '',
@@ -24400,7 +24439,9 @@ function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
       : _rfPoW.calls.length
       ? 'This text is the follow-up to our calls. ' + (((typeof _lpIsRegenPass === 'function') && _lpIsRegenPass()) ? 'Say we have been trying to reach them where the first draft does' : 'Right after their name, say we have been trying to reach them') + ' (who called, as the first draft says), then '
         + 'give one easy way to reach us and ask one simple question. ' + _rfNoPitch
-      : 'Our earlier message already made the case to come in, and it went unanswered. Right after their name, bring one new thing or ask one simple question. ' + _rfNoPitch);
+      : (((typeof _lpTouchHold === 'function') && _lpTouchHold(d) === 'pause')   // (v9.7.849) they asked for room: no question
+          ? 'Our earlier message already made the case to come in. They asked for room, so this text gives it: right after their name, one useful line and an open door, and NO question -- not whether to check back, not their timeline. Do not count or point out our messages. ' + _rfNoPitch
+          : 'Our earlier message already made the case to come in, and it went unanswered. Right after their name, bring one new thing or ask one simple question. ' + _rfNoPitch));
     out.push('Do NOT quote their message back to them.');
     out.push('Keep what the first draft says about where things stand -- who reached out, and about what. LENGTH IS YOURS TO JUDGE: do not pad it, and do not strip it to a bare question; '
       + 'a one-line question with nothing around it reads like a form, not a person.');   // (v9.7.820)
@@ -24428,6 +24469,8 @@ function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
     + 'their terms. If that reason is two things, it is two things. DO NOT HOLD IT BACK FOR THE '
     + 'EMAIL TO CARRY: plenty of customers read the text and never open the email, so a text that '
     + 'defers the reason to come in has sent them nothing.');
+  // (v9.7.849) They asked for room (a pause): the text gives it, and asks nothing.
+  if ((typeof _lpTouchHold === 'function') && _lpTouchHold(d) === 'pause') out.push('They asked for room. Give it: one useful line and an open door, and NO question -- not whether to check back or keep following up, not their timeline. Do not count or point out our messages ("I\'ve reached out a few times").');
   // (v9.7.672) THE DEFUSING CLAUSE IS GONE BECAUSE THE THING IT DEFUSED IS GONE. v9.7.671
   // tried to neutralise the shared rule's "two or three short sentences" by arguing with it
   // from here. That is the move this codebase has proven does not work -- a rule stated
@@ -24832,6 +24875,19 @@ async function _lpRefineSms(pass1, emailText, d) {
         return null;
       }
     } catch (eRfHere) {}
+    // (v9.7.849) Last, so the withdrawal guards above log their own reason: the step-back is not allowed here, and the rewrite
+    // counted our messages or asked whether to check back where the first pass did not.
+    try {
+      if (!_lpStepBackAllowed(d)) {
+        var _rfSbRx = [LP_OUR_COUNT_RX, LP_CHECKBACK_ASK_RX];
+        for (var _rfSb = 0; _rfSb < _rfSbRx.length; _rfSb++) {
+          if (_rfSbRx[_rfSb].test(out) && !_rfSbRx[_rfSb].test(String(pass1 || ''))) {
+            console.log('[LP SMS REFINE DIAG] kept the first pass — the rewrite ' + (_rfSb ? 'asked whether to check back' : 'counted our messages') + ' ("' + (out.match(_rfSbRx[_rfSb]) || [''])[0] + '") on a lead not at the step-back point | ' + (Date.now() - t0) + 'ms');
+            return null;
+          }
+        }
+      }
+    } catch (eRfSb) {}
     console.log('[LP SMS REFINE DIAG] ran | ' + (Date.now() - t0) + 'ms | shipped:pass2'
       + '\n    pass1: ' + JSON.stringify(String(pass1).slice(0, 220))
       + '\n    pass2: ' + JSON.stringify(out.slice(0, 220)));
@@ -29880,7 +29936,7 @@ function buildUserPrompt(data) {
           ageBlock.push('The customer has declined or said they are not interested — read the arc, it may be recorded in an agent\'s call note rather than a text. Do NOT pitch, qualify, ask what trim/color/options they want, run a trade/appraisal angle, or offer an appointment or a time. Write a gracious close: acknowledge it plainly, thank them, leave one clean door open for the future, and stop. Do not pair the close with a forward ask in the same message — the exit is an exit. NO QUESTIONS. Not about timeline, not about what they bought, not about when they might be back. A question after a close is not a close — it is a follow-up. The close ends the conversation gracefully, period.');
         } else {
           ageBlock.push('CUSTOMER NEEDS SPACE — NO PUSH:');
-          ageBlock.push('The customer has signaled they are not ready right now. Acknowledge it with zero pressure and leave the door open. Do NOT offer an appointment. NO QUESTIONS of any kind — not about their timeline, not whether they are still looking, not what changed, not when they might be back. A timeline question ("are you looking this week or pushing it out?") is still a push — it pulls them back into the funnel when they asked for space. If the customer said they went with another dealer or bought elsewhere, that is an exit: acknowledge it gracefully, wish them well, leave one clean door open, and STOP. A respectful message that gives them room and asks nothing is the win here.');
+          ageBlock.push('The customer has signaled they are not ready right now. Acknowledge it with zero pressure and leave the door open. Do NOT offer an appointment. NO QUESTIONS of any kind — not about their timeline, not whether they are still looking, not what changed, not when they might be back. A timeline question ("are you looking this week or pushing it out?") is still a push — it pulls them back into the funnel when they asked for space. If the customer said they went with another dealer or bought elsewhere, that is an exit: acknowledge it gracefully, wish them well, leave one clean door open, and STOP. A respectful message that gives them room and asks nothing is the win here. Do not point out how many times we have reached out ("I\'ve reached out a few times", "I know I\'ve sent a few messages"), and do not ask whether to check back later or keep following up: the open door needs no question. One useful line (the car is here whenever they are ready) and the door.');
         }
         ageBlock.push('');
       } else {
