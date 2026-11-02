@@ -68,7 +68,7 @@ for (const f of BUILDS) {
   console.log(' 3. the Click & Go session is background:');
   check('no "ACKNOWLEDGE THEM", no "LEAD WITH WHAT THEY ALREADY DID", no session figures; one background line', () =>
     [/ACKNOWLEDGE THEM/.test(p76), /LEAD WITH WHAT THEY ALREADY DID/.test(p76), /WHAT THE CUSTOMER BUILT IN THEIR CLICK & GO SESSION/.test(p76),
-     /BACKGROUND ONLY: when the lead came in, their Click & Go session recorded: built a payment; stopped on the Payments page\. The customer has been quiet 76 days since/.test(p76)],
+     /BACKGROUND ONLY: when the lead came in, their Click & Go session recorded: built a payment; stopped before finishing\. The customer has been quiet 76 days since/.test(p76)],   // (v9.7.848) never the page
     [false, false, false, true]);
   check('control: 2 days quiet, the session block leads as before', () => {
     const p = up(2); return [/ACKNOWLEDGE THEM/.test(p), /LEAD WITH WHAT THEY ALREADY DID/.test(p)]; }, [true, true]);

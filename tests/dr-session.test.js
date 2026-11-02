@@ -156,7 +156,7 @@ check('...and tells the model not to ask him to start what he already started',
 
 check('Bonnie: every step she took is listed, in order',
   i => stepsFor(i, BONNIE).steps,
-  ['built a payment', 'entered a trade-in', 'stopped on the Financing page']);
+  ['built a payment', 'entered a trade-in', 'stopped before finishing']);   // (v9.7.848) Gil: drop the page wording
 
 check('...and her block carries no credit-application language',
   i => /CREDIT APPLICATION/.test(stepsFor(i, BONNIE).block), false);
