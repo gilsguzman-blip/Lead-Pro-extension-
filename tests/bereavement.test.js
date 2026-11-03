@@ -85,9 +85,11 @@ function extract(file) {
   return {
     name: path.basename(path.dirname(file)), src, brvSrc,
 
-    fire: (text) => {
+    // (v9.7.850) `inbound` is the customer's own lines (recentInbound in the scraper), which rule 3 now reads alone.
+    // Left out, the fixture text is treated as the customer's -- every pre-850 fixture is a customer sentence.
+    fire: (text, inbound) => {
       const logs = [];
-      const box = { fullScanText: String(text).toLowerCase(), RegExp, String, Math, JSON,
+      const box = { fullScanText: String(text).toLowerCase(), recentInbound: String(inbound === undefined ? text : inbound).toLowerCase(), RegExp, String, Math, JSON,
                     _lpD: (...a) => logs.push(a.map(v => typeof v === 'string' ? v : JSON.stringify(v)).join(' ')) };
       vm.createContext(box);
       vm.runInContext(brvSrc, box);
@@ -192,7 +194,7 @@ const GENUINE = [
   ['the funeral is Thursday',                      'funeral'],
   ['reading the obituary now',                     'obituar'],
   ['I lost my mother last month',                  'lost my mother'],
-  ['she passed unexpectedly',                      'she passed'],
+  ['my sister passed unexpectedly',               'sister passed'],   // (v9.7.850) bare "she" no longer counts; a relationship noun does
   ['he is no longer with us',                      'no longer with us'],
   ['dad is deceased',                              'deceased']
 ];
@@ -300,6 +302,36 @@ check('nothing is stripped when there are no reactions, and nothing is logged',
     const r = i.tapback(['[CUSTOMER] plain one', '[CUSTOMER] plain two']);
     return { count: r.count, logs: r.logs.length };
   }, { count: 0, logs: 0 });
+
+// ── (v9.7.850) AUDIT B-1: rule 3 ─────────────────────────────────────────────────
+console.log('\nv9.7.850 — rule 3 reads the customer, needs a relative, and "passed" must not take an object:');
+const B1_SILENT = [
+  'my daughter passed her driving test so she needs a car', 'she passed the credit check', 'he passed the inspection',
+  'my son just passed his road test', 'he passed it along'
+];
+B1_SILENT.forEach(t => check('silent: "' + t + '"', i => i.fire(t).fired, false));
+check('silent: an agent note "customer passed the credit check"',
+  i => i.fire('[10/30/2026 2:00 PM] [NOTE] General Note By: Rep Name customer passed the credit check', '').fired, false);
+check('silent: an agent note "her son passed his road test" (rule 3 no longer reads notes)',
+  i => i.fire('[10/30/2026 2:00 PM] [NOTE] General Note By: Rep Name her son passed his road test last week', '').fired, false);
+const B1_FIRE = [
+  ['my mother passed last week', 'subject + died/passed'],
+  ['my husband passed away last month', 'unambiguous vocabulary'],
+  ['funeral is Saturday', 'unambiguous vocabulary'],
+  ['my father passed.', 'subject + died/passed'],
+  ['my wife passed in March', 'subject + died/passed'],
+  ['my dad passed on Monday', 'subject + died/passed'],
+  ['my brother passed two weeks ago', 'subject + died/passed'],
+  ['my grandmother passed peacefully in her sleep', 'subject + died/passed']
+];
+B1_FIRE.forEach(([t, rule]) => check('fires: "' + t + '" (' + rule + ')', i => { const r = i.fire(t); return [r.fired, r.rule]; }, [true, rule]));
+check('fires on an agent note: "called in, her husband passed away" (rule 1 still reads notes)',
+  i => { const r = i.fire('[10/30/2026 2:00 PM] [NOTE] General Note By: Rep Name called in, her husband passed away', ''); return [r.fired, r.rule]; }, [true, 'unambiguous vocabulary']);
+check('the 7/25 death notice still fires', i => i.fire(ROBERT).fired, true);
+check('the nine automotive idioms and the 8/21 "timing is passing" email stay silent',
+  i => AUTOMOTIVE.concat([MARY_EMAIL]).filter(t => i.fire(t).fired).length, 0);
+check('a rule-3 fire logs its scope and the customer text it read',
+  i => { const l = i.fire('my mother passed last week').logs.join('\n'); return [/"scope":"customer lines"/.test(l), /my mother passed last week/.test(l)]; }, [true, true]);
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);

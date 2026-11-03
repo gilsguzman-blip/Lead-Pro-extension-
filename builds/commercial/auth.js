@@ -540,7 +540,7 @@ const LEADPRO_AUTH = (function() {
 
         chrome.storage.sync.get(['leadpro_license'], function(r) {
           var directorKey = r.leadpro_license || '';
-          console.log('[Lead Pro] Provision — directorKey:', directorKey ? directorKey.substring(0,12)+'...' : '(empty)');
+          console.log('[Lead Pro] Provision — directorKey:', directorKey ? '\u2026' + String(directorKey).slice(-3) : '(empty)');   // (v9.7.850) M-7: last 3 characters only
           var workerBase = (window._leadProWorkerBase || '').replace(/\/$/, '');
           if (!directorKey || !workerBase) {
             resultEl.style.display = 'block';

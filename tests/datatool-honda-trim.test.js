@@ -40,6 +40,9 @@ const HONDA = '<html><body><nav>Current Offers 77520 Models SUVS &amp; CROSSOVER
 (async () => {
   const br = await chromium.launch({ executablePath: fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined }).catch(() => chromium.launch());
   const page = await br.newPage();
+  // (v9.7.850) The fixtures are October offers that end 11/2/2026; on 11/3 the tool rightly dropped them as expired and the
+  // suite went red with no code change. The page's clock is pinned to the month the fixtures describe.
+  await page.clock.install({ time: new Date('2026-10-20T12:00:00-05:00').getTime() });
   await page.route('**/*', r => (r.request().url().startsWith('file:') ? r.continue() : r.abort()));
   await page.goto('file://' + path.resolve(TOOL_ARG));
 

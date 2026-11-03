@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.850-dev (Dev. AUDIT PHASE 2, BATCH 1 (AUDIT_2026-11-03_FULL_SYSTEM.md). Extension only; proxy v7.91, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. No key-related change (C-1 and B-3 are the owner's). (B-1) Bereavement rule 3 ('subject + died/passed') fired on 'she passed the credit check' and 'my son just passed his road test': bare he/she counted as a subject, and bare 'passed' as a death. Rule 3 now needs a relationship noun (husband, wife, mother, father, dad, mom, son, daughter, brother, sister, spouse, partner, grandmother, grandfather, grandma, grandpa) followed by 'died', 'passed away', or 'passed' at the end of a sentence or clause, before a time word (last week, on Monday, in March, two weeks ago, yesterday ...) or before a grief adverb (unexpectedly, suddenly, peacefully, quietly, in her sleep). It reads the customer's own lines only; rules 1, 2 and 4 keep their scope, agent notes included, so an agent note 'her husband passed away' still fires through the unambiguous vocabulary. [LP BEREAVEMENT DIAG] adds the scope and the text rule 3 read. (M-7) Console privacy: [LP PHONE DIAG] scrapedPhone and contextSample, [LP EMAIL DIAG] email and [LP RAW DIAG] phone value print ***-0199 and t***@domain (_lpMaskEmail, _lpMaskContacts beside _lpMaskPhone); auth.js Provision prints the last 3 characters of the key (it printed the first 12 of an 11-character key, i.e. all of it). (L-2) [LP INVITE CANARY] comes back in the _lpInviteScrapeAppts result and lpInviteRescrape logs it popup-side with the frame id. (L-5) ONE-SIDED: 'The customer has not replied to any of them.' (was: has read every message and chosen not to respond). DISTANCE BUYER: 'lives outside the store's local area but within 75 miles' (was: driving 30-60+ minutes; the tier has been miles since 847). (M-6) tools/package-build.js ships the zip with whole-line // comments removed (line 1 of popup.js kept), gated per file on node --check, every Literal.raw and TemplateElement.value.raw identical, and the whole syntax tree identical positions aside. The repo and builds/ stay unstripped. TESTS: console-privacy-850 (new) executes populateFromData, the RAW DIAG and Provision statements, _lpInviteScrapeAppts against a fake grid, lpInviteRescrape and buildUserPrompt through the shipped panel payload: 28 assertions across both builds; v9.7.849 fails 11 of 14 per build (the 3 controls pass). bereavement: rule-3 fixtures (silent on the credit check, inspection, road test and 'passed it along'; fires on mother/husband/father/wife/dad/brother/grandmother shapes, funeral, the agent-note case and the 7/25 notice): 60 assertions, v9.7.849 fails 9. VERIFIED: run-all 287 suites green, 9521 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.849.)
 // Lead Pro -- popup.js  v9.7.849-dev (Dev. THE STEP-BACK, AS AGREED WITH GIL 11/2. Extension only; proxy v7.91, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Honda Lafayette lead 2107319795: 4 days old, the customer said on the phone she would let us know when she can come in, three texts since; the draft said 'I've reached out a few times about the 2024 CR-V LX, so I'll give you some space. Would you like me to check back another time?' Giving room on a pause is right; counting our messages and asking whether to keep following up is not. _lpStepBackAllowed: the step-back question (check back later, keep following up, stop) belongs only to a lead 21+ days old with 5+ outreaches and no reply (the close-out gate without its pause shortcut), or one where the customer declined. PROMPT: the system prompt's ONE-SIDED rule no longer offers 'an honest "should we step back"' to every one-sided lead -- it says never to count or point out our own messages and when the question belongs; the pause block adds no counting our messages, no asking whether to check back, one useful line and the door; the young-lead ban list adds 'would you like me to check back another time' and 'I've reached out a few times'. The text rewrite, on a pause, is told to give room and ask nothing. GUARDS: a rewrite that counts our messages or asks whether to check back where the first pass did not, on a lead not at the step-back point, does not ship (checked last, so the withdrawal guards log their own reasons). Before render, on such a lead: 'I've reached out a few times about the CR-V, so I'll give you some space' keeps 'I'll give you some space'; a sentence that only counts our messages goes; 'Would you like me to check back another time?' goes; a leading '<name>, ' is kept. 'We have been trying to reach you' (816) is not a count and stays. No trailing space is left where a last sentence went. TESTS: stepback-849 (new) executes _lpStepBackAllowed, the prompt through the shipped panel payload, _lpBuildSmsRefinePrompt, _lpRefineSms and _lpHouseGuard: 26 assertions across both builds; v9.7.848 fails 10 of 13 per build (the 3 controls pass). VERIFIED: run-all 286 suites green, 9,474 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.848.)
 // Lead Pro -- popup.js  v9.7.848-dev (Dev. THE FIRST NAME ALONE, AND NEVER WHERE IN THE ONLINE TOOL THEY WERE. Extension only; proxy v7.91, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. (1) Honda Lafayette lead 2107319795: the customer's first name is two letters, and drafts opened '<first> <last>,' in the text and 'Hi <first> <last>,' in the email (10/30, two rejected; one such text went out). The prompt now carries 'First name: <first>' beside the full name, with 'address them by this first name alone ... never the full name, even when the first name is short'. Before render (_lpHouseGuard, every format), a line that opens with the full name as the greeting ('<first> <last>,', 'Hi <first> <last>,') is cut to the first name; the full name later in a message is left alone. The opener check now finds the first name as a whole word: a two-letter name was found inside 'Thanks' or 'that', so a text with no name passed as named. (2) Gil, 11/2: 'drop the review page wording.' Kia Baytown Click & Go lead 2108537212: 'Since you reached the Review page after building your payment' in the text and the email. The Click & Go block no longer names the page they stopped on ('stopped before finishing'), and says never to tell them which page or screen of the tool they reached; what they built is still named. Before render, a 'since you reached the X page,' clause goes, and a sentence that is only about it goes (a leading '<name>, ' is kept). Gubagoo links, closed: the 'Virtual Retailing Deal' page needs a login, the public 'Lead Info' page repeats the CRM note, and its 'other customer leads' are other people's submissions -- nothing is followed. TESTS: names-pages-848 (new) executes the prompt through the shipped panel payload, the Click & Go block, _lpHouseGuard and the opener guard: 24 assertions across both builds; v9.7.847 fails 8 of 12 per build (the 4 controls pass). dr-session and quiet-sweep-737 expect 'stopped before finishing' instead of the page. VERIFIED: run-all 285 suites green, 9,448 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.847.)
 // Lead Pro -- popup.js  v9.7.847-dev (Dev. FROM MONDAY 11/2 ON 9.7.846: DISTANCE IS MILES, NO TIMES AFTER 'WILL CALL ME BACK', AND WHAT A DRAFT MUST NOT SAY. Extension only; proxy v7.91, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. (1) Gil, 11/2: '75 miles is a good marker ... relevant for LA as well. Anything beyond that would be a special trip ... a soft ask for a visit.' LP_VISIT_RADIUS_MILES = 75, measured from the ZIP (ZIP3 centroid) after the local-ZIP set. Out of state within 75 miles is the distance tier (a visit ask, the distance never said). Beyond 75 miles, in state or out, a visit is a special trip: one soft invitation, no times, no day (a level-2 hold, the SPECIAL TRIP rule). Out of state by address alone now gets 'OUT-OF-AREA BUYER' with that soft line instead of the no-visit rule; the no-visit rule stays for a customer who says they are buying remotely ('ship to', 'not local', 'out of state') and for the Distance chip. Kia Baytown lead 2108597971 (Louisiana, about 110 miles): four regenerations of 'video walkaround ... remotely', then the agent wrote the visit ask herself. Every remote block now says never to tell them they are remote, and the soft path no longer hands the model the word 'remotely'. [LP DISTANCE MILES DIAG]. (2) _lpCallBack: the call the text follows says the customer will call us back ('Will call me back', 'will text me', 'will get back to me'; not our own 'I will call him back'), within two days: 'THEY SAID THEY WILL CALL US BACK' -- no appointment time in any format (level 2, the CALL-BACK rule). Gil: 'no times after will call back.' Toyota Baytown lead 2108628902: the text rewrite had added 'Would 2:15 or 3:00 work better?'. The text rewrite is now told 'no time' at any level-2 hold, and a rewrite that adds a time the first pass did not offer is not shipped (LP_TIME_OFFER_RX). [LP CALL BACK DIAG]. (3) The scraper's own-claims capture: 'isn't in stock today' was recorded as WE SAID IT WAS AVAILABLE (lead 2108628902) under 'do not contradict'. A negated match is now WE SAID IT IS NOT IN STOCK, and when it is the newest claim the prompt says not to write as though it is here. The regex is inline because the scraper is injected. (4) At render (_lpHouseGuard): 'the Ridgeline you viewed' loses 'you viewed' anywhere, not only before 'on our website' (Honda Baytown Fullpath lead 2108640226; 'you looked at' and 'in person' are left alone), and the Fullpath block says never to say what they viewed; a 'since you're handling this remotely,' / 'since you're out of state,' clause goes and the sentence stays; hours without 'we're open' go -- 'Audi Lafayette is open until 7 today' (lead 2108656923) and 'Monday through Saturday, 9 AM to 7 PM' (lead 2108459212). (5) A draft that opens on the signer's own first name has it replaced by the customer's, not kept behind it ('<customer>, <agent>, I understand', lead 2108656923); the prepend keeps 'I' capitalized; a titled sign-off ('<agent>, your Concierge') no longer stays above the canonical signature. From the 11/2 feedback export: a chip's output is the next row's draft, so Add Appt Ask did take effect on its first press on both leads where it was pressed. TESTS: visit-radius-847 (new) executes buildUserPrompt through the shipped panel payload, _lpCallBack, _lpRefineSms, the scraper's claim statement, _lpHouseGuard, the opener guard and enforceSmsSig: 56 assertions across both builds; v9.7.846 fails 23 of 28 per build (the 5 controls pass). remote-visit-802: an out-of-state buyer by address alone is now the special trip (level 2); one who asks us to ship keeps level 3. stuck-leads-784 accepts either not-local header. fact-arbitration, distance-appt-gate and sms-hook-order supply the new upstream input (no special trip), and fact-arbitration's remote case is driven by the customer's own words. VERIFIED: run-all 284 suites green, 9,424 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.846.)
@@ -581,6 +582,25 @@ function _lpMaskPhone(p) {
   var digits = s.replace(/\D/g, '');
   if (digits.length < 7) return s ? '(short/invalid)' : '(empty)';
   return '***-' + digits.slice(-4);
+}
+// (v9.7.850) AUDIT M-7. Logs are shared; a customer's email and phone, and a license key, are not written to the console in
+// full. "d***@domain", "***-0200", and "…ABC" (last 3 characters of a key).
+function _lpMaskEmail(e) {
+  var s = String(e || '').trim();
+  if (!s) return '(empty)';
+  var at = s.indexOf('@');
+  if (at < 1) return '(not an email)';
+  return s.charAt(0) + '***@' + s.slice(at + 1);
+}
+function _lpMaskKey(k) {
+  var s = String(k || '');
+  return s ? '…' + s.slice(-3) : '(empty)';
+}
+// Phones and emails inside free text (a context sample): each phone becomes ***-NNNN, each email d***@domain.
+function _lpMaskContacts(t) {
+  return String(t || '')
+    .replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, function (m) { return _lpMaskEmail(m); })
+    .replace(/(?:\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}\b/g, function (m) { return _lpMaskPhone(m); });
 }
 function _lpAttachLicense(payload) {
   try { if (_lpLicenseKeyCache && payload && !payload.licenseKey) payload.licenseKey = _lpLicenseKeyCache; } catch(e) {}
@@ -10687,10 +10707,10 @@ function populateFromData(d) {
   // Capture initial state BEFORE any overrides for diagnostic logging
   var _phoneDiag = {
     initialFlag: d.contactRecoveryPhone,
-    scrapedPhone: d.phone || '(empty)',
+    scrapedPhone: _lpMaskPhone(d.phone),   // (v9.7.850) M-7
     scrapedPhoneDigits: d.phone ? d.phone.replace(/\D/g,'').length : 0,
     contextLen: _lpCtxAll.length,          // (v9.7.516/512) was (d.context||'') — always 0
-    contextSample: _lpCtxAll.substring(0, 400).replace(/\n/g, ' | '),
+    contextSample: _lpMaskContacts(_lpCtxAll.substring(0, 400).replace(/\n/g, ' | ')),   // (v9.7.850) M-7
     leadId: d._activeLeadId || d.leadId || '(unknown)',
     customerName: d.name || '(unknown)',
     overrideFired: 'none',
@@ -10774,7 +10794,7 @@ function populateFromData(d) {
   // SAME pattern this file already uses correctly for phone.
   console.log('[LP EMAIL DIAG] ' + JSON.stringify({
     hasEmail: !!d.email || !!d.emailRaw,
-    email: d.email || '(blanked — masked or empty)',
+    email: d.email ? _lpMaskEmail(d.email) : '(blanked — masked or empty)',   // (v9.7.850) M-7
     emailDomain: (d.emailRaw || '').indexOf('@') !== -1 ? (d.emailRaw || '').split('@').pop() : '(none)',
     isMaskedEmail: !!d.isMaskedEmail,
     contactRecoveryEmail: !!d.contactRecoveryEmail
@@ -16057,14 +16077,21 @@ function _lpScraperBotAuthor(msg) {
       var _brvRules = [
         ['unambiguous vocabulary',   /\bpassed away\b|\bdeceased\b|\bfuneral\b|\bobituar/i],
         ['loss of a named relative', /\bdeath in the family\b|\bno longer with us\b|\blost (?:my|her|his|our|their) (?:husband|wife|father|mother|dad|mom|son|daughter|brother|sister|partner|spouse)\b/i],
-        ['subject + died/passed',    /\b(?:husband|wife|father|mother|dad|mom|son|daughter|brother|sister|spouse|partner|he|she)\s+(?:has\s+|had\s+|recently\s+|just\s+|sadly\s+)?(?:died|passed(?!\s+(?:on|by|up|over|through|along)))\b/i],
+        // (v9.7.850) AUDIT B-1. Bare he/she dropped and "passed" accepted only where it cannot be "passed <something>":
+        // the end of a sentence or clause, a time ("last week", "yesterday", "in March", "on Monday", "two days ago"), or
+        // a grief adverb ("unexpectedly", "suddenly", "peacefully", "in his sleep"). Executed against the old rule it fired on
+        // "she passed the credit check", "my son just passed his road test" and "he passed it along". This rule alone reads
+        // the CUSTOMER's lines (recentInbound): an agent note "customer passed the credit check" is the shape it misread.
+        // Rules 1, 2 and 4 keep the whole scan, agent notes included -- a death reported by phone arrives as a call note.
+        ['subject + died/passed',    /\b(?:husband|wife|father|mother|dad|mom|son|daughter|brother|sister|spouse|partner|grandmother|grandfather|grandma|grandpa)\s+(?:has\s+|had\s+|recently\s+|just\s+|sadly\s+)?(?:died\b|passed\s+away\b|passed(?=\s*(?:[.,;:!?)]|$|\s+(?:unexpectedly|suddenly|peacefully|quietly|recently|yesterday|today|tonight|earlier|last\s+\w+|this\s+(?:morning|afternoon|evening|week|weekend|month|past)|over\s+the\s+weekend|in\s+(?:(?:his|her|their)\s+sleep|january|february|march|april|may|june|july|august|september|october|november|december|\d{4})\b|on\s+(?:(?:mon|tues|wednes|thurs|fri|satur|sun)day|the\s+\d|\d)|(?:a\s+few|a\s+couple(?:\s+of)?|\d+|two|three|four|five|six|several)\s+(?:days?|weeks?|months?|years?)\s+ago))))/i, 'customer'],
         // (v9.7.567) apostrophe MANDATORY, 2+ letters; his/her/their named separately.
         ['possessive passing',       /\b[A-Za-z]{2,}['\u2019]s\s+passing\b|\b(?:his|her|their)\s+passing\b/i]
       ];
       for (var _bi = 0; _bi < _brvRules.length; _bi++) {
-        var _bm = fullScanText.match(_brvRules[_bi][1]);
+        var _bScan = _brvRules[_bi][2] === 'customer' ? String(recentInbound || '').toLowerCase() : fullScanText;   // (v9.7.850)
+        var _bm = _bScan.match(_brvRules[_bi][1]);
         if (_bm) { hasBereavementSignal = true; _brvRule = _brvRules[_bi][0]; _brvMatch = _bm[0];
-                   var _bIdx = fullScanText.indexOf(_bm[0]);
+                   var _bIdx = _bScan.indexOf(_bm[0]);
                    // ALWAYS LOG THE FIRE, with the matched string and its surrounding words. This
                    // guard writes a condolence and offers to close the customer's file \u2014 the most
                    // irreversible directive in the system \u2014 and until now it logged only that it
@@ -16072,7 +16099,8 @@ function _lpScraperBotAuthor(msg) {
                    // bisection; the next one is a grep.
                    try { _lpD('[LP BEREAVEMENT DIAG]', { fired: true, rule: _brvRule,
                      matched: _bm[0],
-                     source: fullScanText.substring(Math.max(0, _bIdx - 90), _bIdx + 110).replace(/\s+/g, ' ').trim() }); } catch (e) {}
+                     scope: _brvRules[_bi][2] === 'customer' ? 'customer lines' : 'customer lines + notes',   // (v9.7.850)
+                     source: _bScan.substring(Math.max(0, _bIdx - 90), _bIdx + 110).replace(/\s+/g, ' ').trim() }); } catch (e) {}
                    break; }
       }
       if (!hasBereavementSignal) {
@@ -23605,7 +23633,7 @@ function buildSystemPrompt(personaId) {
     '- sustained (8-14 prior notes): You have been working this lead. Read your prior messages. Do NOT recycle openers, phrasings, or angles you already used.',
     '- heavy (15+ prior notes): A lot of history. Every opener you reach for, check the transcript first to make sure you have not already used it.',
     '',
-    'ONE-SIDED CONVERSATIONS: When attempt density is sustained or heavy AND customer responses are zero, you are in a one-sided conversation. The customer has read every message you sent and chosen not to respond. Do not send another optimistic check-in: a pattern-break or a different angle entirely serves better than another generic outreach. Never count or point out our own messages ("I\'ve reached out a few times", "I know I\'ve sent several messages"). Asking whether to keep following up, check back later or stop belongs only to a lead 21+ days old with 5+ outreaches and no reply, or one where the customer asked us to stop. Earn their attention by being different from what was already sent.',
+    'ONE-SIDED CONVERSATIONS: When attempt density is sustained or heavy AND customer responses are zero, you are in a one-sided conversation. The customer has not replied to any of them. Do not send another optimistic check-in: a pattern-break or a different angle entirely serves better than another generic outreach. Never count or point out our own messages ("I\'ve reached out a few times", "I know I\'ve sent several messages"). Asking whether to keep following up, check back later or stop belongs only to a lead 21+ days old with 5+ outreaches and no reply, or one where the customer asked us to stop. Earn their attention by being different from what was already sent.',
     '',
     'FRESH-LEAD GUARD: If the user prompt indicates a fresh-lead guard is active (Day 0-1 lead with historical notes from prior interactions), the customer\'s prior history is BACKGROUND CONTEXT, not the current conversation. Treat it as a fresh inquiry — they came back to you. Do not frame this as recovery. Do not pretend you have been chasing them. They submitted a new lead today.',
     '',
@@ -31046,7 +31074,8 @@ function buildUserPrompt(data) {
         + (_dbApptOff ? ' — distance block will require the justification but NOT an appointment ask'
                       : ' — distance block asks for the visit as normal'));
     } catch (eDbL) {}
-      lines.push('🔴 DISTANCE BUYER: Customer is driving 30-60+ minutes (INTERNAL fact — shapes the offer, never the wording). '
+      // (v9.7.850) AUDIT L-5: the tier as defined since 847 -- outside the store's local ZIP list and within 75 miles -- not a drive time we never measured.
+      lines.push('🔴 DISTANCE BUYER: Customer lives outside the store\'s local area but within 75 miles (INTERNAL fact — shapes the offer, never the wording). '
         + (_dbExit ? 'There is nothing to ask of them on this touch.'
            : _dbApptOff ? 'Whatever you ask of them must be worth their time.'
            : 'The visit ask must be worth their time.'),
@@ -34255,7 +34284,7 @@ async function generateAll() {
       console.log('[LP RAW DIAG] phoneOnFile:',
         !!(lastScrapedData && lastScrapedData.phone &&
            String(lastScrapedData.phone).replace(/\D/g,'').length >= 7),
-        '| phone value:', (lastScrapedData && lastScrapedData.phone) || '(empty)');
+        '| phone value:', _lpMaskPhone(lastScrapedData && lastScrapedData.phone));   // (v9.7.850) M-7
       console.log('[LP RAW DIAG] rawSms:', JSON.stringify(rawSms || ''));
       console.log('[LP RAW DIAG] rawEmail:', JSON.stringify(rawEmail || ''));
       // (v9.7.788) A distance LABEL in a final draft ("since you're not local"). Observational: the DISTANCE rule forbids it.
@@ -36294,11 +36323,14 @@ function _lpInviteScrapeAppts(leadId) {
     // (v9.7.462/457 fix) id-suffix fallback — the primary selector is a single hardcoded
     // ASP.NET auto-generated id; if Cox changes the container prefix the suffix still holds.
     // Logged when the fallback is what hits, so silent selector rot becomes visible.
+    // (v9.7.850) AUDIT L-2. That warn lands in the CRM page's console, which nobody opens; the canary now rides back in the
+    // result and the popup logs it, so selector rot shows up in the log Gil already reads.
+    var canary = '';
     if (!rows.length) {
       rows = document.querySelectorAll('[id$="_AppointmentList1_RadGrid1"] tbody tr');
-      if (rows.length) { try { console.warn('[LP INVITE CANARY] primary Appts-grid selector missed but suffix fallback matched — Cox may have changed the container id. Update the primary selector.'); } catch (e) {} }
+      if (rows.length) { canary = 'primary Appts-grid selector missed but suffix fallback matched — Cox may have changed the container id. Update the primary selector.'; try { console.warn('[LP INVITE CANARY] ' + canary); } catch (e) {} }
     }
-    if (!rows.length) return { found: false };
+    if (!rows.length) return { found: false, canary: canary };
 
     for (var i = 0; i < rows.length; i++) {
       var row = rows[i];
@@ -36331,9 +36363,9 @@ function _lpInviteScrapeAppts(leadId) {
       // though it's not a valid VOI — fall back to it rather than leaving Vehicle blank.
       var vehicleText = vehicleLink ? vehicleLink.textContent.trim() : description;
 
-      return { found: true, whenText: whenText, vehicleText: vehicleText, description: description };
+      return { found: true, whenText: whenText, vehicleText: vehicleText, description: description, canary: canary };
     }
-    return { found: false };
+    return { found: false, canary: canary };
   } catch (e) {
     return { found: false, error: e.message };
   }
@@ -36475,6 +36507,8 @@ async function lpInviteRescrape() {
         return;
       }
 
+      // (v9.7.850) L-2: relay the canary from whichever frame raised it.
+      try { results.forEach(function (r) { if (r && r.result && r.result.canary) console.warn('[LP INVITE CANARY]', r.result.canary, '| frame:', r.frameId, '| matched:', !!r.result.found); }); } catch (e) {}
       var match = results.map(function (r) { return r.result; })
         .find(function (r) { return r && r.found; });
 
