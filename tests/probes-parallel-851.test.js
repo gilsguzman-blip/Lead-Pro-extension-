@@ -118,7 +118,7 @@ for (const f of BUILDS) {
       querySelectorAll: (q) => (lead && q === '.notes-and-history-item') ? [{}, {}] : [], querySelector: (q) => (lead && /notes-and-history-item|LeadSourceName/.test(q)) ? {} : null, getElementById: () => null };
     const box = { document: doc, window: {}, Date, Promise, setTimeout: (fn) => setImmediate(fn), console: { log() {} } }; box.window = box; vm.createContext(box);
     return vm.runInContext('(' + fnSrc + ')()', box); };
-  const lf = await frame(true), nf = await frame(false);
+  let lf = {}, nf = {}; try { lf = await frame(true); nf = await frame(false); } catch (e) { lf = nf = { error: e.message }; }
   check('a lead frame returns its own poll / expand / key-info times', () => [typeof lf.poll, typeof lf.expand, typeof lf.keyInfo, lf.timedOut], ['number', 'number', 'number', false]);
   check('a frame with no lead waits out the cap and says so', () => nf.timedOut, true);
   const agg = sbetween(src, "      try {\n        var _gt = window._lpGrabTiming;\n        if (_gt) {\n          var _rs = (_lpWaitRes", "      } catch (_eGt) {}");
