@@ -99,7 +99,7 @@ const OTHER_EMAIL = VIEW('This is a different email altogether, about a service 
 
     console.log(' 3. the read logs it and puts the panel back:');
     check('one diag line with the counts', r.diag.map(l => l.replace(/\| \d+ms$/, '')), ['[LP EMAIL EXPAND DIAG] cut-off email previews:4 | fetched:4 | expanded:2 | nothing more to add:0 | not the same email (kept preview):1 | failed (kept preview):1 (HTTP 500) ']);
-    check('the grab\'s wait step runs it once the notes are there', /if \(bothReady\) \{ _lpExpandEmails\(\)\.then\(/.test(src), true);
+    check('the grab\'s wait step runs it once the notes are there', /if \(bothReady\) \{[\s\S]{0,400}?_lpExpandEmails\(\)\.then\(/.test(src), true);
     check('after the read the notes panel is exactly as VinSolutions drew it', r.restored, true);
     const none = await run([WHOLE]);
     check('control: no cut-off email -> nothing fetched, nothing logged, panel unchanged', [none.fetched.length, none.diag.length, none.restored, none.expandErr], [0, 0, true, expander ? '' : '_lpExpandEmails not in this build']);

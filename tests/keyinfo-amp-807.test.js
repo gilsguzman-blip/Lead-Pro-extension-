@@ -76,7 +76,7 @@ const LEAD = (x) => Object.assign({ autoLeadId: 'TEST001A', name: 'Test Buyer', 
     check('control: a frame with no Key Information panel does not wait', [none.err, none.waited >= 0 && none.waited < 300], ['', true]);
     const never = await visit(DASH(99999), true);
     check('control: a panel that never fills in costs at most 2 seconds, and nothing is read', [never.waited >= 1900 && never.waited < 2600, (never.res.keyInfo || []).length], [true, 0]);
-    check('the grab runs the wait after the notes and emails are in (source)', /if \(bothReady\) \{ _lpExpandEmails\(\)\.then\(function \(\) \{ _lpKiWait\(resolve\); \}/.test(src), true);
+    check('the grab runs the wait after the notes and emails are in (source)', /if \(bothReady\) \{[\s\S]{0,400}?var _lpKi = function \(\) \{[^\n]*_lpKiWait\(function \(\) \{[^\n]*resolve\(_lpTm\);[^\n]*\n\s*_lpExpandEmails\(\)\.then\(_lpKi, _lpKi\);/.test(src), true);
     check('it is a customer-level field: a frame showing another customer does not supply it (source)', /'fullpathConversion','keyInfo'\]/.test(src), true);
 
     let sb; try { sb = loadPopup(f, { withAuth: true }); } catch (e) { console.log('  FAIL load: ' + e.message); fail++; continue; }

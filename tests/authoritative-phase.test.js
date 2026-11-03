@@ -51,8 +51,9 @@ function slice(src, a, b, what) {
 
 function extract(file) {
   const src = fs.readFileSync(file, 'utf8');
+  // (v9.7.851) The authoritative flags now ship false; the slice ends at the declaration whatever its value.
   const flags = slice(src, 'var LEADPRO_VERBALCOMMIT_COMPREHENSION = true;',
-                           'var LEADPRO_OFFFRANCHISE_AUTHORITATIVE = true;', 'flags');
+                           'var LEADPRO_OFFFRANCHISE_AUTHORITATIVE = ', 'flags') + src.slice(src.indexOf('var LEADPRO_OFFFRANCHISE_AUTHORITATIVE = ') + 'var LEADPRO_OFFFRANCHISE_AUTHORITATIVE = '.length).split(';')[0] + ';';
   const ids   = slice(src, 'var LP_FACT_IDS', '};', 'LP_FACT_IDS');
   const dets  = slice(src, 'var LP_FACT_DETECTORS = {', '\n};', 'LP_FACT_DETECTORS');
   const dec   = slice(src, 'function _lpFactDecide(detId, comp, regex, log) {',
@@ -61,11 +62,15 @@ function extract(file) {
 }
 
 // A fresh sandbox per case so flag mutation in one cannot leak into another.
-function ctx(impl) {
+// (v9.7.851) AUDIT B-2 STEP 1: the three AUTHORITATIVE flags ship FALSE (owner decision; the probes run beside the
+// generation and the regex decides). Everything below the first section still proves what the switches DO when on --
+// the path a re-enable would take -- so ctx() turns them on unless asked for the shipped values.
+function ctx(impl, shipped) {
   const logs = [];
   const sb = { String, JSON, Object, window: {}, console: { log: (...a) => logs.push(a.join(' ')) } };
   vm.createContext(sb);
   vm.runInContext(impl.code, sb);
+  if (!shipped) vm.runInContext('LEADPRO_VERBALCOMMIT_AUTHORITATIVE = true; LEADPRO_DAYLOCK_AUTHORITATIVE = true; LEADPRO_OFFFRANCHISE_AUTHORITATIVE = true;', sb);
   return {
     logs,
     setAuth: (id, on) => vm.runInContext(
@@ -108,10 +113,11 @@ console.log('builds under test: ' + impls.map(i => i.name).join(', '));
 guardedImpls.note(impls);
 console.log('');
 
-// ── 1. THE FLAGS SHIPPED ON ────────────────────────────────────────────────
-console.log('all three detectors ship authoritative:');
+// ── 1. THE FLAGS AS SHIPPED: OFF (v9.7.851) ───────────────────────────────────
+console.log('all three detectors ship as observers -- the regex decides (v9.7.851, owner decision):');
 for (const id of IDS) {
-  check('  ' + id, i => ctx(i).decide(id, compNone(), { fired: false, value: '' }).authoritative, true);
+  check('  ' + id + ': not authoritative, the regex directive stands', i => { const d = ctx(i, true).decide(id, compNone(1), { fired: true, value: 'x' });
+    return [d.authoritative, d.source, d.fired]; }, [false, 'regex-fallback', true]);
 }
 
 // ── 2. ROSHNI — THE REGEX FACT IS SUPPRESSED ───────────────────────────────

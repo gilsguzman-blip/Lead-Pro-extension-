@@ -218,7 +218,9 @@ check('the stash is read only outside buildUserPrompt — the dispatch and the t
       return (stripComments(i.src.slice(a, b)).match(/window\._lpVerbalCommitVerdict(?!\s*=)/g) || []).length;
     })();
     return { total, inPrompt, inFlush };
-  }, { total: 2, inPrompt: 0, inFlush: 1 });
+  // (v9.7.851) a third reader, also outside buildUserPrompt: generateAll captures the stash when it schedules the deferred
+  // flush (the probes are no longer awaited), so a regen started before they settle cannot lend this row its own verdict.
+  }, { total: 3, inPrompt: 0, inFlush: 1 });
 
 check('the observer is dispatched WITHOUT await, so it cannot delay a draft',
   i => /(?:^|[^.\w])await\s+_lpRunCommitComprehension/.test(i.src), false);

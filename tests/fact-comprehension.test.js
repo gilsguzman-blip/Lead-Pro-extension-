@@ -197,9 +197,11 @@ console.log('the flags, and the evidence that set them:');
 // disagreements across three real-volume days, day-lock 29/30 + 18/18 + 76/77, verbal-commit's one
 // investigated cluster resolved in comprehension's favour, and zero fabricated quotes anywhere.
 // The rollback path each flag provides is exercised by tests/authoritative-phase.test.js.
-check('all three AUTHORITATIVE flags ship ON — the phase this programme was built for',
+// (v9.7.851) AUDIT B-2 STEP 1, OWNER DECISION: back OFF. 430 rows since 9/1, 100% agreement, 0 changed directives, while every
+// generation waited on the probes. They now run beside the generation; the regex decides; the telemetry keeps flowing.
+check('all three AUTHORITATIVE flags ship OFF (v9.7.851) — the probes observe, the regex decides',
   i => [i.read('LEADPRO_VERBALCOMMIT_AUTHORITATIVE'), i.read('LEADPRO_DAYLOCK_AUTHORITATIVE'),
-        i.read('LEADPRO_OFFFRANCHISE_AUTHORITATIVE')], [true, true, true]);
+        i.read('LEADPRO_OFFFRANCHISE_AUTHORITATIVE')], [false, false, false]);
 
 check('all three OBSERVER flags ship ON — the data has to start accumulating',
   i => [i.read('LEADPRO_VERBALCOMMIT_COMPREHENSION'), i.read('LEADPRO_DAYLOCK_COMPREHENSION'),
@@ -397,8 +399,10 @@ check('the log names the detector, so three lines per generation stay separable'
 
 // (v9.7.608) Both labels are asserted now rather than only the shipped default, so neither can rot
 // the way the OFF label just did when the default changed underneath it.
+// (v9.7.851) the shipped default is now OFF, so the ON label is asserted with the switch turned on.
 check('the log states the detector is authoritative when it is',
-  i => /authoritative:ON/.test(i.decide('day-lock', undefined, { fired: false, value: '' }).logs.join('\n')), true);
+  i => /authoritative:ON/.test(i.decide('day-lock', undefined, { fired: false, value: '' },
+                                         { LEADPRO_DAYLOCK_AUTHORITATIVE: true }).logs.join('\n')), true);
 
 check('...and says observer-only when the kill switch is pulled',
   i => /authoritative:OFF \(observer only\)/.test(
@@ -783,8 +787,9 @@ check('a vacuous row is still POSTED — the lead state has to be countable',
     return i.flush(v, {}).rows.length;
   }, 3);
 
+// (v9.7.851) dispatched once, after this generation's probes settle, with what it reads captured at generation time.
 check('the flush is dispatched once in the generate path',
-  i => (i.src.replace(/^[ \t]*\/\/.*$/gm, '').match(/_lpFlushFactTelemetry\(\)/g) || []).length, 1);
+  i => (i.src.replace(/^[ \t]*\/\/.*$/gm, '').match(/_lpFlushFactTelemetry\((?:_fdeps)?\)/g) || []).length, 1);
 
 check('the decision map is cleared per generation, so a stale source cannot ride over',
   i => /window\._lpFactDecisions = \{\}; window\._lpFactFlushedFor = '';/.test(i.src), true);

@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.851 (Commercial. AUDIT PHASE 2, BATCH 2 (AUDIT_2026-11-03_FULL_SYSTEM.md). Extension only; proxy v7.91, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. (B-2 step 1, owner-approved, deliberately reversing the 9/1 rollout: 430 rows since, 100% agreement, 0 changed directives) _lpPrepareFactVerdicts is started and NOT awaited; the three probes run beside the main generation and the regex verdict decides. LEADPRO_VERBALCOMMIT/DAYLOCK/OFFFRANCHISE_AUTHORITATIVE ship false (kept, not deleted); the observer switches stay on. The v9.7.699 memo stays (a regen with the same inputs still gets its verdicts at once). A fresh read clears window._lpFactVerdicts first, so the prompt-time readers never see the previous generation's. The per-generation telemetry row still posts: the flush waits for this generation's probes, with the generation id, decisions and verbal-commit regex verdict captured when the drafts render, so a regen that starts first cannot lend the row its own; the dump's prompt-inputs snapshot gets the settled verdicts. Prompt-time readers of window._lpFactVerdicts, all of which now see {} on a fresh read and decide by regex: buildUserPrompt's verbal-commit stash (_lpFactDecide), generateAll's _lpApplyFactOverrides (day-lock and off-franchise fences), and the _lpLastPromptInputs snapshot (back-filled after settle); outside the prompt build: the telemetry flush (now handed its verdicts) and the dump's FACT CHECK VERDICTS section. ([LP GRAB TIMING]) One popup-side line per generation, printed once its probes settle: the grab's pre-scrape, frame poll, email expand and key-info wait (slowest lead frame; the frame-wait wall and how many frames waited out the 4000ms cap), scrape+merge and total; then probes (memo / probes / off), click-path wait, API, rewrite and generate total to the drafts on screen. A regen on the same grab says so. TESTS: probes-parallel-851 (new) executes the flags, _lpFactDecide, _lpApplyFactOverrides, the generate block that starts the probes (a probe that never answers does not hold it), _lpPrepareFactVerdicts and its memo, the deferred flush with the real _lpFlushFactTelemetry, _lpLogGrabTiming, the injected frame-wait function on a fake page and the popup's aggregation: 30 assertions across both builds; v9.7.850 fails 14 of 15 per build (the 1 control passes). Updated for the decision: authoritative-phase (the shipped flags are asserted off; the switch behavior is still proven with them on), fact-comprehension, commit-comprehension (a third stash reader, outside buildUserPrompt), email-expand-744 and keyinfo-amp-807 (the timed wait step). VERIFIED: run-all 288 suites green, 9551 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.850.)
 // Lead Pro -- popup.js  v9.7.850 (Commercial. AUDIT PHASE 2, BATCH 1 (AUDIT_2026-11-03_FULL_SYSTEM.md). Extension only; proxy v7.91, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. No key-related change (C-1 and B-3 are the owner's). (B-1) Bereavement rule 3 ('subject + died/passed') fired on 'she passed the credit check' and 'my son just passed his road test': bare he/she counted as a subject, and bare 'passed' as a death. Rule 3 now needs a relationship noun (husband, wife, mother, father, dad, mom, son, daughter, brother, sister, spouse, partner, grandmother, grandfather, grandma, grandpa) followed by 'died', 'passed away', or 'passed' at the end of a sentence or clause, before a time word (last week, on Monday, in March, two weeks ago, yesterday ...) or before a grief adverb (unexpectedly, suddenly, peacefully, quietly, in her sleep). It reads the customer's own lines only; rules 1, 2 and 4 keep their scope, agent notes included, so an agent note 'her husband passed away' still fires through the unambiguous vocabulary. [LP BEREAVEMENT DIAG] adds the scope and the text rule 3 read. (M-7) Console privacy: [LP PHONE DIAG] scrapedPhone and contextSample, [LP EMAIL DIAG] email and [LP RAW DIAG] phone value print ***-0199 and t***@domain (_lpMaskEmail, _lpMaskContacts beside _lpMaskPhone); auth.js Provision prints the last 3 characters of the key (it printed the first 12 of an 11-character key, i.e. all of it). (L-2) [LP INVITE CANARY] comes back in the _lpInviteScrapeAppts result and lpInviteRescrape logs it popup-side with the frame id. (L-5) ONE-SIDED: 'The customer has not replied to any of them.' (was: has read every message and chosen not to respond). DISTANCE BUYER: 'lives outside the store's local area but within 75 miles' (was: driving 30-60+ minutes; the tier has been miles since 847). (M-6) tools/package-build.js ships the zip with whole-line // comments removed (line 1 of popup.js kept), gated per file on node --check, every Literal.raw and TemplateElement.value.raw identical, and the whole syntax tree identical positions aside. The repo and builds/ stay unstripped. TESTS: console-privacy-850 (new) executes populateFromData, the RAW DIAG and Provision statements, _lpInviteScrapeAppts against a fake grid, lpInviteRescrape and buildUserPrompt through the shipped panel payload: 28 assertions across both builds; v9.7.849 fails 11 of 14 per build (the 3 controls pass). bereavement: rule-3 fixtures (silent on the credit check, inspection, road test and 'passed it along'; fires on mother/husband/father/wife/dad/brother/grandmother shapes, funeral, the agent-note case and the 7/25 notice): 60 assertions, v9.7.849 fails 9. VERIFIED: run-all 287 suites green, 9521 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.849.)
 // Lead Pro -- popup.js  v9.7.849 (Commercial. THE STEP-BACK, AS AGREED WITH GIL 11/2. Extension only; proxy v7.91, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. Honda Lafayette lead 2107319795: 4 days old, the customer said on the phone she would let us know when she can come in, three texts since; the draft said 'I've reached out a few times about the 2024 CR-V LX, so I'll give you some space. Would you like me to check back another time?' Giving room on a pause is right; counting our messages and asking whether to keep following up is not. _lpStepBackAllowed: the step-back question (check back later, keep following up, stop) belongs only to a lead 21+ days old with 5+ outreaches and no reply (the close-out gate without its pause shortcut), or one where the customer declined. PROMPT: the system prompt's ONE-SIDED rule no longer offers 'an honest "should we step back"' to every one-sided lead -- it says never to count or point out our own messages and when the question belongs; the pause block adds no counting our messages, no asking whether to check back, one useful line and the door; the young-lead ban list adds 'would you like me to check back another time' and 'I've reached out a few times'. The text rewrite, on a pause, is told to give room and ask nothing. GUARDS: a rewrite that counts our messages or asks whether to check back where the first pass did not, on a lead not at the step-back point, does not ship (checked last, so the withdrawal guards log their own reasons). Before render, on such a lead: 'I've reached out a few times about the CR-V, so I'll give you some space' keeps 'I'll give you some space'; a sentence that only counts our messages goes; 'Would you like me to check back another time?' goes; a leading '<name>, ' is kept. 'We have been trying to reach you' (816) is not a count and stays. No trailing space is left where a last sentence went. TESTS: stepback-849 (new) executes _lpStepBackAllowed, the prompt through the shipped panel payload, _lpBuildSmsRefinePrompt, _lpRefineSms and _lpHouseGuard: 26 assertions across both builds; v9.7.848 fails 10 of 13 per build (the 3 controls pass). VERIFIED: run-all 286 suites green, 9,474 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.848.)
 // Lead Pro -- popup.js  v9.7.848 (Commercial. THE FIRST NAME ALONE, AND NEVER WHERE IN THE ONLINE TOOL THEY WERE. Extension only; proxy v7.91, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. (1) Honda Lafayette lead 2107319795: the customer's first name is two letters, and drafts opened '<first> <last>,' in the text and 'Hi <first> <last>,' in the email (10/30, two rejected; one such text went out). The prompt now carries 'First name: <first>' beside the full name, with 'address them by this first name alone ... never the full name, even when the first name is short'. Before render (_lpHouseGuard, every format), a line that opens with the full name as the greeting ('<first> <last>,', 'Hi <first> <last>,') is cut to the first name; the full name later in a message is left alone. The opener check now finds the first name as a whole word: a two-letter name was found inside 'Thanks' or 'that', so a text with no name passed as named. (2) Gil, 11/2: 'drop the review page wording.' Kia Baytown Click & Go lead 2108537212: 'Since you reached the Review page after building your payment' in the text and the email. The Click & Go block no longer names the page they stopped on ('stopped before finishing'), and says never to tell them which page or screen of the tool they reached; what they built is still named. Before render, a 'since you reached the X page,' clause goes, and a sentence that is only about it goes (a leading '<name>, ' is kept). Gubagoo links, closed: the 'Virtual Retailing Deal' page needs a login, the public 'Lead Info' page repeats the CRM note, and its 'other customer leads' are other people's submissions -- nothing is followed. TESTS: names-pages-848 (new) executes the prompt through the shipped panel payload, the Click & Go block, _lpHouseGuard and the opener guard: 24 assertions across both builds; v9.7.847 fails 8 of 12 per build (the 4 controls pass). dr-session and quiet-sweep-737 expect 'stopped before finishing' instead of the page. VERIFIED: run-all 285 suites green, 9,448 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.847.)
@@ -2687,9 +2688,15 @@ var LEADPRO_OFFFRANCHISE_COMPREHENSION = true;
 // EACH SWITCH IS INDEPENDENT AND IS THE ROLLBACK. Setting one to false returns that detector — and
 // only that detector — to regex-authoritative behaviour, with no other change and no redeploy of
 // the other two. Asserted by execution in tests/authoritative-phase.test.js.
-var LEADPRO_VERBALCOMMIT_AUTHORITATIVE = true;
-var LEADPRO_DAYLOCK_AUTHORITATIVE      = true;
-var LEADPRO_OFFFRANCHISE_AUTHORITATIVE = true;
+// (v9.7.851) AUDIT B-2 STEP 1, OWNER-APPROVED: ALL THREE BACK TO FALSE, DELIBERATELY REVERSING THE 9/1 ROLLOUT. Since then
+// 430 rows agreed 100% and comprehension changed 0 directives, while every generation waited on the probes before the
+// prompt was built. The probes still run, in parallel with the main generation, and the per-generation telemetry row
+// still posts once they settle (the reporter's comprehension table keeps filling); the regex verdict decides. The
+// observer switches above stay on. Setting one of these back to true restores its authority, but the generate path no
+// longer waits for a verdict, so an authoritative flag would only see a memoized one (a regen with the same inputs).
+var LEADPRO_VERBALCOMMIT_AUTHORITATIVE = false;
+var LEADPRO_DAYLOCK_AUTHORITATIVE      = false;
+var LEADPRO_OFFFRANCHISE_AUTHORITATIVE = false;
 
 // A probe that has not answered by this point is a failure and falls back. Deliberately shorter
 // than the proxy's own 24s cascade budget: an authoritative probe sits IN FRONT of the draft, so
@@ -3183,7 +3190,7 @@ function _lpFlushFactTelemetry(deps) {
     // all three are known. verbal-commit's verdict is stashed by the prompt builder; the other two
     // are known only if their fenced directive existed, and its absence IS the regex saying no.
     var vcStash = {};
-    try { vcStash = (window && window._lpVerbalCommitVerdict) || {}; } catch (e) {}
+    try { vcStash = deps.vcStash || (window && window._lpVerbalCommitVerdict) || {}; } catch (e) {}   // (v9.7.851) captured at generation time
     var regexOf = {};
     regexOf[LP_FACT_IDS.COMMIT] = { fired: !!vcStash.fired, value: String(vcStash.quote || ''),
                                     ran: vcStash.ran !== false, skipReason: String(vcStash.skipReason || '') };
@@ -3431,7 +3438,36 @@ function _lpBuildFactInputs(data, deps) {
   return out;
 }
 
-// The generate-path entry point. AWAITED — that is the whole difference between an observer and an
+// (v9.7.851) [LP GRAB TIMING] -- ONE LINE PER GENERATION, POPUP-SIDE, with the splits of the grab it was built from. Printed
+// once this generation's fact probes have settled, so the probe time is a measured number rather than "pending". A regen
+// on the same grab repeats the grab splits marked as such. Every number is a measured wall time in milliseconds; a phase
+// that did not run prints "--".
+function _lpLogGrabTiming(log, genTiming) {
+  var _l = log || function () { try { console.log.apply(console, arguments); } catch (e) {} };
+  try {
+    var g = window._lpGrabTiming || null, t = genTiming || window._lpGenTiming || null;
+    var ms = function (v) { return (typeof v === 'number' && isFinite(v)) ? Math.round(v) + 'ms' : '--'; };
+    var lead = String((typeof lastScrapedData !== 'undefined' && lastScrapedData && lastScrapedData.autoLeadId) || window._activeLeadId || '');
+    var grab;
+    if (g && g.total !== null && (!g.leadId || !lead || g.leadId === lead)) {
+      g.gens = (g.gens || 0) + 1;
+      grab = 'grab' + (g.gens > 1 ? ' (same grab, generation ' + g.gens + ')' : '') + ': pre-scrape ' + ms(g.preScrape)
+        + ', frame poll ' + ms(g.poll) + ', email expand ' + ms(g.expand) + ', key-info wait ' + ms(g.keyInfo)
+        + ' (frame wait wall ' + ms(g.frameWall) + '; ' + g.framesTimedOut + ' of ' + g.frames + ' frames waited out the 4000ms cap)'
+        + ', scrape+merge ' + ms(g.merge) + ', grab total ' + ms(g.total);
+    } else {
+      grab = 'grab: -- (no grab timing for this lead)';
+    }
+    var gen = t ? ('generate: probes ' + ms(t.probes) + ' (' + (t.probesFrom || '--') + ', in parallel, not waited on)'
+        + ', click-path wait ' + ms(t.clickPath) + ', API ' + ms(t.api) + ', rewrite ' + ms(t.rewrite) + ', generate total ' + ms((t.done || Date.now()) - t.t0) + ' (to the drafts on screen)') : 'generate: --';
+    var line = '[LP GRAB TIMING] lead:' + (lead || '(unknown)') + ' | ' + grab + ' | ' + gen;
+    _l(line);
+    return line;
+  } catch (e) { return ''; }
+}
+
+// The generate-path entry point. (v9.7.851: no longer awaited; generateAll starts it and goes on. The rest of this note is
+// the v9.7.566 design.) AWAITED — that is the whole difference between an observer and an
 // authoritative reader, and it is why the timeout above is a rail rather than a nicety. Resolves
 // to the verdict map; never rejects, so a failure here can only ever mean "everything falls back
 // to regex", which is today's behaviour exactly.
@@ -3646,6 +3682,9 @@ function _lpPrepareFactVerdicts(data, deps) {
     // window._lpFactVerdicts, which a reuse sets exactly as a fresh run does.
     var _inputs = _lpBuildFactInputs(data, deps);
     var _key = _lpFactMemoKey(_inputs, deps);
+    // (v9.7.851) B-2: the prompt is now built while the probes run, so a verdict left from the previous generation (another
+    // lead, perhaps) must not sit in window._lpFactVerdicts for the prompt-time readers to mistake for this one's.
+    try { window._lpFactVerdicts = {}; window._lpFactFromMemo = !!(_key && _lpFactMemo[_key]); } catch (e) {}
     if (_key && _lpFactMemo[_key]) {
       var _hit = _lpFactMemo[_key];
       try { window._lpFactVerdicts = _hit; } catch (e) {}
@@ -11378,6 +11417,9 @@ document.getElementById('btnTranslate').addEventListener('click', async function
 
 // ── GRAB LEAD ─────────────────────────────────────────────────────
 async function grabLead() {
+  // (v9.7.851) [LP GRAB TIMING] phase splits for this grab; printed with the generation that follows (_lpLogGrabTiming).
+  try { window._lpGrabTiming = { t0: Date.now(), leadId: '', preScrape: null, wait0: 0, poll: null, expand: null, keyInfo: null, frameWall: null,
+    frames: 0, framesTimedOut: 0, scrape0: 0, merge: null, total: null, gens: 0 }; } catch (_eGt) {}
   try { window._activeLeadDealerId = null; } catch (_eAdl0) {}   // (v9.7.697) P5: re-set from the PASS-1 active frame on every grab
   const statusEl = _domCrmStatus;
   const dot      = _domStatusDot;
@@ -19621,6 +19663,7 @@ function _lpScraperBotAuthor(msg) {
     };
   } // end inlineScraper
 
+  try { var _gt = window._lpGrabTiming; if (_gt) { _gt.wait0 = Date.now(); _gt.preScrape = _gt.wait0 - _gt.t0; } } catch (_eGt) {}   // (v9.7.851)
   // Inject into all frames — each returns a Promise that resolves when notes are ready
   chrome.scripting.executeScript(
     { target: { tabId: tab.id, allFrames: true }, func: function() {
@@ -19635,6 +19678,8 @@ function _lpScraperBotAuthor(msg) {
       // Fix: require BOTH a lead-info marker (we're on a lead) AND notes
       // hydration (the data is loaded). Timeout cap unchanged at 4s.
       var maxWait = 4000, interval = 150, elapsed = 0;
+      // (v9.7.851) This frame's own phase times, returned to the popup for [LP GRAB TIMING].
+      var _lpT0 = Date.now(), _lpTm = { poll: 0, expand: 0, keyInfo: 0, timedOut: false };
       // ── (v9.7.744) THE WHOLE EMAIL, NOT VINSOLUTIONS' PREVIEW ─────────────────────────────────────
       // Community Kia Baytown lead 2086487722, 9/29 (log266). The notes panel shows an email only as a preview
       // cut at a fixed length: our 4:25 email ended "...Community Value Price$31,000.00 Nitro Wheel Locks, D..." and
@@ -19755,8 +19800,13 @@ function _lpScraperBotAuthor(msg) {
         // Frames that DO have lead markers wait for both to be present.
         var bothReady = (noteCount > 0 && hasLeadInfo);
         // (v9.7.744) Once the notes are there, pull in the whole of any email cut to a preview, then read.
-        if (bothReady) { _lpExpandEmails().then(function () { _lpKiWait(resolve); }, function () { _lpKiWait(resolve); }); }   // (v9.7.807) _lpKiWait
-        else if (elapsed >= maxWait) { resolve(); }
+        if (bothReady) {
+          _lpTm.poll = Date.now() - _lpT0;
+          var _lpTe = Date.now();
+          var _lpKi = function () { _lpTm.expand = Date.now() - _lpTe; var _lpTk = Date.now(); _lpKiWait(function () { _lpTm.keyInfo = Date.now() - _lpTk; resolve(_lpTm); }); };
+          _lpExpandEmails().then(_lpKi, _lpKi);   // (v9.7.807) _lpKiWait; (v9.7.851) each step timed
+        }
+        else if (elapsed >= maxWait) { _lpTm.poll = Date.now() - _lpT0; _lpTm.timedOut = true; resolve(_lpTm); }
         else { elapsed += interval; setTimeout(function(){ wait(resolve); }, interval); }
       }
       // (v9.7.807) THE KEY INFORMATION PANEL FILLS IN AFTER THE PAGE LOADS. Its rows (Fullpath CDP Summary, AMP, Customer
@@ -19779,7 +19829,20 @@ function _lpScraperBotAuthor(msg) {
       }
       return new Promise(function(resolve) { wait(resolve); });
     }},
-    function() {
+    function(_lpWaitRes) {
+      // (v9.7.851) [LP GRAB TIMING]: frames run in parallel, so each phase is the slowest frame that reached it. A frame with
+      // no lead on it waits out the 4-second cap, and the callback waits for every frame, so the wall time is reported too.
+      try {
+        var _gt = window._lpGrabTiming;
+        if (_gt) {
+          var _rs = (_lpWaitRes || []).map(function (r) { return r && r.result; }).filter(function (r) { return r && typeof r.poll === 'number'; });
+          var _ready = _rs.filter(function (r) { return !r.timedOut; });
+          var _mx = function (a, k) { return a.length ? Math.max.apply(null, a.map(function (r) { return r[k] || 0; })) : null; };
+          _gt.frames = _rs.length; _gt.framesTimedOut = _rs.length - _ready.length;
+          _gt.poll = _mx(_ready, 'poll'); _gt.expand = _mx(_ready, 'expand'); _gt.keyInfo = _mx(_ready, 'keyInfo');
+          _gt.frameWall = Date.now() - (_gt.wait0 || _gt.t0); _gt.scrape0 = Date.now();
+        }
+      } catch (_eGt) {}
       // Notes are ready (or timed out) — now run the actual scraper
       chrome.scripting.executeScript(
         { target: { tabId: tab.id, allFrames: true }, func: inlineScraper },
@@ -21119,6 +21182,7 @@ function _lpScraperBotAuthor(msg) {
           // (v9.7.46) Frame merge is the single source of truth.
           lastScrapedData = m;
           const filled = populateFromData(m);
+          try { var _gt = window._lpGrabTiming; if (_gt && _gt.merge === null) { _gt.merge = Date.now() - (_gt.scrape0 || _gt.t0); _gt.total = Date.now() - _gt.t0; _gt.leadId = String(m.autoLeadId || window._activeLeadId || ''); } } catch (_eGt) {}   // (v9.7.851)
 
           // (v9.7.47) Direct rule: AI Buying Signals leads have 0 notes by
           // design — they're system-generated, not customer inquiries. Skip
@@ -32028,6 +32092,7 @@ function computeAppointmentTimes(store) {
 // ── Generate (single call, all three outputs) ─────────────────────
 async function generateAll() {
   try { _lpClearFallbackNotice(); } catch (eFb) {}   // (v9.7.706)
+  try { window._lpGenTiming = { t0: Date.now(), api: null, rewrite: null, probes: null, probesFrom: '' }; } catch (eGt) {}   // (v9.7.851) [LP GRAB TIMING]
   // Reset feedback tracking for this generation session
   // (v9.7.644) ORDERING, AND IT IS THE WHOLE FIX. The flush lives INSIDE _lpFeedbackReset, so the
   // snapshot below must NOT run before it: the outgoing row reads `final` from these same output
@@ -32344,22 +32409,36 @@ async function generateAll() {
     // generation that already takes 4-8s, and the timeout guarantees it is bounded. It never
     // rejects: any failure resolves to "fall back to regex", which is today's behaviour exactly.
     var _lpCpWait = (typeof _lpLoadClickPath === 'function') ? _lpLoadClickPath(lastScrapedData) : Promise.resolve(null);   // (v9.7.835)
+    // (v9.7.851) AUDIT B-2 STEP 1: NOT AWAITED. The probes start here and run beside the main generation; the regex verdict
+    // decides (the *_AUTHORITATIVE flags are false). The promise is kept for this generation's telemetry flush and timing
+    // line, which wait for it after the drafts render. A memoized verdict (same lead, same inputs) is still set synchronously.
+    window._lpFactPending = Promise.resolve({});
     try {
-      await _lpPrepareFactVerdicts({
+      var _lpFpT0 = Date.now(), _lpFpMemo = false;
+      window._lpFactFromMemo = false;
+      window._lpFactPending = Promise.resolve(_lpPrepareFactVerdicts({
         context: leadContext,
         store: store, dealerId: lastScrapedData ? lastScrapedData.dealerId : '',
         schedCustomerNotes: lastScrapedData ? (lastScrapedData.schedCustomerNotes || []) : [],
         lastInboundMsg: lastScrapedData ? (lastScrapedData.lastInboundMsg || '') : '',
         conversationBrief: lastScrapedData ? (lastScrapedData.conversationBrief || '') : '',
         convState: leadConvState, leadSource: leadSource
-      });
+      })).then(function (v) {
+        try { if (window._lpGenTiming) { window._lpGenTiming.probes = Date.now() - _lpFpT0; window._lpGenTiming.probesFrom = _lpFpMemo ? 'memo' : (v && Object.keys(v).length ? 'probes' : 'off'); } } catch (eT) {}
+        return v || {};
+      }, function () { return {}; });
+      _lpFpMemo = !!window._lpFactFromMemo;   // set synchronously by the call above
     } catch (_lpFactErr) {
       try { window._lpFactVerdicts = {}; console.log('[LP FACT DIAG] prepare threw — every detector falls back to regex:', _lpFactErr && _lpFactErr.message); } catch (e) {}
     }
     // (v9.7.835) What they were looking at on the store's site, read while the probes ran. The no-vehicle line was written into
     // leadContext at grab time, before this was known; it comes out when the click path names what they asked about.
     try {
+      var _lpCpT0 = Date.now();
       var _lpCpR = await _lpCpWait;
+      // (v9.7.851) The click-path read used to finish behind the probe wait; with the probes no longer awaited, any wait
+      // left here is its own, so the timing line names it.
+      try { if (window._lpGenTiming) window._lpGenTiming.clickPath = Date.now() - _lpCpT0; } catch (eT) {}
       if (lastScrapedData) lastScrapedData.clickPath = _lpCpR || null;
       if (_lpCpR && (typeof _lpClickCar === 'function') && _lpClickCar({ clickPath: _lpCpR })) {
         var _lpCpBefore = leadContext.length;
@@ -32780,6 +32859,7 @@ async function generateAll() {
               _showroomBypass && 'showroom', _customerReplied && 'customerReplied',
               _apptSetBypass && 'apptSet' ].filter(Boolean).join('+')
           : 'none'));
+    var _lpApiT0 = Date.now();   // (v9.7.851) [LP GRAB TIMING] the generate request, from send to parsed reply
 
     // (v9.7.462/457 fix) 90s client-side timeout — a hung Worker request previously left the
     // agent staring at a disabled button until the browser's own socket timeout, with no
@@ -32795,6 +32875,7 @@ async function generateAll() {
     }).finally(function(){ clearTimeout(_lpFetchTimer); });
 
     const data = await resp.json();
+    try { if (window._lpGenTiming) window._lpGenTiming.api = Date.now() - _lpApiT0; } catch (eT) {}   // (v9.7.851)
     console.log('[Lead Pro] API response:', data);
 
     // (v9.7.379/377 W4) SAFE_FALLBACK detection. The worker's cascade-exhaustion fallback is a
@@ -33522,7 +33603,9 @@ async function generateAll() {
     // been rendered yet, so the agent never sees a draft swap under them.
     // A null return keeps the first pass. It is never allowed to blank a draft.
     try {
+      var _lpRfT0 = Date.now();   // (v9.7.851) [LP GRAB TIMING]
       var _rfSms = await _lpRefineSms(rawSms, rawEmail, lastScrapedData);
+      try { if (window._lpGenTiming) window._lpGenTiming.rewrite = Date.now() - _lpRfT0; } catch (eT) {}
       if (_rfSms) rawSms = _rfSms;
       try { rawSms = _lpUnbracketName(rawSms, (lastScrapedData && lastScrapedData.name) || ''); } catch (eUbR) {}   // (v9.7.732) the refine pass writes the SMS again
       try {
@@ -33869,8 +33952,26 @@ async function generateAll() {
       // (v9.7.568) FLUSH THE PHASE 3 TELEMETRY. Here specifically, because this runs AFTER
       // buildUserPrompt — the only point at which the verbal-commit regex verdict exists. One row
       // per detector, whatever any regex found or did not find.
+      // (v9.7.851) B-2 STEP 1: the probes were not awaited, so the flush waits for THIS generation's probes. What it reads is
+      // captured now -- the generation id, the decisions and the verbal-commit regex verdict -- so a regen started before the
+      // probes settle cannot lend this row its own values. The timing line prints from the same place.
       try {
-        if (typeof _lpFlushFactTelemetry === 'function') _lpFlushFactTelemetry();
+        (function () {
+          var _fp = window._lpFactPending || Promise.resolve({});
+          var _fdeps = { genId: (window._lpFeedback && window._lpFeedback.generationId) || '', decisions: window._lpFactDecisions || {},
+                         vcStash: window._lpVerbalCommitVerdict || {} };
+          var _fInputs = window._lpLastPromptInputs || null;
+          var _fTiming = window._lpGenTiming || null;
+          try { if (_fTiming) _fTiming.done = Date.now(); } catch (eT) {}
+          _fp.then(function (v) {
+            try {
+              _fdeps.verdicts = v || {};
+              if (_fInputs) _fInputs.factVerdicts = _fdeps.verdicts;   // the dump shows this generation's verdicts, not an empty map
+              if (typeof _lpFlushFactTelemetry === 'function') _lpFlushFactTelemetry(_fdeps);
+            } catch (_lpFtErr) { try { console.log('[LP FACT TELEMETRY] dispatch failed:', _lpFtErr && _lpFtErr.message); } catch (e) {} }
+            try { if (typeof _lpLogGrabTiming === 'function') _lpLogGrabTiming(null, _fTiming); } catch (e) {}
+          });
+        })();
       } catch (_lpFtErr) { try { console.log('[LP FACT TELEMETRY] dispatch failed:', _lpFtErr && _lpFtErr.message); } catch (e) {} }
       try {
         // (v9.7.566) SUPERSEDED, NOT DELETED. Phase 3's _lpRunFactProbe now asks verbal-commit's
