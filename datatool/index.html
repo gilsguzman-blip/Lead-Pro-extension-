@@ -456,6 +456,8 @@ function ipDetectExpiration(text, referenceYear, now) {
 const IP_CATEGORY_RULES = [
   ['Military', /\bmilitary\b/i],
   ['College', /\b(college|recent\s*grad(uate)?|student)\b/i],
+  // (11/3) Honda's Prologue card: "$2,000 Honda Loyalty/Conquest Offer" -- either group qualifies; it published as "Loyalty Cash".
+  ['Loyalty/Conquest', /\bloyalty\s*\/\s*conquest\b|\bconquest\s*\/\s*loyalty\b/i],
   ['Owner Loyalty', /\b(owner\s*loyalty|loyalty\s*cash)\b/i],
   ['Loyalty', /\bloyalty\b/i],
   ['Competitive Bonus', /\b(conquest|competitive\s*(bonus|lease|owner))\b/i],
@@ -555,7 +557,9 @@ function ipChunkByModelNames(fullText, models) {
 // splits on THAT instead, then reads the model code from within each
 // already-correctly-isolated block, sidestepping the ambiguity entirely.
 function ipChunkAudiOffers(fullText, models) {
-  const markerRx = /(Lease Offer|Finance Offer)/g;
+  // (11/3) "Bonus Offer" too. November's page carries a Customer Bonus ($1,500 Q3 to $15,000 A8/S8) and a Loyalty Bonus for
+  // current Audi owners on nearly every model, and none of them reached the file.
+  const markerRx = /(Lease Offer|Finance Offer|Bonus Offer)/g;
   const starts = [];
   let m;
   while ((m = markerRx.exec(fullText))) starts.push(m.index);
@@ -591,7 +595,11 @@ function ipChunkAudiOffers(fullText, models) {
     // so an agent's draft could quote $629 on a Premium Plus. The text between the model code and "MSRP" names it.
     const trimM = blockText.slice(modelM.index).match(/^([^$]{2,80}?)\s+MSRP\b/i);
     const trim = trimM ? trimM[1].replace(/\s+/g, ' ').trim() : '';
-    chunks.push({ model: modelM[1], year: yM ? yM[1] : null, text: blockText, trim: (trim && trim.toLowerCase() !== modelM[1].toLowerCase()) ? trim : '' });
+    // (11/3) A bonus card: "$1,500 Customer Bonus" or "$750 Loyalty Bonus" (current Audi owners). Built as its own line below.
+    const bonusM = /^Bonus Offer/.test(blockText) ? blockText.match(/\$\s?([\d,]+)\s+(Customer|Loyalty)\s+Bonus\b/i) : null;
+    if (/^Bonus Offer/.test(blockText) && !bonusM) continue;
+    chunks.push({ model: modelM[1], year: yM ? yM[1] : null, text: blockText, trim: (trim && trim.toLowerCase() !== modelM[1].toLowerCase()) ? trim : '',
+      bonus: bonusM ? { amount: bonusM[1], kind: bonusM[2].toLowerCase() } : null });
   }
   return chunks;
 }
@@ -610,6 +618,43 @@ function ipTrimNote(trim, shownOnly) {
   if (!t || /^(?:\d+\s+trims?|all(?:\s+trims)?|select\s+trims?)$/i.test(t)) return '';
   return (shownOnly ? ' — shown on ' : ' — applies to ') + t;
 }
+// (11/3) OFFERS LIMITED TO ANOTHER STATE'S RESIDENTS. Toyota's November page carries "$1,750 CARB Cash + $1,750 TMNA Cash
+// (California residents only)" on the bZ, bZ Woodland and C-HR, and the Baytown file published it. Skipped unless the store
+// is in that state; a store with no state on file publishes none of them.
+const IP_DEALER_STATE = { '6189': 'Texas', '6190': 'Texas', '6191': 'Texas', '24399': 'Louisiana', '21135': 'Louisiana' };
+function ipResidentsOnlyElsewhere(text, dealerId) {
+  const m = String(text || '').match(/\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+residents\s+only\b/);
+  if (!m) return '';
+  const st = IP_DEALER_STATE[String(dealerId)] || '';
+  return st.toLowerCase() === m[1].toLowerCase() ? '' : m[1];
+}
+// (11/3) THE DRIVETRAIN A TOYOTA LEASE IS FOR. The card names the grade ("Applies to SR5") and only the disclaimer names
+// the configuration: "Lease example based on 2026 Tacoma 4WD Double Cab SR5 L4 8AT". The 2WD and 4WD SR5 leases ($279 and
+// $319, 36 months) read as two prices for one truck. '' when the example names no drivetrain.
+function ipToyotaExampleDrive(offer) {
+  const d = (offer && offer.disclaimers || []).join(' ');
+  const m = d.match(/\bexample based on (?:a |an )?(?:new )?20\d{2}\s+[^.]{0,60}?\b(2WD|4WD|AWD|FWD|4x2|4x4)\b/i);
+  return m ? m[1].replace(/^(\d)X(\d)$/i, '$1x$2').replace(/wd$/i, 'WD') : '';
+}
+// (11/3) THE TRIMS AN OFFER EXCLUDES, as grades: "Excludes 4WD Crew Max PLT V6 10AT, 4WD Crew Max 1794 V6 10AT, ..." ->
+// ['Platinum', '1794']. Used only to tell apart two rates for one model, year and term (the 2026 Tundra: 1.99% excludes
+// SR, SR5 and Limited; 2.99% excludes Platinum and 1794). [] when the list names no grade.
+const IP_GRADE_WORDS = { PLT: 'Platinum', LTD: 'Limited', LIMITED: 'Limited', PLATINUM: 'Platinum', 'OFF RD': 'Off-Road', PRERUN: 'PreRunner',
+  TRAILHUNTER: 'Trailhunter', CAPSTONE: 'Capstone', NIGHTSHADE: 'Nightshade', WOODLAND: 'Woodland', PREMIUM: 'Premium', SPORT: 'Sport', PRO: 'Pro' };
+function ipToyotaExcludedGrades(offer) {
+  const d = (offer && offer.disclaimers || []).join(' ');
+  const m = d.match(/\bExcludes\s+([^.]+)/); if (!m) return [];
+  const out = [];
+  m[1].split(/,\s*/).forEach(item => {
+    let g = item.replace(/^\s*(?:2WD|4WD|AWD|FWD|4x2|4x4)\s+/i, '')
+      .replace(/^(?:Double Cab|Crew ?Max|Extra Cab|Access Cab|Regular Cab|Wagon|\dDr|Sedan|Hatchback|Van)\s+/i, '')
+      .replace(/(?:\s+(?:L4|I4|V6|V8|Hybrid|HV|Gas|\d+AT|\d+MT|CVT|ECVT|eCVT))+\s*$/i, '').trim();
+    if (!g || /^\d?Dr$/i.test(g)) return;
+    const nice = IP_GRADE_WORDS[g.toUpperCase()] || g.replace(/\b(OFF RD|PRO|[A-Z]{4,})\b/g, w => IP_GRADE_WORDS[w] || (w.charAt(0) + w.slice(1).toLowerCase()));
+    if (out.indexOf(nice) < 0) out.push(nice);
+  });
+  return out;
+}
 // shownOnly: the page shows the offer on one trim without saying it is limited to it (Honda's Special Program
 // cards picture one trim for a loyalty offer) -- "shown on", never "applies to", so no draft narrows it.
 function ipBuildLine(model, category, cash, finance, lease, trim, shownOnly) {
@@ -623,11 +668,12 @@ function ipBuildLineCore(model, category, cash, finance, lease) {
     Military: 'Military Appreciation Cash', College: 'College Grad Cash',
     'Owner Loyalty': 'Owner Loyalty Cash', Loyalty: 'Loyalty Cash',
     'Competitive Bonus': 'Conquest Cash', 'Dealer Cash': 'Dealer Cash', 'Sales Credit': 'Sales Credit',
+    'Loyalty/Conquest': 'Loyalty/Conquest Cash (current owners, or owners switching from another brand)',
   }[category] || 'Customer Cash');
 
   const isLease = category === 'Lease';
   const isFinance = category === 'APR Subvention' || category === 'APR Bonus Cash';
-  const isCash = ['Cash','Military','College','Owner Loyalty','Loyalty','Competitive Bonus','Dealer Cash','Sales Credit'].includes(category);
+  const isCash = ['Cash','Military','College','Owner Loyalty','Loyalty','Loyalty/Conquest','Competitive Bonus','Dealer Cash','Sales Credit'].includes(category);
 
   if (isLease && lease && (lease.payment || lease.months)) {
     const parts = [model, '—'];
@@ -701,7 +747,8 @@ const IP_MODEL_LISTS = {
     'Tundra','RAV4 Plug-in Hybrid','RAV4','Highlander','Grand Highlander','4Runner','Sequoia','Venza','Sienna','bZ',
     'GR86','GR Corolla','GR Supra','Land Cruiser','C-HR','Mirai'],
   Audi: ['Q3','Q4 e-tron','Q5','Q6 e-tron','Q7','Q8 e-tron','Q8','A3','A4','A5','A6','A7','A8',
-    'S3','S4','S5','S6','S7','S8','SQ5','SQ7','SQ8','RS3','RS5','RS6','RS7','RS Q8','e-tron GT','TT','R8'],
+    'S3','S4','S5','S6','S7','S8','SQ5','SQ7','SQ8','RS3','RS5','RS6','RS7','RS Q8','e-tron GT','TT','R8',
+    'Q9','SQ9'],   // (11/3) the 2027 Q9 and SQ9: their 4.99% APR cards were dropped for want of a model name
 };
 
 // (proposed) parseToyotaSSRStateOffers — reads window.__SSR_STATE__ directly instead of
@@ -763,7 +810,7 @@ function parseToyotaSSRStateOffers(html, dealerId, manualExpiresOverride) {
   const rows = [];
   const warnings = [];
   const seenRows = new Set();
-  let missingDateCount = 0, duplicateCount = 0, skippedMultiVehicle = 0, skippedNoSeries = 0;
+  let missingDateCount = 0, duplicateCount = 0, skippedMultiVehicle = 0, skippedNoSeries = 0, skippedOtherState = 0;
 
   for (const offer of offers) {
     // multiVehicle offers (Military, College, etc.) apply broadly across many/all models at
@@ -773,6 +820,9 @@ function parseToyotaSSRStateOffers(html, dealerId, manualExpiresOverride) {
     // named category, since "applies to many series" is the actual disqualifying property,
     // not the specific label on any one instance of it.
     if (offer.type === 'multiVehicle') { skippedMultiVehicle++; continue; }
+    // (11/3) An offer for another state's residents only (the CARB cash) is not this store's.
+    const _ipElsewhere = ipResidentsOnlyElsewhere([offer.cash && offer.cash.label, offer.offerTitle].concat(offer.disclaimers || []).join(' '), dealerId);
+    if (_ipElsewhere) { skippedOtherState++; continue; }
     if (!Array.isArray(offer.series) || offer.series.length !== 1) { skippedNoSeries++; continue; }
 
     const s = offer.series[0];
@@ -793,6 +843,13 @@ function parseToyotaSSRStateOffers(html, dealerId, manualExpiresOverride) {
         const title = String(offer.offerTitle || '').trim();
         label = /\bcash\b/i.test(title) ? title : 'Customer Cash';
       }
+      // (11/3) THE PROGRAM IS IN THE DISCLAIMER. November's bZ, bZ Woodland and C-HR cards carry no label and a marketing
+      // title ("MyNextEV", "We Make It Easy"), so every one published as "Customer Cash". The disclaimer opens with the
+      // program: "Targeted Certificate:" (eligible customers only, proof required) or "TFS Lease Cash:" (lease only).
+      // Read as money off for anyone, "$2,500 Customer Cash" was a promise the customer may not qualify for.
+      const _ipProg = (String((offer.disclaimers || [])[0] || '').match(/^\s*([A-Za-z][A-Za-z ]{2,40}?):/) || [])[1] || '';
+      if (/^targeted certificate$/i.test(_ipProg.trim())) label = 'Targeted Certificate (eligible customers only, proof of eligibility required)';
+      else if (/\blease cash$/i.test(_ipProg.trim()) && !/lease only/i.test(label)) label = (/\blease cash\b/i.test(label) ? label : _ipProg.trim()) + ' (lease only)';
       line = model + ' — $' + ipCommaNum(offer.cash.cashAmount) + ' ' + label;
     } else if (offer.type === 'lease' && offer.lease && offer.lease.monthlyPayment) {
       const parts = [model, '—', '$' + ipCommaNum(offer.lease.monthlyPayment) + '/mo'];
@@ -802,7 +859,13 @@ function parseToyotaSSRStateOffers(html, dealerId, manualExpiresOverride) {
     }
     if (!line) continue;
     // (10/1) The trim the offer is for: "Tundra — $399/mo 36 mo lease" is the SR5's, not every Tundra's.
-    line = ipTruncate(line + ipTrimNote(offer.includedTrim || offer.trimLabel));
+    // (11/3) ...and the drivetrain the payment is for, from the disclaimer's lease example ("applies to 4WD SR5").
+    let _ipTrim = offer.includedTrim || offer.trimLabel;
+    if (offer.includedTrim && ipTrimNote(_ipTrim)) {
+      const _ipDrv = ipToyotaExampleDrive(offer);
+      if (_ipDrv && !new RegExp('\\b' + _ipDrv + '\\b', 'i').test(_ipTrim)) _ipTrim = _ipDrv + ' ' + String(_ipTrim).replace(/^applies\s+to\s+/i, '');
+    }
+    line = ipTruncate(line + ipTrimNote(_ipTrim));
 
     let expires = null;
     if (offer.endDate && offer.endDate.fullYear && offer.endDate.month && offer.endDate.day) {
@@ -819,9 +882,24 @@ function parseToyotaSSRStateOffers(html, dealerId, manualExpiresOverride) {
     if (seenRows.has(dupeKey)) { duplicateCount++; continue; }
     seenRows.add(dupeKey);
 
-    rows.push({ dealer_id: dealerId, category: model, year, line, expires });
+    const _ipVal = offer.type === 'apr' ? (offer.apr && offer.apr.rate) : offer.type === 'cash' ? (offer.cash && offer.cash.cashAmount) : (offer.lease && offer.lease.monthlyPayment);
+    rows.push({ dealer_id: dealerId, category: model, year, line, expires,
+      _grp: (offer.includedTrim ? '' : [model, year, offer.type, (offer.apr || offer.lease || {}).duration || '', offer.type === 'cash' ? line.replace(/^[^$]*\$[\d,]+\s*/, '') : ''].join('|')),
+      _val: String(_ipVal || ''), _excl: ipToyotaExcludedGrades(offer) });
   }
+  // (11/3) TWO RATES FOR ONE MODEL, YEAR AND TERM. The 2026 Tundra's 1.99% and 2.99% APR both read "Applies to N trims";
+  // which trims is only in each disclaimer's "Excludes" list. When one group holds more than one value, each line names
+  // the grades its offer excludes. A group with one value (the Tacoma's two 3.99% offers collapse to one line) is unchanged.
+  const _ipGroups = {};
+  rows.forEach(r => { if (r._grp) (_ipGroups[r._grp] = _ipGroups[r._grp] || new Set()).add(r._val); });
+  rows.forEach(r => {
+    if (r._grp && _ipGroups[r._grp].size > 1 && r._excl.length) {
+      r.line = ipTruncate(r.line + (r._excl.length <= 5 ? ' — excludes ' + r._excl.join(', ') : ' — not on every trim'));
+    }
+    delete r._grp; delete r._val; delete r._excl;
+  });
 
+  if (skippedOtherState) warnings.push(`${skippedOtherState} offer(s) for another state's residents only (e.g. California's CARB cash) skipped — not this store's.`);
   if (duplicateCount) warnings.push(`${duplicateCount} exact duplicate offer(s) collapsed into one (the same model-wide fact repeated across multiple trims).`);
   if (missingDateCount) warnings.push(`${missingDateCount} offer(s) had no date on the page and no manual "valid through" date was supplied — dropped rather than published without a real expiry.`);
   if (skippedMultiVehicle) warnings.push(`${skippedMultiVehicle} multi-model offer(s) (Military/College/etc.) skipped — not attributable to one specific vehicle.`);
@@ -882,6 +960,9 @@ function parseManufacturerPage(html, manufacturer, dealerId, manualExpiresOverri
         if (!h) return;
         c.trim = h[2].replace(/\s+/g, ' ').trim();
         c.trimShownOnly = /\bProgram\b/i.test(h[1]);
+        // (11/3) "Featured Special Loyalty Lease" ($209 Accord LX) beside "Featured Special Lease" ($229): the first is for
+        // current Honda owners, and the line read as a second price anyone could get.
+        c.loyaltyLease = /\bLoyalty\s+Lease\b/i.test(h[1]);
       });
     }
   }
@@ -911,8 +992,8 @@ function parseManufacturerPage(html, manufacturer, dealerId, manualExpiresOverri
     // single riskiest category for a nearby unrelated number (a lease payment, a due-at-signing
     // amount) to get misattributed as the offer's own value. Skipping the category outright is
     // simpler and safer than continuing to add exclusions for every new adjacent-number pattern.
-    if (category === 'Military') continue;
-    const hasFact = cash.amount != null || finance.apr || lease.payment;
+    if (category === 'Military' && !chunk.bonus) continue;
+    const hasFact = cash.amount != null || finance.apr || lease.payment || chunk.bonus;
     if (!hasFact) continue;
 
     let expires = ipDetectExpiration(chunk.text);
@@ -923,8 +1004,11 @@ function parseManufacturerPage(html, manufacturer, dealerId, manualExpiresOverri
     const today = new Date().toISOString().slice(0, 10);
     if (expires < today) continue; // never publish an already-expired fact
 
-    const line = ipBuildLine(chunk.model, category, cash, finance, lease, chunk.trim, chunk.trimShownOnly);
+    let line = chunk.bonus
+      ? ipTruncate(chunk.model + ' — $' + chunk.bonus.amount + (chunk.bonus.kind === 'loyalty' ? ' Loyalty Bonus (current ' + manufacturer + ' owners)' : ' Customer Bonus'))
+      : ipBuildLine(chunk.model, category, cash, finance, lease, chunk.trim, chunk.trimShownOnly);
     if (!line) continue;
+    if (chunk.loyaltyLease) line = ipTruncate(line.replace(/ mo lease\b/, ' mo loyalty lease (current ' + manufacturer + ' owners)'));   // (11/3)
 
     // (year capture) chunk.year included in the dedup key -- two DIFFERENT model years that
     // happen to produce identical line text (rare, but not impossible) must not collapse into

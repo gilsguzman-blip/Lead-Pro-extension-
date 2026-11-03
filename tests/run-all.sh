@@ -77,6 +77,7 @@ run datatool-integrity.test.js
 run datatool-trim-cash.test.js
 run datatool-honda-trim.test.js
 run datatool-expiry-m5.test.js
+run datatool-nov26.test.js
 run incentive-year-capture.test.js
 run regen-guard.test.js              "$PROXY"
 run worker-smoke.test.js             "$PROXY"
