@@ -110,7 +110,8 @@ for (const f of BUILDS) {
 
   console.log(' 3. our own "isn\'t in stock" is not an availability claim:');
   const ca = src.indexOf('            if ((_scM = _scContent.match(/[^.!?]{0,70}\\b(?:is here|');
-  const stmt = ca > 0 ? src.slice(ca, src.indexOf('\n', ca)) : '';
+  // (v9.7.859) the statement spans lines since "don't have ... in stock" joined it; it ends at its own "_scM[0]);".
+  const stmt = ca > 0 ? src.slice(ca, src.indexOf('_scM[0]);', ca) + '_scM[0]);'.length) : '';
   const claim = (text) => { const box = { _scContent: text, _scM: null, got: [] }; box._scAdd = (k, s) => box.got.push(k); vm.createContext(box); vm.runInContext(stmt, box); return box.got[0] || null; };
   check('lead 2108628902: "...isn’t in stock today, but we do have other Tacoma options" -> unavailable', () => claim('Test, the 2026 Tacoma SR Double Cab you asked about isn’t in stock today, but we do have other Tacoma options.'), 'unavailable');
   check('"is not in stock" / "no longer in stock" -> unavailable; control: "is here and showing available" -> available', () =>
