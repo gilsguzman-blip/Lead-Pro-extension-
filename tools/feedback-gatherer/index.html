@@ -277,6 +277,10 @@ async function gather(){
   if(!key){ setStatus('A director key is needed to gather feedback.',true); return; }
 
   $('fetch').disabled=true; state.all=[]; state.range={from,to};
+  // (v1.6) audit M-10: the proxy's perf rows for the same days, keyed by request id, so each pair can be tied to the
+  // generation it rates on workerRequestId alone. Not fatal: a day whose /perf read fails is recorded and its pairs
+  // report "perf not read for that day".
+  state.perf=new Map(); state.perfDays={read:[],failed:[]};
   const seen=new Set(); let done=0;
   for(const day of days){
     setStatus(`<span class="spin"></span>Gathering ${day} … (${done}/${days.length} days, ${state.all.length} pairs)`);
@@ -300,7 +304,8 @@ async function gather(){
           + `Check the Worker URL field. Received: "${peek}…"`);
       }
       const j=await res.json();
-      (j.rows||[]).forEach(r=>{ if(r&&r.id&&!seen.has(r.id)){ seen.add(r.id); state.all.push(r); } });
+      (j.rows||[]).forEach(r=>{ if(r&&r.id&&!seen.has(r.id)){ seen.add(r.id); r._day=day; state.all.push(r); } });
+      await readPerfDay(base,key,day);
     }catch(err){
       $('fetch').disabled=false;
       // (v1.4) esc() the message: setStatus writes with innerHTML, so an error containing "<"
@@ -314,6 +319,36 @@ async function gather(){
   state.all.sort((a,b)=> a.ts<b.ts?1:-1);
   buildFilters(); applyFilters();
   setStatus(`Gathered ${state.all.length} pair${state.all.length===1?'':'s'} across ${days.length} day${days.length===1?'':'s'} (${from} → ${to}, Central).`);
+}
+// (v1.6) M-10: one Central day of perf rows from the same proxy, with the same key.
+async function readPerfDay(base,key,day){
+  try{
+    const res=await fetch(`${base}/perf?date=${day}`,{headers:{'X-LP-Key':key}});
+    const ct=(res.headers.get('content-type')||'').toLowerCase();
+    if(!res.ok||!ct.includes('json')){ state.perfDays.failed.push(day); return; }
+    const j=await res.json();
+    (j.rows||[]).forEach(r=>{ if(r&&r.requestId) state.perf.set(r.requestId,{agent:r.agent||null,contract:r.contract||null,fullDraft:!!r.fullDraft}); });
+    state.perfDays.read.push(day);
+  }catch(e){ state.perfDays.failed.push(day); }
+}
+// (v1.6) M-10: the join, on workerRequestId and nothing else. Lead id + time is ambiguous on every regenerated lead, which is
+// exactly the pairs population, so a row without a request id is reported unmatched rather than guessed at.
+const JOIN_REASONS={noId:'no request id on the row (extension before v9.7.564)',noPerfRead:'perf not read for that day',
+  noPerf:'no perf row (expired after 14 days, or never written)',noAgent:'perf row without agent (the request carried no license)'};
+function joinRow(r){
+  if(!r.workerRequestId) return {matched:false,agent:null,reason:JOIN_REASONS.noId};
+  const p=state.perf&&state.perf.get(r.workerRequestId);
+  if(!p){ const dayRead=state.perfDays&&state.perfDays.read.indexOf(r._day)>=0;
+    return {matched:false,agent:null,reason:dayRead?JOIN_REASONS.noPerf:JOIN_REASONS.noPerfRead}; }
+  if(!p.agent) return {matched:false,agent:null,reason:JOIN_REASONS.noAgent};
+  return {matched:true,agent:p.agent,reason:''};
+}
+function joinSummary(rows){
+  const out={rows:rows.length,matched:0,unmatched:{}};
+  rows.forEach(r=>{ const j=joinRow(r); if(j.matched) out.matched++; else out.unmatched[j.reason]=(out.unmatched[j.reason]||0)+1; });
+  out.matchRate=rows.length?Math.round(1000*out.matched/rows.length)/10:null;
+  out.perfDaysRead=(state.perfDays&&state.perfDays.read.length)||0; out.perfDaysFailed=(state.perfDays&&state.perfDays.failed.slice())||[];
+  return out;
 }
 function setStatus(html,err){ const el=$('status'); el.innerHTML=html; el.classList.toggle('err',!!err); }
 
@@ -455,13 +490,23 @@ function buildExport(){
     summary:{
       total:state.view.length,
       byRating:sum('rating'), byScenario:sum('scenario'),
-      byLeadSource:sum('leadSource'), byStore:sum('store')
+      byLeadSource:sum('leadSource'), byStore:sum('store'),
+      // (v1.6) audit M-10: how many rows can be tied to their generation. A row from extension v9.7.564+ carries the
+      // proxy's request id; the dashboard joins on it alone.
+      withRequestId:state.view.filter(r=>!!r.workerRequestId).length,
+      join:joinSummary(state.view)
     },
     rows:state.view.map(r=>{
       const m=r.meta||{};
       return {
         id:r.id, ts:r.ts, tsCentral:fmtCentral(r.ts),
         rating:r.rating, regenCount:r.regenCount||0, chipsUsed:r.chipsUsed||[],
+        // (v1.6) audit M-10: /feedback/drafts has returned these and the export dropped them, so a pair could only be matched
+        // to its proxy row by lead and time -- ambiguous on every regenerated lead. workerRequestId is the join key; null when
+        // the row predates extension v9.7.564 (or v9.7.684 for the version).
+        workerRequestId:r.workerRequestId||null, signal:r.signal||null, trigger:r.trigger||null, extensionVersion:r.extensionVersion||null,
+        // (v1.6) who pressed Generate, from the perf row with this request id -- or why the row could not be joined.
+        join:joinRow(r),
         store:m.store, agent:m.agent, scenario:m.scenario, leadSource:m.leadSource,
         convState:m.convState, leadAgeDays:m.leadAgeDays, route:m.route||null,
         // Record locators (extension v9.7.489+). IDs only — no customer contact data ever.
@@ -480,7 +525,11 @@ function buildExport(){
 function buildMarkdown(){
   const x=buildExport(); const L=[];
   L.push(`# Lead Pro feedback pairs — ${x.range.from} → ${x.range.to} (Central)`);
-  L.push(`Generated ${x.generatedAt}. ${x.summary.total} pairs.`);
+  L.push(`Generated ${x.generatedAt}. ${x.summary.total} pairs, ${x.summary.withRequestId} with a request id.`);
+  const jn=x.summary.join;
+  L.push(`Joined to their generation on request id: ${jn.matched} of ${jn.rows}${jn.matchRate===null?'':` (${jn.matchRate}%)`}`
+    + (Object.keys(jn.unmatched).length?`. Unmatched: ${Object.entries(jn.unmatched).map(([k,v])=>`${v} ${k}`).join('; ')}`:'')
+    + (jn.perfDaysFailed.length?`. Perf not read for ${jn.perfDaysFailed.join(', ')}`:'') + '.');
   L.push(``);
   L.push(`Rating: ${Object.entries(x.summary.byRating).map(([k,v])=>`${k} ${v}`).join(' · ')}`);
   L.push(`Scenario: ${Object.entries(x.summary.byScenario).map(([k,v])=>`${k} ${v}`).join(' · ')}`);
@@ -490,6 +539,7 @@ function buildMarkdown(){
     L.push(`## ${i+1}. ${r.store||'—'} · ${r.rating} · ${r.scenario||'?'} / ${r.leadSource||'?'} / ${r.convState||'?'}`);
     const rt=r.route?Object.entries(r.route).filter(([k,v])=>v).map(([k,v])=>`${k}=${v}`).join(' '):'';
     L.push(`_${r.tsCentral} · agent ${r.agent||'?'} · ${r.regenCount} regen · age ${r.leadAgeDays??'?'}d${rt?' · route: '+rt:''}_`);
+    L.push(`_request ${r.workerRequestId||'(none)'} · signal ${r.signal||'?'} · trigger ${r.trigger||'?'} · build ${r.extensionVersion||'?'}_`);   // (v1.6) M-10
     L.push(``);
     L.push(`**Rejected (prior):**`);
     L.push('```');

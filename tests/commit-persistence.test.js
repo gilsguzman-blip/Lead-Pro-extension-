@@ -359,7 +359,8 @@ pending.push(async () => {
   console.log('\nreporter v1.13 — the section that makes it readable:');
 
   one('buildReport takes commitData',
-    () => /function buildReport\(reqs, dateLabel, feedbackData = null, commitData = null\)/.test(reporterSrc), true);
+    // (reporter v1.25) a fifth, optional parameter: the cache-key labels read from perf rows.
+    () => /function buildReport\(reqs, dateLabel, feedbackData = null, commitData = null(?:, perfLabels = null)?\)/.test(reporterSrc), true);
   one('the section renders into the report body',
     () => /\$\{commitHtml\}/.test(reporterSrc), true);
   one('it reads the commit: KV prefix',
@@ -456,8 +457,11 @@ pending.push(async () => {
     }, []);
   one('disagreements deep-link to the lead via the v1.12 helper',
     () => /vinLeadUrl\(d\.autoLeadId, d\.customerId\)/.test(reporterSrc), true);
-  one('it says plainly that the observer is not authoritative',
-    () => /no comprehension verdict has ever changed a customer-facing message/i.test(reporterSrc), true);
+  // (reporter v1.25, audit M-4) The footnote was static -- "no comprehension verdict has ever changed a customer-facing
+  // message" -- while the authoritative switches were on. It is now computed from the Changed column, and says so either way.
+  one('it says what comprehension changed, computed from the Changed column rather than asserted',
+    () => [/no comprehension verdict has ever changed a customer-facing message/i.test(reporterSrc),
+           /dets\[k\]\.changedDirective/.test(reporterSrc), /No comprehension verdict changed a shipped directive on this day/.test(reporterSrc)].join(), 'false,true,true');
   one('an unknown delta is skipped rather than crashing the report',
     () => /if \(deltas\[e\.delta\] === undefined\) continue;/.test(reporterSrc), true);
   one('no-data renders a placeholder rather than an empty section',

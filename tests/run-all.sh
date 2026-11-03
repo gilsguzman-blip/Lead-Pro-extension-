@@ -9,7 +9,7 @@ cd "$(dirname "$0")/.."
 DEV=builds/dev/popup.js
 COMM=builds/commercial/popup.js
 PROXY=${1:-worker/cloudflare-worker-v7.91.js}
-REPORTER=${2:-worker/leadpro-reporter-v1.24.js}
+REPORTER=${2:-worker/leadpro-reporter-v1.25.js}
 DASH=$(ls dashboard*.html dashboard/*.html 2>/dev/null | head -1)
 
 declare -a FAILED=()
@@ -103,6 +103,7 @@ run reporter-feedback.test.js        "$REPORTER"
 run reporter-leadlink.test.js        "$REPORTER"
 run reporter-ct-failures.test.js     "$REPORTER"
 run reporter-fail-reasons.test.js    "$REPORTER"
+run reporter-v125.test.js           "$REPORTER"
 [ -n "${DASH:-}" ] && run dashboard-render.test.js "$DASH" "$PROXY"
 [ -n "${DASH:-}" ] && run dashboard-version.test.js "$DASH"
 [ -n "${DASH:-}" ] && run dashboard-range-v17.test.js "$DASH"
@@ -110,7 +111,9 @@ run reporter-fail-reasons.test.js    "$REPORTER"
 [ -n "${DASH:-}" ] && run dashboard-agents-v19.test.js "$DASH"
 [ -n "${DASH:-}" ] && run dashboard-agents-v110.test.js "$DASH"
 [ -n "${DASH:-}" ] && run dashboard-quality-v111.test.js "$DASH" "$PROXY"
+[ -n "${DASH:-}" ] && run dashboard-join-v112.test.js "$DASH"
 run feedback-gatherer-v15.test.js tools/feedback-gatherer/index.html
+run feedback-gatherer-v16.test.js tools/feedback-gatherer/index.html
 run record-first-tools.test.js
 
 echo

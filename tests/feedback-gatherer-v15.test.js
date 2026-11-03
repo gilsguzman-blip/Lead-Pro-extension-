@@ -58,13 +58,15 @@ const last = (t) => t.statuses[t.statuses.length - 1] || ['', false];
   let t = make('', [GOOD], ok);
   await acheck('first visit: asked once, the worker URL field is used, the key goes as X-LP-Key and is remembered', async () => {
     await run(t);
-    return [t.asks.length, t.calls.map(c => c.u), t.calls.map(c => c.k), t.mem.get('lp_director_key'), /^Gathered 1 pair/.test(last(t)[0])]; },
+    // (gatherer v1.6) a /perf read for the same day follows, with the same key; these assertions are about the drafts call.
+    const dc = t.calls.filter(c => /\/feedback\/drafts/.test(c.u));
+    return [t.asks.length, dc.map(c => c.u), dc.map(c => c.k), t.mem.get('lp_director_key'), /^Gathered 1 pair/.test(last(t)[0])]; },
     [1, ['https://proxy.invalid/feedback/drafts?date=2026-10-05'], [GOOD], GOOD, true]);
   await acheck('next gather: no question, the stored key is used', async () => {
     await run(t); return [t.asks.length, t.calls[1].k]; }, [1, GOOD]);
   t = make(OLD, [GOOD], ok);
   await acheck('after rotation: the old stored key gets 403 -> asked again, retried with the new one, which is kept', async () => {
-    await run(t); return [t.asks.length, t.calls.map(c => c.k), t.mem.get('lp_director_key'), /^Gathered 1 pair/.test(last(t)[0])]; },
+    await run(t); return [t.asks.length, t.calls.filter(c => /\/feedback\/drafts/.test(c.u)).map(c => c.k), t.mem.get('lp_director_key'), /^Gathered 1 pair/.test(last(t)[0])]; },
     [1, [OLD, GOOD], GOOD, true]);
   t = make('', [OLD, OLD], ok);
   await acheck('a key refused twice: a clear "refused" error shown, no third request', async () => {

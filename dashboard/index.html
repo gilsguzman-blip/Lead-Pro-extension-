@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LeadPro Dashboard — Community Auto Group</title>
 <!--
+  v1.12 — HOW MANY FEEDBACK SESSIONS ARE TIED TO THEIR GENERATION, SAID AS A MEASURED SHARE (audit M-10, measurement only).
+  The Agents footnote listed "N matched to their generation, N by license, N unattributed" as if all three were joins. Only
+  the first is: a session whose workerRequestId found its perf row. "By license" is the feedback row's own user field, a
+  fallback the proxy uses when there is no request-id match, and it is now labeled as such, with the matched share as a
+  percentage. Why each unmatched session was not joined (no request id, no perf row after the 14-day TTL, a perf row with no
+  agent) is in the Feedback Gatherer v1.6 export, which joins on the request id alone. Proxy v7.91 unchanged.
   v1.11 — THE QUALITY VIEW ASKS ONE DAY AT A TIME TOO, AND AN ERROR SAYS WHAT WENT WRONG. Gil, 10/8: "fix the 30 day
   view also." The 30-day Quality range was one /feedback/range call over a month of rows and failed at ~29 s. Ranges
   longer than a day now ask for each Central day (four at a time) and add them up here, the same way the Agents view
@@ -316,7 +322,7 @@ const PROXY = 'https://leadpro-proxy.gilsguzman.workers.dev';
 // This is the cheapest possible instrument: a version in the footer, asserted by the suite to
 // match the newest vN.N block in this header, so bumping one without the other fails a test
 // rather than shipping a page that misreports its own age.
-const DASH_VERSION = 'v1.11';
+const DASH_VERSION = 'v1.12';
 
 // (v1.8) The proxy's /feedback/* GET endpoints require a director key (worker v7.30, W3). It is NOT written in
 // this file: asked for once, kept in this browser only, re-asked on a 403. See the v1.8 header.
@@ -845,8 +851,11 @@ function AgentsView({ ri }) {
     ),
     h('div', { className: 'disclosure' },
       'Credited to the person who pressed Generate (their Lead Pro license), not the lead\'s BD Agent. ',
-      (at.feedback || 0).toLocaleString() + ' feedback sessions: ' + (at.joined || 0) + ' matched to their generation, ' +
-      (at.byUser || 0) + ' by license, ' + (at.unattributed || 0) + ' unattributed. ',
+      // (v1.12) M-10: only a request-id match is a join; say how many, as a share, and name the fallback for what it is.
+      (at.feedback || 0).toLocaleString() + ' feedback sessions: ' + (at.joined || 0) + ' matched to their generation by request id'
+      + (at.feedback ? ' (' + (Math.round(1000 * (at.joined || 0) / at.feedback) / 10) + '%)' : '') + ', ' +
+      (at.byUser || 0) + ' credited by the license on the feedback row (no request-id match), ' + (at.unattributed || 0) + ' unattributed. '
+      + 'The Feedback Gatherer export lists why each unmatched session was not joined. ',
       'Drafts, hours, draft time and failures count generate calls; shipped, first try, no-copy (regenerated or chipped, then not sent), ',
       'unused (produced, never used) and thumbs count sessions. Mix: first touch / follow-up / showroom. Build in amber: behind the newest in use.'
     ),
