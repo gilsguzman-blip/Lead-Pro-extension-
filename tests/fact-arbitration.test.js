@@ -191,8 +191,9 @@ for (const file of BUILDS) {
   // The exemptions it therefore inherits, asserted at their source so a future change is visible.
   check('sc.vehicleSold still exempts the Audi all-available policy', /!_audiAllAvail/.test(B.src), true);
   check('...loyalty and lease-maturity leads', /!s\.isLoyalty && !_isLeaseMatureEarly/.test(B.src), true);
+  // (v9.7.856) M-2: the inventory-cache override now gates the authoritative marker only; our own counted message outranks it.
   check('...in-transit units and the inventory-cache override',
-    /!_inTransitNow && !data\._lpInvConfirmedAvailable/.test(B.src), true);
+    /!_inTransitNow && !s\.isLoyalty/.test(B.src) && /\(ctx\.includes\('vehicle status: sold'\) && !data\._lpInvConfirmedAvailable\)/.test(B.src), true);
   check('a missing sc does not throw', typeof B.distance({ vehicle: 'x' }, null, { flags: ['distance'] }), 'string');
   // (v9.7.697) With no sc AND no feed confirmation it falls back to the not-sold arm, which now fails
   // CLOSED on presence: it names the vehicle and says its presence is not confirmed.

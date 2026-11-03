@@ -70,9 +70,12 @@ for (const f of BUILDS) {
   console.log(' 3. the popup color line says how it was settled:');
   const span = (mark, end) => { const i = src.indexOf(mark); return src.slice(i, src.indexOf(end, i) + end.length); };
   const clean = span('function _lpCleanColor(c){', '\n}\n') + '\n' + span('function _lpColorWords(s){', 'return set; }\n');
-  const block = span('  if (_lpInvConfirmedAvailable) {\n    // ── (v9.7.660)', '\n  } else if (_audiAllAvail').replace(/ else if \(_audiAllAvail$/, '');
+  // (v9.7.856) M-2: the confirmation branch also stands down under Case A/B; neither is set here (_m2Sold/_m2Pend null).
+  const _cbMark = src.indexOf('  if (_lpInvConfirmedAvailable && !(_m2Sold && _m2Sold.counts) && !_m2Pend) {\n    // ── (v9.7.660)') >= 0
+    ? '  if (_lpInvConfirmedAvailable && !(_m2Sold && _m2Sold.counts) && !_m2Pend) {\n    // ── (v9.7.660)' : '  if (_lpInvConfirmedAvailable) {\n    // ── (v9.7.660)';
+  const block = span(_cbMark, '\n  } else if (_audiAllAvail').replace(/ else if \(_audiAllAvail$/, '');
   const paint = (settled) => {
-    const sb = { String, Object, _lpInvConfirmedAvailable: true, _lpInvUnit: { stock: 'TEST001A', color: 'Panthera Metal' },
+    const sb = { String, Object, _m2Sold: null, _m2Pend: null, _lpInvConfirmedAvailable: true, _lpInvUnit: { stock: 'TEST001A', color: 'Panthera Metal' },
       d: { stockNum: 'TEST001A', color: 'Panthera Metal', customerStatedColor: '', colorAskSettled: settled }, vehicleExtras: [], console: { log() {} } };
     vm.createContext(sb); vm.runInContext(clean + '\n' + block, sb); return sb.vehicleExtras.join('\n');
   };

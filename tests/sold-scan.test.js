@@ -99,14 +99,23 @@ eq('Senthil Subramaniam — authoritative marker, the path that works',
     context: '🔴 VEHICLE STATUS: SOLD — and the transcript shows the customer was ALREADY TOLD.\n' + TRANSCRIPT(
       '[08/12/2026 12:15 PM] [AGENT] Email reply to prospect\n  the 2026 RAV4 XSE you selected has sold') },
   {}, true);
-eq('agent told the customer in the transcript, no marker present',
+// (v9.7.856) AUDIT M-2, OWNER RULING 11/3: the prose regex is retired. It read "no longer available" in any sentence (a 4:00
+// slot, a prior lead's "that car has sold") as this vehicle sold. Our own message on THIS lead now decides, through the scraper's
+// sold claim and _lpSoldClaimForVoi (_lpSoldClaimCounts on the payload); tests/inventory-status-856 covers the matching.
+eq('agent told the customer in the transcript, no marker: prose alone no longer decides (v9.7.856)',
   { vehicle: '2024 Honda Accord', context: LP_HYPOTHETICAL + TRANSCRIPT(
     '[08/12/2026 9:00 AM] [AGENT] Outbound Text Message\n  Unfortunately that unit has been sold, I am sorry') },
+  {}, false);
+eq('the same, with our own message on this lead counted for the vehicle (_lpSoldClaimCounts) -> sold (v9.7.856)',
+  { vehicle: '2024 Honda Accord', _lpSoldClaimCounts: true, context: LP_HYPOTHETICAL + TRANSCRIPT(
+    '[08/12/2026 9:00 AM] [AGENT] Outbound Text Message\n  Unfortunately that unit has been sold, I am sorry') },
   {}, true);
-eq('"no longer available" said in the transcript',
+eq('a counted claim outranks the feed confirmation (v9.7.856)',
+  { vehicle: '2024 Honda Accord', _lpSoldClaimCounts: true, _lpInvConfirmedAvailable: true, context: TRANSCRIPT('[08/12/2026] [AGENT] x') }, {}, true);
+eq('"no longer available" said in the transcript: prose alone no longer decides (v9.7.856)',
   { vehicle: '2024 Honda Accord', context: TRANSCRIPT(
     '[08/12/2026 9:00 AM] [AGENT] Outbound Text Message\n  That one is no longer available') },
-  {}, true);
+  {}, false);
 
 console.log('\nthe invariant — no vehicle on the lead means nothing can be sold:');
 eq('authoritative marker but no vehicle on the lead',
@@ -127,8 +136,8 @@ eq('live inventory confirmation suppresses (v9.7.509)',
     context: '🔴 VEHICLE STATUS: SOLD\n' + TRANSCRIPT('[08/12/2026] [AGENT] x') }, {}, false);
 
 console.log('\nfallback when the transcript fences are absent:');
-eq('no fences — prose scan falls back to the full context',
-  { vehicle: '2024 Honda Accord', context: '[08/12/2026] [AGENT] unfortunately that one sold last week' }, {}, true);
+eq('no fences — the retired prose scan decides nothing (v9.7.856)',
+  { vehicle: '2024 Honda Accord', context: '[08/12/2026] [AGENT] unfortunately that one sold last week' }, {}, false);
 
 console.log('\n' + (fail ? 'FAILED' : 'PASSED') + ' — ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);

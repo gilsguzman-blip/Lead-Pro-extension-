@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.856 (Commercial. AUDIT M-2, OWNER RULING 11/3: THE INVENTORY FEED NEVER OUTRANKS A PERSON. Extension only; proxy v7.91, reporter v1.25, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. CASE A -- a deposit / pending / hold note on THIS lead. The scraper's new note scan (_pendingNote) reads any note type but a message (text / email / chat), call notes included, dated at or after the lead's start (855's scope helper; with the start unknown the note is kept and its scope logged); the newest matching note wins, so "deal fell through / back on the lot / hold released" after a deposit makes it available again; "customer is buying" is not a pattern and a future deposit ("wants to put $2000 down") is not one. vehiclePendingSale is now that scan's verdict (the old general/vehicle-note scan read the whole record). The prompt drops "may be in the process of being sold -- create urgency" (it asserted another buyer's deal) and states the facts in an INVENTORY STATUS block, as approved: what the feed says, the note quoted with its date and author, that a deposit note is most often the customer's own deal, their deal -> move it forward, another buyer's -> do not offer it to see or offer times, either way never available and never sold, unclear -> say nothing about availability. CASE B -- our own message on this lead said it sold. The claim capture takes the bare verb ("the CR-V sold", "the one you asked about sold this morning"; not "sold you", "sold over 100", "sold-out") and keeps the whole message; _lpSoldClaimForVoi counts it for the vehicle on the lead when (a) the sold clause names the model with no conflicting color / year / trim and any stock or VIN matches, or (b) it names no vehicle and the same message names no other unit (a model, "the blue one", "the 2025", a stock number); an unknown attribute never conflicts; a newer "it is available" of ours outranks it. [LP SOLD SIGNAL DIAG] logs the branch (a/b) or why not. A counted claim outranks the feed: the approved Case B block, "SOLD per our own message" on the vehicle line, and the sold scenario fires (the feed-confirm override used to veto every sold path). A claim about another unit is listed as history: "this is about a different unit, so it does not decide this vehicle's availability." Under A or B the feed's confirmation is set aside for every later reader that takes it as "say it is here" (refine, render check, distance line, stale-year note). THE PROSE SOLD REGEX IS RETIRED (a prior lead's "that car has sold", "the 4:00 slot is no longer available"); it is still logged, deciding nothing. A sold flag (page banner or sold note) still outranks the feed and now also a deposit note. The Audi Lafayette all-available policy and the customer's own vehicle are unchanged. TESTS: inventory-status-856 (new) executes _lpSoldClaimForVoi, populateFromData, the panel payload, buildUserPrompt / classifyScenario, the shipped scraper note scan and the shipped claim-capture pattern: 76 assertions across both builds; v9.7.855 fails 30 of 38 per build (8 pass: 3 controls, and 5 the 855 region passes only because it has no note scan at all). sold-scan and fences-fallback pinned the retired prose regex and now pin that it decides nothing, plus the counted-claim path; consent-and-stock, stock-color, color-settled-741 and color-phrase-747 slice the confirmation branch and load the new helpers; fact-arbitration reads the moved feed override; inventory-711's sold+pending control now expects the sold flag named. VERIFIED: run-all 297 suites green, 9804 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.855.)
 // Lead Pro -- popup.js  v9.7.855 (Commercial. OWNER DECISIONS 11/3 ON THE 852-854 REPORT. Extension only; proxy v7.91, reporter v1.25, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. (1) hasInternalNotInterested (newest 10 notes) and hasInternalSoldElsewhere (newest 80) read THIS LEAD ONLY: a note counts when dated at or after the lead's start -- the current-lead marker, else the Created date less the hour the transcript cutoff allows, else the read age. A prior lead's "not interested anymore" or "bought elsewhere" no longer ends a fresh inquiry (the v9.7.518 rule; the same leak 852 closed in exitByRemoval). When the start cannot be found (no marker, no Created, no age) a match cannot end the conversation on its own. Every matching note, its date and the verdict travel back as _internalExitDiag and print in the popup's [LP EXIT SIGNAL DIAG]. (2) A request relayed in a CALL note -- "customer asked to be taken off the list", "customer said stop contacting her" -- reaches the exit check under a call-note rule (call notes only, this lead only, logged as 'call-note relay'): the decline vocabulary had neither form, and an outbound call note never reaches exitRaw. (3) REACH OF THE 853 CALL-NOTE FIX, AS ASKED: it changed two prompt-side helpers (_lpCustEntries, _lpOtdAsk), not the transcript's tagging; the scraper still tags an inbound call note [CUSTOMER], so recentInbound (exitRaw, boughtElsewhere, exitByRemoval, bereavement rule 3, the bare-STOP test, recentCustomerActive) and the inbound-message list (the MOST RECENT CUSTOMER MESSAGE quote, day commits, waiting-on, pending decision) still read an inbound call note as the customer's words. It did cost coverage: the helpers that need a FACT lost a fact relayed on a call. They now read _lpCustSignals (inbound calls included, flagged viaCall, empty stubs out): _lpOfferedUnit, _lpTripIntent, _lpShipAsk, _lpFullpath (live), _lpQuoteOut, _lpCustomerTalking, _lpSecondApplicant, the house guard's hours-asked test, the comparable-models list and the rewrite's contact-after-our-text test; the trip, shipping and second-applicant lines say "on the phone (the call note says ...; never quote the note)" when it came from a call. Own-words readers stay on _lpCustEntries: _lpAcceptedOffer, _lpTeammateAnswered, _lpNewestNote, the newest-note quote, _lpLastExchange, _lpOtdAsk. All 94 dump prompts are byte-identical to 9.7.854 (none has a relayed fact of these kinds; the exit changes are frame-side and do not show in a dump). TESTS: internal-exit-855 (new) executes the shipped scraper region, the popup-side diag and the helpers: 38 assertions across both builds; v9.7.854 fails 14 of 19 per build. VERIFIED: run-all 296 suites green, 9726 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.854.)
 // Lead Pro -- popup.js  v9.7.854 (Commercial. AUDIT M-1, OWNER RULING 11/3 (PHASE2_BATCH5_PLAN, with the fallback corrected). Extension only; proxy v7.91, reporter v1.25, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. AN UNREAD LEAD AGE IS UNKNOWN, NOT 'SUBMITTED TODAY'. The scraper set 0 when neither the Created cell nor PageData's LeadCreatedUTC was read, and 0 also means today: the prompt printed 'LEAD AGE: submitted today' and the fresh-lead guards fired on an old lead. Now the scraper returns null for unknown; lastScrapedData, the panel payload, the dump inputs and the feedback row carry null; local arithmetic uses NaN, because `null <= 1` is true in JS. ONE FALLBACK (_lpLeadAgeFallback) replaces five copies of 'derive the age from the oldest dated line anywhere' (populateFromData, the incentive gate, classifyScenario, the zero-contact block, generateAll): the Created (Nd) cell first; else the oldest dated note ABOVE the current-lead marker in the raw transcript -- this lead's own first note, so a returning customer with a two-year-old prior lead and a three-day-old current lead is 3, not ~730; no marker means unknown. Only an UNKNOWN age is derived: a read 0 stays today (9.7.853 re-derived a read 0 from the oldest line). READERS: the LEAD AGE line is left out when unknown; the TOUCH POSITION phase says 'lead age not available -- go by the dated messages below'; isNewLeadToday, the just-submitted trade line, the fresh-lead guards (classifyScenario, TOUCH POSITION, signature taper, feedback meta), the prior-relationship appointment line, the promo and acknowledgment early-touch tests, the anchor-author freshness and director mode no longer read unknown as fresh; the arc says 'Lead age: not available'; cadence carries null into its existing unknown path; diags print 'unknown'. FRAME MERGE: both passes take a read age, 0 included, over an unknown one -- the default merge (!m[k] && d[k]) never merged a read 0, which only worked because 0 and unknown were the same value. VERIFIED ON EVERY DUMP ON FILE: 94 of 94 prompts byte-identical to 9.7.853 (every dump carries a read age), so the change reaches only leads whose age could not be read. TESTS: lead-age-854 (new) executes _lpLeadAgeFallback, _lpAgeNum, populateFromData, the panel payload, buildUserPrompt, _lpComputeCadenceTouch and _lpStalledCalendarRung: 34 assertions across both builds; v9.7.853 fails 13 of 17 per build (the 4 controls pass). cadence, arc-state, first-reach-incentive and distance-appt-gate slice regions that now call the helpers and load them from the same build (tests/lib/age-helpers.js); payload-808 allows pageSnippet, which the fallback tries for the Created cell. VERIFIED: run-all 295 suites green, 9688 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.853.)
 // Lead Pro -- popup.js  v9.7.853 (Commercial. AUDIT M-3 (PHASE2_BATCH5_PLAN, approved as written). Extension only; proxy v7.91, reporter v1.25, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. _lpPromptInputData carries history (lastScrapedData.history), so the fourteen helpers that read `d.history || d.context` (_lpThreadEntries, _lpOurEntries, _lpCustEntries, _lpLastCall, _lpStopIsCurrent, _lpPitchOut, _lpReactivated, _lpNewestNote, _lpOtdAsk, _lpCallWants, _lpApprovalFirst, _lpLeadHasContact, _lpCustomerStateHold, _lpMmSuggestedVoi) read the raw transcript on the panel -- the same text the text rewrite and the render checks read. One verdict, one text. VERIFICATION ON EVERY DUMP ON FILE (94 prompt dumps, 9/9 to 11/2), each rebuilt through the shipped panel payload at its own timestamp: the payload change alone moved 11. Two kinds: a quoted note keeping the transcript's curly apostrophe (cosmetic), and _lpOtdAsk on Honda Baytown lead 2099028490 and Kia Baytown lead 2104004243 calling an agent's call write-up "their 10/13 message" and dropping "never quote the note". Cause: the raw transcript tags an "Inbound phone call" note [CUSTOMER]; leadContext also carries it as [CALL NOTE] in the agent-context header ahead of the fence, and the panel had been right only because of that duplicate -- the risk the audit named. FIX: a phone-call entry is never the customer's own words (LP_CALL_TITLE_RX in _lpCustEntries and _lpOtdAsk). AGAINST 9.7.852 AS SHIPPED, 89 of 94 dumps are byte-identical; 3 differ by the apostrophe only; Kia Baytown lead 1581859334's "newest event is our note" line now also quotes their last real message; Honda Lafayette lead 2065141269 no longer names an agent's call note ("sending credit application over . she said she has bad credit...") as the customer's newest message -- it names their actual one. Every 8xx suite runs through the panel payload and stays green with history in it. TESTS: payload-history-853 (new) executes the panel payload, _lpCustEntries, _lpOtdAsk, populateFromData and buildUserPrompt: 14 assertions across both builds; v9.7.852 fails 4 of 7 per build (the 3 controls pass). VERIFIED: run-all 294 suites green, 9654 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.852.)
@@ -1229,6 +1230,65 @@ function _lpCustSignals(d) {
 // The quoted words, and where they came from, for a line that would otherwise say "they wrote".
 function _lpSaidHow(x, words) {
   return x && x.viaCall ? 'on the phone (the call note says "' + words + '"; never quote the note)' : '"' + words + '"';
+}
+// (v9.7.856) AUDIT M-2, OWNER RULING 11/3 -- "WE SAID IT SOLD" COUNTS FOR THE VEHICLE ON THE LEAD WHEN EITHER
+//   (a) the sold clause names the vehicle's model, with no conflicting color / year / trim, and any stock or VIN in it matches; or
+//   (b) the sold clause names no vehicle at all ("it sold", "that one sold", "the one you asked about sold") AND the same message
+//       names no other unit.
+// A color / year / trim conflicts only when we know that attribute for the vehicle on the lead; an unknown one never conflicts.
+// "The red CR-V sold, but the blue one is here" (blue on the lead) and "that one sold, but the blue CR-V is here" do not count;
+// "the CR-V sold" with the color unknown and "the one you asked about sold this morning" do. A sold claim older than one of ours
+// saying it is available does not count. Returns null when we said nothing about a sale on this lead, else
+// { counts, branch: 'a' | 'b' | '', why, text, date }; [LP SOLD SIGNAL DIAG] logs it.
+var LP_SOLD_IN_RX = /\bsold\b|\bno longer available\b/i;
+var LP_SOLD_SUBJ_RX = /\b(?:it|that(?:\s+one)?|this(?:\s+one)?|the\s+one(?:\s+you\s+(?:asked|inquired|were\s+(?:asking|looking))\s+(?:about|at|for))?|the\s+(?:car|vehicle|unit|truck|suv|van)(?:\s+you\s+(?:asked|inquired|were\s+(?:asking|looking))\s+(?:about|at|for))?)(?:['’]s|\s+(?:has|have|had|is|was|got|just|already|has\s+already|was\s+just))?(?:\s+been)?\s+(?:sold|no\s+longer\s+available)\b/i;
+var LP_TRIM_RX = /\b(?:EX-?L|EX|LXS?|Sport(?:\s+Touring)?|Touring|SE|LE|XLE|XSE|SR5|SR|Limited|Premium(?:\s+Plus)?|Prestige|SX|GT-?Line|GT|Elite|TrailSport|Nightshade|Woodland)\b/gi;
+// A specific other unit: a model, "the blue one", "the 2025", a stock number. A generic offer ("similar ones", "another one")
+// is what we have instead of the sold car and does not make "that one" ambiguous. (Trim words are not checked here: "Platinum
+// White" is a paint name, so Platinum is not in LP_TRIM_RX either.)
+var LP_OTHER_UNIT_RX = /\b(?:white|black|gray|grey|silver|blue|red|green|gold|beige|tan|brown|bronze|orange|yellow|purple|maroon|burgundy)\s+(?:one|ones)\b|\b(?:the|a|an)\s+(?:19|20)\d{2}\b|\bstock\s*(?:#|no\.?|number)\s*[A-Z0-9-]{4,}/i;
+function _lpSoldClaimForVoi(d) {
+  try {
+    var c = d && d.selfClaims && d.selfClaims.sold; if (!c || !c.text) return null;
+    var out = { counts: false, branch: '', why: '', text: String(c.text), date: c.date || '' };
+    var av = d.selfClaims.available;
+    if (av && av.ms > c.ms) { out.why = 'a newer message of ours said it is available'; return out; }
+    var sent = String(c.text), msg = String(c.msg || c.text);
+    var parts = sent.split(/,\s*(?:but|and|though|however)\b|;\s*|\s+but\s+/i);
+    var soldPart = parts.filter(function (p) { return LP_SOLD_IN_RX.test(p); })[0] || sent;
+    var rest = msg.split(soldPart).join(' ');
+    var lc = function (x) { return String(x).toLowerCase().replace(/\s+/g, ' '); };
+    var voiModels = _lpModelsIn(d.vehicle || '').map(function (x) { return x.name; });
+    var partModels = _lpModelsIn(soldPart).map(function (x) { return x.name; });
+    if (partModels.length) {
+      if (!partModels.some(function (m) { return voiModels.indexOf(m) >= 0; })) { out.why = 'it names a different vehicle (' + partModels.join(', ') + ')'; return out; }
+      var conf = [];
+      var vy = (String(d.vehicle || '').match(/\b(?:19|20)\d{2}\b/) || [''])[0], py = (soldPart.match(/\b(?:19|20)\d{2}\b/) || [''])[0];
+      if (vy && py && vy !== py) conf.push('year (' + py + ')');
+      if (String(d.color || '').trim()) {
+        var pc = Object.keys(_lpColorWords(soldPart)), vc = _lpColorWords(d.color);
+        if (pc.length && !pc.some(function (w) { return vc[w]; })) conf.push('color (' + pc.join('/') + ')');
+      }
+      var vt = (String(d.vehicle || '').match(LP_TRIM_RX) || []).map(lc), pt = (soldPart.match(LP_TRIM_RX) || []).map(lc);
+      if (vt.length && pt.length && !pt.some(function (t) { return vt.indexOf(t) >= 0; })) conf.push('trim (' + pt.join('/') + ')');
+      var pv = (soldPart.match(/\b[A-HJ-NPR-Z0-9]{17}\b/i) || [''])[0];
+      if (pv && String(d.vin || '').toUpperCase() !== pv.toUpperCase()) conf.push('VIN');
+      var ps = (soldPart.match(/(?:stock\s*(?:#|no\.?|number)?\s*|#)([A-Z0-9-]{4,})/i) || ['', ''])[1];
+      if (ps && String(d.stockNum || '').toUpperCase() !== ps.toUpperCase()) conf.push('stock (' + ps + ')');
+      if (conf.length) { out.why = 'it names this model with a different ' + conf.join(', '); return out; }
+      out.counts = true; out.branch = 'a'; out.why = 'it names the ' + partModels[0] + ' on this lead, with nothing that conflicts'; return out;
+    }
+    if (!LP_SOLD_SUBJ_RX.test(soldPart)) { out.why = 'it is not about a vehicle'; return out; }
+    if (_lpModelsIn(rest).length || LP_OTHER_UNIT_RX.test(rest)) { out.why = 'it names no vehicle, and the same message names another unit'; return out; }
+    out.counts = true; out.branch = 'b'; out.why = 'it names no vehicle, and the message names no other unit'; return out;
+  } catch (e) { return null; }
+}
+// (v9.7.856) A deposit / pending / hold note on THIS lead (scraper _pendingNote), or null.
+// The merged vehiclePendingSale keeps its v9.7.507 panel gate, so it must be set; the note text may be missing (split-frame rescue).
+// A sold flag (page banner or sold note) outranks a deposit note: the VEHICLE STATUS: SOLD line handles that lead.
+function _lpPendingNote(d) {
+  if (!d || !d.vehiclePendingSale || d.inventoryWarning || d.inventoryWarningFromNotes) return null;
+  var p = d._pendingNote; return (p && p.kind === 'pending') ? p : { kind: 'pending', date: '', by: '', quote: '' };
 }
 function _lpRepNotOnLot(d) {
   try {
@@ -8803,7 +8863,8 @@ function populateFromData(d) {
     // (v9.7.696) PRESENCE NOW NEEDS THE LIVE FEED TO HOLD THIS UNIT AND IT TO BE THE LEAD'S VEHICLE
     // (_lpFeedUnitCheck). It used to be "a stock number exists and nothing says otherwise", which
     // turned every stray or stale stock number into "it's here".
-    var _confirmedPresent = _lpFeedUnitCheck(d).confirmed && !d.isInTransit && !d.inventoryWarning && !d.vehiclePendingSale && !_agentSaidNotAvailPres;
+    var _confirmedPresent = _lpFeedUnitCheck(d).confirmed && !d.isInTransit && !d.inventoryWarning && !d.vehiclePendingSale && !_agentSaidNotAvailPres
+      && !((_lpSoldClaimForVoi(d) || {}).counts);   // (v9.7.856) M-2: what we told them outranks the feed
     // (v9.7.711) ONE ANSWER, NOT A MENU OF FOUR. When VinSolutions itself flags the unit as out of
     // active inventory, the VEHICLE STATUS block below states it (SOLD, or the store's policy line)
     // and this line used to hedge the same unit as "sold, pending, or in transit" beside it -- the
@@ -8816,11 +8877,15 @@ function populateFromData(d) {
       || /loyalty lead created|account type[:\s]*leas/i.test(typeof _lpCtxAll === 'string' ? _lpCtxAll : '');
     var _stkStatus = _stkOwn
       ? ' — this is the CUSTOMER\'S OWN vehicle (sold, leased or financed to them), NOT a unit for sale; an inventory flag on it is expected. Never say it is here, available, or sold'
+      : (String(d.dealerId) !== '21135' && (_lpSoldClaimForVoi(d) || {}).counts)   // (v9.7.856) M-2 Case B
+      ? ' — SOLD per our own message on this lead (see INVENTORY STATUS)'
+      : (String(d.dealerId) !== '21135' && _lpPendingNote(d))   // (v9.7.856) M-2 Case A
+      ? ' — read INVENTORY STATUS before saying anything about availability'
       : _confirmedPresent
       ? ' — confirmed in stock'
       : d._lpRepNotOnLot   // (v9.7.802)
       ? ' -- ours (in today\'s inventory, not sold), but the sales rep told the customer it is still in service and not on the lot yet (see PRESENCE LANGUAGE). Do NOT tell the customer it is here'
-      : (d.inventoryWarning && !d.vehiclePendingSale && !d.isInTransit)
+      : (d.inventoryWarning && !d.isInTransit)   // (v9.7.856) a sold flag outranks a deposit note
         ? ' — VinSolutions flags this unit as NO LONGER IN ACTIVE INVENTORY; the VEHICLE STATUS line below says how to handle that. Do NOT tell the customer it is here'
         : ' — NOT confirmed available (not in today\'s live inventory feed as this vehicle, or sold, pending, or in transit). Do NOT tell the customer it is here';
     vehicleExtras.push(_stkName
@@ -8837,7 +8902,8 @@ function populateFromData(d) {
     // (v9.7.696) PRESENCE NOW NEEDS THE LIVE FEED TO HOLD THIS UNIT AND IT TO BE THE LEAD'S VEHICLE
     // (_lpFeedUnitCheck). It used to be "a stock number exists and nothing says otherwise", which
     // turned every stray or stale stock number into "it's here".
-    var _confirmedPresent = _lpFeedUnitCheck(d).confirmed && !d.isInTransit && !d.inventoryWarning && !d.vehiclePendingSale && !_agentSaidNotAvailPres;
+    var _confirmedPresent = _lpFeedUnitCheck(d).confirmed && !d.isInTransit && !d.inventoryWarning && !d.vehiclePendingSale && !_agentSaidNotAvailPres
+      && !((_lpSoldClaimForVoi(d) || {}).counts);   // (v9.7.856) M-2: what we told them outranks the feed
     vehicleExtras.push(_confirmedPresent
       ? 'PRESENCE LANGUAGE: Skip the "pulled up" cliché. This unit\'s stock is confirmed, so "have it ready for you to see" or "have everything ready" both work — just don\'t lean on "pulled up."'
       : (d._lpRepNotOnLot   // (v9.7.802) the rep told them it is still in service
@@ -9013,6 +9079,11 @@ function populateFromData(d) {
       vehicleExtras.push('');
       vehicleExtras.push('🧾 WHAT WE HAVE ALREADY TOLD THIS CUSTOMER (our own prior outbound messages, oldest first — these are commitments on the record):');
       _scList.forEach(function(k){
+        var _scSold = (k === 'sold') ? _lpSoldClaimForVoi(d) : null;   // (v9.7.856) M-2: a sold claim about another unit is history
+        if (_scSold && !_scSold.counts && /different|another unit|not about a vehicle/.test(_scSold.why)) {
+          vehicleExtras.push('  • [' + _scK[k].date + '] WE SAID: "' + _scK[k].text + '" — ' + (/not about a vehicle/.test(_scSold.why) ? 'this is not about this vehicle' : 'this is about a different unit') + ', so it does not decide this vehicle\'s availability.');
+          return;
+        }
         vehicleExtras.push('  • [' + _scK[k].date + '] ' + (k === 'sold' ? 'WE SAID IT SOLD' : k === 'available' ? 'WE SAID IT WAS AVAILABLE' : k === 'unavailable' ? 'WE SAID IT IS NOT IN STOCK' : 'WE CONFIRMED AN APPOINTMENT') + ': "' + _scK[k].text + '"'
           + (_swOld && k !== 'appointment' && _swOld(_scK[k].text) ? ' — ABOUT THE ORIGINAL VEHICLE, WHICH IS NO LONGER THE ONE ON THIS LEAD: not a commitment about the car on the lead now, and not to be repeated' : ''));
       });
@@ -9561,7 +9632,47 @@ function populateFromData(d) {
   } catch (eInvCk) {}
   d._lpInvConfirmedAvailable = _lpInvConfirmedAvailable;
   console.log('[LP SOLD SIGNAL DIAG] inventory-cache check — stockNum:' + (d.stockNum || '(none)') + ' | confirmedAvailable:' + _lpInvConfirmedAvailable + ' | hardEvidenceBlocking: rgxWarning=' + !!d._rgxInventoryWarning + ' notesWarning=' + !!d.inventoryWarningFromNotes);
-  if (_lpInvConfirmedAvailable) {
+  // ── (v9.7.856) AUDIT M-2: INVENTORY STATUS. The feed can lag a very recent sale or deposit, so it never outranks a person:
+  // an agent's note on this lead about a deposit / pending deal / hold (Case A), or our own message on this lead saying it sold
+  // (Case B, counted by _lpSoldClaimForVoi). A page banner or a sold note already outranked it (the SOLD line below). The
+  // Audi Lafayette all-available policy and the customer's own vehicle keep their own lines, unchanged.
+  var _m2Sold = (!_audiAllAvail && !_lpOwnBySale) ? _lpSoldClaimForVoi(d) : null;
+  var _m2Pend = (!_audiAllAvail && !_lpOwnBySale) ? _lpPendingNote(d) : null;
+  // What the feed says on its own (VinSolutions' active status is not a confirmation while a pending flag is set, so ask without it).
+  var _m2Feed = !!_lpFeedUnitCheck(Object.assign({}, d, { vehiclePendingSale: false })).confirmed;
+  d._lpSoldClaimCounts = !!(_m2Sold && _m2Sold.counts);
+  // Every later reader of _lpInvConfirmedAvailable takes it as "say it is here" (the refine, the render check, the distance
+  // line, the stale-year note). Under Case A or B that is not ours to say, so the feed's confirmation is set aside for them.
+  d._lpInvSetAside = (_m2Sold && _m2Sold.counts) ? 'our own message on this lead said it sold' : (_m2Pend ? 'a deposit/pending/hold note on this lead' : '');
+  if (d._lpInvSetAside && d._lpInvConfirmedAvailable) {
+    d._lpInvConfirmedAvailable = false;
+    try { console.log('[LP SOLD SIGNAL DIAG] feed confirmation set aside -- ' + d._lpInvSetAside + '; nothing downstream says it is here'); } catch (eSa) {}
+  }
+  try {
+    if (_m2Sold) console.log('[LP SOLD SIGNAL DIAG] we said it sold (' + _m2Sold.date + '): ' + (_m2Sold.counts ? 'COUNTS for the vehicle on this lead, branch (' + _m2Sold.branch + ')' : 'does NOT count')
+      + ' -- ' + _m2Sold.why + ' | feed lists it: ' + _m2Feed + ' | "' + _m2Sold.text + '"');
+    if (d._pendingNote) console.log('[LP SOLD SIGNAL DIAG] newest deposit/pending/hold note on this lead: ' + d._pendingNote.kind + ' | ' + (d._pendingNote.date || '(no date)')
+      + ' | by ' + (d._pendingNote.by || '(unknown)') + ' | scope: ' + (d._pendingNote.scope || '?') + ' | feed lists it: ' + _m2Feed + ' | "' + d._pendingNote.quote + '"');
+  } catch (eM2) {}
+  if (_m2Sold && _m2Sold.counts) {
+    var _m2Model = ((_lpModelsIn(d.vehicle || '')[0] || {}).name || 'vehicle').toUpperCase();
+    vehicleExtras.push('🔴 INVENTORY STATUS — WE ALREADY TOLD THIS CUSTOMER THIS ' + _m2Model + ' SOLD' + (_m2Feed ? ', AND THAT OUTRANKS THE FEED' : '') + ':');
+    vehicleExtras.push('  • [' + _m2Sold.date + '] WE SAID IT SOLD: "' + _m2Sold.text + '"');
+    if (_m2Feed) vehicleExtras.push('  • The inventory feed still lists it as available. The feed can lag a recent sale, so it does not override what we told them about this unit.');
+    vehicleExtras.push('  • Do not re-announce the sale (they were told) and do not write as though it is available. Continue from what we offered instead.');
+  } else if (_m2Pend) {
+    var _m2P = _m2Pend;
+    vehicleExtras.push('🟠 INVENTORY STATUS — ' + (_m2Feed ? 'THE FEED AND A NOTE ON THIS LEAD DISAGREE:' : 'A NOTE ON THIS LEAD SAYS THIS UNIT IS UNDER A DEPOSIT, PENDING OR ON HOLD:'));
+    vehicleExtras.push('  • ' + (_m2Feed ? 'The inventory feed lists this unit as available.' : 'The inventory feed does not confirm this unit.'));
+    vehicleExtras.push(_m2P.quote ? '  • ' + (_m2P.date || 'Undated') + ', ' + (_m2P.by || 'a team member') + ' wrote on this lead: "' + String(_m2P.quote).replace(/"/g, "'") + '".'
+      : '  • A note on this lead says this unit is under a deposit, pending or on hold (the note text was not captured).');
+    vehicleExtras.push('  • A deposit, pending or hold note on a lead is most often that customer\'s own deal. Read the thread to tell whether this is this customer\'s deal or another buyer\'s before you say anything about availability.');
+    vehicleExtras.push('  • If it is their deal: move it forward (the next step in their paperwork, funding or delivery). Do not offer it to them as if they were still shopping.');
+    vehicleExtras.push('  • If it is another buyer\'s: do not offer it to see and do not offer times for it; lead with what we do have.');
+    vehicleExtras.push('  • Either way: never present it as available inventory, and never call it sold.');
+    vehicleExtras.push('  • If the thread doesn\'t make clear whose deal it is, say nothing about this unit\'s availability.');
+  }
+  if (_lpInvConfirmedAvailable && !(_m2Sold && _m2Sold.counts) && !_m2Pend) {
     // ── (v9.7.660) "IN STOCK" IS NOT AN ANSWER TO "IS IT BLACK" ─────────────────────────────
     // LIVE, 9/14. Vershima Tachia, Community Honda Baytown, lead 2080928005. He totalled his Civic,
     // he wants a BLACK 2026 Prelude, and Yvonne told him on 9/10 that a black one could be brought
@@ -9698,8 +9809,9 @@ function populateFromData(d) {
     vehicleExtras.push('🔑 THE CUSTOMER\'S OWN VEHICLE: "' + d.vehicle + '" is the vehicle they bought or leased from us (it is in their Sales history) — it is what they drive now, NOT dealership inventory. Never say it sold, is available, or is on the lot, and never pivot them to "comparable options" for it. Talk about what comes next for them from it.');
   } else if (_audiAllAvail && (d.vehiclePendingSale || d.inventoryWarning)) {
     vehicleExtras.push('🟢 VEHICLE STATUS (store policy): present this vehicle as AVAILABLE. Do NOT tell the customer it is sold, on hold, pending, spoken for, or out of inventory, and do NOT pivot to other units on availability grounds — even if an internal note or the inventory snapshot says otherwise. Lead with this vehicle and move toward getting them in to see it. (Actual stock status is handled by the agent off-message.)');
-  } else if (d.vehiclePendingSale) {
-    vehicleExtras.push('⚠ VEHICLE STATUS: may be in the process of being sold — do not confirm available, do not say sold. Create urgency to come in today.');
+  } else if ((d.vehiclePendingSale || _m2Pend || (_m2Sold && _m2Sold.counts)) && !d.inventoryWarning) {
+    // (v9.7.856) M-2: the INVENTORY STATUS block above says it. The old line here ("may be in the process of being sold ...
+    // Create urgency to come in today") asserted another buyer's deal; a deposit note is most often this customer's own.
   } else if (d.inventoryWarning && !_isLoyaltyVeh) {
     if (d.hasApptSet) {
       vehicleExtras.push('⚠ VEHICLE STATUS: no longer in active inventory — do not disclose. Keep appointment confirmation neutral. Handle vehicle conversation in person.');
@@ -13912,7 +14024,7 @@ function _lpScraperBotAuthor(msg) {
       var c = ((n.querySelector('.notes-and-history-item-content')||{}).innerText||'').toLowerCase();
       if(/general note|vehicle/i.test(t)){
         if(/vehicle.*has been sold|has been sold|vehicle sold|unit.*sold|\bwas sold\b|\bwas SOLD\b|p\d+.*sold|sold!|stock.*sold/i.test(c)) inventoryWarningFromNotes = true;
-        if(/process of being sold|in the process.*sold|being sold|pending.*sale|sold pending|may be sold|might be sold/i.test(c)) vehiclePendingSale = true;
+        // (v9.7.856) M-2: vehiclePendingSale is decided by the current-lead deposit/pending/hold scan (_pendingNote) below.
       }
     });
     // Combine both detection methods
@@ -14869,9 +14981,11 @@ function _lpScraperBotAuthor(msg) {
         try {
           var _scMs = date ? new Date(date).getTime() : 0;
           if (_scMs > 0) {
-            var _scAdd = function(kind, txt){
+            var _scAdd = function(kind, txt, msg){
               if (!_selfClaims[kind] || _scMs > _selfClaims[kind].ms) {
                 _selfClaims[kind] = { ms: _scMs, date: String(date).slice(0, 10), text: String(txt).replace(/\s+/g,' ').trim().slice(0, 120) };
+                // (v9.7.856) M-2: the whole message (routing stripped), so the popup can tell whether the SAME message names another unit.
+                if (msg) _selfClaims[kind].msg = String(msg).replace(/\s+/g,' ').trim().slice(0, 400);
               }
             };
             var _scM;
@@ -14896,7 +15010,9 @@ function _lpScraperBotAuthor(msg) {
             // "with black interior" — the part of the commitment that says what we offered him
             // instead of the sold car. Widened to 90 so the 120-char slice is the single stated
             // bound; [^.!?] still stops at the end of the sentence, so nothing runs on.
-            if ((_scM = _scContent.match(/[^.!?]{0,70}\b(?:has sold|is sold|already sold|has been sold|no longer available|sold already)\b[^.!?]{0,90}/i))) _scAdd('sold', _scM[0]);
+            // (v9.7.856) M-2: the bare verb counts too ("it sold", "the CR-V sold", "the one you asked about sold this morning");
+            // "sold you", "sold over 100", "sold-out" do not. Whether it is about the vehicle on the lead is _lpSoldClaimForVoi's call.
+            if ((_scM = _scContent.match(/[^.!?]{0,70}(?:\bsold\b(?![-\s]+out\b)(?!\s+(?:you|to\s+you|your|over|more|a\s+lot|lots|many|\d|him|her|me|us)\b)|\bno longer available\b)[^.!?]{0,90}/i))) _scAdd('sold', _scM[0], _scContent);
             // (v9.7.847) "isn't in stock today" is the opposite claim. Toyota Baytown lead 2108628902: our 9:27 text said the SR
             // Double Cab "isn't in stock today", and the prompt quoted it back as WE SAID IT WAS AVAILABLE under "do not contradict".
             if ((_scM = _scContent.match(/[^.!?]{0,70}\b(?:is here|here and (?:ready|available)|available to see|still available|in stock|ready for you to see)\b[^.!?]{0,90}/i))) _scAdd(/\b(?:isn['’]t|is not|aren['’]t|are not|wasn['’]t|not|no longer)\s+(?:currently\s+|yet\s+|actually\s+)?(?:here|in stock|available)\b/i.test(_scM[0]) ? 'unavailable' : 'available', _scM[0]);   // (inline: this runs inside the injected scraper)
@@ -15909,6 +16025,38 @@ function _lpScraperBotAuthor(msg) {
       if (!(ms > 0)) return { scope: 'undated', date: dt };
       return { scope: ms >= _ieStartMs ? 'current' : 'prior', date: dt };
     };
+    // (v9.7.856) AUDIT M-2, OWNER RULING 11/3: A DEPOSIT / PENDING / HOLD NOTE ON THIS LEAD. Replaces the old scan's verdict
+    // (general/vehicle notes only, the whole record, and the popup then told the model the unit "may be in the process of being
+    // sold -- create urgency"), which asserted another buyer's deal. A deposit note on a lead is most often that customer's own.
+    // Any note type on the current lead, call notes included; messages (text / email / chat) are the model's to read. The newest
+    // matching note wins, so "deal fell through / back on the lot" after a deposit makes it available again. A note from before
+    // this lead's start does not count; with the start unknown the note is kept and its scope logged.
+    var _pendingNote = null;
+    try {
+      var _pnPendRx = /\b(?:put|placed|place|took|take|taken|left|made|paid|received|collected|got)\b[^.!?\n]{0,30}\b(?:deposit|dep)\b|\b(?:deposit|dep)\b[^.!?\n]{0,12}\b(?:placed|taken|received|collected|made|is down|was put|on (?:it|this|that|the))\b|\b(?:put|placed|left|paid|gave)\b[^.!?\n]{0,15}\$\s?\d[\d,]*(?:\.\d\d)?\s*(?:down|deposit)\b|\bspoken for\b|\b(?:unit|vehicle|car|truck|suv|it|one)\s+(?:is\s+|was\s+|has been\s+)?(?:on hold|being held)\b|\bon hold for\b|\bholding (?:it|the (?:unit|vehicle|car|truck))\b|\bpending (?:funding|delivery|sale)\b|\bpending\b[^.!?\n]{0,20}\bsale\b|\bsold pending\b|\bbeing sold\b|\b(?:may|might) be sold\b/i;
+      var _pnFutureRx = /\b(?:wants? to|would like to|willing to|plans? to|planning to|going to|can|could|will|would|if)\s+(?:\w+\s+){0,2}$/i;
+      var _pnBackRx = /\bfell (?:through|apart)\b|\bback (?:on|in|to) (?:the )?(?:lot|stock|inventory)\b|\bavailable again\b|\bno longer (?:on hold|pending)\b|\bhold (?:was |has been |is )?(?:released|removed|lifted)\b|\bdeposit (?:was |has been )?(?:refunded|returned)\b/i;
+      noteEls.slice(0, 80).some(function (item) {   // newest first: the first that matches is the newest
+        var t = ((item.querySelector('.legacy-notes-and-history-title') || {}).innerText || '');
+        if (/\btext\b|\bsms\b|\be-?mail\b|\bchat\b/i.test(t)) return false;
+        var raw = ((item.querySelector('.notes-and-history-item-content') || {}).innerText || '');
+        var c = raw.replace(/^\s*By:[^\n]*\n?/i, '').replace(/\s+/g, ' ').trim();
+        if (!c) return false;
+        var kind = '';
+        if (_pnBackRx.test(c)) kind = 'back';
+        else { var pm = c.match(_pnPendRx); if (pm && !_pnFutureRx.test(c.slice(Math.max(0, pm.index - 30), pm.index))) kind = 'pending'; }
+        if (!kind) return false;
+        var sc = _ieScope(item);
+        if (sc.scope === 'prior') return false;
+        _pendingNote = { kind: kind, scope: sc.scope, title: t.trim().slice(0, 60),
+          date: String(sc.date || '').replace(/^(\d{1,2}\/\d{1,2})\/\d{2,4}/, '$1'),
+          by: ((raw.match(/^\s*By:\s*([^\n]{1,40})/im) || [])[1] || '').trim(),
+          quote: c.slice(0, 160) };
+        _lpD('[LP SOLD SIGNAL DIAG] deposit/pending/hold note on this lead:', kind, '| scope:', sc.scope, '| date:', sc.date, '| title:', _pendingNote.title);
+        return true;
+      });
+    } catch (ePn) {}
+    vehiclePendingSale = !!(_pendingNote && _pendingNote.kind === 'pending');
     var hasInternalSoldElsewhere = false;
     try {
       hasInternalSoldElsewhere = noteEls.slice(0, 80).some(function(item){
@@ -19635,7 +19783,7 @@ function _lpScraperBotAuthor(msg) {
       isLeadFrame,autoLeadId,dealerId,customerId,
       customerState,customerZip,
       store,name,email,phone,agent,salesRep,manager,
-      vehicle,vehicleRaw,_voiFromPanel,_voiDiag,_isServiceFrame,_leadSelectorCount,_leadSelectorIds,priorSoldVehicle,color,condition,stockNum,vin,inventoryWarning:inventoryWarningFinal,inventoryWarningFromNotes,vehiclePendingSale,noSpecificVehicle,ownedVehicle,ampEmailSubject,ownedMileage,lastServiceDate,leadAgeDays:(_leadAgeScraped ? leadAgeDays : null),equityData,equityAmount,equityVehicle,
+      vehicle,vehicleRaw,_voiFromPanel,_voiDiag,_isServiceFrame,_leadSelectorCount,_leadSelectorIds,priorSoldVehicle,color,condition,stockNum,vin,inventoryWarning:inventoryWarningFinal,inventoryWarningFromNotes,_pendingNote,vehiclePendingSale,noSpecificVehicle,ownedVehicle,ampEmailSubject,ownedMileage,lastServiceDate,leadAgeDays:(_leadAgeScraped ? leadAgeDays : null),equityData,equityAmount,equityVehicle,
       leadSource,leadStatus: currentStatus || leadStatus,hasTrade,tradeDescription,buyingSignals,keyInfo: (keyInfo.length ? keyInfo : null),   // (v9.7.810) [] is truthy and won the merge
       
       history, totalNoteCount, hasOutbound, isContacted, contactedAgeDays, lastOutboundMsg, lastSubstantiveOutboundMsg, noReplySinceLastOutbound, newestCustomerSignalType, newestCustomerSignalDesc, hasFreshCustomerSignal, hasCustomerReply: hasRealCustomerReply /* (v9.7.301) canonical ground truth — replaces divergent inline recomputations */, lastInboundMsg: lastInboundMsg||leadReceivedCustomerQuestion, lastInboundMs: _lastInboundMs, /* (v9.7.359) date of customer's last inbound — used to age their day-words */
@@ -22688,11 +22836,15 @@ function classifyScenario(data) {
       _csScope = 'full-context, scaffold stripped (fences not found)';
     }
   } catch (eCs) { _ctxSold = ctx; _csScope = 'full-context (scope derivation threw)'; }
-  s.vehicleSold        = !_inTransitNow && !data._lpInvConfirmedAvailable && !s.isLoyalty && !_isLeaseMatureEarly && !_audiAllAvail
+  // (v9.7.856) AUDIT M-2: THE PROSE REGEX IS RETIRED. It read "no longer available" in any sentence (a 4:00 slot, a prior lead's
+  // "that car has sold") as this vehicle sold. Sold now comes from the authoritative marker (a page banner or a sold note), or
+  // from our own message on THIS lead that _lpSoldClaimForVoi counted for the vehicle on the lead (Case B) -- which outranks the
+  // feed, so the inventory-confirm override no longer vetoes it. The prose match is still logged below, deciding nothing.
+  s.vehicleSold        = !_inTransitNow && !s.isLoyalty && !_isLeaseMatureEarly && !_audiAllAvail
     && !(typeof _lpVoiIsPriorSale === 'function' && _lpVoiIsPriorSale(data))   // (v9.7.715) the customer's own car cannot be "the vehicle of interest has been sold"
     && !!String(data.vehicle || '').trim() && (
-    ctx.includes('vehicle status: sold')
-    || /the vehicle (?:has |I sent you has )?sold|vehicle sold|that (?:car|vehicle|unit) (?:has been |is )?sold|sorry.*(?:vehicle|car|it).*sold|unfortunately.*sold|no longer available/i.test(_ctxSold)
+    (ctx.includes('vehicle status: sold') && !data._lpInvConfirmedAvailable)
+    || !!data._lpSoldClaimCounts
   );
   // (v9.7.552) LOGS ON EVERY FALLBACK, not only on a hit. The fences-not-found path had no
   // outcome line of its own, so a lead that fell back and matched nothing was
@@ -22713,7 +22865,8 @@ function classifyScenario(data) {
       console.log('[LP SOLD SCAN DIAG] vehicleSold:' + s.vehicleSold
         + ' | vehicleOnLead:' + (String(data.vehicle || '').trim() ? '"' + data.vehicle + '"' : '(none)')
         + ' | authoritativeMarker:' + ctx.includes('vehicle status: sold')
-        + ' | proseMatchInScope:' + _sdScopeHit
+        + ' | ourSoldClaimCounts:' + !!data._lpSoldClaimCounts
+        + ' | proseMatchInScope (retired, decides nothing):' + _sdScopeHit
         + ' | proseMatchInFullCtx:' + _sdFullHit
         + ' | scaffoldStripped:' + _csStripped + ' chars'
         + ' | scanScope:' + _csScope
@@ -30683,7 +30836,7 @@ function buildUserPrompt(data) {
       // engine -- so on a zero-contact or reactivation lead three clauses said no appointment and
       // this one said "encourage the soonest workable time". The paused wording is unchanged to
       // the byte; the other two paths get a reason that is true of them.
-      distanceContext = 'Customer is interested in the ' + data.vehicle + '. ' + (data._lpInvConfirmedAvailable ? 'Confirming it is here is fine and worth saying.' : 'Its presence on the lot is NOT confirmed by today\'s inventory feed \u2014 do not say it is here.') + ' Do NOT encourage a time, a visit or the soonest workable anything on this touch — '
+      distanceContext = 'Customer is interested in the ' + data.vehicle + '. ' + (data._lpInvConfirmedAvailable ? 'Confirming it is here is fine and worth saying.' : data._lpInvSetAside ? 'Read INVENTORY STATUS before saying anything about its availability \u2014 do not say it is here.' : 'Its presence on the lot is NOT confirmed by today\'s inventory feed \u2014 do not say it is here.') + ' Do NOT encourage a time, a visit or the soonest workable anything on this touch — '
         + (((typeof _lpTouchHold === 'function') ? _lpTouchHold(data) : '') === 'pause'
             ? 'this lead is in a PAUSE state and the directives that own that state forbid an appointment ask'
             : 'every other directive on this lead disables the appointment engine, and this block does not override them')
@@ -30692,7 +30845,7 @@ function buildUserPrompt(data) {
       // (v9.7.697) Presence only when the feed confirms it; and a REMOTE buyer is not asked for a visit
       // time here — Jalen Garner (Audi Lafayette, Mississippi, 9/23) got "do not imply a near-term visit"
       // and "encourage the soonest workable time" in the same prompt.
-      distanceContext = 'Customer is interested in the ' + data.vehicle + '. ' + (data._lpInvConfirmedAvailable && data._lpRepNotOnLot ? 'It is ours, but the sales rep told them it is still in service and not on the lot yet \u2014 do not say it is here' : data._lpInvConfirmedAvailable ? 'Confirm it is available' : 'Its presence on the lot is NOT confirmed by today\'s inventory feed \u2014 do not say it is here') + (isRemoteBuyer && _rbVisit === 'chip' ? '. The agent wants a visit asked for (see the AGENT OVERRIDE above)' : isRemoteBuyer && _rbVisit === 'trip' ? '. They said they will make the trip: ask when they plan to come, and say what will be ready for them' : isRemoteBuyer ? (_rbSoft ? '. The next step is a video walkaround, the details or the numbers; a visit would be a special trip for them, so no visit time' : '. They are remote: the next step is remote (details, video, numbers), not a visit time') : ' and encourage the soonest workable time, with what will be ready for them as the reason (never the drive or the trip)') + ' — do NOT promise to hold or set aside an in-stock unit (we do not reserve on-lot cars). If it is in transit/inbound, securing it before arrival is appropriate.';
+      distanceContext = 'Customer is interested in the ' + data.vehicle + '. ' + (data._lpInvConfirmedAvailable && data._lpRepNotOnLot ? 'It is ours, but the sales rep told them it is still in service and not on the lot yet \u2014 do not say it is here' : data._lpInvConfirmedAvailable ? 'Confirm it is available' : data._lpInvSetAside ? 'Read INVENTORY STATUS before saying anything about its availability \u2014 do not say it is here' : 'Its presence on the lot is NOT confirmed by today\'s inventory feed \u2014 do not say it is here') + (isRemoteBuyer && _rbVisit === 'chip' ? '. The agent wants a visit asked for (see the AGENT OVERRIDE above)' : isRemoteBuyer && _rbVisit === 'trip' ? '. They said they will make the trip: ask when they plan to come, and say what will be ready for them' : isRemoteBuyer ? (_rbSoft ? '. The next step is a video walkaround, the details or the numbers; a visit would be a special trip for them, so no visit time' : '. They are remote: the next step is remote (details, video, numbers), not a visit time') : ' and encourage the soonest workable time, with what will be ready for them as the reason (never the drive or the trip)') + ' — do NOT promise to hold or set aside an in-stock unit (we do not reserve on-lot cars). If it is in transit/inbound, securing it before arrival is appropriate.';
     }
     if (isRemoteBuyer) {
       // (v9.7.225) Conditional visit: some remote buyers WILL drive in, but only after the
@@ -32546,6 +32699,8 @@ async function generateAll() {
       // (v9.7.505) Carries the live-inventory stock-number match through to classifyScenario's
       // separate ctx-regex sold detection — see _lpInvConfirmedAvailable in populateFromData.
       _lpInvConfirmedAvailable: lastScrapedData ? !!lastScrapedData._lpInvConfirmedAvailable : false,
+      _lpSoldClaimCounts:       lastScrapedData ? !!lastScrapedData._lpSoldClaimCounts : false,   // (v9.7.856) M-2 Case B
+      _lpInvSetAside:           lastScrapedData ? (lastScrapedData._lpInvSetAside || '') : '',
       contactedAgeDays: lastScrapedData ? (lastScrapedData.contactedAgeDays || 0) : 0,
       hasOutbound: lastScrapedData ? !!lastScrapedData.hasOutbound : false,
       hasCustomerReply: lastScrapedData ? !!lastScrapedData.hasCustomerReply : false, // (v9.7.301) carry canonical reply fact into pass-2

@@ -115,8 +115,10 @@ for (const f of BUILDS) {
   check('control: no warning, unit not confirmed by the feed -> the generic hedge is kept', () => {
     const c = pfd({});
     return [/VEHICLE ON LEAD:[^\n]*sold, pending, or in transit/.test(c), /NO LONGER IN ACTIVE INVENTORY/.test(c)]; }, [true, false]);
-  check('control: pending sale keeps the generic hedge (it IS "may be pending")', () =>
-    /VEHICLE ON LEAD:[^\n]*sold, pending, or in transit/.test(pfd({ inventoryWarning: true, vehiclePendingSale: true })), true);
+  // (v9.7.856) AUDIT M-2: a sold flag now outranks a deposit/pending note (the VEHICLE STATUS line handles the sale), so the
+  // status names the flag instead of hedging "sold, pending, or in transit". Pending alone goes to INVENTORY STATUS (Case A).
+  check('a sold flag with a pending note names the flag (v9.7.856; was the generic hedge)', () =>
+    /VEHICLE ON LEAD:[^\n]*NO LONGER IN ACTIVE INVENTORY/.test(pfd({ inventoryWarning: true, vehiclePendingSale: true })), true);
 
   console.log(' 7. a showroom visit from years ago is not "the visit happened":');
   const visit = (date) => {

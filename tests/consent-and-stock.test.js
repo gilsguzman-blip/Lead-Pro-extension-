@@ -126,7 +126,9 @@ function extract(file) {
                              return src.slice(i, src.indexOf('\n}\n', i) + 3); };
       const mk = src.slice(src.indexOf('var _LP_MAKE_RX ='), src.indexOf('\n', src.indexOf('var _LP_MAKE_RX =')));
       vm.runInContext('var _lpValueFactCache = {};\n' + mk + '\n' + fn('_lpNormVehicleStr') + fn('_lpModelFamilyKey')
-        + fn('_lpSameModelFamily') + (src.indexOf('function _lpFeedUnitCheck(') >= 0 ? fn('_lpFeedUnitCheck') : ''), s2);
+        + fn('_lpSameModelFamily') + (src.indexOf('function _lpFeedUnitCheck(') >= 0 ? fn('_lpFeedUnitCheck') : '')
+        // (v9.7.856) M-2: the status line asks first whether our own message said it sold (Case B) or a deposit note is on the lead (Case A).
+        + (src.indexOf('function _lpSoldClaimForVoi(') >= 0 ? fn('_lpSoldClaimForVoi') + fn('_lpPendingNote') : ''), s2);
       vm.runInContext('function stockClaim(d){ var vehicleExtras=[];\n' + src.slice(a2, b2)
         + '\n return vehicleExtras.join(" "); }', s2);
       s2._lpValueFactCache['6191'] = { inv: { units: (feed || []) } };
@@ -221,9 +223,10 @@ check('the claim is no longer unconditional on a stock number',
   i => /_stkName \+ ' — confirmed in stock\. Name it/.test(strip(i.src)), false);
 
 // (v9.7.715) The customer's own vehicle is named first; the in-stock claim is still chosen by
-// _confirmedPresent and by nothing else.
+// _confirmedPresent and by nothing else. (v9.7.856) M-2: Case B (our own message said it sold) and Case A (a deposit/pending
+// note) are asked first, so the window between the two is wider; the in-stock words are still _confirmedPresent's alone.
 check('it is chosen by _confirmedPresent',
-  i => /var _stkStatus = _stkOwn\s*\?[\s\S]{0,400}?:\s*_confirmedPresent\s*\?\s*' — confirmed in stock'/.test(strip(i.src)), true);
+  i => /var _stkStatus = _stkOwn\s*\?[\s\S]{0,900}?:\s*_confirmedPresent\s*\?\s*' — confirmed in stock'/.test(strip(i.src)), true);
 
 check('...and the NOT-confirmed branch tells the model plainly not to claim it is here',
   i => /NOT confirmed available[\s\S]{0,120}Do NOT tell the customer it is here/.test(strip(i.src)), true);

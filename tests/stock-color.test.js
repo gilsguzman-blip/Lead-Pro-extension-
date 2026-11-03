@@ -51,7 +51,10 @@ function extract(file) {
   const capture = span('  var _lpInvUnit = null;', 'the unit capture', '\n  } catch (eInvCk) {}');
   // The directive block, from the confirmation branch to the start of the Audi policy branch.
   // Ends at the Audi-policy branch; the ' else if (' tail is dropped so the slice closes cleanly.
-  const block = span('  if (_lpInvConfirmedAvailable) {\n    // ── (v9.7.660)', 'the confirmation block',
+  // (v9.7.856) M-2: the branch also stands down under Case A/B; the harness supplies neither (_m2Sold/_m2Pend null).
+  const _cbMark = src.indexOf('  if (_lpInvConfirmedAvailable && !(_m2Sold && _m2Sold.counts) && !_m2Pend) {\n    // ── (v9.7.660)') >= 0
+    ? '  if (_lpInvConfirmedAvailable && !(_m2Sold && _m2Sold.counts) && !_m2Pend) {\n    // ── (v9.7.660)' : '  if (_lpInvConfirmedAvailable) {\n    // ── (v9.7.660)';
+  const block = span(_cbMark, 'the confirmation block',
     '\n  } else if (_audiAllAvail').replace(/ else if \(_audiAllAvail$/, '');
   // (v9.7.696) The capture now asks _lpFeedUnitCheck (feed holds the stock AND it is the lead's
   // vehicle), so that helper and the model-family functions it calls travel with it, from the
@@ -104,7 +107,7 @@ function block(impl, unit, said, opts) {
   };
   vm.createContext(sb);
   const body = opts && opts.mutate ? opts.mutate(impl.block) : impl.block;
-  vm.runInContext(impl.clean + '\n' + body, sb);
+  vm.runInContext(impl.clean + '\nvar _m2Sold = null, _m2Pend = null;\n' + body, sb);
   const lines = vm.runInContext('vehicleExtras', sb);
   return { lines: lines, text: lines.join('\n'), logs: logs.join(' ') };
 }

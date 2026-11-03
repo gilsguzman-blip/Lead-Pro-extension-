@@ -365,17 +365,19 @@ check('fences present — LP scaffold outside them still cannot trip sold',
                 context: LP_TAIL + TRANSCRIPT('[08/10/2026] [CUSTOMER] Inbound Text\n  still thinking') }, {}).sold,
   false);
 
-check('no fences — a genuine agent "it sold" in a dated entry still fires',
+// (v9.7.856) AUDIT M-2: the prose regex is retired and decides nothing; our own counted message on this lead does
+// (tests/inventory-status-856). The scope/strip assertions above still pin what the diag reports.
+check('no fences — an agent "it sold" in a dated entry: prose alone no longer decides (v9.7.856)',
   i => i.sold({ vehicle: '2024 Honda Accord',
                 context: LP_TAIL + '[08/12/2026 9:00 AM] [AGENT] Outbound Text Message\n  Unfortunately that unit has been sold\n' },
               {}).sold,
-  true);
+  false);
 
-check('no fences — a genuine customer "no longer available" still fires',
+check('no fences — "no longer available": prose alone no longer decides (v9.7.856)',
   i => i.sold({ vehicle: '2024 Honda Accord',
                 context: GUBAGOO_CHAT + '[08/12/2026] [AGENT] Email\n  that one is no longer available\n' + LP_TAIL },
               {}).sold,
-  true);
+  false);
 
 check('the authoritative marker still reads the FULL context, scaffold and all',
   i => i.sold({ vehicle: '2024 Honda Accord', context: '🔴 VEHICLE STATUS: SOLD\n' + LP_TAIL }, {}).sold,
