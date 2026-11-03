@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.855-dev (Dev. OWNER DECISIONS 11/3 ON THE 852-854 REPORT. Extension only; proxy v7.91, reporter v1.25, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. (1) hasInternalNotInterested (newest 10 notes) and hasInternalSoldElsewhere (newest 80) read THIS LEAD ONLY: a note counts when dated at or after the lead's start -- the current-lead marker, else the Created date less the hour the transcript cutoff allows, else the read age. A prior lead's "not interested anymore" or "bought elsewhere" no longer ends a fresh inquiry (the v9.7.518 rule; the same leak 852 closed in exitByRemoval). When the start cannot be found (no marker, no Created, no age) a match cannot end the conversation on its own. Every matching note, its date and the verdict travel back as _internalExitDiag and print in the popup's [LP EXIT SIGNAL DIAG]. (2) A request relayed in a CALL note -- "customer asked to be taken off the list", "customer said stop contacting her" -- reaches the exit check under a call-note rule (call notes only, this lead only, logged as 'call-note relay'): the decline vocabulary had neither form, and an outbound call note never reaches exitRaw. (3) REACH OF THE 853 CALL-NOTE FIX, AS ASKED: it changed two prompt-side helpers (_lpCustEntries, _lpOtdAsk), not the transcript's tagging; the scraper still tags an inbound call note [CUSTOMER], so recentInbound (exitRaw, boughtElsewhere, exitByRemoval, bereavement rule 3, the bare-STOP test, recentCustomerActive) and the inbound-message list (the MOST RECENT CUSTOMER MESSAGE quote, day commits, waiting-on, pending decision) still read an inbound call note as the customer's words. It did cost coverage: the helpers that need a FACT lost a fact relayed on a call. They now read _lpCustSignals (inbound calls included, flagged viaCall, empty stubs out): _lpOfferedUnit, _lpTripIntent, _lpShipAsk, _lpFullpath (live), _lpQuoteOut, _lpCustomerTalking, _lpSecondApplicant, the house guard's hours-asked test, the comparable-models list and the rewrite's contact-after-our-text test; the trip, shipping and second-applicant lines say "on the phone (the call note says ...; never quote the note)" when it came from a call. Own-words readers stay on _lpCustEntries: _lpAcceptedOffer, _lpTeammateAnswered, _lpNewestNote, the newest-note quote, _lpLastExchange, _lpOtdAsk. All 94 dump prompts are byte-identical to 9.7.854 (none has a relayed fact of these kinds; the exit changes are frame-side and do not show in a dump). TESTS: internal-exit-855 (new) executes the shipped scraper region, the popup-side diag and the helpers: 38 assertions across both builds; v9.7.854 fails 14 of 19 per build. VERIFIED: run-all 296 suites green, 9726 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.854.)
 // Lead Pro -- popup.js  v9.7.854-dev (Dev. AUDIT M-1, OWNER RULING 11/3 (PHASE2_BATCH5_PLAN, with the fallback corrected). Extension only; proxy v7.91, reporter v1.25, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. AN UNREAD LEAD AGE IS UNKNOWN, NOT 'SUBMITTED TODAY'. The scraper set 0 when neither the Created cell nor PageData's LeadCreatedUTC was read, and 0 also means today: the prompt printed 'LEAD AGE: submitted today' and the fresh-lead guards fired on an old lead. Now the scraper returns null for unknown; lastScrapedData, the panel payload, the dump inputs and the feedback row carry null; local arithmetic uses NaN, because `null <= 1` is true in JS. ONE FALLBACK (_lpLeadAgeFallback) replaces five copies of 'derive the age from the oldest dated line anywhere' (populateFromData, the incentive gate, classifyScenario, the zero-contact block, generateAll): the Created (Nd) cell first; else the oldest dated note ABOVE the current-lead marker in the raw transcript -- this lead's own first note, so a returning customer with a two-year-old prior lead and a three-day-old current lead is 3, not ~730; no marker means unknown. Only an UNKNOWN age is derived: a read 0 stays today (9.7.853 re-derived a read 0 from the oldest line). READERS: the LEAD AGE line is left out when unknown; the TOUCH POSITION phase says 'lead age not available -- go by the dated messages below'; isNewLeadToday, the just-submitted trade line, the fresh-lead guards (classifyScenario, TOUCH POSITION, signature taper, feedback meta), the prior-relationship appointment line, the promo and acknowledgment early-touch tests, the anchor-author freshness and director mode no longer read unknown as fresh; the arc says 'Lead age: not available'; cadence carries null into its existing unknown path; diags print 'unknown'. FRAME MERGE: both passes take a read age, 0 included, over an unknown one -- the default merge (!m[k] && d[k]) never merged a read 0, which only worked because 0 and unknown were the same value. VERIFIED ON EVERY DUMP ON FILE: 94 of 94 prompts byte-identical to 9.7.853 (every dump carries a read age), so the change reaches only leads whose age could not be read. TESTS: lead-age-854 (new) executes _lpLeadAgeFallback, _lpAgeNum, populateFromData, the panel payload, buildUserPrompt, _lpComputeCadenceTouch and _lpStalledCalendarRung: 34 assertions across both builds; v9.7.853 fails 13 of 17 per build (the 4 controls pass). cadence, arc-state, first-reach-incentive and distance-appt-gate slice regions that now call the helpers and load them from the same build (tests/lib/age-helpers.js); payload-808 allows pageSnippet, which the fallback tries for the Created cell. VERIFIED: run-all 295 suites green, 9688 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.853.)
 // Lead Pro -- popup.js  v9.7.853-dev (Dev. AUDIT M-3 (PHASE2_BATCH5_PLAN, approved as written). Extension only; proxy v7.91, reporter v1.25, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. _lpPromptInputData carries history (lastScrapedData.history), so the fourteen helpers that read `d.history || d.context` (_lpThreadEntries, _lpOurEntries, _lpCustEntries, _lpLastCall, _lpStopIsCurrent, _lpPitchOut, _lpReactivated, _lpNewestNote, _lpOtdAsk, _lpCallWants, _lpApprovalFirst, _lpLeadHasContact, _lpCustomerStateHold, _lpMmSuggestedVoi) read the raw transcript on the panel -- the same text the text rewrite and the render checks read. One verdict, one text. VERIFICATION ON EVERY DUMP ON FILE (94 prompt dumps, 9/9 to 11/2), each rebuilt through the shipped panel payload at its own timestamp: the payload change alone moved 11. Two kinds: a quoted note keeping the transcript's curly apostrophe (cosmetic), and _lpOtdAsk on Honda Baytown lead 2099028490 and Kia Baytown lead 2104004243 calling an agent's call write-up "their 10/13 message" and dropping "never quote the note". Cause: the raw transcript tags an "Inbound phone call" note [CUSTOMER]; leadContext also carries it as [CALL NOTE] in the agent-context header ahead of the fence, and the panel had been right only because of that duplicate -- the risk the audit named. FIX: a phone-call entry is never the customer's own words (LP_CALL_TITLE_RX in _lpCustEntries and _lpOtdAsk). AGAINST 9.7.852 AS SHIPPED, 89 of 94 dumps are byte-identical; 3 differ by the apostrophe only; Kia Baytown lead 1581859334's "newest event is our note" line now also quotes their last real message; Honda Lafayette lead 2065141269 no longer names an agent's call note ("sending credit application over . she said she has bad credit...") as the customer's newest message -- it names their actual one. Every 8xx suite runs through the panel payload and stays green with history in it. TESTS: payload-history-853 (new) executes the panel payload, _lpCustEntries, _lpOtdAsk, populateFromData and buildUserPrompt: 14 assertions across both builds; v9.7.852 fails 4 of 7 per build (the 3 controls pass). VERIFIED: run-all 294 suites green, 9654 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.852.)
 // Lead Pro -- popup.js  v9.7.852-dev (Dev. AUDIT L-4, OWNER RULING 11/3 (PHASE2_BATCH5_PLAN, corrected). Extension only; proxy v7.91, reporter v1.25, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. SMS is still ALWAYS drafted (the 9/23 ruling); opt-out evidence drives only the agent notice ('SMS drafted -- this lead has opt-out evidence on record') and [LP SMS OPT-OUT EVIDENCE DIAG]. (1) The evidence scan reads the request forms too: "don't text me" / "do not text" / "quit texting" / "stop sending (me) texts", as a REQUEST (opening the message or a clause, or after please/and/but/so/just/i said; ending there or with me/anymore/again/thanks) -- "you don't text back fast" and "i don't text much" stay out. Current-lead scoped as before. (2) exitRaw gains "leave me alone" (not after won't/doesn't/never/can't: "my wife won't leave me alone about it" is not an exit) and "take me off your/the list / contact list / mailing list". Bare "not interested" is deliberately NOT added: it usually declines one offer and the model reads it. (3) exitByRemoval read lastInboundMsg + fullScanText: on a new lead with no reply yet lastInboundMsg is the PRIOR lead's last message, so a 2025 "take me off your list" ended a fresh inquiry (the v9.7.518 rule), and fullScanText carries our own outbound, so our "reply and I can take you off the list" ended it too. It now reads recentInbound -- this lead's customer lines, after the transcript cutoff -- as exitRaw has since v9.7.697. DIFFERENTIAL vs 9.7.851, 320 shapes (20 wordings x current lead / prior lead / prior lead with no reply yet / our own text x re-opt-in x new lead today): SMS drafted on all 320 in both; 38 differ -- 10 notice-shown (the request forms), 4 new exits ("leave me alone"; "take me off your list" already exited on the current lead), 24 exits removed (prior-lead removal words with no reply yet, and our own text). Not changed, reported: hasInternalNotInterested (newest 10 notes) and hasInternalSoldElsewhere (newest 80) are not marker-scoped, so a prior lead's "not interested anymore" still exits a new lead with no reply; and when the Created date is unreadable the transcript cutoff falls back to 180 days. TESTS: optout-exit-852 (new) executes the shipped scraper region with the shipped cutoff helper and the shipped notice statement: 50 assertions across both builds; v9.7.851 fails 7 of 25 per build (the controls pass). VERIFIED: run-all 293 suites green, 9640 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.851.)
@@ -1151,6 +1152,24 @@ var LP_CALL_TITLE_RX = /phone call/i;
 function _lpCustEntries(d) {
   return _lpThreadEntries((d && (d.history || d.context)) || '').filter(function (x) { return /CUSTOMER/i.test(x.tag) && !/REQUEST FROM INQUIRY/i.test(x.tag) && !LP_CALL_TITLE_RX.test(x.title || '') && x.body && !LP_STOP_WORD_RX.test(x.body); }).sort(function (a, b) { return b.t - a.t; });
 }
+// (v9.7.855) WHAT THE CUSTOMER WANTS OR DID, INCLUDING WHAT THEY SAID ON A CALL. v9.7.853 took inbound phone-call notes out of
+// _lpCustEntries, because a call write-up is not the customer's own words -- right for anything that QUOTES them or anchors on
+// their last message. But the helpers that only need a FACT (they asked to ship it, they will make the trip, a second applicant,
+// they are talking to us, they asked the price, the models they named, they asked our hours) used to see a relayed call through
+// the duplicate in leadContext and the raw tag, and lost it. They read this instead; each entry from a call carries viaCall, so
+// any wording that quotes it can say it came from a call. Empty call stubs ("System", "Auto generated", "Left message") are out.
+var LP_CALL_STUB_RX = /^(?:system|auto[\s-]?generated\b|left (?:a )?message|no answer|voicemail|mb full|full mailbox)/i;
+function _lpCustSignals(d) {
+  return _lpThreadEntries((d && (d.history || d.context)) || '').filter(function (x) {
+    if (!x.body || !/CUSTOMER/i.test(x.tag) || /REQUEST FROM INQUIRY/i.test(x.tag) || LP_STOP_WORD_RX.test(x.body)) return false;
+    if (LP_CALL_TITLE_RX.test(x.title || '')) { x.viaCall = true; return !LP_CALL_STUB_RX.test(String(x.body).trim()); }
+    return true;
+  }).sort(function (a, b) { return b.t - a.t; });
+}
+// The quoted words, and where they came from, for a line that would otherwise say "they wrote".
+function _lpSaidHow(x, words) {
+  return x && x.viaCall ? 'on the phone (the call note says "' + words + '"; never quote the note)' : '"' + words + '"';
+}
 function _lpRepNotOnLot(d) {
   try {
     if (!d || !d.vehicle) return null;
@@ -1172,7 +1191,7 @@ function _lpOfferedUnit(d) {
   try {
     if (!d || !d.vehicle) return null;
     var lead = String(d.vehicle).toLowerCase(), yr = (lead.match(/\b(?:19|20)\d{2}\b/) || [''])[0];
-    var ours = _lpOurEntries(d), cust = _lpCustEntries(d);
+    var ours = _lpOurEntries(d), cust = _lpCustSignals(d);   // (v9.7.855) a reply on the phone counts
     for (var i = 0; i < ours.length; i++) {
       var m = LP_OFFER_UNIT_RX.exec(ours[i].body); if (!m) continue;
       var unit = String(m[1] || m[2] || '').trim(), uy = (unit.match(/^(?:19|20)\d{2}/) || [''])[0];
@@ -1187,9 +1206,12 @@ function _lpOfferedUnit(d) {
 }
 // The customer said, in their own words on this lead, that they will come in ("if I come get it from Texas", "when I come").
 var LP_TRIP_RX = /\b(?:if|when|wen|once|before|after)\s+(?:i+|we)\s+(?:come|drive|make\s+(?:the|a)\s+trip|get\s+(?:up|down|over)\s+there|head\s+(?:up|down|over))\b|\bcome\s+(?:get|pick\s+up)\s+(?:it|the\s+car|that\s+one|her|him)\b|\b(?:i|we)(?:['’]ll|\s+will|\s+can|['’]m\s+(?:going\s+to|gonna)|\s+am\s+(?:going\s+to|gonna)|\s+plan\s+to)\s+(?:come|drive|make\s+the\s+trip|be\s+(?:up|down|over)\s+there)\b/i;
+function _lpTripIntentEntry(d) {   // (v9.7.855) said in a message or on a call
+  try { var c = _lpCustSignals(d); for (var i = 0; i < c.length; i++) if (LP_TRIP_RX.test(c[i].body)) return c[i]; } catch (e) {}
+  return null;
+}
 function _lpTripIntent(d) {
-  try { var c = _lpCustEntries(d); for (var i = 0; i < c.length; i++) if (LP_TRIP_RX.test(c[i].body)) return c[i].body.slice(0, 140); } catch (e) {}
-  return '';
+  var x = _lpTripIntentEntry(d); return x ? x.body.slice(0, 140) : '';
 }
 // The agent pressed Add Appt Ask on this lead (sticky until another lead is grabbed; Drop Appt Ask clears it).
 function _lpAddApptOn(d) {
@@ -1213,9 +1235,12 @@ var LP_SHIP_ASK_RX = /\b(?:ship(?:ped|ping)?|deliver(?:y|ed)?|transport(?:ed|ing
 // match -- the phone typed a curly apostrophe in "y\u2019all", and "if ... ship" was not one of the shapes. The draft improvised "I can
 // help arrange shipping". Both are read now; "if you could send me pics" and "I hope you deliver great service" still are not.
 var LP_SHIPPERS = ['uShip', 'Ship That Car', 'Sherpa Auto Transport', 'Montway Auto Transport'];
+function _lpShipAskEntry(d) {   // (v9.7.855) asked in a message or on a call
+  try { var c = _lpCustSignals(d); for (var i = 0; i < c.length; i++) if (LP_SHIP_ASK_RX.test(c[i].body)) return c[i]; } catch (e) {}
+  return null;
+}
 function _lpShipAsk(d) {
-  try { var c = _lpCustEntries(d); for (var i = 0; i < c.length; i++) if (LP_SHIP_ASK_RX.test(c[i].body)) return c[i].body.slice(0, 160); } catch (e) {}
-  return '';
+  var x = _lpShipAskEntry(d); return x ? x.body.slice(0, 160) : '';
 }
 function _lpShipperPair(d) {
   var id = String((d && d.autoLeadId) || ''), h = 0;
@@ -1336,7 +1361,7 @@ function _lpFullpath(d) {
       r.what = first;
       r.trade = /\btrade/i.test(r.message);
       // They have written to us since: the conversation is past the text that started it.
-      r.live = _lpCustEntries(d).length > 0;
+      r.live = _lpCustSignals(d).length > 0;   // (v9.7.855) a call in counts as live
     }
     var vre = /Status:\s*([^,]+),\s*Make:\s*([^,]+),\s*Model:\s*([^,]+),\s*Year:\s*(\d{4})(?:,\s*Page-Views:\s*(\d+))?/gi, vm;
     while ((vm = vre.exec(_lpFpField(n, 'Vehicles viewed')))) r.viewed.push(vm[1].trim().toLowerCase() + ' ' + vm[4] + ' ' + vm[2].trim() + ' ' + vm[3].trim() + (vm[5] ? ' (' + vm[5] + ' page view' + (vm[5] === '1' ? '' : 's') + ')' : ''));
@@ -4828,7 +4853,7 @@ var LP_QUOTE_WORD_RX = /\b(?:selling\s+price|sale\s+price|out[- ]the[- ]door|OTD
 function _lpQuoteOut(d) {
   try {
     if (!d || d.hasApptSet || d.convState === 'call-followup') return null;
-    var cust = _lpCustEntries(d), lastWords = cust.length ? cust[0].t : 0;
+    var cust = _lpCustSignals(d), lastWords = cust.length ? cust[0].t : 0;   // (v9.7.855) a price asked for on the phone counts
     if (!cust.some(function (x) { return LP_PRICE_ASK_RX.test(x.body); })) return null;
     var ours = _lpOurEntries(d), q = null;
     for (var i = 0; i < ours.length && ours[i].t > lastWords; i++) {
@@ -4922,7 +4947,7 @@ function _lpReactivated(d) {
 // newest message came after one of ours, within 3 days, with at most one of ours since. Returns { date, t } or null.
 function _lpCustomerTalking(d) {
   try {
-    var c = _lpCustEntries(d)[0]; if (!c || Date.now() - c.t > 3 * 86400000) return null;
+    var c = _lpCustSignals(d)[0]; if (!c || Date.now() - c.t > 3 * 86400000) return null;   // (v9.7.855) a call in is talking
     var ours = _lpOurEntries(d);
     if (!ours.some(function (x) { return x.t < c.t; })) return null;
     if (ours.filter(function (x) { return x.t > c.t && /text message|email/i.test(x.title); }).length > 1) return null;
@@ -4953,12 +4978,12 @@ var LP_SECOND_APP_RX = /\b(?:2|two|second|2nd|another|both)\s+(?:credit\s+|finan
 function _lpSecondApplicant(d) {
   try {
     var ra = (typeof _lpReactivated === 'function') ? _lpReactivated(d) : null, floor = ra ? ra.t : Date.now() - 14 * 86400000;
-    var c = _lpCustEntries(d).filter(function (x) { return x.t >= floor && LP_SECOND_APP_RX.test(x.body); })[0];
+    var c = _lpCustSignals(d).filter(function (x) { return x.t >= floor && LP_SECOND_APP_RX.test(x.body); })[0];   // (v9.7.855) or on a call
     if (!c) return null;
     var link = '';
     _lpOurEntries(d).some(function (x) { var m = /https?:\/\/\S*(?:financ|credit|apply|applica|pre-?qual|pre-?approv)\S*/i.exec(x.body); if (m) link = m[0].replace(/[).,;:!?]+$/, ''); return !!m; });
     if (!link) return null;
-    return { said: String(c.body).replace(/\s+/g, ' ').trim().slice(0, 160), link: link };
+    return { said: String(c.body).replace(/\s+/g, ' ').trim().slice(0, 160), link: link, viaCall: !!c.viaCall };
   } catch (e) { return null; }
 }
 // (v9.7.826) THE EXCHANGE THIS MESSAGE ANSWERS. Toyota Baytown lead 2105834775 (log362): at 2:56 the BD agent texted "I can have it
@@ -5904,7 +5929,7 @@ function _lpHouseGuard(text, channel) {
   var asked = false;
   try {
     asked = LP_HOURS_ASKED_RX.test(String(d.lastInboundMsg || ''))
-      || ((typeof _lpCustEntries === 'function') ? _lpCustEntries(d) : []).some(function (x) { return LP_HOURS_ASKED_RX.test(x.body); });
+      || ((typeof _lpCustSignals === 'function') ? _lpCustSignals(d) : []).some(function (x) { return LP_HOURS_ASKED_RX.test(x.body); });   // (v9.7.855) or on a call
   } catch (e) {}
   s = s.replace(LP_VIEWED_SITE_RX, function (m) { hits.push('browsing: "' + m.trim() + '"'); return ''; });
   s = s.replace(LP_VIEWED_ANY_RX, function (m) { hits.push('browsing: "' + m.trim() + '"'); return ''; });   // (v9.7.847)
@@ -10265,7 +10290,7 @@ function populateFromData(d) {
         // Grand Highlander XLE AWD, "and possible a 4 runner"; this angle supplied a Blueprint CPO Highlander Hybrid, and two of our
         // messages offered it ("Would that color work for you?"). When their own messages name models, a comparable must be one of them.
         var _cvcNamed = [];
-        try { _cvcNamed = _lpModelsIn(_lpCustEntries(d).map(function (x) { return x.body; }).join(' \n ')); } catch (eCvN) {}
+        try { _cvcNamed = _lpModelsIn(_lpCustSignals(d).map(function (x) { return x.body; }).join(' \n ')); } catch (eCvN) {}   // (v9.7.855) named on a call too
         if (_cvcNamed.length) {
           var _cvcBefore = _likeComps.length;
           _likeComps = _likeComps.filter(function (c) { return _cvcNamed.some(function (m) { return _lpModelRx(m.name).test(String(c)); }); });
@@ -10860,6 +10885,16 @@ function populateFromData(d) {
   // undiagnosable from an exported log even though the diagnostic code existed and ran. This
   // logs the one fact that actually matters popup-side: whether hasExitSignal fired and whether
   // the new reactivation guard saw anything.
+  // (v9.7.855) The internal-note exit scans, frame-side: every matching note, its date and whether it was on this lead.
+  try {
+    (d._internalExitDiag || []).forEach(function (x) {
+      console.log('[LP EXIT SIGNAL DIAG] internal note (' + x.scan + ') dated ' + (x.date || '(no date)') + ' -> '
+        + (x.scope === 'current' ? 'ON THIS LEAD: can end the conversation'
+          : x.scope === 'prior' ? 'a PRIOR lead: not an exit'
+          : x.scope === 'unknown start' ? 'this lead\'s start is unknown (no marker, no age): logged, not an exit on its own'
+          : 'undated: not an exit on its own') + ' | "' + x.note + '"');
+    });
+  } catch (eIe) {}
   console.log('[LP EXIT SIGNAL DIAG] hasExitSignal:' + !!d.hasExitSignal + ' | hasRecentReactivation:' + !!d.hasRecentReactivation + ' | leadAgeDays:' + (_lpAgeNum(d.leadAgeDays) === null ? 'unknown' : d.leadAgeDays));
   // Landline: suppress SMS and voicemail, email only
   if (d.isLandline) {
@@ -16187,11 +16222,31 @@ function _lpScraperBotAuthor(msg) {
     // never says these words themselves, so the digital-only fullScanText scan
     // misses them. Internal observations from the team are trusted ground truth
     // (same precedence as "deposit placed" / "on hold for [name]" notes).
+    // (v9.7.855) OWNER DECISION 11/3: THE TWO INTERNAL-NOTE EXIT SCANS READ THIS LEAD ONLY. Both read the newest N notes of the
+    // whole customer record, so a prior lead's "not interested anymore" or "bought elsewhere" ended a fresh inquiry with no
+    // reply yet -- the v9.7.518 rule, the same leak v9.7.852 closed in exitByRemoval. A note counts when it is dated at or after
+    // this lead's start: the current-lead marker, else the Created date (less the hour the transcript cutoff allows), else the
+    // read age. When the start cannot be found (no marker and no age) a match is logged but cannot end the conversation on its
+    // own; it reaches the popup's [LP EXIT SIGNAL DIAG] with the note and its date.
+    var _ieStartMs = (typeof _lpMarkerMs === 'number' && _lpMarkerMs > 0) ? _lpMarkerMs
+      : ((typeof leadCreatedMs === 'number' && leadCreatedMs > 0) ? leadCreatedMs - 3600000
+      : ((typeof _leadAgeScraped !== 'undefined' && _leadAgeScraped && typeof leadAgeDays === 'number') ? (function () { var n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()).getTime() - leadAgeDays * 86400000; })() : 0));
+    var _ieStartKnown = _ieStartMs > 0;
+    var _internalExitDiag = [];
+    // 'current' | 'prior' | 'unknown start' | 'undated' for one note element.
+    var _ieScope = function (item) {
+      var dt = ((item.querySelector('.notes-and-hsitory-item-date') || {}).innerText || '').trim();
+      var ms = dt ? new Date(dt).getTime() : NaN;
+      if (!_ieStartKnown) return { scope: 'unknown start', date: dt };
+      if (!(ms > 0)) return { scope: 'undated', date: dt };
+      return { scope: ms >= _ieStartMs ? 'current' : 'prior', date: dt };
+    };
     var hasInternalSoldElsewhere = false;
     try {
       hasInternalSoldElsewhere = noteEls.slice(0, 80).some(function(item){
         var content = ((item.querySelector('.notes-and-history-item-content')||{}).innerText||'').toLowerCase();
         if (!content) return false;
+        var _ieHit = (function () {
         // Patterns BDC agents use to record sold-elsewhere status. Tolerant of
         // common typos (eslewhere, elswhere) and informal phrasing.
         return /\b(bought|purchased|got)\s+(it\s+)?(elsewhere|elswhere|eslewhere|already|somewhere\s+else|another|a\s+different|from\s+(another|a\s+different))\b/i.test(content)
@@ -16199,6 +16254,11 @@ function _lpScraperBotAuthor(msg) {
           || /\b(she|he|they|customer)\s+(bought|purchased|got)\s+(elsewhere|elswhere|eslewhere|already|somewhere\s+else)\b/i.test(content)
           || /\bsold\s+(elsewhere|somewhere\s+else)\b/i.test(content)
           || /\b(found|got)\s+(one|a\s+car|a\s+vehicle)\s+(elsewhere|already|somewhere\s+else)\b/i.test(content);
+        })();
+        if (!_ieHit) return false;
+        var _ieS = _ieScope(item);   // (v9.7.855)
+        _internalExitDiag.push({ scan: 'sold elsewhere', scope: _ieS.scope, date: _ieS.date, note: content.replace(/\s+/g, ' ').trim().slice(0, 120) });
+        return _ieS.scope === 'current';
       });
     } catch(e) {}
 
@@ -16259,11 +16319,22 @@ function _lpScraperBotAuthor(msg) {
             ? ' ' : clause;
         });
       };
+      // (v9.7.855) A REQUEST RELAYED IN A CALL NOTE. "Customer asked to be taken off the list" / "customer said stop contacting
+      // her" are the customer's request in the agent's words. The decline vocabulary above had neither form, and an
+      // outbound call note never reaches exitRaw (that reads the customer's own lines). A call-note rule, read from call
+      // notes only and scoped to this lead like the rest of this scan.
+      var _callRelayRe = /(?:she|he|they|customer|cust|prospect|client|caller|buyer)\b[^.!?\n]{0,40}\b(?:taken|removed|take (?:her|him|them|me) off|remove (?:her|him|them|me))\b[^.!?\n]{0,20}\blist\b|(?:she|he|they|customer|cust|prospect|client|caller|buyer)\b[^.!?\n]{0,30}\bstop (?:contacting|calling|texting|emailing|reaching out)\b/i;
       noteEls.slice(0, 10).some(function(item){
         var content = ((item.querySelector('.notes-and-history-item-content')||{}).innerText||'');
         if (!content) return false;
+        var _ieTitle = ((item.querySelector('.legacy-notes-and-history-title') || {}).innerText || '');
+        var _ieRule = 'agent-recorded decline';
         var m = _lpGiftScrub(content).match(_declineRe);
+        if (!m && /phone call/i.test(_ieTitle)) { m = content.replace(/^\s*By:[^\n]*\n?/i, '').match(_callRelayRe); if (m) _ieRule = 'call-note relay'; }
         if (!m) return false;
+        var _ieS = _ieScope(item);   // (v9.7.855)
+        _internalExitDiag.push({ scan: 'not interested (' + _ieRule + ')', scope: _ieS.scope, date: _ieS.date, note: content.replace(/\s+/g, ' ').trim().slice(0, 120) });
+        if (_ieS.scope !== 'current') return false;
         hasInternalNotInterested = true;
         var idx = content.toLowerCase().indexOf(m[0].toLowerCase());
         _internalDeclineExcerpt = content.slice(Math.max(0, idx - 20), idx + m[0].length + 30).replace(/\s+/g, ' ').trim();
@@ -19900,7 +19971,7 @@ function _lpScraperBotAuthor(msg) {
       leadSource,leadStatus: currentStatus || leadStatus,hasTrade,tradeDescription,buyingSignals,keyInfo: (keyInfo.length ? keyInfo : null),   // (v9.7.810) [] is truthy and won the merge
       
       history, totalNoteCount, hasOutbound, isContacted, contactedAgeDays, lastOutboundMsg, lastSubstantiveOutboundMsg, noReplySinceLastOutbound, newestCustomerSignalType, newestCustomerSignalDesc, hasFreshCustomerSignal, hasCustomerReply: hasRealCustomerReply /* (v9.7.301) canonical ground truth — replaces divergent inline recomputations */, lastInboundMsg: lastInboundMsg||leadReceivedCustomerQuestion, lastInboundMs: _lastInboundMs, /* (v9.7.359) date of customer's last inbound — used to age their day-words */
-      hasPauseSignal, hasExitSignal, hasRecentReactivation, isSmsOptOutOnly, smsOptOutEvidence, _smsOptOutDiag, hasTextOrEmailSent, convState,
+      hasPauseSignal, hasExitSignal, _internalExitDiag, hasRecentReactivation, isSmsOptOutOnly, smsOptOutEvidence, _smsOptOutDiag, hasTextOrEmailSent, convState,
       vrMonthlyPayment, vrDownPayment, vrCreditScore, vrAPR, vrTerm, vrLender, vrCreditAppNotStarted, vrPayType, conversationBrief, customerSaidNotToday, customerScheduleConstraint, schedCustomerNotes, outboundSends, isLiveConversation, isRecentOutbound, recentOutboundContent,
       customerDeclinedAlternative, customerDeclinedAlternativeText, customerChannelPref, customerSaidNotTodayExplicit, emailBounce,
       email: (isMaskedEmail ? '' : buyerEmail),
@@ -24974,7 +25045,7 @@ async function _lpRefineSms(pass1, emailText, d) {
     // when the first pass opened on something new: the first pass ships. Lead 2107371352 (log382). Last, so a guard
     // with a more specific reason logs it.
     try {
-      var _rfLastTxt = _lpOurEntries(d).filter(function (x) { return /text message/i.test(x.title); })[0], _rfCust = _lpCustEntries(d)[0];
+      var _rfLastTxt = _lpOurEntries(d).filter(function (x) { return /text message/i.test(x.title); })[0], _rfCust = _lpCustSignals(d)[0];   // (v9.7.855) a call after counts
       if (_rfLastTxt && LP_HERE_RX.test(_rfLastTxt.body) && !(_rfCust && _rfCust.t > _rfLastTxt.t) && _lpOpensOnHere(out) && !_lpOpensOnHere(pass1)) {
         console.log('[LP SMS REFINE DIAG] kept the first pass \u2014 the rewrite opened on the car being here, which our ' + _rfLastTxt.date + ' text already said | ' + (Date.now() - t0) + 'ms');
         return null;
@@ -29667,7 +29738,7 @@ function buildUserPrompt(data) {
       var _shp = _lpShipperPair(data);
       console.log('[LP SHIPPING DIAG] they asked: "' + _shq + '" | shippers named: ' + _shp.join(' + '));
       ageBlock.push('');
-      ageBlock.push('\ud83d\ude9a THEY ASKED ABOUT GETTING THE CAR TO THEM: "' + _shq.replace(/"/g, "'") + '". It is their question -- answer it in this message, plainly and warmly, in every format: '
+      ageBlock.push('\ud83d\ude9a THEY ASKED ABOUT GETTING THE CAR TO THEM: ' + _lpSaidHow(_lpShipAskEntry(data), _shq.replace(/"/g, "'")) + '. It is their question -- answer it in this message, plainly and warmly, in every format: '
         + 'we will gladly work with them on it; they arrange the transport company, and we coordinate the pickup with the shipper. Name two companies as examples, these two and no others: '
         + _shp[0] + ' or ' + _shp[1] + '. Never say we deliver it, ship it, bring it or get it to them, or that delivery is included; no "unfortunately" or "we can only"; and do not put it off ("once we lock in the deal", "we can sort out the logistics later"). Then carry on with the rest of the message.');
     }
@@ -29820,7 +29891,7 @@ function buildUserPrompt(data) {
     var _sa2 = _lpSecondApplicant(data);
     if (_sa2) {
       ageBlock.push('');
-      ageBlock.push('\ud83d\udc65 A SECOND APPLICANT: they wrote "' + _sa2.said.replace(/"/g, "'") + '". The finance application covers that: the second person can use the same link (' + _sa2.link + ') for their own application, '
+      ageBlock.push('\ud83d\udc65 A SECOND APPLICANT: they ' + (_sa2.viaCall ? 'said ' : 'wrote ') + _lpSaidHow(_sa2, _sa2.said.replace(/"/g, "'")) + '. The finance application covers that: the second person can use the same link (' + _sa2.link + ') for their own application, '
         + 'or the two of them can fill it out together, with the second person added as the co-buyer on the application. Say that plainly in every format (the link may be sent again), and say nothing else about how the form works.');
       console.log('[LP SECOND APPLICANT DIAG] "' + _sa2.said.slice(0, 60) + '" -> same link, or jointly with a co-buyer');
     }
@@ -31093,7 +31164,7 @@ function buildUserPrompt(data) {
       var _conditionalVisit = /if .{0,40}(price|number|deal|right)|come in .{0,30}(if|once|after)|then .{0,15}come in|would .{0,15}come in|come down .{0,30}(if|once)/i.test((data.lastInboundMsg || ''));
       lines.push(_rbSoft ? '🔴 OUT-OF-AREA BUYER: this customer lives ' + (_lpMiles != null ? 'more than ' + LP_VISIT_RADIUS_MILES + ' miles' : 'out of state') + ' from the store (INTERNAL fact -- shapes the offer, never the wording).' : '🔴 REMOTE / OUT-OF-STATE BUYER: Customer is NOT local.',
         _rbVisit === 'chip' ? '- AGENT OVERRIDE -- APPOINTMENT ASK FOR AN OUT-OF-STATE BUYER: the agent chose to invite this customer in. Ask for the visit with one or two specific times inside store hours. They are not local, so give them room to make the trip: offer the next open day or later, not later today, unless they said they are on the way. Make the trip worth it -- say what will be ready for them when they arrive.'
-          : _rbVisit === 'trip' ? '- THEY SAID THEY WILL MAKE THE TRIP: in their own words on this lead -- "' + _lpTripIntent(data).replace(/"/g, "'") + '". The visit is on the table: ask when they are planning to come, and give them a reason the trip is worth it (what will be ready for them). Let them name the day -- do NOT push set appointment times on them.'
+          : _rbVisit === 'trip' ? '- THEY SAID THEY WILL MAKE THE TRIP: ' + ((_lpTripIntentEntry(data) || {}).viaCall ? 'on a call on this lead -- ' : 'in their own words on this lead -- ') + _lpSaidHow(_lpTripIntentEntry(data), _lpTripIntent(data).replace(/"/g, "'")) + '. The visit is on the table: ask when they are planning to come, and give them a reason the trip is worth it (what will be ready for them). Let them name the day -- do NOT push set appointment times on them.'
           : _rbSoft ? '- A VISIT IS A SPECIAL TRIP FOR THIS CUSTOMER: lead with a video walkaround, photos, the numbers or the credit application, and you may close with ONE soft, no-pressure invitation to come see it when the time is right. No appointment times, no day, and the visit is never the main ask.'
           : '- Do NOT push an in-person visit or offer appointment times as the ask — they are remote.',
         '- NEVER tell them they are remote, out of state, not local or far away: no "since you are handling this remotely", "since you are out of state", "from where you are", "from a distance". Offer the options; do not describe them.',
