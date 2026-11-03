@@ -403,23 +403,41 @@ function ipParseLease(text) {
 const IP_MONTHS = { jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12 };
 function ipPad2(n) { return n < 10 ? '0' + n : String(n); }
 
-function ipDetectExpiration(text, referenceYear) {
+// (audit M-5, 11/3) THE END OF A RANGE, AND THE RIGHT YEAR. The first date found was returned, so "Offer valid 10/1/2026 -
+// 11/2/2026" and "Valid Oct 1 through Nov 30, 2026" both expired on the START date (2026-10-01), and "Expires Jan 4" read on
+// a December page was given this year, already past. Expiry is the kill switch, so either error drops a live offer or
+// publishes one to the wrong date. Now every date is collected; a date right after through / thru / ends / expires / until /
+// to / a dash is preferred (the latest of those), and otherwise the LATEST date wins. A month and day with no year that falls
+// more than 60 days before now rolls to next year. The two historic misreads stay excluded and are in the fixture table:
+// "APR 24-60" (a finance term range) is not April 24, and "APR 72" (day 72) does not stop the search for the real date.
+const IP_EXPIRY_MARKER = /(?:\b(?:through|thru|ends?|ending|expires?|expiring|until|to)\b|[-\u2013\u2014])\s*(?:on\s+)?$/i;
+function ipDetectExpiration(text, referenceYear, now) {
   const t = ipStripNoise(text || '');
-  const refYear = referenceYear || new Date().getUTCFullYear();
+  const nowD = (now instanceof Date && !isNaN(now)) ? now : new Date();
+  const refYear = referenceYear || nowD.getUTCFullYear();
+  const rollFloor = new Date(nowD.getTime() - 60 * 86400000).toISOString().slice(0, 10);
+  const found = [];
+  const add = (idx, year, month, day, explicitYear) => {
+    if (!(month >= 1 && month <= 12 && day >= 1 && day <= 31)) return;
+    let iso = `${year}-${ipPad2(month)}-${ipPad2(day)}`;
+    if (!explicitYear && iso < rollFloor) iso = `${year + 1}-${ipPad2(month)}-${ipPad2(day)}`;
+    const before = t.slice(Math.max(0, idx - 24), idx);
+    found.push({ iso, idx, marked: IP_EXPIRY_MARKER.test(before) });
+  };
 
-  let m = t.match(/\b(\d{1,2})\/(\d{1,2})\/(\d{2,4})\b/);
-  if (m) {
-    let [, mo, da, yr] = m;
+  const numRx = /\b(\d{1,2})\/(\d{1,2})\/(\d{2,4})\b/g;
+  let m;
+  while ((m = numRx.exec(t))) {
+    const [, mo, da, yr] = m;
     let year = parseInt(yr, 10);
     if (yr.length === 2) year += year >= 70 ? 1900 : 2000;
-    const month = parseInt(mo, 10), day = parseInt(da, 10);
-    if (month >= 1 && month <= 12 && day >= 1 && day <= 31) return `${year}-${ipPad2(month)}-${ipPad2(day)}`;
+    add(m.index, year, parseInt(mo, 10), parseInt(da, 10), true);
   }
 
   // Excludes "APR 24-60" (finance term range) from being misread as
   // "April 24" — confirmed real fabrication bug found against Honda's page.
-  // Iterates ALL month-name matches (not just the first) and returns the
-  // first with a genuinely valid day — confirmed real bug via Audi's page:
+  // Iterates ALL month-name matches (not just the first) and keeps every
+  // one with a genuinely valid day — confirmed real bug via Audi's page:
   // a non-global match() stopped at "APR 72" (mistaking "Apr" for the
   // month, day=72 invalid) and gave up before reaching the real date later.
   const monthRx = /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+(\d{1,2})(?:st|nd|rd|th)?,?\s*(\d{4})?\b(?!\s*-\s*\d)/gi;
@@ -427,10 +445,12 @@ function ipDetectExpiration(text, referenceYear) {
   while ((monthM = monthRx.exec(t))) {
     const mon = IP_MONTHS[monthM[1].toLowerCase()];
     const day = parseInt(monthM[2], 10);
-    const year = monthM[3] ? parseInt(monthM[3], 10) : refYear;
-    if (mon && day >= 1 && day <= 31) return `${year}-${ipPad2(mon)}-${ipPad2(day)}`;
+    if (monthM[3]) add(monthM.index, parseInt(monthM[3], 10), mon, day, true);
+    else add(monthM.index, refYear, mon, day, false);
   }
-  return null;
+  if (!found.length) return null;
+  const pool = found.some(f => f.marked) ? found.filter(f => f.marked) : found;
+  return pool.map(f => f.iso).sort().pop();
 }
 
 const IP_CATEGORY_RULES = [
