@@ -70,7 +70,8 @@ function extract(file) {
     if (b2 < 0) throw new Error(what + ' end not found');
     return src.slice(a2, b2 + 2);
   };
-  const pauseSrc = span('function _lpTouchHold(d) {', '_lpTouchHold')
+  const pauseSrc = require('./lib/age-helpers.js')(src)   // (v9.7.854) the lead-age helpers the lifted functions call
+    + span('function _lpTouchHold(d) {', '_lpTouchHold')
     + '\n' + span('function _lpApptEngineOff(d) {', '_lpApptEngineOff');
   // The fourth hand-rolled copy of the exit-or-pause union, now reading the helper.
   const da = src.indexOf('        var _ddExitPause = (typeof _lpTouchHold === \'function\')');

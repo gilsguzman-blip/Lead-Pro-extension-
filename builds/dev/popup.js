@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.854-dev (Dev. AUDIT M-1, OWNER RULING 11/3 (PHASE2_BATCH5_PLAN, with the fallback corrected). Extension only; proxy v7.91, reporter v1.25, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. AN UNREAD LEAD AGE IS UNKNOWN, NOT 'SUBMITTED TODAY'. The scraper set 0 when neither the Created cell nor PageData's LeadCreatedUTC was read, and 0 also means today: the prompt printed 'LEAD AGE: submitted today' and the fresh-lead guards fired on an old lead. Now the scraper returns null for unknown; lastScrapedData, the panel payload, the dump inputs and the feedback row carry null; local arithmetic uses NaN, because `null <= 1` is true in JS. ONE FALLBACK (_lpLeadAgeFallback) replaces five copies of 'derive the age from the oldest dated line anywhere' (populateFromData, the incentive gate, classifyScenario, the zero-contact block, generateAll): the Created (Nd) cell first; else the oldest dated note ABOVE the current-lead marker in the raw transcript -- this lead's own first note, so a returning customer with a two-year-old prior lead and a three-day-old current lead is 3, not ~730; no marker means unknown. Only an UNKNOWN age is derived: a read 0 stays today (9.7.853 re-derived a read 0 from the oldest line). READERS: the LEAD AGE line is left out when unknown; the TOUCH POSITION phase says 'lead age not available -- go by the dated messages below'; isNewLeadToday, the just-submitted trade line, the fresh-lead guards (classifyScenario, TOUCH POSITION, signature taper, feedback meta), the prior-relationship appointment line, the promo and acknowledgment early-touch tests, the anchor-author freshness and director mode no longer read unknown as fresh; the arc says 'Lead age: not available'; cadence carries null into its existing unknown path; diags print 'unknown'. FRAME MERGE: both passes take a read age, 0 included, over an unknown one -- the default merge (!m[k] && d[k]) never merged a read 0, which only worked because 0 and unknown were the same value. VERIFIED ON EVERY DUMP ON FILE: 94 of 94 prompts byte-identical to 9.7.853 (every dump carries a read age), so the change reaches only leads whose age could not be read. TESTS: lead-age-854 (new) executes _lpLeadAgeFallback, _lpAgeNum, populateFromData, the panel payload, buildUserPrompt, _lpComputeCadenceTouch and _lpStalledCalendarRung: 34 assertions across both builds; v9.7.853 fails 13 of 17 per build (the 4 controls pass). cadence, arc-state, first-reach-incentive and distance-appt-gate slice regions that now call the helpers and load them from the same build (tests/lib/age-helpers.js); payload-808 allows pageSnippet, which the fallback tries for the Created cell. VERIFIED: run-all 295 suites green, 9688 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.853.)
 // Lead Pro -- popup.js  v9.7.853-dev (Dev. AUDIT M-3 (PHASE2_BATCH5_PLAN, approved as written). Extension only; proxy v7.91, reporter v1.25, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. _lpPromptInputData carries history (lastScrapedData.history), so the fourteen helpers that read `d.history || d.context` (_lpThreadEntries, _lpOurEntries, _lpCustEntries, _lpLastCall, _lpStopIsCurrent, _lpPitchOut, _lpReactivated, _lpNewestNote, _lpOtdAsk, _lpCallWants, _lpApprovalFirst, _lpLeadHasContact, _lpCustomerStateHold, _lpMmSuggestedVoi) read the raw transcript on the panel -- the same text the text rewrite and the render checks read. One verdict, one text. VERIFICATION ON EVERY DUMP ON FILE (94 prompt dumps, 9/9 to 11/2), each rebuilt through the shipped panel payload at its own timestamp: the payload change alone moved 11. Two kinds: a quoted note keeping the transcript's curly apostrophe (cosmetic), and _lpOtdAsk on Honda Baytown lead 2099028490 and Kia Baytown lead 2104004243 calling an agent's call write-up "their 10/13 message" and dropping "never quote the note". Cause: the raw transcript tags an "Inbound phone call" note [CUSTOMER]; leadContext also carries it as [CALL NOTE] in the agent-context header ahead of the fence, and the panel had been right only because of that duplicate -- the risk the audit named. FIX: a phone-call entry is never the customer's own words (LP_CALL_TITLE_RX in _lpCustEntries and _lpOtdAsk). AGAINST 9.7.852 AS SHIPPED, 89 of 94 dumps are byte-identical; 3 differ by the apostrophe only; Kia Baytown lead 1581859334's "newest event is our note" line now also quotes their last real message; Honda Lafayette lead 2065141269 no longer names an agent's call note ("sending credit application over . she said she has bad credit...") as the customer's newest message -- it names their actual one. Every 8xx suite runs through the panel payload and stays green with history in it. TESTS: payload-history-853 (new) executes the panel payload, _lpCustEntries, _lpOtdAsk, populateFromData and buildUserPrompt: 14 assertions across both builds; v9.7.852 fails 4 of 7 per build (the 3 controls pass). VERIFIED: run-all 294 suites green, 9654 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.852.)
 // Lead Pro -- popup.js  v9.7.852-dev (Dev. AUDIT L-4, OWNER RULING 11/3 (PHASE2_BATCH5_PLAN, corrected). Extension only; proxy v7.91, reporter v1.25, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. SMS is still ALWAYS drafted (the 9/23 ruling); opt-out evidence drives only the agent notice ('SMS drafted -- this lead has opt-out evidence on record') and [LP SMS OPT-OUT EVIDENCE DIAG]. (1) The evidence scan reads the request forms too: "don't text me" / "do not text" / "quit texting" / "stop sending (me) texts", as a REQUEST (opening the message or a clause, or after please/and/but/so/just/i said; ending there or with me/anymore/again/thanks) -- "you don't text back fast" and "i don't text much" stay out. Current-lead scoped as before. (2) exitRaw gains "leave me alone" (not after won't/doesn't/never/can't: "my wife won't leave me alone about it" is not an exit) and "take me off your/the list / contact list / mailing list". Bare "not interested" is deliberately NOT added: it usually declines one offer and the model reads it. (3) exitByRemoval read lastInboundMsg + fullScanText: on a new lead with no reply yet lastInboundMsg is the PRIOR lead's last message, so a 2025 "take me off your list" ended a fresh inquiry (the v9.7.518 rule), and fullScanText carries our own outbound, so our "reply and I can take you off the list" ended it too. It now reads recentInbound -- this lead's customer lines, after the transcript cutoff -- as exitRaw has since v9.7.697. DIFFERENTIAL vs 9.7.851, 320 shapes (20 wordings x current lead / prior lead / prior lead with no reply yet / our own text x re-opt-in x new lead today): SMS drafted on all 320 in both; 38 differ -- 10 notice-shown (the request forms), 4 new exits ("leave me alone"; "take me off your list" already exited on the current lead), 24 exits removed (prior-lead removal words with no reply yet, and our own text). Not changed, reported: hasInternalNotInterested (newest 10 notes) and hasInternalSoldElsewhere (newest 80) are not marker-scoped, so a prior lead's "not interested anymore" still exits a new lead with no reply; and when the Created date is unreadable the transcript cutoff falls back to 180 days. TESTS: optout-exit-852 (new) executes the shipped scraper region with the shipped cutoff helper and the shipped notice statement: 50 assertions across both builds; v9.7.851 fails 7 of 25 per build (the controls pass). VERIFIED: run-all 293 suites green, 9640 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.851.)
 // Lead Pro -- popup.js  v9.7.851-dev (Dev. AUDIT PHASE 2, BATCH 2 (AUDIT_2026-11-03_FULL_SYSTEM.md). Extension only; proxy v7.91, reporter v1.24, dashboard v1.11 and the Data Tool unchanged. (B-2 step 1, owner-approved, deliberately reversing the 9/1 rollout: 430 rows since, 100% agreement, 0 changed directives) _lpPrepareFactVerdicts is started and NOT awaited; the three probes run beside the main generation and the regex verdict decides. LEADPRO_VERBALCOMMIT/DAYLOCK/OFFFRANCHISE_AUTHORITATIVE ship false (kept, not deleted); the observer switches stay on. The v9.7.699 memo stays (a regen with the same inputs still gets its verdicts at once). A fresh read clears window._lpFactVerdicts first, so the prompt-time readers never see the previous generation's. The per-generation telemetry row still posts: the flush waits for this generation's probes, with the generation id, decisions and verbal-commit regex verdict captured when the drafts render, so a regen that starts first cannot lend the row its own; the dump's prompt-inputs snapshot gets the settled verdicts. Prompt-time readers of window._lpFactVerdicts, all of which now see {} on a fresh read and decide by regex: buildUserPrompt's verbal-commit stash (_lpFactDecide), generateAll's _lpApplyFactOverrides (day-lock and off-franchise fences), and the _lpLastPromptInputs snapshot (back-filled after settle); outside the prompt build: the telemetry flush (now handed its verdicts) and the dump's FACT CHECK VERDICTS section. ([LP GRAB TIMING]) One popup-side line per generation, printed once its probes settle: the grab's pre-scrape, frame poll, email expand and key-info wait (slowest lead frame; the frame-wait wall and how many frames waited out the 4000ms cap), scrape+merge and total; then probes (memo / probes / off), click-path wait, API, rewrite and generate total to the drafts on screen. A regen on the same grab says so. TESTS: probes-parallel-851 (new) executes the flags, _lpFactDecide, _lpApplyFactOverrides, the generate block that starts the probes (a probe that never answers does not hold it), _lpPrepareFactVerdicts and its memo, the deferred flush with the real _lpFlushFactTelemetry, _lpLogGrabTiming, the injected frame-wait function on a fake page and the popup's aggregation: 30 assertions across both builds; v9.7.850 fails 14 of 15 per build (the 1 control passes). Updated for the decision: authoritative-phase (the shipped flags are asserted off; the switch behavior is still proven with them on), fact-comprehension, commit-comprehension (a third stash reader, outside buildUserPrompt), email-expand-744 and keyinfo-amp-807 (the timed wait step). VERIFIED: run-all 288 suites green, 9551 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.850.)
@@ -3983,7 +3984,7 @@ function _lpBuildArcState(d, opts) {
   opts = opts || {};
   var s = { lines: [], facts: {} };
   try {
-    var age   = parseFloat((d && d.leadAgeDays) || 0) || 0;
+    var age   = _lpAgeNum(d && d.leadAgeDays);   // (v9.7.854) null when unknown
     var sends = (d && d.outboundSends) || [];
     var ang   = _lpArcAnglesSpent(sends);
     var inb   = parseFloat(opts.totalInbound) || 0;
@@ -3996,7 +3997,7 @@ function _lpBuildArcState(d, opts) {
                 consecutiveOutbound: consec, spent: ang.spent, unused: ang.unused,
                 sendsRead: ang.read, capped: ang.capped, cadence: opts.cadence || null };
 
-    s.lines.push('Lead age: ' + age + ' days.');
+    s.lines.push(age === null ? 'Lead age: not available.' : 'Lead age: ' + age + ' days.');
     // (v9.7.587) BOTH HALVES MUST BE KNOWN. `parseFloat(x) || 0` turns an ABSENT count into a
     // confident zero, and the old `if (inb || outb)` gate then published it as soon as the OTHER half
     // was non-zero. That is how "15 inbound / 0 outbound" reached a prompt whose relationship reading
@@ -4068,7 +4069,7 @@ function _lpArcStateDiag(s, log) {
   var _l = log || function () { try { console.log.apply(console, arguments); } catch (e) {} };
   try {
     var f = (s && s.facts) || {};
-    _l('[LP ARC STATE DIAG] age:' + (f.age || 0) + 'd'
+    _l('[LP ARC STATE DIAG] age:' + (f.age === null || f.age === undefined ? 'unknown' : f.age + 'd')
       + ' | exchange:' + (f.inbound || 0) + 'in/' + (f.outbound || 0) + 'out'
       + ' | sinceReply:' + (f.daysSinceReply === null ? 'never replied' : f.daysSinceReply + 'd')
       + ' | consecutiveOutbound:' + (f.consecutiveOutbound || 0)
@@ -4302,7 +4303,7 @@ function _lpCadence(deps) {
   deps = deps || {};
   var res = {
     manual: false, manualText: '', inject: '', touch: null,
-    age: parseFloat(deps.leadAgeDays) || 0, sent: null, compute: null, flag: !!deps.flagOn
+    age: _lpAgeNum(deps.leadAgeDays), sent: null, compute: null, flag: !!deps.flagOn   // (v9.7.854) null when unknown
   };
   try {
     var cmds = deps.agentLPCommands || [];
@@ -5504,6 +5505,30 @@ function _lpCustomerFacingSource(raw) {
 // safe to rung 1: an age we cannot see cannot justify a climb. A customer who signalled exit or pause
 // is not capped -- the resolver lets their own exit win at any age, and so does the calendar.
 var LP_STALLED_RUNG_MIN_AGE = [0, 0, 2, 8, 15, 21];   // index = rung
+// (v9.7.854) AUDIT M-1: AN UNREAD LEAD AGE IS UNKNOWN, NOT "SUBMITTED TODAY". The scraper set 0 when neither the Created cell
+// nor PageData's LeadCreatedUTC could be read, and 0 also means today, so an old lead was written to as a fresh inquiry and
+// the fresh-lead guards fired. Now: lastScrapedData, the panel payload and the feedback row carry null for unknown; local
+// arithmetic uses NaN (every comparison false -- `null <= 1` is TRUE in JS, which is why null is never compared directly).
+function _lpAgeNum(v) { if (v === null || v === undefined || v === '') return null; var n = parseFloat(v); return isFinite(n) ? n : null; }
+// The one fallback, used everywhere the five copies of "derive the age from text" were (owner ruling 11/3): the Created (Nd)
+// cell first; else the oldest dated note ABOVE the current-lead marker in the raw transcript -- this lead's own first note, so
+// a returning customer with a two-year-old prior lead is not read as ~730 days; no marker means unknown. { days, src }.
+function _lpLeadAgeFallback(d, nowMs) {
+  try {
+    d = d || {};
+    var now = (typeof nowMs === 'number' && nowMs > 0) ? nowMs : Date.now();
+    var all = [d.context, d.pageSnippet, d.history].filter(Boolean).join('\n');
+    var m = all.match(/Created[^(]*\((\d+)d\)/i);
+    if (m) return { days: parseInt(m[1], 10), src: 'Created (' + m[1] + 'd)' };
+    var tx = String(d.history || d.context || ''), mk = tx.indexOf('=== CURRENT LEAD SUBMITTED HERE ===');
+    if (mk < 0) return { days: null, src: 'no Created (Nd) and no current-lead marker' };
+    var rx = /\[(\d{1,2}\/\d{1,2}\/\d{4})/g, x, min = Infinity, above = tx.slice(0, mk);
+    while ((x = rx.exec(above))) { var ms = new Date(x[1]).getTime(); if (ms > 0 && ms < min) min = ms; }
+    if (!isFinite(min)) return { days: null, src: 'no dated note above the current-lead marker' };
+    var dt = new Date(min);
+    return { days: Math.max(0, Math.floor((now - min) / 86400000)), src: 'first note on this lead, ' + (dt.getMonth() + 1) + '/' + dt.getDate() + '/' + dt.getFullYear() };
+  } catch (e) { return { days: null, src: 'fallback threw' }; }
+}
 function _lpStalledCalendarRung(leadAgeDays) {
   var a = parseFloat(leadAgeDays);
   if (!(a > 0)) return 1;
@@ -5711,7 +5736,7 @@ function _lpCloseOutEligible(d) {
 function _lpResolveDirectorMode(d) {
   d = d || {};
   var conv = (d.convState || '').toLowerCase();
-  var age = parseFloat(d.leadAgeDays || 0);
+  var age = parseFloat(d.leadAgeDays);   // (v9.7.854) NaN when unknown: no age-driven mode
   var isFirstTouch = age < 1
     || (!d.hasOutbound && !d.isContacted && age < 2)
     || (d.hasOutbound && !d.isContacted && (d.contactedAgeDays === undefined || d.contactedAgeDays < 1) && age < 2);
@@ -8065,21 +8090,10 @@ function populateFromData(d) {
   // back onto d — every consumer (and the voicemail path, via lastScrapedData being the same
   // object) now inherits one value.
   try {
-    if (!parseFloat(d.leadAgeDays || 0)) {
-      var _ladCtx0 = (d.context || d.pageSnippet || d.history || '');
-      var _ladM0 = _ladCtx0.match(/Created[^(]*\((\d+)d\)/i);
-      var _ladV0 = _ladM0 ? parseInt(_ladM0[1]) : 0;
-      if (!_ladV0) {
-        var _ladD0 = _ladCtx0.match(/\[(\d{1,2}\/\d{1,2}\/\d{4})/g) || [];
-        if (_ladD0.length > 0) {
-          var _ladMs0 = new Date(_ladD0[_ladD0.length - 1].replace('[', '')).getTime();
-          if (_ladMs0 > 0) _ladV0 = Math.floor((Date.now() - _ladMs0) / 86400000);
-        }
-      }
-      if (_ladV0 > 0) {
-        d.leadAgeDays = _ladV0;
-        console.log('[LP AGE DIAG] leadAgeDays normalized at populate:', _ladV0, '— scraper returned 0/undefined, derived from transcript');
-      }
+    if (_lpAgeNum(d.leadAgeDays) === null) {   // (v9.7.854) M-1: only an UNKNOWN age is derived; a read 0 is today
+      var _ladF0 = _lpLeadAgeFallback(d);
+      d.leadAgeDays = _ladF0.days;
+      console.log('[LP AGE DIAG] leadAgeDays at populate: ' + (_ladF0.days === null ? 'UNKNOWN (null)' : _ladF0.days + 'd') + ' — not read off the page; ' + _ladF0.src);
     }
   } catch (e) {}
   // (v9.7.801) See LP_PROGRAM_NOTICE_RX: the Mastermind notice is neither their inquiry nor their last message.
@@ -8382,7 +8396,7 @@ function populateFromData(d) {
     // new inquiry ("I know your last appointment didn't work out") which reads as creepy
     // record-keeping. This is a missing FACT (these appts are old and belong to a closed
     // prior lead), not a rule — give the model the age gap and let it reason.
-    var _leadAgeForAppt = parseFloat(d.leadAgeDays || 0);
+    var _leadAgeForAppt = parseFloat(d.leadAgeDays);   // (v9.7.854) NaN when unknown
     if (_leadAgeForAppt <= 1 && typeof d.freshestApptEventDays === 'number' && d.freshestApptEventDays >= 60) {
       extras.push('⚠ IMPORTANT: The current lead was submitted today as a NEW inquiry. The appointment event(s) above are from a PRIOR relationship months ago (the most recent is ' + Math.round(d.freshestApptEventDays) + ' days old) — a different, closed visit cycle. Do NOT reference these old appointments in your message. Do NOT say things like "your last appointment didn\'t work out" or "since you missed your appointment." To this customer, this is a fresh inquiry. Referencing a months-old no-show reads as intrusive record-keeping and kills trust. Treat the old appointment purely as silent background — it does not enter the message.');
     }
@@ -10006,21 +10020,9 @@ function populateFromData(d) {
     //       re-engagement-hook day check, so both share one robust computation) — a lead created
     //       today is unambiguously fresh regardless of how much routing noise piled up around it.
     var _incGenericSourceExcluded = /truecar|cars\.com|autotrader|cargurus|credit\s*karma|edmunds|kel+e?y\s*blue\s*book|\bkbb\b/i.test(d.leadSource || '');
-    var _incLeadAge = parseFloat(d.leadAgeDays || 0);
-    if (!_incLeadAge) {
-      var _incCtxForAge = (d.context || d.pageSnippet || d.history || '');
-      var _incAgeMatch = _incCtxForAge.match(/Created[^(]*\((\d+)d\)/i);
-      if (_incAgeMatch) _incLeadAge = parseInt(_incAgeMatch[1]);
-      if (!_incLeadAge) {
-        var _incDateMatches = _incCtxForAge.match(/\[(\d{1,2}\/\d{1,2}\/\d{4})/g) || [];
-        if (_incDateMatches.length > 0) {
-          var _incOldest = _incDateMatches[_incDateMatches.length - 1].replace('[', '');
-          var _incOldestMs = new Date(_incOldest).getTime();
-          if (_incOldestMs > 0) _incLeadAge = Math.floor((Date.now() - _incOldestMs) / 86400000);
-        }
-      }
-    }
-    var _incGenericFresh = (_incLeadAge <= 1);
+    var _incLeadAge = _lpAgeNum(d.leadAgeDays);   // (v9.7.854) M-1: the one fallback; null stays unknown
+    if (_incLeadAge === null) _incLeadAge = _lpLeadAgeFallback(d).days;
+    var _incGenericFresh = (_incLeadAge !== null && _incLeadAge <= 1);
     // (v9.7.696) THE 'generic' FIRST-TOUCH OVERRIDE IS CLOSED. Gil, 9/23: "an incentive offer was sent
     // on first reach. We had put a rail against that on first reach." The rail was never total: this
     // override (v9.7.415/425) let a fresh, model-level lead open on an incentive. Live on 9/23 it put
@@ -10579,7 +10581,7 @@ function populateFromData(d) {
     // just entered. Without this the model reads the stale objection as current and tells the
     // customer they aren't trading (the Lacie / Santa Fe VR case). Gated to day-0 fresh leads so
     // a genuine later decline within an ongoing conversation is never overridden.
-    if ((d.leadAgeDays || 0) === 0) {
+    if (d.leadAgeDays === 0) {   // (v9.7.854) a read 0, not an unknown age
       vehicleExtras.push('- This trade is in the deal the customer JUST submitted — it is their CURRENT intent. If an earlier or prior conversation shows them declining to trade, that predates this deal and is superseded; do NOT tell them they are not trading. (A decline they make AFTER this submission still stands — read the arc.)');
     }
     vehicleExtras.push('TRADE-IN RULES:');
@@ -10858,7 +10860,7 @@ function populateFromData(d) {
   // undiagnosable from an exported log even though the diagnostic code existed and ran. This
   // logs the one fact that actually matters popup-side: whether hasExitSignal fired and whether
   // the new reactivation guard saw anything.
-  console.log('[LP EXIT SIGNAL DIAG] hasExitSignal:' + !!d.hasExitSignal + ' | hasRecentReactivation:' + !!d.hasRecentReactivation + ' | leadAgeDays:' + (d.leadAgeDays || 0));
+  console.log('[LP EXIT SIGNAL DIAG] hasExitSignal:' + !!d.hasExitSignal + ' | hasRecentReactivation:' + !!d.hasRecentReactivation + ' | leadAgeDays:' + (_lpAgeNum(d.leadAgeDays) === null ? 'unknown' : d.leadAgeDays));
   // Landline: suppress SMS and voicemail, email only
   if (d.isLandline) {
     vehicleExtras.push('📵 LANDLINE ON FILE: Notes confirm this number cannot receive texts. SMS and voicemail are not viable. Email is the only channel. Do NOT ask for a better number — they already provided contact info.');
@@ -11029,7 +11031,7 @@ function populateFromData(d) {
   const ls = ((d.leadSource || '') + ' ' + (d.tradeDescription || '')).toLowerCase();
   // For new leads today with Gubagoo/VR source — hasTrade from old history is unreliable
   // Only set trade flag if there's actual trade data in THIS lead's trade section
-  var isNewLeadToday = (d.leadAgeDays || 0) === 0;
+  var isNewLeadToday = d.leadAgeDays === 0;   // (v9.7.854) unknown is not today
   var hasActualTrade = d.hasTrade && d.tradeDescription && !/(none entered)/i.test(d.tradeDescription||'');
   if (hasActualTrade)                                          toggleFlag('trade', true);
   if (ls.includes('tradepending'))                             toggleFlag('trade', true);
@@ -19894,7 +19896,7 @@ function _lpScraperBotAuthor(msg) {
       isLeadFrame,autoLeadId,dealerId,customerId,
       customerState,customerZip,
       store,name,email,phone,agent,salesRep,manager,
-      vehicle,vehicleRaw,_voiFromPanel,_voiDiag,_isServiceFrame,_leadSelectorCount,_leadSelectorIds,priorSoldVehicle,color,condition,stockNum,vin,inventoryWarning:inventoryWarningFinal,inventoryWarningFromNotes,vehiclePendingSale,noSpecificVehicle,ownedVehicle,ampEmailSubject,ownedMileage,lastServiceDate,leadAgeDays,equityData,equityAmount,equityVehicle,
+      vehicle,vehicleRaw,_voiFromPanel,_voiDiag,_isServiceFrame,_leadSelectorCount,_leadSelectorIds,priorSoldVehicle,color,condition,stockNum,vin,inventoryWarning:inventoryWarningFinal,inventoryWarningFromNotes,vehiclePendingSale,noSpecificVehicle,ownedVehicle,ampEmailSubject,ownedMileage,lastServiceDate,leadAgeDays:(_leadAgeScraped ? leadAgeDays : null),equityData,equityAmount,equityVehicle,
       leadSource,leadStatus: currentStatus || leadStatus,hasTrade,tradeDescription,buyingSignals,keyInfo: (keyInfo.length ? keyInfo : null),   // (v9.7.810) [] is truthy and won the merge
       
       history, totalNoteCount, hasOutbound, isContacted, contactedAgeDays, lastOutboundMsg, lastSubstantiveOutboundMsg, noReplySinceLastOutbound, newestCustomerSignalType, newestCustomerSignalDesc, hasFreshCustomerSignal, hasCustomerReply: hasRealCustomerReply /* (v9.7.301) canonical ground truth — replaces divergent inline recomputations */, lastInboundMsg: lastInboundMsg||leadReceivedCustomerQuestion, lastInboundMs: _lastInboundMs, /* (v9.7.359) date of customer's last inbound — used to age their day-words */
@@ -20780,6 +20782,8 @@ function _lpScraperBotAuthor(msg) {
                 } else if (d.customerZip && !m.customerZip && !m.customerState) {
                   m.customerZip = d.customerZip;
                 }
+              } else if (k === 'leadAgeDays') {   // (v9.7.854) M-1: a read age, 0 included, wins over an unknown (null) one
+                if (typeof d[k] === 'number' && isFinite(d[k]) && typeof m[k] !== 'number') m[k] = d[k];
               } else if (!m[k] && d[k]) {
                 m[k]=d[k];
               }
@@ -21101,6 +21105,8 @@ function _lpScraperBotAuthor(msg) {
                     m.customerZip = d.customerZip;
                   }
                 }
+              } else if (k === 'leadAgeDays') {   // (v9.7.854) M-1: a read age, 0 included, wins over an unknown (null) one
+                if (typeof d[k] === 'number' && isFinite(d[k]) && typeof m[k] !== 'number') m[k] = d[k];
               } else if (!m[k] && d[k]) {
                 m[k]=d[k];
               }
@@ -22584,24 +22590,13 @@ function classifyScenario(data) {
   s.resolvedPersona = (function() {
     var base    = (_leadProProfile && _leadProProfile.persona) || 'bdc';
     var conv    = (data.convState || '').toLowerCase();
-    var ageDays = parseFloat(data.leadAgeDays || 0);
+    var ageDays = _lpAgeNum(data.leadAgeDays);
     var noteCount = parseInt(data.totalNoteCount || 0);
     // FALLBACK: if scraper didn't capture leadAgeDays, derive from text sources.
-    // data.context is only set during generation, so during persona resolution we have to use
-    // pageSnippet (raw page text from scraper) or history (joined transcript).
-    if (!ageDays) {
-      var ctxForAge = (data.context || data.pageSnippet || data.history || '');
-      var ctxAgeMatch = ctxForAge.match(/Created[^(]*\((\d+)d\)/i);
-      if (ctxAgeMatch) ageDays = parseInt(ctxAgeMatch[1]);
-      if (!ageDays) {
-        var dateMatches = ctxForAge.match(/\[(\d{1,2}\/\d{1,2}\/\d{4})/g) || [];
-        if (dateMatches.length > 0) {
-          var oldest = dateMatches[dateMatches.length - 1].replace('[','');
-          var oldestMs = new Date(oldest).getTime();
-          if (oldestMs > 0) ageDays = Math.floor((Date.now() - oldestMs) / 86400000);
-        }
-      }
-    }
+    // (v9.7.854) M-1: the one fallback (Created, else this lead's first note above the marker); still unknown -> NaN, so the
+    // fresh-lead guard below (ageDays <= 1) does not fire on an age nobody read.
+    if (ageDays === null) ageDays = _lpLeadAgeFallback(data).days;
+    if (ageDays === null) ageDays = NaN;
     // (v9.7.301) canonical reader — was an inline recomputation that drifted from the others.
     var hasCustomerReplyComputed = _hasCustomerReplied(data);
 
@@ -27853,7 +27848,7 @@ function buildUserPrompt(data) {
     var movePromoEnd = new Date('2026-06-13');
     // Fresh-lead aware: a repeat customer submitting a fresh inquiry hasn't seen
     // our new-address message yet for THIS conversation, so still treat as early-touch.
-    var _ladForPromo = data.leadAgeDays || 0;
+    var _ladForPromo = parseFloat(data.leadAgeDays);   // (v9.7.854) NaN when unknown
     var isFirstOrEarlyTouch = !data.hasOutbound || (data.totalNoteCount || 0) < 6 || _ladForPromo <= 1;
     if (today <= movePromoEnd && isFirstOrEarlyTouch) {
       hondaLafNote = 'STORE LOCATION NOTE: Community Honda Lafayette recently moved to a brand new facility. NEW ADDRESS: 2503 SE Evangeline Thwy, Lafayette, LA 70508. Include the new address in the EMAIL (one line, naturally placed -- e.g. near the close or in the signature block). In the SMS, include it only if the message has room and it fits naturally -- one mention max, never the focus. Do not skip it from the email.';
@@ -29041,8 +29036,9 @@ function buildUserPrompt(data) {
     'DATE: ' + date + ' ' + currentYear,
     ...(function() {
       var ageBlock = [];
-      var lad = (data.leadAgeDays || 0);
-      ageBlock.push('LEAD AGE: ' + (lad === 0 ? 'submitted today' : lad === 1 ? 'submitted yesterday' : 'submitted ' + lad + ' days ago'));
+      var lad = _lpAgeNum(data.leadAgeDays);
+      // (v9.7.854) M-1: an age nobody read is not "submitted today" -- the line is left out and the dated thread speaks.
+      if (lad !== null) ageBlock.push('LEAD AGE: ' + (lad === 0 ? 'submitted today' : lad === 1 ? 'submitted yesterday' : 'submitted ' + lad + ' days ago'));
       ageBlock.push('');
       // (v9.7.737) THE OWNER RULE FOR A QUIET CUSTOMER, FIRST IN THE PROMPT. Lead 2049511947 (log260): with the
       // customer 76 days quiet, v9.7.736's line sat in TOUCH POSITION below the Click & Go block, which said
@@ -29528,7 +29524,7 @@ function buildUserPrompt(data) {
       // where in a long follow-up sequence it is firing. No agent input needed.
       // The phase + attempt density shapes tone; the prior-messages directive
       // prevents recycling openers across a 30+ touch flow.
-      var _lad = data.leadAgeDays || 0;
+      var _lad = parseFloat(data.leadAgeDays);   // (v9.7.854) NaN when unknown
       var _nc = data.totalNoteCount || 0;
       var _cad = data.contactedAgeDays || 0;
       // (v9.7.301) canonical reader. Retires the 299 lastInboundMsg workaround now that the field
@@ -29544,7 +29540,9 @@ function buildUserPrompt(data) {
       var _hasReply = _hasCustomerReplied(data) && !_lpStopOnly;
       if (_lpStopOnly) console.log('[LP STOP REPLY DIAG] the only customer message on this lead is a STOP -- treated as no reply for the follow-up directives');
       var _phase;
-      if (_lad <= 1) {
+      if (!isFinite(_lad)) {   // (v9.7.854) M-1
+        _phase = 'lead age not available -- go by the dated messages below' + (data.hasOutbound ? ' (outreach has already gone out on this lead: continue the thread, do not re-introduce)' : '');
+      } else if (_lad <= 1) {
         // (v9.7.250) Day 0-1 is the first-touch WINDOW, but if real outbound has already gone out on
         // this lead it is an early follow-up, not a first contact. Labeling it "first-touch" made the
         // model re-open cold and repeat the opener (Tuan: rewrote the 8:44 AM email almost verbatim).
@@ -29952,7 +29950,7 @@ function buildUserPrompt(data) {
     if (/kfa|kmf|afs|luv|off.?lease|maturity|lease.?end|in.?equity|loyalty|autosoft|xtime|cdk/i.test(_ls)) { _ackLog('SKIPPED-internal-program-source'); return; }
     // Early touch only — referencing the source reads naturally on first/second contact,
     // but stale on a 30-note thread. Use phase/age signals already computed.
-    var _ladForAck = parseFloat(data.leadAgeDays || 0);
+    var _ladForAck = parseFloat(data.leadAgeDays);   // (v9.7.854) NaN when unknown
     var _ncForAck = parseInt(data.totalNoteCount || 0, 10);
     var _earlyTouch = (_ladForAck <= 2) || (_ncForAck <= 8) || !data.hasOutbound;
     if (!_earlyTouch) { _ackLog('SKIPPED-past-early-touch — naming the source reads stale this deep into the thread'); return; }
@@ -30144,7 +30142,7 @@ function buildUserPrompt(data) {
         // signing agent, _lpSameAgent would have called the message ours.
         var _asBot    = _lpIsBotAuthor(data.lastSubstantiveOutboundMsg);
         if (_asBot) _asMine = false;
-        var _asFresh  = (parseFloat(data.leadAgeDays || 0) <= 1);
+        var _asFresh  = (parseFloat(data.leadAgeDays) <= 1);   // (v9.7.854) unknown is not fresh
         console.log('[LP ANCHOR AUTHOR DIAG] author:', _asAuthor || '(unrecoverable)',
                     '| raw:', JSON.stringify(_lpAuthorRaw(data.lastSubstantiveOutboundMsg)),
                     '| bot:', _asBot, '| signer:', data.agent || '(none)', '| attributed to signer:', _asMine);
@@ -31151,7 +31149,7 @@ function buildUserPrompt(data) {
     try {
       console.log('[LP DISTANCE APPT GATE] apptEngineOff:' + _dbApptOff
         + ' | hold:' + (_dbHold || 'none')
-        + ' | leadAgeDays:' + (data.leadAgeDays || 0)
+        + ' | leadAgeDays:' + (_lpAgeNum(data.leadAgeDays) === null ? 'unknown' : data.leadAgeDays)
         + ' | stalled:' + !!data._isStalled + ' neverReplied:' + !!data._neverReplied
         + (_dbApptOff ? ' — distance block will require the justification but NOT an appointment ask'
                       : ' — distance block asks for the visit as normal'));
@@ -31558,26 +31556,13 @@ function buildUserPrompt(data) {
   // this was a second same-scope `var` redeclaration of the identical value (drift trap).
   hasCustomerReply = _hasCustomerReplied(data, ctx_raw); // (v9.7.301) canonical reader
   // Estimate age from context — multiple strategies
-  var ctxAgeDays = 0;
-  // Strategy 1: "(Nd)" pattern in Created field
-  var ctxAgeMatch = ctx_raw.match(/Created[^(]*\((\d+)d\)/i);
-  if (ctxAgeMatch) ctxAgeDays = parseInt(ctxAgeMatch[1]);
-  // Strategy 2: calculate from oldest note date vs today
-  if (!ctxAgeDays) {
-    var dateMatches = ctx_raw.match(/\[(\d{1,2}\/\d{1,2}\/\d{4})/g) || [];
-    if (dateMatches.length > 0) {
-      var oldest = dateMatches[dateMatches.length - 1].replace('[','');
-      var oldestMs = new Date(oldest).getTime();
-      if (oldestMs > 0) ctxAgeDays = Math.floor((Date.now() - oldestMs) / 86400000);
-    }
-  }
-  // Strategy 3: check lastScrapedData directly
-  // Prioritize scraper leadAgeDays (from VinSolutions Created field) over context scan
-  // Context scan can pick up old notes and return inflated age
-  var scrapedAge = data.leadAgeDays || (lastScrapedData && lastScrapedData.leadAgeDays) || 0;
-  var ageDays_final = (scrapedAge === 0 && ctxAgeDays > 0 && /Created[^(]*\(0d\)/i.test(ctx_raw))
-    ? 0  // scraper says new lead, Created confirms 0d — trust it
-    : (scrapedAge > 0 ? scrapedAge : ctxAgeDays || 0);
+  // (v9.7.854) M-1: the read age first, then the one fallback (Created, else this lead's first note above the marker), else
+  // NaN -- the >= 1 / >= 2 tests below are then false and _spAge stays null. The old "oldest dated line anywhere" read prior
+  // leads as this one's age.
+  var scrapedAge = _lpAgeNum(data.leadAgeDays);
+  if (scrapedAge === null) scrapedAge = _lpAgeNum(lastScrapedData && lastScrapedData.leadAgeDays);
+  var ctxAgeDays = scrapedAge === null ? _lpLeadAgeFallback(data).days : null;
+  var ageDays_final = scrapedAge !== null ? scrapedAge : (ctxAgeDays !== null ? ctxAgeDays : NaN);
   var isContacted_final = data.isContacted || /Contacted:\s*Yes/i.test(ctx_raw);
   var hasOutbound_final = data.hasOutbound || hasOutboundNotes;
 
@@ -32730,23 +32715,10 @@ async function generateAll() {
   // reads from lastScrapedData. Write the canonical value back so every
   // downstream consumer sees the same age.
   if (lastScrapedData) {
-    var _lad = parseFloat(lastScrapedData.leadAgeDays || 0);
-    if (!_lad || _lad === 0) {
-      var _ctxForAge = (lastScrapedData.context || lastScrapedData.pageSnippet || lastScrapedData.history || '');
-      var _ctxAgeMatch = _ctxForAge.match(/Created[^(]*\((\d+)d\)/i);
-      if (_ctxAgeMatch) _lad = parseInt(_ctxAgeMatch[1]);
-      if (!_lad) {
-        var _dateMatches = _ctxForAge.match(/\[(\d{1,2}\/\d{1,2}\/\d{4})/g) || [];
-        if (_dateMatches.length > 0) {
-          var _oldest = _dateMatches[_dateMatches.length - 1].replace('[','');
-          var _oldestMs = new Date(_oldest).getTime();
-          if (_oldestMs > 0) _lad = Math.floor((Date.now() - _oldestMs) / 86400000);
-        }
-      }
-      if (_lad && _lad > 0) {
-        lastScrapedData.leadAgeDays = _lad;
-        console.log('[Lead Pro] leadAgeDays normalized via fallback:', _lad, '— scraper returned 0/undefined, derived from transcript');
-      }
+    if (_lpAgeNum(lastScrapedData.leadAgeDays) === null) {   // (v9.7.854) M-1: only an UNKNOWN age is derived
+      var _ladFg = _lpLeadAgeFallback(lastScrapedData);
+      lastScrapedData.leadAgeDays = _ladFg.days;
+      console.log('[Lead Pro] leadAgeDays at generate: ' + (_ladFg.days === null ? 'UNKNOWN (null)' : _ladFg.days + 'd') + ' — not read off the page; ' + _ladFg.src);
     }
   }
 
@@ -33111,7 +33083,7 @@ async function generateAll() {
       _lpRepNotOnLot:            lastScrapedData ? lastScrapedData._lpRepNotOnLot : undefined,
       activeFlags: Array.from(activeFlags),
       dealerId: lastScrapedData ? (lastScrapedData.dealerId || '') : '',
-      leadAgeDays: lastScrapedData ? (lastScrapedData.leadAgeDays || 0) : 0
+      leadAgeDays: lastScrapedData ? _lpAgeNum(lastScrapedData.leadAgeDays) : null   // (v9.7.854) M-1: null when unknown
     };
     let userPrompt = buildUserPrompt(_lpPromptInputData);
     // (v9.7.697) HARNESS CAPTURE, MEMORY-ONLY. What buildUserPrompt was given, plus the state around it,
@@ -33141,7 +33113,7 @@ async function generateAll() {
       try { _arcStopOnly = !!(lastScrapedData && LP_STOP_WORD_RX.test(String(lastScrapedData.lastInboundMsg || '').trim()) && !_lpLeadHasContact(lastScrapedData));
             if (_arcStopOnly) _arcLeadOut = (_lpOutreachOnThisLead(lastScrapedData, 0) || {}).n || 0; } catch (eAso) {}
       var _cad = _lpCadence({
-        leadAgeDays:     lastScrapedData ? lastScrapedData.leadAgeDays : 0,
+        leadAgeDays:     lastScrapedData ? _lpAgeNum(lastScrapedData.leadAgeDays) : null,
         agentLPCommands: lastScrapedData ? (lastScrapedData.agentLPCommands || []) : [],
         contextText:     userPrompt,
         flagOn:          false,           // tag injection is retired; position is a fact, not a directive
@@ -33702,7 +33674,7 @@ async function generateAll() {
     // noteCount from prior interactions, treat as a fresh thread for signature
     // purposes - the customer hasn't seen our SMS for THIS conversation yet.
     var _ncForSig = (lastScrapedData && lastScrapedData.totalNoteCount) || 0;
-    var _ladForSig = (lastScrapedData && lastScrapedData.leadAgeDays) || 0;
+    var _ladForSig = parseFloat(lastScrapedData && lastScrapedData.leadAgeDays);   // (v9.7.854) NaN when unknown
     if (_ladForSig <= 1 && _ncForSig > 3) {
       // Fresh lead from repeat customer - reset for signature purposes
       console.log('[Lead Pro] Sig taper: fresh-lead guard active - using full signature despite historical noteCount (' + _ncForSig + ')');
@@ -35957,7 +35929,7 @@ function _lpFeedbackCaptureMeta() {
       return v || lastScrapedData.leadSource || '';
     })(),
     convState:       lastScrapedData.convState  || '',
-    leadAgeDays:     lastScrapedData.leadAgeDays || 0,
+    leadAgeDays:     _lpAgeNum(lastScrapedData.leadAgeDays),   // (v9.7.854) null when unknown
     // (v9.7.656) THE FIELD THE CLICK & GO QUESTION NEEDED AND COULD NOT GET. isStaleClickAndGo
     // demotes a digital-retail lead out of its own branch on contactedAgeDays >= 14, or on a live
     // conversation with contactedAgeDays >= 1 -- which is exactly "the AI engaged and the customer
@@ -35973,7 +35945,7 @@ function _lpFeedbackCaptureMeta() {
     // director mode) but were invisible in meta until now.
     route:           (function(){
       var t = window._leadProRouteTrace || {};
-      var _lad = parseFloat(lastScrapedData.leadAgeDays || 0);
+      var _lad = parseFloat(lastScrapedData.leadAgeDays);
       var _fla = (_lad <= 1) && ((lastScrapedData.totalNoteCount || 0) > 3) && !lastScrapedData.hasOutbound;
       return {
         exitSignal:      !!lastScrapedData.hasExitSignal,

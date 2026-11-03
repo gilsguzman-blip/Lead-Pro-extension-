@@ -58,7 +58,7 @@ function extract(file) {
   if (a < 0 || b < 0 || b <= a) throw new Error('cadence block not found in ' + file);
   const sb = { console: { log() {} }, String, Number, Math, JSON, RegExp, Object, Array, parseFloat };
   vm.createContext(sb);
-  vm.runInContext(src.slice(a, b), sb);
+  vm.runInContext(require('./lib/age-helpers.js')(src) + src.slice(a, b), sb);   // (v9.7.854) the lead-age helpers the block calls
   return {
     name: path.basename(path.dirname(file)), src,
     code: src.replace(/^\s*(\/\/|\*|\/\*).*$/gm, ''),

@@ -23,8 +23,9 @@ function chain(src) {
   const b = src.indexOf('    var _incAiOnly = _lpFirstHumanTouch(d);', a);
   if (a < 0 || b < 0) throw new Error('incentive first-touch chain NOT FOUND — extraction failed');
   const body = src.slice(a, b);
+  const helpers = require('./lib/age-helpers.js')(src);   // (v9.7.854) the lead-age helpers the chain calls
   return (d, outreachN) => new Function('d', '_lpOutreachOnThisLead',
-    'var _incFirstTouch = true, _incFirstTouchReason = "";\n' + body + '\nreturn { firstTouch: _incFirstTouch, reason: _incFirstTouchReason };')(
+    helpers + 'var _incFirstTouch = true, _incFirstTouchReason = "";\n' + body + '\nreturn { firstTouch: _incFirstTouch, reason: _incFirstTouchReason };')(
     d, () => ({ src: 'lead-bounded-outbound', n: outreachN }));
 }
 

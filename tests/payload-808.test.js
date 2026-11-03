@@ -31,7 +31,9 @@ function check(name, fn, want) {
 // Fields a helper may read without the payload carrying them: history falls back to context in every helper that reads it;
 // indexOf/slice are string methods the scan mistakes for fields. (v9.7.809) The five other gaps this build found are carried
 // now; isDistanceBuyer and agentPhone stay off because nothing ever sets them. Any NEW gap fails.
-const KNOWN = ['history', 'indexOf', 'slice', 'agentPhone', 'isDistanceBuyer'];
+// (v9.7.854) _lpLeadAgeFallback also tries pageSnippet for the Created (Nd) cell, the way the scrape-side readers it
+// replaced did; on the panel it has context and history, so the absent pageSnippet costs nothing.
+const KNOWN = ['history', 'indexOf', 'slice', 'agentPhone', 'isDistanceBuyer', 'pageSnippet'];
 const coverage = (src) => panelPayload.coverage(src, KNOWN);
 
 const E = (when, tag, title, body) => '[' + when + '] [' + tag + '] ' + title + '\n  ' + body + '\n';
