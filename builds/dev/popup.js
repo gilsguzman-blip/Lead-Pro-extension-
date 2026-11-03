@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.858-dev (Dev. THE QUIET CUSTOMER STAYS ON THEIR OWN VEHICLE, OWNER-APPROVED 11/3. Extension only; proxy v7.91, reporter v1.25, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. Audi Lafayette lead 2086496908 (log392): a 2023 Lexus RX 350, confirmed in stock, customer 42 days quiet with 25 of our messages unanswered. The QUIET CUSTOMER rule, first in the prompt and outranking every block, took the SIMILAR VEHICLES side angle as the message's one job -- "we have 2026 Genesis GV70; 2025 Audi Q5 in stock now. Offer ONE" -- although that angle's own wording says never to lead with an unsolicited alternative, and two drafts in a row pitched the GV70, then the Q5. (1) While the vehicle on the lead is confirmed in stock (no sold claim, no pending deal, no inventory warning) and the customer never asked to see options (their words or a call, _lpAskedForOptions), the one job is a short check-in on THAT vehicle -- is it still on their list -- with no other vehicle offered and nothing re-sent; the SIMILAR VEHICLES line comes out of that prompt. An alternative stays the job for a vehicle we cannot confirm, or a customer who asked for options. Still no appointment times at 30+ days. [LP QUIET CUSTOMER DIAG] names the job and why. (2) A unit our own messages already offered is not news: SIMILAR VEHICLES drops a comparable when one of our messages names its model and its year or color (_lpCompAlreadyOffered; the model from the model table, else the comparable's own words, since the table has no Audi or Genesis). A comparable of the same model as the vehicle on the lead needs its color, one their vehicle does not have: "your 2026 RAV4" in our text is about theirs, not the 2026 RAV4 XSE beside it (the first cut of this rule dropped such comparables on five leads in the all-dumps replay). The Q5 our 10/22 email offered is dropped, logged in [LP SIMILAR VEHICLES DIAG]. Replayed from its dump, lead 2086496908's prompt now asks for a check-in on the Lexus RX 350 and carries no alternative; across all 96 dumps with an inventory snapshot it is the only lead whose prompt changes. TESTS: quiet-voi-858 (new) executes _lpCompAlreadyOffered, _lpAskedForOptions, populateFromData with a feed-shaped inventory snapshot and buildUserPrompt through the panel payload: 32 assertions across both builds; v9.7.857 fails 14 of 16 per build (its 2 controls pass). VERIFIED: run-all 301 suites green, 9889 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.857.)
 // Lead Pro -- popup.js  v9.7.857-dev (Dev. THE ORPHANED DAY-LOCK HEADER, OWNER-APPROVED 11/3. Extension only; proxy v7.91, reporter v1.25, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. When a stronger rule owns the visit (level 2+: no specific times -- the PITCH ALREADY OUT rule, zero contact, the quiet customer, a live appointment), the visit decision dropped the day-named block's two close lines ("LOCK IN <day>" and "Your ONLY close is two times on the day the customer named") and left the rest: "CUSTOMER NAMED A SPECIFIC DAY -- THIS IS A HARD CONSTRAINT: Do NOT offer today. Do NOT offer any other day." The model was told to hold to a day it was never given. Found by the B-2 replay's dry run on lead 2082278892, whose shipped 10/28 prompt carried exactly that. The header and its four known lines now leave together, logged as one edit ('day-named block'); the VISIT DECISION line says what owns the visit. At level 1 (the named day owns it) the block stays whole. Rebuilt from its dump, lead 2082278892's prompt no longer carries the orphan. TESTS: day-lock-orphan-857 (new) executes _lpApplyVisitDecision and populateFromData through buildUserPrompt: 16 assertions across both builds; v9.7.856 fails 4 of 8 per build (its 4 controls pass). VERIFIED: run-all 299 suites green, 9838 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.856.)
 // Lead Pro -- popup.js  v9.7.856-dev (Dev. AUDIT M-2, OWNER RULING 11/3: THE INVENTORY FEED NEVER OUTRANKS A PERSON. Extension only; proxy v7.91, reporter v1.25, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. CASE A -- a deposit / pending / hold note on THIS lead. The scraper's new note scan (_pendingNote) reads any note type but a message (text / email / chat), call notes included, dated at or after the lead's start (855's scope helper; with the start unknown the note is kept and its scope logged); the newest matching note wins, so "deal fell through / back on the lot / hold released" after a deposit makes it available again; "customer is buying" is not a pattern and a future deposit ("wants to put $2000 down") is not one. vehiclePendingSale is now that scan's verdict (the old general/vehicle-note scan read the whole record). The prompt drops "may be in the process of being sold -- create urgency" (it asserted another buyer's deal) and states the facts in an INVENTORY STATUS block, as approved: what the feed says, the note quoted with its date and author, that a deposit note is most often the customer's own deal, their deal -> move it forward, another buyer's -> do not offer it to see or offer times, either way never available and never sold, unclear -> say nothing about availability. CASE B -- our own message on this lead said it sold. The claim capture takes the bare verb ("the CR-V sold", "the one you asked about sold this morning"; not "sold you", "sold over 100", "sold-out") and keeps the whole message; _lpSoldClaimForVoi counts it for the vehicle on the lead when (a) the sold clause names the model with no conflicting color / year / trim and any stock or VIN matches, or (b) it names no vehicle and the same message names no other unit (a model, "the blue one", "the 2025", a stock number); an unknown attribute never conflicts; a newer "it is available" of ours outranks it. [LP SOLD SIGNAL DIAG] logs the branch (a/b) or why not. A counted claim outranks the feed: the approved Case B block, "SOLD per our own message" on the vehicle line, and the sold scenario fires (the feed-confirm override used to veto every sold path). A claim about another unit is listed as history: "this is about a different unit, so it does not decide this vehicle's availability." Under A or B the feed's confirmation is set aside for every later reader that takes it as "say it is here" (refine, render check, distance line, stale-year note). THE PROSE SOLD REGEX IS RETIRED (a prior lead's "that car has sold", "the 4:00 slot is no longer available"); it is still logged, deciding nothing. A sold flag (page banner or sold note) still outranks the feed and now also a deposit note. The Audi Lafayette all-available policy and the customer's own vehicle are unchanged. TESTS: inventory-status-856 (new) executes _lpSoldClaimForVoi, populateFromData, the panel payload, buildUserPrompt / classifyScenario, the shipped scraper note scan and the shipped claim-capture pattern: 76 assertions across both builds; v9.7.855 fails 30 of 38 per build (8 pass: 3 controls, and 5 the 855 region passes only because it has no note scan at all). sold-scan and fences-fallback pinned the retired prose regex and now pin that it decides nothing, plus the counted-claim path; consent-and-stock, stock-color, color-settled-741 and color-phrase-747 slice the confirmation branch and load the new helpers; fact-arbitration reads the moved feed override; inventory-711's sold+pending control now expects the sold flag named. VERIFIED: run-all 297 suites green, 9804 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.855.)
 // Lead Pro -- popup.js  v9.7.855-dev (Dev. OWNER DECISIONS 11/3 ON THE 852-854 REPORT. Extension only; proxy v7.91, reporter v1.25, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. (1) hasInternalNotInterested (newest 10 notes) and hasInternalSoldElsewhere (newest 80) read THIS LEAD ONLY: a note counts when dated at or after the lead's start -- the current-lead marker, else the Created date less the hour the transcript cutoff allows, else the read age. A prior lead's "not interested anymore" or "bought elsewhere" no longer ends a fresh inquiry (the v9.7.518 rule; the same leak 852 closed in exitByRemoval). When the start cannot be found (no marker, no Created, no age) a match cannot end the conversation on its own. Every matching note, its date and the verdict travel back as _internalExitDiag and print in the popup's [LP EXIT SIGNAL DIAG]. (2) A request relayed in a CALL note -- "customer asked to be taken off the list", "customer said stop contacting her" -- reaches the exit check under a call-note rule (call notes only, this lead only, logged as 'call-note relay'): the decline vocabulary had neither form, and an outbound call note never reaches exitRaw. (3) REACH OF THE 853 CALL-NOTE FIX, AS ASKED: it changed two prompt-side helpers (_lpCustEntries, _lpOtdAsk), not the transcript's tagging; the scraper still tags an inbound call note [CUSTOMER], so recentInbound (exitRaw, boughtElsewhere, exitByRemoval, bereavement rule 3, the bare-STOP test, recentCustomerActive) and the inbound-message list (the MOST RECENT CUSTOMER MESSAGE quote, day commits, waiting-on, pending decision) still read an inbound call note as the customer's words. It did cost coverage: the helpers that need a FACT lost a fact relayed on a call. They now read _lpCustSignals (inbound calls included, flagged viaCall, empty stubs out): _lpOfferedUnit, _lpTripIntent, _lpShipAsk, _lpFullpath (live), _lpQuoteOut, _lpCustomerTalking, _lpSecondApplicant, the house guard's hours-asked test, the comparable-models list and the rewrite's contact-after-our-text test; the trip, shipping and second-applicant lines say "on the phone (the call note says ...; never quote the note)" when it came from a call. Own-words readers stay on _lpCustEntries: _lpAcceptedOffer, _lpTeammateAnswered, _lpNewestNote, the newest-note quote, _lpLastExchange, _lpOtdAsk. All 94 dump prompts are byte-identical to 9.7.854 (none has a relayed fact of these kinds; the exit changes are frame-side and do not show in a dump). TESTS: internal-exit-855 (new) executes the shipped scraper region, the popup-side diag and the helpers: 38 assertions across both builds; v9.7.854 fails 14 of 19 per build. VERIFIED: run-all 296 suites green, 9726 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.854.)
@@ -1618,6 +1619,40 @@ function _lpReachedRecently(d) {
     }
   } catch (e) {}
   return '';
+}
+// (v9.7.858) A UNIT WE ALREADY OFFERED IS NOT NEWS. Audi Lafayette lead 2086496908 (log392): our 10/22 email was "A white
+// Q5 as another option ... the white 2025 Audi Q5 Premium Plus quattro", and on 11/3 the SIMILAR VEHICLES angle listed the same
+// unit and the draft offered it again. A comparable ("2025 Audi Q5 2.0T Premium Plus quattro (White)") counts as offered when one
+// of our messages names its model and its year or its color. The model comes from the model table, else from the comparable's own
+// words after year and make (the table has no Audi or Genesis). A comparable of the SAME model as the vehicle on the lead (d) needs
+// its color in our message, and a color the lead's vehicle does not have: "the 2026 RAV4" in our text is about their own RAV4, not
+// the 2026 RAV4 XSE beside it (the all-dumps replay found five leads losing a comparable that way). Returns the date, or ''.
+function _lpCompAlreadyOffered(comp, ours, d) {
+  try {
+    var c = String(comp || ''), yr = (c.match(/^(?:19|20)\d{2}\b/) || [''])[0];
+    var colors = Object.keys(_lpColorWords((c.match(/\(([^)]*)\)\s*$/) || ['', ''])[1]));
+    var models = _lpModelsIn(c).map(function (x) { return x.name; });
+    if (!models.length) {
+      var tok = (c.replace(/^(?:19|20)\d{2}\s+(?:Land Rover|Alfa Romeo|Aston Martin|Rolls[- ]Royce|\S+)\s+/i, '').match(/^[A-Za-z0-9][\w-]*/) || [''])[0];
+      if (tok.length >= 2) models = [tok];
+    }
+    if (!models.length) return '';
+    var voi = String((d && d.vehicle) || ''), sameModel = models.some(function (m) { return _lpModelRx(m).test(voi); });
+    var voiColors = _lpColorWords((d && d.color) || '');
+    if (sameModel) colors = colors.filter(function (w) { return !voiColors[w]; });
+    for (var i = 0; i < (ours || []).length; i++) {
+      var body = String(ours[i].body || '');
+      if (!models.some(function (m) { return _lpModelRx(m).test(body); })) continue;
+      var bc = _lpColorWords(body);
+      if ((!sameModel && yr && new RegExp('\\b' + yr + '\\b').test(body)) || colors.some(function (w) { return bc[w]; })) return ours[i].date || 'yes';
+    }
+  } catch (e) {}
+  return '';
+}
+// (v9.7.858) THE CUSTOMER ASKED TO SEE OTHER VEHICLES, in their own words or on a call.
+var LP_ASKED_OPTIONS_RX = /\b(?:other|more|different|similar)\s+(?:options|ones|vehicles|cars|trucks|suvs|models|choices)\b|\banything\s+(?:else|similar)\b|\bsomething\s+(?:else|similar)\b|\bwhat\s+else\s+(?:do\s+you|you)\s+(?:have|got)\b|\b(?:show|send)\s+me\s+(?:some\s+)?(?:options|others|alternatives)\b|\balternatives?\b/i;
+function _lpAskedForOptions(d) {
+  try { var e = _lpCustSignals(d).filter(function (x) { return LP_ASKED_OPTIONS_RX.test(x.body); })[0]; return e ? { date: e.date, viaCall: !!e.viaCall } : null; } catch (e) { return null; }
 }
 // The one current fact this lead can offer a quiet customer: an in-stock alternative the vehicle block surfaced.
 function _lpQuietFreshReason(ctx) {
@@ -10410,6 +10445,12 @@ function populateFromData(d) {
           console.log('[LP SIMILAR VEHICLES DIAG] they named ' + _cvcNamed.map(function (m) { return m.name; }).join(', ') + ' -- kept ' + _likeComps.length + ' of ' + _cvcBefore);
         }
         _likeComps = _likeComps.filter(function (c) { return _lpPaintFitsAsked(d, (String(c).match(/\(([^)]*)\)/) || ['', ''])[1]); });
+        // (v9.7.858) Not a unit our own messages already offered (see _lpCompAlreadyOffered).
+        try {
+          var _cvcOurs = _lpOurEntries(d), _cvcDropped = [];
+          _likeComps = _likeComps.filter(function (c) { var w = _lpCompAlreadyOffered(c, _cvcOurs, d); if (w) _cvcDropped.push(c + ' (offered ' + w + ')'); return !w; });
+          if (_cvcDropped.length) console.log('[LP SIMILAR VEHICLES DIAG] already offered in our messages, dropped: ' + _cvcDropped.join('; '));
+        } catch (eCvO) {}
         if (_likeComps.length) {
           vehicleExtras.push('🚙 SIMILAR VEHICLES IN STOCK (secondary-touch angle — real, in stock, do NOT quote price): ' + _likeComps.join('; ') + '. Use this ONLY if it genuinely helps this specific touch — e.g. the customer has gone quiet on the original ask, mentioned wanting to see options, or a fit issue (space, budget, feature) suggests an alternative might land better. Never lead a first-touch or a clearly-engaged conversation with an unsolicited alternative to the vehicle they asked about.'
             + _lpAskedColorClause(d));
@@ -29283,6 +29324,16 @@ function buildUserPrompt(data) {
         if (_qd) {
           var _qN = (data.relationshipSignals && data.relationshipSignals.consecutiveOutboundNoReply) || 0;
           var _qFresh = _lpQuietFreshReason(data.context);
+          // (v9.7.858) THE VEHICLE THEY ASKED ABOUT COMES FIRST. Lead 2086496908 (log392): a 2023 Lexus RX 350, confirmed in stock,
+          // 42 days quiet -- and this rule made the in-stock alternatives the message's one job, so two drafts in a row pitched a
+          // Genesis GV70 and an Audi Q5 instead of the Lexus. While their vehicle is confirmed in stock (no sold claim, no pending
+          // deal) and they never asked to see options, the job is a check-in on THAT vehicle; an alternative is for a vehicle we
+          // cannot confirm, or a customer who asked for options.
+          var _qVoiOk = !!(String(data.vehicle || '').trim() && data._lpInvConfirmedAvailable && !data._lpSoldClaimCounts && !data.vehiclePendingSale && !data.inventoryWarning);
+          var _qAsked = _qFresh ? _lpAskedForOptions(data) : null;
+          var _qVoiJob = _qVoiOk && !_qAsked;
+          // Its "SIMILAR VEHICLES" line says to use them when "the customer has gone quiet"; under this job it comes out of the prompt.
+          if (_qVoiJob && _qFresh) data.context = String(data.context || '').replace(/\n?\ud83d\ude99 SIMILAR VEHICLES IN STOCK[^\n]*/, '');
           ageBlock.push('\u23f3 THIS CUSTOMER LAST WROTE ' + _qd + ' DAYS AGO' + (_qN ? ', AND ' + _qN + ' OF OUR MESSAGES HAVE GONE UNANSWERED SINCE' : '')
             + '. THIS RULE OUTRANKS ANY BLOCK BELOW THAT SAYS OTHERWISE.');
           ageBlock.push('Everything from before they went quiet is BACKGROUND: what they submitted or did online when the lead came in, the site they came through, '
@@ -29290,14 +29341,19 @@ function buildUserPrompt(data) {
             + 'answer, honor or mention one of those things was written for a live conversation and does not apply to this message. Do not recap the history '
             + 'and do not dwell on the gap.');
           ageBlock.push('THIS MESSAGE HAS ONE JOB: give them one true, current reason to reply. '
-            + (_qFresh
+            + (_qVoiJob
+                ? 'The vehicle they asked about, the ' + String(data.vehicle).trim() + ', is still in stock. Make this a short check-in on THAT vehicle: ask whether '
+                  + 'it is still on their list. Do not offer another vehicle in this message, and do not re-send what our earlier messages already said about it.'
+                : _qFresh
                 ? 'The current reason on this lead: we have ' + _qFresh + ' in stock now. Offer ONE as an extra option alongside the vehicle they asked about '
                   + '(do not say that one is gone).'
                 : 'If nothing new is listed below, ask simply whether they are still looking, tied to what they were shopping for.')
             + ' Keep it warm, and close with one easy question they can answer in a word'
             + (_qd >= 30 ? ' \u2014 no appointment times in this message.' : '.'));
           ageBlock.push('');
-          try { console.log('[LP QUIET CUSTOMER DIAG] quiet ' + _qd + 'd | unanswered ' + _qN + ' | fresh reason: ' + (_qFresh || '(none listed)') + ' | times ' + (_qd >= 30 ? 'withheld' : 'allowed')); } catch (eQd) {}
+          try { console.log('[LP QUIET CUSTOMER DIAG] quiet ' + _qd + 'd | unanswered ' + _qN + ' | fresh reason: ' + (_qFresh || '(none listed)') + ' | times ' + (_qd >= 30 ? 'withheld' : 'allowed')
+            + ' | job: ' + (_qVoiJob ? 'check-in on the vehicle on the lead (confirmed in stock' + (_qFresh ? '; alternatives not offered, they never asked for options' : '') + ')'
+              : _qFresh ? 'offer an alternative (' + (_qAsked ? 'they asked for options ' + _qAsked.date : 'their vehicle is not confirmed in stock') + ')' : 'ask whether they are still looking')); } catch (eQd) {}
         }
       } catch (eQ) {}
       ageBlock.push('━━━ TIME & DATE CONTEXT ━━━');
