@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.860-dev (Dev. THE FIRST REACH IS THE WHOLE OPENING SEQUENCE, OWNER-APPROVED 11/3. Extension only; proxy v7.91, reporter v1.25, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. Honda Lafayette lead 2109298069 (log394): after the 2:46 PM voicemail the agent texted at 2:49 and emailed at 2:50 ("We do have a 2027 Honda Odyssey EX-L available!"), and the 3:12 PM draft on v9.7.859 was not a first reach: 859's rule held only while nothing but calls had gone out, so OUR PITCH IS ALREADY OUT told the text not to say again that the van is here, the source line called it a continuing thread (the draft opened "your online inquiry was for the 2027 Odyssey EX-L"), and TOUCH POSITION said "early follow-up ... do not re-introduce". (1) _lpStillFirstReach now covers the whole opening sequence -- calls, voicemails, texts and emails -- while the customer has not written or called, no call connected, and our FIRST outreach is under two hours old. The prompt names what went out ("you called and left a voicemail at 2:46 PM, then texted at 2:49 PM, then emailed at 2:50 PM") and says this message is part of that same reach and may carry the same news on another channel; the source line takes its first-contact wording; the phase reads "first-touch (Day 0-1) -- still the first reach ... do not copy our earlier message word for word". (2) "We do have a 2027 Honda Odyssey EX-L available" is an availability claim (it was not recorded at all), and "we don't have that trim available" the opposite; "Are you available at 3?" is neither. (3) The text named all five colors: when three or more colors are in stock (colors, not units), the TEXT names two or three and asks which they prefer; the email may name more. Replayed in Central time across all 97 dumps with an inventory snapshot, six prompts change: lead 2109298069's two, two other same-day leads now read as one first reach (2106255852, 2108726978: our first outreach about 80 minutes before the grab), and Accord lead 2065141269 gains the two-or-three-colors line (four colors in stock). TESTS: first-reach-860 (new) executes _lpStillFirstReach, the shipped claim-capture statement, _lpWhatWeHave, populateFromData and buildUserPrompt with the clock on the lead's own local times: 26 assertions across both builds; v9.7.859 fails 7 of 13 per build (its 6 controls pass). first-reach-859's text-of-ours control moves to a first outreach three hours old, and it and visit-radius-847 find the claim statement by its own alternation; first-touch-register gives its slice of the source line _lpStillFirstReach (null for its history-free fixtures, the shipped answer) and neuters the new branch text. VERIFIED: run-all 303 suites green, 9945 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.859.)
 // Lead Pro -- popup.js  v9.7.859-dev (Dev. THE FIRST REACH READS AS ONE, AND THE TRANSMISSION IS NOT THE TRIM. Extension only; proxy v7.91, reporter v1.25, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. Honda Lafayette lead 2109298069 (log393), Gil 11/3: "at first agent message said we had no 2027 Odyssey EX-L's. We have 7 ... and now the message reads like a follow up she had just sent the VM. Message should read like a first reach per rules." (1) VinSolutions' trim was "EX-L Auto" ("2027 Honda Odyssey EX-L Auto (New)"), the feed lists "Odyssey EX-L", and the inventory answer said the EX-L Auto was "NONE in stock today" with six on the lot; our voicemail repeated it. _lpTrimOf now drops transmission words (Auto, Automatic, Manual, CVT, eCVT, 6MT, 10AT, 6-speed) as it drops engine codes and drivetrain. (2) That voicemail, "We don't have that trim in stock today", was quoted back as WE SAID IT WAS AVAILABLE: "don't / doesn't / didn't have ... in stock", "out of stock" and "none in stock" are now the opposite claim. (3) STILL THE FIRST REACH (_lpStillFirstReach): on this lead the customer has not written or called, nothing of ours went out but phone calls, no call connected, and the newest call is under two hours old -- so the call and this message are one first reach. Three blocks stand down: "THIS IS THE FIRST TEXT/EMAIL, BUT NOT THE FIRST CONTACT ATTEMPT", OUR PITCH IS ALREADY OUT (the voicemail was read as an unanswered pitch) and WE HAVE BEEN TRYING TO REACH THEM. The prompt says instead that this is still the first reach: introduce yourself, answer their inquiry, no "trying to reach you", and where that call's message contradicts the inventory answer the inventory answer is right. [LP FIRST REACH DIAG] logs it. Replayed from its dump in Central time, lead 2109298069's prompt carries the first-reach line and the EX-L in stock; across all 96 dumps with an inventory snapshot it is the only lead whose prompt changes. TESTS: first-reach-859 (new) executes _lpTrimOf, _lpWhatWeHave, the shipped claim-capture statement, _lpStillFirstReach and populateFromData through buildUserPrompt, with the clock pinned to the lead's own local times: 30 assertions across both builds; v9.7.858 fails 12 of 15 per build (its 3 controls pass). visit-radius-847 lifts the same claim statement, which now spans three lines, and ends it at its own close. VERIFIED: run-all 302 suites green, 9919 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.858.)
 // Lead Pro -- popup.js  v9.7.858-dev (Dev. THE QUIET CUSTOMER STAYS ON THEIR OWN VEHICLE, OWNER-APPROVED 11/3. Extension only; proxy v7.91, reporter v1.25, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. Audi Lafayette lead 2086496908 (log392): a 2023 Lexus RX 350, confirmed in stock, customer 42 days quiet with 25 of our messages unanswered. The QUIET CUSTOMER rule, first in the prompt and outranking every block, took the SIMILAR VEHICLES side angle as the message's one job -- "we have 2026 Genesis GV70; 2025 Audi Q5 in stock now. Offer ONE" -- although that angle's own wording says never to lead with an unsolicited alternative, and two drafts in a row pitched the GV70, then the Q5. (1) While the vehicle on the lead is confirmed in stock (no sold claim, no pending deal, no inventory warning) and the customer never asked to see options (their words or a call, _lpAskedForOptions), the one job is a short check-in on THAT vehicle -- is it still on their list -- with no other vehicle offered and nothing re-sent; the SIMILAR VEHICLES line comes out of that prompt. An alternative stays the job for a vehicle we cannot confirm, or a customer who asked for options. Still no appointment times at 30+ days. [LP QUIET CUSTOMER DIAG] names the job and why. (2) A unit our own messages already offered is not news: SIMILAR VEHICLES drops a comparable when one of our messages names its model and its year or color (_lpCompAlreadyOffered; the model from the model table, else the comparable's own words, since the table has no Audi or Genesis). A comparable of the same model as the vehicle on the lead needs its color, one their vehicle does not have: "your 2026 RAV4" in our text is about theirs, not the 2026 RAV4 XSE beside it (the first cut of this rule dropped such comparables on five leads in the all-dumps replay). The Q5 our 10/22 email offered is dropped, logged in [LP SIMILAR VEHICLES DIAG]. Replayed from its dump, lead 2086496908's prompt now asks for a check-in on the Lexus RX 350 and carries no alternative; across all 96 dumps with an inventory snapshot it is the only lead whose prompt changes. TESTS: quiet-voi-858 (new) executes _lpCompAlreadyOffered, _lpAskedForOptions, populateFromData with a feed-shaped inventory snapshot and buildUserPrompt through the panel payload: 32 assertions across both builds; v9.7.857 fails 14 of 16 per build (its 2 controls pass). VERIFIED: run-all 301 suites green, 9889 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.857.)
 // Lead Pro -- popup.js  v9.7.857-dev (Dev. THE ORPHANED DAY-LOCK HEADER, OWNER-APPROVED 11/3. Extension only; proxy v7.91, reporter v1.25, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. When a stronger rule owns the visit (level 2+: no specific times -- the PITCH ALREADY OUT rule, zero contact, the quiet customer, a live appointment), the visit decision dropped the day-named block's two close lines ("LOCK IN <day>" and "Your ONLY close is two times on the day the customer named") and left the rest: "CUSTOMER NAMED A SPECIFIC DAY -- THIS IS A HARD CONSTRAINT: Do NOT offer today. Do NOT offer any other day." The model was told to hold to a day it was never given. Found by the B-2 replay's dry run on lead 2082278892, whose shipped 10/28 prompt carried exactly that. The header and its four known lines now leave together, logged as one edit ('day-named block'); the VISIT DECISION line says what owns the visit. At level 1 (the named day owns it) the block stays whole. Rebuilt from its dump, lead 2082278892's prompt no longer carries the orphan. TESTS: day-lock-orphan-857 (new) executes _lpApplyVisitDecision and populateFromData through buildUserPrompt: 16 assertions across both builds; v9.7.856 fails 4 of 8 per build (its 4 controls pass). VERIFIED: run-all 299 suites green, 9838 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.856.)
@@ -4982,19 +4983,30 @@ function _lpQuoteWho(q, d) {
 // voicemail, and the first text, minutes later, opened "Test, we've been trying to reach you". Three blocks read that one
 // voicemail as a history of unanswered outreach: the call-only prior attempt ("acknowledge that the team has been trying"), OUR
 // PITCH IS ALREADY OUT and WE HAVE BEEN TRYING TO REACH THEM. Call, voicemail, text and email minutes apart are ONE first reach
-// (Gil, 11/3: "Message should read like a first reach per rules"). Holds when, on this lead, the customer has not written or
-// called, nothing of ours went out but phone calls, no call connected, and the newest call is under two hours old.
-// Returns { date, time, n } or null.
+// (Gil, 11/3: "Message should read like a first reach per rules").
+// (v9.7.860) THE WHOLE OPENING SEQUENCE. The same lead, log394: the agent emailed at 2:50 PM ("We do have a 2027 Honda Odyssey EX-L
+// available!"), and v9.7.859's rule -- only phone calls so far -- ended there, so OUR PITCH IS ALREADY OUT told the 3:12 PM first
+// text not to say again that the van is here, and the source line read it as a continuing thread ("your online inquiry was for
+// the 2027 Odyssey EX-L"). Call, voicemail, email and text in the first two hours are one first reach. Holds when, on this lead,
+// the customer has not written or called, no call connected, and our FIRST outreach is under two hours old.
+// Returns { date, time, n, sent: ['you called at 2:46 PM and left a voicemail', 'emailed at 2:50 PM'] } or null.
 function _lpStillFirstReach(d) {
   try {
     if (!d || d.hasCustomerReply) return null;
     var ents = _lpThreadEntries((d.history || d.context) || '');
     if (ents.some(function (x) { return /CUSTOMER/i.test(x.tag) && !/REQUEST FROM INQUIRY/i.test(x.tag); })) return null;
     var ours = ents.filter(function (x) { return /^AGENT$/i.test(String(x.tag || '').trim()); });
-    if (!ours.length || ours.some(function (x) { return !/phone call/i.test(x.title) || /\(Contacted\)/i.test(x.title); })) return null;
-    var nw = ours.slice().sort(function (a, b) { return b.t - a.t; })[0], age = Date.now() - nw.t;
+    if (!ours.length || ours.some(function (x) { return /\(Contacted\)/i.test(x.title); })) return null;
+    ours.sort(function (a, b) { return a.t - b.t; });
+    var first = ours[0], nw = ours[ours.length - 1], age = Date.now() - first.t;
     if (!(age >= -5 * 60000 && age < 2 * 3600000)) return null;
-    return { date: nw.date, time: (String(nw.raw || '').match(/\d{1,2}:\d{2}\s*[AP]M/i) || [''])[0], n: ours.length };
+    var tm = function (x) { return (String(x.raw || '').match(/\d{1,2}:\d{2}\s*[AP]M/i) || [''])[0]; };
+    var sent = ours.map(function (x) {
+      var w = /phone call/i.test(x.title) ? ('called' + (/\(Machine\)/i.test(x.title) || /\bleft (?:a )?(?:message|voicemail)\b/i.test(x.body) ? ' and left a voicemail' : ''))
+        : /text/i.test(x.title) ? 'texted' : /e-?mail/i.test(x.title) ? 'emailed' : 'reached out';
+      return w + (tm(x) ? ' at ' + tm(x) : '');
+    });
+    return { date: nw.date, time: tm(nw), n: ours.length, sent: sent, written: ours.some(function (x) { return !/phone call/i.test(x.title); }) };
   } catch (e) { return null; }
 }
 function _lpPitchOut(d) {
@@ -5340,6 +5352,9 @@ function _lpWhatWeHave(d) {
         + 'A unit with no interior shown, or only the material (", Leather interior"), has no interior color on record -- do not say it has or lacks theirs.');
       try { console.log('[LP WHAT WE HAVE DIAG] interior asked: ' + _wwInt.color + ' -- read apart from the paint' + (_wwPaint ? ' | paint by name: ' + _wwPaint : '')); } catch (eWi) {}
     }
+    // (v9.7.860) Lead 2109298069's text named all five colors in one breath; in a text, two or three and a question read better.
+    var _wwColorsN = {}; exact.concat(sameTrim).forEach(function (u) { var c = String((u && u.color) || '').trim().toLowerCase(); if (c) _wwColorsN[c] = 1; });   // colors, not units: ten gray Accords are one color
+    if (Object.keys(_wwColorsN).length >= 3) L.push('- In the TEXT, name two or three of these colors at most and ask which they prefer -- never the whole list. The email may name more.');
     L.push('This answers what they asked. Tell them plainly. Do NOT say you still need to check, verify or confirm availability on this model -- the feed has been checked for this grab. '
       + (exact.length ? 'The unit(s) listed as IN STOCK are confirmed by the feed: this outranks any line in this prompt that says the vehicle\'s presence is not confirmed. '
                       : (_adjLine ? 'Lead with the ' + _adjName + ' as the answer. '
@@ -15389,7 +15404,8 @@ function _lpScraperBotAuthor(msg) {
             if ((_scM = _scContent.match(/[^.!?]{0,70}(?:\bsold\b(?![-\s]+out\b)(?!\s+(?:you|to\s+you|your|over|more|a\s+lot|lots|many|\d|him|her|me|us)\b)|\bno longer available\b)[^.!?]{0,90}/i))) _scAdd('sold', _scM[0], _scContent);
             // (v9.7.847) "isn't in stock today" is the opposite claim. Toyota Baytown lead 2108628902: our 9:27 text said the SR
             // Double Cab "isn't in stock today", and the prompt quoted it back as WE SAID IT WAS AVAILABLE under "do not contradict".
-            if ((_scM = _scContent.match(/[^.!?]{0,70}\b(?:is here|here and (?:ready|available)|available to see|still available|in stock|ready for you to see)\b[^.!?]{0,90}/i))) _scAdd((/\b(?:isn['’]t|is not|aren['’]t|are not|wasn['’]t|not|no longer)\s+(?:currently\s+|yet\s+|actually\s+)?(?:here|in stock|available)\b/i.test(_scM[0])
+            // (v9.7.860) + "we do have <the vehicle> available" (lead 2109298069's 2:50 PM email, which corrected our voicemail).
+            if ((_scM = _scContent.match(/[^.!?]{0,70}(?:\b(?:is here|here and (?:ready|available)|available to see|still available|in stock|ready for you to see)\b|\b(?:we|i)\s+(?:do\s+|still\s+|don['’]t\s+|do\s+not\s+)?(?:currently\s+)?have\s+(?:an?\s+|the\s+|it\s+|one\s+|that\s+)?[^.!?]{0,60}?\bavailable\b)[^.!?]{0,90}/i))) _scAdd((/\b(?:isn['’]t|is not|aren['’]t|are not|wasn['’]t|not|no longer)\s+(?:currently\s+|yet\s+|actually\s+)?(?:here|in stock|available)\b/i.test(_scM[0])
               // (v9.7.859) "We don't have that trim in stock today" (lead 2109298069) was quoted back as WE SAID IT WAS AVAILABLE.
               || /\b(?:don['’]t|do not|doesn['’]t|does not|didn['’]t|did not)\s+(?:currently\s+)?have\b[^.!?]{0,40}\b(?:in stock|here|available)\b|\bout of stock\b|\bnone\s+(?:currently\s+)?in stock\b/i.test(_scM[0])) ? 'unavailable' : 'available', _scM[0]);   // (inline: this runs inside the injected scraper)
             if ((_scM = _scContent.match(/[^.!?]{0,70}\b(?:confirmed for|your appointment (?:on|is)|see you (?:on|at)|scheduled for)\b[^.!?]{0,90}/i))) _scAdd('appointment', _scM[0]);
@@ -27466,7 +27482,7 @@ function buildUserPrompt(data) {
   // together, so the anti-stall guard wins on a genuinely fresh, zero-attempt lead.
   // (v9.7.859) Not when that call was minutes ago on a fresh lead: the call and this message are one first reach (_lpStillFirstReach).
   var _sfrSc = _lpStillFirstReach(data);
-  if (_sfrSc) console.log('[LP FIRST REACH DIAG] still the first reach: ' + _sfrSc.n + ' call(s) of ours on this lead, the newest ' + _sfrSc.date + ' ' + _sfrSc.time + ', nothing else -- no "we have been trying to reach you"');
+  if (_sfrSc) console.log('[LP FIRST REACH DIAG] still the first reach: ' + _sfrSc.n + ' outreach(es) of ours on this lead (' + _sfrSc.sent.join(', ') + '), the first under two hours ago, no reply, no connected call -- no "we have been trying to reach you"');
   if (hasCallOnlyPriorAttempt && !_sfrSc && !/PRIOR OUTREACH already made/.test(scenarioDirective) && typeof _scFirstTouchAntiStall === 'undefined') {
     scenarioDirective += '\n⚠ THIS IS THE FIRST TEXT/EMAIL, BUT NOT THE FIRST CONTACT ATTEMPT. The team has already tried reaching this customer by phone (see the call notes in the transcript) with no answer — this is not a brand-new, five-minutes-old lead. Acknowledge that you/the team have been trying to reach them (e.g. "I know we\'ve tried reaching you a few times about...") rather than opening as if this is the very first outreach of any kind. Still keep it warm — this is not a scolding, just an honest acknowledgment before moving the conversation forward. These are OUR calls to them (v9.7.729): they say nothing about a call the customer made to us, so do not turn them into "sorry we missed your call".';
     console.log('[Lead Pro] Call-only prior attempt acknowledgment applied (no digital outreach yet, but phone attempts exist)');
@@ -29866,7 +29882,10 @@ function buildUserPrompt(data) {
         // (v9.7.250) Day 0-1 is the first-touch WINDOW, but if real outbound has already gone out on
         // this lead it is an early follow-up, not a first contact. Labeling it "first-touch" made the
         // model re-open cold and repeat the opener (Tuan: rewrote the 8:44 AM email almost verbatim).
-        _phase = data.hasOutbound
+        // (v9.7.860) Inside the first reach (see _lpStillFirstReach) the outreach minutes ago is part of this same first contact.
+        _phase = (data.hasOutbound && _lpStillFirstReach(data))
+          ? 'first-touch (Day 0-1) — still the first reach: what went out minutes ago is part of it, so this reads as a first message; do not copy our earlier message word for word'
+          : data.hasOutbound
           ? 'early follow-up (Day 0-1 window, but outreach already sent — continue the thread, do not re-introduce or repeat your opener)'
           : 'first-touch (Day 0-1)';
       } else if (_lad <= 7) {
@@ -30044,10 +30063,11 @@ function buildUserPrompt(data) {
     var _sfr = _lpStillFirstReach(data);
     if (_sfr) {
       ageBlock.push('');
-      ageBlock.push('THIS IS STILL THE FIRST REACH: the only contact so far is ' + (_sfr.n === 1 ? 'the call' : 'the calls') + ' you made '
-        + (_sfr.time ? 'at ' + _sfr.time + ' ' : '') + 'on ' + _sfr.date + ', minutes ago, with no answer yet. Write this text and email as the first message '
-        + 'on this lead: introduce yourself and answer their inquiry. Do NOT say you have been trying to reach them, and nothing may read as a follow-up. '
-        + 'If that call\'s message said something the inventory answer below contradicts, the inventory answer is right: say the correct thing plainly.');
+      ageBlock.push('THIS IS STILL THE FIRST REACH: on ' + _sfr.date + ' you ' + _sfr.sent.join(', then ') + ', and there is no answer yet. This message is part of that '
+        + 'same first reach: write it as a first message on this lead -- introduce yourself and answer their inquiry'
+        + (_sfr.written ? ' (it may carry the same news our earlier message did, on another channel)' : '') + '. Do NOT say you have been trying to reach them, '
+        + 'and nothing may read as a follow-up. If anything we sent in this reach said something the inventory answer below contradicts, the inventory answer '
+        + 'is right: say the correct thing plainly.');
     }
   } catch (eSfr) {}
   // (v9.7.816) Our pitch is out and unanswered (see _lpPitchOut).
@@ -30321,7 +30341,7 @@ function buildUserPrompt(data) {
         + 'still use the name in passing if the sentence genuinely needs it; never as the opener, and never as '
         + 'the reason for the message. Use exactly this name and no other: never a CRM routing label, a vendor '
         + 'name, or anything you see in the notes or lead history.');
-    } else if (data && data.hasOutbound) {
+    } else if (data && data.hasOutbound && !_lpStillFirstReach(data)) {   // (v9.7.860) inside the first reach it is still a first contact
       _ackArm = 'EMITTED-continuing-thread — one passing mention asked for, never as an opening announcement; no example sentence is shown';
       ageBlock.push('This lead came in through ' + _ackName + '. Outreach has already gone out on this lead, so '
         + 'this is a continuing thread: name the source once, in passing — it tells them we read what they sent — but NOT as an opening '

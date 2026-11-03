@@ -95,7 +95,9 @@ function stepBlock(impl, data, code) {
 }
 function ackRun(impl, data, ackName, code) {
   const outcomes = [];
-  const sb = { data: data, _ackName: ackName, ageBlock: [], JSON: JSON,
+  // (v9.7.860) The block asks _lpStillFirstReach (first-reach-860). These fixtures carry no thread entries, for which the shipped
+  // helper returns null, so null here is the shipped answer, not a looser one.
+  const sb = { data: data, _ackName: ackName, ageBlock: [], JSON: JSON, _lpStillFirstReach: () => null,
                _ackLog: (o) => outcomes.push(o),
                _ackP: { ex1: 'I saw your ' + ackName + ' request come through...',
                         ex2: 'Thanks for starting this on ' + ackName + '...' } };
@@ -220,7 +222,7 @@ console.log('\nnon-vacuity (restoring each register):');
 
 const OLD_STEPS = c => c.replace(/\+ \(data\.hasOutbound[\s\S]*?: ''\)\n/, '');
 const OLD_ACK   = c => c.replace('if (_ackSaid) {', 'if (false) {')
-                        .replace('} else if (data && data.hasOutbound) {', '} else if (false) {');
+                        .replace('} else if (data && data.hasOutbound && !_lpStillFirstReach(data)) {', '} else if (false) {');   // (v9.7.860) the branch now also asks the first reach
 const OLD_ANGLES = c => c.replace(/,\n\s*\/\/ \(v9\.7\.650\)[\s\S]*?\['qualifying',[\s\S]*?\/i\]/, '');
 
 check('neuter A actually changed the steps block', i => OLD_STEPS(i.steps) !== i.steps, true);
@@ -429,7 +431,7 @@ check('...and it IS printed on the first-contact arm, which does show one',
 
 check('exactly one outcome is logged per run — not none, not two',
   i => { const runs = [SAID, OUT_UNSAID, FIRST].map(d => {
-           const outs = []; const sb = { data: d, _ackName: 'Click & Go', ageBlock: [], JSON: JSON,
+           const outs = []; const sb = { data: d, _ackName: 'Click & Go', ageBlock: [], JSON: JSON, _lpStillFirstReach: () => null,
              _ackLog: (o) => outs.push(o), _ackP: { ex1: 'a', ex2: 'b' } };
            vm.createContext(sb); vm.runInContext(i.ack, sb); return outs.length; });
          return runs; }, [1, 1, 1]);

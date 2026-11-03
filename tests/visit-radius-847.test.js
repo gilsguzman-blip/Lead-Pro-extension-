@@ -109,7 +109,7 @@ for (const f of BUILDS) {
     [(await refine(2, 'Test, is the Double Cab the main thing for you? I can check which Tacoma options fit.' + SIG))[0], (await refine(0, ADD))[0]], ['shipped', 'shipped']);
 
   console.log(' 3. our own "isn\'t in stock" is not an availability claim:');
-  const ca = src.indexOf('            if ((_scM = _scContent.match(/[^.!?]{0,70}\\b(?:is here|');
+  const ca = src.lastIndexOf('            if ((_scM = _scContent.match(', src.indexOf('is here|here and (?:ready|available)|available to see'));   // (v9.7.860) the pattern now opens with a group
   // (v9.7.859) the statement spans lines since "don't have ... in stock" joined it; it ends at its own "_scM[0]);".
   const stmt = ca > 0 ? src.slice(ca, src.indexOf('_scM[0]);', ca) + '_scM[0]);'.length) : '';
   const claim = (text) => { const box = { _scContent: text, _scM: null, got: [] }; box._scAdd = (k, s) => box.got.push(k); vm.createContext(box); vm.runInContext(stmt, box); return box.got[0] || null; };

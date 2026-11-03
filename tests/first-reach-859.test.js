@@ -40,7 +40,8 @@ const LSD = (x) => Object.assign({ autoLeadId: 'TEST001A', name: 'Test Buyer', f
   totalNoteCount: 3, phone: '(555) 010-0199', email: 'test@example.com', relationshipSignals: { unansweredQuestions: [], customerCommitments: [], agentCommitments: [] },
   history: VM + NOTE + MARK, conversationBrief: VM + NOTE + MARK, context: VM + NOTE + MARK }, x || {});
 function claimKind(src) {   // the shipped availability-claim statement, run on one message
-  const a = src.indexOf("if ((_scM = _scContent.match(/[^.!?]{0,70}\\b(?:is here|"); const b = src.indexOf('_scM[0]);', a) + '_scM[0]);'.length;   // one statement, possibly over several lines
+  // One statement, possibly over several lines; found by its own alternation (v9.7.860 opened the pattern with a group).
+  const a = src.lastIndexOf('if ((_scM = _scContent.match(', src.indexOf('is here|here and (?:ready|available)|available to see')); const b = src.indexOf('_scM[0]);', a) + '_scM[0]);'.length;
   if (a < 0) throw new Error('claim line not found');
   const fn = new Function('_scContent', 'var _scM, out = null; var _scAdd = function (k) { out = k; };\n' + src.slice(a, b) + '\nreturn out;');
   return (t) => fn(t);
@@ -76,15 +77,17 @@ for (const f of BUILDS) {
 
   console.log(' 3. a voicemail minutes ago is the same first reach:');
   const a = go(LSD());
-  check('the prompt says it is still the first reach', () => /THIS IS STILL THE FIRST REACH: the only contact so far is the call you made at 2:46 PM on 11\/03, minutes ago/.test(a.prompt), true);
+  // (v9.7.860) the line now names everything that went out in the reach.
+  check('the prompt says it is still the first reach', () => /THIS IS STILL THE FIRST REACH: on 11\/03 you called and left a voicemail at 2:46 PM, and there is no answer yet/.test(a.prompt), true);
   check('and none of the three follow-up blocks is there', () =>
     [/NOT THE FIRST CONTACT ATTEMPT/.test(a.prompt), /OUR PITCH IS ALREADY OUT/.test(a.prompt), /WE HAVE BEEN TRYING TO REACH THEM/.test(a.prompt)], [false, false, false]);
-  check('[LP FIRST REACH DIAG] says why', () => /\[LP FIRST REACH DIAG\] still the first reach: 1 call\(s\) of ours on this lead, the newest 11\/03 2:46 PM/.test(a.logs), true);
+  check('[LP FIRST REACH DIAG] says why', () => /\[LP FIRST REACH DIAG\] still the first reach: 1 outreach\(es\) of ours on this lead \(called and left a voicemail at 2:46 PM\)/.test(a.logs), true);
   const SFR = (lsd) => run('_lpStillFirstReach')(lsd);
   const call3h = E('11:30 AM', 'AGENT', 'Outbound phone call (Machine)', 'Left message, Hi Test, this is Agent.');
   check('control: a call three hours ago is a real prior attempt (not the first reach any more)', () => SFR(LSD({ history: call3h + MARK.replace('2:36 PM', '11:00 AM') })), null);
-  const txt = E('2:48 PM', 'AGENT', 'Outbound Text Message', 'Test, thanks for your inquiry about the Odyssey.');
-  check('control: once a text of ours went out, this is a follow-up', () => SFR(LSD({ history: txt + VM + NOTE + MARK })), null);
+  // (v9.7.860) A text of ours minutes ago is part of the same first reach now (first-reach-860); one from hours ago is not.
+  const txt = E('11:40 AM', 'AGENT', 'Outbound Text Message', 'Test, thanks for your inquiry about the Odyssey.');
+  check('control: once our first outreach is hours old, this is a follow-up', () => SFR(LSD({ history: VM + NOTE + txt + MARK.replace('2:36 PM', '11:30 AM') })), null);
   const conn = E('2:46 PM', 'AGENT', 'Outbound phone call (Contacted)', 'Spoke with Test about the Odyssey.');
   check('control: a call that connected is contact, not a first reach', () => SFR(LSD({ history: conn + NOTE + MARK })), null);
   const rep = E('2:48 PM', 'CUSTOMER', 'Inbound Text Message', 'Is the white one there?');
