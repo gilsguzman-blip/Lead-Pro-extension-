@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.861-dev (Dev. FOUR LEADS THE AGENTS GAVE UP ON, OWNER-APPROVED 11/4. Extension only; proxy v7.91, reporter v1.25, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. From the 11/3 feedback and Gil's grabs on 860 (logs 395-398). (1) Audi Lafayette lead 2104763932 (six regenerations on 11/3, then marked lost): on the 10/23 call the customer asked for the buyer's order and nothing shows it went; the drafts offered a video walkaround and "verify the specific Elantra" instead. _lpOwedBuyersOrder reads the newest ask (the customer's own message or a connected call) with no later message or note of ours saying it went; the prompt opens with it as the reason for the message, and the sales rep sends it ("Rep (Rep Name, their sales rep) will send the buyer's order over"; the agent when the agent is the rep) -- no figure, no video, photos, visit or unit check in its place, one easy cash/finance/trade question at most. Not issued while the quiet rule owns the message, or at another store while the unit's status is in question. The SMS rewrite keeps it. On the same prompt the Audi store policy said "present it as AVAILABLE" while VEHICLE ON LEAD said "do not say it is here", the distance context "NOT confirmed by today's feed", and the inventory note "a VIN but NO stock number" (there was one) with "verify the exact unit": under the policy (d._lpAudiAvailPolicy, carried in the payload) all three defer to it, and the policy line adds "do not say you will verify, check on or confirm the unit". A prior-year stock number the feed does not hold now gets v9.7.696's own note instead of the VIN-only one, at every store. The distance header says "more than 75 miles" on a special trip (it said "within 75" beside "more than 75"). (2) Honda Baytown lead 2107967819 (FullPath text reply): "nobody on our team has answered them yet. Answer it first" after the agent's text, email and voicemail about the trade -- the draft opened "I still owe you a useful answer". A reply a person on our team has taken up (the trade, a payment: its subject in what we wrote; never the automated assistant, a campaign, or a message that ignored it, e.g. lead 2106255852's "what are you shopping for?") is background. "Current note is $0 per month" was quoted back: _lpPaidOff reads a $0 payment in their own words as a paid-off car -- never "$0" or "your current note", no payment goal. (3) Kia Baytown lead 2101893543: "it's hard for me to just go sit at a dealership just to talk numbers" and "Id rather do it online", 15 days quiet, became background and the draft asked "are you still considering the K5 GT-Line?". Gil: keep the customer's stated way to do business. _lpWayToBuy survives the quiet rule: the check-in offers the numbers by text or email so the only trip in is to sign, no times (its own visit-decision owner); the rewrite keeps it. (4) Kia Baytown lead 2088871268: our messages promised "I can check which Sorento Hybrid configurations match" (9/24, 10/9, 10/27) and never answered, with one Sorento Hybrid on the lot. _lpOwedStockCheck (a person's promise to check stock -- check, look into, find out; not "confirm the exact unit" -- with no later message of ours naming the model as in stock) makes it the availability question, so what we have answers it, says it is that answer, and carries the connected call's needs ("heated seats, darker interior and exterior") with each unit's paint and interior, never calling a paint dark unless its name says so. _lpHumanOut is the shared reader of a person's messages. Replayed in Central time across all 101 dumps with an inventory snapshot: 9 prompts change -- the four leads above, and five grabs of leads 2097428117 and 1581859334 whose prior-year stock number the feed did not hold (the "NO stock number" note goes). TESTS: owed-asks-861 (new) executes the helpers, populateFromData, buildUserPrompt through the panel payload and _lpBuildSmsRefinePrompt with the clock on the leads' own times: 44 assertions across both builds; v9.7.860 fails 16 of 22 per build (its 6 controls pass). VERIFIED: run-all 304 suites green, 9989 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.860.)
 // Lead Pro -- popup.js  v9.7.860-dev (Dev. THE FIRST REACH IS THE WHOLE OPENING SEQUENCE, OWNER-APPROVED 11/3. Extension only; proxy v7.91, reporter v1.25, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. Honda Lafayette lead 2109298069 (log394): after the 2:46 PM voicemail the agent texted at 2:49 and emailed at 2:50 ("We do have a 2027 Honda Odyssey EX-L available!"), and the 3:12 PM draft on v9.7.859 was not a first reach: 859's rule held only while nothing but calls had gone out, so OUR PITCH IS ALREADY OUT told the text not to say again that the van is here, the source line called it a continuing thread (the draft opened "your online inquiry was for the 2027 Odyssey EX-L"), and TOUCH POSITION said "early follow-up ... do not re-introduce". (1) _lpStillFirstReach now covers the whole opening sequence -- calls, voicemails, texts and emails -- while the customer has not written or called, no call connected, and our FIRST outreach is under two hours old. The prompt names what went out ("you called and left a voicemail at 2:46 PM, then texted at 2:49 PM, then emailed at 2:50 PM") and says this message is part of that same reach and may carry the same news on another channel; the source line takes its first-contact wording; the phase reads "first-touch (Day 0-1) -- still the first reach ... do not copy our earlier message word for word". (2) "We do have a 2027 Honda Odyssey EX-L available" is an availability claim (it was not recorded at all), and "we don't have that trim available" the opposite; "Are you available at 3?" is neither. (3) The text named all five colors: when three or more colors are in stock (colors, not units), the TEXT names two or three and asks which they prefer; the email may name more. Replayed in Central time across all 97 dumps with an inventory snapshot, six prompts change: lead 2109298069's two, two other same-day leads now read as one first reach (2106255852, 2108726978: our first outreach about 80 minutes before the grab), and Accord lead 2065141269 gains the two-or-three-colors line (four colors in stock). TESTS: first-reach-860 (new) executes _lpStillFirstReach, the shipped claim-capture statement, _lpWhatWeHave, populateFromData and buildUserPrompt with the clock on the lead's own local times: 26 assertions across both builds; v9.7.859 fails 7 of 13 per build (its 6 controls pass). first-reach-859's text-of-ours control moves to a first outreach three hours old, and it and visit-radius-847 find the claim statement by its own alternation; first-touch-register gives its slice of the source line _lpStillFirstReach (null for its history-free fixtures, the shipped answer) and neuters the new branch text. VERIFIED: run-all 303 suites green, 9945 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.859.)
 // Lead Pro -- popup.js  v9.7.859-dev (Dev. THE FIRST REACH READS AS ONE, AND THE TRANSMISSION IS NOT THE TRIM. Extension only; proxy v7.91, reporter v1.25, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. Honda Lafayette lead 2109298069 (log393), Gil 11/3: "at first agent message said we had no 2027 Odyssey EX-L's. We have 7 ... and now the message reads like a follow up she had just sent the VM. Message should read like a first reach per rules." (1) VinSolutions' trim was "EX-L Auto" ("2027 Honda Odyssey EX-L Auto (New)"), the feed lists "Odyssey EX-L", and the inventory answer said the EX-L Auto was "NONE in stock today" with six on the lot; our voicemail repeated it. _lpTrimOf now drops transmission words (Auto, Automatic, Manual, CVT, eCVT, 6MT, 10AT, 6-speed) as it drops engine codes and drivetrain. (2) That voicemail, "We don't have that trim in stock today", was quoted back as WE SAID IT WAS AVAILABLE: "don't / doesn't / didn't have ... in stock", "out of stock" and "none in stock" are now the opposite claim. (3) STILL THE FIRST REACH (_lpStillFirstReach): on this lead the customer has not written or called, nothing of ours went out but phone calls, no call connected, and the newest call is under two hours old -- so the call and this message are one first reach. Three blocks stand down: "THIS IS THE FIRST TEXT/EMAIL, BUT NOT THE FIRST CONTACT ATTEMPT", OUR PITCH IS ALREADY OUT (the voicemail was read as an unanswered pitch) and WE HAVE BEEN TRYING TO REACH THEM. The prompt says instead that this is still the first reach: introduce yourself, answer their inquiry, no "trying to reach you", and where that call's message contradicts the inventory answer the inventory answer is right. [LP FIRST REACH DIAG] logs it. Replayed from its dump in Central time, lead 2109298069's prompt carries the first-reach line and the EX-L in stock; across all 96 dumps with an inventory snapshot it is the only lead whose prompt changes. TESTS: first-reach-859 (new) executes _lpTrimOf, _lpWhatWeHave, the shipped claim-capture statement, _lpStillFirstReach and populateFromData through buildUserPrompt, with the clock pinned to the lead's own local times: 30 assertions across both builds; v9.7.858 fails 12 of 15 per build (its 3 controls pass). visit-radius-847 lifts the same claim statement, which now spans three lines, and ends it at its own close. VERIFIED: run-all 302 suites green, 9919 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.858.)
 // Lead Pro -- popup.js  v9.7.858-dev (Dev. THE QUIET CUSTOMER STAYS ON THEIR OWN VEHICLE, OWNER-APPROVED 11/3. Extension only; proxy v7.91, reporter v1.25, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. Audi Lafayette lead 2086496908 (log392): a 2023 Lexus RX 350, confirmed in stock, customer 42 days quiet with 25 of our messages unanswered. The QUIET CUSTOMER rule, first in the prompt and outranking every block, took the SIMILAR VEHICLES side angle as the message's one job -- "we have 2026 Genesis GV70; 2025 Audi Q5 in stock now. Offer ONE" -- although that angle's own wording says never to lead with an unsolicited alternative, and two drafts in a row pitched the GV70, then the Q5. (1) While the vehicle on the lead is confirmed in stock (no sold claim, no pending deal, no inventory warning) and the customer never asked to see options (their words or a call, _lpAskedForOptions), the one job is a short check-in on THAT vehicle -- is it still on their list -- with no other vehicle offered and nothing re-sent; the SIMILAR VEHICLES line comes out of that prompt. An alternative stays the job for a vehicle we cannot confirm, or a customer who asked for options. Still no appointment times at 30+ days. [LP QUIET CUSTOMER DIAG] names the job and why. (2) A unit our own messages already offered is not news: SIMILAR VEHICLES drops a comparable when one of our messages names its model and its year or color (_lpCompAlreadyOffered; the model from the model table, else the comparable's own words, since the table has no Audi or Genesis). A comparable of the same model as the vehicle on the lead needs its color, one their vehicle does not have: "your 2026 RAV4" in our text is about theirs, not the 2026 RAV4 XSE beside it (the first cut of this rule dropped such comparables on five leads in the all-dumps replay). The Q5 our 10/22 email offered is dropped, logged in [LP SIMILAR VEHICLES DIAG]. Replayed from its dump, lead 2086496908's prompt now asks for a check-in on the Lexus RX 350 and carries no alternative; across all 96 dumps with an inventory snapshot it is the only lead whose prompt changes. TESTS: quiet-voi-858 (new) executes _lpCompAlreadyOffered, _lpAskedForOptions, populateFromData with a feed-shaped inventory snapshot and buildUserPrompt through the panel payload: 32 assertions across both builds; v9.7.857 fails 14 of 16 per build (its 2 controls pass). VERIFIED: run-all 301 suites green, 9889 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.857.)
@@ -5009,6 +5010,109 @@ function _lpStillFirstReach(d) {
     return { date: nw.date, time: tm(nw), n: ours.length, sent: sent, written: ours.some(function (x) { return !/phone call/i.test(x.title); }) };
   } catch (e) { return null; }
 }
+// (v9.7.861) A MESSAGE A PERSON ON OUR TEAM SENT ON THIS LEAD: not the store's automated assistant, not a marketing campaign
+// or an automated FullPath text, not a call-tracking stub or a dial with nothing said. Newest first.
+function _lpHumanOut(d) {
+  return _lpOurEntries(d).filter(function (x) {
+    var raw = String(x.raw || ''), by = String((raw.match(/\bBy:\s*([^\n]{0,60})/) || ['', ''])[1]).trim(), body = String(x.body || '').trim();
+    if (/AUTOMATED ASSISTANT/i.test(raw) || /^(?:System|Fullpath)\b/i.test(by) || (by && typeof _LP_BOT_AUTHOR_RE !== 'undefined' && _LP_BOT_AUTHOR_RE.test(by))) return false;
+    if (/marketing campaign/i.test(x.title || '') || /\[Automated\]/i.test(body) || /^Activity:/i.test(body)) return false;
+    if (/phone call/i.test(x.title || '') && !/\(Contacted\)/i.test(x.title || '') && body.length < 25) return false;
+    return true;
+  });
+}
+// (v9.7.861) THEY ASKED FOR THE BUYER'S ORDER AND IT NEVER WENT. Audi Lafayette lead 2104763932 (log395): on the 10/23 call
+// "she asked for the buyers order to be sent over to her"; nothing on the lead shows it was sent, and on 11/3 six drafts in a
+// row offered a video walkaround or "verify the exact unit" instead -- the agent gave up and marked the lead lost. Gil, 11/4:
+// the sales rep will send it. The newest ask, from the customer's own message or a connected call, with no later message or
+// note of ours saying it went. Returns { date, quote, viaCall } or null.
+var LP_BUYERS_ORDER_RX = /\bbuyer['’]?s?\s*order\b/i;
+var LP_DOC_SENT_RX = /\b(?:attached|here\s+is|here['’]s|i(?:['’]ve|\s+have)\s+(?:just\s+)?(?:sent|emailed)|just\s+(?:sent|emailed)|(?:sent|emailed)\s+(?:it|you|over|the)\b|in\s+your\s+(?:inbox|email))/i;
+function _lpOwedBuyersOrder(d) {
+  try {
+    var ents = _lpThreadEntries((d && (d.history || d.context)) || '');
+    var asks = ents.filter(function (x) {
+      if (!x.body || !LP_BUYERS_ORDER_RX.test(x.body)) return false;
+      if (/CUSTOMER/i.test(x.tag) && !/REQUEST FROM INQUIRY/i.test(x.tag) && !/phone call/i.test(x.title || '')) return true;
+      return /phone call/i.test(x.title || '') && (/\(Contacted\)/i.test(x.title || '') || /CUSTOMER/i.test(x.tag))
+        && /\b(?:ask\w*|wants?|wanted|request\w*|needs?|send|sent\s+over|e-?mail)\b/i.test(x.body);
+    }).sort(function (a, b) { return b.t - a.t; });
+    if (!asks.length) return null;
+    var a = asks[0];
+    var done = ents.some(function (x) {
+      if (x === a || x.t < a.t || !LP_BUYERS_ORDER_RX.test(x.body || '')) return false;
+      if (/^NOTE$/i.test(String(x.tag || '').trim())) return /\b(?:sent|emailed|went\s+out|done)\b/i.test(x.body);
+      return /^AGENT$/i.test(String(x.tag || '').trim()) && !/phone call/i.test(x.title || '') && LP_DOC_SENT_RX.test(x.body);
+    });
+    if (done) return null;
+    return { date: a.date, quote: String(a.body).replace(/\s+/g, ' ').trim().slice(0, 160).replace(/[\s.!?,;:]+$/, ''), viaCall: /phone call/i.test(a.title || '') };
+  } catch (e) { return null; }
+}
+// (v9.7.861) A $0 PAYMENT IS A CAR THAT IS PAID OFF. Honda Baytown lead 2107967819 (log396): the customer's FullPath answers were
+// "Can you get the payment lower than my current note?", "Current note is $0 per month", and every draft wrote it back to them --
+// "With your current payment at $0, whether a new payment could be lower depends on ...", "Since your current note is $0, what
+// vehicle and payment goal do you have in mind?". The customer's own words only (never the automated reply that echoed it).
+// Returns { quote } or null.
+var LP_ZERO_PAY_RX = /\b(?:note|payment|car\s+payment|monthly(?:\s+payment)?)\s+(?:is\s+|of\s+|at\s+)?\$\s?0(?:\.00)?(?![\d,.]*\d)|\$\s?0(?:\.00)?\s*(?:a|per|\/)\s*mo(?:nth)?\b/i;
+function _lpPaidOff(d) {
+  try {
+    var src = _lpCustSignals(d).map(function (x) { return String(x.body || ''); }).filter(function (b) { return !/\[Automated\]/i.test(b); });
+    var fp = (typeof _lpFullpath === 'function') ? _lpFullpath(d) : null;
+    if (fp && fp.replies && fp.replies.length) src = fp.replies.concat(src);
+    for (var i = 0; i < src.length; i++) {
+      var m = String(src[i]).match(LP_ZERO_PAY_RX);
+      if (m) { var sn = String(src[i]).split(/(?<=[.!?])\s+/).filter(function (z) { return LP_ZERO_PAY_RX.test(z); })[0] || m[0]; return { quote: sn.replace(/\s+/g, ' ').trim().slice(0, 120).replace(/[\s.!?,;:]+$/, '') }; }
+    }
+  } catch (e) {}
+  return null;
+}
+// (v9.7.861) HOW THEY SAID THEY WANT TO BUY. Kia Baytown lead 2101893543 (log397): "Id rather do it online" (10/17) and "I am a
+// nurse and it's hard for me to just go sit at a dealership just to talk numbers" (10/20). Fifteen days quiet, the quiet rule made
+// all of it background and the draft asked "are you still considering the 2026 Kia K5 GT-Line?". Gil, 11/4: keep the customer's
+// stated way to do business. The newest such statement, from their own messages or a connected call. Returns { date, quote,
+// viaCall } or null.
+var LP_REMOTE_WAY_RX = /\b(?:rather|prefer|want(?:ed)?\s+to|wanna|like\s+to|need\s+to|can\s+we|could\s+we)\s+(?:just\s+)?(?:do|handle|finish|complete|work\s+out)\s+(?:it|this|everything|things|the\s+deal|the\s+(?:whole\s+)?process)\s+(?:all\s+)?(?:online|remotely|by\s+(?:phone|e-?mail|text)|over\s+(?:the\s+)?(?:phone|e-?mail|text))\b|\b(?:do|handle)\s+(?:it|this|everything)\s+online\b/i;
+var LP_NO_SIT_RX = /\b(?:don['’]?t|do\s+not|doesn['’]?t|hard\s+(?:for\s+me\s+)?to|can['’]?t|cannot|not\s+(?:going|gonna)\s+to|rather\s+not|no\s+time\s+to)\s+(?:wanna\s+|want\s+to\s+)?(?:just\s+)?(?:go\s+|come\s+)?(?:sit|spend\s+(?:hours|all\s+day|the\s+day)|waste\s+(?:my\s+)?time)\b[^.!?]{0,40}?\b(?:dealerships?|dealers?|showroom)\b|\bjust\s+to\s+(?:talk|go\s+over|discuss)\s+(?:the\s+)?numbers\b/i;
+function _lpWayToBuy(d) {
+  try {
+    var c = _lpCustSignals(d);
+    for (var i = 0; i < c.length; i++) {
+      var body = String(c[i].body || '');
+      if (!LP_REMOTE_WAY_RX.test(body) && !LP_NO_SIT_RX.test(body)) continue;
+      var sn = body.split(/(?<=[.!?])\s+/).filter(function (z) { return LP_REMOTE_WAY_RX.test(z) || LP_NO_SIT_RX.test(z); }).slice(0, 2).join(' ');
+      return { date: c[i].date, quote: (sn || body).replace(/\s+/g, ' ').trim().slice(0, 200).replace(/[\s.!?,;:]+$/, ''), viaCall: !!c[i].viaCall };
+    }
+  } catch (e) {}
+  return null;
+}
+// (v9.7.861) WE SAID WE WOULD CHECK, AND NEVER CAME BACK. Kia Baytown lead 2088871268 (log398): "I can check availability on the
+// exact configuration you're looking for" (9/24) and "I can check which Sorento Hybrid configurations match that" (10/9, 10/27),
+// and no message of ours ever said what we have -- while one 2026 Sorento Hybrid sat on the lot. A person's message of ours that
+// promised to check stock, with no later message of ours that names the model and says we have one. Returns { date, quote } or null.
+var LP_CHECK_PROMISE_RX = /\b(?:i\s+can|i['’]ll|i\s+will|let\s+me|happy\s+to)\s+(?:double[-\s]?)?(?:check|look\s+into|find\s+out)\s+(?:on\s+)?(?:the\s+)?(?:availability|what\s+we\s+have|which\b[^.!?]{0,50}?\b(?:configurations?|trims?|colors?|versions?)\b|if\s+we\s+have)/i;
+var LP_STOCK_ANSWER_RX = /\b(?:we\s+(?:do\s+|still\s+)?have|i\s+have|in\s+stock|on\s+(?:the|our)\s+lot|(?:is|are)\s+here\b|just\s+(?:came\s+in|arrived))/i;
+function _lpOwedStockCheck(d, fam) {
+  try {
+    var ours = _lpHumanOut(d), p = null;
+    for (var i = 0; i < ours.length; i++) if (LP_CHECK_PROMISE_RX.test(ours[i].body)) { p = ours[i]; break; }
+    if (!p) return null;
+    var mw = String(fam || '').split('|').pop();
+    if (mw && ours.some(function (x) { return x.t > p.t && LP_STOCK_ANSWER_RX.test(x.body) && x.body.toLowerCase().indexOf(mw) >= 0; })) return null;
+    var sn = String(p.body).split(/(?<=[.!?])\s+/).filter(function (z) { return LP_CHECK_PROMISE_RX.test(z); })[0] || '';
+    return { date: p.date, quote: sn.replace(/\s+/g, ' ').trim().slice(0, 160).replace(/[\s.!?,;:]+$/, '') };
+  } catch (e) { return null; }
+}
+// (v9.7.861) What a connected call recorded that they need -- the same lead's 9/25 call: "No trade in, an suv, needs better gas
+// mileage, heated seats, darker interior and exterior." The newest such note. Returns { date, text } or null.
+var LP_CALL_NEEDS_RX = /\b(?:heated|cooled|ventilated|colou?r|interior|exterior|gas\s+mileage|mpg|leather|sunroof|moonroof|third\s+row|3rd\s+row|seats?|towing|cargo)\b/i;
+function _lpCallNeeds(d) {
+  try {
+    var c = _lpThreadEntries((d && (d.history || d.context)) || '').filter(function (x) {
+      return /phone call/i.test(x.title || '') && /\(Contacted\)|^Inbound/i.test(x.title || '') && x.body && x.body.length >= 20 && LP_CALL_NEEDS_RX.test(x.body);
+    }).sort(function (a, b) { return b.t - a.t; });
+    return c.length ? { date: c[0].date, text: String(c[0].body).replace(/\s+/g, ' ').trim().slice(0, 200).replace(/[\s.!?,;:]+$/, '') } : null;
+  } catch (e) { return null; }
+}
 function _lpPitchOut(d) {
   try {
     if (d && d.hasApptSet) return null;
@@ -5243,6 +5347,9 @@ function _lpWhatWeHave(d) {
     if (_wwPaint) colors.push(_wwPaint);
     var _paintOk = function (u) { return !!_wwPaint && String(u.color || '').toLowerCase().indexOf(_wwPaint.toLowerCase()) >= 0; };
     var asked = LP_AVAIL_ASK_RX.test(cust);
+    // (v9.7.861) Our own promise to check, never answered, is the question (see _lpOwedStockCheck).
+    var _wwOwed = asked ? null : _lpOwedStockCheck(d, fam);
+    if (_wwOwed) asked = true;
     // (v9.7.790) A FIRST-TOUCH LEAD THAT NAMES A TRIM IS ITSELF THE QUESTION "DO YOU HAVE THIS?". Lead 2098953366 (2026 Pilot AWD
     // Black Edition, Thirdparty Honda, no stock number, the customer typed nothing): the feed held exactly one Black Edition, in
     // Platinum White Pearl, and the draft said "I can check availability ... What color are you looking for?".
@@ -5346,6 +5453,12 @@ function _lpWhatWeHave(d) {
     // (v9.7.790) With none of their trim in stock there is no price to rank against: every other trim stays unnamed, and is called
     // "other trims", not "above" -- an EX-L is not above a TrailSport.
     if (higher.length) L.push('- ' + _cw + (refMin ? ' a trim above what they asked for: ' : ' other trims: ') + (higher.length === 1 ? 'one unit' : higher.length + ' units') + '. Do NOT name them or their trims. Say it the way the store does: "we do have other options if you\'d like to come take a look at them" (if this message allows a visit ask; otherwise, that you have other options and can send details).');
+    if (_wwOwed) {   // (v9.7.861)
+      L.push('- On ' + _wwOwed.date + ' our own message said "' + _wwOwed.quote.replace(/"/g, "'") + '", and no message of ours has answered it since. This IS that answer: give it plainly, without apologizing for the wait.');
+      var _wwNeeds = _lpCallNeeds(d);
+      if (_wwNeeds) L.push('- What they told us on the ' + _wwNeeds.date + ' call: "' + _wwNeeds.text.replace(/"/g, "'") + '" (the call note -- never quote it). Name each unit\'s paint and interior exactly as listed above so they can judge the fit; do not call a paint dark or light unless its name says so.');
+      try { console.log('[LP WHAT WE HAVE DIAG] our ' + _wwOwed.date + ' promise to check was never answered -- this is the answer' + (_wwNeeds ? ' | call needs ' + _wwNeeds.date : '')); } catch (eWo) {}
+    }
     if (_wwInt) {   // (v9.7.806)
       L.push('- The interior they asked for: ' + _wwInt.color + '. That is the inside of the car, not the paint -- never say the car "in ' + _wwInt.color + '" is or is not here because of it. '
         + 'Each unit above shows its interior where the feed has one (", Black Leather interior"): when a unit has theirs, say so plainly ("with the ' + _wwInt.color + ' interior you wanted"). '
@@ -5360,7 +5473,7 @@ function _lpWhatWeHave(d) {
                       : (_adjLine ? 'Lead with the ' + _adjName + ' as the answer. '
                       : 'If the exact one is not here, say so once, plainly, then offer what fits from the lines above and ask which they would rather. '))
       + 'The feed does not list drivetrain: do not state AWD or 2WD for these units.');
-    return { text: L.join('\n'), exact: exact.length, sameTrim: sameTrim.length, lower: lower.length, higher: higher.length, colors: colors, asked: asked, firstTouch: firstTouch, want: want.disp, otherYear: _adjName, newAlt: newAlt.length };
+    return { text: L.join('\n'), exact: exact.length, sameTrim: sameTrim.length, lower: lower.length, higher: higher.length, colors: colors, asked: asked, firstTouch: firstTouch, want: want.disp, otherYear: _adjName, newAlt: newAlt.length, owed: _wwOwed ? _wwOwed.date : '' };
   } catch (e) { return null; }
 }
 
@@ -8907,6 +9020,8 @@ function populateFromData(d) {
       ? ' — confirmed in stock'
       : d._lpRepNotOnLot   // (v9.7.802)
       ? ' -- ours (in today\'s inventory, not sold), but the sales rep told the customer it is still in service and not on the lot yet (see PRESENCE LANGUAGE). Do NOT tell the customer it is here'
+      : (String(d.dealerId) === '21135' && (d.inventoryWarning || d.vehiclePendingSale))   // (v9.7.861) the Audi store policy owns it
+      ? ' — VEHICLE STATUS (store policy) below decides how to present it: as available'
       : (d.inventoryWarning && !d.isInTransit)   // (v9.7.856) a sold flag outranks a deposit note
         ? ' — VinSolutions flags this unit as NO LONGER IN ACTIVE INVENTORY; the VEHICLE STATUS line below says how to handle that. Do NOT tell the customer it is here'
         : ' — NOT confirmed available (not in today\'s live inventory feed as this vehicle, or sold, pending, or in transit). Do NOT tell the customer it is here';
@@ -9721,6 +9836,7 @@ function populateFromData(d) {
     vehicleExtras.push('  • Either way: never present it as available inventory, and never call it sold.');
     vehicleExtras.push('  • If the thread doesn\'t make clear whose deal it is, say nothing about this unit\'s availability.');
   }
+  d._lpAudiAvailPolicy = false;   // (v9.7.861) set below when the Audi store policy decides the status
   if (_lpInvConfirmedAvailable && !(_m2Sold && _m2Sold.counts) && !_m2Pend) {
     // ── (v9.7.660) "IN STOCK" IS NOT AN ANSWER TO "IS IT BLACK" ─────────────────────────────
     // LIVE, 9/14. Vershima Tachia, Community Honda Baytown, lead 2080928005. He totalled his Civic,
@@ -9857,7 +9973,11 @@ function populateFromData(d) {
     // be presented as inventory, available or sold.
     vehicleExtras.push('🔑 THE CUSTOMER\'S OWN VEHICLE: "' + d.vehicle + '" is the vehicle they bought or leased from us (it is in their Sales history) — it is what they drive now, NOT dealership inventory. Never say it sold, is available, or is on the lot, and never pivot them to "comparable options" for it. Talk about what comes next for them from it.');
   } else if (_audiAllAvail && (d.vehiclePendingSale || d.inventoryWarning)) {
-    vehicleExtras.push('🟢 VEHICLE STATUS (store policy): present this vehicle as AVAILABLE. Do NOT tell the customer it is sold, on hold, pending, spoken for, or out of inventory, and do NOT pivot to other units on availability grounds — even if an internal note or the inventory snapshot says otherwise. Lead with this vehicle and move toward getting them in to see it. (Actual stock status is handled by the agent off-message.)');
+    // (v9.7.861) Lead 2104763932 (log395): three other lines on the same prompt said "do not say it is here", "not confirmed by
+    // today's feed" and "VIN but NO stock number ... verify the exact unit is on the lot", and the drafts offered to "verify the
+    // specific Elantra". Those lines now defer to this one; and this one says what not to write.
+    d._lpAudiAvailPolicy = true;
+    vehicleExtras.push('🟢 VEHICLE STATUS (store policy): present this vehicle as AVAILABLE. Do NOT tell the customer it is sold, on hold, pending, spoken for, or out of inventory, and do NOT pivot to other units on availability grounds — even if an internal note or the inventory snapshot says otherwise. Lead with this vehicle and move toward getting them in to see it. Do not say you will verify, check on or confirm the unit, and do not hint that it may be gone. (Actual stock status is handled by the agent off-message.)');
   } else if ((d.vehiclePendingSale || _m2Pend || (_m2Sold && _m2Sold.counts)) && !d.inventoryWarning) {
     // (v9.7.856) M-2: the INVENTORY STATUS block above says it. The old line here ("may be in the process of being sold ...
     // Create urgency to come in today") asserted another buyer's deal; a deposit note is most often this customer's own.
@@ -24412,6 +24532,11 @@ function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
     // (v9.7.737) and nothing else from before comes back in the rewrite either
     out.push('The same holds for everything else from before they went quiet (what they did online when the lead came in, a price or target, '
       + 'an old question or plan): keep the first draft\'s one current reason to reply and its easy closing question, and bring none of that back.');
+    try {   // (v9.7.861) except how they said they want to buy
+      var _rfWay = _lpWayToBuy(d);
+      if (_rfWay) out.push('ONE EXCEPTION: how they said they want to do this (' + _rfWay.date + ': "' + _rfWay.quote.replace(/"/g, "'") + '") still holds. '
+        + 'If the first draft offers to do it their way (the numbers by text or email), keep that offer.');
+    } catch (eRfWay) {}
     out.push('');
   } else if (lastIn && (function () {   // (v9.7.763) their last message was a number question about the car that sold
       try { var _lsM = (typeof _lpMootSoldQuestions === 'function') ? _lpMootSoldQuestions((d.relationshipSignals && d.relationshipSignals.unansweredQuestions) || [], d) : { dropped: [] };
@@ -24574,6 +24699,14 @@ function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
       out.push('━━━ THE VEHICLE THEY ASKED ABOUT HAS SOLD ━━━');
       out.push('The email tells them it sold. The text tells them too, FIRST and plainly, before it names any other vehicle -- '
         + 'never a promise about another car ahead of the news. Then offer the other one the way the first draft did.');
+      out.push('');
+    }
+    // (v9.7.861) Lead 2104763932: the first draft said "I know you asked for the buyer's order on the Elantra" and the text dropped it.
+    var _rfBo = _lpOwedBuyersOrder(d);
+    if (_rfBo && (LP_BUYERS_ORDER_RX.test(_rfP) || LP_BUYERS_ORDER_RX.test(_rfE))) {
+      out.push('━━━ THE BUYER\'S ORDER ━━━');
+      out.push('They asked for the buyer\'s order on ' + _rfBo.date + ' and it has not gone out; the first draft says it is coming. The text says so too, first and plainly, '
+        + 'with the first draft\'s words about who will send it. Do not drop it to make the text shorter, and do not put a video, photos, a visit or a check on the unit in its place.');
       out.push('');
     }
     if (LP_OFFER_ASK_RX.test(_lpChipBody(_rfP)) || LP_OFFER_ASK_RX.test(_rfE)) {
@@ -25990,6 +26123,7 @@ var _LP_VISIT_HOLDS = [
   [2, /do NOT offer a specific appointment time/, 'the REACTIVATION block'],
   // v9.7.737 withholds times only at 30+ days quiet; at 14-29 days its owner rule still allows them, so that is no hold
   [2, /no appointment times in this message\.$|^APPOINTMENT TIMES WITHHELD: the customer has not written in/, 'the QUIET CUSTOMER rule (30+ days)'],
+  [2, /no appointment times: the visit is for signing, once the numbers are settled\.$/, 'the QUIET CUSTOMER\'s own way to buy (the numbers by text or email first)'],   // (v9.7.861)
   [2, /^TIMING — APPOINTMENT FELL THROUGH/, 'APPOINTMENT FELL THROUGH'],
   [2, /THERE IS A LIVE APPOINTMENT ON THIS LEAD/, 'the LIVE APPOINTMENT block (a time is already booked)'],
   [1, /^TIMING NOTE: Customer said they cannot come in TODAY/, 'TIMING NOTE (not today)'],
@@ -28071,6 +28205,12 @@ function buildUserPrompt(data) {
   } else if (sc.staleModelYear && sc.stockNum && !data.inventoryWarning && data._lpInvConfirmedAvailable) {   // (v9.7.696) feed-confirmed only
     // Stock number confirmed — vehicle is physically on the lot regardless of model year
     inventoryNote = 'Vehicle is confirmed in stock (Stock #' + sc.stockNum + '). Say "we have it here" or "it is here and available to see" — UNLESS the conversation arc contains a recent internal agent note indicating the vehicle has a deposit, is on hold, or has a pending sale (see AGENT INTELLIGENCE guidance — internal notes take precedence over the base inventory status). Model year is ' + sc.vehicleYear + ' — that is fine, reference it normally.';
+  } else if (data._lpAudiAvailPolicy) {   // (v9.7.861) the store policy owns it; the notes below would say "not verified"
+    inventoryNote = 'VEHICLE NOTE: VEHICLE STATUS (store policy) above decides how this vehicle is presented: as available. Do not say you will verify, check on or confirm the unit, and do not hint that it may be gone.';
+  } else if (sc.staleModelYear && sc.stockNum && !data._lpInvConfirmedAvailable && !sc.vehicleInTransit) {
+    // (v9.7.861) A stock number the feed does not hold: v9.7.696's wording. It fell into the VIN-only note below, which says
+    // "NO stock number on the lead" -- untrue -- and tells the model to "verify the exact unit".
+    inventoryNote = 'VEHICLE NOTE: A stock number is on the lead, but today\'s live inventory feed does not show that unit as this vehicle, so its presence on the lot is NOT confirmed. Do NOT say it is here, available, or ready to see. Reference the model, and offer to confirm the exact unit.';
   } else if (sc.staleModelYear && data.vin && !sc.vehicleInTransit) {
     // Prior model year + VIN only (no stock #) — both warnings layered.
     // Lacey Lafont case (May 7) — was implying availability via "I pulled up the Honda"
@@ -29386,6 +29526,12 @@ function buildUserPrompt(data) {
             + 'a price, payment or target, a question, an appointment plan, a promise either side made. Any block below that tells you to lead with, acknowledge, '
             + 'answer, honor or mention one of those things was written for a live conversation and does not apply to this message. Do not recap the history '
             + 'and do not dwell on the gap.');
+          // (v9.7.861) ...except how they said they want to buy (see _lpWayToBuy). Gil, 11/4: keep the customer's stated way to do business.
+          var _qWay = _lpWayToBuy(data);
+          if (_qWay) ageBlock.push('ONE THING FROM BEFORE STILL HOLDS -- HOW THEY WANT TO DO THIS: on ' + _qWay.date + ' they said ' + _lpSaidHow(_qWay, _qWay.quote.replace(/"/g, "'"))
+            + '. That is not background: it is how they want to buy, and going quiet has not changed it. Make the check-in their way -- offer to work through the numbers '
+            + 'with them by text or email, so the only trip in is to sign and pick it up. That offer is fine here, because it is what they asked for; quote no figure in this '
+            + 'message, and do not ask them to come in to talk numbers.');
           ageBlock.push('THIS MESSAGE HAS ONE JOB: give them one true, current reason to reply. '
             + (_qVoiJob
                 ? 'The vehicle they asked about, the ' + String(data.vehicle).trim() + ', is still in stock. Make this a short check-in on THAT vehicle: ask whether '
@@ -29395,13 +29541,35 @@ function buildUserPrompt(data) {
                   + '(do not say that one is gone).'
                 : 'If nothing new is listed below, ask simply whether they are still looking, tied to what they were shopping for.')
             + ' Keep it warm, and close with one easy question they can answer in a word'
-            + (_qd >= 30 ? ' \u2014 no appointment times in this message.' : '.'));
+            + (_qd >= 30 ? ' \u2014 no appointment times in this message.' : _qWay ? ' \u2014 no appointment times: the visit is for signing, once the numbers are settled.' : '.'));
           ageBlock.push('');
           try { console.log('[LP QUIET CUSTOMER DIAG] quiet ' + _qd + 'd | unanswered ' + _qN + ' | fresh reason: ' + (_qFresh || '(none listed)') + ' | times ' + (_qd >= 30 ? 'withheld' : 'allowed')
             + ' | job: ' + (_qVoiJob ? 'check-in on the vehicle on the lead (confirmed in stock' + (_qFresh ? '; alternatives not offered, they never asked for options' : '') + ')'
-              : _qFresh ? 'offer an alternative (' + (_qAsked ? 'they asked for options ' + _qAsked.date : 'their vehicle is not confirmed in stock') + ')' : 'ask whether they are still looking')); } catch (eQd) {}
+              : _qFresh ? 'offer an alternative (' + (_qAsked ? 'they asked for options ' + _qAsked.date : 'their vehicle is not confirmed in stock') + ')' : 'ask whether they are still looking')
+            + (_qWay ? ' | their way: ' + (_qWay.viaCall ? 'call ' : '') + _qWay.date + ' -- kept, no times' : '')); } catch (eQd) {}
         }
       } catch (eQ) {}
+      // (v9.7.861) THE BUYER'S ORDER THEY ASKED FOR (see _lpOwedBuyersOrder). Gil, 11/4: the sales rep will send it.
+      try {
+        var _bo = _lpOwedBuyersOrder(data), _boWhy = '';
+        if (_bo && _lpQuietDays(data)) _boWhy = 'the quiet rule owns this message';
+        else if (_bo && !data._lpAudiAvailPolicy && !data._lpInvConfirmedAvailable && (data.inventoryWarning || data._lpSoldClaimCounts || data.vehiclePendingSale)) _boWhy = 'the vehicle\'s status is in question';
+        if (_bo && !_boWhy) {
+          var _boRep = String(data.salesRep || '').trim(), _boAg = String(data.agent || '').trim();
+          var _boWho = (_boRep && _boRep.toLowerCase() !== _boAg.toLowerCase()) ? _boRep : '';
+          ageBlock.push('\ud83d\udcc4 THEY ASKED FOR THE BUYER\'S ORDER, AND IT HAS NOT GONE OUT. '
+            + (_bo.viaCall ? 'On the ' + _bo.date + ' call they asked for it (the call note says "' + _bo.quote.replace(/"/g, "'") + '"; never quote the note)'
+                           : 'On ' + _bo.date + ' they asked for it: "' + _bo.quote.replace(/"/g, "'") + '"')
+            + ', and nothing on this lead shows it was sent. THAT IS THE REASON FOR THIS MESSAGE, AND IT OUTRANKS ANY BLOCK BELOW THAT SUGGESTS SOMETHING ELSE TO OFFER.');
+          ageBlock.push('- Say plainly, near the start, that ' + (_boWho ? _boWho.split(/\s+/)[0] + ' (' + _boWho + ', their sales rep) will send the buyer\'s order over' : 'you will send the buyer\'s order over') + '.');
+          ageBlock.push('- Quote no figure from it (no price, payment, tax or total), and do not ask whether they still want it.');
+          ageBlock.push('- Do not offer a video walkaround, photos, a visit or a check on the unit in its place. You may close with one easy question that helps get it right '
+            + '(whether they are paying cash or financing, or have a trade), or with none.');
+          ageBlock.push('');
+        }
+        if (_bo) console.log('[LP OWED DOC DIAG] buyer\'s order asked ' + _bo.date + (_bo.viaCall ? ' (call)' : '') + ' | nothing on the lead says it went | '
+          + (_boWhy ? 'block not issued: ' + _boWhy : 'block issued, sender: ' + (_boWho ? 'the sales rep' : 'the agent')));
+      } catch (eBo) {}
       ageBlock.push('━━━ TIME & DATE CONTEXT ━━━');
       ageBlock.push('Every transcript message has a date in brackets. Use them.');
       ageBlock.push('');
@@ -31425,7 +31593,7 @@ function buildUserPrompt(data) {
       // engine -- so on a zero-contact or reactivation lead three clauses said no appointment and
       // this one said "encourage the soonest workable time". The paused wording is unchanged to
       // the byte; the other two paths get a reason that is true of them.
-      distanceContext = 'Customer is interested in the ' + data.vehicle + '. ' + (data._lpInvConfirmedAvailable ? 'Confirming it is here is fine and worth saying.' : data._lpInvSetAside ? 'Read INVENTORY STATUS before saying anything about its availability \u2014 do not say it is here.' : 'Its presence on the lot is NOT confirmed by today\'s inventory feed \u2014 do not say it is here.') + ' Do NOT encourage a time, a visit or the soonest workable anything on this touch — '
+      distanceContext = 'Customer is interested in the ' + data.vehicle + '. ' + (data._lpInvConfirmedAvailable ? 'Confirming it is here is fine and worth saying.' : data._lpInvSetAside ? 'Read INVENTORY STATUS before saying anything about its availability \u2014 do not say it is here.' : data._lpAudiAvailPolicy ? 'Present it as available, as VEHICLE STATUS (store policy) says; do not say you will verify or check on the unit.' : 'Its presence on the lot is NOT confirmed by today\'s inventory feed \u2014 do not say it is here.') + ' Do NOT encourage a time, a visit or the soonest workable anything on this touch — '
         + (((typeof _lpTouchHold === 'function') ? _lpTouchHold(data) : '') === 'pause'
             ? 'this lead is in a PAUSE state and the directives that own that state forbid an appointment ask'
             : 'every other directive on this lead disables the appointment engine, and this block does not override them')
@@ -31434,7 +31602,7 @@ function buildUserPrompt(data) {
       // (v9.7.697) Presence only when the feed confirms it; and a REMOTE buyer is not asked for a visit
       // time here — Jalen Garner (Audi Lafayette, Mississippi, 9/23) got "do not imply a near-term visit"
       // and "encourage the soonest workable time" in the same prompt.
-      distanceContext = 'Customer is interested in the ' + data.vehicle + '. ' + (data._lpInvConfirmedAvailable && data._lpRepNotOnLot ? 'It is ours, but the sales rep told them it is still in service and not on the lot yet \u2014 do not say it is here' : data._lpInvConfirmedAvailable ? 'Confirm it is available' : data._lpInvSetAside ? 'Read INVENTORY STATUS before saying anything about its availability \u2014 do not say it is here' : 'Its presence on the lot is NOT confirmed by today\'s inventory feed \u2014 do not say it is here') + (isRemoteBuyer && _rbVisit === 'chip' ? '. The agent wants a visit asked for (see the AGENT OVERRIDE above)' : isRemoteBuyer && _rbVisit === 'trip' ? '. They said they will make the trip: ask when they plan to come, and say what will be ready for them' : isRemoteBuyer ? (_rbSoft ? '. The next step is a video walkaround, the details or the numbers; a visit would be a special trip for them, so no visit time' : '. They are remote: the next step is remote (details, video, numbers), not a visit time') : ' and encourage the soonest workable time, with what will be ready for them as the reason (never the drive or the trip)') + ' — do NOT promise to hold or set aside an in-stock unit (we do not reserve on-lot cars). If it is in transit/inbound, securing it before arrival is appropriate.';
+      distanceContext = 'Customer is interested in the ' + data.vehicle + '. ' + (data._lpInvConfirmedAvailable && data._lpRepNotOnLot ? 'It is ours, but the sales rep told them it is still in service and not on the lot yet \u2014 do not say it is here' : data._lpInvConfirmedAvailable ? 'Confirm it is available' : data._lpInvSetAside ? 'Read INVENTORY STATUS before saying anything about its availability \u2014 do not say it is here' : data._lpAudiAvailPolicy ? 'Present it as available, as VEHICLE STATUS (store policy) says; do not say you will verify or check on the unit' : 'Its presence on the lot is NOT confirmed by today\'s inventory feed \u2014 do not say it is here') + (isRemoteBuyer && _rbVisit === 'chip' ? '. The agent wants a visit asked for (see the AGENT OVERRIDE above)' : isRemoteBuyer && _rbVisit === 'trip' ? '. They said they will make the trip: ask when they plan to come, and say what will be ready for them' : isRemoteBuyer ? (_rbSoft ? '. The next step is a video walkaround, the details or the numbers; a visit would be a special trip for them, so no visit time' : '. They are remote: the next step is remote (details, video, numbers), not a visit time') : ' and encourage the soonest workable time, with what will be ready for them as the reason (never the drive or the trip)') + ' — do NOT promise to hold or set aside an in-stock unit (we do not reserve on-lot cars). If it is in transit/inbound, securing it before arrival is appropriate.';
     }
     if (isRemoteBuyer) {
       // (v9.7.225) Conditional visit: some remote buyers WILL drive in, but only after the
@@ -31506,7 +31674,8 @@ function buildUserPrompt(data) {
                       : ' — distance block asks for the visit as normal'));
     } catch (eDbL) {}
       // (v9.7.850) AUDIT L-5: the tier as defined since 847 -- outside the store's local ZIP list and within 75 miles -- not a drive time we never measured.
-      lines.push('🔴 DISTANCE BUYER: Customer lives outside the store\'s local area but within 75 miles (INTERNAL fact — shapes the offer, never the wording). '
+      // (v9.7.861) Lead 2104763932 (about 82 miles): this line said "within 75 miles" and the next "more than 75 miles".
+      lines.push('🔴 DISTANCE BUYER: Customer lives ' + (_lpSpecialTrip ? 'more than ' + LP_VISIT_RADIUS_MILES + ' miles from the store' : 'outside the store\'s local area but within ' + LP_VISIT_RADIUS_MILES + ' miles') + ' (INTERNAL fact — shapes the offer, never the wording). '
         + (_dbExit ? 'There is nothing to ask of them on this touch.'
            : _dbApptOff ? 'Whatever you ask of them must be worth their time.'
            : 'The visit ask must be worth their time.'),
@@ -31850,7 +32019,17 @@ function buildUserPrompt(data) {
     if (_fp && _fp.via === 'text') {
       // (v9.7.832) THEY REPLIED TO OUR TEXT. Before anyone on our team has written back, their reply is the reason for this
       // message; once they have written to us since (lead 2106267729: a call, a link, "i'm good"), the text is how it started.
-      var _fpBg = !!(_fp.presented || _fp.live), _fpQ = function (s) { return String(s || '').replace(/"/g, "'"); };
+      // (v9.7.861) ...or once a person on our team has written to them since: lead 2107967819 (log396) was told "nobody on our
+      // team has answered them yet. Answer it first" after the agent's 10/30 text, email and voicemail and her 11/3 email, and the
+      // draft opened "I still owe you a useful answer".
+      // A message that ignored it does not count: lead 2106255852's "Can I trade in my 2024 Camry XSE?" got "What are you shopping
+      // for?" -- still unanswered. Their subject (the trade, a payment, a car they named) has to be in what we wrote.
+      var _fpTopic = [], _fpRj = (_fp.replies || []).join(' ');
+      if (/\btrade|\bworth\b|\bvalue\b|apprais/i.test(_fpRj)) _fpTopic.push(/\btrade|\bworth\b|\bvalue\b|apprais/i);
+      if (/payment|\bnote\b|financ|\blease\b|\bapr\b/i.test(_fpRj)) _fpTopic.push(/payment|financ|\blease\b|\bapr\b/i);
+      var _fpHum = _lpHumanOut(data).filter(function (x) { return _fpTopic.some(function (rx) { return rx.test(x.body); }); });
+      var _fpAns = (!(_fp.presented || _fp.live) && _fpHum.length) ? _fpHum[_fpHum.length - 1] : null;
+      var _fpBg = !!(_fp.presented || _fp.live || _fpAns), _fpQ = function (s) { return String(s || '').replace(/"/g, "'"); };
       lines.push('', _fpBg
         ? '\ud83c\udfaf HOW THIS CONVERSATION STARTED -- THEY REPLIED TO A TEXT WE SENT (BACKGROUND: THE CONVERSATION SINCE IS WHAT THIS MESSAGE ANSWERS):'
         : '\ud83c\udfaf WHAT THEY RESPONDED TO -- THEY REPLIED TO A TEXT WE SENT, AND THEIR REPLY IS THE REASON FOR THIS MESSAGE:');
@@ -31862,7 +32041,8 @@ function buildUserPrompt(data) {
         + (_fpBg ? 'It is still an angle you may use if it fits where the conversation is now (as advertised, on approved credit), but it is not the subject unless they come back to it.'
                  : 'Lead with it. Quote it as advertised, prefaced with "on approved credit". It is our own advertised offer, so the payment rules elsewhere in this prompt do not stop you quoting it as advertised; they still forbid any other figure. Do not change its numbers, add terms, or promise they qualify.'));
       if (_fp.replies.length) lines.push('- Their reply: ' + _fp.replies.map(function (x) { return '"' + _fpQ(x) + '"'; }).join(', then ')
-        + (_fpBg ? ' -- what they have said since, in the thread, comes after this.'
+        + (_fpAns ? ' -- a person on our team has answered it since (first on ' + _fpAns.date + ') and they have not replied. It is how this started, not a question still waiting for an answer: do not say you owe them an answer.'
+           : _fpBg ? ' -- what they have said since, in the thread, comes after this.'
                  : ' -- their own words, and nobody on our team has answered them yet. Answer it first, plainly and in your own voice, then come to the ' + (_fp.kind === 'offer' ? 'offer' : _fp.kind === 'unit' ? 'car' : 'next step') + '.'));
       if (_fp.botReply) lines.push('- An automated reply went back before anyone on our team wrote: "' + _fpQ(_fp.botReply) + '". It is not something a person said: never quote or refer to it, and do not repeat a question it asked word for word.');
     } else if (_fp) {
@@ -31892,6 +32072,14 @@ function buildUserPrompt(data) {
       try { console.log('[LP FULLPATH DIAG] ' + (_fp.via === 'text' ? 'via text (' + (_fp.live ? 'they have written since' : 'their reply is the latest') + ') ' : '') + _fp.kind + ': "' + (_fp.offer || _fp.vehicle || _fp.what) + '"' + (_fp.price ? ' at ' + _fp.price : '') + (_fp.message ? ' | wrote: "' + _fp.message + '"' : '') + (_fp.owned ? ' | owns: ' + _fp.owned : '') + ' | already put to them: ' + _fp.presented); } catch (eFpD) {}
     }
   } catch (eFp) {}
+  try {   // (v9.7.861) see _lpPaidOff
+    var _po = _lpPaidOff(data);
+    if (_po) {
+      lines.push('', '\ud83d\udcb5 THEIR CAR IS PAID OFF: they said "' + _po.quote.replace(/"/g, "'") + '". They own it outright -- there is no payment to lower. Do not write "$0", '
+        + '"your current note" or "your current payment", and do not ask about a payment goal. With nothing owed on it, its trade value is all theirs to put toward the next car.');
+      console.log('[LP PAID OFF DIAG] a $0 current payment in their own words -- read as paid off');
+    }
+  } catch (ePo) {}
   try { if (typeof _lpClickPathLines === 'function') { var _cpl = _lpClickPathLines(data); if (_cpl.length) lines.push.apply(lines, _cpl); } } catch (eCpl) {}   // (v9.7.835)
   if (sc.isAudi && sc.salesRep) lines.push('Brand Specialist: ' + sc.salesRep);
 
@@ -33292,6 +33480,7 @@ async function generateAll() {
       _lpInvConfirmedAvailable: lastScrapedData ? !!lastScrapedData._lpInvConfirmedAvailable : false,
       _lpSoldClaimCounts:       lastScrapedData ? !!lastScrapedData._lpSoldClaimCounts : false,   // (v9.7.856) M-2 Case B
       _lpInvSetAside:           lastScrapedData ? (lastScrapedData._lpInvSetAside || '') : '',
+      _lpAudiAvailPolicy:       lastScrapedData ? !!lastScrapedData._lpAudiAvailPolicy : false,   // (v9.7.861)
       contactedAgeDays: lastScrapedData ? (lastScrapedData.contactedAgeDays || 0) : 0,
       hasOutbound: lastScrapedData ? !!lastScrapedData.hasOutbound : false,
       hasCustomerReply: lastScrapedData ? !!lastScrapedData.hasCustomerReply : false, // (v9.7.301) carry canonical reply fact into pass-2
