@@ -613,6 +613,67 @@ function ipTruncate(s) { return s.length <= MAX_LINE_LEN ? s : s.slice(0, MAX_LI
 // (10/1) Appended to a line when the page names the specific trim an offer is for, so two payments on one
 // model ("Q7 — $629/mo" and "Q7 — $739/mo") say which is which. The line still opens with the model, which is
 // what the extension matches on. "Applies to 5 trims" / "All trims" names nothing and adds nothing.
+// (11/4) KIA, CARD BY CARD. Kia's November page (Kia Baytown) is 162 offer cards, each "<LABEL> <year> <model> <trim>
+// <headline>": "LEASE 2026 Sorento S AWD $399/month 36 Months $3,999 Due at Signing", "CASH 2026 Sorento Plug-in Hybrid $3,500
+// Customer Cash", "CASH 2026 K5 $750 Bonus Cash on Specially Tagged Vehicles", "FINANCE 2026 Niro EV 0% APR 72 Months,
+// Including $3,500 APR Bonus Cash". Chunking on model names (ipChunkByModelNames) read none of the card's own structure:
+//  - the Hybrid, Plug-in Hybrid, Hatchback and Carnival Hybrid cards were filed under the base model ("Sorento -- $3,500
+//    Customer Cash" is the Plug-in Hybrid's; the gas Sorento's is $2,750; one name carried twelve 2026 lease prices);
+//  - every lease lost its trim and drivetrain ("Sorento -- $399/mo 36 mo lease");
+//  - "Bonus Cash on Specially Tagged Vehicles" and "Retail Bonus Cash" were published as "Customer Cash", and the 2026
+//    Sportage's tagged-units $750 merged into its $750 Customer Cash; the Carnival's $2,000 (SX Prestige) and $1,500 (LX, LXS,
+//    EX, SX) lost the trims they are limited to;
+//  - the EV3 was not in the model list: its four cards vanished and "Telluride -- 0.90% APR for 24 mos" appeared;
+//  - the EV6's "0% APR up to 60 months ... 2.49% up to 84 months" tiers read "2.49% APR for 60-84 mos".
+// Each card is read on its own: the model (longest name first, so "Sorento Plug-in Hybrid" before "Sorento"; "MPV" dropped,
+// "Carnival Hybrid" kept), the trim after it, and a line built from the card's own headline. [] when the page has no cards
+// of this shape, and the caller falls back to the old chunker. The "Additional Offer" (Military Program) cards are not read.
+const IP_KIA_CARD_MODELS = ['Telluride Hybrid', 'Telluride', 'Sportage Plug-in Hybrid', 'Sportage Hybrid', 'Sportage', 'Sorento Plug-in Hybrid',
+  'Sorento Hybrid', 'Sorento', 'Seltos', 'Soul', 'Carnival MPV Hybrid', 'Carnival Hybrid', 'Carnival MPV', 'Carnival', 'K5', 'K4 Hatchback', 'K4',
+  'Forte', 'Stinger', 'EV9', 'EV6', 'EV5', 'EV4', 'EV3', 'Niro Plug-in Hybrid', 'Niro EV', 'Niro'];
+function ipKiaCashLine(model, head, trim) {
+  const m = head.match(/^\$\s?([\d,]+)\s+(Customer Cash|Retail Bonus Cash|Bonus Cash|Owner Loyalty Bonus|Competitive Bonus Program|Conquest Cash|Loyalty Cash|[A-Z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+){0,3})\b\s*(.*)$/);
+  if (!m) return null;
+  const tail = m[3] || '';
+  const label = m[2] === 'Bonus Cash' && /specially tagged/i.test(tail) ? 'Bonus Cash (specially tagged vehicles only)'
+    : m[2] === 'Owner Loyalty Bonus' ? 'Owner Loyalty Bonus (current Kia owners)'
+    : m[2] === 'Competitive Bonus Program' ? 'Competitive Bonus (conquest; qualified owners of another brand)'
+    : m[2];
+  return ipTruncate(model + ' — $' + m[1] + ' ' + label + ipTrimNote(trim, false));
+}
+function ipKiaFinanceLine(model, head, card) {
+  const m = head.match(/^(\d+(?:\.\d+)?)%\s*APR\s+(\d+)\s*Months(?:,?\s*Including\s+(\$[\d,]+)\s+APR\s+Bonus\s+Cash)?/i);
+  if (!m) return null;
+  // Tiers from the card's own details: "0% Annual Percentage Rate (APR) up to 60 months ... 2.49% ... up to 84 months".
+  const tiers = [], seen = {}; let t; const rx = /(\d+(?:\.\d+)?)%\s+Annual Percentage Rate \(APR\) up to (\d+) months/gi;
+  while ((t = rx.exec(card))) { const k = t[1] + '|' + t[2]; if (!seen[k]) { seen[k] = 1; tiers.push(t[1] + '% APR for up to ' + t[2] + ' mos'); } }
+  const body = tiers.length > 1 ? tiers.join(', ') : m[1] + '% APR for ' + m[2] + ' mos';
+  return ipTruncate(model + ' — ' + body + (m[3] ? ' (includes ' + m[3] + ' APR Bonus Cash)' : ''));
+}
+function ipChunkKiaOffers(fullText) {
+  const text = String(fullText || '').split(/\b(?:Additional Offer|Available for All Vehicles)\b/)[0];
+  const starts = [], rx = /\b(CASH|LEASE|FINANCE|OTHER)\s+(20\d{2})\s+/g; let m;
+  while ((m = rx.exec(text))) starts.push({ i: m.index, label: m[1], year: m[2], body: m.index + m[0].length });
+  const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const modelRx = new RegExp('^(' + IP_KIA_CARD_MODELS.map(esc).join('|') + ')(?![A-Za-z0-9-])');
+  const out = [];
+  starts.forEach((st, k) => {
+    const card = text.slice(st.i, k + 1 < starts.length ? starts[k + 1].i : text.length);
+    const rest = text.slice(st.body, k + 1 < starts.length ? starts[k + 1].i : text.length);
+    const mm = rest.match(modelRx); if (!mm) return;
+    const after = rest.slice(mm[0].length);
+    const hm = after.match(/^\s*([^$%]*?)\s*(\$\s?[\d,]+(?:\/month)?|\d+(?:\.\d+)?%)/); if (!hm) return;
+    const trim = hm[1].replace(/^[\s,]+|[\s,]+$/g, '').replace(/\s+/g, ' ');
+    const head = after.slice(after.indexOf(hm[2])).replace(/\s+Offer details\..*$/, '').replace(/\s+Get A Quote.*$/, '').slice(0, 160).trim();
+    const model = mm[1].replace(/\s+MPV\b/, '');
+    let line = null, kind = '';
+    if (/^\$\s?[\d,]+\/month/.test(head)) { kind = 'lease'; line = ipBuildLine(model, 'Lease', null, null, ipParseLease(head), trim, false); }
+    else if (/^\d+(?:\.\d+)?%\s*APR/i.test(head)) { kind = 'finance'; line = ipKiaFinanceLine(model, head, card); }
+    else if (/^\$/.test(head)) { kind = 'cash'; line = ipKiaCashLine(model, head, trim); }
+    if (line) out.push({ model, year: st.year, text: card, kiaLine: line, kiaKind: kind, trim });
+  });
+  return out;
+}
 function ipTrimNote(trim, shownOnly) {
   const t = String(trim || '').replace(/^applies\s+to\s+/i, '').replace(/\s+/g, ' ').trim();
   if (!t || /^(?:\d+\s+trims?|all(?:\s+trims)?|select\s+trims?)$/i.test(t)) return '';
@@ -742,7 +803,7 @@ const IP_MODEL_LISTS = {
   Honda: ['HR-V','CR-V Hybrid','CR-V','Prologue','Pilot','Passport','CR-V e:FCEV','Civic Sedan Hybrid','Civic Sedan',
     'Accord Hybrid','Accord','Civic Si Sedan','Civic Hatchback Hybrid','Civic Hatchback','Prelude','Civic Type R',
     'Ridgeline','Odyssey','All Vehicles'],
-  Kia: ['Telluride','Sportage','Sorento','Seltos','Soul','Carnival','K5','K4','Forte','Stinger','EV9','EV6','EV4','Niro EV','Niro'],
+  Kia: ['Telluride','Sportage','Sorento','Seltos','Soul','Carnival','K5','K4','Forte','Stinger','EV9','EV6','EV4','EV3','Niro EV','Niro'],   // (11/4) EV3
   Toyota: ['Corolla Cross','Corolla Hatchback','Corolla','Camry','Toyota Crown','Prius Plug-in Hybrid','Prius','Tacoma',
     'Tundra','RAV4 Plug-in Hybrid','RAV4','Highlander','Grand Highlander','4Runner','Sequoia','Venza','Sienna','bZ',
     'GR86','GR Corolla','GR Supra','Land Cruiser','C-HR','Mirai'],
@@ -939,8 +1000,11 @@ function parseManufacturerPage(html, manufacturer, dealerId, manualExpiresOverri
   }
 
   let chunks;
+  const _kiaCards = manufacturer === 'Kia' ? ipChunkKiaOffers(fullText) : [];   // (11/4) see ipChunkKiaOffers
   if (manufacturer === 'Audi') {
     chunks = ipChunkAudiOffers(fullText, models);
+  } else if (_kiaCards.length) {
+    chunks = _kiaCards;
   } else {
     chunks = ipChunkByModelNames(fullText, models);
     if (manufacturer === 'Honda') {
@@ -992,8 +1056,8 @@ function parseManufacturerPage(html, manufacturer, dealerId, manualExpiresOverri
     // single riskiest category for a nearby unrelated number (a lease payment, a due-at-signing
     // amount) to get misattributed as the offer's own value. Skipping the category outright is
     // simpler and safer than continuing to add exclusions for every new adjacent-number pattern.
-    if (category === 'Military' && !chunk.bonus) continue;
-    const hasFact = cash.amount != null || finance.apr || lease.payment || chunk.bonus;
+    if (category === 'Military' && !chunk.bonus && !chunk.kiaLine) continue;
+    const hasFact = cash.amount != null || finance.apr || lease.payment || chunk.bonus || chunk.kiaLine;
     if (!hasFact) continue;
 
     let expires = ipDetectExpiration(chunk.text);
@@ -1004,7 +1068,7 @@ function parseManufacturerPage(html, manufacturer, dealerId, manualExpiresOverri
     const today = new Date().toISOString().slice(0, 10);
     if (expires < today) continue; // never publish an already-expired fact
 
-    let line = chunk.bonus
+    let line = chunk.kiaLine ? chunk.kiaLine : chunk.bonus
       ? ipTruncate(chunk.model + ' — $' + chunk.bonus.amount + (chunk.bonus.kind === 'loyalty' ? ' Loyalty Bonus (current ' + manufacturer + ' owners)' : ' Customer Bonus'))
       : ipBuildLine(chunk.model, category, cash, finance, lease, chunk.trim, chunk.trimShownOnly);
     if (!line) continue;

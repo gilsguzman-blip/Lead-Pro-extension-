@@ -207,7 +207,11 @@ check('Toyota is routed to the SSR parser first', /if \(manufacturer === 'Toyota
 // Kia shares ipChunkByModelNames, and its page prints "2026 K5 LXS FWD" — the BACKWARD lookback
 // answers first, and the forward fallback is unreachable whenever it does. So a change to the
 // forward arm cannot move a Kia line either direction.
-check('Kia has a model list and no chunker of its own', /Kia: \[/.test(src) && !/function ipChunkKia/.test(src), true);
+// (11/4) Kia now reads its page card by card (ipChunkKiaOffers): the year is the card's own label ("LEASE 2026 Sorento S
+// AWD"), so the forward fallback is still never consulted; a page with no cards goes through the shared chunker as before.
+const KIA_SRC = liftFn(src, '\nfunction ipChunkKiaOffers(fullText) {');
+check('Kia has a model list, and its card reader takes the year from the card\'s own label (no forward fallback)',
+  /Kia: \[/.test(src) && !!KIA_SRC && /\(CASH\|LEASE\|FINANCE\|OTHER\)\\s\+\(20\\d\{2\}\)/.test(KIA_SRC) && !/See All Offers|forwardM/.test(KIA_SRC), true);
 const KIA_ROUTE = /chunks = ipChunkByModelNames\(fullText, models\);/.test(src);
 check('Kia routes through the shared chunker', KIA_ROUTE, true);
 check('backward lookback is attempted before any forward arm',
