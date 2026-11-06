@@ -87,7 +87,8 @@ for (const f of BUILDS) {
   check('control: a $400 target with money down allowed -> no block (the offers are within reach)',
     () => /THEIR PAYMENT TARGET/.test(run({ conversationBrief: brief('By: Rep Name wants a $400 payment on a lease') })), false);
   check('control: no target anywhere -> no block', () => /THEIR PAYMENT TARGET/.test(run({ conversationBrief: brief('') })), false);
-  check('control: a used vehicle of interest -> no block (new-car programs do not apply)', () => /THEIR PAYMENT TARGET/.test(run({ condition: 'Used' })), false);
+  // (v9.7.863) The lease comparison's own heading: a used car gets 863's no-promise block (THEIR PAYMENT TARGET:), never the lease offers.
+  check('control: a used vehicle of interest -> no block (new-car programs do not apply)', () => /THEIR PAYMENT TARGET vs THE STORE'S REAL LEASE OFFERS/.test(run({ condition: 'Used' })), false);
 
   console.log(' 3. no plug-in hybrid Seltos:');
   check('"Sportage or Seltos ... Plug In Hybrid" -> the reference line says there is no plug-in Seltos',
