@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.864-dev (Dev. A CALL THEY ASKED FOR, A PRICE THEY GAVE, A TRADE THE NOTE PROVES, A DATE THEY SET, A CALLBACK WE MISSED, AND NO NARRATION. OWNER-APPROVED 11/7 ('build 864, option A'). Extension only; proxy v7.91, reporter v1.25, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. From the 11/6 report and Gil's grabs on 863 (logs 411-414). (1) THEY WANT A CALL, AND ONLY WITH NUMBERS THAT FIT: Honda Lafayette lead 2111261033's notes say 'not texting or emailing bc we spoke on phone, customer wants us to call if we think it's likely we can keep her within budget'; no hold read it and the draft offered Saturday times (the day of their appointment at another dealer). _lpCallWithNumbers: a staff note on this lead that says the customer wants a call, with texting or email ruled out or a condition ('call if / when / once ...'), and no customer message since. A level-3 hold the Add Appt chip does not override; the voicemail carries 'we are working on whether we can keep it within what they told us and will call'; the text and email are a sentence or two, no times, no credit application. (2) WHAT THEY WANT FROM THE CALL: Honda Baytown lead 2110700703's call note 'honda civic, around 23k, and not blue or red', then our text 'these are some of our used Honda Civics'. The call reader caught only 'blue' (a Rallye Red Civic was offered), ignored the price, and listed new 2027 Civic Sports, so the drafts said 'around the $23,000 range'. Every color in 'not X or Y' is read; a price on the call keeps only units listed within about 10% of it, each shown with its listed price, under 'THEIR PRICE ... never say a car is around their price unless its listed price says so'; new or used comes from our own message after the call when the call note does not say (plural model names count). On that grab the one car offered is now a 2025 Civic Sport CPO listed at $24,124. (3) THE VEHICLE ON THE LEAD IS THEIR TRADE: Toyota Baytown lead 2102596185's VOI field holds '2023 Honda Civic'; the rep's note says 'Trade in- 2023 Honda Civic sport Hatchback 46,867 miles fully paid off' and the call was about 7 seats and captain's chairs. The scraper's v9.7.496 record correction stamped the note wrong and the draft asked whether she was still considering the Civic. _lpVoiIsTrade: a staff note naming the VOI's model with trade language and the car's own mileage or payoff, on a lead with no stock number or VIN -> at the top of populateFromData the vehicle becomes the trade (tradeDescription when empty), the VOI is treated as empty, the correction is taken back off the note, and THEIR TRADE IS THE ... says never to offer it or ask whether they still want it. (4) THEY TOLD US THEIR TIMELINE (option A): the same customer wrote 'I won't make the decision until 2027 rolls around' and the drafts asked 'has your search shifted?'. _lpTheirTimeline: the customer's newest message on this lead puts the decision off (not any time soon, until <a later year / next year / a month / tax season / the holidays>), a year that has come does not count, 180 days at most. A level-3 hold: no times, no 'still looking?' or 'has anything changed?', one useful thing for when they are ready, check back closer to then. (5) THEY CALLED US BACK AND WE MISSED THEM: Kia Baytown lead 2108597971 -- six inbound calls between 5:39 and 5:48 PM ('calling <rep> back', 'called back for <rep>') after the salesperson's voicemail, nobody reached them, and three drafts offered a video walkaround because the prompt said they had gone silent and we had already answered. _lpMissedCallBack: an inbound call saying they were calling back (or returning a call, or calling for someone), within 7 days, with no connected call, no message from them and no message of ours that owns the missed call since. The block comes first: sorry we missed them, when is a good time for <name> to call; it supersedes the silent / already-answered lines; no video in its place; level 2. The SMS rewrite carries (1), (4) and (5). (6) NARRATION IN ANY FORMAT: Honda Lafayette lead 2108256455's email said 'I realize our messages haven't made it easy to respond. I'll keep this simple: ...' and 'I don't want to send another version of the same invitation'; the 862 ban is a prompt rule and the email never passes through the rewrite. _lpHouseGuard, before render in every format: 'I'll keep this simple:' comes off its sentence, a sentence that narrates our own messages or their silence goes, 'we have been trying to reach you' stays (816), 'I haven't heard back from the lender' stays, and a message the narration was all of is left as it was (counting what the notes check takes out). Replayed in Central time across all 117 dumps with an inventory snapshot, 4 user prompts change: the four leads above. TESTS: call-timeline-trade-864 (new) executes populateFromData, buildUserPrompt through the panel payload, the visit decision, the SMS rewrite prompt and the render guard: 50 assertions across both builds; v9.7.863 fails 14 of 25 per build (its 11 controls pass). VERIFIED: run-all 308 suites green, 10141 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.863.)
 // Lead Pro -- popup.js  v9.7.863-dev (Dev. A SALE IS A SALE, A HOPED-FOR PAYMENT IS NOT A PROMISE, SHOPPING IS NOT A VISIT, AND LANGUAGE IS NEVER MENTIONED. OWNER-APPROVED 11/6 ('build 863'). Extension only; proxy v7.91, reporter v1.25, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. From the 11/5 report and Gil's grabs on 862 (logs 407-410). (1) SOLD: Honda Baytown lead 2110472272 -- Lead Info 'Status: Sold', Sale Info 'Delivered | Deal # | Sold: 11/5/26', a 'Sold (Delivered)' note -- was drafted as a live deal ('Did you make it in yesterday?', the credit application). currentLeadIsActive was true twice over: the source is Gubagoo (the 'fresh lead sources are never sold' list) and the custom sub-status read 'Appointment Made'. When the Lead Info status itself says Sold and Sale Info has a Deal # sold within 30 days, the lead is sold/delivered whatever the source or sub-status; [LP SOLD DELIVERED DIAG] says when that outranked them. A sale 30+ days old and a returning customer's new (Active) lead are unchanged. (2) THEIR PAYMENT TARGET WITH NO LEASE OFFER: Toyota Baytown lead 2107959537's note ('hoping to be at around 600$ a month really looking closer to 900$', a Camry for her business) found the target but the 759 block speaks only beside a live lease line, so the drafts offered 'may be adjustable to get closer to your $600 target' and 'a different structure ... without starting over'. A new block speaks whenever a target is on record and the lease comparison did not run: never say or hint the payment can come down, be adjusted or restructured, or get closer; never repeat the figures; offering to go over options with the rep (setup, another vehicle, the trade) is fine. The SMS rewrite gets THEIR PAYMENT. A target the lease comparison could hold against a live offer stays the 759 block's. (3) CROSS-SHOPPING: Honda Baytown lead 2108667800's visit note 'SHOPPING PILOT, GRAND HIGHLANDER AND WANTS TO LOOK AT THE TAHOE' was read as a visit to the Toyota store, and every format offered 'the Highlander numbers from Community Toyota Baytown'. _lpVisitOtherBrand now returns visited only when the note says they went there (went / walked / drove over to, over at, next door, across the street, at the sister store, at Community <brand>); shopping or comparing gets CROSS-SHOPPING (the model may be named, no dealership, no numbers from one). The longer model name wins ('Grand Highlander', not 'Highlander'). (4) LANGUAGE: Kia lead 2110818416's email said 'I'm sorry I can only assist in English by text'. The main LANGUAGE rule adds NEVER MENTION LANGUAGE TO THE CUSTOMER (no 'only in English', no apology, no remark on their language, no Spanish-speaking teammate offered -- the agent translates and handles that); the rewrite's rule says the same in one sentence (its system prompt is now 84,667/8,455 = 10.01x smaller than the brief, at sms-refine's order-of-magnitude bound). Replayed in Central time across all 113 dumps with an inventory snapshot, 2 user prompts change: leads 2107959537 and 2108667800 (the sold fix is in the page reader and the language rule in the system prompts, so neither shows in a user-prompt replay; the shipped sold block reads log410's own page text as sold, where v9.7.862 reads it as active). TESTS: sold-target-crossshop-863 (new) executes the shipped sold-detection block, populateFromData, buildUserPrompt through the panel payload, the SMS rewrite prompt and both system prompts: 40 assertions across both builds; v9.7.862 fails 13 of 20 per build (its 7 controls pass). payment-target-759's used-vehicle control now matches the lease block's own heading (a used car gets the no-promise block, never the lease offers). VERIFIED: run-all 307 suites green, 10091 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.862.)
 // Lead Pro -- popup.js  v9.7.862-dev (Dev. THE AGENT'S CHIP, THE CAR'S OWN RECORD, AND THE CUSTOMER'S NUMBERS, OWNER-APPROVED 11/5. Extension only; proxy v7.91, reporter v1.25, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. From the 11/4 report and Gil's grabs on 861 (logs 403-406). (1) ADD APPT ASK: pressed three times on 11/4 (leads 2109496366, 2110248930, 2110383482), no draft named a time -- the chip deferred to every hold. With the chip on, the visit decision sets the soft holds aside (first touch, pitch already out, special trip, relationship reading, times withheld, quiet, stalled) and says "close with two specific appointment times inside store hours", today if there is usable time left, or the next open day or later when a special-trip / remote hold was set aside; it still yields to the hard ones (_LP_VISIT_HARD: deal condition, pause, not today, exit, approval first, already has a rep, the no-appointment chip, will call us back, a booked appointment, a named day). [LP ADD-APPT DIAG] names what it set aside or what held it. (2) THE CAR'S OWN RECORD: _lpStockInteriorLine answers an interior question about the unit on the lead from its inventory record ("lists the interior as Black Leather ... say so plainly", not "I'm checking") -- except a Kia Sportage or K5 GT-Line, whose records show black or gray even when the car has the red interior (Gil, 11/5): "say you will check ... never say it does not have the red interior". Lead 2110446873's settled-color line no longer says the customer "has not raised color, trim or configuration". The color mismatch, with the feed loaded, says "we don't have one in red right now" and names the same trim in the colors we have; a note that they want ONLY that color (lead 2109496366: "Only Wants red Crv sport L") means no other colors, keep watch. The deposit scan no longer reads the customer's own lead form ("Lead received") or "I am ready to place a deposit" as a deposit placed -- that form had set lead 2109496366's unit aside as not confirmed. (3) MILEAGE IS NEVER THEIR NUMBER: "your quote was on 12,000 miles per year and we only need 10,000" made "They countered with their own number, $12,000", and a Tekion link's deal number made "a price of $68627" (lead 2110248930); a sentence about mileage now counts only "$" figures, and links are cut before our figures are read. (4) THE NUMBERS, NOT A VIDEO: when the customer is working the numbers (_lpNumbersTalk: a counter or pushback, a deal sheet, out-the-door, single pay, beat/match, credit application), the special-trip and out-of-area lines lead with the numbers and offer no video walkaround or photos; the SMS rewrite adds NO NEW OFFER when the first draft has no video or photos (lead 2110248930's text added "Would you like me to send you a video of it?"). (5) The system prompt and the rewrite ban narrating our own messages or their silence ("I know my last note...", "I haven't heard back", "I'll keep this simple"). (6) EQUIPMENT (Gil, 11/4): for a new vehicle the trim may be described ("the EX trim comes with heated front seats"), never promised of the exact car; for a used or certified one, offer to confirm. Replayed in Central time across all 109 dumps with an inventory snapshot, 5 user prompts change: the four leads above and Kia lead 2102063788 (two grabs; it asked for the best out-the-door price, so its out-of-area line leads with the numbers). TESTS: chip-feed-numbers-862 (new) executes the visit decision, the interior line, populateFromData and buildUserPrompt through the panel payload, the price reader, the SMS rewrite prompt, the system prompt and the shipped deposit-scan patterns: 48 assertions across both builds; v9.7.861 fails 21 of 24 per build (its 3 controls pass). The settled-color clause and the distance lines call the new helpers behind typeof guards (stock-color, color-settled-741 and fact-arbitration run them in reduced sandboxes). VERIFIED: run-all 306 suites green, 10051 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.861.)
 // Lead Pro -- popup.js  v9.7.861-dev (Dev. FOUR LEADS THE AGENTS GAVE UP ON, OWNER-APPROVED 11/4. Extension only; proxy v7.91, reporter v1.25, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. From the 11/3 feedback and Gil's grabs on 860 (logs 395-398). (1) Audi Lafayette lead 2104763932 (six regenerations on 11/3, then marked lost): on the 10/23 call the customer asked for the buyer's order and nothing shows it went; the drafts offered a video walkaround and "verify the specific Elantra" instead. _lpOwedBuyersOrder reads the newest ask (the customer's own message or a connected call) with no later message or note of ours saying it went; the prompt opens with it as the reason for the message, and the sales rep sends it ("Rep (Rep Name, their sales rep) will send the buyer's order over"; the agent when the agent is the rep) -- no figure, no video, photos, visit or unit check in its place, one easy cash/finance/trade question at most. Not issued while the quiet rule owns the message, or at another store while the unit's status is in question. The SMS rewrite keeps it. On the same prompt the Audi store policy said "present it as AVAILABLE" while VEHICLE ON LEAD said "do not say it is here", the distance context "NOT confirmed by today's feed", and the inventory note "a VIN but NO stock number" (there was one) with "verify the exact unit": under the policy (d._lpAudiAvailPolicy, carried in the payload) all three defer to it, and the policy line adds "do not say you will verify, check on or confirm the unit". A prior-year stock number the feed does not hold now gets v9.7.696's own note instead of the VIN-only one, at every store. The distance header says "more than 75 miles" on a special trip (it said "within 75" beside "more than 75"). (2) Honda Baytown lead 2107967819 (FullPath text reply): "nobody on our team has answered them yet. Answer it first" after the agent's text, email and voicemail about the trade -- the draft opened "I still owe you a useful answer". A reply a person on our team has taken up (the trade, a payment: its subject in what we wrote; never the automated assistant, a campaign, or a message that ignored it, e.g. lead 2106255852's "what are you shopping for?") is background. "Current note is $0 per month" was quoted back: _lpPaidOff reads a $0 payment in their own words as a paid-off car -- never "$0" or "your current note", no payment goal. (3) Kia Baytown lead 2101893543: "it's hard for me to just go sit at a dealership just to talk numbers" and "Id rather do it online", 15 days quiet, became background and the draft asked "are you still considering the K5 GT-Line?". Gil: keep the customer's stated way to do business. _lpWayToBuy survives the quiet rule: the check-in offers the numbers by text or email so the only trip in is to sign, no times (its own visit-decision owner); the rewrite keeps it. (4) Kia Baytown lead 2088871268: our messages promised "I can check which Sorento Hybrid configurations match" (9/24, 10/9, 10/27) and never answered, with one Sorento Hybrid on the lot. _lpOwedStockCheck (a person's promise to check stock -- check, look into, find out; not "confirm the exact unit" -- with no later message of ours naming the model as in stock) makes it the availability question, so what we have answers it, says it is that answer, and carries the connected call's needs ("heated seats, darker interior and exterior") with each unit's paint and interior, never calling a paint dark unless its name says so. _lpHumanOut is the shared reader of a person's messages. Replayed in Central time across all 101 dumps with an inventory snapshot: 9 prompts change -- the four leads above, and five grabs of leads 2097428117 and 1581859334 whose prior-year stock number the feed did not hold (the "NO stock number" note goes). TESTS: owed-asks-861 (new) executes the helpers, populateFromData, buildUserPrompt through the panel payload and _lpBuildSmsRefinePrompt with the clock on the leads' own times: 44 assertions across both builds; v9.7.860 fails 16 of 22 per build (its 6 controls pass). VERIFIED: run-all 304 suites green, 9989 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.860.)
@@ -1472,6 +1473,19 @@ function _lpModelsIn(text) {
 var LP_WANT_NEG_RX = /\b(?:not|no|don['\u2019]?t|doesn['\u2019]?t|didn['\u2019]?t|never|won['\u2019]?t)\s+(?:\w+\s+){0,3}$/i;
 var LP_WANT_OWNED_RX = /\b(?:trade|trading|trade-in|his|her|their|my|owns?|has an?|have an?|drives? an?|sold (?:his|her|their|my))\s+(?:\w+\s+){0,2}$/i;
 var LP_NOT_COLOR_RX = /\b(?:don['\u2019]?t|do not|doesn['\u2019]?t|does not|not|no)\s+(?:want\s+|like\s+)?(?:a\s+|the\s+|any\s+)?(black|white|silver|gr[ae]y|red|blue|green|brown|beige|gold|tan|orange|yellow)\b/gi;
+// (v9.7.864) Every color in "not blue or red" / "no black, white or silver" (lead 2110700703: only "blue" was read, and a Rallye
+// Red Civic was offered), and the price they gave on the call ("around 23k").
+var LP_COLOR_WORDS = 'black|white|silver|gr[ae]y|red|blue|green|brown|beige|gold|tan|orange|yellow';
+var LP_NOT_COLOR_LIST_RX = new RegExp('\\b(?:don[\'\\u2019]?t|do not|doesn[\'\\u2019]?t|does not|not|no)\\s+(?:want\\s+|like\\s+)?(?:a\\s+|the\\s+|any\\s+)?((?:' + LP_COLOR_WORDS + ')(?:\\s*(?:,|\\/|\\bor\\b|\\band\\b|\\bnor\\b)\\s*(?:' + LP_COLOR_WORDS + '))*)\\b', 'gi');
+var LP_CALL_PRICE_RX = /(?:^|[^\w$])\$?\s?(\d{1,3}(?:,\d{3})+|\d{2,3}(?:\.\d)?\s?k)\b(?!\s*(?:k\s*)?(?:mi\b|miles|mileage))/gi;
+function _lpCallPrice(text) {
+  var m, t = String(text || ''); LP_CALL_PRICE_RX.lastIndex = 0;
+  while ((m = LP_CALL_PRICE_RX.exec(t))) {
+    var raw = m[1].replace(/\s/g, ''), n = /k$/i.test(raw) ? Math.round(parseFloat(raw) * 1000) : parseInt(raw.replace(/,/g, ''), 10);
+    if (n >= 5000 && n <= 150000) return n;
+  }
+  return 0;
+}
 function _lpCallWants(d) {
   try {
     if (!d || !d.vehicle) return null;
@@ -1494,12 +1508,21 @@ function _lpCallWants(d) {
     var back = _lpCustEntries(d).some(function (x) { return x.t > hit.e.t && leadModels.some(function (l) { return _lpModelRx(l).test(x.body); }); });
     if (back) return null;   // they wrote about the lead's own model since
     var text = calls.filter(function (x) { return rx.test(x.body); }).map(function (x) { return x.body; }).join(' ');
-    var notColors = [], cm; LP_NOT_COLOR_RX.lastIndex = 0;
-    while ((cm = LP_NOT_COLOR_RX.exec(text))) { var c = cm[1].toLowerCase().replace('grey', 'gray'); if (notColors.indexOf(c) < 0) notColors.push(c); }
+    var notColors = [], cm; LP_NOT_COLOR_LIST_RX.lastIndex = 0;
+    while ((cm = LP_NOT_COLOR_LIST_RX.exec(text))) cm[1].toLowerCase().split(/[^a-z]+/).forEach(function (c) {
+      c = c.replace('grey', 'gray'); if (new RegExp('^(?:' + LP_COLOR_WORDS + ')$').test(c) && notColors.indexOf(c) < 0) notColors.push(c); });
+    // (v9.7.864) New or used: the call note, else what we sent them after the call ("these are some of our used Honda Civics").
+    var cond = /\b(?:used|pre-?owned|certified|cpo)\b/i.test(text) ? 'used' : /\bnew\b/i.test(text) ? 'new' : '';
+    if (!cond) {
+      var _ourAfter = _lpOurEntries(d).filter(function (x) { return x.t >= hit.e.t && !/phone call/i.test(x.title || ''); }).map(function (x) { return x.body; }).join(' ');
+      var _mrx = hit.m.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/[\s-]+/g, '[\\s-]?');
+      if (new RegExp('\\b(?:used|pre-?owned|certified|cpo)\\s+(?:\\w+\\s+){0,2}' + _mrx + 's?\\b', 'i').test(_ourAfter)) cond = 'used';
+      else if (new RegExp('\\bnew\\s+(?:\\w+\\s+){0,2}' + _mrx + 's?\\b', 'i').test(_ourAfter)) cond = 'new';
+    }
     var support = calls.filter(function (x) { return x !== hit.e && rx.test(x.body); }).map(function (x) { return { date: x.date, quote: x.body.slice(0, 140) }; })
       .filter(function (x, k, a) { return a.findIndex(function (y) { return y.date === x.date && y.quote === x.quote; }) === k; });
     return { model: hit.m.name, display: _lpModelName(hit.m.name), make: hit.m.make, date: hit.e.date, quote: hit.e.body.slice(0, 200),
-      condition: /\b(?:used|pre-?owned|certified|cpo)\b/i.test(text) ? 'used' : /\bnew\b/i.test(text) ? 'new' : '', notColors: notColors, support: support,
+      condition: cond, notColors: notColors, support: support, price: _lpCallPrice(text),
       leadModel: _lpModelName(leadModels[0]) };
   } catch (e) { return null; }
 }
@@ -1521,7 +1544,10 @@ function _lpCallWantsUnits(d, w) {
         if (w.condition === 'new' && used) return;
         var col = String(u.color || '').toLowerCase().replace('grey', 'gray');
         if (w.notColors.some(function (x) { return col.indexOf(x) >= 0; })) return;
-        out.push({ store: s, own: s === g.store, year: +u.year || 0, text: desc + (u.color ? ' in ' + u.color : '') });
+        // (v9.7.864) A price on the call: only units listed within about 10% of it, and the model sees each listed price.
+        var pr = +u.price || 0;
+        if (w.price && !(pr > 0 && pr <= w.price * 1.1)) return;
+        out.push({ store: s, own: s === g.store, year: +u.year || 0, text: desc + (u.color ? ' in ' + u.color : '') + (w.price && pr ? ' (listed at $' + pr.toLocaleString('en-US') + ')' : '') });
       });
     });
     out.sort(function (a, b) { return (b.own - a.own) || (b.year - a.year); });
@@ -4918,6 +4944,77 @@ function _lpCallBack(d) {
     return { date: lc.date, by: lc.by, first: lc.first, quote: q.slice(0, 120) };
   } catch (e) { return null; }
 }
+// (v9.7.864) THEY WANT A CALL, AND ONLY WITH NUMBERS THAT FIT. Honda Lafayette lead 2111261033 (log411): the rep's notes say
+// "not texting or emailing bc we spoke on phone, customer wants us to call if we think it's likely we can keep her within
+// budget" (and that they have an appointment at another dealer tomorrow); the draft offered "9:15 AM or 10:30 AM Saturday".
+// A staff note on this lead that says the customer wants a call -- not texts or emails, or a call only once a condition is
+// met. Returns { date, quote, noText, cond, budget } or null.
+var LP_CALL_WANT_RX = /\b(?:wants?|would like|prefers?|asked(?: for)?|requested)\s+(?:us\s+|me\s+|someone\s+|a\s+)?(?:to\s+)?(?:call|phone call)\b|\bprefers?\s+(?:a\s+)?(?:phone\s+)?calls?\b|\bcalls?\s+only\b|\bonly\s+(?:by\s+)?(?:phone|calls?)\b/i;
+var LP_NO_TEXT_RX = /\b(?:not|no|don['\u2019]?t|won['\u2019]?t|without)\s+(?:be\s+)?(?:texting|emailing|texts?|emails?|txt)\b/i;
+var LP_CALL_COND_RX = /\bcall\b[^.!?;]{0,30}?\b(?:if|when|once|only if|as soon as)\b\s*([^.!?;]{4,120})/i;
+function _lpCallWithNumbers(d) {
+  try {
+    var ents = _lpThreadEntries((d && (d.history || d.context)) || '').filter(function (x) {
+      return /^(?:NOTE|CALL NOTE)$/i.test(String(x.tag || '').trim()) || (/^AGENT$/i.test(String(x.tag || '').trim()) && /phone call/i.test(x.title || ''));
+    }).sort(function (a, b) { return b.t - a.t; });
+    var cust = _lpCustEntries(d);
+    for (var i = 0; i < ents.length; i++) {
+      var b = String(ents[i].body || '');
+      if (!LP_CALL_WANT_RX.test(b)) continue;
+      var noText = LP_NO_TEXT_RX.test(b), cm = LP_CALL_COND_RX.exec(b);
+      if (!noText && !cm) continue;
+      if (cust.length && cust[0].t > ents[i].t) return null;   // they have written to us since: the conversation moved on
+      var parts = b.split(/(?<=[.!?])\s+/), q = parts.filter(function (p) { return LP_CALL_WANT_RX.test(p) || LP_NO_TEXT_RX.test(p); }).join(' ') || b;
+      var cond = cm ? cm[1].trim() : '';
+      return { date: ents[i].date, t: ents[i].t, quote: q.replace(/\s+/g, ' ').trim().slice(0, 200), noText: noText, cond: cond,
+        budget: /\bbudget\b|\bprice\b|\bpayment\b|\bnumbers?\b|\d{2}\s?k\b|\$\s?\d/i.test(cond || b) };
+    }
+  } catch (e) {}
+  return null;
+}
+// (v9.7.864) THEY TOLD US THEIR TIMELINE. Toyota Baytown lead 2102596185 (log413): "probably not any time soon I was just
+// browsing the market because I do want a midsize vehicle but I am pretty sure I won't make the decision until 2027 rolls
+// around" -- and the drafts asked "are you still considering a midsize, or has your search shifted?". Gil, 11/7: respect their
+// date, one useful thing, check back closer to then. The customer's newest message on this lead, when it puts their decision
+// off to a later time. Returns { date, quote } or null.
+var LP_TIMELINE_RX = /\bnot\s+(?:any\s?time\s+soon|for\s+(?:a\s+while|a\s+few\s+months|some\s+time|another\s+(?:few\s+)?(?:months?|year)))\b|\b(?:won['\u2019]?t|will\s+not|wont|not\s+going\s+to|not\s+gonna|probably\s+not)\s+(?:be\s+)?(?:buy(?:ing)?|mak(?:e|ing)\s+(?:the|a|my|any)\s+decision|decid(?:e|ing)|purchas(?:e|ing)|ready|look(?:ing)?|do(?:ing)?\s+anything)\b[^.!?\n]{0,50}\b(?:until|till|til|before|after)\b|\b(?:until|till|til|not\s+before|after)\s+(?:early\s+|mid\s+|late\s+)?(?:20\d\d|next\s+(?:year|spring|summer|fall|month)|the\s+new\s+year|the\s+first\s+of\s+the\s+year|january|february|march|april|june|july|august|september|october|november|december|tax\s+(?:season|time|refund)|the\s+holidays|spring|summer)\b/i;
+function _lpTheirTimeline(d) {
+  try {
+    var cust = _lpCustEntries(d);
+    if (!cust.length) return null;
+    var c = cust[0], b = String(c.body || '');
+    var m = LP_TIMELINE_RX.exec(b); if (!m) return null;
+    var y = /\b(20\d\d)\b/.exec(b.slice(m.index)); if (y && +y[1] <= new Date().getFullYear()) return null;   // a year that has come
+    if (c.t && (Date.now() - c.t) > 180 * 86400000) return null;
+    var parts = b.split(/(?<=[.!?])\s+/), q = parts.filter(function (p) { return LP_TIMELINE_RX.test(p); })[0] || b;
+    return { date: c.date, quote: q.replace(/\s+/g, ' ').trim().slice(0, 200) };
+  } catch (e) { return null; }
+}
+// (v9.7.864) THEY CALLED US BACK AND WE MISSED THEM. Kia Baytown lead 2108597971 (log414): after the salesperson's 11/4
+// voicemail the customer called in six times between 5:39 and 5:48 PM ("calling <rep> back", "called back for <rep>"); nobody
+// spoke with them, and every draft since offered a video walkaround. The newest inbound call that says they were calling us
+// back (or a cluster of inbound calls) with no connected call, no message from them, and no message of ours that owns the
+// missed call since. Returns { date, time, who, tries } or null.
+var LP_CALLED_BACK_RX = /\bcall(?:ed|ing)?\s+(?:\w+\s+){0,2}back\b|\breturn(?:ed|ing)\s+(?:\w+['\u2019]s\s+|a\s+|the\s+|my\s+|our\s+)?call\b|\bcall(?:ed|ing)\s+(?:back\s+)?for\s+[A-Z]?[a-z]+/i;
+var LP_MISSED_OWNED_RX = /\bmissed\s+(?:your|you|ur)\b|\bsorry\s+(?:we|I)\s+(?:missed|didn['\u2019]?t\s+(?:get|catch|pick))/i;
+function _lpMissedCallBack(d) {
+  try {
+    var ents = _lpThreadEntries((d && (d.history || d.context)) || '');
+    var inb = ents.filter(function (x) { return /^Inbound phone call/i.test(x.title || ''); }).sort(function (a, b) { return b.t - a.t; });
+    var hit = null;
+    for (var i = 0; i < inb.length; i++) if (LP_CALLED_BACK_RX.test(inb[i].body || '')) { hit = inb[i]; break; }
+    if (!hit) return null;
+    if ((Date.now() - hit.t) > 7 * 86400000) return null;
+    var tries = inb.filter(function (x) { return Math.abs(x.t - hit.t) <= 30 * 60000; }).length;
+    var after = ents.filter(function (x) { return x.t > hit.t; });
+    if (after.some(function (x) { return /\(Contacted\)/i.test(x.title || '') || (/CUSTOMER/i.test(x.tag) && !/phone call/i.test(x.title || '') && x.body && !LP_STOP_WORD_RX.test(x.body)); })) return null;
+    if (after.some(function (x) { return /^AGENT$/i.test(String(x.tag || '').trim()) && LP_MISSED_OWNED_RX.test(x.body || ''); })) return null;
+    var who = ((/\bfor\s+([A-Z]?[a-z]{2,})\b/.exec(hit.body) || /\bcall(?:ed|ing)?\s+([A-Z][a-z]{2,})\s+back\b/i.exec(hit.body) || [])[1] || '');
+    if (/^(?:you|him|her|them|us|me|back|the|a|info|information)$/i.test(who)) who = '';
+    var tm = (/\[\d{2}\/\d{2}\/\d{4}\s+(\d{1,2}:\d{2}\s*[AP]M)/i.exec(hit.raw || '') || [])[1] || '';
+    return { date: hit.date, time: tm, who: who ? who.charAt(0).toUpperCase() + who.slice(1).toLowerCase() : '', tries: tries };
+  } catch (e) { return null; }
+}
 // (v9.7.811) "Did the photos [Rep] sent over come through?" -- a question about something we sent. Returns the words that
 // asked it, or ''. Something sent (photos, pictures, pics, a video or walkaround, numbers, a quote or breakdown, a link) and
 // a way of asking after it (come through, did you get/receive/see, a chance to look, what they thought).
@@ -6218,6 +6315,8 @@ function _lpFullNameGreeting(s, d) {
     return { s: s.replace(rx, function (all, a, b) { return a + b + parts[0]; }), hit: full };
   } catch (e) { return { s: s, hit: '' }; }
 }
+var LP_KEEP_SIMPLE_RX = /\bI['\u2019]ll keep (?:this|it) (?:simple|short|brief|quick)\s*[:;,\u2014\u2013-]\s*([A-Za-z])/gi;
+var LP_NARRATE_RX = /\bI['\u2019]ll keep (?:this|it) (?:simple|short|brief|quick)\b|\b(?:I|we) (?:don['\u2019]t|do not) want to (?:send|keep sending|bother you with|flood you with)\b|\b(?:our|my) (?:earlier |previous |last )?(?:messages|texts|emails|notes|outreach)\s+(?:haven['\u2019]t|have not|didn['\u2019]t|did not)\s+(?:made|make|been)\b|\bI realize (?:our|my) (?:messages|texts|emails)\b|\bI haven['\u2019]t heard back(?!\s+from\s+(?!you\b))|\bwithout hearing back\b|\bI know (?:my|our) last (?:note|message|text|email)\b|\bI know I['\u2019]ve reached out\b/;
 function _lpHouseGuard(text, channel) {
   var s = String(text || '');
   if (!s) return s;
@@ -6261,6 +6360,32 @@ function _lpHouseGuard(text, channel) {
       _sbSent(LP_CHECKBACK_ASK_RX, 'check-back ask');
     }
   } catch (eSb) {}
+  // (v9.7.864) NARRATING OUR OWN MESSAGES OR THEIR SILENCE, IN ANY FORMAT. Honda Lafayette lead 2108256455 (11/6, on 863): the
+  // email said "I realize our messages haven't made it easy to respond. I'll keep this simple: what would you mainly use the
+  // Camry for" and "I don't want to send another version of the same invitation" -- the standing rule bans it, and the email
+  // never passes through the rewrite. "I'll keep this simple:" comes off its sentence; a sentence that only narrates goes.
+  // "We have been trying to reach you" (816) is not narration and stays.
+  // A message the narration was all of is left as it was (counting the sentences the notes check below takes out): never a
+  // greeting and a signature with nothing between.
+  try {
+    var _nr0 = s, _nrH = hits.length;
+    s = s.replace(LP_KEEP_SIMPLE_RX, function (m, c, off, all) {
+      hits.push('narration: "' + m.slice(0, -1).trim() + '"');
+      return /(?:^|[.!?]\s+|\n\s*|,\s+)$/.test(all.slice(0, off)) && !/,\s+$/.test(all.slice(0, off)) ? c.toUpperCase() : c;
+    });
+    var _nrRx = new RegExp('(^|\\n|[.!?]\\s+)([A-Z][A-Za-z\'’-]*,[ \\t]+)?([^.!?\\n]*(?:' + LP_NARRATE_RX.source + ')[^.!?\\n]*[.!?])[ \\t]*([A-Za-z])?', 'gi');
+    s = s.replace(_nrRx, function () {
+      var a = arguments, n = a.length, lead = a[1], name = a[2], sent = a[3], c = a[n - 3], off = a[n - 2], all = a[n - 1], m = a[0];
+      if (typeof c !== 'string') c = '';
+      hits.push('narration: "' + String(sent).trim().slice(0, 70) + '"');
+      var keepI = c === 'I' && /^[\s'’]/.test(all.slice(off + m.length));
+      return lead + (name || '') + (c ? (name && !keepI ? c.toLowerCase() : c) : '');
+    });
+    if (hits.length > _nrH && !s.split(/\n|(?<=[.!?])\s+/).some(function (l) { return l.trim().split(/\s+/).length >= 4 && !LP_NOTES_SAY_RX.test(l); })) {
+      s = _nr0; hits.length = _nrH;
+      try { console.log('[LP HOUSE GUARD] ' + (channel || 'draft') + ': narration left in -- taking it out would leave no message'); } catch (eNrL) {}
+    }
+  } catch (eNr) {}
   try { var _fng = _lpFullNameGreeting(s, d); if (_fng.hit) { s = _fng.s; hits.push('full name as the greeting: "' + _fng.hit + '"'); } } catch (eFng) {}   // (v9.7.848)
   s = s.replace(LP_REMOTE_SAY_RX, function (m, c, off, all) {   // (v9.7.847)
     hits.push('remote: "' + m.slice(0, -1).trim() + '"');
@@ -8305,7 +8430,42 @@ function _lpOfferAlreadyInThread(ctx, incLine, model) {
   return { already: false, why: 'not in the thread' };
 }
 
+// (v9.7.864) THE VEHICLE ON THE LEAD IS THEIR TRADE, AND A STAFF NOTE SAYS SO WITH ITS OWN MILEAGE OR PAYOFF. Toyota Baytown lead
+// 2102596185 (log413): the Vehicle of Interest field holds "2023 Honda Civic"; the rep's note says "Trade in- 2023 Honda Civic sport
+// Hatchback 46,867 miles fully paid off", and on the call she wanted 7 seats and captain's chairs and asked what her trade would
+// bring. The scraper's record correction (v9.7.496) stamped the note wrong, and the draft asked "are you still considering the
+// Civic?". Only an owner knows a car's mileage or payoff: when a staff note on this lead names the VOI's model with trade
+// language and its mileage or payoff, and there is no stock number or VIN on the lead, the note wins -- the vehicle becomes the
+// trade, the VOI is treated as empty, and the correction stamped on that note is taken back off. Returns { vehicle, date, quote }.
+var LP_OWNER_DETAIL_RX = /\b\d{1,3}(?:,\d{3})+\s*(?:mi|miles)\b|\b\d{1,3}(?:\.\d)?\s?k\s*(?:mi|miles)\b|\bpaid\s*off\b|\bpay\s*off\b|\bpayoff\b|\bowes?\b|\blien\b|\bnegative equity\b/i;
+var LP_RECORD_CORRECTION_RX = / ?\[RECORD CORRECTION: the [^\]]*? is this customer['\u2019]s VEHICLE OF INTEREST[^\]]*\]/g;
+function _lpVoiIsTrade(d) {
+  try {
+    if (!d || !d.vehicle || d.stockNum || d.vin) return null;
+    var mm = String(d.vehicle).match(/^\s*(?:19|20)\d{2}\s+\S+\s+(\S+)/), sh = mm ? mm[1].replace(/[^\w-]/g, '') : '';
+    if (!sh || !/[A-Za-z]/.test(sh)) return null;
+    var rx = new RegExp('\\btrade(?:[\\s-]?in)?\\b[^.!?\\n]{0,60}?\\b' + sh.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b([^.!?\\n]{0,120})', 'i');
+    var ents = _lpThreadEntries(String(d.conversationBrief || d.history || d.context || '').replace(LP_RECORD_CORRECTION_RX, '')).filter(function (x) {
+      return /^(?:NOTE|CALL NOTE)$/i.test(String(x.tag || '').trim()) || (/^AGENT$/i.test(String(x.tag || '').trim()) && /phone call/i.test(x.title || ''));
+    });
+    for (var i = 0; i < ents.length; i++) {
+      var m = rx.exec(ents[i].body || '');
+      if (m && LP_OWNER_DETAIL_RX.test(m[0])) return { vehicle: String(d.vehicle), date: ents[i].date, quote: m[0].replace(/\s+/g, ' ').trim().slice(0, 140) };
+    }
+  } catch (e) {}
+  return null;
+}
 function populateFromData(d) {
+  try {
+    var _vit = _lpVoiIsTrade(d);
+    if (_vit) {
+      d._lpVoiTrade = _vit;
+      if (!String(d.tradeDescription || '').trim()) d.tradeDescription = _vit.vehicle;
+      d.vehicle = '';
+      ['conversationBrief', 'context', 'history'].forEach(function (k) { if (typeof d[k] === 'string') d[k] = d[k].replace(LP_RECORD_CORRECTION_RX, ''); });
+      console.log('[LP VOI IS TRADE DIAG] ' + _vit.date + ' note: "' + _vit.quote + '" -> "' + _vit.vehicle + '" is their trade; the Vehicle of Interest is treated as empty');
+    }
+  } catch (eVit) {}
   // (v9.7.604) Drop a voicemail belonging to a different lead before anything renders. See
   // _lpVmForLead above for why this is stamped rather than cleared unconditionally.
   try {
@@ -11397,6 +11557,9 @@ function populateFromData(d) {
     vehicleExtras.push('\ud83e\udd16 SOME OF THE OUTBOUND ON THIS LEAD CAME FROM THE STORE\u2019S AUTOMATED ASSISTANT, NOT FROM YOU. Every one of those messages is marked in the transcript. BUILD ON THEM FREELY \u2014 the customer received them, may be answering them right now, and pretending they did not happen would break a live conversation. What you may NOT do is take credit for writing them. Never write "I sent", "I mentioned", "as I said", "the option I sent" or anything else in the FIRST PERSON SINGULAR about a message marked as the assistant\'s. Say it the way it is actually true: "the one we sent over", "the option that came through this morning", "what you were just sent" \u2014 or simply talk about the vehicle without claiming who raised it. The STORE sent it, so "we" is honest; "I" is not. This is the whole rule: keep the thread, drop the false authorship.');
   }
   if (d.isRecentOutbound && !d.isLiveConversation) vehicleExtras.push('📤 RECENT OUTBOUND: Agent sent a message within the last hour. Maintain conversational continuity with that thread — IF the prior content is compatible with current ground truth (verified inventory, customer-stated availability, store hours, internal notes). If the prior outbound conflicts with what is actually possible (e.g. offered times for a vehicle without confirmed stock, accepted a closed-day appointment, promised availability that contradicts an internal note), apply the WHEN PRIOR OUTBOUND CONFLICTS WITH GROUND TRUTH guidance from your system prompt — pivot warmly toward what IS possible without throwing the prior message under the bus. Prior message: "' + (d.recentOutboundContent||'').substring(0,200) + '"');
+  if (d._lpVoiTrade) vehicleExtras.push('THEIR TRADE IS THE ' + d._lpVoiTrade.vehicle.toUpperCase() + ': the staff note (' + d._lpVoiTrade.date + ') gives its own details ("' + d._lpVoiTrade.quote.replace(/"/g, "'")
+    + '"), and only an owner knows those. The CRM\'s Vehicle of Interest field held it by mistake. It is the car they are trading, not one they are shopping for: never offer it, ask whether they are still considering it, or name it as what they want. '
+    + 'What they want is what they told us (their own messages and the call notes); if they have not said, do not guess.');   // (v9.7.864)
   if (vehicleExtras.length) leadContext += '\n\nVEHICLE/LEAD DETAILS:\n' + vehicleExtras.join('\n');
 
   // Stalled flag — cold follow-ups with outbound history but no confirmed contact
@@ -24839,6 +25002,24 @@ function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
       out.push('The first draft offers no video, walkaround or photos. The text does not add one.');
       out.push('');
     }
+    // (v9.7.864) The holds above, carried into the text.
+    var _rfCwn = (typeof _lpCallWithNumbers === 'function') ? _lpCallWithNumbers(d) : null, _rfTtl = (typeof _lpTheirTimeline === 'function') ? _lpTheirTimeline(d) : null,
+      _rfMcb = (typeof _lpMissedCallBack === 'function') ? _lpMissedCallBack(d) : null;
+    if (_rfCwn) {
+      out.push('━━━ THEY WANT A CALL ━━━');
+      out.push('They asked for a call, not texts. The text is one or two sentences: we are working on it and will call. No times, no visit, no question for them to answer by text.');
+      out.push('');
+    }
+    if (_rfTtl) {
+      out.push('━━━ THEIR TIMELINE ━━━');
+      out.push('They told us when they plan to decide (' + _rfTtl.date + '). The text offers no times and no visit, and does not ask whether they are still looking or whether their search has shifted.');
+      out.push('');
+    }
+    if (_rfMcb) {
+      out.push('━━━ THEY CALLED US BACK ━━━');
+      out.push('They called the store back on ' + _rfMcb.date + ' and we missed them. The text keeps the first draft\'s apology for missing their call and the easy way to connect' + (_rfMcb.who ? ' with ' + _rfMcb.who : '') + '; no video or photo offer in its place.');
+      out.push('');
+    }
     // (v9.7.863) Lead 2107959537 (log410): both passes offered "a different deal structure"; the text added "without starting over".
     var _rfPt = (!d || d.isSoldDelivered || typeof _lpPaymentTarget !== 'function') ? null : _lpPaymentTarget(d);
     if (_rfPt && _rfPt.payment != null) {
@@ -26262,6 +26443,9 @@ var _LP_VISIT_HOLDS = [
   [2, /^THEY SAID THEY WILL MAKE THE TRIP:/, 'the REMOTE BUYER who said they will make the trip (ask when, no set times)'],
   [2, /^A VISIT IS A SPECIAL TRIP FOR THIS CUSTOMER/, 'the SPECIAL TRIP rule (more than 75 miles: one soft invitation, no times)'],   // (v9.7.847)
   [2, /^THEY SAID THEY WILL CALL US BACK \(on the /, 'the CALL-BACK rule (they said they will call us)'],   // (v9.7.847)
+  [3, /^THEY WANT A CALL, AND ONLY WITH NUMBERS THAT FIT/, 'the CALL WITH THE NUMBERS note (they want a call, not texts)'],   // (v9.7.864)
+  [3, /^THEY TOLD US THEIR TIMELINE/, 'THEIR TIMELINE (they told us when)'],   // (v9.7.864)
+  [2, /^THEY CALLED US BACK AND WE MISSED THEM/, 'the MISSED CALLBACK (connect with them first)'],   // (v9.7.864)
   [2, /^DO NOT offer appointment times\. DO NOT write duration\./, 'the stalled-lead re-engagement block'],
   [2, /The visit already happened\. Do NOT push a same-day appointment or offer times/, 'the SHOWROOM FOLLOW-UP block'],
   [2, /FIRST HUMAN TOUCH — LIGHT ASK, NO TIMES/, 'FIRST HUMAN TOUCH'],
@@ -26287,7 +26471,8 @@ var _LP_VISIT_HOLDS = [
 var _LP_VISIT_HARD = ['the PAUSE rule (not ready)', 'the DEAL CONDITION rule', 'NOT TODAY (not any day)', 'the EXIT rule', 'the call-note PAUSE (not looking right now)',
   'the APPROVAL FIRST condition (no visit until they know)', 'the ALREADY HAVE A SALES REP block', 'the agent\'s NO APPOINTMENT override',
   'the agent\'s ADD APPT ASK chip (out-of-state: times, but not today by default)', 'the CALL-BACK rule (they said they will call us)',
-  'the LIVE APPOINTMENT block (a time is already booked)', 'TIMING NOTE (not today)', 'the DAY THE CUSTOMER NAMED'];
+  'the LIVE APPOINTMENT block (a time is already booked)', 'TIMING NOTE (not today)', 'the DAY THE CUSTOMER NAMED',
+  'the CALL WITH THE NUMBERS note (they want a call, not texts)', 'THEIR TIMELINE (they told us when)'];   // (v9.7.864)
 function _lpVisitDecision(text, chip) {
   var best = { level: 0, owner: '' }, seen = [], seenLv = [];
   try {
@@ -30391,6 +30576,42 @@ function buildUserPrompt(data) {
         + 'Give them one useful thing for when they do call, and make it easy to reach you; a light "whenever you are ready" is fine. Do not press, and never quote the call note.');
     }
   } catch (eCbk) {}
+  // (v9.7.864) See _lpCallWithNumbers, _lpTheirTimeline and _lpMissedCallBack.
+  try {
+    var _cwn = _lpCallWithNumbers(data);
+    if (_cwn) {
+      console.log('[LP CALL WITH NUMBERS DIAG] ' + _cwn.date + ': "' + _cwn.quote.slice(0, 90) + '" | no texts:' + _cwn.noText + ' | condition:' + (_cwn.cond ? '"' + _cwn.cond.slice(0, 60) + '"' : 'none') + ' -> full visit hold; the voicemail carries it');
+      ageBlock.push('');
+      ageBlock.push('THEY WANT A CALL, AND ONLY WITH NUMBERS THAT FIT (staff note, ' + _cwn.date + '): "' + _cwn.quote.replace(/"/g, "'") + '". '
+        + (_cwn.noText ? 'Our team chose to call them rather than text or email. ' : '')
+        + 'No appointment times, no day and no visit ask in any format. The voicemail carries the message: '
+        + (_cwn.budget ? 'we are working on whether we can keep it within what they told us, and we will call them with the answer' : 'we will call them, as they asked') + '. '
+        + 'The text and the email, if sent at all, are one or two sentences saying the same thing -- no pitch, no times, no credit application, and no question they have to answer by text. Never quote the note.');
+    }
+  } catch (eCwn) {}
+  try {
+    var _ttl = _lpTheirTimeline(data);
+    if (_ttl) {
+      console.log('[LP TIMELINE DIAG] ' + _ttl.date + ': "' + _ttl.quote.slice(0, 90) + '" -> full visit hold; no "still looking?"');
+      ageBlock.push('');
+      ageBlock.push('THEY TOLD US THEIR TIMELINE (' + _ttl.date + '): "' + _ttl.quote.replace(/"/g, "'") + '". Take them at their word. No appointment times and no visit ask in any format. '
+        + 'Do NOT ask whether they are still looking or still considering it, whether anything has changed or their search has shifted, or what they are looking for -- they already told us. '
+        + 'Write a short, light note that respects their timing: one useful thing for when they are ready (for example, the new model year arriving, or keeping an eye out for what they described), '
+        + 'and that you will check back closer to then. No pressure, and never quote their message back to them.');
+    }
+  } catch (eTtl) {}
+  try {
+    var _mcb = _lpMissedCallBack(data);
+    if (_mcb) {
+      console.log('[LP MISSED CALLBACK DIAG] ' + _mcb.date + (_mcb.time ? ' ' + _mcb.time : '') + ' | for:' + (_mcb.who || '(not named)') + ' | inbound calls in that half hour:' + _mcb.tries + ' -> connect first');
+      var _mcbWho = _mcb.who || String(data.salesRep || '').trim().split(/\s+/)[0] || '';
+      ageBlock.push('');
+      ageBlock.push('THEY CALLED US BACK AND WE MISSED THEM: on ' + _mcb.date + (_mcb.time ? ' at ' + _mcb.time : '') + ' they called the store back' + (_mcb.who ? ' for ' + _mcb.who : '')
+        + (_mcb.tries >= 3 ? ', trying several times that evening,' : '') + ' and no one has spoken with them since. That is the reason for this message, and it comes first: '
+        + 'say plainly that we are sorry we missed them when they called back, and make it easy to connect -- ask when is a good time for ' + (_mcbWho || 'us') + ' to call them, or give them the way to reach ' + (_mcbWho || 'us') + ' directly. '
+        + 'They did not go quiet: any line in this prompt that says they are silent or that we already answered them is superseded by this one. Do not offer a video, photos or other options in place of the call, and offer no appointment times.');
+    }
+  } catch (eMcb) {}
   // (v9.7.859) Still the first reach: say so, so nothing below reads the call as a history of trying (see _lpStillFirstReach).
   try {
     var _sfr = _lpStillFirstReach(data);
@@ -32163,7 +32384,7 @@ function buildUserPrompt(data) {
   try {
     var _cw = _lpCallWants(data);
     if (_cw) {
-      var _cwDesc = (_cw.condition ? _cw.condition + ' ' : '') + _cw.display + (_cw.notColors.length ? ', not ' + _cw.notColors.join(' or ') : '');
+      var _cwDesc = (_cw.condition ? _cw.condition + ' ' : '') + _cw.display + (_cw.notColors.length ? ', not ' + _cw.notColors.join(' or ') : '') + (_cw.price ? ', around $' + _cw.price.toLocaleString('en-US') : '');
       var _cwUnits = _lpCallWantsUnits(data, _cw), _cwG = _lpStoreGroup(data);
       var _cwSister = (_cwG.sisters && LP_BAYTOWN_SISTERS[_cw.make] && LP_BAYTOWN_SISTERS[_cw.make] !== _cwG.store) ? LP_BAYTOWN_SISTERS[_cw.make] : '';
       var _cwRep = String(data.salesRep || '').trim().split(/\s+/)[0] || '';
@@ -32171,10 +32392,11 @@ function buildUserPrompt(data) {
         + (_cw.support.length ? ' (and ' + _cw.support.map(function (x) { return x.date + ': "' + x.quote.replace(/"/g, "'") + '"'; }).join('; ') + ')' : '')
         + '. The conversation is about a ' + _cwDesc + ' -- not the ' + data.vehicle + ' the lead came in on. Do NOT push the ' + _cw.leadModel + ', say it is here, or ask about its features.');
       var _cwOwn = _cwUnits.filter(function (u) { return u.own; }), _cwAway = _cwUnits.filter(function (u) { return !u.own; });
+      if (_cw.price) lines.push('- THEIR PRICE: they said around $' + _cw.price.toLocaleString('en-US') + '. Only the cars listed below are near it, at the listed prices shown. Never say a car is around, near or within their price unless its listed price below says so.');
       if (_cwOwn.length) lines.push('- On our lot: ' + _cwOwn.map(function (u) { return u.text; }).join('; ') + '. Name it and offer the visit here.');
       else if (_cwAway.length) lines.push('- At our sister store, ' + _cwAway[0].store + ': ' + _cwAway.filter(function (u) { return u.store === _cwAway[0].store; }).map(function (u) { return u.text; }).join('; ')
         + '. Name it, and offer to set up a visit at ' + _cwAway[0].store + ' to see it -- ' + (_cwRep ? _cwRep + ' can meet them there' : 'their salesperson can meet them there') + ' and go through it with them. It is our group\'s car; never treat it as a competitor\'s.');
-      else lines.push('- Neither our lot' + (_cwSister ? ' nor ' + _cwSister : '') + ' has a ' + (_cw.condition ? _cw.condition + ' ' : '') + _cw.display + (_cw.notColors.length ? ' that is not ' + _cw.notColors.join(' or ') : '') + ' today.' + (_cw.notColors.length ? ' Do not offer the ' + _cw.notColors.join(' or ') + ' one again.' : '')
+      else lines.push('- Neither our lot' + (_cwSister ? ' nor ' + _cwSister : '') + ' has a ' + (_cw.condition ? _cw.condition + ' ' : '') + _cw.display + (_cw.notColors.length ? ' that is not ' + _cw.notColors.join(' or ') : '') + (_cw.price ? ' listed near $' + _cw.price.toLocaleString('en-US') : '') + ' today.' + (_cw.notColors.length ? ' Do not offer the ' + _cw.notColors.join(' or ') + ' one again.' : '')
         + ' Ask what year range or color they would like, and offer to keep watch for one' + (_cwSister ? ' here and at our sister store, ' + _cwSister : '') + '.');
       try { console.log('[LP CALL WANTS DIAG] ' + _cw.date + ' call: ' + _cwDesc + ' (lead vehicle: ' + data.vehicle + ') | units: ' + (_cwUnits.length ? _cwUnits.map(function (u) { return u.text + ' @ ' + u.store; }).join('; ') : 'none') + (_cw.support.length ? ' | backed by ' + _cw.support.length + ' later note(s)' : '')); } catch (eCwD) {}
     }
