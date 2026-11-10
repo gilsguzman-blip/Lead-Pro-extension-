@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.868 (Commercial. OUR LAST MESSAGE AND THEIR ANSWER, A VISIT ALREADY FOLLOWED UP, A TRADE TRIGGER THAT READ OUR OWN TEXT, AND AUDIT #2 BATCHES A AND B. OWNER-APPROVED 11/10 ('build batch A and B from the audit, and the message generated is almost identical to the last message we sent'). Ships with proxy v7.92 and reporter v1.26 (log and report only; any deploy order); dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. THE NEAR-DUPLICATE, Kia Baytown lead 2112534348 (log418): at 11:25 AM our text thanked them for their kind words about the rep, named the $2,500 down / $500 a month target and asked them back; at 11:28 they answered 'Of course, I will be back. I will try today. If not for sure tomorrow.'; the draft thanked them again and restated the target. Three causes, three fixes. (1) Nothing said which message theirs answered (the do-not-restate rule runs only while the customer has not replied). _lpOurLastAnswered: our newest person-written message and the customer's message(s) after it, within 12 hours (not the assistant's, not a bare STOP, not a one-liner of ours), and the context opens with both quoted -- 'OUR LAST MESSAGE, AND THEIR ANSWER TO IT ... Do not say again what our message already said -- not its thanks, not its figures, not its offer or its question -- unless their answer asks for it'; the text rewrite gets WHAT OUR LAST MESSAGE ALREADY SAID. (2) The showroom template ('Acknowledge the visit specifically ... who they met', 'CLOSE WITH ONE CONCRETE OFFER ... BRINGS THEM BACK IN') was still in the prompt two days and twenty customer messages after the visit. _lpVisitMovedOn: once a person here has written after the visit note and the customer has written too, its do-this lines (visit confirmation, critical context, must do, close with, tone, note on data, no vehicle, thin visit data) give way to one line -- the post-visit follow-up has been sent, do not thank them for coming in again or recap the visit, continue from their newest message; the visit progress facts and the must-not line stay. The visit note is read from the whole record (a walk-in's sits below the marker of the lead it created). (3) 'The customer wants to know what their TRADE is worth' on a lead with no trade: the trigger's attributed-line scan read every line of the context, which carries the template's own '...the color they wanted, a trade appraisal'. It now reads transcript entries only (a line opening '[' and the indented lines under it), notes and call notes, as audit DR-1's smallest form; the same false line also leaves lead 2112149909. BATCH B. PF-1: every grab waited the full 4 s (logs 415-418: 6 of 7 frames waited out the cap; the lead frame was ready in 0-2.2 s). The lead frame now leaves a mark on the top window when ready, and a frame stands down once that mark is from this grab: a frame with no lead markers and no lead id, or a frame for the same lead with no notes; a frame with lead markers and no notes for another or unknown lead still waits (the rims2 race), and the customer dashboard is done as soon as its key-information rows are drawn (else the cap, until batch A says how long they take). PF-3: the lead frame stops waiting for key-information rows the dashboard has drawn, and the shadow-root walk runs at most every 600 ms. PF-2: a Grab refreshes the lead's store and its Baytown sisters (from the pre-scrape's lead frame, else ECCS), not all five; unknown store -> all five as before. PF-5: the text rewrite's system prompt names the agent, store and phone last (same words, same length), so every agent shares one cache prefix. BATCH A (behavior-neutral): the feedback row carries the directive labels the prompt carried (meta.directives, up to 80), its length (promptChars) and the key-information rows kept (keyInfoRows); [LP GRAB TIMING] names each frame class with when it finished and when the key-information rows were drawn; proxy v7.92 adds classifyMs to its FINAL line; reporter v1.26 labels requests with no START line by their path, shows a Directives table, the prompt-length and key-info line, the classifier's time, and hides the note-type table when it is all 'unknown'. REPLAY: the four grabs on file rebuilt on 867 and 868 -- 2112534348 and 2112149909 change exactly as above, the other two do not. TESTS: batch-ab-868 (new) executes _lpOurLastAnswered, _lpVisitMovedOn, populateFromData and buildUserPrompt through the panel payload, the rewrite prompt, the shipped frame-wait function against fake frames, _lpGrabPrefetch, _lpPromptDirectives, the feedback meta and the timing line: 58 assertions across both builds; v9.7.867 fails 26 of 29 per build (the 3 that pass are controls). reporter-v126 (new, 13; v1.25 with v7.91 fails 11). inv-grab-fresh-746 updated for PF-2. VERIFIED: run-all 313 suites green, 10380 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.867.)
 // Lead Pro -- popup.js  v9.7.867 (Commercial. THE OFFER THEY REQUESTED A QUOTE ON. OWNER-APPROVED 11/10 ('build 867, leave the certified hybrid out'). Extension only; proxy v7.91, reporter v1.25, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. Toyota Baytown lead 2113204072 (log417, source 'Rct-Request A Quote'), Gil: 'there is an offer that the customer saw but LP didn't pick up on it.' The manufacturer's site sends the offer the customer clicked as fields in the lead note -- Offer Type: apr | Vehicle: 2026 Tacoma i-FORCE MAX | Offer Info: 3.99% for 48 Months | Offer End Date: 11/30/2026 -- and three things went wrong with it. (1) The scraper's tool-data rule, written for trade and payment estimators, put it in the prompt as TOOL-SUPPLIED DEAL DATA: 'the customer did not type them, has not quoted them to us, and has not raised the subject ... move the conversation toward a real appraisal'. (2) The store's own offer list had the same line ('Tacoma i-FORCE MAX -- 3.99% APR for 48 mos', expires 11/30) and it stayed out, because a first message from a person does not open with an incentive and 'the customer asked about an offer' only read typed messages. (3) Nothing mapped 'i-FORCE MAX' to the feed's 'Hybrid'. The draft asked 'What trim and color are you after?'. NOW: _lpOfferRecord reads the record (type, vehicle, terms, end date, whose site) out of the scraper's block at the top of populateFromData, and that block comes off; _lpOfferBlock opens the context with THE OFFER THEY REQUESTED A QUOTE ON -- the offer named with its end date, 'that offer is why they wrote in ... name the offer in the first sentence, and do not ask what they are interested in as if they had not said'. Checked against the store's offer list (same model, same year, every number of the terms, not expired): confirmed -> state it as an offer for well-qualified buyers, subject to credit approval, never promising the rate; not in the list -> 'the offer you saw on Toyota's website', to be confirmed, the rate not stated as ours; an end date that has passed -> not presented as current. Then what is on the lot, new units only (the rate is a new-vehicle offer, and the owner asked for the certified one to be left out): the ones of that powertrain named with their paint; or none of it -- said plainly, once -- with the other new ones of the model, and 'the same rate applies to these too' when the offer list has the same terms on the base model; never a stock number or a price. On lead 2113204072: no new 2026 Tacoma i-FORCE MAX; SR5 x3; the same 3.99% for 48 months on the Tacoma. The first-touch light ask stands; the offer line is exempt from the first-touch incentive hold because they asked about it. _LP_POWERTRAINS reads 'i-FORCE MAX' as Hybrid, for every powertrain reader. The text rewrite is told to keep the offer and never promise the rate. [LP OFFER ASKED DIAG] names the offer, whether the list confirmed it and what is on the lot. A trade estimator's tool data keeps its block. REPLAY: the three grabs on file rebuilt on 866 and 867 -- one changes (2113204072, exactly these lines), two do not. ALSO, tests only: stuck-leads-784 stamped its fixtures with clock labels on dates counted back from now and so passed only in the evening (at 9:48 AM two checks failed on unchanged 866 code); it now runs at a fixed clock. TESTS: offer-asked-867 (new) executes _lpOfferRecord, populateFromData and buildUserPrompt through the panel payload, _lpPowertrainOf and the rewrite's instructions on the block as captured: 36 assertions across both builds; v9.7.866 fails 15 of 18 per build (the 3 that pass are controls; 1 more control fails there only because the helper does not exist). VERIFIED: run-all 311 suites green, 10309 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.866.)
 // Lead Pro -- popup.js  v9.7.866 (Commercial. HOW A MESSAGE OPENS, A VIN IN THE STOCK FIELD, ONE QUESTION ONCE, ONE DAY NAMED ONCE, ONE SAME-DAY CUTOFF, A FEEDBACK ROW THAT KNOWS ITS LEAD, AND NO KIA INTERIOR FROM THE FEED. OWNER-APPROVED 11/10 ('build 866 yes all Kia's show black and not the alternative option color on their description from the feed'). Extension only; proxy v7.91, reporter v1.25, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. From the 11/9 report. (a) OPENERS: on four stalled leads the agent regenerated until 'I reached out about', 'I'm reaching out about' and 'I wanted to share that' were gone (leads 2099092351, 2096792360, 2097496025, 2070752744). The standing rule now says to open on the thing itself and names the three; the rewrite is told the same in its own instructions (its system prompt is untouched -- the size bound holds); and the render guard takes 'I wanted to share that' off the front of a sentence. (b) A VIN IN THE STOCK-NUMBER FIELD: lead 2112437423's stock field held the 4Runner's 17-character VIN, the feed is looked up by stock number, and the draft said 'I can't confirm it's at our store yet'. The feed check matches such a value against the units' VINs, and populateFromData gives the lead that unit's stock number so every later reader sees the real one. (c) THE SAME QUESTION TWICE, in more wordings: '...hoping/looking/wanting/planning to get into?' joins the vehicle-question forms (lead 2112726385). (d) ONE DAY, NAMED ONCE: 'tomorrow at 9:15 AM or Tuesday, November 10, at 10:30 AM' -- both Tuesday (lead 2112726385). _lpSameDayOnce, in the past-time guard: 'tomorrow ... or <tomorrow's weekday, with or without its date>' loses the second naming; another weekday, or the same weekday on another date, is left alone. (e) ONE SAME-DAY CUTOFF: 'tonight at 7:30' was offered at 7:11 PM, '7:15 PM today' at 7:03 PM and '7:30 tonight' at 7:15 PM (leads 2108867424, 2103434989, 2108761432). The slot engine already has a last same-day appointment time per store (6:30 PM at the Baytown stores, 6:00 PM in Lafayette, 4:30 PM on an Audi Saturday) and the status line never read it: it said 'there is still usable time TODAY' until the door shut. computeAppointmentTimes now reports pastSameDayCutoff, and past that time the status line reads 'OPEN, closing at ... -- too late in the day for a same-day appointment. Earliest available appointment is <the next open day>. Do NOT offer a time today or tonight.' (someone already on their way is welcomed, with the closing time). The Add Appt line follows it ('the next open day -- no same-day time is left'), after closing too. Before the cutoff nothing changes. (f) A FEEDBACK ROW THAT KNOWS ITS LEAD: a Direct-chip row on lead 2112556296 was posted with no store, agent or lead and rated 'down' -- the agent pressed again before the reply came back, so the meta (captured on a reply) was empty, and the report showed an 'unknown' store at 0%. Who and which lead is now kept from the moment Generate is pressed and sent when the meta is empty (marked noDraft); and a generation that never rendered a draft is rated 'incomplete', never 'down', whatever was pressed to start it (v9.7.541's rule, which a chip or regenerate count had been overriding). An empty meta still means 'no draft was produced'. (g) KIA INTERIORS: 'both available units have black interiors, not the brown you wanted' on two Tellurides (lead 2112556296). Kia's feed lists the interior as black or gray whatever the car has -- every Kia, not only the Sportage and the K5 GT-Line (v9.7.862). The interior line for the unit on the lead is 'we will check' for any Kia; the what-we-have list no longer prints a Kia unit's interior; and when the interior is in play (they asked for one, or the call note names one) a KIA INTERIORS line says never to name a Kia's interior color or say it has or lacks theirs. NOTE: the replay covered the two grabs this session still holds (logs 415-416); neither prompt changes, as expected for these seven items. TESTS: openers-cutoff-kia-866 (new) executes the house guard, the feed check, populateFromData, the past-time guard, computeAppointmentTimes at fixed Central clocks, buildUserPrompt through the panel payload, the visit decision, the feedback reset and send, the interior line and the what-we-have block: 82 assertions across both builds; v9.7.865 fails 27 of 41 per build (the 14 that pass are controls; 5 more controls fail there only because the helper or field they read does not exist). chip-feed-numbers-862 and owed-asks-861 updated for (g): a K5 LXS is 'we will check', and the Sorento Hybrid is listed with its paint only. VERIFIED: run-all 310 suites green, 10273 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.865.)
 // Lead Pro -- popup.js  v9.7.865 (Commercial. THE AGENT'S TIMES IN BOTH FORMATS, THE FEED'S WORDS WRITTEN OUT, ONE QUESTION ONCE, THE COLOR ONLY WHEN IT IS THE QUESTION, A DAY FOR TOMORROW'S TIMES, WHAT WE ALREADY ANSWERED, WHAT WE ASKED THEM FOR, AND TWO TIMES ON A FIRST TOUCH WITH THE CAR HERE. OWNER-APPROVED 11/9 ('build 865, yes on i'). Extension only; proxy v7.91, reporter v1.25, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. From the 11/6-11/7 reports and the grabs on 864 (logs 415-416). (a) ADD APPT IN BOTH FORMATS: lead 2111918199's text asked 'Could you come in at 10 a.m. or 2 p.m?' and its email 'What day would work for a visit?'; lead 2108867424 the reverse. The rewrite already kept a first draft's times; this was the first draft. _lpChipTimesBoth, right after the reply is parsed: with the chip on, when one format asks with times and the other has none, the asking sentence is carried over (into the text before its signature, into the email before the sign-off). (b) The feed's abbreviations are written out before render in every format: Hybr -> Hybrid, Sdn -> Sedan, Hatchbk/Htchbk -> Hatchback, Cpe -> Coupe (lead 2111918199's 'Civic Hatchback Hybr Sport'). (c) THE SAME QUESTION TWICE: 'What vehicle are you looking for? ... What vehicle are you shopping for?' (lead 2112048694; lead 2110897597 the day before) -- the second asking goes. (d) THE COLOR ONLY WHEN IT IS THE QUESTION: a paused TrueCar customer was told 'the gray Pilot EX-L isn't in stock' (lead 2111367648, explicit thumbs-down); after a visit where she saw the numbers, lead 2112149909 was told 'the silver HR-V isn't in stock today'. _lpColorIsLive: not live on a pause or after a visit, unless their newest message asks about a color or availability; when not live, the COLOR MISMATCH line and the scraper's COLOR PREFERENCE line become 'COLOR (background only -- do not bring it up in this message)'. (e) A DAY FOR TIMES AFTER HOURS: at 6:17 PM Saturday, 'ready for you to see at 10:00 or 2:00' (lead 2112160613) read as Sunday, when the store is closed. _lpNoDayTimes, at the start of the past-time guard: when the slot engine has no time left today, a sentence that offers clock times and names no day gets the next open day ('Monday at 10:00 or 2:00'); store hours are not offers. (f) AN OUT-THE-DOOR ASK WE ANSWERED: lead 2112149909's 'OTD' had our '27k drive out' and '28k lowest price' a minute later and a visit with a writeup after it, and the block still said the agent follows up with the drive-out numbers -- the draft promised 'I'm putting together your drive-out numbers'. An ask is answered when a message of ours after it names a price, or a showroom visit after it reached the numbers. (g) WE ASKED THEM FOR SOMETHING: the same lead's 'We need a letter from the registers office that states your graduation date' (the college-grad discount) -- _lpOwedDocument: a message of ours (a person's, not the assistant's) asking them for a document, nothing since that shows it came in, 45 days at most; the prompt says ask whether they were able to get it and invent no step of ours. (h) THE FEED ANSWERS THE COLOR THEY ASKED FOR: lead 2112000019 asked for a black 2026 Accord SE, the unit on the lead is Solar Silver, the feed has no black SE, and the draft said 'I'm checking on a black one and will confirm'. On the asked-about-color path, with the feed loaded and no unit of their color in that trim (new for new, used for used): 'NO BLACK ONE IN STOCK IN THAT TRIM ... say so plainly, once', the colors we do have (never the one they turned down), and the scraper's 'say you are checking on one' clause is taken out. (i) A FIRST TOUCH WITH THE CAR HERE (owner, 11/9: 'yes on i'): on 11/7 the agents pressed Add Appt on first touches because the default offered a video walkaround. When every outbound so far is the assistant's, the car is confirmed on the lot, and the customer is not a special trip (in the store's local ZIP set, or within 75 miles), the visit decision asks for two times the way the chip does ('this is the first message from a person, the car is here and they are close by'), the light-ask hold stands down, and the hard holds still win. NOTE: this session's container was reset, so the replay covered only the two grabs it still holds (logs 415-416), both of which change as intended; the full suite is the regression net. TESTS: chip-color-firsttouch-865 (new) executes _lpChipTimesBoth, the render guards, _lpOtdAsk, _lpOwedDocument, populateFromData and buildUserPrompt through the panel payload: 50 assertions across both builds; v9.7.864 fails 15 of 25 per build (the 10 that pass are controls; 4 more controls fail there only because the helper they call does not exist). VERIFIED: run-all 309 suites green, 10191 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.864.)
@@ -3638,7 +3639,8 @@ function _lpLogGrabTiming(log, genTiming) {
       g.gens = (g.gens || 0) + 1;
       grab = 'grab' + (g.gens > 1 ? ' (same grab, generation ' + g.gens + ')' : '') + ': pre-scrape ' + ms(g.preScrape)
         + ', frame poll ' + ms(g.poll) + ', email expand ' + ms(g.expand) + ', key-info wait ' + ms(g.keyInfo)
-        + ' (frame wait wall ' + ms(g.frameWall) + '; ' + g.framesTimedOut + ' of ' + g.frames + ' frames waited out the 4000ms cap)'
+        + ' (frame wait wall ' + ms(g.frameWall) + '; ' + g.framesTimedOut + ' of ' + g.frames + ' frames waited out the 4000ms cap'
+        + (g.frameClasses ? '; frames: ' + g.frameClasses : '') + (g.kiRows != null ? '; key-info rows ' + g.kiRows + (g.kiRowsAt != null ? ' (drawn at ' + ms(g.kiRowsAt) + ')' : '') : '') + ')'
         + ', scrape+merge ' + ms(g.merge) + ', grab total ' + ms(g.total);
     } else {
       grab = 'grab: -- (no grab timing for this lead)';
@@ -8736,6 +8738,48 @@ function _lpOfferBlock(d) {
     return { text: L.join('\n'), diag: diag };
   } catch (e) { return null; }
 }
+// (v9.7.868) OUR LAST MESSAGE, AND THEIR ANSWER TO IT. Kia Baytown lead 2112534348 (log418, 11/10): at 11:25 AM our text thanked them
+// for their kind words about the rep, named the $2,500 down and $500/month target and asked them to come back; at 11:28 they answered
+// "Of course, I will be back. I will try today. If not for sure tomorrow." The draft thanked them for the kind words again and restated
+// the target. Owner: "the message generated is almost identical to the last message we sent." Nothing in the prompt said which
+// message theirs was answering: the "do not restate" rule runs only while the customer has not replied. This is that fact, from our
+// own record: our newest person-written message, the customer's message(s) after it (within 12 hours), and both quoted.
+var LP_MSG_TITLE_RX = /text message|email|chat/i;
+function _lpEntryClock(x) { var m = /^\[\d{2}\/\d{2}\/\d{4}\s+(\d{1,2}:\d{2}\s*[AP]M)/i.exec(String((x && x.raw) || '')); return m ? m[1] : (x && x.date) || ''; }
+function _lpOurLastAnswered(d) {
+  try {
+    var ents = _lpThreadEntries((d && (d.history || d.conversationBrief || d.context)) || '');
+    var msgs = ents.filter(function (x) { return x.t > 0 && LP_MSG_TITLE_RX.test(x.title || '') && !/phone call|voice\s?mail/i.test(x.title || '') && /^(?:CUSTOMER|AGENT)$/i.test(String(x.tag).trim()); })
+      .sort(function (a, b) { return b.t - a.t; });
+    var cust = []; for (var i = 0; i < msgs.length && /^CUSTOMER$/i.test(String(msgs[i].tag).trim()); i++) cust.push(msgs[i]);
+    var ours = msgs[cust.length];
+    if (!cust.length || !ours || !/^AGENT$/i.test(String(ours.tag).trim())) return null;
+    if (_lpIsBotAuthor(String(ours.raw || '').split('\n').slice(1).join('\n')) || /AUTOMATED ASSISTANT/.test(ours.raw || '')) return null;
+    if (cust.some(function (x) { return LP_STOP_WORD_RX.test(x.body); })) return null;
+    if (cust[cust.length - 1].t - ours.t > 12 * 3600000) return null;
+    var ob = String(ours.body || '').replace(/\s*\[SYSTEM:[^\]]*\]\s*$/, '').replace(/\s+/g, ' ').trim();
+    if (ob.length < 40) return null;   // "I gotcha!" -- nothing to repeat
+    var cb = cust.slice().reverse().map(function (x) { return String(x.body || '').replace(/\s+/g, ' ').trim(); }).join(' / ');
+    return { ours: ob.length > 420 ? ob.slice(0, 417) + '...' : ob, oursAt: _lpEntryClock(ours), theirs: cb.length > 300 ? cb.slice(0, 297) + '...' : cb, theirsAt: _lpEntryClock(cust[0]) };
+  } catch (e) { return null; }
+}
+// (v9.7.868) THE VISIT WAS FOLLOWED UP, AND THE CONVERSATION WENT ON. The same lead: the showroom template ("Acknowledge the visit
+// specifically -- reference ... who they met", "CLOSE WITH ONE CONCRETE OFFER ... BRINGS THEM BACK IN") is written for the first
+// message after a visit, and it was still in the prompt two days and twenty customer messages later. Once a person at the store has
+// written to them after the visit and they have written back, its "do this" lines give way to one fact; the visit facts stay.
+function _lpVisitMovedOn(d) {
+  try {
+    // the whole record: a walk-in's visit note often sits just below the marker of the lead it created (lead 2112534348)
+    var ents = _lpThreadEntries(String((d && (d.history || d.conversationBrief || d.context)) || '').replace(/=== CURRENT LEAD SUBMITTED HERE ===/g, ''));
+    var v = ents.filter(function (x) { return x.t > 0 && (/SHOWROOM VISIT/i.test(x.tag) || /^showroom visit/i.test(x.title || '')); }).sort(function (a, b) { return b.t - a.t; })[0];
+    if (!v) return null;
+    var after = ents.filter(function (x) { return x.t > v.t && LP_MSG_TITLE_RX.test(x.title || '') && !/phone call|voice\s?mail/i.test(x.title || ''); });
+    var cust = after.filter(function (x) { return /^CUSTOMER$/i.test(String(x.tag).trim()) && !LP_STOP_WORD_RX.test(x.body); });
+    var ours = after.filter(function (x) { return /^AGENT$/i.test(String(x.tag).trim()) && !_lpIsBotAuthor(String(x.raw || '').split('\n').slice(1).join('\n')) && !/AUTOMATED ASSISTANT/.test(x.raw || ''); });
+    return (cust.length && ours.length) ? { date: v.date, cust: cust.length, ours: ours.length } : null;
+  } catch (e) { return null; }
+}
+var LP_VISIT_TEMPLATE_RX = /^(?:⚠ VISIT CONFIRMATION REQUIRED|CRITICAL CONTEXT: The customer has already seen|WHAT THIS MESSAGE MUST DO|CLOSE WITH ONE CONCRETE OFFER|TONE: Warm, specific, low-pressure|NOTE ON DATA: Walk-in leads|NO VEHICLE ON THE LEAD FOR THIS VISIT|THIN VISIT DATA)/;
 function populateFromData(d) {
   // (v9.7.867) the offer they requested a quote on: read out of the scraper's tool-data block, which is then taken off
   try {
@@ -9264,6 +9308,20 @@ function populateFromData(d) {
 
   // The conversation brief IS the follow-up context — it contains the full transcript
   // and the AI directive. Stage overrides (appointment/showroom) prepend to it.
+  // (v9.7.868) the showroom template's "do this" lines give way once the conversation has gone on past the visit (_lpVisitMovedOn)
+  try {
+    var _vmo = d.isShowroomFollowUp ? _lpVisitMovedOn(d) : null;
+    if (_vmo) {
+      var _vmoN = extras.length;
+      for (var _vi = extras.length - 1; _vi >= 0; _vi--) if (LP_VISIT_TEMPLATE_RX.test(extras[_vi])) extras.splice(_vi, 1);
+      for (var _vj = 0; _vj < extras.length; _vj++) if (/^🏪 SHOWROOM FOLLOW-UP:/.test(extras[_vj])) {
+        extras[_vj] = '🏪 THEY VISITED THE STORE (visit note ' + _vmo.date + '), AND THE CONVERSATION HAS GONE ON SINCE: ' + _vmo.cust + ' message' + (_vmo.cust === 1 ? '' : 's') + ' from them after the visit, and a person here has written back. '
+          + 'The post-visit follow-up has been sent: do not thank them for coming in again, re-introduce the visit or recap who they met. Continue from their newest message.';
+        break;
+      }
+      console.log('[LP VISIT MOVED ON DIAG] visit ' + _vmo.date + ' | after it: ' + _vmo.cust + ' from them, ' + _vmo.ours + ' from a person here | ' + (_vmoN - extras.length) + ' template line(s) stood down');
+    }
+  } catch (eVmo) {}
   const stageOverride = extras.join('\n');
   if (d.conversationBrief) {
     leadContext = (stageOverride ? stageOverride + '\n\n' : '') + d.conversationBrief;
@@ -11845,6 +11903,15 @@ function populateFromData(d) {
   if (vehicleExtras.length) leadContext += '\n\nVEHICLE/LEAD DETAILS:\n' + vehicleExtras.join('\n');
   // (v9.7.867) ...and it opens the context, where the tool-data block stood
   try { var _ofB = d._lpOffer ? _lpOfferBlock(d) : null; if (_ofB) { leadContext = _ofB.text + '\n\n' + leadContext; console.log('[LP OFFER ASKED DIAG] ' + _ofB.diag); } } catch (eOfB) {}
+  // (v9.7.868) ...and above it, what our last message said and what they answered
+  try {
+    var _ola = _lpOurLastAnswered(d);
+    if (_ola) {
+      leadContext = '↩ OUR LAST MESSAGE, AND THEIR ANSWER TO IT: at ' + _ola.oursAt + ' our message said: "' + _ola.ours.replace(/"/g, "'") + '". They answered at ' + _ola.theirsAt + ': "' + _ola.theirs.replace(/"/g, "'") + '".\n'
+        + 'This message replies to that answer. Do not say again what our message already said -- not its thanks, not its figures, not its offer or its question -- unless their answer asks for it. Keep it short and take the next step their answer opens.\n\n' + leadContext;
+      console.log('[LP LAST MESSAGE DIAG] our ' + _ola.oursAt + ' message was answered at ' + _ola.theirsAt + ' -- quoted so it is not repeated');
+    }
+  } catch (eOla) {}
 
   // Stalled flag — cold follow-ups with outbound history but no confirmed contact
   // A live conversation (customer replied today) is never stalled — active engagement beats all stall signals
@@ -12758,8 +12825,28 @@ async function grabLead() {
       console.log('[Lead Pro] Pre-scrape failed:', e.message);
     }
   }
+  try { _lpGrabPrefetch(typeof _eccsFrame !== 'undefined' ? _eccsFrame : null, typeof _rims2Frames !== 'undefined' ? _rims2Frames : []); } catch (eGp) {}   // (v9.7.868)
 
   tryExecuteScript(tab, statusEl, dot);
+}
+
+// (v9.7.868) AUDIT PF-2. Every Grab re-read all five stores' inventory and incentives (10 requests; about 4,550 of the 5,454
+// proxy requests on 11/9). Only the lead's own store is read for this lead, plus its Baytown sister stores (_lpCallWantsUnits
+// looks there). The store comes from the pre-scrape: the lead frame matching the active lead, else ECCS when it names that lead.
+// Unknown -> all five, as before. Other stores keep their load-time copy (30-minute freshness).
+function _lpGrabPrefetch(eccs, rims2) {
+  if (!window._lpGrabPrefetchDue) return;
+  window._lpGrabPrefetchDue = false;
+  var lead = String(window._activeLeadId || ''), did = '';
+  (rims2 || []).forEach(function (f) { if (!did && f && f.dealerId && String(f.leadId) === lead) did = String(f.dealerId); });
+  if (!did && eccs && eccs.dealerId && (!eccs.activeLeadId || String(eccs.activeLeadId) === lead)) did = String(eccs.dealerId);
+  var ids = Object.keys(DEALER_ID_MAP), pick = ids;
+  if (did && DEALER_ID_MAP[did]) {
+    var g = _lpStoreGroup({ dealerId: did });
+    pick = ids.filter(function (id) { return id === did || (g.sisters && Object.keys(g.sisters).some(function (k) { return g.sisters[k] === DEALER_ID_MAP[id]; })); });
+  }
+  pick.forEach(function (id) { _lpPrefetchValueFacts(id, LP_GRAB_INV_MAX_AGE); });
+  try { console.log('[LP GRAB PREFETCH DIAG] store ' + (did || 'unknown') + ' -> refreshed ' + pick.length + ' of ' + ids.length + ': ' + pick.join(',')); } catch (e) {}
 }
 
 // ── Execute script scraper ────────────────────────────────────────
@@ -20685,6 +20772,12 @@ function _lpScraperBotAuthor(msg) {
 
   try { var _gt = window._lpGrabTiming; if (_gt) { _gt.wait0 = Date.now(); _gt.preScrape = _gt.wait0 - _gt.t0; } } catch (_eGt) {}   // (v9.7.851)
   // Inject into all frames — each returns a Promise that resolves when notes are ready
+  // (v9.7.868) AUDIT PF-1. Every grab waited the full 4 seconds: the callback waits for every frame, and a frame with no lead in it
+  // never becomes "ready" (5 of 5 timed grabs, logs 415-418: 6 of 7 frames waited out the cap while the lead frame was ready in
+  // 0-2.2 s). Now the lead frame, when ready, leaves a mark on the top window for this grab, and a frame stands down once it is
+  // there: a frame with no lead markers and no lead id, or a frame for the same lead with no notes of its own. A frame with lead
+  // markers and no notes for an unknown lead still waits (the rims2 race the cap exists for), and so does the customer dashboard,
+  // until its key-information rows arrive. Cross-origin or no mark: everything waits as before.
   chrome.scripting.executeScript(
     { target: { tabId: tab.id, allFrames: true }, func: function() {
       // Inline polling scraper — waits for notes DOM then returns data
@@ -20699,7 +20792,13 @@ function _lpScraperBotAuthor(msg) {
       // hydration (the data is loaded). Timeout cap unchanged at 4s.
       var maxWait = 4000, interval = 150, elapsed = 0;
       // (v9.7.851) This frame's own phase times, returned to the popup for [LP GRAB TIMING].
-      var _lpT0 = Date.now(), _lpTm = { poll: 0, expand: 0, keyInfo: 0, timedOut: false };
+      var _lpT0 = Date.now(), _lpTm = { poll: 0, expand: 0, keyInfo: 0, timedOut: false, cls: '', at: 0, kiRows: 0, kiRowsAt: null };
+      var _lpTop = null; try { _lpTop = window.top; void _lpTop.document; } catch (eTop) { _lpTop = null; }
+      function _lpMyLead() { try { var m = /AutoLeadID=(\d{6,})/i.exec(location.href); if (m) return m[1]; var el = document.querySelector('[data-autoleadid]'); return el ? String(el.getAttribute('data-autoleadid') || '') : ''; } catch (e) { return ''; } }
+      function _lpMark() { try { var mk = _lpTop && _lpTop.__lpLeadReady; return (mk && mk.t >= _lpT0 - 500) ? mk : null; } catch (e) { return null; } }   // this grab's mark only
+      var _lpDashC = null; function _lpDash() { if (_lpDashC === null || elapsed % 600 === 0) { try { _lpDashC = !!document.querySelector('[class*="key-information"], .portal-shadow-container') || /customerdashboardtop/i.test(document.body ? (document.body.innerHTML || '').slice(0, 400000) : ''); } catch (e) { _lpDashC = false; } } return _lpDashC; }
+      function _lpRows() { var n = 0; try { _lpKiRoots().forEach(function (rt) { n += rt.querySelectorAll('[id^="keyInfo-"][id$="-blurb"]').length; }); } catch (e) {} return n; }
+      function _lpDone(resolve, cls) { _lpTm.cls = cls; _lpTm.at = Date.now() - _lpT0; resolve(_lpTm); }
       // ── (v9.7.744) THE WHOLE EMAIL, NOT VINSOLUTIONS' PREVIEW ─────────────────────────────────────
       // Community Kia Baytown lead 2086487722, 9/29 (log266). The notes panel shows an email only as a preview
       // cut at a fixed length: our 4:25 email ended "...Community Value Price$31,000.00 Nitro Wheel Locks, D..." and
@@ -20823,10 +20922,18 @@ function _lpScraperBotAuthor(msg) {
         if (bothReady) {
           _lpTm.poll = Date.now() - _lpT0;
           var _lpTe = Date.now();
-          var _lpKi = function () { _lpTm.expand = Date.now() - _lpTe; var _lpTk = Date.now(); _lpKiWait(function () { _lpTm.keyInfo = Date.now() - _lpTk; resolve(_lpTm); }); };
+          var _lpKi = function () { _lpTm.expand = Date.now() - _lpTe; var _lpTk = Date.now(); _lpKiWait(function () { _lpTm.keyInfo = Date.now() - _lpTk; _lpTm.cls = 'lead'; _lpTm.at = Date.now() - _lpT0; resolve(_lpTm); }); };
           _lpExpandEmails().then(_lpKi, _lpKi);   // (v9.7.807) _lpKiWait; (v9.7.851) each step timed
+          try { if (_lpTop) _lpTop.__lpLeadReady = { t: Date.now(), lead: _lpMyLead() }; } catch (eMk) {}   // (v9.7.868) the mark for the other frames
         }
-        else if (elapsed >= maxWait) { _lpTm.poll = Date.now() - _lpT0; _lpTm.timedOut = true; resolve(_lpTm); }
+        else if (!noteCount && _lpDash() && (_lpTm.kiRows = _lpRows())) {   // (v9.7.868) the dashboard: done when its rows are in
+          _lpTm.kiRowsAt = Date.now() - _lpT0; try { if (_lpTop) _lpTop.__lpKiRows = { t: Date.now(), n: _lpTm.kiRows }; } catch (eKm) {}
+          _lpDone(resolve, 'dashboard');
+        }
+        else if (!noteCount && !_lpDash() && _lpMark() && ((!hasLeadInfo && !_lpMyLead()) || (_lpMyLead() && _lpMyLead() === _lpMark().lead))) {
+          _lpDone(resolve, hasLeadInfo || _lpMyLead() ? 'same lead, no notes' : 'no lead');   // (v9.7.868) stood down
+        }
+        else if (elapsed >= maxWait) { _lpTm.poll = Date.now() - _lpT0; _lpTm.timedOut = true; _lpTm.cls = _lpDash() ? 'dashboard' : 'cap'; _lpTm.at = _lpTm.poll; resolve(_lpTm); }
         else { elapsed += interval; setTimeout(function(){ wait(resolve); }, interval); }
       }
       // (v9.7.807) THE KEY INFORMATION PANEL FILLS IN AFTER THE PAGE LOADS. Its rows (Fullpath CDP Summary, AMP, Customer
@@ -20837,13 +20944,15 @@ function _lpScraperBotAuthor(msg) {
       // (v9.7.808) ...and they are drawn inside a shadow root (DIV.portal-shadow-container), which document.querySelectorAll
       // does not see: Gil's console on a Land Cruiser lead's dashboard, 10/21 -- document: 0 keyInfo nodes; the first
       // portal-shadow-container's shadowRoot: 17. Every root is searched: the document and each element's open shadow root.
-      function _lpKiRoots() { var r = [document]; try { var all = document.querySelectorAll('*'); for (var i = 0; i < all.length; i++) if (all[i].shadowRoot) r.push(all[i].shadowRoot); } catch (eKs) {} return r; }
+      function _lpKiRoots() { var c = _lpKiRoots._c; if (c && Date.now() - c.t < 600) return c.r; var r = [document]; _lpKiRoots._c = { t: Date.now(), r: r }; try { var all = document.querySelectorAll('*'); for (var i = 0; i < all.length; i++) if (all[i].shadowRoot) r.push(all[i].shadowRoot); } catch (eKs) {} return r; }
       function _lpKiWait(done) {
         var t0 = Date.now(), dash = false;
         try { dash = !!document.querySelector('[class*="key-information"], .portal-shadow-container') || /customerdashboardtop/i.test(document.body ? (document.body.innerHTML || '').slice(0, 400000) : ''); } catch (eKd) {}
         (function poll() {
           var rows = 0; try { _lpKiRoots().forEach(function (rt) { rows += rt.querySelectorAll('[id^="keyInfo-"][id$="-blurb"]').length; }); } catch (eKr) {}
-          if (!dash || rows || Date.now() - t0 >= 2000) { done(); return; }
+          // (v9.7.868) PF-3: the rows are drawn in the customer dashboard frame; once that frame has them, this one stops waiting
+          var _kiElse = false; try { _kiElse = !!(_lpTop && _lpTop.__lpKiRows && _lpTop.__lpKiRows.t >= t0 - 4500); } catch (eKe) {}
+          if (!dash || rows || _kiElse || Date.now() - t0 >= 2000) { done(); return; }
           setTimeout(poll, 150);
         })();
       }
@@ -20856,9 +20965,13 @@ function _lpScraperBotAuthor(msg) {
         var _gt = window._lpGrabTiming;
         if (_gt) {
           var _rs = (_lpWaitRes || []).map(function (r) { return r && r.result; }).filter(function (r) { return r && typeof r.poll === 'number'; });
-          var _ready = _rs.filter(function (r) { return !r.timedOut; });
+          var _ready = _rs.filter(function (r) { return !r.timedOut && (!r.cls || r.cls === 'lead'); });   // (v9.7.868) stood-down frames are not "ready"
           var _mx = function (a, k) { return a.length ? Math.max.apply(null, a.map(function (r) { return r[k] || 0; })) : null; };
-          _gt.frames = _rs.length; _gt.framesTimedOut = _rs.length - _ready.length;
+          _gt.frames = _rs.length; _gt.framesTimedOut = _rs.filter(function (r) { return r.timedOut; }).length;
+          // (v9.7.868) each frame's class and when it finished, and when the key-information rows arrived
+          var _cl = {}; _rs.forEach(function (r) { var k = r.cls || (r.timedOut ? 'cap' : 'lead'); var c = _cl[k] = _cl[k] || { n: 0, at: 0 }; c.n++; c.at = Math.max(c.at, r.at || r.poll || 0); });
+          _gt.frameClasses = Object.keys(_cl).map(function (k) { return k + ' ' + _cl[k].n + ' @' + (Math.round(_cl[k].at / 100) / 10) + 's'; }).join(', ');
+          var _kr = _rs.filter(function (r) { return r.kiRowsAt != null; }); _gt.kiRowsAt = _kr.length ? Math.min.apply(null, _kr.map(function (r) { return r.kiRowsAt; })) : null;
           _gt.poll = _mx(_ready, 'poll'); _gt.expand = _mx(_ready, 'expand'); _gt.keyInfo = _mx(_ready, 'keyInfo');
           _gt.frameWall = Date.now() - (_gt.wait0 || _gt.t0); _gt.scrape0 = Date.now();
         }
@@ -22206,7 +22319,7 @@ function _lpScraperBotAuthor(msg) {
           // (v9.7.46) Frame merge is the single source of truth.
           lastScrapedData = m;
           const filled = populateFromData(m);
-          try { var _gt = window._lpGrabTiming; if (_gt && _gt.merge === null) { _gt.merge = Date.now() - (_gt.scrape0 || _gt.t0); _gt.total = Date.now() - _gt.t0; _gt.leadId = String(m.autoLeadId || window._activeLeadId || ''); } } catch (_eGt) {}   // (v9.7.851)
+          try { var _gt = window._lpGrabTiming; if (_gt && _gt.merge === null) { _gt.merge = Date.now() - (_gt.scrape0 || _gt.t0); _gt.total = Date.now() - _gt.t0; _gt.leadId = String(m.autoLeadId || window._activeLeadId || ''); _gt.kiRows = (m.keyInfo && m.keyInfo.length) || 0; } } catch (_eGt) {}   // (v9.7.851); (v9.7.868) rows kept
 
           // (v9.7.47) Direct rule: AI Buying Signals leads have 0 notes by
           // design — they're system-generated, not customer inquiries. Skip
@@ -24443,10 +24556,10 @@ function buildSystemPrompt(personaId) {
 // PRECEDENT: generateVoicemail() already makes exactly this kind of second call with its own
 // narrow system prompt. This is that pattern, applied to the channel that needs it.
 function buildSystemPromptSmsRefine(agentFirst, storeName, phone) {
+  // (v9.7.868) AUDIT PF-5: who is writing goes LAST. The prompt opened with the agent's name, so every agent's copy differed from
+  // character 8: the proxy's cache key hashes the first 200 characters and the provider caches by prefix, so on 11/9 the rewrite
+  // was spread over dozens of keys at 67-86% warm while the draft's one key ran at 99%. Same words, same length, new order.
   return [
-    'You are ' + (agentFirst || 'the coordinator') + ' at ' + (storeName || 'the dealership') + '.'
-      + (phone ? ' Your direct phone number is ' + phone + '.' : ''),
-    '',
     'You write ONE text message to a real car dealership customer.',
     '',
     'An email to this customer has ALREADY been written and is going out. It has already decided '
@@ -24493,6 +24606,9 @@ function buildSystemPromptSmsRefine(agentFirst, storeName, phone) {
     '  \u2022 NEVER narrate our own earlier messages or their silence: no "I know my last note...", "I know I\'ve reached out...", "I haven\'t heard back", "without hearing back", "I\'ll keep this simple".',
     // (v9.7.700) Gil's distance rule, restated because this pass does not carry the main brief.
     '  \u2022 DISTANCE: never tell a customer how far they are from us — no miles, no drive time, no "since you\'re 30 miles away", "since you\'re an hour away", "it\'s a bit of a drive", "worth the drive", "worth the trip" or "before you head over", and do not carry it forward if an earlier message said it. Do not LABEL them either: no "since you\'re not local", "since you\'re remote", "since you\'re out of state", "since you\'re out of town" or "I know you\'re not nearby" -- offer the remote path as a plain offer ("I can send you a video walkaround"). Naming the distance gives them a reason not to make the drive. If they are far, make the visit worth it by what will be ready for them, never by the trip. If they cannot come in at all, offer the remote path (numbers, photos, a video, a call) without naming the distance either.',
+    '',
+    'You are ' + (agentFirst || 'the coordinator') + ' at ' + (storeName || 'the dealership') + '.'
+      + (phone ? ' Your direct phone number is ' + phone + '.' : ''),
     '',
     'Return ONLY valid JSON: {"sms":"..."}. No markdown, no text outside the JSON.'
   ].join('\n');
@@ -24900,6 +25016,14 @@ function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
     if (_rfMcb) {
       out.push('━━━ THEY CALLED US BACK ━━━');
       out.push('They called the store back on ' + _rfMcb.date + ' and we missed them. The text keeps the first draft\'s apology for missing their call and the easy way to connect' + (_rfMcb.who ? ' with ' + _rfMcb.who : '') + '; no video or photo offer in its place.');
+      out.push('');
+    }
+    // (v9.7.868) Lead 2112534348 (log418): what our last message already said, so the text does not say it again.
+    var _rfOla = d ? _lpOurLastAnswered(d) : null;
+    if (_rfOla) {
+      out.push('━━━ WHAT OUR LAST MESSAGE ALREADY SAID ━━━');
+      out.push('Our message at ' + _rfOla.oursAt + ': "' + _rfOla.ours.replace(/"/g, "'") + '". Their answer: "' + _rfOla.theirs.replace(/"/g, "'") + '". '
+        + 'The text does not say any of that again -- no repeated thanks, figures, offer or question -- and if the first draft repeats it, leave that part out.');
       out.push('');
     }
     // (v9.7.867) Lead 2113204072 (log417): the offer they requested a quote on stays in the text.
@@ -30001,8 +30125,19 @@ function buildUserPrompt(data) {
         var _ddTradeHay = _lpCustomerText(data);
         try {
           var _ddAttrRx = /\b(?:he|she|they|customer|cust|client|buyer|caller)\s+(?:also\s+)?(?:asked|is\s+asking|wants?|wanted|would\s+like|inquired|requested|needs?)\b|(?:^|\])\s*(?:wants?|wanted|needs?|requested|inquired|asking)\b/i;
+          // (v9.7.868) Transcript entries only -- a line that opens "[...]" and the indented lines under it -- and only notes and call
+          // notes (our own texts and emails are not the customer's ask; the customer's own words are in _ddTradeHay already). It read
+          // every line of the brief and of the context, which carries Lead Pro's own blocks: on leads 2112534348 and 2112149909 the
+          // showroom template's "...the color they wanted, a trade appraisal" matched, and the prompt said "The customer wants to
+          // know what their TRADE is worth" on leads with no trade in them.
+          var _ddIn = false, _ddOk = false;
           (String((data && data.conversationBrief) || '') + '\n' + _ddCtxArc).split('\n').forEach(function(_ddL){
-            if (_ddAttrRx.test(_ddL)) _ddTradeHay += ' ' + _ddL;
+            if (/^\[/.test(_ddL)) {
+              _ddIn = true;
+              var _ddTags = (_ddL.match(/\[([A-Z][A-Z \/]+)\]/g) || []).join(' ');
+              _ddOk = /\[(?:CALL NOTE|NOTE)\]/.test(_ddTags) || (/phone call/i.test(_ddL) && /\[(?:AGENT|CUSTOMER)\]/.test(_ddTags));
+            } else if (!/^\s+\S/.test(_ddL)) { _ddIn = false; return; }
+            if (_ddIn && _ddOk && _ddAttrRx.test(_ddL)) _ddTradeHay += ' ' + _ddL;
           });
         } catch (eDdT) {}
         var _ddTradeM = _ddCustSpoke ? _ddTradeHay.replace(LP_TRADE_LIEN_RE, ' ').match(_ddTradeRx) : null;   // (v9.7.709) a lien payoff is not a trade
@@ -33986,6 +34121,7 @@ async function generateAll() {
     } catch (eArc) { try { console.log('[LP ARC STATE DIAG] threw, no facts added: ' + (eArc && eArc.message)); } catch (e2) {} }
 
     console.log('[Lead Pro] User prompt length:', userPrompt.length, '| scenario section:', userPrompt.substring(0, userPrompt.indexOf('━━━ LEAD ━━━')));
+    try { window._lpPromptFacts = { chars: userPrompt.length, directives: _lpPromptDirectives(userPrompt) }; console.log('[LP PROMPT DIRECTIVES DIAG] ' + window._lpPromptFacts.directives.length + ' directive label(s) in this prompt | ' + userPrompt.length + ' chars'); } catch (eDl) {}   // (v9.7.868)
     // (v9.7.219) Complexity reasoning router REMOVED. Live logs showed medium reasoning
     // blew through the entire cascade — PRIMARY timing out at 10000ms, FALLBACK also timing
     // out, leads landing on SAFE_FALLBACK after 23s. The router's triggers (showroom +
@@ -36360,7 +36496,7 @@ document.getElementById('btnGrab').addEventListener('click', function() {
   // uploaded since the panel opened reaches this lead. See _lpInvBehindGrab.
   try {
     window._lpGrabStartedAt = Date.now();
-    Object.keys(DEALER_ID_MAP).forEach(function (_gd) { _lpPrefetchValueFacts(_gd, LP_GRAB_INV_MAX_AGE); });
+    window._lpGrabPrefetchDue = true;   // (v9.7.868) audit PF-2: _lpGrabPrefetch runs once the pre-scrape knows the store
   } catch (_eGr) {}
   grabLead();
 });
@@ -36663,6 +36799,22 @@ function _lpFeedbackReset(_lpfInit) {
   } catch (eFbId) {}
 }
 
+// (v9.7.868) AUDIT MS-1.2. Which directives a prompt carried: the ALL-CAPS label that opens each instruction line outside the
+// transcript ("STORE STATUS RIGHT NOW", "OUR PITCH IS ALREADY OUT AND UNANSWERED", "VISIT DECISION FOR THIS MESSAGE"), at most 80,
+// 48 characters each. Sent on the feedback row so the report can say how often each one fires and what happens to the drafts it
+// shapes (the audit could not rank 328 labels on two dumps). Labels are Lead Pro's own wording: no customer text.
+var LP_DIRECTIVE_LABEL_RX = /^\s*[^\w\s"'(\[]{0,4}\s*([A-Z][A-Z0-9'’&/\-]*(?:[ ,][A-Z0-9'’&/\-—(),]+){1,9})\s*(?:[:.—]| -- )/;
+function _lpPromptDirectives(prompt) {
+  var out = [], seen = {}, s = String(prompt || ''), a = s.indexOf('CONVERSATION TRANSCRIPT'), b = a >= 0 ? s.indexOf('\n---', s.indexOf('\n---', a) + 4) : -1;
+  if (a >= 0 && b > a) s = s.slice(0, a) + s.slice(b);
+  s.split('\n').forEach(function (l) {
+    if (/^\s*(?:\d+\.\s*)?\[\d{2}\/\d{2}\/\d{4}/.test(l)) return;
+    var m = LP_DIRECTIVE_LABEL_RX.exec(l); if (!m) return;
+    var k = m[1].replace(/[\s,—(-]+$/, '').trim().slice(0, 48); if (k.length < 9 || seen[k]) return;
+    seen[k] = 1; if (out.length < 80) out.push(k);
+  });
+  return out;
+}
 function _lpFeedbackCaptureMeta() {
   if (!lastScrapedData) return;
   var sc = window._leadProLastScenario || {};
@@ -36739,6 +36891,10 @@ function _lpFeedbackCaptureMeta() {
     })(),
     hasCustomerReply:!!(lastScrapedData.hasCustomerReply),
     hasApptSet:      !!(lastScrapedData.hasApptSet),
+    // (v9.7.868) AUDIT MS-1: what the prompt carried, its length, and the key-information rows the grab kept
+    directives:      (window._lpPromptFacts && window._lpPromptFacts.directives) || [],
+    promptChars:     (window._lpPromptFacts && window._lpPromptFacts.chars) || null,
+    keyInfoRows:     (lastScrapedData.keyInfo && lastScrapedData.keyInfo.length) || 0,
     // (v9.7.311) Routing trace — PII-free decisions that shape the draft (exit/pause, fresh-lead,
     // director mode) but were invisible in meta until now.
     route:           (function(){

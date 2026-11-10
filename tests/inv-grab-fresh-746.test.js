@@ -79,8 +79,11 @@ for (const f of BUILDS) {
   };
   check('a 2-minute-old snapshot, asked with the grab\'s one-minute limit -> inventory fetched again', () => fetched(120000, 60000), 1);
   check('control: the same snapshot under the load-time 30-minute limit -> not fetched (as before)', () => fetched(120000, null), 0);
-  check('the GRAB button stamps the grab and refreshes every store with the one-minute limit', () =>
-    /window\._lpGrabStartedAt = Date\.now\(\);\s*Object\.keys\(DEALER_ID_MAP\)\.forEach\(function \(_gd\) \{ _lpPrefetchValueFacts\(_gd, (?:60000|LP_GRAB_INV_MAX_AGE)\); \}\);\s*\} catch \(_eGr\) \{\}\s*grabLead\(\);/.test(src), true);
+  // (v9.7.868) Audit PF-2: the GRAB button stamps the grab; the refresh runs once the pre-scrape knows the store, for that store and
+  // its Baytown sisters with the same one-minute limit (offer-asked / grab-prefetch behavior is executed in batch-ab-868).
+  check('the GRAB button stamps the grab, and the grab refreshes the lead\'s store (and its sisters) with the one-minute limit', () =>
+    /window\._lpGrabStartedAt = Date\.now\(\);\s*window\._lpGrabPrefetchDue = true;/.test(src)
+      && /pick\.forEach\(function \(id\) \{ _lpPrefetchValueFacts\(id, LP_GRAB_INV_MAX_AGE\); \}\);/.test(src), true);
 }
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);

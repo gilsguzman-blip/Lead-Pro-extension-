@@ -480,6 +480,12 @@ the rewrite.** Prompt build is 33 ms (EXECUTED, 61-entry thread). The page wait 
 
 ### PF-3 — The key-information wait: 2 seconds, nothing found
 
+> **Correction, 11/10 (log417):** the read is not broken. On lead 2113204072 the customer dashboard frame drew 3 rows
+> ("in shadow root of DIV.portal-shadow-container") while the lead frame's own wait still ran its full 2 seconds: the rows
+> live in the dashboard frame, and the lead frame was waiting for rows it never draws. Built in 9.7.868: the lead frame
+> stops waiting once the dashboard has drawn its rows, the dashboard frame is done as soon as they are drawn, and
+> [LP GRAB TIMING] reports when that was.
+
 - **Evidence (MEASURED).** All four grabs hit the 2,000 ms cap (2,027–2,066 ms). All 18 `[LP KEYINFO DIAG]` /
   `[LP AMP DIAG]` reads in logs 415–416 show **0 rows**.
 - **What that does and does not prove.** Four grabs on three leads. Either these leads had no key-information rows, or
@@ -645,13 +651,13 @@ Superseded paths confirmed gone or inert (no action): the prose sold regex (logs
 
 Items marked **★** need your decision before they are built.
 
-**Batch A — measurement, behavior-neutral (extension 867 + reporter v1.26, either deploy order)**
+**Batch A — measurement, behavior-neutral — BUILT in extension 9.7.868 + proxy v7.92 + reporter v1.26**
 - MS-1.2: the fired-directive list on the feedback row. This unlocks Part 2B and every pruning decision after it.
 - MS-1.5: key-information rows found and the classifier's milliseconds.
 - MS-1.1, 1.3, 1.4: label the unlabeled routes; report `userChars`; drop or fill "By note type".
 - Verify: one day of data; no prompt changes (before/after diff on every dump must be empty).
 
-**Batch B — speed, no prompt change (extension 868)**
+**Batch B — speed, no prompt change — BUILT in extension 9.7.868** (PF-3's dashboard cap waits on Batch A's number)
 - PF-1: stop waiting on frames that have no lead. The largest single gain: about 2 seconds per grab.
 - PF-3: end the key-information wait early, per Batch A's number; cache the shadow roots.
 - PF-2 step 1: refetch only the lead's store and its sister stores on Grab.
