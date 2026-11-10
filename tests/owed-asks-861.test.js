@@ -157,7 +157,9 @@ for (const f of BUILDS) {
   clock(new Date(2026, 10, 4, 10, 8).getTime());
   setUnits('6190', SR_UNITS);
   const s = go(SR());
-  check('what we have answers it: the one Sorento Hybrid, with its paint and interior', () => /IN STOCK -- 2026 Sorento Hybrid EX \(Cityscape Green, Black Leather interior\)\./.test(s.prompt), true);
+  // (v9.7.866) A Kia's interior is no longer listed: the feed says black or gray whatever the car has (owner, 11/10). The paint stays.
+  check('what we have answers it: the one Sorento Hybrid, with its paint (a Kia\'s interior is not listed -- we will check)', () => [/IN STOCK -- 2026 Sorento Hybrid EX \(Cityscape Green\)\./.test(s.prompt),
+    /KIA INTERIORS: Kia's inventory records list the interior as black or gray/.test(s.prompt)], [true, true]);
   check('...as the answer to our own promise, with what the call said they need', () => [
     /On 10\/27 our own message said "I can check which Sorento Hybrid configurations match that, including whether the offer applies", and no message of ours has answered it since/.test(s.prompt),
     /What they told us on the 09\/25 call: "No trade in, an suv, needs better gas mileage, heated seats, darker interior and exterior" \(the call note -- never quote it\)/.test(s.prompt),

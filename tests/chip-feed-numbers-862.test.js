@@ -80,9 +80,10 @@ for (const f of BUILDS) {
   check('Honda, red seats asked -> it does not have them, said plainly', () => /It does not have the red interior: say so plainly/.test(il(unit(HON, 'TEST0H1', '2027 Honda CR-V Hybrid Sport-L', 'Does it have red seats?'))), true);
   check('Kia K5 GT-Line, red seats asked (lead 2110446873) -> we will check, never a no and never "it is black"', () => {
     const t = il(unit(KIA, 'TEST0K1', '2024 Kia K5 GT-Line', 'Does this vehicle actually have the full red interior package with red seats, or is the interior black?'));
-    return [/Kia's inventory records list the interior of a K5 GT-Line as black or gray even when the car has the red interior/.test(t), /never say it does not have the red interior, and never say it is black or gray/.test(t)]; }, [true, true]);
-  check('Kia Sportage, any interior asked -> we will check', () => /interior of a Sportage as black or gray/.test(il(unit(KIA, 'TEST0S1', '2026 Kia Sportage X-Line', 'Is the interior black?'))), true);
-  check('control: a Kia K5 LXS (not a GT-Line) answers from the record', () => /lists the interior as Black Cloth/.test(il(unit(KIA, 'TEST0K2', '2025 Kia K5 LXS', 'Does it have black seats?'))), true);
+    return [/Kia's inventory records list a car's interior as black or gray even when it has another interior color/.test(t), /never say it does not have the red interior, and never say it is black or gray/.test(t)]; }, [true, true]);
+  check('Kia Sportage, any interior asked -> we will check', () => /list a car's interior as black or gray/.test(il(unit(KIA, 'TEST0S1', '2026 Kia Sportage X-Line', 'Is the interior black?'))), true);
+  // (v9.7.866) Owner, 11/10: every Kia's record lists black or gray whatever the car has -- so this is "we will check" too, no longer the record's answer.
+  check('a Kia K5 LXS (not a GT-Line): every Kia is "we will check" since v9.7.866, never the record\'s answer', () => { const t = il(unit(KIA, 'TEST0K2', '2025 Kia K5 LXS', 'Does it have black seats?')); return [/the record cannot answer this/.test(t), /lists the interior as Black Cloth/.test(t)]; }, [true, false]);
   check('control: nothing asked about the interior -> no line', () => il(unit(HON, 'TEST0H1', '2027 Honda CR-V Hybrid Sport-L', 'Is it still available?')), null);
   const crv = (notes) => { const h = (notes || '') + E('11/03/2026 9:27 PM', 'CUSTOMER', 'Inbound Text Message', 'Do you have it in red?') + MARK('11/03/2026 9:20 PM');
     return { autoLeadId: 'TEST001A', name: 'Test Buyer', firstName: 'Test', agent: 'Agent Name', salesRep: 'Rep Name', vehicle: '2027 Honda CR-V Hybrid Sport-L', condition: 'New',
