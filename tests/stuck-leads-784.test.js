@@ -25,7 +25,11 @@ function check(name, fn, want) {
   if (g === w) { pass++; console.log('  ok   ' + name); } else { fail++; console.log('  FAIL ' + name + '\n        expected ' + w + '\n        got      ' + g); }
 }
 const pad = n => String(n).padStart(2, '0');
-const D = (daysAgo, h) => { const d = new Date(Date.now() - daysAgo * 86400000); return pad(d.getMonth() + 1) + '/' + pad(d.getDate()) + '/' + d.getFullYear() + ' ' + (h || '10:00 AM'); };
+// (v9.7.867) A FIXED CLOCK. The fixtures stamp entries with clock labels ("7:45 PM", "1:42 PM") on dates counted back from now, so the
+// suite passed only when it ran in the evening: at 9:48 AM "six hours ago, 1:42 PM" is later today, and two checks failed on a build
+// that had not changed. The suite now runs at 8:00 PM yesterday, in the sandbox and in the fixtures alike.
+const NOW = (() => { const d = new Date(); d.setDate(d.getDate() - 1); d.setHours(20, 0, 0, 0); return d.getTime(); })();
+const D = (daysAgo, h) => { const d = new Date(NOW - daysAgo * 86400000); return pad(d.getMonth() + 1) + '/' + pad(d.getDate()) + '/' + d.getFullYear() + ' ' + (h || '10:00 AM'); };
 const BASE = { name: 'Test Buyer', firstName: 'Test', agent: 'Agent Name', phone: '(555) 010-0199', email: 'test@example.com', lastInboundMsg: '',
   relationshipSignals: { unansweredQuestions: [] }, context: '' };
 
@@ -62,6 +66,7 @@ for (const f of BUILDS) {
   let sb; try { sb = loadPopup(f, { withAuth: true }); } catch (e) { console.log('  FAIL load: ' + e.message); fail++; continue; }
   const quiet = (fn) => { const ol = sb.console.log, ow = sb.console.warn; sb.console.log = () => {}; sb.console.warn = () => {}; try { return fn(); } finally { sb.console.log = ol; sb.console.warn = ow; } };
   vm.runInContext('activeFlags = new Set();', sb);
+  vm.runInContext('(function(){ var RD = Date, FIX = ' + NOW + '; function FD(){ if (!(this instanceof FD)) return new RD(FIX).toString(); return arguments.length ? new (Function.prototype.bind.apply(RD, [null].concat([].slice.call(arguments))))() : new RD(FIX); } FD.now = function(){ return FIX; }; FD.parse = RD.parse; FD.UTC = RD.UTC; FD.prototype = RD.prototype; Date = FD; })()', sb);
   const up = (d) => quiet(() => sb.__lp.buildUserPrompt(d));
   const fn = (n) => vm.runInContext('typeof ' + n + ' === "function" ? ' + n + ' : null', sb);
 
