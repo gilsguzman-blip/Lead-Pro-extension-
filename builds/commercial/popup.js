@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.869 (Commercial. ONE SAME-DAY RULE, A CHIP THAT ENDS WHEN THE CUSTOMER WRITES, A SHIPPING QUESTION THAT HOLDS THE VISIT, AND THE TUNDRA SR5 THE FEED HAD. OWNER-APPROVED 11/11 ('build 869, go with your recommendation on the cutoff also look at this lead dump. we have three SR5 Crewmax in stock LP says we don't'). Extension only; proxy v7.92, reporter v1.26, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. (1) ONE SAME-DAY RULE (audit CT-1): a same-day time is offered while one fits an hour out and an hour before closing (Baytown 7:00 PM, Lafayette and Audi weekdays 6:00 PM, Audi Saturday 5:00 PM); when only one is left it is paired with one next-morning time. Before: a two-hour buffer, two slots 45 minutes apart and a cutoff 90-120 minutes before closing, so the slot engine gave up on today about 3:45 PM in Baytown while the status line said 'today is the default' (11/10: four shipped drafts offered 'Wednesday 9:15 AM or 10:30 AM' between 3:49 and 5:42 PM). pastSameDayCutoff now means the store is open and no same-day time is left under that rule, so the status line, the slot engine and the Add Appt line agree all day. Both times of a next-day pair carry the day (the first had none: 'tomorrow at 9:15 AM or Tuesday, November 10, at 10:30 AM'); pairText says the pair once ('9:30 AM or 11:00 AM tomorrow (Thursday, November 12)'); the next-morning pair varies by lead (five pairs) instead of 9:15 / 10:30 for everyone; and the next-day timing block's example 'I wanted to get ahead of your schedule -- would ...' (copied word for word on lead 2113629276) is replaced by the times said once with their day. (2) THE ADD APPT CHIP ENDS WHEN THE CUSTOMER WRITES: Honda Lafayette lead 2113611885 -- pressed at 3:48 PM on a first touch; at 5:42 the customer asked about the warranty and shipping to Little Rock and the draft still closed on two Wednesday times. A message of theirs newer than the press ends it ([LP ADD-APPT DIAG]); the agent can press it again. (3) A SHIPPING QUESTION HOLDS THE VISIT: 'THEY ASKED ABOUT GETTING THE CAR TO THEM' is a level-3 hold (no visit ask, no times) and a hard one, so the chip does not set it aside. (4) 'I know the Ridgeline messages haven't drawn a reply, so I'll leave the decision with you' shipped on lead 2098112593: the narration filter takes 'I know the/our/my ... messages/texts/emails/notes haven't/didn't' too. (5) THE TUNDRA: Toyota Baytown lead 2113695730 -- 'NONE in stock today' with four new 2026 Tundra SR5s in that morning's feed. VinSolutions' vehicle was '2026 Toyota Tundra SR5 4dr CrewMax SB w/5.5' Bed (3.4L 6cyl Turbo 10A' and _lpTrimOf kept 'SR5 CrewMax SB'; the feed lists 'Tundra SR5'. The trim reader now drops the cab (CrewMax, Double/Crew/Access/King/Regular/Extended/Quad Cab, SuperCrew, SuperCab, Mega Cab), the bed (SB, LB, short/long bed, 5.5' bed) and the engine (3.4L, V6/V8, 6cyl, a trailing '(...'), for every reader that compares trims. (6) THE EDMUNDS LEASE SPECIAL: the same lead's inquiry was 'interested in the 2026 Toyota Tundra SR5 manufacturer-advertised lease special for $399 per month. Lease program details: $399 per month; 39 month term; $4,999 due at signing.' and the draft did not mention it. _lpEdmundsOffer reads it into v9.7.867's offer record, so THE OFFER THEY REQUESTED A QUOTE ON opens the context; not in the store's list, it is 'the offer you saw on Edmunds', and when an offer is not in the list the store's own current offers of that kind on the model are named beside it (here the two $439 Tundra SR5 leases). The offer's own trim picks the units listed (the four SR5s, not every new Tundra). REPLAY: the five grabs on file rebuilt on 868 and 869 -- 2113695730 changes as above, the other four do not (all were captured before 11 AM, inside the old same-day window). TESTS: cutoff-offer-tundra-869 (new) executes computeAppointmentTimes at fixed Central clocks, buildUserPrompt through the panel payload, _lpAddApptOn, the visit decision, the house guard, _lpTrimOf, _lpEdmundsOffer and populateFromData on the lead's shape: 42 assertions across both builds; v9.7.868 fails 17 of 21 per build (the 4 that pass are controls). appointment-hours (an hour's notice), remote-visit-802, visit-radius-847 (the shipping hold may own the decision) and openers-cutoff-kia-866 (5:00 PM Baytown is same-day now) updated. VERIFIED: run-all 314 suites green, 10422 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.868.)
 // Lead Pro -- popup.js  v9.7.868 (Commercial. OUR LAST MESSAGE AND THEIR ANSWER, A VISIT ALREADY FOLLOWED UP, A TRADE TRIGGER THAT READ OUR OWN TEXT, AND AUDIT #2 BATCHES A AND B. OWNER-APPROVED 11/10 ('build batch A and B from the audit, and the message generated is almost identical to the last message we sent'). Ships with proxy v7.92 and reporter v1.26 (log and report only; any deploy order); dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. THE NEAR-DUPLICATE, Kia Baytown lead 2112534348 (log418): at 11:25 AM our text thanked them for their kind words about the rep, named the $2,500 down / $500 a month target and asked them back; at 11:28 they answered 'Of course, I will be back. I will try today. If not for sure tomorrow.'; the draft thanked them again and restated the target. Three causes, three fixes. (1) Nothing said which message theirs answered (the do-not-restate rule runs only while the customer has not replied). _lpOurLastAnswered: our newest person-written message and the customer's message(s) after it, within 12 hours (not the assistant's, not a bare STOP, not a one-liner of ours), and the context opens with both quoted -- 'OUR LAST MESSAGE, AND THEIR ANSWER TO IT ... Do not say again what our message already said -- not its thanks, not its figures, not its offer or its question -- unless their answer asks for it'; the text rewrite gets WHAT OUR LAST MESSAGE ALREADY SAID. (2) The showroom template ('Acknowledge the visit specifically ... who they met', 'CLOSE WITH ONE CONCRETE OFFER ... BRINGS THEM BACK IN') was still in the prompt two days and twenty customer messages after the visit. _lpVisitMovedOn: once a person here has written after the visit note and the customer has written too, its do-this lines (visit confirmation, critical context, must do, close with, tone, note on data, no vehicle, thin visit data) give way to one line -- the post-visit follow-up has been sent, do not thank them for coming in again or recap the visit, continue from their newest message; the visit progress facts and the must-not line stay. The visit note is read from the whole record (a walk-in's sits below the marker of the lead it created). (3) 'The customer wants to know what their TRADE is worth' on a lead with no trade: the trigger's attributed-line scan read every line of the context, which carries the template's own '...the color they wanted, a trade appraisal'. It now reads transcript entries only (a line opening '[' and the indented lines under it), notes and call notes, as audit DR-1's smallest form; the same false line also leaves lead 2112149909. BATCH B. PF-1: every grab waited the full 4 s (logs 415-418: 6 of 7 frames waited out the cap; the lead frame was ready in 0-2.2 s). The lead frame now leaves a mark on the top window when ready, and a frame stands down once that mark is from this grab: a frame with no lead markers and no lead id, or a frame for the same lead with no notes; a frame with lead markers and no notes for another or unknown lead still waits (the rims2 race), and the customer dashboard is done as soon as its key-information rows are drawn (else the cap, until batch A says how long they take). PF-3: the lead frame stops waiting for key-information rows the dashboard has drawn, and the shadow-root walk runs at most every 600 ms. PF-2: a Grab refreshes the lead's store and its Baytown sisters (from the pre-scrape's lead frame, else ECCS), not all five; unknown store -> all five as before. PF-5: the text rewrite's system prompt names the agent, store and phone last (same words, same length), so every agent shares one cache prefix. BATCH A (behavior-neutral): the feedback row carries the directive labels the prompt carried (meta.directives, up to 80), its length (promptChars) and the key-information rows kept (keyInfoRows); [LP GRAB TIMING] names each frame class with when it finished and when the key-information rows were drawn; proxy v7.92 adds classifyMs to its FINAL line; reporter v1.26 labels requests with no START line by their path, shows a Directives table, the prompt-length and key-info line, the classifier's time, and hides the note-type table when it is all 'unknown'. REPLAY: the four grabs on file rebuilt on 867 and 868 -- 2112534348 and 2112149909 change exactly as above, the other two do not. TESTS: batch-ab-868 (new) executes _lpOurLastAnswered, _lpVisitMovedOn, populateFromData and buildUserPrompt through the panel payload, the rewrite prompt, the shipped frame-wait function against fake frames, _lpGrabPrefetch, _lpPromptDirectives, the feedback meta and the timing line: 58 assertions across both builds; v9.7.867 fails 26 of 29 per build (the 3 that pass are controls). reporter-v126 (new, 13; v1.25 with v7.91 fails 11). inv-grab-fresh-746 updated for PF-2. VERIFIED: run-all 313 suites green, 10380 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.867.)
 // Lead Pro -- popup.js  v9.7.867 (Commercial. THE OFFER THEY REQUESTED A QUOTE ON. OWNER-APPROVED 11/10 ('build 867, leave the certified hybrid out'). Extension only; proxy v7.91, reporter v1.25, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. Toyota Baytown lead 2113204072 (log417, source 'Rct-Request A Quote'), Gil: 'there is an offer that the customer saw but LP didn't pick up on it.' The manufacturer's site sends the offer the customer clicked as fields in the lead note -- Offer Type: apr | Vehicle: 2026 Tacoma i-FORCE MAX | Offer Info: 3.99% for 48 Months | Offer End Date: 11/30/2026 -- and three things went wrong with it. (1) The scraper's tool-data rule, written for trade and payment estimators, put it in the prompt as TOOL-SUPPLIED DEAL DATA: 'the customer did not type them, has not quoted them to us, and has not raised the subject ... move the conversation toward a real appraisal'. (2) The store's own offer list had the same line ('Tacoma i-FORCE MAX -- 3.99% APR for 48 mos', expires 11/30) and it stayed out, because a first message from a person does not open with an incentive and 'the customer asked about an offer' only read typed messages. (3) Nothing mapped 'i-FORCE MAX' to the feed's 'Hybrid'. The draft asked 'What trim and color are you after?'. NOW: _lpOfferRecord reads the record (type, vehicle, terms, end date, whose site) out of the scraper's block at the top of populateFromData, and that block comes off; _lpOfferBlock opens the context with THE OFFER THEY REQUESTED A QUOTE ON -- the offer named with its end date, 'that offer is why they wrote in ... name the offer in the first sentence, and do not ask what they are interested in as if they had not said'. Checked against the store's offer list (same model, same year, every number of the terms, not expired): confirmed -> state it as an offer for well-qualified buyers, subject to credit approval, never promising the rate; not in the list -> 'the offer you saw on Toyota's website', to be confirmed, the rate not stated as ours; an end date that has passed -> not presented as current. Then what is on the lot, new units only (the rate is a new-vehicle offer, and the owner asked for the certified one to be left out): the ones of that powertrain named with their paint; or none of it -- said plainly, once -- with the other new ones of the model, and 'the same rate applies to these too' when the offer list has the same terms on the base model; never a stock number or a price. On lead 2113204072: no new 2026 Tacoma i-FORCE MAX; SR5 x3; the same 3.99% for 48 months on the Tacoma. The first-touch light ask stands; the offer line is exempt from the first-touch incentive hold because they asked about it. _LP_POWERTRAINS reads 'i-FORCE MAX' as Hybrid, for every powertrain reader. The text rewrite is told to keep the offer and never promise the rate. [LP OFFER ASKED DIAG] names the offer, whether the list confirmed it and what is on the lot. A trade estimator's tool data keeps its block. REPLAY: the three grabs on file rebuilt on 866 and 867 -- one changes (2113204072, exactly these lines), two do not. ALSO, tests only: stuck-leads-784 stamped its fixtures with clock labels on dates counted back from now and so passed only in the evening (at 9:48 AM two checks failed on unchanged 866 code); it now runs at a fixed clock. TESTS: offer-asked-867 (new) executes _lpOfferRecord, populateFromData and buildUserPrompt through the panel payload, _lpPowertrainOf and the rewrite's instructions on the block as captured: 36 assertions across both builds; v9.7.866 fails 15 of 18 per build (the 3 that pass are controls; 1 more control fails there only because the helper does not exist). VERIFIED: run-all 311 suites green, 10309 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.866.)
 // Lead Pro -- popup.js  v9.7.866 (Commercial. HOW A MESSAGE OPENS, A VIN IN THE STOCK FIELD, ONE QUESTION ONCE, ONE DAY NAMED ONCE, ONE SAME-DAY CUTOFF, A FEEDBACK ROW THAT KNOWS ITS LEAD, AND NO KIA INTERIOR FROM THE FEED. OWNER-APPROVED 11/10 ('build 866 yes all Kia's show black and not the alternative option color on their description from the feed'). Extension only; proxy v7.91, reporter v1.25, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. From the 11/9 report. (a) OPENERS: on four stalled leads the agent regenerated until 'I reached out about', 'I'm reaching out about' and 'I wanted to share that' were gone (leads 2099092351, 2096792360, 2097496025, 2070752744). The standing rule now says to open on the thing itself and names the three; the rewrite is told the same in its own instructions (its system prompt is untouched -- the size bound holds); and the render guard takes 'I wanted to share that' off the front of a sentence. (b) A VIN IN THE STOCK-NUMBER FIELD: lead 2112437423's stock field held the 4Runner's 17-character VIN, the feed is looked up by stock number, and the draft said 'I can't confirm it's at our store yet'. The feed check matches such a value against the units' VINs, and populateFromData gives the lead that unit's stock number so every later reader sees the real one. (c) THE SAME QUESTION TWICE, in more wordings: '...hoping/looking/wanting/planning to get into?' joins the vehicle-question forms (lead 2112726385). (d) ONE DAY, NAMED ONCE: 'tomorrow at 9:15 AM or Tuesday, November 10, at 10:30 AM' -- both Tuesday (lead 2112726385). _lpSameDayOnce, in the past-time guard: 'tomorrow ... or <tomorrow's weekday, with or without its date>' loses the second naming; another weekday, or the same weekday on another date, is left alone. (e) ONE SAME-DAY CUTOFF: 'tonight at 7:30' was offered at 7:11 PM, '7:15 PM today' at 7:03 PM and '7:30 tonight' at 7:15 PM (leads 2108867424, 2103434989, 2108761432). The slot engine already has a last same-day appointment time per store (6:30 PM at the Baytown stores, 6:00 PM in Lafayette, 4:30 PM on an Audi Saturday) and the status line never read it: it said 'there is still usable time TODAY' until the door shut. computeAppointmentTimes now reports pastSameDayCutoff, and past that time the status line reads 'OPEN, closing at ... -- too late in the day for a same-day appointment. Earliest available appointment is <the next open day>. Do NOT offer a time today or tonight.' (someone already on their way is welcomed, with the closing time). The Add Appt line follows it ('the next open day -- no same-day time is left'), after closing too. Before the cutoff nothing changes. (f) A FEEDBACK ROW THAT KNOWS ITS LEAD: a Direct-chip row on lead 2112556296 was posted with no store, agent or lead and rated 'down' -- the agent pressed again before the reply came back, so the meta (captured on a reply) was empty, and the report showed an 'unknown' store at 0%. Who and which lead is now kept from the moment Generate is pressed and sent when the meta is empty (marked noDraft); and a generation that never rendered a draft is rated 'incomplete', never 'down', whatever was pressed to start it (v9.7.541's rule, which a chip or regenerate count had been overriding). An empty meta still means 'no draft was produced'. (g) KIA INTERIORS: 'both available units have black interiors, not the brown you wanted' on two Tellurides (lead 2112556296). Kia's feed lists the interior as black or gray whatever the car has -- every Kia, not only the Sportage and the K5 GT-Line (v9.7.862). The interior line for the unit on the lead is 'we will check' for any Kia; the what-we-have list no longer prints a Kia unit's interior; and when the interior is in play (they asked for one, or the call note names one) a KIA INTERIORS line says never to name a Kia's interior color or say it has or lacks theirs. NOTE: the replay covered the two grabs this session still holds (logs 415-416); neither prompt changes, as expected for these seven items. TESTS: openers-cutoff-kia-866 (new) executes the house guard, the feed check, populateFromData, the past-time guard, computeAppointmentTimes at fixed Central clocks, buildUserPrompt through the panel payload, the visit decision, the feedback reset and send, the interior line and the what-we-have block: 82 assertions across both builds; v9.7.865 fails 27 of 41 per build (the 14 that pass are controls; 5 more controls fail there only because the helper or field they read does not exist). chip-feed-numbers-862 and owed-asks-861 updated for (g): a K5 LXS is 'we will check', and the Sorento Hybrid is listed with its paint only. VERIFIED: run-all 310 suites green, 10273 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.865.)
@@ -1346,11 +1347,20 @@ function _lpTripIntent(d) {
   var x = _lpTripIntentEntry(d); return x ? x.body.slice(0, 140) : '';
 }
 // The agent pressed Add Appt Ask on this lead (sticky until another lead is grabbed; Drop Appt Ask clears it).
+// (v9.7.869) ...and until the customer writes again. Honda Lafayette lead 2113611885 (11/10): the chip was pressed at 3:48 PM on a
+// first touch; at 5:42 the customer asked about the warranty and shipping to Little Rock, and the draft still closed on "Wednesday
+// at 9:15 AM or 10:30 AM". A message from them newer than the press is a new conversation; the agent can press it again.
 function _lpAddApptOn(d) {
   try {
     var a = (typeof window !== 'undefined' && window._lpAddApptLeadId) || '';
     var lid = String((d && d.autoLeadId) || (typeof window !== 'undefined' && window._activeLeadId) || '');
-    return !!(a && lid && String(a) === lid);
+    if (!(a && lid && String(a) === lid)) return false;
+    var at = (typeof window !== 'undefined' && window._lpAddApptAt) || 0;
+    if (at && typeof _lpCustSignals === 'function') {
+      var c = _lpCustSignals(d).filter(function (x) { return x.t > at; });
+      if (c.length) { try { console.log('[LP ADD-APPT DIAG] the chip ended: the customer wrote at ' + c[0].date + ' after it was pressed'); } catch (eL) {} return false; }
+    }
+    return true;
   } catch (e) { return false; }
 }
 // (v9.7.806) THEY ASKED HOW THE CAR GETS TO THEM. Honda Baytown lead 2103597607: a customer in Maryland asked the store's
@@ -4881,6 +4891,11 @@ function _lpTrimOf(v) {
     // EX-L Auto (New)"), the feed lists "Odyssey EX-L", and the inventory answer said the EX-L Auto was "NONE in stock today" with
     // six 2027 EX-Ls on the lot. Our own voicemail then told the customer we did not have that trim.
     s = s.replace(/\b(?:auto|automatic|manual|cvt|e-?cvt|\d{1,2}\s?-?\s?speed|\d{1,2}\s?(?:at|mt|a\/t|m\/t))\b/ig, ' ');
+    // (v9.7.869) ...and the cab, the bed and the engine. Toyota Baytown lead 2113695730: "2026 Toyota Tundra SR5 4dr CrewMax SB w/5.5'
+    // Bed (3.4L 6cyl Turbo 10A" read as trim "SR5 CrewMax SB", the feed lists "Tundra SR5", and the answer said the SR5 CrewMax was
+    // "NONE in stock today" with four new ones on the lot (feed updated that morning).
+    s = s.replace(/\b(?:crew\s?max|double\s+cab|crew\s+cab|access\s+cab|king\s+cab|reg(?:ular)?\s+cab|ext(?:ended)?\s+cab|quad\s+cab|super\s?crew|super\s?cab|mega\s?cab|sb|lb|short\s+bed|long\s+bed|std\s+bed|standard\s+bed|\d+(?:\.\d+)?\s?(?:'|\u2019|ft\.?|foot)\s?bed|\d\.\d\s?l|v[68]|\d\s?cyl|i\d)\b|\(\s*[^)]*$/ig, ' ');
+    s = s.replace(/(^|\s)w\/(?=\s|$)/ig, ' ');   // a "w/" whose bed length went with the line above
     // (v9.7.790) + door counts: lead 2098953366's "2026 Honda Pilot AWD Black Edition 4dr SUV" read as trim "Black Edition 4dr".
     s = s.replace(/\b(?:awd|fwd|rwd|2wd|4wd|4x4|4x2|sedan|coupe|hatchback|suv|4d|[245]dr|[245]-?doors?|sport utility|w\/[^,]*)\b/ig, ' ').replace(/\s{2,}/g, ' ').trim();
     // norm: the trim's words, each stripped of punctuation, in sorted order -- "Hybrid Sport" and "Sport Hybrid" are one trim (v9.7.790)
@@ -6432,7 +6447,7 @@ function _lpFullNameGreeting(s, d) {
 }
 var LP_VEH_Q_RX = /\bwhat\s+(?:(?:vehicle|model|car|kind\s+of\s+(?:vehicle|car)|type\s+of\s+(?:vehicle|car))\s+)?(?:are\s+you|you['’]re)\s+(?:looking\s+for|shopping\s+for|hoping\s+to\s+find|interested\s+in|considering|(?:hoping|looking|wanting|planning)\s+to\s+get\s+into)\b|\bwhat\s+(?:vehicle|model|car)\s+(?:do|did)\s+you\s+have\s+in\s+mind\b/i;   // (v9.7.865)
 var LP_KEEP_SIMPLE_RX = /\bI['\u2019]ll keep (?:this|it) (?:simple|short|brief|quick)\s*[:;,\u2014\u2013-]\s*([A-Za-z])/gi;
-var LP_NARRATE_RX = /\bI['\u2019]ll keep (?:this|it) (?:simple|short|brief|quick)\b|\b(?:I|we) (?:don['\u2019]t|do not) want to (?:send|keep sending|bother you with|flood you with)\b|\b(?:our|my) (?:earlier |previous |last )?(?:messages|texts|emails|notes|outreach)\s+(?:haven['\u2019]t|have not|didn['\u2019]t|did not)\s+(?:made|make|been)\b|\bI realize (?:our|my) (?:messages|texts|emails)\b|\bI haven['\u2019]t heard back(?!\s+from\s+(?!you\b))|\bwithout hearing back\b|\bI know (?:my|our) last (?:note|message|text|email)\b|\bI know I['\u2019]ve reached out\b/;
+var LP_NARRATE_RX = /\bI['\u2019]ll keep (?:this|it) (?:simple|short|brief|quick)\b|\b(?:I|we) (?:don['\u2019]t|do not) want to (?:send|keep sending|bother you with|flood you with)\b|\b(?:our|my) (?:earlier |previous |last )?(?:messages|texts|emails|notes|outreach)\s+(?:haven['\u2019]t|have not|didn['\u2019]t|did not)\s+(?:made|make|been)\b|\bI realize (?:our|my) (?:messages|texts|emails)\b|\bI haven['\u2019]t heard back(?!\s+from\s+(?!you\b))|\bwithout hearing back\b|\bI know (?:my|our) last (?:note|message|text|email)\b|\bI know I['\u2019]ve reached out\b|\bI know (?:the|our|my) (?:[\w-]+ ){0,3}(?:messages|texts|emails|notes)\s+(?:haven['\u2019]t|have not|didn['\u2019]t|did not)\b/;   // (v9.7.869) "I know the Ridgeline messages haven't drawn a reply" (lead 2098112593)
 function _lpHouseGuard(text, channel) {
   var s = String(text || '');
   if (!s) return s;
@@ -8689,6 +8704,19 @@ function _lpOfferRecord(text) {
     return o;
   } catch (e) { return null; }
 }
+// (v9.7.869) THE SAME, ON AN EDMUNDS LEAD. Lead 2113695730: "is interested in the 2026 Toyota Tundra SR5 manufacturer-advertised lease
+// special for $399 per month. Lease program details: $399 per month; 39 month term; $4,999 due at signing." -- the offer is in the
+// customer's inquiry, and the draft did not mention it.
+var LP_EDMUNDS_OFFER_RX = /interested in the ((?:19|20)\d{2}\s+[^.\n"]{3,60}?)\s+manufacturer-advertised\s+(lease|finance|apr|cash)?\s*special\b[^.\n]*\.(?:\s*Lease program details:\s*\$([\d,]+)\s*per month;\s*(\d{2})\s*month term;\s*\$([\d,]+)\s*due at signing)?/i;
+function _lpEdmundsOffer(text) {
+  try {
+    var m = LP_EDMUNDS_OFFER_RX.exec(String(text || '')); if (!m) return null;
+    var type = String(m[2] || 'lease').toLowerCase();
+    var info = m[3] ? 'the lease at $' + m[3] + ' a month for ' + m[4] + ' months with $' + m[5] + ' due at signing' : (String(m[0]).match(/\$[\d,]+(?:\s*per month)?|\d+(?:\.\d+)?%\s*APR/i) || [''])[0];
+    if (!info) return null;
+    return { type: type, vehicle: m[1].replace(/\s+/g, ' ').trim(), info: info, ends: '', site: 'Edmunds', where: 'Edmunds' };
+  } catch (e) { return null; }
+}
 function _lpOfferNums(s) { return (String(s || '').match(/\d[\d,]*(?:\.\d+)?%?/g) || []).map(function (x) { return x.replace(/,/g, ''); }); }
 function _lpOfferPhrase(o) {
   var i = String(o.info || '').replace(/\bMonths\b/g, 'months').replace(/\bMos\b\.?/gi, 'months');
@@ -8710,17 +8738,27 @@ function _lpOfferBlock(d) {
     var onBase = (base && base !== model) ? (incs.filter(function (x) { return same(x, base); })[0] || null) : null;
     var em = String(o.ends || '').match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/), endIso = em ? ((em[3].length === 2 ? '20' + em[3] : em[3]) + '-' + ('0' + em[1]).slice(-2) + '-' + ('0' + em[2]).slice(-2)) : '';
     var ended = !!(endIso && endIso < today);
-    var name = String(o.vehicle).replace(_LP_MAKE_RX, '').replace(/\s{2,}/g, ' ').trim(), phrase = _lpOfferPhrase(o), where = o.site ? o.site + '\'s website' : 'the manufacturer\'s website';
+    var name = String(o.vehicle).replace(_LP_MAKE_RX, '').replace(/\s{2,}/g, ' ').trim(), phrase = _lpOfferPhrase(o), where = o.where || (o.site ? o.site + '\'s website' : 'the manufacturer\'s website');
     var L = ['💲 THE OFFER THEY REQUESTED A QUOTE ON: on ' + where + ' this customer picked one offer and asked for a quote on it -- the ' + name + ', ' + phrase
       + (o.ends ? ', ending ' + o.ends : '') + '. That offer is why they wrote in, so the message is about it: name the offer in the first sentence, and do not ask what they are interested in as if they had not said.'];
     if (ended) L.push('- Its end date (' + o.ends + ') has passed: do not present it as current. Say the offer they saw has ended and that you will go over the offers running now.');
     else if (hit) L.push('- The store\'s own current offer list confirms it ("' + _lpModelLine(hit.model, hit.line) + '"' + (hit.expires ? ', expires ' + hit.expires : '') + '). State it as an offer for well-qualified buyers, subject to credit approval -- never promise the rate -- and give its end date.');
-    else L.push('- The store\'s offer list does not show this exact offer, so call it "the offer you saw on ' + where + '" and say you will confirm it applies to them. Do not state the rate as ours.');
+    else {
+      L.push('- The store\'s offer list does not show this exact offer, so call it "the offer you saw on ' + where + '" and say you will confirm it applies to them. Do not state the rate as ours.');
+      // (v9.7.869) ...and what the store does have of that kind on the model, so the answer is not only "we'll confirm"
+      var _kind = /lease/.test(o.type) ? /\blease\b/i : /apr|finance/.test(o.type) ? /\bAPR\b/i : null;
+      var _near = _kind ? incs.filter(function (x) { return norm(x.model) === base && _kind.test(x.line) && !(x.expires && String(x.expires) < today); }).slice(0, 2) : [];
+      if (_near.length) L.push('- The store\'s own current ' + (/lease/.test(o.type) ? 'lease' : 'APR') + ' offers on the ' + base.charAt(0).toUpperCase() + base.slice(1) + ': '
+        + _near.map(function (x) { return _lpModelLine(x.model, x.line); }).join(' | ') + '. You may name one as what the store has now, for well-qualified buyers, beside the one they saw.');
+    }
     var diag = name + ' | ' + phrase + (o.ends ? ' | ends ' + o.ends : '') + ' | ' + (ended ? 'ENDED' : hit ? 'confirmed by the store offer list' : 'not in the store offer list');
     if (units.length) {
       var pt = _lpPowertrainOf(o.vehicle);
       var fam = units.filter(function (u) { return u && String(u.condition || '').toLowerCase() === 'new' && norm(u.model || u.vehicle).split(' ')[0] === base && (!yr || String(u.year || '') === yr || new RegExp('\\b' + yr + '\\b').test(String(u.vehicle || ''))); });
       var mine = fam.filter(function (u) { return _lpPowertrainOf(u.vehicle || u.model) === pt; }), rest = fam.filter(function (u) { return mine.indexOf(u) < 0; });
+      // (v9.7.869) the offer names a trim (an SR5): its units are the answer when the feed has them
+      var _ot = _lpTrimOf(o.vehicle).norm, _byTrim = _ot ? fam.filter(function (u) { return _lpTrimOf(u.vehicle || u.model).norm === _ot; }) : [];
+      if (_byTrim.length) { mine = _byTrim; rest = []; }
       var grp = function (list, withColor) { var m = {}, order = [];
         list.forEach(function (u) { var k = String(u.model || u.vehicle).replace(/\b(?:19|20)\d{2}\b/g, '').replace(_LP_MAKE_RX, '').replace(/\s{2,}/g, ' ').trim();
           if (!withColor) k = k.replace(new RegExp('^' + base + '\\s+(?=\\S)', 'i'), '') || k;   // "New 2026 Tacoma here: SR5 x3"
@@ -8787,6 +8825,7 @@ function populateFromData(d) {
       if (typeof d[k] !== 'string') return; var tb = LP_TOOL_BLOCK_RX.exec(d[k]), rec = tb && _lpOfferRecord(tb[0]);
       if (rec) { d._lpOffer = rec; d[k] = d[k].replace(LP_TOOL_BLOCK_RX, ''); }
     });
+    if (!d._lpOffer) d._lpOffer = _lpEdmundsOffer(String(d.lastInboundMsg || '') + '\n' + String(d.conversationBrief || ''));   // (v9.7.869)
   } catch (eOfr) {}
   try {
     var _vit = _lpVoiIsTrade(d);
@@ -26455,6 +26494,7 @@ var _LP_VISIT_HOLDS = [
   [1, /^AGENT OVERRIDE -- APPOINTMENT ASK FOR AN OUT-OF-STATE BUYER/, 'the agent\'s ADD APPT ASK chip (out-of-state: times, but not today by default)'],
   [2, /^THEY SAID THEY WILL MAKE THE TRIP:/, 'the REMOTE BUYER who said they will make the trip (ask when, no set times)'],
   [2, /^A VISIT IS A SPECIAL TRIP FOR THIS CUSTOMER/, 'the SPECIAL TRIP rule (more than 75 miles: one soft invitation, no times)'],   // (v9.7.847)
+  [3, /^\S*\s*THEY ASKED ABOUT GETTING THE CAR TO THEM/, 'the SHIPPING question (they are buying from a distance)'],   // (v9.7.869) lead 2113611885
   [2, /^THEY SAID THEY WILL CALL US BACK \(on the /, 'the CALL-BACK rule (they said they will call us)'],   // (v9.7.847)
   [3, /^THEY WANT A CALL, AND ONLY WITH NUMBERS THAT FIT/, 'the CALL WITH THE NUMBERS note (they want a call, not texts)'],   // (v9.7.864)
   [3, /^THEY TOLD US THEIR TIMELINE/, 'THEIR TIMELINE (they told us when)'],   // (v9.7.864)
@@ -26481,7 +26521,7 @@ var _LP_VISIT_HOLDS = [
 // 2110248930, 2110383482) and no draft named a time: it deferred to every hold, and a first touch or a pitch already out holds the
 // times back. The chip is the agent's own choice, so it overrides those; it still yields to the customer (paused, not ready, can't
 // come in, will call us, a day they named, a booked appointment), a deal condition, an exit, or the agent's own no-appointment chip.
-var _LP_VISIT_HARD = ['the PAUSE rule (not ready)', 'the DEAL CONDITION rule', 'NOT TODAY (not any day)', 'the EXIT rule', 'the call-note PAUSE (not looking right now)',
+var _LP_VISIT_HARD = ['the SHIPPING question (they are buying from a distance)', 'the PAUSE rule (not ready)', 'the DEAL CONDITION rule', 'NOT TODAY (not any day)', 'the EXIT rule', 'the call-note PAUSE (not looking right now)',
   'the APPROVAL FIRST condition (no visit until they know)', 'the ALREADY HAVE A SALES REP block', 'the agent\'s NO APPOINTMENT override',
   'the agent\'s ADD APPT ASK chip (out-of-state: times, but not today by default)', 'the CALL-BACK rule (they said they will call us)',
   'the LIVE APPOINTMENT block (a time is already booked)', 'TIMING NOTE (not today)', 'the DAY THE CUSTOMER NAMED',
@@ -26682,7 +26722,7 @@ function buildUserPrompt(data) {
   // the whole source dispatcher below so every branch benefits without a ~20-way
   // duplicate edit.
   const hasCallOnlyPriorAttempt = !hasRealOutbound && /Outbound phone call|Left message/i.test(data.context || '');
-  const appt = computeAppointmentTimes(data.store);
+  const appt = computeAppointmentTimes(data.store, data.autoLeadId);   // (v9.7.869) the next-morning pair varies by lead
   // Detect when a payment/price quote was already sent to the customer via notes.
   // This happens when sales reps send numbers via personal phone or external channels
   // that don't register as outbound in VinSolutions. The model needs to know this
@@ -30328,7 +30368,7 @@ function buildUserPrompt(data) {
                   try {
                     var _sdA = computeAppointmentTimes(data.store || '');
                     if (_sdA && _sdA.pastSameDayCutoff) {
-                      _statusLine = 'STORE STATUS RIGHT NOW: OPEN, closing at ' + _hrsMatch[3] + ' ' + _hrsMatch[4] + ' (' + _remainStr + ' remaining) -- too late in the day for a same-day appointment. Earliest available appointment is ' + _nextOpenPhrase() + '. Do NOT offer a time today or tonight. If they say they are on their way now, welcome it and give the closing time.';
+                      _statusLine = 'STORE STATUS RIGHT NOW: OPEN, closing at ' + _hrsMatch[3] + ' ' + _hrsMatch[4] + ' (' + _remainStr + ' remaining) -- too late in the day for a same-day appointment (the last is an hour before closing, with an hour\'s notice). Earliest available appointment is ' + _nextOpenPhrase() + '. Do NOT offer a time today or tonight. If they say they are on their way now, welcome it and give the closing time.';
                       console.log('[LP SAME-DAY CUTOFF DIAG] ' + _remainStr + ' to close, past the last same-day appointment time (' + _sdA.sameDayCutoff + ') -> the next open day');
                     }
                   } catch (eSd) {}
@@ -33013,7 +33053,8 @@ function buildUserPrompt(data) {
           '- Tone: relaxed and helpful. Full flexibility — lean into that.');
       } else if (!isSameDay) {
         lines.push('TIMING — NEXT-DAY: Appointments are for tomorrow. Be proactive, not urgent.',
-          '- SMS: "I wanted to get ahead of your schedule — would ' + appt.time1 + ' or ' + appt.time2 + ' work?"',
+          // (v9.7.869) the example sentence is gone: "I wanted to get ahead of your schedule" was copied word for word (lead 2113629276)
+          '- The times, said once with their day: ' + (appt.pairText || (appt.time1 + ' or ' + appt.time2)) + '.',
           '- Email: Frame as planning ahead to make their visit smooth.',
           '- Tone: organized and thoughtful. No urgency — just proactive service.');
       }
@@ -33333,7 +33374,16 @@ function buildUserPrompt(data) {
 // ── Appointment Time Calculator ───────────────────────────────────
 // Computes valid appointment time pairs entirely in JS.
 // The AI receives pre-validated times — it never does this math.
+// (v9.7.869) ONE SAME-DAY RULE, OWNER-APPROVED 11/11 ("go with your recommendation on the cutoff"). A same-day time is offered as
+// long as one fits at least 60 minutes out and an hour before closing; when only one same-day time is left it is paired with one
+// next-morning time. Before: a two-hour buffer, two slots 45 minutes apart, and a cutoff 90-120 minutes before closing, so the
+// engine gave up on today about 3:45 PM in Baytown while the status line still said "today is the default" -- on 11/10 four
+// shipped drafts offered "9:15 AM or 10:30 AM Wednesday" between 3:49 and 5:42 PM. Every pair now carries its day on both times
+// (the first next-day time had none: "tomorrow at 9:15 AM or Tuesday, November 10, at 10:30 AM"), pairText says the pair the way
+// a person would, and the next-morning pair varies by lead (seed) instead of being 9:15 / 10:30 for everyone.
 function computeAppointmentTimes(store) {
+  const seed = arguments[1];   // (v9.7.869) the lead id, so the next-morning pair varies by lead
+  const LP_NEXT_DAY_PAIRS = [[15, 90], [30, 120], [60, 150], [90, 180], [120, 240]];   // minutes after opening
   // All times in Central Time
   const now    = new Date();
   const central = new Date(now.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
@@ -33351,7 +33401,7 @@ function computeAppointmentTimes(store) {
     if (dayOfWeek === 0) { // Sunday
       openMins = null;
     } else if (dayOfWeek === 6) { // Saturday
-      openMins = 9 * 60; closeMins = 18 * 60; sameDayCutoffMins = 16 * 60 + 30; // 4:30 PM
+      openMins = 9 * 60; closeMins = 18 * 60; sameDayCutoffMins = 17 * 60; // 5:00 PM (v9.7.869: an hour before closing)
     } else {
       openMins = 9 * 60; closeMins = 19 * 60; sameDayCutoffMins = 18 * 60; // 6:00 PM
     }
@@ -33368,13 +33418,13 @@ function computeAppointmentTimes(store) {
     if (dayOfWeek === 0) {
       openMins = null;
     } else {
-      openMins = 9 * 60; closeMins = 20 * 60; sameDayCutoffMins = 18 * 60 + 30; // 6:30 PM
+      openMins = 9 * 60; closeMins = 20 * 60; sameDayCutoffMins = 19 * 60; // 7:00 PM (v9.7.869: an hour before closing)
     }
   }
 
   // Round current time UP to next 15-minute slot, then add 2-hour buffer
   function nextSlot(fromMins) {
-    const buffered = fromMins + 120; // 2-hour buffer
+    const buffered = fromMins + 60; // (v9.7.869) 60 minutes' notice (was 2 hours)
     const rem = buffered % 15;
     return rem === 0 ? buffered : buffered + (15 - rem);
   }
@@ -33453,13 +33503,16 @@ function computeAppointmentTimes(store) {
     && earliestSlot <= sameDayCutoffMins
     && earliestSlot + 45 <= closeMins;
 
+
   if (sameDayValid) {
     const pair = findSameDayPair(earliestSlot);
+    var _oneToday = pair ? null : earliestSlot;   // (v9.7.869) one same-day time left: it is offered, with a next-morning time
     if (pair) {
       const today = fmtDate(central);
       return {
         time1: fmtTime(pair[0]) + ' today',
         time2: fmtTime(pair[1]) + ' today',
+        pairText: fmtTime(pair[0]) + ' or ' + fmtTime(pair[1]) + ' today',
         dayLabel: 'today',
         closeTime: fmtTime(closeMins),
         minsUntilClose: closeMins - nowMins,
@@ -33485,19 +33538,37 @@ function computeAppointmentTimes(store) {
     nextOpen = 9*60; nextClose = 20*60;
   }
 
-  // Pick two slots well-spaced in the next day morning
-  const slot1 = nextOpen + 15;       // e.g. 9:15
-  const slot2 = nextOpen + 60 + 30;  // e.g. 10:45 (~90 min later)
+  // Pick two well-spaced next-day slots: by lead (seed), from LP_NEXT_DAY_PAIRS; no seed -> the first pair (9:15 / 10:30)
+  let _pi = 0;
+  if (seed) { let h = 0; const s = String(seed); for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 9973; _pi = h % LP_NEXT_DAY_PAIRS.length; }
+  const slot1 = nextOpen + LP_NEXT_DAY_PAIRS[_pi][0];
+  const slot2 = Math.min(nextOpen + LP_NEXT_DAY_PAIRS[_pi][1], nextClose - 60);
 
   const nextDayLabel = fmtDate(tomorrowCentral);
+  const _tmrw = (function () { const t = new Date(central); t.setDate(t.getDate() + 1); return t.getDay() === tomorrowCentral.getDay() && t.getDate() === tomorrowCentral.getDate(); })();
+  const _ndShort = _tmrw ? 'tomorrow (' + nextDayLabel + ')' : nextDayLabel;
+  if (_oneToday != null) {
+    return {
+      time1: fmtTime(_oneToday) + ' today',
+      time2: fmtTime(slot1) + ' ' + nextDayLabel,
+      pairText: fmtTime(_oneToday) + ' today or ' + fmtTime(slot1) + ' ' + _ndShort,
+      dayLabel: 'today',
+      closeTime: fmtTime(closeMins),
+      minsUntilClose: closeMins - nowMins,
+      pastSameDayCutoff: false, sameDayCutoff: fmtTime(sameDayCutoffMins),
+      note: 'One same-day time left -- paired with a next-morning time.'
+    };
+  }
   return {
-    time1: fmtTime(slot1),
+    time1: fmtTime(slot1) + ' ' + nextDayLabel,
     time2: fmtTime(slot2) + ' ' + nextDayLabel,
+    pairText: fmtTime(slot1) + ' or ' + fmtTime(slot2) + ' ' + _ndShort,
     dayLabel: nextDayLabel,
     closeTime: null,
     minsUntilClose: null,
     // (v9.7.866) the store is open and the last same-day appointment time has passed -- the status line reads this
-    pastSameDayCutoff: !isClosed && nowMins >= openMins && nowMins < closeMins && nowMins > sameDayCutoffMins, sameDayCutoff: isClosed ? '' : fmtTime(sameDayCutoffMins),
+    // (v9.7.869) the store is open and no same-day time is left under the one rule -- the status line reads this
+    pastSameDayCutoff: !isClosed && nowMins >= openMins && nowMins < closeMins, sameDayCutoff: isClosed ? '' : fmtTime(sameDayCutoffMins),
     note: 'No same-day slots available — next business day used.'
   };
 }
@@ -36565,7 +36636,7 @@ document.querySelectorAll('.regen-chip').forEach(function(chip) {
     // (v9.7.802) "Add Appt Ask": the agent wants this lead invited in -- an out-of-state buyer the remote rule holds back. Sticky
     // for the lead like "Drop Appt Ask", and the two cancel each other.
     if (key === 'add-appt') {
-      try { window._lpAddApptLeadId = String((lastScrapedData && lastScrapedData.autoLeadId) || window._activeLeadId || ''); window._lpNoApptLeadId = ''; window._lpSuppressApptChip = false; } catch (eAa) {}
+      try { window._lpAddApptLeadId = String((lastScrapedData && lastScrapedData.autoLeadId) || window._activeLeadId || ''); window._lpAddApptAt = Date.now(); window._lpNoApptLeadId = ''; window._lpSuppressApptChip = false; } catch (eAa) {}
     }
     if (key === 'no-appt') window._lpAddApptLeadId = '';
     // (v9.7.720) AND IT STAYS ON FOR THIS LEAD. The chip used to be one-shot, so the next chip -- "more

@@ -145,7 +145,8 @@ for (const file of BUILDS) {
   check('a 9:45 PM grab still rolls forward off today', sameDayMins(late.time1), null);
   check('  ...to the next OPEN day, skipping Sunday', /Monday/.test(late.time1 + ' ' + late.time2), true);
   const midday = runAt(B.region, '2026-09-05T12:45:00-05:00', 'Community Honda Baytown');
-  check('a midday grab is untouched and still same-day', midday.time1, '2:45 PM today');
+  // (v9.7.869) one same-day rule: an hour's notice (was two), so a 12:45 PM grab offers 1:45 PM first
+  check('a midday grab is untouched and still same-day', midday.time1, '1:45 PM today');
   check('  ...with the second option 45+ minutes later',
     sameDayMins(midday.time2) - sameDayMins(midday.time1) >= 45, true);
 

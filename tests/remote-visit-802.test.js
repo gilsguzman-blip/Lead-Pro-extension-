@@ -110,7 +110,7 @@ for (const f of BUILDS) {
   const CASH_SHIP = E('1:59 PM', 'CUSTOMER', 'Inbound Text Message', 'Pay cash. Can you ship to Louisiana?');
   const pS = prompt({ lastInboundMsg: 'Pay cash. Can you ship to Louisiana?', history: THREAD(CASH_SHIP, ASK, HOWMUCH), conversationBrief: 'CONVERSATION TRANSCRIPT (newest first):\n---\n' + THREAD(CASH_SHIP, ASK, HOWMUCH) + '---' });
   check('control: one who asks us to ship it keeps the out-of-state rule -- no visit ask (level 3)', () =>
-    [/^- Do NOT push an in-person visit or offer appointment times as the ask/m.test(pS), /^VISIT DECISION FOR THIS MESSAGE: no visit ask and no appointment times in this message -- the REMOTE \/ OUT-OF-STATE BUYER block/m.test(pS)], [true, true]);
+    [/^- Do NOT push an in-person visit or offer appointment times as the ask/m.test(pS), /^VISIT DECISION FOR THIS MESSAGE: no visit ask and no appointment times in this message -- the (?:REMOTE \/ OUT-OF-STATE BUYER block|SHIPPING question)/m.test(pS)], [true, true]);
 
   console.log(' 4. Add Appt Ask (new chip):');
   const pA = prompt({ history: THREAD(CASH, ASK, HOWMUCH), conversationBrief: 'CONVERSATION TRANSCRIPT (newest first):\n---\n' + THREAD(CASH, ASK, HOWMUCH) + '---' }, { chip: 'TEST001A' });

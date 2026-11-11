@@ -67,7 +67,7 @@ for (const f of BUILDS) {
   const kShip = built(KIA({ lastInboundMsg: 'Can you ship to Louisiana?', history: E('9:00 AM', 'CUSTOMER', 'Inbound Text Message', 'Can you ship to Louisiana?') + OUR + MARK,
     conversationBrief: E('9:00 AM', 'CUSTOMER', 'Inbound Text Message', 'Can you ship to Louisiana?') + OUR + MARK, hasCustomerReply: true }));
   check('control: a customer who asks us to ship it keeps the no-visit rule (level 3), and the never-say line', () =>
-    [/REMOTE \/ OUT-OF-STATE BUYER: Customer is NOT local/.test(kShip.p), /no visit ask and no appointment times in this message -- the REMOTE \/ OUT-OF-STATE BUYER block/.test(VD(kShip.p)),
+    [/REMOTE \/ OUT-OF-STATE BUYER: Customer is NOT local/.test(kShip.p), /no visit ask and no appointment times in this message -- the (?:REMOTE \/ OUT-OF-STATE BUYER block|SHIPPING question)/.test(VD(kShip.p)),
      /NEVER tell them they are remote/.test(kShip.p)], [true, true, true]);
   run('ZIP3_CENTROIDS["999"] = { lat: 30.0, lng: -94.0 };');   // a placeholder ZIP3 about 60 miles from Baytown, across a state line
   const near = built(KIA({ customerZip: '99901' }));
