@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.873-dev (Dev. TWO TIMES ON A FIRST TOUCH WITH NO SPECIFIC CAR, ADD APPT'S TIMES FROM THE ENGINE, NO TRIM CALLED "UNSPECIFIED", HOURS NOBODY ASKED ABOUT, AND THE NAME THEY GO BY. Owner, 11/14: "Yes add times as suggested. Build the rest as observed." Extension only; proxy v7.92, reporter v1.26, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. (1) A FIRST TOUCH WITH NO SPECIFIC CAR GETS TWO TIMES. On 11/11, 11/13 and 11/14 the agents pressed Add Appt on first touches and Click & Go leads that named a model but no unit (Carnival 2114920668, Accord 2114857734, Click & Go 2115214107), where LP asked trim and color with no times, and sent the chip's version each time. _lpFirstTouchTimesOk (v9.7.865: the car confirmed here, the customer close by) now also passes a lead with no stock number and no VIN (_lpFirstTouchNoCar), so the FIRST HUMAN TOUCH light ask stands down and the decision line says "the lead names no specific car, and they are close by -- close with two specific appointment times". A unit named but not confirmed on the lot keeps the light ask, an AI Buying Signals lead keeps its own rule, a special-trip customer (75+ miles) keeps the light ask. (2) ADD APPT'S TIMES ARE THE ENGINE'S. Toyota Baytown lead 2115214107: with the chip on, "Would 9 AM or 8 PM work for you?" -- the store's opening and closing hours. The first-touch hold had withheld the suggested times, the chip set the hold aside and asked for two times, and with none in the prompt the model made them up. When the chip is on, or a first touch gets its two times, the AI-signal, quiet-30-days and times-withheld branches no longer withhold the suggested times (a hold the chip does not override still takes them out, in the visit decision); the decision line and the chip's directive say the times come from the SUGGESTED APPOINTMENT TIMES, never the model's own and never the opening or closing hour; and the render backstop _lpClosingHourGuard (inside _lpPastTimeGuard) turns a same-day pair that offers today's closing time into the engine's pair. (3) A PLACEHOLDER IS NOT A TRIM. Honda Lafayette lead 2115358822: "We don't have the unspecified version in stock today" with 2027 CR-Vs on the lot -- the CRM's "Unspecified" read as a trim, matching nothing. _lpTrimOf drops Unspecified / Unknown / Not specified / TBD, and a trim that is only Any, Other, None or N/A; populateFromData takes the placeholder off the lead's vehicle before anything reads it. (4) HOURS NOBODY ASKED ABOUT: "during our open hours, 9 AM to 8 PM" (lead 2115214107) now reads as an hours sentence; "We have until 8:00 PM tonight, and I can help ..." (lead 2115023973) loses the clause and keeps the rest; a sentence that is only that goes; asked-about hours and "until Friday" stay. (5) THE NAME THEY GO BY. Honda Baytown lead 2114139435: "<record name>, <name>, the gray Passport ..." -- the record's first name is not the one they use, the opener guard (v9.7.756) only looked for the text's opening name in the notes, and prepended the record name. It now also takes the lead's context and inquiry text, and the name the email written for them greets them by. VERIFIED: NEW times-trims-hours-873.test.js, 23 assertions per build (46), executing populateFromData and buildUserPrompt through the panel payload, _lpTrimOf, _lpHouseGuard, _lpPastTimeGuard under a fixed Saturday 8:20 AM clock, and the shipped opener block; against v9.7.872 it fails 13 by name and its controls pass, including a control that reproduces 11/14's withheld times with the chip off. TWO OLDER EXPECTATIONS CHANGED BY THE OWNER'S RULE, NOT BY A DEFECT: chip-color-firsttouch-865 ("no stock number keeps the light ask" is now two times, plus a new control that a unit named but not on the lot keeps the light ask) and offer-asked-867 (the Tacoma first touch with no unit now gets two times). One harness fact recorded: the opener-nickname-756 suite lifts the opener block without rawEmail in scope, so the new email check reads it through typeof. run-all 317 suites green, 10588 assertions, 0 failed; dev===comm on every changed region. node --check clean on both builds; both manifests parse; version AND version_name both bumped. Builds on v9.7.872.)
 // Lead Pro -- popup.js  v9.7.872-dev (Dev. THE 869 TUNDRA FIX, SWEPT ACROSS EVERY MODEL WITH THE FULL FEED. Owner, 11/12: "build 872, all of it", "on the + if a customer says plus will that be picked up?" and "What about GT-Line, gt line, gtline". Extension only; proxy v7.92, reporter v1.26, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. WHY: 869 fixed the trim reader for the one Tundra and was never run against the other models. Swept with the 11/12 inventory feed (vAuto export, all five stores, 1,162 units) plus descriptions in VinSolutions' format, 17 of 40 lead descriptions would have read NONE with the trim on the lot, and Audi worst of all. (1) WHAT IS NOT THE TRIM, removed from both sides before they are compared: the engine block in brackets when it closes (869's Tundra was cut off before its ")"; "2026 Toyota Tacoma SR5 4x2 Double Cab 5' Bed (2.4L 4cyl Turbo 8A)" read "SR5 (Turbo 8A)"; also "(New)"); Audi's engine sizes ("Q5 2.0T Premium Plus" in the feed, 15 new on the lot, against VinSolutions' "Q5 Premium Plus 45 TFSI quattro"; "S5 3.0T", "SQ8 4.0T", "A6 3.0") -- removed after the bed, so a "5.5' Bed" still goes whole; seat counts ("8-Passenger", "7 Passenger"); Kia's IVT and DCT. A standalone "Turbo" stays: the K4 GT-Line Turbo is its own trim. (2) ONE SPELLING PER TRIM NAME (_lpTrimWords / _lpTrimNorm, used by _lpTrimOf and _lpTrimObj): a hyphenated name is one word, the same name with a space is joined from a short list (GT/X/S Line, SX Prestige, EX-L, Sport-L, Off Road, Plug-In, e-tron, TrailSport, X-Pro), so GT-Line = gt line = gtline, SX-Prestige = SX Prestige (Kia's own feed writes both) and Off-Road = Off Road (Toyota's writes both). "+" is the word "plus": TrailSport+ = TrailSport Plus, and it is no longer counted as TrailSport (the "+" used to be thrown away; 6 TrailSport+ on the lot). i-FORCE / i-FORCE MAX is the engine, not the trim (the 4Runner is listed "i-FORCE MAX Hybrid TRD Off Road Premium"); the hybrid is still read from the whole description, and "Hybrid MAX" stays. (3) THE CUSTOMER'S OWN WORDS read the same way (_lpCustTrimFromWords): "do you have a gtline" finds the GT-Line and not the GT-Line Turbo, "trailsport plus" or "TrailSport+" finds the TrailSport+. (4) A UNIT WHOSE TRIM THE FEED DOES NOT LIST IS NOT NONE (owner, 11/12): 35 new Audis carry no trim ("2027 Audi Q8 quattro" x12, "2026 Audi A5 quattro" x8) and the engine-only ones read the same way. When none of the trim asked about is listed and the model has such units, the answer says the record does not list their trim, that one may be theirs, never to say the trim is not in stock, and to say we have the model and will confirm the trim; they are kept out of "other trims". A trim the feed does list, with none here and no trim-less unit, is still NONE. CHECKED ON THE WHOLE FEED: no two trims the 11/12 feed lists differently in one store, model and year are made one by this build (0 merges against 9.7.871). NOT FIXED HERE, from the same feed and outside the extension: 8 Audi rows with only "2027" as the description (no make or model, a paint code as the color), 8 new Honda Baytown units with no color, and 2 new Toyotas with a paint code for the color. VERIFIED: NEW trim-spellings-872.test.js, 35 assertions per build (70), executing the shipped _lpTrimOf, _lpCustTrimFromWords and _lpWhatWeHave on the feed's own descriptions (placeholder stock numbers, no VINs); against v9.7.871 it fails 29 by name and passes its controls and the cases 869 already covered. MY OWN DEFECT CAUGHT BEFORE SHIPPING: the engine-size rule first ran before the bed rule and ate the "5.5" of "5.5' Bed", which would have undone 869's Tundra; moved after it, and the suite now asserts that Tundra description reads "SR5". run-all 316 suites green, 10540 assertions, 0 failed; dev===comm on every changed region. node --check clean on both builds; both manifests parse; version AND version_name both bumped. Builds on v9.7.871.)
 // Lead Pro -- popup.js  v9.7.871-dev (Dev. THREE FIXES FROM THE 11/11 REPORT. Owner, 11/12: "build 871, all three". Extension only; proxy v7.92, reporter v1.26, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. (1) ADD APPT ASKED FOR THE TIMES TWICE, AND IT WAS MY 865 RULE. Toyota Baytown lead 2110460414 went out with "...stop by today at 4:30 or 5:15. Would either work? I can have everything ready for you to stop by today at 4:30 PM or 5:15 PM. Would either time work?" _lpChipTimesBoth (v9.7.865) carries the time question from one format into the other when only one has times, and it recognized a time only with AM/PM, so the text's "4:30 or 5:15" read as no time and the email's question was appended after it. A clock time ("4:30") now counts in both formats (LP_CHIP_CLOCK_RX), so a question is only ever carried into a message with no time in it; and a text whose times have no AM/PM can now be the one carried from (LP_CHIP_TIME_ASK_RX). Our phone number and a model year are still not times. (2) A CHIP WAS COUNTED ON THE DRAFT IT REPLACED. The chip handler did chipCount++ on the session on screen and then called generateAll, whose reset flushed that session as "chipped, never copied" -- a rejection -- before the chip's own draft rendered; the chip's draft started at chipCount 0, so a copy of it read "regenerated then copied" and "chip helped" (weak_up) could never happen. 11/11: all six Add Appt presses were followed within a minute by a send of the chip's draft, and all six were in Rejected Sessions. The handler now leaves the key in window._lpPendingChipKey, generateAll records it on the new session right after its reset, a chip is not also counted as a plain regenerate, and the key is cleared when the chip settles so it can never land on a later generate. Result: chip then copy -> weak_up / implicit_chip_copy; chip then nothing -> still down / implicit_chip_no_copy; the replaced first draft -> abandoned; regenerate paths unchanged. READING NOTE: from this build the Rejected Sessions count drops by the chips that worked and the "Weak positive (chip helped)" tile starts counting, so the days either side of the rollout are not like-for-like. (3) THE PAYOFF-TO-VALUE GAP IN DOLLARS. Kia Baytown lead 2112768568: both drafts opened with "there's about a $6,000 gap between your Sorento's payoff and assessed value" and the agent sent neither. The v9.7.431 pair (SENSITIVE FINANCE RULE + _lpFinanceGuard) only knew "upside down / negative equity / underwater". The rule now also fires on a payoff note or "owes more/over", and gives the gap example; the guard's new _lpEquityGapScrub drops the number from a dollar "gap / difference / shortfall" and from "$N more than it's worth", only inside a sentence about the payoff, what they owe, equity or a loan balance ("there's a gap between your Sorento's payoff and assessed value"). A price difference between two listings, rebate money and a down payment keep their numbers. Every text, email and voicemail, as the guard always was. VERIFIED: NEW chip-feedback-equity-871.test.js, 24 assertions per build (48), executing the shipped _lpChipTimesBoth and _lpFinanceGuard, the chip handler's and generateAll's feedback lines lifted from the file against the shipped reset/rating/signal functions, and buildUserPrompt through the panel payload; against v9.7.870 it fails 14 by name and its 10 controls pass. run-all 315 suites green, 10470 assertions, 0 failed; dev===comm on every changed region. node --check clean on both builds; both manifests parse; version AND version_name both bumped. The duplicate times reached a customer once on 11/11; 865's other half (a text with no time gets the email's question) is unchanged and still asserted. Builds on v9.7.870.)
 // Lead Pro -- popup.js  v9.7.870-dev (Dev. VERSION BUMP ONLY -- NO CODE CHANGE. Owner, 11/11: the DEV build of 9.7.869 was published to the Chrome Web Store by accident. The store only accepts a higher version, so 9.7.870 carries 9.7.869's code unchanged and the COMMERCIAL zip goes up in its place. Extension only; proxy v7.92, reporter v1.26, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. VERIFIED: run-all 314 suites green, 10422 assertions, 0 failed; dev===comm apart from this header. Builds on v9.7.869.)
@@ -4823,6 +4824,9 @@ function _lpTrimWords(t) {
   LP_TRIM_GLUE.forEach(function (g) { s = s.replace(g[0], g[1]); });
   return s.split(/\s+/).map(function (w) { return w.replace(/[^a-z0-9]+/g, ''); }).filter(Boolean);
 }
+var LP_TRIM_PLACEHOLDER_WORD_RX = /\b(?:unspecified|unknown|not\s+specified|tbd)\b/ig;   // (v9.7.873)
+var LP_TRIM_PLACEHOLDER_ONLY_RX = /^(?:any|other|none|n\/?a|-+|\u2014)$/i;
+var LP_VEHICLE_PLACEHOLDER_RX = /\s+(?:(?:trim|model)\s+)?(?:unspecified|unknown|not\s+specified|tbd|n\/a)(?=\s*(?:\((?:new|used|cpo|pre-owned|certified)\))?\s*$)/i;
 function _lpTrimNorm(t) {
   // i-FORCE / i-FORCE MAX is Toyota's engine name, not a trim (the 4Runner is listed "i-FORCE MAX Hybrid TRD Off Road Premium"); the
   // hybrid is read from the whole description by the powertrain check. "Hybrid MAX" (Grand Highlander) stays.
@@ -4858,6 +4862,12 @@ function _lpTrimOf(v) {
     // (v9.7.790) + door counts: lead 2098953366's "2026 Honda Pilot AWD Black Edition 4dr SUV" read as trim "Black Edition 4dr".
     s = s.replace(/\b(?:awd|fwd|rwd|2wd|4wd|4x4|4x2|sedan|coupe|hatchback|suv|4d|[245]dr|[245]-?doors?|sport utility|w\/[^,]*)\b/ig, ' ').replace(/\s{2,}/g, ' ').trim();
     // norm: the trim's words, each stripped of punctuation, in sorted order -- "Hybrid Sport" and "Sport Hybrid" are one trim (v9.7.790)
+    // (v9.7.873) A PLACEHOLDER IS NOT A TRIM. Honda Lafayette lead 2115358822 (11/14): the lead's vehicle was a CR-V with the CRM's
+    // "Unspecified" where the trim goes, LP looked for a trim of that name, found none, and the email said "We don't have the
+    // unspecified version in stock today" with 2027 CR-Vs on the lot. Unspecified / Unknown / Not specified / TBD are no trim, and so
+    // is a trim that is only Any, Other, None or N/A.
+    s = s.replace(LP_TRIM_PLACEHOLDER_WORD_RX, ' ').replace(/\s{2,}/g, ' ').trim();
+    if (LP_TRIM_PLACEHOLDER_ONLY_RX.test(s)) s = '';
     return { disp: s, norm: _lpTrimNorm(s) };   // (v9.7.872) one spelling per trim name
   } catch (e) { return { disp: '', norm: '' }; }
 }
@@ -5107,10 +5117,19 @@ function _lpOwedDocument(d) {
 // (v9.7.865) A FIRST TOUCH WITH THE CAR HERE AND THE CUSTOMER CLOSE BY GETS TWO TIMES. Owner, 11/9 ("yes on i"): on 11/7 the agents
 // pressed Add Appt on first touches with the car in stock (leads 2111918199, 2112106392, 2112000019) because the default draft offered
 // a video walkaround. The car confirmed on the lot (the feed or VinSolutions), and the customer not a special trip (75+ miles).
+// (v9.7.873) ...AND SO DOES A FIRST TOUCH WITH NO SPECIFIC CAR. Owner, 11/14 ("Yes add times as suggested"): on 11/11, 11/13 and 11/14
+// the agents pressed Add Appt on first touches and Click & Go leads that named a model but no unit (Carnival 2114920668, Accord
+// 2114857734, Click & Go 2115214107), where LP asked trim and color with no times, and sent the chip's version every time. A lead
+// with no stock number and no VIN, the customer not a special trip, gets the two times too. A unit named but not confirmed on the
+// lot still gets the light ask, and an AI Buying Signals lead keeps its own rule (nobody asked to come in).
+function _lpFirstTouchNoCar(d) {
+  return !!d && !String(d.stockNum || '').trim() && !String(d.vin || '').trim() && !/AI Buying Signal/i.test(String(d.leadSource || ''));
+}
 function _lpFirstTouchTimesOk(d) {
   try {
     var fu = (typeof _lpFeedUnitCheck === 'function') ? _lpFeedUnitCheck(d) : null;
-    if (!fu || !fu.confirmed || d.isDistanceBuyer) return false;
+    if (d.isDistanceBuyer) return false;
+    if (!_lpFirstTouchNoCar(d) && (!fu || !fu.confirmed)) return false;
     try { var sz = _lpSearchZipLocal(d); if (sz && sz.local) return true; } catch (eSz) {}
     try { var lz = DEALER_LOCAL_ZIPS[String(d.dealerId)]; if (lz && d.customerZip && lz.has(String(d.customerZip).slice(0, 5))) return true; } catch (eLz) {}
     if (d.customerZip && d.dealerId) { var mi = _customerDistanceMiles(String(d.dealerId), d.customerZip); if (mi != null && mi > LP_VISIT_RADIUS_MILES) return false; }
@@ -6432,7 +6451,10 @@ function _lpFinanceGuard(text, channel){
 // website" (Fullpath lead 2107879658). A sentence listing the store's days or hours goes when the customer never asked about
 // hours; a sentence about our notes or records goes; "you viewed / looked at / browsed" before "on our website" goes, leaving
 // "the offer on our website". [LP HOUSE GUARD] logs each removal.
-var LP_HOURS_OPEN_RX = /\b(?:we(?:'|’)re|we are|(?:the |our )?(?:store|showroom|dealership) is)\s+open\b|\b(?:our|store|showroom) hours\b/i;
+var LP_HOURS_OPEN_RX = /\b(?:we(?:'|’)re|we are|(?:the |our )?(?:store|showroom|dealership) is)\s+open\b|\b(?:our|store|showroom|open|business|opening) hours\b/i;   // (v9.7.873) + "our open hours" (lead 2115214107)
+// (v9.7.873) "We have until 8:00 PM tonight, and I can help you find the right Kia" (Kia Baytown lead 2115023973, 11/13): the closing
+// time as an opener nobody asked for. The clause comes off and the sentence keeps the rest; a sentence that is only that goes.
+var LP_WE_UNTIL_RX = /\bwe(?:['’]ve| have|['’]re| are)\s+(?:here\s+|open\s+)?until\s+\d{1,2}(?::\d{2})?\s*(?:[ap]\.?m\.?)?(?:\s+(?:tonight|today|this evening))?/i;
 var LP_DAY_RANGE_RX = /\b(?:mon|tues|wednes|thurs|fri|satur|sun)day\s*(?:-|–|through|thru|to)\s*(?:mon|tues|wednes|thurs|fri|satur|sun)day\b|\b\d{1,2}(?::\d{2})?\s*(?:am|pm)\s*(?:-|–|to)\s*\d{1,2}(?::\d{2})?\s*(?:am|pm)\b|\bfrom\s+\d{1,2}(?::\d{2})?\s*(?:am|pm)?\s*(?:-|–|to|until)\s*\d{1,2}\b|\buntil\s+\d{1,2}(?::\d{2})?\s*(?:am|pm)?\b/i;   // (v9.7.846) "open until 7 today and from 9 to 7 Monday" (lead 2108097289)
 var LP_HOURS_ASKED_RX = /\b(?:hours?|open|clos(?:e|es|ed|ing)|what time|until when|sunday|saturday|weekend)\b/i;
 var LP_NOTES_SAY_RX = /\b(?:the last note (?:i|we) have|(?:our|my) (?:notes|records) (?:show|say|indicate|have)|according to (?:our|my) (?:notes|records)|(?:in|from|on) (?:our|my) notes)\b/i;
@@ -6568,11 +6590,18 @@ function _lpHouseGuard(text, channel) {
     hits.push('remote: "' + m.slice(0, -1).trim() + '"');
     return /(?:^|[.!?]\s+|\n\s*)$/.test(all.slice(0, off)) ? c.toUpperCase() : c;
   });
+  if (!asked) {   // (v9.7.873) "We have until 8:00 PM tonight, and I can help ..." -> "I can help ..."
+    s = s.replace(new RegExp('(^|[.!?]\\s+|\\n\\s*)' + LP_WE_UNTIL_RX.source + '\\s*(?:,\\s*(?:and|so)\\s+|[,\u2014\u2013-]\\s*)([A-Za-z])', 'gi'), function (m, lead, c) {
+      hits.push('hours: "' + m.slice(lead.length, -1).trim().slice(0, 60) + '"');
+      return lead + c.toUpperCase();
+    });
+  }
   var lines = s.split('\n'), out = [];
   for (var i = 0; i < lines.length; i++) {
     var line = lines[i];
     if (!line.trim()) { out.push(line); continue; }
     var parts = line.split(/(?<=[.!?])\s+/), kept = parts.filter(function (p) {
+      if (!asked && LP_WE_UNTIL_RX.test(p) && !p.replace(LP_WE_UNTIL_RX, '').replace(/[^A-Za-z]+/g, '')) { hits.push('hours: "' + p.trim().slice(0, 70) + '"'); return false; }   // (v9.7.873)
       if (!asked && LP_HOURS_OPEN_RX.test(p) && LP_DAY_RANGE_RX.test(p) && !/\?\s*$/.test(p)) { hits.push('hours: "' + p.trim().slice(0, 70) + '"'); return false; }
       if (!asked && !/\?\s*$/.test(p) && ((LP_IS_OPEN_RX.test(p) && LP_DAY_RANGE_RX.test(p)) || (LP_WEEKDAY_SPAN_RX.test(p) && LP_CLOCK_SPAN_RX.test(p)))) { hits.push('hours: "' + p.trim().slice(0, 70) + '"'); return false; }   // (v9.7.847)
       if (LP_NOTES_SAY_RX.test(p)) { hits.push('notes: "' + p.trim().slice(0, 70) + '"'); return false; }
@@ -6637,7 +6666,35 @@ function _lpSameDayOnce(text, channel) {
   try { console.log('[LP SAME-DAY GUARD] ' + (channel || 'draft') + ': "tomorrow ... or ' + wd + '" is one day; named once'); } catch (e) {}
   return out;
 }
+// (v9.7.873) THE CLOSING HOUR IS NEVER AN APPOINTMENT. "Would 9 AM or 8 PM work for you?" (lead 2115214107) offered the store's
+// opening and closing hours; the engine's last same-day time is an hour before close. A same-day pair (no other day named in the
+// sentence) that offers today's closing time becomes the engine's own pair.
+var LP_PAIR_CLOCK_RX = /\b(\d{1,2})(?::(\d{2}))?\s?([ap])\.?m\.?(?![a-z])/gi;
+function _lpClosingHourGuard(text, channel) {
+  var s = String(text || '');
+  if (!s) return text;
+  var appt = null, hits = [];
+  try { appt = computeAppointmentTimes((typeof lastScrapedData !== 'undefined' && lastScrapedData && lastScrapedData.store) || (typeof selectedStore !== 'undefined' ? selectedStore : ''), (typeof lastScrapedData !== 'undefined' && lastScrapedData && lastScrapedData.autoLeadId) || undefined); } catch (e) { return text; }
+  var cm = appt && /(\d{1,2})(?::(\d{2}))?\s*([AP])M/i.exec(String(appt.closeTime || ''));
+  if (!cm || !appt.time1 || !appt.time2) return text;
+  var closeMins = (parseInt(cm[1], 10) % 12 + (/p/i.test(cm[3]) ? 12 : 0)) * 60 + (cm[2] ? parseInt(cm[2], 10) : 0);
+  var out = s.split('\n').map(function (line) {
+    return line.split(/(?<=[.!?])\s+/).map(function (sent) {
+      if (/\b(?:tomorrow|(?:mon|tues|wednes|thurs|fri|satur|sun)day)\b/i.test(sent)) return sent;
+      var t = [], m; LP_PAIR_CLOCK_RX.lastIndex = 0;
+      while ((m = LP_PAIR_CLOCK_RX.exec(sent))) t.push({ i: m.index, end: m.index + m[0].length, text: m[0], mins: (parseInt(m[1], 10) % 12 + (/p/i.test(m[3]) ? 12 : 0)) * 60 + (m[2] ? parseInt(m[2], 10) : 0) });
+      if (t.length < 1 || t.length > 2 || !t.some(function (x) { return x.mins === closeMins; })) return sent;
+      var pair = appt.dayLabel === 'today' ? String(appt.time1).replace(/\s*today$/, '') + (t.length > 1 ? ' or ' + String(appt.time2).replace(/\s*today$/, '') : '') : (t.length > 1 ? String(appt.pairText || (appt.time1 + ' or ' + appt.time2)) : String(appt.time1));
+      hits.push('"' + sent.slice(t[0].i, t[t.length - 1].end) + '" -> "' + pair + '"');
+      return sent.slice(0, t[0].i) + pair + sent.slice(t[t.length - 1].end);
+    }).join(' ');
+  }).join('\n');
+  if (!hits.length) return text;
+  try { console.log('[LP CLOSING HOUR GUARD] ' + (channel || 'draft') + ': ' + hits.join(' | ') + ' -- the closing hour is never an appointment'); } catch (e) {}
+  return out;
+}
 function _lpPastTimeGuard(text, channel) {
+  try { text = _lpClosingHourGuard(text, channel); } catch (eCh) {}   // (v9.7.873)
   try { text = _lpNoDayTimes(text, channel); } catch (eNd) {}   // (v9.7.865)
   try { text = _lpSameDayOnce(text, channel); } catch (eSo) {}   // (v9.7.866)
   var s = String(text || '');
@@ -8830,6 +8887,12 @@ function _lpVisitMovedOn(d) {
 }
 var LP_VISIT_TEMPLATE_RX = /^(?:⚠ VISIT CONFIRMATION REQUIRED|CRITICAL CONTEXT: The customer has already seen|WHAT THIS MESSAGE MUST DO|CLOSE WITH ONE CONCRETE OFFER|TONE: Warm, specific, low-pressure|NOTE ON DATA: Walk-in leads|NO VEHICLE ON THE LEAD FOR THIS VISIT|THIN VISIT DATA)/;
 function populateFromData(d) {
+  // (v9.7.873) The CRM's "Unspecified" where the trim goes is not part of the vehicle's name (lead 2115358822: "the unspecified
+  // version" in the email). It comes off the lead's vehicle before anything reads it.
+  try {
+    var _vph = String(d.vehicle || ''), _vph2 = _vph.replace(LP_VEHICLE_PLACEHOLDER_RX, '').replace(/\s{2,}/g, ' ').trim();
+    if (_vph && _vph2 !== _vph.trim()) { d.vehicle = _vph2; console.log('[LP VEHICLE DIAG] the vehicle\'s trim was a placeholder ("' + _vph.trim() + '") -- read as "' + _vph2 + '"'); }
+  } catch (eVph) {}
   // (v9.7.867) the offer they requested a quote on: read out of the scraper's tool-data block, which is then taken off
   try {
     ['conversationBrief', 'context', 'history'].forEach(function (k) {
@@ -27063,12 +27126,12 @@ function _lpApplyVisitDecision(text, chip) {
   // (v9.7.862) the chip with nothing hard against it: the decision line says so, so the soft holds' own lines stand down
   if (chip && !dec.level) {
     var _chipFar = (dec.others || []).some(function (o) { return /SPECIAL TRIP|REMOTE|MAKE THE TRIP/.test(o); });   // a long way out: give them room
-    var _chipFt = chip === 'first-touch';   // (v9.7.865) a first touch with the car here and the customer close by
-    var _chipLine = 'VISIT DECISION FOR THIS MESSAGE: ' + (_chipFt ? 'this is the first message from a person, the car is here and they are close by' : 'the agent asked for the appointment') + ' -- close with two specific appointment times inside store hours (' + (_chipFar ? 'the next open day or later, not later today -- the visit is a trip for them' : (/too late in the day for a same-day appointment|STORE STATUS RIGHT NOW: CLOSED/.test(String(text)) ? 'the next open day -- no same-day time is left' : 'today if there is usable time left')) + '), the same times in the text, the email and the voicemail, and say what will be ready for them. Any "no times", "light ask" or "no visit push" line elsewhere in this prompt does not apply -- ' + (_chipFt ? 'lead with the visit, not a video or photos.' : 'the agent\'s ADD APPT ASK chip owns this.');
+    var _chipFt = chip === 'first-touch' || chip === 'first-touch-open';   // (v9.7.865) a first touch with the car here and the customer close by; (v9.7.873) or no specific car
+    var _chipLine = 'VISIT DECISION FOR THIS MESSAGE: ' + (_chipFt ? (chip === 'first-touch-open' ? 'this is the first message from a person, the lead names no specific car, and they are close by' : 'this is the first message from a person, the car is here and they are close by') : 'the agent asked for the appointment') + ' -- close with two specific appointment times inside store hours (' + (_chipFar ? 'the next open day or later, not later today -- the visit is a trip for them' : (/too late in the day for a same-day appointment|STORE STATUS RIGHT NOW: CLOSED/.test(String(text)) ? 'the next open day -- no same-day time is left' : 'today if there is usable time left')) + '), taken from the SUGGESTED APPOINTMENT TIMES in this prompt -- never times of your own, never the store\'s opening or closing hour -- the same times in the text, the email and the voicemail, and say what will be ready for them. Any "no times", "light ask" or "no visit push" line elsewhere in this prompt does not apply -- ' + (_chipFt ? 'lead with the visit, not a video or photos.' : 'the agent\'s ADD APPT ASK chip owns this.');
     var _ct = String(text), _cat = _ct.indexOf('\nCURRENT TIME:');
     if (_cat >= 0) { var _ceol = _ct.indexOf('\n', _cat + 1); text = _ct.slice(0, _ceol < 0 ? _ct.length : _ceol) + '\n' + _chipLine + (_ceol < 0 ? '' : _ct.slice(_ceol)); }
     else text = _chipLine + '\n' + _ct;
-    dec.owner = _chipFt ? 'the FIRST TOUCH with the car here (two times; soft holds set aside)' : 'the agent\'s ADD APPT ASK chip (two times; soft holds set aside)';
+    dec.owner = _chipFt ? (chip === 'first-touch-open' ? 'the FIRST TOUCH with no specific car (two times; soft holds set aside)' : 'the FIRST TOUCH with the car here (two times; soft holds set aside)') : 'the agent\'s ADD APPT ASK chip (two times; soft holds set aside)';
   }
   var _poAny = /(?:^|\n)OUR PITCH IS ALREADY OUT\b/.test(String(text));   // (v9.7.816) its edits run with or without a hold
   var _qoAny = /THE PRICE THEY ASKED FOR WENT OUT: /.test(String(text));   // (v9.7.818)
@@ -30914,7 +30977,7 @@ function buildUserPrompt(data) {
                   try { console.log('[LP FIRST-HUMAN-TOUCH DIAG] light appointment ask emitted —'
                     + ' every visible outbound on this lead is bot-authored, appointment chip suppression:'
                     + !!_ddSuppressAppt); } catch (eFh2) {}
-                  } else { try { console.log('[LP FIRST-HUMAN-TOUCH DIAG] the car is confirmed here and the customer is not a special trip -> two times (owner, 11/9)'); } catch (eFh4) {} }
+                  } else { try { console.log('[LP FIRST-HUMAN-TOUCH DIAG] ' + (_lpFirstTouchNoCar(data) ? 'no specific car on the lead and the customer is not a special trip -> two times (owner, 11/14)' : 'the car is confirmed here and the customer is not a special trip -> two times (owner, 11/9)')); } catch (eFh4) {} }
                 }
               } catch (eFh) {}
               ageBlock.push('');
@@ -33417,8 +33480,15 @@ function buildUserPrompt(data) {
     // to ASK before committing — appointment times pull the model toward closing on
     // inventory the store doesn't have. Cold-prospect AI Buying Signal leads also
     // get suppressed regardless of brand match.
+    // (v9.7.873) THE TIMES THE AGENT ASKED FOR ARE THE ENGINE'S. Toyota Baytown lead 2115214107 (11/14, a first touch): with Add Appt
+    // on, the draft asked "Would 9 AM or 8 PM work for you?" -- the store's opening and closing hours. On a first touch the chain
+    // below withholds the suggested times, the chip then set the "no times" line aside and asked for two times, and with no times
+    // in the prompt the model made them up from the hours. When the chip is on, or a first touch gets its two times, the suggested
+    // times are printed; a hold the chip does not override still takes them out (the VISIT DECISION, after this).
+    var _lpChipTimes = false;
+    try { _lpChipTimes = !!((typeof _lpAddApptOn === 'function' && _lpAddApptOn(data)) || ((typeof _lpFirstHumanTouch === 'function') && _lpFirstHumanTouch(data) && (typeof _lpFirstTouchTimesOk === 'function') && _lpFirstTouchTimesOk(data))); } catch (eCt) {}
     var aiBSSuppressAppt = (sc.isAIBuyingSignalNew || sc.isAIBuyingSignalReturner) &&
-                           (sc.aiBSIsCrossBrand || sc.isAIBuyingSignalNew);
+                           (sc.aiBSIsCrossBrand || sc.isAIBuyingSignalNew) && !_lpChipTimes;
     if (aiBSSuppressAppt) {
       lines.push('', 'AI BUYING SIGNAL — APPOINTMENT TIMES SUPPRESSED:',
         '- Do NOT offer specific appointment times in this message.',
@@ -33430,12 +33500,12 @@ function buildUserPrompt(data) {
     } else if (lpSuppressAppointment) {
       // LP command suppresses appointment engine — already injected override block above
       // Do not inject times, duration, or urgency language
-    } else if ((typeof _lpQuietDays === 'function' ? _lpQuietDays(data) : 0) >= 30) {
+    } else if (!_lpChipTimes && (typeof _lpQuietDays === 'function' ? _lpQuietDays(data) : 0) >= 30) {   // (v9.7.873) not when the agent asked for times
       // (v9.7.737) The owner rule at the top says no appointment times for a customer quiet 30+ days; this chain
       // printed "Option: 1:45 PM today" and "Convey that today is better than waiting" beneath it.
       lines.push('', 'APPOINTMENT TIMES WITHHELD: the customer has not written in ' + (typeof _lpQuietDays === 'function' ? _lpQuietDays(data) : 0) + ' days. This message is for a reply, not a booking; if they answer wanting to come in, times come then.');
       try { console.log('[LP TIMES WITHHELD DIAG] customer quiet ' + (typeof _lpQuietDays === 'function' ? _lpQuietDays(data) : 0) + 'd — SUGGESTED APPOINTMENT TIMES and the timing script not printed'); } catch (eTwQ) {}
-    } else if (_lpTimesWithheld) {
+    } else if (_lpTimesWithheld && !_lpChipTimes) {   // (v9.7.873) not when the agent asked for times, or a first touch gets two
       // (v9.7.710) A BLOCK ABOVE ALREADY OWNS "NO TIMES" ON THIS LEAD. log244 (Kia K5): the automated-
       // assistant block said "do not name a day, a time or a slot ... let THEM say when", and this chain
       // then printed SUGGESTED APPOINTMENT TIMES and 'SMS: "would 9:15 AM or 10:30 AM Thursday ... work?"'.
@@ -33888,7 +33958,7 @@ function buildUserPrompt(data) {
   var _vdOut = _out.join('\n');
   try {
     var _vdChip = (typeof _lpAddApptOn === 'function') && _lpAddApptOn(data);   // (v9.7.862)
-    if (!_vdChip && (typeof _lpFirstHumanTouch === 'function') && _lpFirstHumanTouch(data) && (typeof _lpFirstTouchTimesOk === 'function') && _lpFirstTouchTimesOk(data)) _vdChip = 'first-touch';   // (v9.7.865)
+    if (!_vdChip && (typeof _lpFirstHumanTouch === 'function') && _lpFirstHumanTouch(data) && (typeof _lpFirstTouchTimesOk === 'function') && _lpFirstTouchTimesOk(data)) _vdChip = _lpFirstTouchNoCar(data) ? 'first-touch-open' : 'first-touch';   // (v9.7.865; 873 no specific car)
     var _vd = _lpApplyVisitDecision(_vdOut, _vdChip);
     _lpLastVisitDecision = { level: _vd.level, owner: _vd.owner, others: _vd.others, removed: _vd.removed };   // (v9.7.776) for the dump
     if (_vd.level || _vd.edits.length || _vdChip) {   // (v9.7.816) the pitch-out edits apply without a hold too; (v9.7.862) and the chip's line
@@ -35721,8 +35791,13 @@ async function generateAll() {
       try {
         var _opM = !hasName && firstName ? rawSms.match(/^\s*([A-Z][a-z'\u2019\-]{1,20}),\s/) : null;
         if (_opM && !/^(?:hi|hello|hey|thanks|thank|yes|great|good|sure|absolutely|perfect|quick|sorry|congrats|congratulations|welcome|morning|afternoon|evening|okay|ok|awesome|happy|so|well|also|and|but)$/i.test(_opM[1])) {
-          var _opCtx = String((lastScrapedData && ((lastScrapedData.conversationBrief || '') + '\n' + (lastScrapedData.history || ''))) || '');
+          var _opCtx = String((lastScrapedData && ((lastScrapedData.conversationBrief || '') + '\n' + (lastScrapedData.history || '') + '\n' + (lastScrapedData.context || '') + '\n' + (lastScrapedData.lastInboundMsg || ''))) || '');
           if (new RegExp('\\b' + _opM[1] + '\\b').test(_opCtx)) _opNick = _opM[1];
+          // (v9.7.873) ...or the email written for them greets them by it. Honda Baytown lead 2114139435 (11/12): the record's first name
+          // is not the one they go by, the email said "Hi <name>,", and this guard put the record name in front of the text's own:
+          // "<record name>, <name>, the gray Passport ...". The name the email greets them by is their name.
+          var _opEm = /^\s*(?:(?:Hi|Hello|Hey|Dear|Good (?:morning|afternoon|evening))\s+)?([A-Z][a-z'\u2019\-]{1,20})\s*,/.exec(String((typeof rawEmail !== 'undefined' && rawEmail) || '').replace(/^\s*Subject:[^\n]*\n+/, ''));
+          if (!_opNick && _opEm && _opEm[1] === _opM[1]) _opNick = _opM[1];
         }
       } catch (eOpN) { _opNick = ''; }
       if (_opNick) {
@@ -37174,7 +37249,7 @@ var _regenDirectives = {
   'lead-credit':   'Soften the credit framing. No approval language, no qualification language. Use options-based language. The visit is about exploring what fits, not vetting them. Reassure without being patronizing.',
   'no-appt':       'Remove the appointment ask entirely. Replace the close with a question that invites the next reply rather than a commitment. Lead Pro should sound like it\'s opening a conversation, not closing one.',
   // (v9.7.802) the agent choosing to ask for the visit where the out-of-state rule holds it back (see _lpAddApptOn)
-  'add-appt':      'Ask for the appointment: invite the customer in with one or two specific times inside store hours, the same times in every format (the text, the email and the voicemail), and say what will be ready for them. If the VISIT DECISION line in this prompt still holds the visit back, follow it.',
+  'add-appt':      'Ask for the appointment: invite the customer in with one or two specific times inside store hours, the same times in every format (the text, the email and the voicemail), and say what will be ready for them. If the VISIT DECISION line in this prompt still holds the visit back, follow it. The times are the SUGGESTED APPOINTMENT TIMES in this prompt: never a time of your own, and never the store\'s opening or closing hour.',   // (v9.7.873)
   'add-urgency':   'Add a justified, real urgency element — vehicle activity, schedule constraint, market context. NEVER fabricate urgency. If you cannot find a real reason, use scarcity of the agent\'s availability ("I only have a couple slots open this week") rather than inventing inventory pressure.'
 };
 document.querySelectorAll('.regen-chip').forEach(function(chip) {

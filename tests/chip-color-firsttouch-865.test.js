@@ -145,7 +145,10 @@ for (const f of BUILDS) {
     () => [/VISIT DECISION FOR THIS MESSAGE: this is the first message from a person, the car is here and they are close by -- close with two specific appointment times/.test(g3.prompt),
       /FIRST HUMAN TOUCH — LIGHT ASK, NO TIMES/.test(g3.prompt)], [true, false]);
   check('control: a customer more than 75 miles out keeps the light ask', () => /FIRST HUMAN TOUCH — LIGHT ASK, NO TIMES/.test(ft({ customerZip: FAR_ZIP }).prompt), true);
-  check('control: no stock number on the lead (nothing confirmed here) keeps the light ask', () => /FIRST HUMAN TOUCH — LIGHT ASK, NO TIMES/.test(ft({ stockNum: '', _pdUnitStock: '' }).prompt), true);
+  // (v9.7.873) Owner, 11/14: a first touch that names no specific car gets the two times too -- this control was the old rule.
+  check('no stock number on the lead (no specific car) -> two times since 9.7.873 (owner, 11/14), no light-ask hold', () => { const p = ft({ stockNum: '', _pdUnitStock: '' }).prompt;
+    return [/VISIT DECISION FOR THIS MESSAGE: this is the first message from a person, the lead names no specific car, and they are close by -- close with two specific appointment times/.test(p), /FIRST HUMAN TOUCH — LIGHT ASK, NO TIMES/.test(p)]; }, [true, false]);
+  check('control: a unit named on the lead but NOT confirmed on the lot keeps the light ask', () => /FIRST HUMAN TOUCH — LIGHT ASK, NO TIMES/.test(ft({ stockNum: 'TEST0ZZ', _pdUnitStock: '', _pdStatus: '' }).prompt), true);
 }
 console.log('\n' + (fail ? 'FAILED' : 'PASSED') + ' — ' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);
