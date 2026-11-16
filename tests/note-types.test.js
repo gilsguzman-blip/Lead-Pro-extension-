@@ -58,7 +58,7 @@ const COROLLA = FIX('corolla-2068821407-context.txt');
 const CORPUS  = JSON.parse(FIX('general-notes-corpus.json'));
 
 function extract(file) {
-  const src = fs.readFileSync(file, 'utf8');
+  const src = require('./helpers/rollback-875.js')(fs.readFileSync(file, 'utf8'));   // (v9.7.875) the machinery behind the rollback switches
   const at = (needle) => { const i = src.indexOf(needle); if (i < 0) throw new Error('missing ' + needle + ' in ' + file); return i; };
   const ha = at('var LP_SCAFFOLD_LINE_RE ='), hb = at('// (v9.7.429/427) ONE definition of');
   const wa = at('var LP_CRM_ENTRY_SPLIT_RE ='), wb = at('// ── (v9.7.560) NOTE TYPES');

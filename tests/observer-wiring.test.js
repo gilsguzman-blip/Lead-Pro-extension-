@@ -40,7 +40,7 @@ if (!BUILDS.length) { console.error('usage: observer-wiring.test.js <popup.js> [
 const KIA = fs.readFileSync(path.join(__dirname, 'fixtures', 'log120-kia-context.txt'), 'utf8');
 
 function extract(file) {
-  const src = fs.readFileSync(file, 'utf8');
+  const src = require('./helpers/rollback-875.js')(fs.readFileSync(file, 'utf8'));   // (v9.7.875) the machinery behind the rollback switches
   const at = n => { const i = src.indexOf(n); if (i < 0) throw new Error('missing ' + n + ' in ' + file); return i; };
 
   // The dispatch site, verbatim. Bounded by its own comment marker and its catch.

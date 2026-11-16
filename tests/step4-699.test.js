@@ -27,7 +27,7 @@ async function acheck(name, fn, want) {
 (async () => {
 for (const f of BUILDS) {
   console.log('\n' + path.basename(path.dirname(f)) + '/' + path.basename(f));
-  let sb; try { sb = loadPopup(f); } catch (e) { console.log('  FAIL load: ' + e.message); fail++; continue; }
+  let sb; try { sb = loadPopup(f, { srcTransform: require('./helpers/rollback-875.js') }); } catch (e) { console.log('  FAIL load: ' + e.message); fail++; continue; }
 
   // ── M2 ─────────────────────────────────────────────────────────────────────────────────
   // An in-state-far / out-of-state Honda Baytown lead the scraper flagged isDistanceBuyer. populate
@@ -62,7 +62,7 @@ for (const f of BUILDS) {
   check('reading the room: register kept, "Short reply → short response" gone', () => [/Short reply → short response/.test(sys), /Match the register of what they sent/.test(sys)], [false, true]);
   check('subject lines untouched (4-8 words), as Gil said', () => /Short is better — 4-8 words/.test(sys), true);
   const fs = require('fs');
-  const code = fs.readFileSync(f, 'utf8').split('\n').filter(l => !/^\s*\/\//.test(l)).join('\n');
+  const code = require('./helpers/rollback-875.js')(fs.readFileSync(f, 'utf8')).split('\n').filter(l => !/^\s*\/\//.test(l)).join('\n');
   check('bereavement: no sentence count; clarify: no "in one line"', () => [/\(2-3 sentences\)/.test(code), /CLARIFY naturally in one line/.test(code)], [false, false]);
   const auth = fs.readFileSync(path.join(path.dirname(f), 'auth.js'), 'utf8');
   check('auth.js personas: no "concise", "short sentences", "Keep it short", "the shorter it is"',

@@ -49,7 +49,7 @@ const SECOND_LEAD =
   '[08/19/2026 3:21 PM] [CALL NOTE] Outbound phone call (Contacted)\n  By: Jolette Aguilar\n  coming sat 29th 4pm' + FOLLOWUP;
 
 function extract(file) {
-  const src = fs.readFileSync(file, 'utf8');
+  const src = require('./helpers/rollback-875.js')(fs.readFileSync(file, 'utf8'));   // (v9.7.875) the machinery behind the rollback switches
 
   const ha = src.indexOf('var LP_SCAFFOLD_LINE_RE =');
   const hb = src.indexOf('// (v9.7.429/427) ONE definition of');

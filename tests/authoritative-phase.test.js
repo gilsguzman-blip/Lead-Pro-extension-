@@ -50,7 +50,7 @@ function slice(src, a, b, what) {
 }
 
 function extract(file) {
-  const src = fs.readFileSync(file, 'utf8');
+  const src = require('./helpers/rollback-875.js')(fs.readFileSync(file, 'utf8'));   // (v9.7.875) the machinery behind the rollback switches
   // (v9.7.851) The authoritative flags now ship false; the slice ends at the declaration whatever its value.
   const flags = slice(src, 'var LEADPRO_VERBALCOMMIT_COMPREHENSION = true;',
                            'var LEADPRO_OFFFRANCHISE_AUTHORITATIVE = ', 'flags') + src.slice(src.indexOf('var LEADPRO_OFFFRANCHISE_AUTHORITATIVE = ') + 'var LEADPRO_OFFFRANCHISE_AUTHORITATIVE = '.length).split(';')[0] + ';';

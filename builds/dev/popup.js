@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.875-dev (Dev. AUDIT #2 B-2 STEP 2 -- ONE READER PER FACT -- AND "THEY CANNOT MAKE OUR HOURS". Owner, 11/16: "build 875 as you suggested", after the grab of Honda Baytown lead 2110385633 (dump 11/16, log421). Extension only; proxy v7.92, reporter v1.26, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. (1) ONE READER PER FACT. Each of the three facts had a pattern that decided and a model probe that only observed (since 851 the draft no longer waits for it); the probes changed no directive since, and their one useful catch on file is lead 2110385633 (11/9, "I work 8 to 8 mon- Saturday", the pattern saw nothing), now a rule of its own (2). Day-lock: the PATTERN is the reader, because it hands the slot engine the day and without it the model would make up times. Off-franchise: the PATTERN is the reader, because its directive carries what no note can (the store's brand, what is on the lot, the store's two plays). Verbal commitment: the MAIN MODEL is the reader -- the pattern is the one that manufactured a commitment on 9/1 (lead 2056662795, "will be their second vehicle" about a car she already owns); LEADPRO_VERBALCOMMIT_REGEX = false logs the match and drops the directive, and the notes block gains THE CUSTOMER AGREED TO SOMETHING WITH US (confirm it, do not re-close or offer competing times; a car they own or our own words are not an agreement). The three probe switches and the v9.7.559 commit observer are off: no probe calls (about 200-400 a day), and the reporter's Commit Comprehension section stops filling. Every switch is still its own rollback. (2) THEY HAVE TOLD US THEY CANNOT MAKE OUR HOURS. _lpCantMakeOurHours reads the customer's messages on this lead (30 days) against STORE_HOURS: their only day off is a day the store is closed, or they work hours that cover ours on every day we are open; a newer message naming a day or a time ends it. It writes the block (no times in any format, no "come in when you have time"; the phone/text/online route with the visit only to sign and pick up, or ask whether any window works) and a level-2 hold the Add Appt chip does not override. On lead 2110385633: "I'm only off on sundays" (closed Sundays) and "I work 8 to 8 mon- Saturday" (Baytown closes at 8). "I work 8 to 5", "only off on Mondays" and Audi's "9 to 6" (open until 7) do not fire. VERIFIED: NEW b2-hours-875.test.js, 15 assertions per build (30): the shipped switches; no call reaches the probe dispatcher; the same call-note lead through the shipped build and the rollback side by side (the rollback writes "Customer already made a verbal commitment", the shipped build does not); a named day still locks; an off-franchise ask still gets its block; the hours rule with five controls. Against v9.7.874 it fails 8 by name and its controls pass. ELEVEN SUITES TEST THE PROBE MACHINERY (commit-comprehension, observer-wiring, fact-comprehension, authoritative-phase, step4-699, probes-parallel-851, verbal-commit, commit-persistence, note-types, safe-fallback-contract): they now read the build through tests/helpers/rollback-875.js, which turns the five switches back to their pre-875 values, so the machinery behind the rollback stays proved; load-popup.js gains opts.srcTransform for the two that load the whole build. run-all 319 suites green, 10670 assertions, 0 failed; dev===comm on every changed region. node --check clean on both builds; both manifests parse; version AND version_name both bumped. NOTED, NOT CHANGED: cutoff-offer-tundra-869 failed once on a run just before 5 PM Central and passed on every run since; its what-we-have case may depend on the clock and is worth a look. Builds on v9.7.874.)
 // Lead Pro -- popup.js  v9.7.874-dev (Dev. THEY PASSED ON THIS ONE, THE VEHICLE-FIRST OPENER, AND AUDIT #2 BATCH C WITH ST-1. Owner, 11/16: "dump 2109434327 ... 2-6 go with your suggestion. run with ready to build options ... Small cleanup proceed." Extension only; proxy v7.92, reporter v1.26, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. (1) THEY SAID THIS ONE DOES NOT WORK FOR THEM. Audi Lafayette lead 2109434327 (dump 11/16, log420). The 11/12 drivetrain question that prompted the grab resolved itself: the front-wheel-drive fact is VinSolutions' own record and the agent sent that text at 12:37 PM. What the grab showed instead: the customer asked the price and mileage, then "Thank you but I don't think that will work." and, to "Can I help you find something in particular?", "No. I will just keep looking." No exit, no pause, visit decision level 0; the first draft respected it and the text rewrite shipped "here today if you'd like to compare it in person ... There's still time this afternoon. Would you like me to get it ready?" _lpTheyDeclined reads the customer's newest message passing on it (it won't work, they'll keep looking, they'll pass) or a short no-thanks right after one, with no question, within 45 days. It writes THEY SAID THIS ONE DOES NOT WORK FOR THEM (no pitch, no visit ask, no times; one easy question about what would work, or none when we already asked and they said no), a level-3 hold the Add Appt chip does not override, lifts the close-out ban, and tells the text rewrite above everything else (THEY PASSED ON THIS VEHICLE), dropping its in-stock nudge. "I'll keep looking at it" is not a decline; a new question from them ends it. (2) THE OPENER: both opener rules add "never a sentence built only to put the vehicle first" (leads 2114728353 "the 2027 Kia Sportage is what you're looking for", 2114567443 "the 2026 Honda Odyssey options are what we can check for you"). (3) AUDIT #2 SC-1 / ST-2: the scenario flags read the fields, not phrases anywhere in the lowercased context (our own scaffold and the transcript): isApptConfirmation follows hasApptSet (the Appointments grid); isShowroomFollowUp, isSoldDelivered, isStalled read their fields; isMissedAppt reads hasMissedAppt unless it is an earlier lead's; isExitSignal / isPauseSignal read hasExitSignal / hasPauseSignal / convState; notToday, noCustomerPhone and isLoyaltyVehicle match only the label lines Lead Pro writes (customerSaidNotToday does not reach the prompt builder); noSpecificVehicle's second test is lowercased (it never matched). (4) SC-2: with no Created date and no marker, an exit phrase or "bought elsewhere" in the customer lines is logged and cannot end the conversation alone (855's rule); a STOP still exits. SC-3: keepingTrade reads the customer's lines only. (5) ST-3: hasPauseSignal mirrors convState 'pause' in populateFromData, so readers that check only the field see a pause. (6) ST-1: computeAppointmentTimes takes each day's hours from STORE_HOURS (by dealer ID or store name) with the last same-day time an hour before closing; the name-keyed copy is only the fallback when the table is not loaded (the appointment-hours suite runs the function alone). (7) CLEANUP: the empty file named "your" at the repository root is removed. VERIFIED: NEW decline-scope-hours-874.test.js, 26 assertions per build (52), executing populateFromData and buildUserPrompt through the panel payload, _lpTheyDeclined, _lpBuildSmsRefinePrompt, classifyScenario, computeAppointmentTimes with STORE_HOURS edited in the sandbox, and the scraper's SC-2 / SC-3 lines lifted from the file; against v9.7.873 it fails 20 by name and its 6 controls pass. close-out-floor's source check ("if (!_coElig.eligible)") is kept literally: a decline makes the lead eligible just above it. run-all 318 suites green, 10640 assertions, 0 failed; dev===comm on every changed region. node --check clean on both builds; both manifests parse; version AND version_name both bumped. Builds on v9.7.873.)
 // Lead Pro -- popup.js  v9.7.873-dev (Dev. TWO TIMES ON A FIRST TOUCH WITH NO SPECIFIC CAR, ADD APPT'S TIMES FROM THE ENGINE, NO TRIM CALLED "UNSPECIFIED", HOURS NOBODY ASKED ABOUT, AND THE NAME THEY GO BY. Owner, 11/14: "Yes add times as suggested. Build the rest as observed." Extension only; proxy v7.92, reporter v1.26, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. (1) A FIRST TOUCH WITH NO SPECIFIC CAR GETS TWO TIMES. On 11/11, 11/13 and 11/14 the agents pressed Add Appt on first touches and Click & Go leads that named a model but no unit (Carnival 2114920668, Accord 2114857734, Click & Go 2115214107), where LP asked trim and color with no times, and sent the chip's version each time. _lpFirstTouchTimesOk (v9.7.865: the car confirmed here, the customer close by) now also passes a lead with no stock number and no VIN (_lpFirstTouchNoCar), so the FIRST HUMAN TOUCH light ask stands down and the decision line says "the lead names no specific car, and they are close by -- close with two specific appointment times". A unit named but not confirmed on the lot keeps the light ask, an AI Buying Signals lead keeps its own rule, a special-trip customer (75+ miles) keeps the light ask. (2) ADD APPT'S TIMES ARE THE ENGINE'S. Toyota Baytown lead 2115214107: with the chip on, "Would 9 AM or 8 PM work for you?" -- the store's opening and closing hours. The first-touch hold had withheld the suggested times, the chip set the hold aside and asked for two times, and with none in the prompt the model made them up. When the chip is on, or a first touch gets its two times, the AI-signal, quiet-30-days and times-withheld branches no longer withhold the suggested times (a hold the chip does not override still takes them out, in the visit decision); the decision line and the chip's directive say the times come from the SUGGESTED APPOINTMENT TIMES, never the model's own and never the opening or closing hour; and the render backstop _lpClosingHourGuard (inside _lpPastTimeGuard) turns a same-day pair that offers today's closing time into the engine's pair. (3) A PLACEHOLDER IS NOT A TRIM. Honda Lafayette lead 2115358822: "We don't have the unspecified version in stock today" with 2027 CR-Vs on the lot -- the CRM's "Unspecified" read as a trim, matching nothing. _lpTrimOf drops Unspecified / Unknown / Not specified / TBD, and a trim that is only Any, Other, None or N/A; populateFromData takes the placeholder off the lead's vehicle before anything reads it. (4) HOURS NOBODY ASKED ABOUT: "during our open hours, 9 AM to 8 PM" (lead 2115214107) now reads as an hours sentence; "We have until 8:00 PM tonight, and I can help ..." (lead 2115023973) loses the clause and keeps the rest; a sentence that is only that goes; asked-about hours and "until Friday" stay. (5) THE NAME THEY GO BY. Honda Baytown lead 2114139435: "<record name>, <name>, the gray Passport ..." -- the record's first name is not the one they use, the opener guard (v9.7.756) only looked for the text's opening name in the notes, and prepended the record name. It now also takes the lead's context and inquiry text, and the name the email written for them greets them by. VERIFIED: NEW times-trims-hours-873.test.js, 23 assertions per build (46), executing populateFromData and buildUserPrompt through the panel payload, _lpTrimOf, _lpHouseGuard, _lpPastTimeGuard under a fixed Saturday 8:20 AM clock, and the shipped opener block; against v9.7.872 it fails 13 by name and its controls pass, including a control that reproduces 11/14's withheld times with the chip off. TWO OLDER EXPECTATIONS CHANGED BY THE OWNER'S RULE, NOT BY A DEFECT: chip-color-firsttouch-865 ("no stock number keeps the light ask" is now two times, plus a new control that a unit named but not on the lot keeps the light ask) and offer-asked-867 (the Tacoma first touch with no unit now gets two times). One harness fact recorded: the opener-nickname-756 suite lifts the opener block without rawEmail in scope, so the new email check reads it through typeof. run-all 317 suites green, 10588 assertions, 0 failed; dev===comm on every changed region. node --check clean on both builds; both manifests parse; version AND version_name both bumped. Builds on v9.7.872.)
 // Lead Pro -- popup.js  v9.7.872-dev (Dev. THE 869 TUNDRA FIX, SWEPT ACROSS EVERY MODEL WITH THE FULL FEED. Owner, 11/12: "build 872, all of it", "on the + if a customer says plus will that be picked up?" and "What about GT-Line, gt line, gtline". Extension only; proxy v7.92, reporter v1.26, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. WHY: 869 fixed the trim reader for the one Tundra and was never run against the other models. Swept with the 11/12 inventory feed (vAuto export, all five stores, 1,162 units) plus descriptions in VinSolutions' format, 17 of 40 lead descriptions would have read NONE with the trim on the lot, and Audi worst of all. (1) WHAT IS NOT THE TRIM, removed from both sides before they are compared: the engine block in brackets when it closes (869's Tundra was cut off before its ")"; "2026 Toyota Tacoma SR5 4x2 Double Cab 5' Bed (2.4L 4cyl Turbo 8A)" read "SR5 (Turbo 8A)"; also "(New)"); Audi's engine sizes ("Q5 2.0T Premium Plus" in the feed, 15 new on the lot, against VinSolutions' "Q5 Premium Plus 45 TFSI quattro"; "S5 3.0T", "SQ8 4.0T", "A6 3.0") -- removed after the bed, so a "5.5' Bed" still goes whole; seat counts ("8-Passenger", "7 Passenger"); Kia's IVT and DCT. A standalone "Turbo" stays: the K4 GT-Line Turbo is its own trim. (2) ONE SPELLING PER TRIM NAME (_lpTrimWords / _lpTrimNorm, used by _lpTrimOf and _lpTrimObj): a hyphenated name is one word, the same name with a space is joined from a short list (GT/X/S Line, SX Prestige, EX-L, Sport-L, Off Road, Plug-In, e-tron, TrailSport, X-Pro), so GT-Line = gt line = gtline, SX-Prestige = SX Prestige (Kia's own feed writes both) and Off-Road = Off Road (Toyota's writes both). "+" is the word "plus": TrailSport+ = TrailSport Plus, and it is no longer counted as TrailSport (the "+" used to be thrown away; 6 TrailSport+ on the lot). i-FORCE / i-FORCE MAX is the engine, not the trim (the 4Runner is listed "i-FORCE MAX Hybrid TRD Off Road Premium"); the hybrid is still read from the whole description, and "Hybrid MAX" stays. (3) THE CUSTOMER'S OWN WORDS read the same way (_lpCustTrimFromWords): "do you have a gtline" finds the GT-Line and not the GT-Line Turbo, "trailsport plus" or "TrailSport+" finds the TrailSport+. (4) A UNIT WHOSE TRIM THE FEED DOES NOT LIST IS NOT NONE (owner, 11/12): 35 new Audis carry no trim ("2027 Audi Q8 quattro" x12, "2026 Audi A5 quattro" x8) and the engine-only ones read the same way. When none of the trim asked about is listed and the model has such units, the answer says the record does not list their trim, that one may be theirs, never to say the trim is not in stock, and to say we have the model and will confirm the trim; they are kept out of "other trims". A trim the feed does list, with none here and no trim-less unit, is still NONE. CHECKED ON THE WHOLE FEED: no two trims the 11/12 feed lists differently in one store, model and year are made one by this build (0 merges against 9.7.871). NOT FIXED HERE, from the same feed and outside the extension: 8 Audi rows with only "2027" as the description (no make or model, a paint code as the color), 8 new Honda Baytown units with no color, and 2 new Toyotas with a paint code for the color. VERIFIED: NEW trim-spellings-872.test.js, 35 assertions per build (70), executing the shipped _lpTrimOf, _lpCustTrimFromWords and _lpWhatWeHave on the feed's own descriptions (placeholder stock numbers, no VINs); against v9.7.871 it fails 29 by name and passes its controls and the cases 869 already covered. MY OWN DEFECT CAUGHT BEFORE SHIPPING: the engine-size rule first ran before the bed rule and ate the "5.5" of "5.5' Bed", which would have undone 869's Tundra; moved after it, and the suite now asserts that Tundra description reads "SR5". run-all 316 suites green, 10540 assertions, 0 failed; dev===comm on every changed region. node --check clean on both builds; both manifests parse; version AND version_name both bumped. Builds on v9.7.871.)
@@ -2362,7 +2363,9 @@ function _lpRelevancyCommitOverlap(kept, commitQuote) {
 // COST, PLAINLY: this is a SECOND API call on any lead that has a real call note. It is
 // fire-and-forget so it never delays a draft, and it is gated so it does not run when there
 // is nothing to read. Flip LEADPRO_COMMIT_COMPREHENSION to false to switch it off entirely.
-var LEADPRO_COMMIT_COMPREHENSION = true;
+// (v9.7.875) OFF: B-2 step 2 retires the second reader (see LEADPRO_VERBALCOMMIT_REGEX). Left in place, switching the Phase 3
+// probe off below would have brought this v9.7.559 observer back as a second call for the same question.
+var LEADPRO_COMMIT_COMPREHENSION = false;
 
 // The probe prompt. Deliberately narrow: one question, one output shape, and the two
 // failure modes this block has actually shipped (our own voicemail read as the customer
@@ -2778,9 +2781,23 @@ function _lpSendCommitComprehension(result, deps) {
 
 // Observer switches — does the probe run at all. Turning one off costs the disagreement data for
 // that detector and nothing else; the regex keeps producing the directive exactly as today.
-var LEADPRO_VERBALCOMMIT_COMPREHENSION = true;
-var LEADPRO_DAYLOCK_COMPREHENSION      = true;
-var LEADPRO_OFFFRANCHISE_COMPREHENSION = true;
+// (v9.7.875) AUDIT #2 B-2 STEP 2, OWNER-APPROVED 11/16 ("build 875 as you suggested"): ONE READER PER FACT. Each of these facts had
+// two readers -- a pattern that decided and a model probe that only observed (since 851 the draft no longer waits for it). Since
+// then the probes changed no directive, and their one useful catch (lead 2110385633, 11/9: "I work 8 to 8 mon- Saturday", the
+// pattern saw nothing) is now a rule of its own (_lpCantMakeOurHours). So:
+//   day-lock       the PATTERN is the reader: it hands the slot engine the day, and without it the model would make up times.
+//   off-franchise  the PATTERN is the reader: its directive carries what no note can -- the store's brand, what is on the lot,
+//                  and the two plays the store has -- so it stays; the probe asked a question the gate already answers.
+//   verbal-commit  the MAIN MODEL is the reader: the pattern is the one that manufactured a commitment on 9/1 (lead 2056662795,
+//                  "will be their second vehicle" about a car she already owns); the draft reads the call notes itself, under
+//                  one rule (THE CUSTOMER AGREED TO SOMETHING WITH US, in the notes block). See LEADPRO_VERBALCOMMIT_REGEX.
+// No probe calls run (about 200-400 a day), so the reporter's Commit Comprehension section stops filling. Each switch is still
+// the rollback for its own probe.
+var LEADPRO_VERBALCOMMIT_COMPREHENSION = false;
+var LEADPRO_DAYLOCK_COMPREHENSION      = false;
+var LEADPRO_OFFFRANCHISE_COMPREHENSION = false;
+// (v9.7.875) The verbal-commitment PATTERN no longer decides (see above). true restores its directive exactly as before.
+var LEADPRO_VERBALCOMMIT_REGEX = false;
 
 // ── (v9.7.608) AUTHORITATIVE SWITCHES — ALL THREE ON. THE PHASE THIS PROGRAMME WAS BUILT FOR ──
 // v9.7.566 shipped these OFF and said: "flip one only once its own disagreement series says
@@ -5079,6 +5096,54 @@ function _lpTheyDeclined(d) {
         return /^AGENT$/i.test(String(x.tag || '').trim()) && x.t >= (first.t || 0) && x.t <= (c.t || Date.now()) && LP_HELP_FIND_ASK_RX.test(x.body || ''); });
     } catch (eAh) {}
     return { date: c.date, quote: quote.replace(/\s+/g, ' ').trim().slice(0, 220), askedHelp: askedHelp };
+  } catch (e) { return null; }
+}
+// (v9.7.875) THEY HAVE TOLD US THEY CANNOT MAKE OUR HOURS. Honda Baytown lead 2110385633: "I'm only off on sundays" (we are closed
+// Sundays), "I work 8 to 8", "I work 8 to 8 mon- Saturday" (Baytown closes at 8). The model probe saw it on 11/9 and the pattern
+// did not; the drafts since have been right only because another hold took the times out. The customer's own messages on this
+// lead in the last 30 days: their only day off is a day this store is closed, or they work hours that cover ours on every day
+// we are open. Not when a newer message of theirs names a day or a time. Returns { date, quote, why } or null.
+var LP_ONLY_OFF_RX = /\b(?:(?:i['\u2019]?m|i\s+am)\s+only\s+off|only\s+off|my\s+only\s+day\s+off\s+is|(?:i['\u2019]?m|i\s+am)\s+off\s+only|off\s+only)\s+(?:on\s+)?(sun|mon|tues|wednes|thurs|fri|satur)days?\b/i;
+var LP_WORK_HOURS_RX = /\bwork(?:ing)?\s+(?:from\s+)?(\d{1,2})(?::(\d{2}))?\s*(a\.?m\.?|p\.?m\.?)?\s*(?:to|-|\u2013|til|till|until)\s*(\d{1,2})(?::(\d{2}))?\s*(a\.?m\.?|p\.?m\.?)?/i;
+var LP_WORK_DAYS_RX = /\b(?:mon(?:day)?\s*(?:-|\u2013|to|through|thru)\s*(?:sat(?:urday)?|sun(?:day)?)|(?:six|6|seven|7)\s+days(?:\s+a\s+week)?|every\s+day)\b/i;
+function _lpCantMakeOurHours(d) {
+  try {
+    var hrs = (typeof STORE_HOURS !== 'undefined') && STORE_HOURS[String((d && d.dealerId) || '')];
+    if (!hrs) return null;
+    var cust = _lpCustEntries(d).filter(function (x) { return !x.t || (Date.now() - x.t) <= 30 * 86400000; });
+    if (!cust.length) return null;
+    var span = function (t) { var m = /^\s*(\d{1,2})(?::(\d{2}))?\s*([AP])M\s*[-\u2013]\s*(\d{1,2})(?::(\d{2}))?\s*([AP])M\s*$/i.exec(String(t || ''));
+      return m ? [(parseInt(m[1], 10) % 12 + (/p/i.test(m[3]) ? 12 : 0)) * 60 + (+m[2] || 0), (parseInt(m[4], 10) % 12 + (/p/i.test(m[6]) ? 12 : 0)) * 60 + (+m[5] || 0)] : null; };
+    var open = [['monday', hrs.weekday], ['tuesday', hrs.weekday], ['wednesday', hrs.weekday], ['thursday', hrs.weekday], ['friday', hrs.weekday], ['saturday', hrs.saturday], ['sunday', hrs.sunday]]
+      .map(function (p) { return { day: p[0], s: span(p[1]) }; });
+    var closed = open.filter(function (o) { return !o.s; }).map(function (o) { return o.day; });
+    var off = null, work = null, days = null, quotes = [], newest = cust[0];
+    cust.forEach(function (x) {
+      var b = String(x.body || ''), m;
+      if (!off && (m = LP_ONLY_OFF_RX.exec(b))) { off = { day: m[1].toLowerCase() + 'day', x: x }; quotes.push({ t: x.t, q: b }); }
+      if (!work && (m = LP_WORK_HOURS_RX.exec(b))) {
+        var sh = parseInt(m[1], 10) % 12 + (/p/i.test(m[3] || '') ? 12 : 0), eh = parseInt(m[4], 10) % 12 + (/p/i.test(m[6] || '') ? 12 : 0);
+        var smin = sh * 60 + (+m[2] || 0), emin = eh * 60 + (+m[5] || 0);
+        if (!m[6] && emin <= smin) emin += 12 * 60;
+        work = { s: smin, e: emin, x: x };
+        if (LP_WORK_DAYS_RX.test(b)) days = 'mon-sat';
+        quotes.push({ t: x.t, q: b });
+      } else if (!days && LP_WORK_DAYS_RX.test(b) && /\bwork/i.test(b)) { days = 'mon-sat'; quotes.push({ t: x.t, q: b }); }
+    });
+    var offClosed = !!(off && closed.indexOf(off.day) >= 0);
+    var openDays = open.filter(function (o) { return o.s; });
+    var hoursCover = !!(work && openDays.length && openDays.every(function (o) { return work.s <= o.s[0] && work.e >= o.s[1]; }));
+    var daysCover = days === 'mon-sat' || offClosed;
+    if (!offClosed && !(hoursCover && daysCover)) return null;
+    var latest = Math.max.apply(null, quotes.map(function (q) { return q.t || 0; }));
+    if (newest.t && newest.t > latest && /\b(?:mon|tues|wednes|thurs|fri|satur|sun)day\b|\b(?:today|tomorrow|tonight)\b|\b\d{1,2}(?::\d{2})?\s*(?:am|pm)\b/i.test(String(newest.body || ''))) return null;   // a newer message of theirs names a time
+    var seen = {}, q = quotes.sort(function (a, b) { return (a.t || 0) - (b.t || 0); }).map(function (x) { return String(x.q).replace(/\s+/g, ' ').trim(); }).filter(function (x) { if (seen[x]) return false; seen[x] = 1; return true; });
+    var cap = function (w) { return w.charAt(0).toUpperCase() + w.slice(1); };
+    var why = (hoursCover && daysCover ? 'Their working hours cover every hour we are open, every day we are open.' : '')
+      + (offClosed ? (hoursCover && daysCover ? ' ' : '') + 'Their only day off is ' + cap(off.day) + ', and we are closed on ' + cap(off.day) + 's.' : '');
+    var dt = (quotes.filter(function (x) { return x.t === latest; })[0] || {});
+    var src = cust.filter(function (x) { return x.t === latest; })[0] || newest;
+    return { date: src.date, quote: q.join(' / ').slice(0, 240), why: why };
   } catch (e) { return null; }
 }
 function _lpTheirTimeline(d) {
@@ -27122,6 +27187,7 @@ var _LP_VISIT_HOLDS = [
   [3, /^THEY WANT A CALL, AND ONLY WITH NUMBERS THAT FIT/, 'the CALL WITH THE NUMBERS note (they want a call, not texts)'],   // (v9.7.864)
   [3, /^THEY TOLD US THEIR TIMELINE/, 'THEIR TIMELINE (they told us when)'],   // (v9.7.864)
   [3, /^THEY SAID THIS ONE DOES NOT WORK FOR THEM/, 'the DECLINE (this one does not work for them; they will keep looking)'],   // (v9.7.874) lead 2109434327
+  [2, /^THEY HAVE TOLD US THEY CANNOT MAKE OUR HOURS/, 'their SCHEDULE (they cannot make our hours)'],   // (v9.7.875) lead 2110385633
   [2, /^THEY CALLED US BACK AND WE MISSED THEM/, 'the MISSED CALLBACK (connect with them first)'],   // (v9.7.864)
   [2, /^DO NOT offer appointment times\. DO NOT write duration\./, 'the stalled-lead re-engagement block'],
   [2, /The visit already happened\. Do NOT push a same-day appointment or offer times/, 'the SHOWROOM FOLLOW-UP block'],
@@ -27150,7 +27216,8 @@ var _LP_VISIT_HARD = ['the SHIPPING question (they are buying from a distance)',
   'the agent\'s ADD APPT ASK chip (out-of-state: times, but not today by default)', 'the CALL-BACK rule (they said they will call us)',
   'the LIVE APPOINTMENT block (a time is already booked)', 'TIMING NOTE (not today)', 'the DAY THE CUSTOMER NAMED',
   'the CALL WITH THE NUMBERS note (they want a call, not texts)', 'THEIR TIMELINE (they told us when)',   // (v9.7.864)
-  'the DECLINE (this one does not work for them; they will keep looking)'];   // (v9.7.874)
+  'the DECLINE (this one does not work for them; they will keep looking)',   // (v9.7.874)
+  'their SCHEDULE (they cannot make our hours)'];   // (v9.7.875)
 function _lpVisitDecision(text, chip) {
   var best = { level: 0, owner: '' }, seen = [], seenLv = [];
   try {
@@ -29599,6 +29666,12 @@ function buildUserPrompt(data) {
             dayCommitPre = null;
           }
         }
+        // (v9.7.875) B-2 step 2: the pattern is no longer this fact's reader; the draft reads the call notes itself (see
+        // LEADPRO_VERBALCOMMIT_REGEX). The match is logged so its rate stays visible.
+        if (dayCommitPre && typeof LEADPRO_VERBALCOMMIT_REGEX !== 'undefined' && !LEADPRO_VERBALCOMMIT_REGEX) {
+          console.log('[LP VERBAL COMMIT DIAG] pattern matched ' + JSON.stringify(dayCommitPre[0].trim().substring(0, 90)) + ' -- not a directive since 9.7.875; the draft reads the call notes itself');
+          dayCommitPre = null;
+        }
         if (dayCommitPre) {
           hasVerbalCommitment = true;
           var commitText = dayCommitPre[0].trim().substring(0, 150);
@@ -29987,6 +30060,7 @@ function buildUserPrompt(data) {
       '  • ANOTHER AGENT IS ACTIVELY WORKING THE DEAL: "DW working it", "wait for [agent] to call back", "manager handling", "[name] called him already". You are picking up the thread, not steering it independently.',
       '  • REQUEST IS ESCALATED OR AWAITING INTERNAL DECISION: "waiting on manager approval", "needs GSM signoff", "appraisal pending", "checking with finance".',
       '  • INTERNAL COMMITMENT MADE TO THE CUSTOMER: "promised callback at 3pm", "told him we\'d match", "committed to following up Monday". You must honor or reference these.',
+      '  • THE CUSTOMER AGREED TO SOMETHING WITH US: a call note or message where THE CUSTOMER said they will come in at a time, buy, or take a next step ("said he will be in Saturday at 10", "agreed to the numbers"). Confirm what was agreed and move to the next step; do not re-close, and do not offer other times that compete with it. Only what the customer said counts -- a description of a car they already own, or our own words, is not an agreement.',   // (v9.7.875) B-2 step 2: the draft is this fact's reader
       '',
       (_audiAllAvail
         ? 'IF the notes show ANOTHER AGENT WORKING THE DEAL, an ESCALATION / PENDING DECISION, or an INTERNAL COMMITMENT, reflect that honestly and honor it. ONE EXCEPTION at this store — vehicle availability: never tell the customer a vehicle is sold, on hold, pending, or spoken for. Present every vehicle as available and keep momentum toward a visit; true stock status is handled by the agent off-message.'
@@ -31303,6 +31377,17 @@ function buildUserPrompt(data) {
         + 'and that you will check back closer to then. No pressure, and never quote their message back to them.');
     }
   } catch (eTtl) {}
+  try {   // (v9.7.875) they have told us they cannot make our hours
+    var _cmh = _lpCantMakeOurHours(data);
+    if (_cmh) {
+      console.log('[LP SCHEDULE DIAG] ' + _cmh.date + ': "' + _cmh.quote.slice(0, 90) + '" -> ' + _cmh.why + ' No times; the phone/online route or a window that works');
+      ageBlock.push('');
+      ageBlock.push('THEY HAVE TOLD US THEY CANNOT MAKE OUR HOURS (' + _cmh.date + '): "' + _cmh.quote.replace(/"/g, "'") + '". ' + _cmh.why + ' '
+        + 'No appointment times in any format -- do not offer a time they have told us they cannot make, and do not ask them to "come in when you have time". '
+        + 'Offer what works around their schedule: most of the purchase can be handled by phone, text or online, with the visit only to sign and pick up; '
+        + 'or ask whether any window could work (a lunch break, a day off coming up). Never quote their message back to them.');
+    }
+  } catch (eCmh) {}
   try {   // (v9.7.874) they passed on this one
     var _dcl = _lpTheyDeclined(data);
     if (_dcl) {

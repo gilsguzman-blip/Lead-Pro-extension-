@@ -45,7 +45,7 @@ if (!BUILDS.length || !PROXY || !REPORTER) {
 }
 
 function extract(file) {
-  const src = fs.readFileSync(file, 'utf8');
+  const src = require('./helpers/rollback-875.js')(fs.readFileSync(file, 'utf8'));   // (v9.7.875) the machinery behind the rollback switches
   const ha = src.indexOf('var LP_SCAFFOLD_LINE_RE =');
   const hb = src.indexOf('// (v9.7.429/427) ONE definition of');
   const wa = src.indexOf('var LP_CRM_ENTRY_SPLIT_RE =');
@@ -78,8 +78,8 @@ const impls = guardedImpls(BUILDS, extract);
 // (v9.7.582) Both build sources, read whole. Every other harness here slices ONE span out of
 // BOTH files and asserts the spans agree — which is exactly why a field missing from a span
 // nobody compared survived for three weeks. These two exist to compare the FILES.
-const devSrc      = fs.readFileSync(BUILDS[0], 'utf8');
-const commSrc     = fs.readFileSync(BUILDS[1] || BUILDS[0], 'utf8');
+const devSrc      = require('./helpers/rollback-875.js')(fs.readFileSync(BUILDS[0], 'utf8'));
+const commSrc     = require('./helpers/rollback-875.js')(fs.readFileSync(BUILDS[1] || BUILDS[0], 'utf8'));
 const proxySrc    = fs.readFileSync(PROXY, 'utf8');
 // Comment lines removed before any 'is this identifier used here' scan. The post-mortem prose
 // directly above such an assertion NAMES the identifier it is banning, so scanning raw source

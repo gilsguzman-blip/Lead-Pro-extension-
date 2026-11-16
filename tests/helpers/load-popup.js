@@ -25,7 +25,8 @@ function stub(name) {
 }
 module.exports = function loadPopup(file, opts) {
   opts = opts || {};
-  const src = fs.readFileSync(file, 'utf8');
+  // (v9.7.875) opts.srcTransform: a suite that tests machinery behind a rollback switch reads the build with the switch flipped
+  const src = (typeof opts.srcTransform === 'function' ? opts.srcTransform : (x) => x)(fs.readFileSync(file, 'utf8'));
   const logs = [];
   const store = {};
   const document = {

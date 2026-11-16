@@ -34,7 +34,7 @@ const NONE = (n) => ({ usable: true, fired: false, kind: null, quote: '', verifi
 (async () => {
 for (const f of BUILDS) {
   console.log('\n' + path.basename(path.dirname(f)) + '/' + path.basename(f));
-  let sb, src; try { sb = loadPopup(f, { withAuth: true }); src = fs.readFileSync(f, 'utf8'); } catch (e) { console.log('  FAIL load: ' + e.message); fail++; continue; }
+  let sb, src; try { sb = loadPopup(f, { withAuth: true, srcTransform: require('./helpers/rollback-875.js') }); src = require('./helpers/rollback-875.js')(fs.readFileSync(f, 'utf8')); } catch (e) { console.log('  FAIL load: ' + e.message); fail++; continue; }
   const run = (e) => vm.runInContext(e, sb);
   const capture = async (g) => { const ol = sb.console.log, ow = sb.console.warn; const logs = []; sb.console.log = (...q) => logs.push(q.join(' ')); sb.console.warn = (...q) => logs.push(q.join(' '));
     try { const r = await g(); return { r, logs }; } finally { sb.console.log = ol; sb.console.warn = ow; } };
@@ -62,7 +62,7 @@ for (const f of BUILDS) {
     return [raced, sb.__calls, typeof run('window._lpFactPending.then')]; }, [true, 1, 'function']);
   check('source: the probe call is not awaited (the click-path read still is)', () => [/await\s+_lpPrepareFactVerdicts/.test(src), /var _lpCpR = await _lpCpWait;/.test(src)], [false, true]);
   // restore the shipped functions for the rest of the suite
-  sb = loadPopup(f, { withAuth: true });
+  sb = loadPopup(f, { withAuth: true, srcTransform: require('./helpers/rollback-875.js') });
 
   console.log(' 3. the memo, and no stale verdict at prompt time:');
   run('_lpRunAllFactProbes = function () { globalThis.__probeRuns = (globalThis.__probeRuns || 0) + 1; var v = { "verbal-commit": ' + JSON.stringify(NONE(2)) + ', "day-lock": ' + JSON.stringify(NONE(1))
@@ -100,7 +100,7 @@ for (const f of BUILDS) {
     [0, 3, 'DISAGREE-REGEX-ONLY', 'regex-fallback', false, false, 'gen-A', 3, 1, 'number']);
 
   console.log(' 5. [LP GRAB TIMING]:');
-  sb = loadPopup(f, { withAuth: true });   // section 4 stubbed _lpLogGrabTiming
+  sb = loadPopup(f, { withAuth: true, srcTransform: require('./helpers/rollback-875.js') });   // section 4 stubbed _lpLogGrabTiming
   const line = (await capture(async () => { try {
     run('lastScrapedData = { autoLeadId: "TEST001A" }; window._lpGrabTiming = { t0: 0, leadId: "TEST001A", preScrape: 120, poll: 850, expand: 300, keyInfo: 0, frameWall: 4010, frames: 5, framesTimedOut: 3, merge: 450, total: 4700, gens: 0 };');
     const t = { t0: 1000, done: 9400, probes: 2300, probesFrom: 'probes', clickPath: 0, api: 6100, rewrite: 1800 };

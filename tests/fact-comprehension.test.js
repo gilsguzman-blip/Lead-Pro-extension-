@@ -54,7 +54,7 @@ const HAYDEN_METADATA = 'Phone Lead from CarGurus. Caller Id: None, Duration: 6 
   + '51 seconds Likelihood to buy: Standard Timeframe: 2 weeks. Show Less';
 
 function extract(file) {
-  const src = fs.readFileSync(file, 'utf8');
+  const src = require('./helpers/rollback-875.js')(fs.readFileSync(file, 'utf8'));   // (v9.7.875) the machinery behind the rollback switches
   const at = n => { const i = src.indexOf(n); if (i < 0) throw new Error('missing ' + n + ' in ' + file); return i; };
   const spans = [
     [at('var LP_SCAFFOLD_LINE_RE ='), at('// (v9.7.429/427) ONE definition of')],

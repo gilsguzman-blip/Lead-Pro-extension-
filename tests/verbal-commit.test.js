@@ -49,7 +49,7 @@ if (!BUILDS.length) { console.error('usage: verbal-commit.test.js <popup.js> [po
 const JASON = fs.readFileSync(path.join(__dirname, 'fixtures', 'jason-pellegrin-context.txt'), 'utf8');
 
 function extract(file) {
-  const src = fs.readFileSync(file, 'utf8');
+  const src = require('./helpers/rollback-875.js')(fs.readFileSync(file, 'utf8'));   // (v9.7.875) the machinery behind the rollback switches
 
   // The block reads LP_SCAFFOLD_LINE_RE (shared, v9.7.552) to trim trailing scaffold.
   const ha = src.indexOf('var LP_SCAFFOLD_LINE_RE =');
