@@ -108,7 +108,7 @@ for (const f of BUILDS) {
   sb.__I = [{ model: 'Tundra', year: '2026', line: 'Tundra — $439/mo 36 mo lease ($3,999 due at signing) — applies to 4WD SR5', expires: iso(20) },
     { model: 'Tundra', year: '2026', line: 'Tundra — $439/mo 39 mo lease ($3,999 due at signing) — applies to 4WD SR5', expires: iso(20) },
     { model: 'Tundra', year: '2026', line: 'Tundra — 2.99% APR for 60 mos — excludes Platinum, 1794', expires: iso(20) }];
-  run('_lpValueFactCache["' + TB + '"] = { vf: { store: "Toyota Baytown", incentives: globalThis.__I }, inv: { units: globalThis.__U, generated: new Date().toISOString() }, invSettledAt: Date.now(), fetchedAt: Date.now() };');
+  run('_lpValueFactCache["' + TB + '"] = { vf: { store: "Toyota Baytown", incentives: globalThis.__I }, inv: { units: globalThis.__U, generated: new Date().toISOString() }, fetchedAt: Date.now(), invSettledAt: Date.now() };');
   const ASK = 'is interested in the 2026 Toyota Tundra SR5 manufacturer-advertised lease special for $399 per month. Lease program details: $399 per month; 39 month term; $4,999 due at signing.';
   const BOT = 'By: Assistant Name Virtual Assistant Community Toyota Hi Test, thanks for your interest! Would you be able to come in Wednesday at 10:00 AM?';
   const nowS = (minsAgo, clock) => { const p = ctParts(Date.now() - minsAgo * 60000); return p.month + '/' + p.day + '/' + p.year + ' ' + clock; };

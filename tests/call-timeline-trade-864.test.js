@@ -68,7 +68,7 @@ for (const f of BUILDS) {
   sb.__U = [U_('TEST0C1', '2027 Honda Civic Sport', 'Civic Sport', 'Rallye Red', 'new', 2027, 28290), U_('TEST0C2', '2027 Honda Civic Sport', 'Civic Sport', 'Platinum White Pearl', 'new', 2027, 28745),
     U_('TEST0C3', '2025 Honda Civic Sport', 'Civic Sport', 'Crystal Black Pearl', 'cpo', 2025, 24124), U_('TEST0C4', '2026 Honda Civic LX', 'Civic LX', 'Blue Lagoon Pearl', 'cpo', 2026, 24737),
     U_('TEST0C5', '2024 Honda Civic EX', 'Civic EX', 'Radiant Red', 'used', 2024, 22900), U_('TEST0C6', '2025 Honda Civic Sport', 'Civic Sport', 'Sonic Gray', 'used', 2025, 25842)];
-  run('_lpValueFactCache["' + HB + '"] = { inv: { units: globalThis.__U, generated: new Date().toISOString() }, invSettledAt: Date.now(), fetchedAt: Date.now() };');
+  run('_lpValueFactCache["' + HB + '"] = { inv: { units: globalThis.__U, generated: new Date().toISOString() }, fetchedAt: Date.now(), invSettledAt: Date.now() };');
   const CALL = (note, after) => (after || '') + E(at(1, '10:19 AM'), 'AGENT', 'Outbound phone call (Contacted)', 'By: Rep Name ' + note) + MARK(at(1, '10:13 AM'));
   const civ = (brief) => base(brief, { vehicle: '2026 Honda Pilot', dealerId: HB, store: 'Community Honda Baytown', convState: 'active-follow-up' });
   const SENT = E(at(1, '10:26 AM'), 'AGENT', 'Outbound Text Message', 'Hi Test, these are some of our used Honda Civics. Please let me know what day next week works best for you.');

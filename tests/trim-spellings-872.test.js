@@ -86,7 +86,7 @@ for (const f of BUILDS) {
 
   // ---------------------------------------------------------------------------------------------------------------------
   console.log(' (d) the inventory answer, against the feed\'s own rows:');
-  const setUnits = (dl, u) => { sb.__U = u; run('_lpValueFactCache["' + dl + '"] = { inv: { units: globalThis.__U, generated: new Date().toISOString() }, invSettledAt: Date.now(), fetchedAt: Date.now() };'); };
+  const setUnits = (dl, u) => { sb.__U = u; run('_lpValueFactCache["' + dl + '"] = { inv: { units: globalThis.__U, generated: new Date().toISOString() }, fetchedAt: Date.now(), invSettledAt: Date.now() };'); };
   const ww = (vehicle, dl, store) => quiet(() => { const r = run('_lpWhatWeHave')({ vehicle, dealerId: dl, store, condition: 'New', convState: 'first-touch', leadSource: 'Dealer Website', leadAgeDays: 0,
     hasOutbound: false, hasCustomerReply: false, totalNoteCount: 1, lastInboundMsg: '', conversationBrief: '', history: '', context: '', name: 'Test Buyer', firstName: 'Test', agent: 'Agent Name' }); return String((r && r.text) || ''); });
   const line = (t) => (t.split('\n').find(l => /^- the /i.test(l)) || '').replace(/\s+/g, ' ');
