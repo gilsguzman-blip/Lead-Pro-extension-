@@ -26,7 +26,9 @@ const MARK = '[10/24/2026 9:00 AM] [=== CURRENT LEAD SUBMITTED HERE ===]\n  This
 (async () => {
 for (const f of BUILDS) {
   console.log('\n' + path.basename(path.dirname(f)) + '/' + path.basename(f));
-  let sb, src; try { sb = loadPopup(f, { withAuth: true }); src = fs.readFileSync(f, 'utf8'); } catch (e) { console.log('  FAIL load: ' + e.message); fail++; continue; }
+  let sb, src; try { sb = loadPopup(f, { withAuth: true }); src = fs.readFileSync(f, 'utf8')
+    // (v9.7.878) the phone-ask check wraps the cleaned draft first (_lpPhoneAskGuard); the chain this suite checks is around it
+    .replace(/_lpPhoneAskGuard\((cleanOutput\((?:rawSms, true|rawEmail, false)\)), '(?:sms|email)'\)/g, '$1'); } catch (e) { console.log('  FAIL load: ' + e.message); fail++; continue; }
   const run = (e) => { try { return vm.runInContext(e, sb); } catch (x) { return undefined; } };
   const guard = (text, ch, lsd) => { run('lastScrapedData = ' + JSON.stringify(lsd || { lastInboundMsg: '', history: '' }) + ';'); const fn = run('_lpHouseGuard'); if (typeof fn !== 'function') return 'no _lpHouseGuard';
     const ol = sb.console.log; const logs = []; sb.console.log = (...a) => logs.push(a.join(' ')); try { return { out: fn(text, ch), log: logs.find(l => /\[LP HOUSE GUARD\]/.test(l)) || '' }; } finally { sb.console.log = ol; } };

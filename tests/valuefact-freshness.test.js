@@ -58,8 +58,12 @@ function slice(a, b, what) {
 
 let getBlock, postBlock, extractErr = '';
 try {
+  // (v7.93) the handler now ends in _lpVersionedResponse (PF-2 step 2); its two helpers are lifted with it
+  const _v793 = src.indexOf('return _lpVersionedResponse(JSON.stringify({ ok: true, valuefact: vf }), since);') >= 0;
   getBlock  = slice("    if (request.method === 'GET' && url.pathname.endsWith('/valuefact')) {",
-                    "      return corsResponse(JSON.stringify({ ok: true, valuefact: vf }), 200);\n    }", 'GET /valuefact');
+                    _v793 ? "      return _lpVersionedResponse(JSON.stringify({ ok: true, valuefact: vf }), since);\n    }"
+                          : "      return corsResponse(JSON.stringify({ ok: true, valuefact: vf }), 200);\n    }", 'GET /valuefact');
+  if (_v793) getBlock = slice('function _lpBodyVersion(str) {', '\n}\n', '_lpBodyVersion') + slice('function _lpVersionedResponse(bodyStr, since) {', '\n}\n', '_lpVersionedResponse') + getBlock;
   postBlock = slice("    if (request.method === 'POST' && (url.pathname.endsWith('/inventory') || url.pathname.endsWith('/valuefact'))) {",
                     "generated: gen }), 200);\n    }", 'POST upload');
 } catch (e) { extractErr = e.message; }

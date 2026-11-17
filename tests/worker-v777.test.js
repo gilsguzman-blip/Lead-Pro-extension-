@@ -281,7 +281,7 @@ const getJ = async (L, env, u) => { const r = await L.worker.fetch(new Request('
     const ok = await classRun(() => json({ choices: [{ message: { content: 'NO' } }] }));
     const pk = [...ok.kv.store.keys()].filter(k => k.startsWith('perf:'));
     check('one perf: row per generation, keyed perf:<ts>:<requestId>, 14-day TTL',
-      [pk.length, /^perf:\d{4}-\d\d-\d\dT[\d:.]+Z:[0-9a-f-]{36}$/.test(pk[0]), ok.kv.meta.get(pk[0])], [1, true, { expirationTtl: 1209600 }]);
+      [pk.length, /^perf:\d{4}-\d\d-\d\dT[\d:.]+Z:[0-9a-f-]{36}$/.test(pk[0]), (ok.kv.meta.get(pk[0]) || {}).expirationTtl], [1, true, 1209600]);   // (v7.93) the row may also ride as metadata (L-10)
     const p = ok.perf || {};
     check('it carries the fields asked for', Object.keys(p), ['ts', 'requestId', 'extensionVersion', 'contract', 'tier', 'model', 'latency', 'total',
       'sysChars', 'userChars', 'promptTokens', 'cachedTokens', 'writtenTokens', 'edgeCache', 'classifier', 'prefilterWouldSkip', 'prefilterMiss',

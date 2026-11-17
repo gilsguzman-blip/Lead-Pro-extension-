@@ -24,7 +24,9 @@ const SIG = '\nAgent\nTest Store\n(555) 010-0100';
 
 for (const f of BUILDS) {
   console.log('\n' + path.basename(path.dirname(f)) + '/' + path.basename(f));
-  let sb, src; try { sb = loadPopup(f, { withAuth: true }); src = fs.readFileSync(f, 'utf8'); } catch (e) { console.log('  FAIL load: ' + e.message); fail++; continue; }
+  let sb, src; try { sb = loadPopup(f, { withAuth: true }); src = fs.readFileSync(f, 'utf8')
+    // (v9.7.878) the phone-ask check wraps the cleaned draft first (_lpPhoneAskGuard); the chain this suite checks is around it
+    .replace(/_lpPhoneAskGuard\((cleanOutput\((?:rawSms, true|rawEmail, false)\)), '(?:sms|email)'\)/g, '$1'); } catch (e) { console.log('  FAIL load: ' + e.message); fail++; continue; }
   const run = (e) => { try { return vm.runInContext(e, sb); } catch (x) { return undefined; } };
   const at = (iso, fn) => { const restore = run('(function(){ var RD = Date; var FIX = new RD("' + iso + '").getTime();'
       + ' function FD(){ if (!(this instanceof FD)) return new RD(FIX).toString(); return arguments.length ? new (Function.prototype.bind.apply(RD, [null].concat([].slice.call(arguments))))() : new RD(FIX); }'

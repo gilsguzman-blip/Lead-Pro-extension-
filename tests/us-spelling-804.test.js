@@ -30,7 +30,9 @@ const LEAD = (x) => Object.assign({ autoLeadId: 'TEST001A', name: 'Test Buyer', 
 
 for (const f of BUILDS) {
   console.log('\n' + path.basename(path.dirname(f)) + '/' + path.basename(f));
-  let sb, src; try { sb = loadPopup(f, { withAuth: true }); src = fs.readFileSync(f, 'utf8'); } catch (e) { console.log('  FAIL load: ' + e.message); fail++; continue; }
+  let sb, src; try { sb = loadPopup(f, { withAuth: true }); src = fs.readFileSync(f, 'utf8')
+    // (v9.7.878) the phone-ask check wraps the cleaned draft first (_lpPhoneAskGuard); the chain this suite checks is around it
+    .replace(/_lpPhoneAskGuard\((cleanOutput\((?:rawSms, true|rawEmail, false)\)), '(?:sms|email)'\)/g, '$1'); } catch (e) { console.log('  FAIL load: ' + e.message); fail++; continue; }
   const run = (e) => vm.runInContext(e, sb);
   const fn = (name) => { try { return run(name); } catch (e) { return null; } };
   const quiet = (g) => { const ol = sb.console.log, ow = sb.console.warn; sb.console.log = () => {}; sb.console.warn = () => {}; try { return g(); } finally { sb.console.log = ol; sb.console.warn = ow; } };

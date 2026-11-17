@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.878 (Commercial. THE PROXY BATCH, EXTENSION HALF -- AUDIT #2 PF-6 AND PF-2 STEP 2. Owner, 11/17: "go with C, build the proxy batch". Ships with proxy v7.93; either can deploy first. Reporter v1.26, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. (1) PF-6, THE PHONE-ASK CHECK MOVES TO THE PANEL. Proxy v7.92's classifyMs measured the classifier: a median 641-678 ms added to every draft with a phone on file (P95 about a second), for 0 flags in 377 drafts (reporter 11/13-11/14). _lpPhoneAskGuard runs at render on the text and the email, inside the spelling pass: when the prompt's own "Customer Phone:" line carries a number (the proxy's test, copied: seven digits or more), a sentence asking them to send, share or confirm a phone number ("what's the best number to reach you?", "could you send me your cell number?", "I don't have a number for you", "just send the best one to use", "is this still the best number to reach you?") is removed, which is what the proxy's regen was asked to do. It never empties a draft (a message that is only the ask is kept and logged), and price talk ("send me the numbers", "what monthly number works"), our own "call me at" and "what's the best one for you, the EX or the EX-L?" are untouched. Logged as [LP PHONE ASK DIAG]. The draft request carries phoneAskCheck: 'render', and proxy v7.93 then skips its classifier; an older proxy ignores the field and classifies as before. (2) PF-2 STEP 2. The store prefetch sends since=<version> on /inventory and /valuefact once it holds a versioned copy; proxy v7.93 answers {unchanged:true} when nothing changed, and the panel keeps the copy in hand and counts it as this grab's inventory arriving, so "confirmed in stock" holds (the audit's named regression risk); a full answer, from an older proxy too, is read as before. VERIFIED: NEW phone-since-878.test.js, 14 assertions per build (28), executing _lpPhoneAskGuard and _lpPrefetchValueFacts with fetch stubbed (_lpInvBehindGrab and _lpInvFreshness read the result); against v9.7.877 it fails 9 by name and its 5 controls pass. NEW worker-v793.test.js (12) runs the shipped v7.93 fetch handler; against v7.92 it fails 8 by name and its 4 controls pass. us-spelling-804, house-guard-842 and render-checks-846 read the render chain with the new wrapper set aside; valuefact-freshness lifts v7.93's handler with its two helpers; worker-v777 reads the perf put's TTL now that the row may also ride as metadata. run-all 323 suites green, 10746 assertions, 0 failed, against proxy v7.93; the dashboard render and quality suites pass on v7.93 too. dev===comm on every changed region. node --check clean on both builds and the proxy; both manifests parse; version AND version_name both bumped. CN-2, NOT CHANGED, and why: the distance flag is live; the arc switches are the knobs a paired "send the conversation once" test would use; the delivery-match and cadence observers are off on purpose, awaiting data; the probe switches are v9.7.875's rollback, one build old; LEADPRO_API_KEY is key-related (owner). Builds on v9.7.877.)
 // Lead Pro -- popup.js  v9.7.877 (Commercial. AUDIT #2 CT-2 -- ONE BLOCK DECIDES WHAT THIS MESSAGE IS ABOUT. Owner, 11/16: "2-6 go with your suggestion", and 11/17: "CONTINUE THROUGH 878 BUILD". Extension only; proxy v7.92, reporter v1.26, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. The visit decision settles whether a message asks for a visit; nothing settled who opens it. Honda Baytown lead 2112149909 had several blocks each claiming the message: the showroom follow-up's CLOSE WITH ONE CONCRETE OFFER, OUR PITCH IS ALREADY OUT's "bring one new thing", WE ASKED THEM FOR SOMETHING's "ask whether they got it", and the budget line's "lead with their stated number" (and, on 866, the trade-value "lead with the value" that 876 now gates). _lpMessageAbout applies the visit decision's design once more, on the finished prompt and on Lead Pro's own directive lines only: when two or more of these are present, a fixed order picks one -- their newest question (RESPOND TO WHAT THE CUSTOMER ACTUALLY ASKED, or an open question in OPEN THREADS, the newest quoted), then something we owe them (our promise to check, answered by the inventory lines), then something we asked them for, then the standing offer (the showroom offer, the budget line, the pitch's one new thing, in that order). One THIS MESSAGE IS ABOUT line names it directly under the VISIT DECISION line; the others keep their facts and lose their "lead with / close with / ask" (the showroom block keeps "new options are reviewed here, with the rep" and no numbers sent home; the pitch block keeps no times and not "it is here" again; the budget line keeps the hedge and acknowledges their number). Under a level-3 visit hold (a decline, an exit, a pause, a rep they already have, a deal condition) that hold's block is the message, and nothing changes. Logged as [LP MESSAGE ABOUT DIAG]; the dump's VISIT DECISION section adds "this message is about". REPLAYED, all seven dumps on file before and after: lead 2112149909 changes (owner: what we asked them for; the showroom offer, the budget line and the pitch's new thing edited); the other six are byte-identical. NOT CHANGED: the PRESENCE LANGUAGE vs "our message told them the car is here" disagreement the audit noted on the same lead (a fact question, not an owner). VERIFIED: NEW message-about-877.test.js, 11 assertions per build (22): lead 2112149909's shape built end to end through buildUserPrompt and the panel payload, the fixed order on Lead Pro's own block sentences, the facts each loser keeps, the line's place, one block alone and a level-3 hold unchanged. Against v9.7.876 it fails 10 by name and its one control passes. run-all 321 suites green, 10706 assertions, 0 failed; dev===comm on every changed region. node --check clean on both builds; both manifests parse; version AND version_name both bumped. Builds on v9.7.876.)
 // Lead Pro -- popup.js  v9.7.876 (Commercial. AUDIT #2 DR-1 -- A TRADE-VALUE ASK IS ANSWERED ONCE. Owner, 11/16: "2-6 go with your suggestion", and 11/17: "CONTINUE THROUGH 878 BUILD". Extension only; proxy v7.92, reporter v1.26, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. The audit proposed deleting the "what the customer wants" detector in buildUserPrompt. It is not deleted: its deal-condition and deadline branches ARE the visit decision's DEAL CONDITION hold ("if you can beat 30,000 out the door then I'm in" holds the times), and nothing else writes that. What the audit found is real in the trade-value branch: it matched an ask anywhere in the customer's lines, so a trade question we had already answered, or one from weeks ago, kept telling every later draft to "lead with what their TRADE is worth". The branch now fires only when the newest matching ask (a customer line, or a call note that attributes it to them, as since v9.7.362) is newer than our last message from a person (the automated assistant does not count), at most 14 days old, and never on an exited or paused lead; a skipped match is logged ([LP DEAL-TRIGGER DIAG] tradeValue NOT FIRED ... (DR-1)) with the reason. The deal-condition branch is unchanged. Replayed against the seven dumps on file: the trade branch fired on none of them before or after. VERIFIED: NEW dr1-876.test.js, 7 assertions per build (14), executing populateFromData and buildUserPrompt through the panel payload: a fresh ask fires; our reply since, an ask 20 days old and a paused lead do not; the automated assistant's message since and a call note's attributed ask still fire; the deal-condition HARD RULE stands with our reply since. Against v9.7.875 it fails 2 by name and its 5 controls pass. log243-709's "a real trade-value ask still gets it" control is dated yesterday instead of 09/23/2026, which the 14-day limit now ages out. run-all 320 suites green, 10684 assertions, 0 failed; dev===comm on every changed region. node --check clean on both builds; both manifests parse; version AND version_name both bumped. Builds on v9.7.875.)
 // Lead Pro -- popup.js  v9.7.875 (Commercial. AUDIT #2 B-2 STEP 2 -- ONE READER PER FACT -- AND "THEY CANNOT MAKE OUR HOURS". Owner, 11/16: "build 875 as you suggested", after the grab of Honda Baytown lead 2110385633 (dump 11/16, log421). Extension only; proxy v7.92, reporter v1.26, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. (1) ONE READER PER FACT. Each of the three facts had a pattern that decided and a model probe that only observed (since 851 the draft no longer waits for it); the probes changed no directive since, and their one useful catch on file is lead 2110385633 (11/9, "I work 8 to 8 mon- Saturday", the pattern saw nothing), now a rule of its own (2). Day-lock: the PATTERN is the reader, because it hands the slot engine the day and without it the model would make up times. Off-franchise: the PATTERN is the reader, because its directive carries what no note can (the store's brand, what is on the lot, the store's two plays). Verbal commitment: the MAIN MODEL is the reader -- the pattern is the one that manufactured a commitment on 9/1 (lead 2056662795, "will be their second vehicle" about a car she already owns); LEADPRO_VERBALCOMMIT_REGEX = false logs the match and drops the directive, and the notes block gains THE CUSTOMER AGREED TO SOMETHING WITH US (confirm it, do not re-close or offer competing times; a car they own or our own words are not an agreement). The three probe switches and the v9.7.559 commit observer are off: no probe calls (about 200-400 a day), and the reporter's Commit Comprehension section stops filling. Every switch is still its own rollback. (2) THEY HAVE TOLD US THEY CANNOT MAKE OUR HOURS. _lpCantMakeOurHours reads the customer's messages on this lead (30 days) against STORE_HOURS: their only day off is a day the store is closed, or they work hours that cover ours on every day we are open; a newer message naming a day or a time ends it. It writes the block (no times in any format, no "come in when you have time"; the phone/text/online route with the visit only to sign and pick up, or ask whether any window works) and a level-2 hold the Add Appt chip does not override. On lead 2110385633: "I'm only off on sundays" (closed Sundays) and "I work 8 to 8 mon- Saturday" (Baytown closes at 8). "I work 8 to 5", "only off on Mondays" and Audi's "9 to 6" (open until 7) do not fire. VERIFIED: NEW b2-hours-875.test.js, 15 assertions per build (30): the shipped switches; no call reaches the probe dispatcher; the same call-note lead through the shipped build and the rollback side by side (the rollback writes "Customer already made a verbal commitment", the shipped build does not); a named day still locks; an off-franchise ask still gets its block; the hours rule with five controls. Against v9.7.874 it fails 8 by name and its controls pass. ELEVEN SUITES TEST THE PROBE MACHINERY (commit-comprehension, observer-wiring, fact-comprehension, authoritative-phase, step4-699, probes-parallel-851, verbal-commit, commit-persistence, note-types, safe-fallback-contract): they now read the build through tests/helpers/rollback-875.js, which turns the five switches back to their pre-875 values, so the machinery behind the rollback stays proved; load-popup.js gains opts.srcTransform for the two that load the whole build. run-all 319 suites green, 10670 assertions, 0 failed; dev===comm on every changed region. node --check clean on both builds; both manifests parse; version AND version_name both bumped. NOTED, NOT CHANGED: cutoff-offer-tundra-869 failed once on a run just before 5 PM Central and passed on every run since; its what-we-have case may depend on the clock and is worth a look. Builds on v9.7.874.)
@@ -688,6 +689,45 @@ function _lpMaskContacts(t) {
   return String(t || '')
     .replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, function (m) { return _lpMaskEmail(m); })
     .replace(/(?:\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}\b/g, function (m) { return _lpMaskPhone(m); });
+}
+// (v9.7.878) AUDIT #2 PF-6 -- THE PHONE-ASK CHECK MOVES TO THE PANEL. Owner, 11/17: "go with C, build the proxy batch". Since
+// v7.48 the proxy has held every draft with a phone on file for two gpt-4.1-mini calls asking "does this ask for their phone
+// number?", and regenerated the draft on a yes. Measured on proxy v7.92 (reporter 11/13-11/14): a median 641-678 ms added to every
+// such draft, P95 about a second, and 0 flags in 377 drafts. The panel holds both facts the classifier needs -- the prompt's own
+// "Customer Phone:" line and our own draft -- so the check runs here at render, at no cost: a sentence that asks them to send,
+// share or confirm a phone number is removed when one is on file (the regen's job: "remove ONLY the phone-number request").
+// The draft request says so (phoneAskCheck: 'render') and proxy v7.93 then skips its classifier; an older proxy ignores the
+// field and classifies as before. The proxy's test is copied exactly: "Customer Phone:" followed by at least seven digits.
+var LP_PHONE_ASK_RXS = [
+  /\b(?:what(?:'|’)?s|what\s+is|what\s+would\s+be|which\s+is)\s+(?:the\s+|a\s+)?(?:best|good|right|easiest)\s+(?:(?:phone|cell|contact|mobile)\s+)?(?:number\b|one\s+to\s+(?:use|reach|call|text))/i,
+  /\b(?:send|share|text|give|provide|confirm|drop|shoot)\s+(?:me\s+|us\s+)?(?:over\s+)?(?:your|the\s+best|a\s+good|the\s+right)\s+(?:best\s+|good\s+)?(?:(?:cell|mobile|phone|contact)\s+)?number\b/i,
+  /\b(?:send|share|text|give|provide|confirm|drop|shoot)\s+(?:me\s+|us\s+)?(?:over\s+)?(?:a|the)\s+(?:cell|mobile|phone|contact)\s+number\b/i,
+  /\b(?:best|right|correct|good)\s+(?:(?:phone|cell)\s+)?number\s+(?:to|for)\s+(?:reach|call|text|contact|get\s+(?:a\s+)?hold\s+of)\b/i,
+  /\bI\s+(?:don(?:'|’)?t|do\s+not)\s+(?:seem\s+to\s+)?have\s+(?:a|your|the|any)\s+(?:(?:good|working|current|valid)\s+)?(?:(?:phone|cell|contact)\s+)?number\s+for\s+you\b/i,
+  /\bsend\s+(?:me\s+|over\s+)?the\s+best\s+one\s+to\s+use\b/i
+];
+function _lpPhoneOnFileInPrompt(prompt) {
+  var m = /Customer\s+Phone\s*:\s*([^\n]{0,80})/i.exec(String(prompt || ''));
+  return !!m && (m[1].match(/\d/g) || []).length >= 7;
+}
+function _lpPhoneAskGuard(text, kind, prompt) {
+  try {
+    var t = String(text || '');
+    if (!t) return text;
+    var p = (prompt !== undefined) ? prompt : ((typeof window !== 'undefined' && window._lpLastUserPrompt) || '');
+    if (!_lpPhoneOnFileInPrompt(p)) return text;
+    var hits = [];
+    var ask = function (s) { for (var i = 0; i < LP_PHONE_ASK_RXS.length; i++) { var m = LP_PHONE_ASK_RXS[i].exec(s); if (m) return m[0]; } return null; };
+    var out = t.split('\n').map(function (line) {
+      if (!line.trim()) return line;
+      var parts = line.split(/(?<=[.!?])\s+/), keep = parts.filter(function (s) { var h = ask(s); if (h) hits.push(h); return !h; });
+      return keep.length === parts.length ? line : (keep.length ? keep.join(' ') : null);
+    }).filter(function (l) { return l !== null; }).join('\n').replace(/\n{3,}/g, '\n\n').replace(/[ \t]+$/gm, '').trim();
+    if (!hits.length) return text;
+    if (out.replace(/\s+/g, '').length < 15) { try { console.log('[LP PHONE ASK DIAG] ' + (kind || '?') + ': asks for a phone number we have ("' + hits[0] + '"), but nothing would be left -- kept as written'); } catch (e) {} return text; }
+    try { console.log('[LP PHONE ASK DIAG] ' + (kind || '?') + ': removed ' + hits.length + ' sentence(s) asking for a phone number we already have ("' + hits.join('" / "') + '") (PF-6)'); } catch (e) {}
+    return out;
+  } catch (e) { return text; }
 }
 function _lpAttachLicense(payload) {
   try { if (_lpLicenseKeyCache && payload && !payload.licenseKey) payload.licenseKey = _lpLicenseKeyCache; } catch(e) {}
@@ -7465,7 +7505,12 @@ function _lpPrefetchValueFacts(dealerId, maxAgeMs) {
   // (v9.7.419/417) Both feeds must settle (resolve or fail) before pending clears — clearing
   // after only one would let the other feed's still-in-flight request get duplicated too.
   function _lpVfSettle(){ _c._settled++; if (_c._settled >= 2) _c.pending = false; }
-  var _vfcUrl = base + '/valuefact?dealer=' + encodeURIComponent(dealerId);
+  // (v9.7.878) AUDIT #2 PF-2 STEP 2. Proxy v7.93 answers {unchanged:true} when the feed is the one we already hold (its
+  // version is a hash of the exact response), so a grab no longer pulls a whole store's feed to learn nothing changed. An
+  // older proxy ignores since= and sends the feed. An unchanged answer counts as this grab's inventory arriving.
+  var _vfSince = (_lpVfExisting && _lpVfExisting.vfVer) || '', _invSince = (_lpVfExisting && _lpVfExisting.inv && _lpVfExisting.invVer) || '';
+  _c.vfVer = _vfSince; _c.invVer = _invSince;
+  var _vfcUrl = base + '/valuefact?dealer=' + encodeURIComponent(dealerId) + (_vfSince ? '&since=' + encodeURIComponent(_vfSince) : '');
   console.log('[LP VFC DIAG] fetching ' + _vfcUrl);
   fetch(_vfcUrl)
     .then(function(r){
@@ -7473,6 +7518,8 @@ function _lpPrefetchValueFacts(dealerId, maxAgeMs) {
       return r.ok ? r.json() : null;
     })
     .then(function(j){
+      if (j && j.unchanged) { console.log('[LP VFC DIAG] valuefact unchanged for dealer ' + dealerId + ' -- keeping the copy in hand'); return; }   // (v9.7.878)
+      if (j && j.version) _c.vfVer = String(j.version); else if (j !== null) _c.vfVer = '';
       if (j !== null) _c.vf = (j && j.valuefact) || null; // authoritative (HTTP ok) — may legitimately clear
       else if (_c.vf) console.log('[LP VFC DIAG] valuefact fetch failed — keeping stale snapshot for dealer ' + dealerId);
       var _n = (_c.vf && _c.vf.incentives) ? _c.vf.incentives.length : 0;
@@ -7480,12 +7527,18 @@ function _lpPrefetchValueFacts(dealerId, maxAgeMs) {
     })
     .catch(function(e){ console.log('[LP VFC DIAG] valuefact fetch FAILED for dealer ' + dealerId + ': ' + (e && e.message || e)); })
     .finally(function(){ _lpVfSettle(); });
-  fetch(base + '/inventory?dealer=' + encodeURIComponent(dealerId))
+  fetch(base + '/inventory?dealer=' + encodeURIComponent(dealerId) + (_invSince ? '&since=' + encodeURIComponent(_invSince) : ''))
     .then(function(r){
       if (!r.ok) console.log('[LP VFC DIAG] inventory fetch HTTP ' + r.status + ' for dealer ' + dealerId);
       return r.ok ? r.json() : null;
     })
     .then(function(j){
+      if (j && j.unchanged && _c.inv) {   // (v9.7.878) the feed we hold is current: it arrived for this grab
+        _c.invSettledAt = Date.now();
+        console.log('[LP VFC DIAG] inventory unchanged for dealer ' + dealerId + ' -- ' + ((_c.inv.units || []).length) + ' unit(s) in hand are current');
+        return;
+      }
+      if (j && j.version) _c.invVer = String(j.version); else if (j !== null) _c.invVer = '';
       if (j !== null) _c.inv = (j && j.inventory) || null; // authoritative (HTTP ok) — may legitimately clear
       else if (_c.inv) console.log('[LP VFC DIAG] inventory fetch failed — keeping stale snapshot for dealer ' + dealerId);
       // (v9.7.430/428) Field-name normalization AT THE BOUNDARY: the live 7/13 [LP SOLD PIVOT DIAG]
@@ -34618,6 +34671,7 @@ async function generateAll() {
     const payload = {
       system_instruction: { parts: [{ text: buildSystemPrompt(window._leadProPersonaOverride || window._leadProResolvedPersona) }] },
       contents: [{ role:'user', parts:[{ text: userPrompt }] }],
+      phoneAskCheck: 'render',   // (v9.7.878) PF-6: the panel checks for a phone ask at render (see _lpPhoneAskGuard)
       generationConfig: {
         temperature:      0.5,
         maxOutputTokens:  2500,
@@ -35915,7 +35969,7 @@ async function generateAll() {
     } catch(e) { console.log('[LP RAW DIAG] error:', e.message); }
 
     var _canonAgentPhone = (window._leadProResolvedSigner && window._leadProResolvedSigner.phone) || '';
-    const smsText   = enforceSmsSig(_correctOurPhone(_lpFixStoreNames(_lpFinanceGuard(_lpAddressGuard(_lpPastTimeGuard(_lpHouseGuard(((typeof _lpAmericanSpelling === 'function') ? _lpAmericanSpelling(cleanOutput(rawSms, true)) : cleanOutput(rawSms, true)), 'sms'), 'sms'), 'sms'), 'sms')), _canonAgentPhone)); // (v9.7.431/429) finance guard + store-name canon
+    const smsText   = enforceSmsSig(_correctOurPhone(_lpFixStoreNames(_lpFinanceGuard(_lpAddressGuard(_lpPastTimeGuard(_lpHouseGuard(((typeof _lpAmericanSpelling === 'function') ? _lpAmericanSpelling(_lpPhoneAskGuard(cleanOutput(rawSms, true), 'sms')) : _lpPhoneAskGuard(cleanOutput(rawSms, true), 'sms')), 'sms'), 'sms'), 'sms'), 'sms')), _canonAgentPhone)); // (v9.7.431/429) finance guard + store-name canon
     // Re-derive correct phone for email enforcement using lead data
     // Store phone is fallback only — signer.phone takes priority inside enforceEmailPhone
     var _emailStoreFallback = '';
@@ -35926,7 +35980,7 @@ async function generateAll() {
       });
       if (_eds && _eds.phone) _emailStoreFallback = _eds.phone;
     }
-    const emailText = enforceEmailPhone(_correctOurPhone(_lpFixStoreNames(_lpFinanceGuard(_lpAddressGuard(_lpPastTimeGuard(_lpHouseGuard(((typeof _lpAmericanSpelling === 'function') ? _lpAmericanSpelling(cleanOutput(rawEmail, false)) : cleanOutput(rawEmail, false)), 'email'), 'email'), 'email'), 'email')), _canonAgentPhone), _emailStoreFallback); // (v9.7.431/429) finance guard + store-name canon
+    const emailText = enforceEmailPhone(_correctOurPhone(_lpFixStoreNames(_lpFinanceGuard(_lpAddressGuard(_lpPastTimeGuard(_lpHouseGuard(((typeof _lpAmericanSpelling === 'function') ? _lpAmericanSpelling(_lpPhoneAskGuard(cleanOutput(rawEmail, false), 'email')) : _lpPhoneAskGuard(cleanOutput(rawEmail, false), 'email')), 'email'), 'email'), 'email'), 'email')), _canonAgentPhone), _emailStoreFallback); // (v9.7.431/429) finance guard + store-name canon
 
     // Detect degraded response — retry up to 2 times if we got the generic placeholder.
     // The placeholder text comes from the worker's SAFE_FALLBACK_TEXT when all cascade
