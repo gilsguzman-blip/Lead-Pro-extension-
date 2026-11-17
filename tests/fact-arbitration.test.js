@@ -53,7 +53,7 @@ function load(file) {
   const src = fs.readFileSync(file, 'utf8');
   const a = src.indexOf("  if (flags.includes('distance')) {");
   if (a < 0) bail('distance block not in ' + file);
-  const b = src.indexOf("  if (flags.includes('loyalty')) {", a);
+  const b = src.indexOf("  if (flags.includes('loyalty')", a);   // (v9.7.880) the loyalty block may open with a total-loss arm
   if (b < 0) bail('distance block end not found in ' + file);
   const block = src.slice(a, b);
   if (block.indexOf('_dbSoldUnit') < 0) bail('distance block carries no arbitration in ' + file);
@@ -239,8 +239,8 @@ if (BUILDS.length > 1) {
     return s.slice(a, b);
   };
   check('the distance block is identical',
-    region(BUILDS[0], "  if (flags.includes('distance')) {", "  if (flags.includes('loyalty')) {")
-    === region(BUILDS[1], "  if (flags.includes('distance')) {", "  if (flags.includes('loyalty')) {"), true);
+    region(BUILDS[0], "  if (flags.includes('distance')) {", "  if (flags.includes('loyalty')")   // (v9.7.880) prefix: the loyalty block may open with a total-loss arm
+    === region(BUILDS[1], "  if (flags.includes('distance')) {", "  if (flags.includes('loyalty')"), true);
   check('the precedence rule is identical',
     region(BUILDS[0], "'overrule them.',", "_out.join('\\n');")   // v9.7.775: "var _vdOut = _out.join" ends the region too
     === region(BUILDS[1], "'overrule them.',", "_out.join('\\n');"), true);
