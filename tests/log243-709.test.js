@@ -68,7 +68,8 @@ for (const f of BUILDS) {
   check('...and not off a lien payoff alone either (no no-trade statement in the thread)',
     () => /what their TRADE is worth/.test(prompt({ context: ASK_ENT + LIEN }).p), false);
   check('control: a real trade-value ask still gets it',
-    () => /what their TRADE is worth/.test(prompt({ context: ent('09/23/2026 3:43 PM', 'CUSTOMER', 'Inbound Text Message', 'What would you give me for my trade-in?'),
+    // (v9.7.876) dated yesterday: the trade-value branch now reads only an ask from the last 14 days (DR-1); 09/23 had aged past it
+    () => /what their TRADE is worth/.test(prompt({ context: ent((() => { const d = new Date(Date.now() - 86400000); return String(d.getMonth() + 1).padStart(2, '0') + '/' + String(d.getDate()).padStart(2, '0') + '/' + d.getFullYear(); })() + ' 3:43 PM', 'CUSTOMER', 'Inbound Text Message', 'What would you give me for my trade-in?'),
       lastInboundMsg: 'What would you give me for my trade-in?' }).p), true);
 
   console.log(' 3. the scraper\'s concern block, lifted verbatim:');
