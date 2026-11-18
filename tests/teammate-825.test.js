@@ -71,7 +71,8 @@ for (const f of BUILDS) {
   console.log(' 2. a teammate already answered her newest message:');
   check('the salesperson sent the link a minute after her text -> it is his, never "I sent"',
     p.indexOf('↪ THEIR NEWEST MESSAGE WAS ALREADY ANSWERED: they wrote "' + ASK + '"') >= 0
-      && p.indexOf('and Rep, their salesperson, answered it: "' + LINK + '". You did not send that -- never write "I sent", "the link I sent" or "my last message"; it is Rep\'s') >= 0, true);
+      // (v9.7.882) the answers are listed in order, each by its author; the ownership rule is the same
+      && p.indexOf('Rep: "' + LINK + '"') >= 0 && p.indexOf('Messages sent by Rep are Rep\'s: never write "I sent", "the link I sent" or "my last message" about them (you may say Rep sent it)') >= 0, true);
   check('control: the signer answered it herself -> no line', /ALREADY ANSWERED/.test(viaPanel(LEAD({ ansBy: 'Agent Name' }))), false);
   check('control: nobody has answered yet -> no line', /ALREADY ANSWERED/.test(viaPanel(LEAD({ noAnswer: true }))), false);
 
