@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.888 (Commercial. THE DRAFT IS WRITTEN IN ENGLISH EVEN WHEN THE THREAD IS IN SPANISH. Owner, 11/19: "Grabbed and genned and responses came out in Spanish. Rule is supposed to make the message in English and then allow for the translate chip to be used to convert." (Toyota Baytown lead 3117052433, log427 and dump, on 9.7.887.) Extension only; proxy v7.93, reporter v1.26, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. The customer writes Spanish and every text and email we sent had gone out through the Translate button, so the whole thread the model read was Spanish. Both generations came back in Spanish; the text rewrite's language check (v9.7.669) compares against the first pass, which was Spanish too, so nothing caught it. The system prompt's LANGUAGE rule and the rewrite's were there; the model followed the thread. FIX, three parts. (1) _lpThreadInSpanish counts customer and our text/email entries that read as Spanish (the Translate button's own _lpLooksSpanish); when any do, the user prompt carries, at the end beside the JSON instructions, "LANGUAGE -- THIS CONVERSATION IS IN SPANISH, AND YOUR TEXT, EMAIL AND VOICEMAIL ARE IN ENGLISH" and why (our messages were put into Spanish with the Translate button; the agent translates this draft the same way). (2) _lpEnglishGuard: before the rewrite and before render, a text or email that still reads as Spanish is put into English by one translation call (one retry); a box that cannot be is left as it came and logged [LP ENGLISH GUARD], never blanked. No call is made for an English draft. (3) A rewrite in Spanish over an English first pass does not ship. REPLAYED: of the 13 saved dumps only this lead's prompt changes, by that one line. TESTS: new english-draft-888 (9 per build) executes _lpThreadInSpanish, buildUserPrompt through the panel payload and _lpEnglishGuard with a stubbed endpoint. NON-VACUITY against 9.7.887: 8 fail, the English-thread control passes. VERIFIED: run-all 333 suites, 10912 assertions, 0 failed; dev===comm on every changed region. Builds on 9.7.887. Builds on v9.7.887.)
 // Lead Pro -- popup.js  v9.7.887 (Commercial. A QUOTED-REPLY HEADER CUT SHORT IS STILL NOT THE CUSTOMER. Owner, 11/19 ("regrab"), Kia Baytown lead 3117232759 on 9.7.886 (log426 and dump): 886 fixed the ZIP-as-price and the out-the-door ask, and both drafts then offered "Would Wednesday at 12:15 PM or 1:00 PM work to review the numbers?" -- a day the customer never named. Extension only; proxy v7.93, reporter v1.26, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. (1) The customer's email reached Lead Pro as VinSolutions' preview, "...Can you email me your best price including all fees?Thanks<name> On Wednesday, November 18, 2026 at 07:09:55 PM CST, <agent> ..." -- cut off before "wrote:". _lpCustomerAuthoredPart's header rules all need "wrote:", so nothing was cut, [LP SCHED DAY DIAG] logged "LOCKED -- day name IS customer-authored" on "on wednesday", and the prompt carried "CUSTOMER NAMED A SPECIFIC DAY ... LOCK IN Wednesday" (with NOT TODAY set beside it). FIX: two new cutter rules for the header cut short -- a weekday, a full date with its year and a clock time in a row ("On Wednesday, November 18, 2026 at 07:09:55 PM"), and the numeric form ("On 11/18/2026 7:09 PM"). A customer's own "On Wednesday I can come by" has no year and no clock time and still locks. (2) The channel-preference line read "Re:Pricing on both Sorento VINs By: <agent> <agent>,I prefer to communicate through email" -- the email's Subject: and By: lines as the customer's words. It now drops those lines and reads only the customer-authored part. REPLAYED from the dump with the scraper's day lock, NOT TODAY and channel line as the fixed scraper produces them: no Wednesday, no VISIT DECISION hold; the out-the-door block (send the drive-out numbers, then ask to go over them) is unchanged. TESTS: new quote-cut-short-887 (10 per build) runs the shipped cutter, the shipped schedule loop and the shipped channel-preference block on a fake DOM. NON-VACUITY against 9.7.886: 5 fail, the 5 controls pass. VERIFIED: run-all 332 suites, 10894 assertions, 0 failed; dev===comm on every changed region. Builds on 9.7.886. Builds on v9.7.886.)
 // Lead Pro -- popup.js  v9.7.886 (Commercial. A ZIP CODE IS NOT A PRICE, AND "BEST PRICE INCLUDING ALL FEES" IS AN OUT-THE-DOOR ASK. Owner, 11/19: "picked up a general note and assumed the number was a price when it's a zip code for the customer. There was no Drive out pricing in the messages." (Kia Baytown lead 3117232759, dump and log425, on 9.7.885.) Extension only; proxy v7.93, reporter v1.26, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. (1) The agent's "no dupes" note -- the customer's name, email and ZIP, "12345" -- was read by _lpPricePushback as a price of ours: _lpMoneyFigures takes any bare 5-6 digit number as money (a link's digits and a state-and-ZIP ("TX 12345") were already excluded, a bare ZIP was not). The prompt said THEY PUSHED BACK ON THE PRICE WE SENT ... "Our general note of 11/18/2026 7:08 PM gave them a price of $12345", and the text that shipped said "The $12,345 figure is the drive-out number we have for it as it stands." A bare figure (no "$", no comma) now counts only when the same note or message talks about price (LP_FIG_PRICE_WORD_RX: price, OTD, out the door, drive out, MSRP, selling, quote, offer, total, discount, rebate, payment, deal, numbers, cost, sticker, invoice, financing, lease, APR, or a "$" anywhere). (2) The customer's message was "Can you email me your best price including all fees?", and _lpOtdAsk read no out-the-door ask: LP_OTD_PHRASE_RE now also takes "price including / with (all) (the) fees / taxes", "all-in price / number / cost / total", "with taxes and fees" and "tax, title and license" -- also read by the out-the-door deferral check and the out-the-door-sent reader. On this lead the prompt now carries OUT-THE-DOOR PRICE -- THEY ASKED FOR IT (the agent follows up with the drive-out numbers; no figure of our own) instead of the pushback. REPLAYED, thirteen dumps on file: only lead 3117232759 changes. VERIFIED: NEW zip-not-price-886.test.js, 7 assertions per build (14), executing _lpPricePushback and _lpOtdAsk on a fixed Central clock and buildUserPrompt through the panel payload, green under TZ=UTC and America/Chicago; against v9.7.885 it fails 4 by name and its 3 controls pass. run-all 331 suites green, 10874 assertions, 0 failed, against proxy v7.93; dev===comm on every changed region. node --check clean on both builds; both manifests parse; version AND version_name both bumped. Builds on v9.7.885.)
 // Lead Pro -- popup.js  v9.7.885 (Commercial. ADD APPT ALWAYS GETS ITS TIMES, AND A TIME IS FOR A VISIT, NOT A VIDEO. Owner, 11/19, on the 11/18 report and export: "Appointment times should have been added, fix the video times issue, personal facts seems ok in this case." Extension only; proxy v7.93, reporter v1.26, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. (1) Honda Lafayette, Capital One lead, 11/18 7:26 PM (on 9.7.881): Add Appt was pressed; the email offered "If so, I can plan a visit for 11:00 AM or 1:00 PM Thursday, November 19, and have the next steps ready for you." and the text came back with no time. _lpChipTimesBoth (v9.7.865) carries the time ask from the format that has it to the one that does not, but only a sentence ending in "?" counted; it now also carries a time offer written as a statement (LP_CHIP_TIME_OFFER_RX). And when neither format has a time and the visit decision did not hold the visit (the chip yields only to the customer, a deal condition or an exit), both get the slot engine's pair, "Would <pair> work for you to come in?", the email ahead of its sign-off. The text rewrite's Add Appt guard (v9.7.802) keeps those times. (2) Kia Baytown, 11/18 7:12 PM: the draft offered "a quick walkaround video", and after Add Appt the text and the email read "Would a quick walkaround Thursday at 10:30 AM or 2:00 PM work?" -- the video offer with appointment times on it. The Add Appt directive now says the times are for a visit in person and are never attached to a video, photos or a walkaround video (keep such an offer separate, sent now, or drop it); and _lpVideoTimeGuard, in the house guard on the text, the email and the voicemail, makes a walkaround offered at a clock time the in-person one ("a quick walkaround Thursday at 10:30" -> "a quick in-person walkaround"; "a walkaround video ... at 10:30" -> "an in-person walkaround"). A video offered with no time, and a live video walkaround or video call by name, are left alone. Logged as [LP ADD-APPT DIAG] and [LP VIDEO TIME GUARD]. (3) Personal facts from today's call ("glad your boyfriend is getting out of the hospital"): left as is, per the owner. VERIFIED: NEW addappt-video-885.test.js, 10 assertions per build (20), executing _lpChipTimesBoth on a fixed Central clock (Wednesday 7:26 PM, the store closed) and _lpHouseGuard, and reading the Add Appt directive; green under TZ=UTC and America/Chicago; against v9.7.884 it fails 6 by name and its 4 controls pass. run-all 330 suites green, 10860 assertions, 0 failed, against proxy v7.93; dev===comm on every changed region. node --check clean on both builds; both manifests parse; version AND version_name both bumped. Builds on v9.7.884.)
@@ -12808,6 +12809,77 @@ async function _lpTranslateOne(text, label, endpoint) {
   if (!out) return { text: text, ok: false, why: 'no-reply' };
   if (out.trim() === text.trim() || !_lpLooksSpanish(out)) return { text: text, ok: false, why: 'unchanged' };
   return { text: out, ok: true, why: 'translated' };
+}
+// (v9.7.888) THE DRAFT IS WRITTEN IN ENGLISH EVEN WHEN THE THREAD IS IN SPANISH. Toyota Baytown lead 3117052433, 11/19 (log427): the
+// customer writes Spanish and every message we sent had gone out through the Translate button, so the whole thread Lead Pro showed the
+// model was Spanish -- and both generations came back in Spanish, the rewrite with them, despite the LANGUAGE rule. Owner: "Rule is
+// supposed to make the message in English and then allow for the translate chip to be used to convert." Two parts: the prompt says so
+// beside the thread (_lpThreadInSpanish), and a draft that still comes back Spanish is put into English before it renders.
+function _lpThreadInSpanish(d) {
+  var h = String((d && (d.history || d.conversationBrief)) || ''), out = { customer: 0, ours: 0 };
+  var parts = h.split(/\n(?=\[\d{1,2}\/\d{1,2}\/\d{4}[^\]\n]*\]\s*\[)/);
+  for (var i = 0; i < parts.length; i++) {
+    var m = parts[i].match(/^\[[^\]\n]+\]\s*\[(CUSTOMER|AGENT)\]\s*([^\n]*)\n([\s\S]*)$/);
+    if (!m || !/text|email|sms/i.test(m[2]) || !_lpLooksSpanish(m[3])) continue;
+    if (m[1] === 'CUSTOMER') out.customer++; else out.ours++;
+  }
+  return (out.customer || out.ours) ? out : null;
+}
+// One box to English: { text, ok, why }. The mirror of _lpTranslateOne; ok only when English came back.
+async function _lpTranslateToEnglish(text, label, endpoint) {
+  if (!text || text.length < 5) return { text: text, ok: false, why: 'skipped' };
+  var hasSubj = /^\s*Subject:/i.test(text);
+  var prompt = [
+    'This dealership BDC ' + label + ' message was written in Spanish by mistake. Rewrite it in natural American English, saying exactly what it says -- no more, no less.',
+    'Keep names, phone numbers, store names, prices, dates and times exactly as they are. Put a Spanish job title in the signature back into English (for example "Coordinador(a) de Ventas por Internet" -> "Internet Sales Coordinator").',
+    hasSubj ? 'It begins with a "Subject:" line: keep the word "Subject:" and put the subject itself into English.' : '',
+    'Preserve ALL line breaks exactly; the signature stays stacked on separate lines. American spelling (color, favorite, center).',
+    'Return ONLY a JSON object with this exact shape: {"translation": "<the English text>"}. Use \\n for line breaks within the string. No markdown, no explanation.',
+    '',
+    'ORIGINAL TEXT:',
+    text
+  ].filter(function (x, i) { return x !== '' || i === 5; }).join('\n');
+  var data;
+  try {
+    var resp = await fetch(endpoint.url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(_lpAttachLicense({
+        system_instruction: { parts: [{ text: 'You are a professional automotive BDC translator. Translate to natural American English. Always return the translation wrapped in {"translation": "..."} JSON. Preserve line breaks as \\n in the JSON string.' }] },
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.2, maxOutputTokens: 3000, responseMimeType: 'application/json' }
+      }))
+    });
+    data = await resp.json();
+  } catch (e) { return { text: text, ok: false, why: 'error' }; }
+  if (!data || !data.candidates || !data.candidates[0]) return { text: text, ok: false, why: 'no-reply' };
+  if (data.candidates[0]._fallback) return { text: text, ok: false, why: 'fallback' };
+  var raw = String((data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0] && data.candidates[0].content.parts[0].text) || '').trim()
+    .replace(/^```[a-z]*\n?/i, '').replace(/\n?```$/, '').trim();
+  var out = raw;
+  try { var p = JSON.parse(raw); if (p && typeof p === 'object') out = p.translation || p.text || p.message || p.sms || p.email || ''; } catch (e) {}
+  out = String(out || '').trim();
+  if (!out) return { text: text, ok: false, why: 'no-reply' };
+  if (out === text.trim() || _lpLooksSpanish(out)) return { text: text, ok: false, why: 'still Spanish' };
+  if (hasSubj && !/^\s*Subject:/i.test(out)) return { text: text, ok: false, why: 'lost the subject line' };
+  return { text: out, ok: true, why: 'translated' };
+}
+// The text and the email, before the rewrite and before render: a box that reads as Spanish is put into English (one retry). A box that
+// cannot be is left as it came and logged -- never blanked.
+async function _lpEnglishGuard(sms, email, endpoint) {
+  var boxes = [['text', sms], ['email', email]], res = { sms: sms, email: email, fired: false };
+  if (!boxes.some(function (b) { return _lpLooksSpanish(b[1]); })) return res;
+  if (!endpoint || !endpoint.url) { try { console.log('[LP ENGLISH GUARD] the draft came back in Spanish and no endpoint was resolved -- left as it came'); } catch (e) {} return res; }
+  res.fired = true;
+  var done = await Promise.all(boxes.map(async function (b) {
+    if (!_lpLooksSpanish(b[1])) return { text: b[1], why: 'English', tries: 0 };
+    var r = await _lpTranslateToEnglish(b[1], b[0], endpoint), tries = 1;
+    if (!r.ok) { r = await _lpTranslateToEnglish(b[1], b[0], endpoint); tries = 2; }
+    return { text: r.text, why: r.ok ? 'put into English' : 'NOT put into English (' + r.why + ')', tries: tries };
+  }));
+  res.sms = done[0].text; res.email = done[1].text;
+  try { console.log('[LP ENGLISH GUARD] the draft came back in Spanish -- text: ' + done[0].why + ' | email: ' + done[1].why + ' (the agent translates with the Translate button)'); } catch (e) {}
+  return res;
 }
 // Every box with text: already Spanish -> left alone; otherwise translated, and retried once if it did not come back in Spanish.
 // Returns [{ key, label, text, ok, why, tries }].
@@ -33944,6 +34016,11 @@ function buildUserPrompt(data) {
       out.push('');
       return out;
     })()),
+    // (v9.7.888) a thread in Spanish: the draft is still English (see _lpThreadInSpanish)
+    ...((function () { var _es = null; try { _es = _lpThreadInSpanish(data); } catch (eEs) {} if (!_es) return [];
+      return ['LANGUAGE -- THIS CONVERSATION IS IN SPANISH, AND YOUR TEXT, EMAIL AND VOICEMAIL ARE IN ENGLISH. '
+        + (_es.customer ? 'The customer writes in Spanish' : 'The thread is in Spanish') + (_es.ours ? ', and our messages in it were written in English and put into Spanish with the Translate button before they went out' : '')
+        + '. The agent translates your draft the same way after this step, so write every word in English, whatever language the thread or their last message is in. Do not copy the thread\'s language, do not mix languages, and never mention language to them.', '']; })()),
     // (v9.7.698) AUDIT M6: the system prompt asks for four fields including subject, and the parser reads
     // parsed.subject; this line listed three.
     'Return ONLY the JSON object {"sms":"...","email":"...","subject":"...","voicemail":"..."}. "email" is the full email from greeting to signature; "subject" is the subject line alone.',   // (v9.7.779)
@@ -35806,6 +35883,9 @@ async function generateAll() {
     // (v9.7.865) With Add Appt on, the times go in the text AND the email (see _lpChipTimesBoth).
     try { var _ctb = _lpChipTimesBoth(rawSms, rawEmail, lastScrapedData); if (_ctb) { rawSms = _ctb.sms; rawEmail = _ctb.email; } } catch (eCtb) {}
 
+    // (v9.7.888) A DRAFT IN SPANISH IS PUT INTO ENGLISH HERE, before the rewrite reads it and before anything renders (see _lpEnglishGuard).
+    try { var _eg = await _lpEnglishGuard(rawSms, rawEmail, getEndpoint()); if (_eg.fired) { rawSms = _eg.sms; rawEmail = _eg.email; } } catch (eEg) {}
+
     // (v9.7.669) THE SMS REFINE PASS. Placed HERE and nowhere else: rawEmail is finalised above
     // (subject stripped and re-prepended), and everything that shapes the text -- the opener
     // guard, the hook row, cleanOutput, the finance guard, the store-name canon, enforceSmsSig,
@@ -35816,6 +35896,8 @@ async function generateAll() {
     try {
       var _lpRfT0 = Date.now();   // (v9.7.851) [LP GRAB TIMING]
       var _rfSms = await _lpRefineSms(rawSms, rawEmail, lastScrapedData);
+      // (v9.7.888) a rewrite in Spanish over an English first pass does not ship (the accent check misses Spanish written without accents)
+      try { if (_rfSms && _lpLooksSpanish(_rfSms) && !_lpLooksSpanish(rawSms)) { console.log('[LP SMS REFINE DIAG] kept the first pass \u2014 the rewrite came back in Spanish'); _rfSms = null; } } catch (eRfEs) {}
       try { if (window._lpGenTiming) window._lpGenTiming.rewrite = Date.now() - _lpRfT0; } catch (eT) {}
       if (_rfSms) rawSms = _rfSms;
       try { rawSms = _lpUnbracketName(rawSms, (lastScrapedData && lastScrapedData.name) || ''); } catch (eUbR) {}   // (v9.7.732) the refine pass writes the SMS again
