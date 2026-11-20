@@ -128,7 +128,8 @@ for (const f of BUILDS) {
     return sb.__lp.buildUserPrompt(Object.assign(lead('2000000004'), { vehicle: '', stockNum: '', hasOutbound: false, convState: 'first-touch',
       context: '[09/24/2026 12:36 PM] [=== CURRENT LEAD SUBMITTED HERE ===]\n[CUSTOMER REQUEST FROM INQUIRY] claimed the website offer "' + PRE + '"\n' }));
   };
-  check('buildUserPrompt, Honda Lafayette, no vehicle, first touch: link and visit reach the prompt', () => { const p = imxP(''); return [p.includes(LINK), /OFFER A VISIT/.test(p)]; }, [true, true]);
+  // (v9.7.889) owner, 11/20: the first reach-out builds engagement and makes no visit ask (it was "definitely offer a visit", 9/24)
+  check('buildUserPrompt, Honda Lafayette, no vehicle, first touch: the link reaches the prompt, the visit does not (v9.7.889 first reach-out)', () => { const p = imxP(''); return [p.includes(LINK), /OFFER A VISIT/.test(p), /FIRST REACH-OUT \u2014 BUILD ENGAGEMENT, NO VISIT ASK/.test(p)]; }, [true, false, true]);
   check('...and "no appointment" pressed on this lead turns the visit off there too', () => { const p = imxP('2000000004'); return [p.includes(LINK), /OFFER A VISIT/.test(p)]; }, [true, false]);
   check('generateAll\'s prompt-input object carries the vehicle\'s condition (v9.7.721 read data.condition and it was never passed)', () => {
     const a = src.indexOf('    var _lpPromptInputData = {'), b = src.indexOf('\n    };\n', a);
@@ -151,8 +152,8 @@ for (const f of BUILDS) {
   check('a follow-up where no link went out yet keeps the "if they ask" line instead', () => {
     const t = 'Sent to: (555) 010-0199 Sent by: Agent Name Test, thanks for claiming the pre-owned offer. What are you shopping for?';
     const p = log249([t], t); return [/A browse link already went out/.test(p), /If they ask what else is in that range/.test(p)]; }, [false, true]);
-  check('control: only the store\'s automated assistant has written -> the first human message still gets the link and the visit', () => shape(log249([BOT], BOT)), [false, true, true, false]);
-  check('control: nothing sent yet -> first touch, as in v9.7.722', () => { const p = imxP(''); return [/PRIOR OUTREACH/.test(p), /SEND THE SEARCH LINK/.test(p), /OFFER A VISIT/.test(p)]; }, [false, true, true]);
+  check('control: only the store\'s automated assistant has written -> the first human message still gets the link; no visit since v9.7.889', () => shape(log249([BOT], BOT)), [false, true, false, false]);
+  check('control: nothing sent yet -> first touch, as in v9.7.722 (the visit off since v9.7.889)', () => { const p = imxP(''); return [/PRIOR OUTREACH/.test(p), /SEND THE SEARCH LINK/.test(p), /OFFER A VISIT/.test(p)]; }, [false, true, false]);
 
   console.log(' 3. the IdentityMax first-touch rules point at the claimed offer:');
   check('"Lead with THAT offer in its own words, and add no amount, term, model or eligibility it does not state"', () =>

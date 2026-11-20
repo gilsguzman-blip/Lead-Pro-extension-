@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.889-dev (Dev. THE FIRST REACH-OUT BUILDS ENGAGEMENT; IT DOES NOT ASK FOR THE APPOINTMENT. Owner, 11/20, passing on the VinSolutions performance manager: offering the appointment on the first reach-out "is like asking for a first kiss on the first date without getting to know your date first" -- "ask an engaging question by reading and picking up where the customer is at in the buying journey." All scenarios, all stores. Owner's rulings: a customer who asked to come in still gets times; from our second message on, the usual rules; a returning customer's new lead counts. Extension only; proxy v7.93, reporter v1.26, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. (1) _lpFirstReachOut: no text or email from a person on THIS lead (the virtual assistant, marketing campaigns and the opt-in/opt-out system texts do not count) and no connected call -- the send list and the transcript must both agree, so a gap in one keeps today's behavior. Showroom, walk-in, phone-up and service-drive leads are out (they have met us). (2) _lpAskedToComeIn: the customer's own words ask for a visit, a test drive or an appointment (a negated one -- "a test drive isnt necessary" -- does not count), a day they named, or a test-drive/appointment lead source -> the first reach-out keeps its times. (3) _lpBuyingJourney reads where they are -- valuing or selling their car, building a deal online, working out the money, asked for pricing, replacing a car they lost, nearing the end of what they drive, narrowed to one car, comparing with a model chosen, or early -- and suggests the kind of question that fits. (4) The prompt carries "FIRST REACH-OUT -- BUILD ENGAGEMENT, NO VISIT ASK" with the journey and the one-question rule, and a new level-3 visit hold owned by it; it is soft, so the agent's Add Appt chip still adds two times. v9.7.865/873's two times on a first touch now apply only when the customer asked to come in. (5) Level-3 cleanup, true of every no-visit hold: the first-human-touch "THEN ASK THEM IN", the scenario "give them a reason to visit", presence language's "appointment urgency" and the distance block's visit reason, examples and "soonest workable time" are neutralized. (6) The text rewrite ends on the engaging question. REPLAYED: of the 14 saved dumps, the three first touches change (Toyota no-car quote request, Toyota Edmunds Tundra, Kia total loss) and every follow-up decides exactly as before. TESTS: new first-reach-out-889 (17 per build). DELIBERATELY INVERTED, the old rule's assertions: imx-noappt-720 (3, "offer a visit on first reach out", 9/24), chip-color-firsttouch-865 (2), offer-asked-867 (1), times-trims-hours-873 (1). Fixtures given one of our texts so they keep testing their own feature: openers-cutoff-kia-866, cutoff-offer-tundra-869. NON-VACUITY against 9.7.888: 28 of 34 fail, the 6 controls pass. VERIFIED: run-all 334 suites, 10946 assertions, 0 failed; dev===comm on every changed region. Builds on 9.7.888. Builds on v9.7.888.)
 // Lead Pro -- popup.js  v9.7.888-dev (Dev. THE DRAFT IS WRITTEN IN ENGLISH EVEN WHEN THE THREAD IS IN SPANISH. Owner, 11/19: "Grabbed and genned and responses came out in Spanish. Rule is supposed to make the message in English and then allow for the translate chip to be used to convert." (Toyota Baytown lead 3117052433, log427 and dump, on 9.7.887.) Extension only; proxy v7.93, reporter v1.26, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. The customer writes Spanish and every text and email we sent had gone out through the Translate button, so the whole thread the model read was Spanish. Both generations came back in Spanish; the text rewrite's language check (v9.7.669) compares against the first pass, which was Spanish too, so nothing caught it. The system prompt's LANGUAGE rule and the rewrite's were there; the model followed the thread. FIX, three parts. (1) _lpThreadInSpanish counts customer and our text/email entries that read as Spanish (the Translate button's own _lpLooksSpanish); when any do, the user prompt carries, at the end beside the JSON instructions, "LANGUAGE -- THIS CONVERSATION IS IN SPANISH, AND YOUR TEXT, EMAIL AND VOICEMAIL ARE IN ENGLISH" and why (our messages were put into Spanish with the Translate button; the agent translates this draft the same way). (2) _lpEnglishGuard: before the rewrite and before render, a text or email that still reads as Spanish is put into English by one translation call (one retry); a box that cannot be is left as it came and logged [LP ENGLISH GUARD], never blanked. No call is made for an English draft. (3) A rewrite in Spanish over an English first pass does not ship. REPLAYED: of the 13 saved dumps only this lead's prompt changes, by that one line. TESTS: new english-draft-888 (9 per build) executes _lpThreadInSpanish, buildUserPrompt through the panel payload and _lpEnglishGuard with a stubbed endpoint. NON-VACUITY against 9.7.887: 8 fail, the English-thread control passes. VERIFIED: run-all 333 suites, 10912 assertions, 0 failed; dev===comm on every changed region. Builds on 9.7.887. Builds on v9.7.887.)
 // Lead Pro -- popup.js  v9.7.887-dev (Dev. A QUOTED-REPLY HEADER CUT SHORT IS STILL NOT THE CUSTOMER. Owner, 11/19 ("regrab"), Kia Baytown lead 3117232759 on 9.7.886 (log426 and dump): 886 fixed the ZIP-as-price and the out-the-door ask, and both drafts then offered "Would Wednesday at 12:15 PM or 1:00 PM work to review the numbers?" -- a day the customer never named. Extension only; proxy v7.93, reporter v1.26, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. (1) The customer's email reached Lead Pro as VinSolutions' preview, "...Can you email me your best price including all fees?Thanks<name> On Wednesday, November 18, 2026 at 07:09:55 PM CST, <agent> ..." -- cut off before "wrote:". _lpCustomerAuthoredPart's header rules all need "wrote:", so nothing was cut, [LP SCHED DAY DIAG] logged "LOCKED -- day name IS customer-authored" on "on wednesday", and the prompt carried "CUSTOMER NAMED A SPECIFIC DAY ... LOCK IN Wednesday" (with NOT TODAY set beside it). FIX: two new cutter rules for the header cut short -- a weekday, a full date with its year and a clock time in a row ("On Wednesday, November 18, 2026 at 07:09:55 PM"), and the numeric form ("On 11/18/2026 7:09 PM"). A customer's own "On Wednesday I can come by" has no year and no clock time and still locks. (2) The channel-preference line read "Re:Pricing on both Sorento VINs By: <agent> <agent>,I prefer to communicate through email" -- the email's Subject: and By: lines as the customer's words. It now drops those lines and reads only the customer-authored part. REPLAYED from the dump with the scraper's day lock, NOT TODAY and channel line as the fixed scraper produces them: no Wednesday, no VISIT DECISION hold; the out-the-door block (send the drive-out numbers, then ask to go over them) is unchanged. TESTS: new quote-cut-short-887 (10 per build) runs the shipped cutter, the shipped schedule loop and the shipped channel-preference block on a fake DOM. NON-VACUITY against 9.7.886: 5 fail, the 5 controls pass. VERIFIED: run-all 332 suites, 10894 assertions, 0 failed; dev===comm on every changed region. Builds on 9.7.886. Builds on v9.7.886.)
 // Lead Pro -- popup.js  v9.7.886-dev (Dev. A ZIP CODE IS NOT A PRICE, AND "BEST PRICE INCLUDING ALL FEES" IS AN OUT-THE-DOOR ASK. Owner, 11/19: "picked up a general note and assumed the number was a price when it's a zip code for the customer. There was no Drive out pricing in the messages." (Kia Baytown lead 3117232759, dump and log425, on 9.7.885.) Extension only; proxy v7.93, reporter v1.26, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. (1) The agent's "no dupes" note -- the customer's name, email and ZIP, "12345" -- was read by _lpPricePushback as a price of ours: _lpMoneyFigures takes any bare 5-6 digit number as money (a link's digits and a state-and-ZIP ("TX 12345") were already excluded, a bare ZIP was not). The prompt said THEY PUSHED BACK ON THE PRICE WE SENT ... "Our general note of 11/18/2026 7:08 PM gave them a price of $12345", and the text that shipped said "The $12,345 figure is the drive-out number we have for it as it stands." A bare figure (no "$", no comma) now counts only when the same note or message talks about price (LP_FIG_PRICE_WORD_RX: price, OTD, out the door, drive out, MSRP, selling, quote, offer, total, discount, rebate, payment, deal, numbers, cost, sticker, invoice, financing, lease, APR, or a "$" anywhere). (2) The customer's message was "Can you email me your best price including all fees?", and _lpOtdAsk read no out-the-door ask: LP_OTD_PHRASE_RE now also takes "price including / with (all) (the) fees / taxes", "all-in price / number / cost / total", "with taxes and fees" and "tax, title and license" -- also read by the out-the-door deferral check and the out-the-door-sent reader. On this lead the prompt now carries OUT-THE-DOOR PRICE -- THEY ASKED FOR IT (the agent follows up with the drive-out numbers; no figure of our own) instead of the pushback. REPLAYED, thirteen dumps on file: only lead 3117232759 changes. VERIFIED: NEW zip-not-price-886.test.js, 7 assertions per build (14), executing _lpPricePushback and _lpOtdAsk on a fixed Central clock and buildUserPrompt through the panel payload, green under TZ=UTC and America/Chicago; against v9.7.885 it fails 4 by name and its 3 controls pass. run-all 331 suites green, 10874 assertions, 0 failed, against proxy v7.93; dev===comm on every changed region. node --check clean on both builds; both manifests parse; version AND version_name both bumped. Builds on v9.7.885.)
@@ -5289,6 +5290,95 @@ function _lpFirstTouchTimesOk(d) {
     if (d.customerZip && d.dealerId) { var mi = _customerDistanceMiles(String(d.dealerId), d.customerZip); if (mi != null && mi > LP_VISIT_RADIUS_MILES) return false; }
     return true;
   } catch (e) { return false; }
+}
+// (v9.7.889) THE FIRST REACH-OUT BUILDS ENGAGEMENT; IT DOES NOT ASK FOR THE APPOINTMENT. Owner, 11/20, from the VinSolutions
+// performance manager: offering the appointment on the first reach-out "is like asking for a first kiss on the first date without
+// getting to know your date first" -- build engagement instead: "ask an engaging question by reading and picking up where the customer
+// is at in the buying journey." All scenarios, all stores. Owner's rulings: a customer whose own words asked to come in (a visit, a
+// test drive, an appointment) still gets times; from our second message on, the usual rules; a returning customer's new lead counts
+// (the first reach-out is per lead). This replaces v9.7.865/873's two times on a first touch. The agent's Add Appt chip still adds them.
+//
+// The first reach-out: no text or email from a person on THIS lead yet (the virtual assistant, a marketing campaign and the opt-out
+// confirmation do not count) and no connected call. No lead-start marker -> falls back to the lead's own outbound count; unknown -> no.
+var LP_VISIT_ASKED_RX = /\btest[\s-]?drive\b|\bcome\s+(?:in|by|out|see|look|check)\b|\bstop\s+(?:in|by)\b|\bswing\s+by\b|\bsee\s+(?:it|the\s+\w+|them|this\s+\w+)\s+(?:today|tomorrow|tonight|this\s+(?:morning|afternoon|evening|weekend)|in\s+person)\b|\b(?:make|set(?:\s+up)?|schedule|book)\s+(?:an?\s+)?(?:appointment|appt|time|visit)\b|\bappointment\b|\bappt\b|\bwhen\s+(?:can|could)\s+I\s+(?:come|see|look|drive|stop)\b|\bare\s+you\s+(?:guys\s+)?open\b|\bvisit\s+(?:the\s+)?(?:dealership|store|lot|you)\b/i;
+var LP_VISIT_NEG_RX = /\b(?:no|not|never|isn['’]?t|aren['’]?t|don['’]?t|doesn['’]?t|won['’]?t|can['’]?t|cannot|without)\b|n['’]t\b/i;
+function _lpAskedToComeIn(d) {
+  try {
+    if (/test[\s-]?drive|appointment|schedul/i.test(String((d && d.leadSource) || ''))) return { how: 'the lead source (' + d.leadSource + ')' };
+    if (/CUSTOMER SPECIFIED DAY|is when they are available/i.test(String((d && d.customerScheduleConstraint) || ''))) return { how: 'they named a day they can come in' };
+    var ents = _lpThreadEntries((d && (d.history || d.context)) || '').filter(function (x) { return /CUSTOMER/i.test(x.tag) && x.body && !LP_CALL_TITLE_RX.test(x.title || ''); });
+    for (var i = 0; i < ents.length; i++) {
+      var parts = String(ents[i].body).split(/(?<=[.!?])\s+/);
+      for (var j = 0; j < parts.length; j++) if (LP_VISIT_ASKED_RX.test(parts[j]) && !LP_VISIT_NEG_RX.test(parts[j])) return { how: 'their words on ' + ents[i].date + ': "' + parts[j].trim().slice(0, 120) + '"' };
+    }
+  } catch (e) {}
+  return null;
+}
+function _lpFirstReachOut(d) {
+  try {
+    if (!d || d.hasApptSet) return false;
+    if (/showroom|walk[\s-]?in|phone[\s-]?up|inbound\s+call|service\s+drive/i.test(String(d.leadSource || ''))) return false;   // they have met or talked to us
+    var h = String(d.history || d.context || ''), mk = /\[(\d{2})\/(\d{2})\/(\d{4})\s+(\d{1,2}):(\d{2})\s*([AP]M)[^\]]*\]\s*\[=== CURRENT LEAD SUBMITTED HERE ===\]/i.exec(h);
+    if (!mk) { var n0 = d.relationshipSignals && d.relationshipSignals.leadOutboundCount; return n0 === 0; }
+    var start = new Date(+mk[3], +mk[1] - 1, +mk[2], (+mk[4] % 12) + (/p/i.test(mk[6]) ? 12 : 0), +mk[5]).getTime() - 300000;
+    var sends = (d.outboundSends || []).filter(function (s) {
+      var b = String((s && s.body) || '');
+      return s && s.ms >= start && b && !/marketing|campaign/i.test(String(s.title || '')) && !_lpIsBotAuthor(b) && !LP_OPTOUT_CONFIRM_RX.test(b);
+    });
+    if (sends.length) return false;
+    // ...and the transcript agrees: no text or email of ours on this lead from a person, and no connected call. Either one is enough to
+    // say a person has written, so a gap in one list can only keep today's behavior.
+    var ours = _lpThreadEntries(h).filter(function (x) {
+      if (!/AGENT|CALL NOTE/i.test(x.tag) || x.t < start) return false;
+      if (/\(Contacted\)/i.test(x.title || '')) return true;   // a connected call
+      if (!/text|sms|email|e-mail/i.test(x.title || '') || /marketing|campaign/i.test(x.title || '')) return false;
+      var raw = String(x.raw || '');
+      return !_lpIsBotAuthor(raw) && !LP_OPTOUT_CONFIRM_RX.test(raw) && !/\[SYSTEM:|Reply YES to receive|Message and data rates may apply/i.test(raw);
+    });
+    return !ours.length;
+  } catch (e) { return false; }
+}
+// Where they are in the buying journey, read from the lead: { stage, evidence, ask }. The question it suggests is one, about them.
+function _lpBuyingJourney(d) {
+  var src = String((d && d.leadSource) || ''), veh = String((d && d.vehicle) || '').trim(), unit = !!(String((d && d.stockNum) || '').trim() || String((d && d.vin) || '').trim());
+  var model = !!veh && /^(?:(?:19|20)\d{2}\s+)?[A-Za-z][\w-]*\s+\S/.test(veh);   // a year and make alone is no model
+  if (/kbb|kelley|trade[\s-]?pending|trade|sell\s+your|instant\s+(?:cash|offer)|\bico\b|value\s+your/i.test(src))
+    return { stage: 'VALUING OR SELLING THEIR CAR', evidence: 'the lead came from "' + src + '"' + (veh ? ' (' + veh + ')' : ''),
+      ask: 'what they are hoping it brings, or whether they are replacing it or just selling it -- whichever the lead does not already answer' };
+  if (/click\s*&?\s*go|digital\s+retail|virtual\s+retail|accelerate|express\s+store|buy\s+online|drs\b/i.test(src))
+    return { stage: 'ALREADY BUILDING A DEAL ONLINE', evidence: 'they started a deal through "' + src + '"' + (veh ? ' on the ' + veh : ''),
+      ask: 'what is left for them to settle on it (the payment, a trade, the timing), or what made them pick that one' };
+  if (/capital\s*one|pre-?approv|pre-?qual|credit|financ|auto\s*pay|route\s*one/i.test(src))
+    return { stage: 'WORKING OUT THE MONEY FIRST', evidence: 'the lead came from "' + src + '"',
+      ask: 'what payment range would feel comfortable, or what they are hoping to drive with the approval' };
+  if (/quote|pric(?:e|ing)|e-?price|best\s+deal/i.test(src))
+    return { stage: 'ASKED FOR PRICING', evidence: 'the lead came from "' + src + '"' + (model ? ' on the ' + veh : ''),
+      ask: 'whether they are paying cash or financing, or which trim or options the numbers should be on -- whichever the lead does not already settle' };
+  if (/total\s*loss/i.test(src) || (typeof _lpTotalLossProgram === 'function' && _lpTotalLossProgram(d)))
+    return { stage: 'REPLACING A CAR THEY LOST', evidence: 'their financed car was declared a total loss ("' + src + '")',
+      ask: 'what they need in the replacement -- something like what they had, or something different' };
+  if (/lease|matur|loyal|luv|end\s+of\s+term|kmf|hfs|tfs|afs/i.test(src))
+    return { stage: 'NEARING THE END OF WHAT THEY DRIVE NOW', evidence: 'the lead came from "' + src + '"',
+      ask: 'what they would like to do when it is up, or what they would change about what they drive now' };
+  if (unit && model)
+    return { stage: 'NARROWED TO ONE CAR', evidence: 'they asked about one specific ' + veh,
+      ask: 'what drew them to that one, or the one thing that matters most to them on it' };
+  if (model)
+    return { stage: 'COMPARING, MODEL CHOSEN', evidence: 'they named the ' + veh + ' but no one unit',
+      ask: 'what they will mostly use it for, what they are driving now, or the one feature they will not do without' };
+  return { stage: 'EARLY: STILL LOOKING', evidence: 'no vehicle is named on the lead',
+    ask: 'what kind of vehicle they have in mind, or what they are driving now and what they would change' };
+}
+function _lpFirstReachOutBlock(d) {
+  try {
+    if (!_lpFirstReachOut(d) || _lpAskedToComeIn(d) || (typeof _lpAddApptOn === 'function' && _lpAddApptOn(d))) return '';
+    var j = _lpBuyingJourney(d);
+    try { console.log('[LP FIRST REACH-OUT DIAG] no visit ask on the first reach-out | journey: ' + j.stage + ' -- ' + j.evidence); } catch (eL) {}
+    return 'FIRST REACH-OUT — BUILD ENGAGEMENT, NO VISIT ASK: this is the first message a person on our team sends on this lead. Store policy: the first reach-out does not ask for the appointment -- no appointment times, no "come in today", no "stop by", no "when can you come in", no "I can have it ready for your visit". Its job is to start a conversation.\n'
+      + 'WHERE THEY ARE IN THE BUYING JOURNEY: ' + j.stage + ' -- ' + j.evidence + '. Read the rest of this prompt (their inquiry, what they were looking at on our site, their trade) to place them more exactly.\n'
+      + '- Answer anything they asked first. Then ask an engaging question that picks up where they are -- for example ' + j.ask + '. Keep it to that single question, easy to answer in a few words and about them; never a list (not trim AND color AND budget), never about scheduling.\n'
+      + '- You may say the car is here if it is. The email may add one useful detail but makes the same single ask; the voicemail asks the same question and invites a call or text back.';
+  } catch (e) { return ''; }
 }
 // (v9.7.811) "Did the photos [Rep] sent over come through?" -- a question about something we sent. Returns the words that
 // asked it, or ''. Something sent (photos, pictures, pics, a video or walkaround, numbers, a quote or breakdown, a link) and
@@ -26432,6 +26522,8 @@ function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
     + 'their terms. If that reason is two things, it is two things. DO NOT HOLD IT BACK FOR THE '
     + 'EMAIL TO CARRY: plenty of customers read the text and never open the email, so a text that '
     + 'defers the reason to come in has sent them nothing.');
+  // (v9.7.889) the first reach-out: its point is the one engaging question, so the text ends on it
+  if (_rfVd && _rfVd.level === 3 && /FIRST REACH-OUT/.test(String(_rfVd.owner || ''))) out.push('This is our first reach-out on the lead: its point is the one engaging question the email asks about where they are in their search. The text ends on that question, in your own words -- one question, nothing about scheduling.');
   // (v9.7.849) They asked for room (a pause): the text gives it, and asks nothing.
   if ((typeof _lpTouchHold === 'function') && _lpTouchHold(d) === 'pause') out.push('They asked for room. Give it: one useful line and an open door, and NO question -- not whether to check back or keep following up, not their timeline. Do not count or point out our messages ("I\'ve reached out a few times").');
   // (v9.7.672) THE DEFUSING CLAUSE IS GONE BECAUSE THE THING IT DEFUSED IS GONE. v9.7.671
@@ -27540,6 +27632,7 @@ var _LP_VISIT_HOLDS = [
   [2, /^DO NOT offer appointment times\. DO NOT write duration\./, 'the stalled-lead re-engagement block'],
   [2, /The visit already happened\. Do NOT push a same-day appointment or offer times/, 'the SHOWROOM FOLLOW-UP block'],
   [2, /FIRST HUMAN TOUCH — LIGHT ASK, NO TIMES/, 'FIRST HUMAN TOUCH'],
+  [3, /^FIRST REACH-OUT \u2014 BUILD ENGAGEMENT, NO VISIT ASK:/, 'the FIRST REACH-OUT (engagement first: no visit ask)'],   // (v9.7.889) soft: the Add Appt chip overrides it
   [2, /^APPOINTMENT TIMES WITHHELD ON THIS LEAD/, 'APPOINTMENT TIMES WITHHELD (a block above owns "no times")'],
   [2, /DO NOT include appointment times in ANY format/, 'the ZERO-CONTACT block'],
   [2, /do NOT offer a specific appointment time/, 'the REACTIVATION block'],
@@ -27701,6 +27794,19 @@ function _lpApplyVisitDecision(text, chip) {
       out.push(l.replace(/REQUIRED in EVERY format: One specific reason (?:the|any) visit (?:is|would be) worth their time/, 'If you invite them in at all, give one specific reason the visit is worth their time')); drop('distance visit reason softened', l); continue;
     }
     if (L >= 3 && /\(4\) HAND OFF to the sales rep: When they come in, /.test(l)) { out.push(l.replace('When they come in, ', '')); drop('hand-off visit framing', l); continue; }
+    // (v9.7.889) the visit pushes a no-visit decision left standing (found on the first reach-out replays; true of every level-3 hold):
+    // the first-human-touch "THEN ASK THEM IN", the scenario "give them a reason to visit", presence language's "appointment urgency",
+    // and the distance block's visit reason, its examples and its "soonest workable time"
+    if (L >= 3) {
+      if (/ THEN ASK THEM IN\. /.test(l)) { out.push(l.replace(/ THEN ASK THEM IN\.[\s\S]*$/, ' THEN ASK ONE QUESTION THAT FITS THE VISIT DECISION.')); drop('first-human-touch "ask them in"', l); continue; }
+      if (/give them a reason to visit, close in whatever way fits where this customer is\./.test(l)) { out.push(l.replace(/give them a reason to visit, close in whatever way fits where this customer is\./, 'and close in a way that fits the VISIT DECISION.')); drop('scenario "reason to visit"', l); continue; }
+      if (/^PRESENCE LANGUAGE:/.test(t) && /Keep the appointment urgency with readiness language/.test(l)) { out.push(l.replace(/ Keep the appointment urgency with readiness language[^\u2014]*\u2014[^\u2014]*\u2014 and do not claim/, ' Do not claim')); drop('presence "appointment urgency"', l); continue; }
+      if (/DISTANCE BUYER: /.test(l) && / The visit ask must be worth their time\./.test(l)) { out.push(l.replace(/ The visit ask must be worth their time\./, '')); drop('distance "visit ask"', l); continue; }
+      if (/^- This customer is in-state but outside the local area\./.test(t) && /Use the distance SILENTLY:/.test(l)) { out.push(l.replace(/Use the distance SILENTLY:[\s\S]*$/, 'Use the distance silently; this message makes no visit ask (see the VISIT DECISION).')); drop('distance visit reason (in-state)', l); continue; }
+      if (/^\u2022 (?:Vehicle confirmation: "I will have everything ready when you arrive|Efficiency: "We can pre-fill most of the paperwork|Trade value: "I want to have your trade-in numbers ready before you arrive|First-touch: "I will have \[2-3 options\] staged)/.test(t)) { drop('distance visit example', l); continue; }
+      if (/^- SMS: a reason the visit is worth their time is MANDATORY/.test(t)) { drop('distance SMS visit reason', l); continue; }
+      if (/ and encourage the soonest workable time/.test(l)) { out.push(l.replace(/ and encourage the soonest workable time[^\u2014]*/, ', and make no visit ask (see the VISIT DECISION) ')); drop('distance "soonest workable time"', l); continue; }
+    }
     out.push(l);
   }
   var res = out.join('\n');
@@ -34407,6 +34513,8 @@ function buildUserPrompt(data) {
     }
   }
 
+  // (v9.7.889) the first reach-out builds engagement -- see _lpFirstReachOutBlock
+  try { var _froB = _lpFirstReachOutBlock(data); if (_froB) lines.push('', '\ud83e\udd1d ' + _froB); } catch (eFro) {}
   lines.push(
     '',
     '━━━ FORMAT RULES ━━━',
@@ -34587,7 +34695,7 @@ function buildUserPrompt(data) {
   var _vdOut = _out.join('\n');
   try {
     var _vdChip = (typeof _lpAddApptOn === 'function') && _lpAddApptOn(data);   // (v9.7.862)
-    if (!_vdChip && (typeof _lpFirstHumanTouch === 'function') && _lpFirstHumanTouch(data) && (typeof _lpFirstTouchTimesOk === 'function') && _lpFirstTouchTimesOk(data)) _vdChip = _lpFirstTouchNoCar(data) ? 'first-touch-open' : 'first-touch';   // (v9.7.865; 873 no specific car)
+    if (!_vdChip && (typeof _lpFirstHumanTouch === 'function') && _lpFirstHumanTouch(data) && (typeof _lpFirstTouchTimesOk === 'function') && _lpFirstTouchTimesOk(data) && !(_lpFirstReachOut(data) && !_lpAskedToComeIn(data))) _vdChip = _lpFirstTouchNoCar(data) ? 'first-touch-open' : 'first-touch';   // (v9.7.865; 873 no specific car)
     var _vd = _lpApplyVisitDecision(_vdOut, _vdChip);
     _lpLastVisitDecision = { level: _vd.level, owner: _vd.owner, others: _vd.others, removed: _vd.removed };   // (v9.7.776) for the dump
     if (_vd.level || _vd.edits.length || _vdChip) {   // (v9.7.816) the pitch-out edits apply without a hold too; (v9.7.862) and the chip's line

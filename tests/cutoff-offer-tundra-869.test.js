@@ -63,7 +63,7 @@ for (const f of BUILDS) {
   const lead = (hist, x) => Object.assign({ autoLeadId: 'TEST001A', name: 'Test Buyer', firstName: 'Test', agent: 'Agent Name', salesRep: 'Rep Name', vehicle: '2026 Honda Accord SE', condition: 'New', dealerId: '6191',
     store: 'Community Honda Baytown', leadSource: 'Honda Website -', convState: 'active-follow-up', leadAgeDays: 2, hasOutbound: true, hasCustomerReply: true, totalNoteCount: 8, phone: '(555) 010-0199', email: 'test@example.com',
     lastInboundMsg: '', relationshipSignals: { unansweredQuestions: [], lastInboundAgeDays: 1 }, conversationBrief: hist, history: hist, context: '' }, x || {});
-  const pAt = (h, m, x) => { const t = ctAt(h, m); return atClock(t, () => go(lead(E(stamp(t - 86400000, '10:00 AM'), 'CUSTOMER', 'Inbound Text Message', 'Is the Accord still there?') + MARK(stamp(t - 2 * 86400000, '9:00 AM')), x)).prompt); };
+  const pAt = (h, m, x) => { const t = ctAt(h, m); return atClock(t, () => go(lead(E(stamp(t - 86400000, '10:00 AM'), 'CUSTOMER', 'Inbound Text Message', 'Is the Accord still there?') + E(stamp(t - 86400000, '9:30 AM'), 'AGENT', 'Outbound Text Message', 'Test, thanks for asking about the Accord.') + MARK(stamp(t - 2 * 86400000, '9:00 AM')), x)).prompt); };
   const p345 = pAt(15, 45);
   check('the prompt at 3:45 PM: today is the default AND the suggested times are today\'s; no "Appointments are for tomorrow"',
     () => [/There is still usable time TODAY/.test(p345), /^Option: \d{1,2}:\d{2} [AP]M today$/m.test(p345), /Appointments are for tomorrow/.test(p345)], [true, true, false]);

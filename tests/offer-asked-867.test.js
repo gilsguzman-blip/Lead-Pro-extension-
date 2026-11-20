@@ -82,7 +82,8 @@ for (const f of BUILDS) {
     () => /- On the lot today \(this store's inventory feed, new units\): no new 2026 Tacoma i-FORCE MAX\. Say so plainly, once\. New 2026 Tacoma here: SR5 x3 -- and the store's offer list has the same 3\.99% APR for 48 months on the Tacoma, so the rate they saw applies to these too\. Ask which they would rather/.test(g1.prompt), true);
   check('...the certified hybrid is left out (owner, 11/10)', () => [/TRD Off Road/.test(g1.ctx.split('AGENT CONTEXT')[0]), /Pre-owned and certified units are not part of this offer and are not offered against it\./.test(g1.prompt)], [false, true]);
   // (v9.7.873) Owner, 11/14: a first touch with no specific car gets two times; this lead names the Tacoma and no unit.
-  check('...the first touch, no specific unit, gets two times since 9.7.873 (owner, 11/14)', () => [/FIRST HUMAN TOUCH — LIGHT ASK, NO TIMES/.test(g1.prompt), /the lead names no specific car, and they are close by -- close with two specific appointment times/.test(g1.prompt)], [false, true]);
+  // (v9.7.889) owner, 11/20: the first reach-out makes no visit ask (9.7.873 gave it two times)
+  check('...the first touch, no specific unit: no two times since v9.7.889; the FIRST REACH-OUT owns the visit', () => [/close with two specific appointment times/.test(g1.prompt), /VISIT DECISION FOR THIS MESSAGE: no visit ask and no appointment times in this message -- the FIRST REACH-OUT/.test(g1.prompt)], [false, true]);
   check('populateFromData a second time on the same lead keeps the offer (the block was already taken off)',
     () => { const again = go(g1.d); return [(again.ctx.match(/THE OFFER THEY REQUESTED A QUOTE ON/g) || []).length, /TOOL-SUPPLIED/.test(again.prompt)]; }, [1, false]);
   const rf = fn('_lpBuildSmsRefinePrompt');

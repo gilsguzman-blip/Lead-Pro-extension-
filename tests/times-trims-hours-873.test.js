@@ -123,8 +123,9 @@ for (const f of BUILDS) {
   const FAR = (run('Object.keys(ZIP3_CENTROIDS).filter(function (z) { return (_customerDistanceMiles("24399", z + "01") || 0) > LP_VISIT_RADIUS_MILES; })[0]') || '') + '01';
   const FT = (x) => base(THREAD, Object.assign({ outboundSends: [{ body: BOT, date: at(0, '9:05 AM') }], customerZip: LOCAL, customerState: 'LA' }, x || {}));
   const gN = go(FT());
-  check('first touch, model only (no stock, no VIN) -> two times, no light-ask hold', () => [/the lead names no specific car, and they are close by -- close with two specific appointment times/.test(gN.prompt),
-    /FIRST HUMAN TOUCH — LIGHT ASK, NO TIMES/.test(gN.prompt), /SUGGESTED APPOINTMENT TIMES/.test(gN.prompt)], [true, false, true]);
+  // (v9.7.889) owner, 11/20: the first reach-out makes no visit ask -- the two times below were 9.7.873's and are inverted
+  check('first touch, model only (no stock, no VIN) -> no two times since v9.7.889: the FIRST REACH-OUT owns the visit, no slot block', () => [/close with two specific appointment times/.test(gN.prompt),
+    /VISIT DECISION FOR THIS MESSAGE: no visit ask and no appointment times in this message -- the FIRST REACH-OUT/.test(gN.prompt), /SUGGESTED APPOINTMENT TIMES/.test(gN.prompt)], [false, true, false]);
   check('control: an AI Buying Signals lead with no car keeps its own rule (no two times)', () => /the lead names no specific car/.test(go(FT({ leadSource: 'AI Buying Signals - Not Previously Sold' })).prompt), false);
   check('control: a customer more than 75 miles out keeps the light ask', () => /FIRST HUMAN TOUCH — LIGHT ASK, NO TIMES/.test(go(FT({ customerZip: FAR, customerState: 'TX' })).prompt), true);
 }

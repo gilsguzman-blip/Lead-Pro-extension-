@@ -121,7 +121,7 @@ for (const f of BUILDS) {
   check('control: Baytown at 10:00 AM -> same-day times', () => cat(10, 0, 'Community Honda Baytown'), [false, true]);
   check('control: Baytown at 8:30 PM (closed) and on a Sunday -> not "past the cutoff" (the closed lines own those)',
     () => [cat(20, 30, 'Community Honda Baytown')[0], cat(13, 0, 'Community Honda Baytown', 'Sunday')[0]], [false, false]);
-  const sp = (h, m) => { const t = ctAt(h, m); return atClock(t, () => go(base(E(stamp(t - 86400000, '10:00 AM'), 'CUSTOMER', 'Inbound Text Message', 'Is the Accord still there?') + MARK(stamp(t - 2 * 86400000, '9:00 AM')))).prompt); };
+  const sp = (h, m) => { const t = ctAt(h, m); return atClock(t, () => go(base(E(stamp(t - 86400000, '10:00 AM'), 'CUSTOMER', 'Inbound Text Message', 'Is the Accord still there?') + E(stamp(t - 86400000, '9:30 AM'), 'AGENT', 'Outbound Text Message', 'Test, thanks for asking about the Accord.') + MARK(stamp(t - 2 * 86400000, '9:00 AM')))).prompt); };
   const late = sp(19, 11), mid = sp(17, 0);
   check('the prompt at 7:11 PM: "too late in the day for a same-day appointment ... Do NOT offer a time today or tonight", and no "usable time TODAY"',
     () => [/STORE STATUS RIGHT NOW: OPEN, closing at 8 PM \(49m remaining\) -- too late in the day for a same-day appointment(?: \([^)]*\))?\. Earliest available appointment is [^.\n]+\. Do NOT offer a time today or tonight\./.test(late),
