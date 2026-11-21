@@ -131,7 +131,8 @@ for (const f of BUILDS) {
   check('lead 2108597971: "Since you’re handling this remotely, I can send ..." -> "I can send ..." (email); mid-sentence after the name too', () =>
     [guard('Hi Test,\n\nSince you’re handling this remotely, I can send a video walkaround of the Telluride S.\n\nAgent Name', 'email').out,
      guard('Test, since you’re out of state, we can start with a video walkaround.' + SIG, 'sms').out],
-    ['Hi Test,\n\nI can send a video walkaround of the Telluride S.\n\nAgent Name', 'Test, we can start with a video walkaround.' + SIG]);
+    // (v9.7.890) at Audi the walkaround comes from the Brand Specialist (owner, 11/20): this lead is Audi, so "I can send" becomes theirs
+    ['Hi Test,\n\nI can have one of our Audi Brand Specialists send you a walkaround video of the Telluride S.\n\nAgent Name', 'Test, we can start with a video walkaround.' + SIG]);
   check('lead 2108656923: "We have it here, and Audi Lafayette is open until 7 today." goes', () =>
     guard('Test, I understand transportation is hard right now. We have it here, and Audi Lafayette is open until 7 today. Would a call help?' + SIG, 'sms').out,
     'Test, I understand transportation is hard right now. Would a call help?' + SIG);

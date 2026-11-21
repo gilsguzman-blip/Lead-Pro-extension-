@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.890 (Commercial. FOUR FIXES FROM THE 11/19 AND 11/20 REPORTS. Owner, 11/21: "yes build 890 with all four". Extension only; proxy v7.93, reporter v1.26, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. (1) A CAR ON ITS WAY CANNOT BE FILMED. Toyota Baytown lead 3119235982 (11/20, Click & Go, first touch, on 9.7.886): eight drafts in four minutes, every one offering "a video walkaround so you can see it before it arrives" of an inbound RAV4, several asking what color they hoped for on a unit whose VIN fixes it. The in-transit status line and scenario now say nobody can film or photograph it (offer the window sticker or build sheet) and not to ask the color or trim of that unit; _lpInTransitVideoGuard turns a video, walkaround or photo OFFER on an in-transit unit into "the window sticker" at render. (2) AT AUDI THE WALKAROUND COMES FROM THE BRAND SPECIALIST. Owner, 11/20, on the 11/19 Ram and Sonata first touches: "offered as the agent doing it rather than 'I'll get your Sales person/ Brand Specialist "X" to send you a walk around'." The Audi rules and the text rewrite say so; _lpAudiWalkaroundGuard (dealer 21135) turns "As your Concierge, I can send you a video walkaround" into "I can have your Audi Brand Specialist, X, send you a walkaround video" (first name in the text, full name in the email; "one of our Audi Brand Specialists" when none is named) and "Would you like me to send the video?" into "... X to send you the walkaround video". (3) WE TOLD THEM WE DO NOT HAVE IT AND OFFERED SOMETHING ELSE. Kia Baytown lead 3116332231 (11/19 thumbs-down; regrab log428): the salesperson wrote "I don't currently have any pre-owned Kia Souls or Kia Fortes. I do have a Certified Pre-Owned Kia K4 ... I also have a 2021 Hyundai Sonata"; the draft asked again "Soul or Forte?". _lpTeammateAnswered now reports `offered` (our newest answer says we have none of a car and offers others); the teammate block and the text rewrite follow up on that offer and do not re-ask the models they first named. A time slot ("no openings at 3, but I have a 4:00") is not a car. (4) "I WON'T REPEAT THAT QUESTION" is the draft describing its own instructions (Toyota 2103884293, 11/19, copied in an email): LP_META_LEAK_RX now drops it and "the last note already asked". REPLAYED: of the 14 saved dumps only two change -- the Kia lead (the offer line) and an Audi lead (the walkaround rule). TESTS: new four-fixes-890 (16 per build). visit-radius-847's Audi render case updated to the Brand Specialist wording. NON-VACUITY against 9.7.889: 11 fail, the 5 controls pass. VERIFIED: run-all 335 suites, 10978 assertions, 0 failed; dev===comm on every changed region. Builds on 9.7.889. Builds on v9.7.889.)
 // Lead Pro -- popup.js  v9.7.889 (Commercial. THE FIRST REACH-OUT BUILDS ENGAGEMENT; IT DOES NOT ASK FOR THE APPOINTMENT. Owner, 11/20, passing on the VinSolutions performance manager: offering the appointment on the first reach-out "is like asking for a first kiss on the first date without getting to know your date first" -- "ask an engaging question by reading and picking up where the customer is at in the buying journey." All scenarios, all stores. Owner's rulings: a customer who asked to come in still gets times; from our second message on, the usual rules; a returning customer's new lead counts. Extension only; proxy v7.93, reporter v1.26, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. (1) _lpFirstReachOut: no text or email from a person on THIS lead (the virtual assistant, marketing campaigns and the opt-in/opt-out system texts do not count) and no connected call -- the send list and the transcript must both agree, so a gap in one keeps today's behavior. Showroom, walk-in, phone-up and service-drive leads are out (they have met us). (2) _lpAskedToComeIn: the customer's own words ask for a visit, a test drive or an appointment (a negated one -- "a test drive isnt necessary" -- does not count), a day they named, or a test-drive/appointment lead source -> the first reach-out keeps its times. (3) _lpBuyingJourney reads where they are -- valuing or selling their car, building a deal online, working out the money, asked for pricing, replacing a car they lost, nearing the end of what they drive, narrowed to one car, comparing with a model chosen, or early -- and suggests the kind of question that fits. (4) The prompt carries "FIRST REACH-OUT -- BUILD ENGAGEMENT, NO VISIT ASK" with the journey and the one-question rule, and a new level-3 visit hold owned by it; it is soft, so the agent's Add Appt chip still adds two times. v9.7.865/873's two times on a first touch now apply only when the customer asked to come in. (5) Level-3 cleanup, true of every no-visit hold: the first-human-touch "THEN ASK THEM IN", the scenario "give them a reason to visit", presence language's "appointment urgency" and the distance block's visit reason, examples and "soonest workable time" are neutralized. (6) The text rewrite ends on the engaging question. REPLAYED: of the 14 saved dumps, the three first touches change (Toyota no-car quote request, Toyota Edmunds Tundra, Kia total loss) and every follow-up decides exactly as before. TESTS: new first-reach-out-889 (17 per build). DELIBERATELY INVERTED, the old rule's assertions: imx-noappt-720 (3, "offer a visit on first reach out", 9/24), chip-color-firsttouch-865 (2), offer-asked-867 (1), times-trims-hours-873 (1). Fixtures given one of our texts so they keep testing their own feature: openers-cutoff-kia-866, cutoff-offer-tundra-869. NON-VACUITY against 9.7.888: 28 of 34 fail, the 6 controls pass. VERIFIED: run-all 334 suites, 10946 assertions, 0 failed; dev===comm on every changed region. Builds on 9.7.888. Builds on v9.7.888.)
 // Lead Pro -- popup.js  v9.7.888 (Commercial. THE DRAFT IS WRITTEN IN ENGLISH EVEN WHEN THE THREAD IS IN SPANISH. Owner, 11/19: "Grabbed and genned and responses came out in Spanish. Rule is supposed to make the message in English and then allow for the translate chip to be used to convert." (Toyota Baytown lead 3117052433, log427 and dump, on 9.7.887.) Extension only; proxy v7.93, reporter v1.26, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. The customer writes Spanish and every text and email we sent had gone out through the Translate button, so the whole thread the model read was Spanish. Both generations came back in Spanish; the text rewrite's language check (v9.7.669) compares against the first pass, which was Spanish too, so nothing caught it. The system prompt's LANGUAGE rule and the rewrite's were there; the model followed the thread. FIX, three parts. (1) _lpThreadInSpanish counts customer and our text/email entries that read as Spanish (the Translate button's own _lpLooksSpanish); when any do, the user prompt carries, at the end beside the JSON instructions, "LANGUAGE -- THIS CONVERSATION IS IN SPANISH, AND YOUR TEXT, EMAIL AND VOICEMAIL ARE IN ENGLISH" and why (our messages were put into Spanish with the Translate button; the agent translates this draft the same way). (2) _lpEnglishGuard: before the rewrite and before render, a text or email that still reads as Spanish is put into English by one translation call (one retry); a box that cannot be is left as it came and logged [LP ENGLISH GUARD], never blanked. No call is made for an English draft. (3) A rewrite in Spanish over an English first pass does not ship. REPLAYED: of the 13 saved dumps only this lead's prompt changes, by that one line. TESTS: new english-draft-888 (9 per build) executes _lpThreadInSpanish, buildUserPrompt through the panel payload and _lpEnglishGuard with a stubbed endpoint. NON-VACUITY against 9.7.887: 8 fail, the English-thread control passes. VERIFIED: run-all 333 suites, 10912 assertions, 0 failed; dev===comm on every changed region. Builds on 9.7.887. Builds on v9.7.887.)
 // Lead Pro -- popup.js  v9.7.887 (Commercial. A QUOTED-REPLY HEADER CUT SHORT IS STILL NOT THE CUSTOMER. Owner, 11/19 ("regrab"), Kia Baytown lead 3117232759 on 9.7.886 (log426 and dump): 886 fixed the ZIP-as-price and the out-the-door ask, and both drafts then offered "Would Wednesday at 12:15 PM or 1:00 PM work to review the numbers?" -- a day the customer never named. Extension only; proxy v7.93, reporter v1.26, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. (1) The customer's email reached Lead Pro as VinSolutions' preview, "...Can you email me your best price including all fees?Thanks<name> On Wednesday, November 18, 2026 at 07:09:55 PM CST, <agent> ..." -- cut off before "wrote:". _lpCustomerAuthoredPart's header rules all need "wrote:", so nothing was cut, [LP SCHED DAY DIAG] logged "LOCKED -- day name IS customer-authored" on "on wednesday", and the prompt carried "CUSTOMER NAMED A SPECIFIC DAY ... LOCK IN Wednesday" (with NOT TODAY set beside it). FIX: two new cutter rules for the header cut short -- a weekday, a full date with its year and a clock time in a row ("On Wednesday, November 18, 2026 at 07:09:55 PM"), and the numeric form ("On 11/18/2026 7:09 PM"). A customer's own "On Wednesday I can come by" has no year and no clock time and still locks. (2) The channel-preference line read "Re:Pricing on both Sorento VINs By: <agent> <agent>,I prefer to communicate through email" -- the email's Subject: and By: lines as the customer's words. It now drops those lines and reads only the customer-authored part. REPLAYED from the dump with the scraper's day lock, NOT TODAY and channel line as the fixed scraper produces them: no Wednesday, no VISIT DECISION hold; the out-the-door block (send the drive-out numbers, then ask to go over them) is unchanged. TESTS: new quote-cut-short-887 (10 per build) runs the shipped cutter, the shipped schedule loop and the shipped channel-preference block on a fake DOM. NON-VACUITY against 9.7.886: 5 fail, the 5 controls pass. VERIFIED: run-all 332 suites, 10894 assertions, 0 failed; dev===comm on every changed region. Builds on 9.7.886. Builds on v9.7.886.)
@@ -5791,6 +5792,13 @@ function _lpCustomerTalking(d) {
 // within 6 hours, oldest first, each credited by its own send; when one of them delivered what was asked for, `delivered` says so.
 var LP_DELIVERED_RX = /\b(?:i|we)(?:['’]ve| have| just)?\s+(?:sent|emailed|e-mailed|texted|attached|forwarded)\b|\bhere (?:is|are) (?:the|your)\b|\battached\b|\bin your (?:e-?mail|inbox)\b/i;
 var LP_SEND_ASK_RX = /\b(?:send|e-?mail|text|forward|share)\b[^.!?\n]{0,40}(?:\?|\bme\b|\bover\b|\bplease\b)|\bcan (?:u|you|y'?all) (?:send|e-?mail|text|forward)\b|^\s*(?:can (?:u|you) )?e-?mail\s*(?:it|them|me)?\s*\??\s*$/i;
+// (v9.7.890) WE TOLD THEM WE DO NOT HAVE IT, AND OFFERED SOMETHING ELSE. Kia Baytown lead 3116332231 (11/19 thumbs-down; regrab log428):
+// the customer wrote "Yes pre owned either a soul or a forte"; the salesperson answered "I don't currently have any pre-owned Kia Souls
+// or Kia Fortes. I do have a Certified Pre-Owned Kia K4 ... I also have a 2021 Hyundai Sonata." The draft asked again which of a Soul or
+// a Forte they wanted. When our answer says we have none and offers others, the message follows up on what was offered.
+var LP_NONE_HAVE_RX = /\b(?:do\s*n['\u2019]?t|do\s+not|does\s*n['\u2019]?t)\s+(?:currently\s+|right\s+now\s+)?have\s+(?:any|one|a\b)|\b(?:we|i)\s+have\s+no\b|\bno\s+(?:pre-?owned|used|new|certified)\s+[\w-]+\s+(?:on\s+the\s+lot|in\s+stock|available|right\s+now)|\b(?:sold\s+out|none\s+(?:on\s+the\s+lot|in\s+stock|available))\b/i;
+var LP_NONE_VEH_RX = /pre-?owned|\bused\b|\bnew\b|certified|in\s+stock|on\s+the\s+lot|inventory|vehicle|\bcars?\b|truck|\bsuvs?\b|\btrims?\b|\bmodels?\b/i;   // about a car, not a time slot
+var LP_ALT_OFFER_RX = /\b(?:but\s+)?(?:i|we)\s+(?:do\s+|also\s+|currently\s+)?have\s+(?:a|an|one|two|three|some|the|this)\b/i;
 function _lpTeammateAnswered(d) {
   try {
     var src = String((d && (d.history || d.context)) || ''), ents = _lpThreadEntries(src);
@@ -5817,7 +5825,10 @@ function _lpTeammateAnswered(d) {
     var mate = ans.filter(function (a) { return !_lpSameAgent(a.by, d.agent); }).pop();
     // delivered: they asked us to send something, and one of our messages says it went ("I sent the service records to your email")
     var delivered = LP_SEND_ASK_RX.test(String(c.body || '')) && ans.some(function (a) { return LP_DELIVERED_RX.test(a.body); });
-    return { said: String(c.body).replace(/\s+/g, ' ').trim().slice(0, 160), date: c.date, at: _lpEntryClock(c), answers: ans.slice(-4), delivered: delivered,
+    // (v9.7.890) offered: our newest answer says we do not have what they asked for and offers something else
+    var offered = null;
+    for (var oi = ans.length - 1; oi >= 0 && !offered; oi--) if (LP_NONE_HAVE_RX.test(ans[oi].body) && LP_ALT_OFFER_RX.test(ans[oi].body) && LP_NONE_VEH_RX.test(ans[oi].body)) offered = ans[oi];
+    return { said: String(c.body).replace(/\s+/g, ' ').trim().slice(0, 160), date: c.date, at: _lpEntryClock(c), answers: ans.slice(-4), delivered: delivered, offered: offered,
       body: mate.body, by: mate.by, first: mate.first };
   } catch (e) { return null; }
 }
@@ -6710,7 +6721,7 @@ function _lpAmericanSpelling(text) {
 // rewrite shipped "Those times aren't specified in the email, so I shouldn't invent them." A sentence about the email we were
 // given, the first draft, or what the writer may not invent is never for the customer: a rewrite that brings one in does not
 // ship (the first pass does), and any such sentence left in a text, email or voicemail is cut before it is shown.
-var LP_META_LEAK_RX = /(?:\bnot|n['\u2019]t)\s+(?:been\s+)?(?:specified|mentioned|listed|included|given|stated|provided|offered)\s+in\s+the\s+e-?mail\b|\b(?:specified|mentioned|listed|included|given|stated|provided|offered)\s+in\s+the\s+(?:(?:first\s+|original\s+)?draft|prompt|instructions?)\b|\bthe\s+e-?mail\s+(?:does\s*n['\u2019]?t|does\s+not|did\s*n['\u2019]?t|did\s+not)\s+(?:say|mention|specify|list|include|give|offer|state)\b|\bthe\s+(?:first|original|earlier|previous)\s+(?:draft|pass)\b|\bthe\s+rewrite\b|\b(?:my|the)\s+instructions\b|\bI\s+(?:should\s*n['\u2019]?t|should\s+not|wo\s*n['\u2019]?t|will\s+not|must\s+not|must\s*n['\u2019]?t)\s+(?:invent|fabricate)\b|\bI\s+(?:should\s*n['\u2019]?t|should\s+not)\s+make\s+(?:up|\w+\s+up)\b/i;
+var LP_META_LEAK_RX = /(?:\bnot|n['\u2019]t)\s+(?:been\s+)?(?:specified|mentioned|listed|included|given|stated|provided|offered)\s+in\s+the\s+e-?mail\b|\b(?:specified|mentioned|listed|included|given|stated|provided|offered)\s+in\s+the\s+(?:(?:first\s+|original\s+)?draft|prompt|instructions?)\b|\bthe\s+e-?mail\s+(?:does\s*n['\u2019]?t|does\s+not|did\s*n['\u2019]?t|did\s+not)\s+(?:say|mention|specify|list|include|give|offer|state)\b|\bthe\s+(?:first|original|earlier|previous)\s+(?:draft|pass)\b|\bthe\s+rewrite\b|\b(?:my|the)\s+instructions\b|\bI\s+(?:should\s*n['\u2019]?t|should\s+not|wo\s*n['\u2019]?t|will\s+not|must\s+not|must\s*n['\u2019]?t)\s+(?:invent|fabricate)\b|\bI\s+(?:should\s*n['\u2019]?t|should\s+not)\s+make\s+(?:up|\w+\s+up)\b|\bI\s+(?:wo\s*n['\u2019]?t|will\s+not)\s+(?:repeat|re-?ask|ask)\s+(?:that|this|the|my|it)(?:\s+question)?(?:\s+again)?\b|\b(?:the|my|our)\s+(?:last|previous|earlier)\s+(?:note|message|text|email)\s+already\s+asked\b/i;   // (v9.7.890) Toyota 2103884293, 11/19
 function _lpScrubMetaLeak(text) {
   var s = String(text == null ? '' : text), cut = [];
   if (!LP_META_LEAK_RX.test(s)) return s;
@@ -6875,8 +6886,59 @@ function _lpVideoTimeGuard(text, channel) {
     return out;
   } catch (e) { return text; }
 }
+// (v9.7.890) A CAR ON ITS WAY CANNOT BE FILMED. Toyota Baytown lead 3119235982, 11/20 (Click & Go, first touch, on 9.7.886): eight
+// drafts in four minutes, every one offering "a video walkaround so you can see it before it arrives" of a RAV4 that is inbound -- not
+// at the store, so nobody can film or photograph it. On an in-transit unit, an offer of a video, a walkaround or photos becomes the
+// window sticker, which can be sent now. A sentence that only mentions a video they asked about, with no offer, is left alone.
+var LP_TRANSIT_VISUAL_RX = /\b(?:(?:an?|the|some)\s+)?(?:(?:quick|short|brief|full)\s+)?(?:(?:video|virtual)\s+walk[\s-]?around|walk[\s-]?around\s+video|walk[\s-]?around|video|photos|pictures|pics)\b/gi;
+var LP_TRANSIT_OFFER_RX = /\b(?:send|share|text|email|get\s+you|show|would\s+(?:a|the|you)|want\s+(?:me|a|the)|can\s+(?:have|get|put)|happy\s+to|i['’]?ll|i\s+can|i\s+could)\b/i;
+function _lpInTransitVideoGuard(text, channel) {
+  try {
+    var d = (typeof lastScrapedData !== 'undefined' && lastScrapedData) || {};
+    var s = String(text || '');
+    if (!d.isInTransit || !s || !/video|walk[\s-]?around|photos|pictures|pics/i.test(s)) return text;
+    var hits = [];
+    var out = s.split('\n').map(function (line) {
+      return line.split(/(?<=[.!?])\s+/).map(function (sent) {
+        if (!LP_TRANSIT_OFFER_RX.test(sent)) return sent;
+        LP_TRANSIT_VISUAL_RX.lastIndex = 0;
+        var r = sent.replace(LP_TRANSIT_VISUAL_RX, function (m) { hits.push(m); return 'the window sticker'; });
+        return r.replace(/the window sticker(?:,?\s+(?:and|or|plus)\s+the window sticker)+/gi, 'the window sticker');
+      }).join(' ');
+    }).join('\n');
+    if (!hits.length) return text;
+    try { console.log('[LP IN-TRANSIT VIDEO GUARD] ' + (channel || 'draft') + ': "' + hits.join('" / "') + '" offered on a car that is not here yet -> "the window sticker"'); } catch (e) {}
+    return out;
+  } catch (e) { return text; }
+}
+// (v9.7.890) AT AUDI THE WALKAROUND COMES FROM THE BRAND SPECIALIST. Owner, 11/20, on the 11/19 Ram and Sonata first touches that the
+// agents dropped: "the video walk around was offered as the agent doing it rather than 'I'll get your Sales person/ Brand Specialist
+// "X" to send you a walk around'." The Concierge is not with the car. "As your Concierge, I can send you a video walkaround" ->
+// "I can have your Audi Brand Specialist, X, send you a walkaround video"; "Would you like me to send the video?" -> "... X to send ...".
+var LP_AUDI_SELF_VIDEO_RX = /\b(?:As your (?:Audi )?Concierge,\s+)?I(?:['’]ll| will| can| could| would be happy to| am happy to|['’]m happy to)\s+(?:also\s+)?(?:send|arrange|get|shoot|film|record|put together|share|do)\s+(?:you\s+)?(?:an?|the|a quick|a short)\s+(?:(?:quick|short)\s+)?(?:video\s+walk[\s-]?around|walk[\s-]?around\s+video|walk[\s-]?around|video)(?:\s+as your (?:Audi )?Concierge)?/gi;
+var LP_AUDI_ME_VIDEO_RX = /\b(would you like|do you want|want)\s+me\s+to\s+send\s+(?:you\s+)?(?:the|a)\s+(?:(?:quick|short)\s+)?(?:video\s+walk[\s-]?around|walk[\s-]?around\s+video|walk[\s-]?around|video)\b/gi;
+function _lpAudiWalkaroundGuard(text, channel) {
+  try {
+    var d = (typeof lastScrapedData !== 'undefined' && lastScrapedData) || {};
+    var s = String(text || '');
+    if (String(d.dealerId) !== '21135' || !s || !/video|walk[\s-]?around/i.test(s)) return text;
+    var rep = String(d.salesRep || '').replace(/\s+/g, ' ').trim();
+    if (/^(?:none|n\/a|unassigned)$/i.test(rep)) rep = '';
+    var name = rep ? (channel === 'sms' ? rep.split(' ')[0] : rep) : '';
+    var who = name ? 'your Audi Brand Specialist, ' + name + ',' : 'one of our Audi Brand Specialists';
+    var hits = [];
+    LP_AUDI_SELF_VIDEO_RX.lastIndex = 0; LP_AUDI_ME_VIDEO_RX.lastIndex = 0;
+    var out = s.replace(LP_AUDI_SELF_VIDEO_RX, function (m) { hits.push(m); return 'I can have ' + who + ' send you a walkaround video'; })
+      .replace(LP_AUDI_ME_VIDEO_RX, function (m, ask) { hits.push(m); return ask + ' ' + (name || 'one of our Audi Brand Specialists') + ' to send you the walkaround video'; });
+    if (!hits.length) return text;
+    try { console.log('[LP AUDI WALKAROUND GUARD] ' + (channel || 'draft') + ': "' + hits.join('" / "') + '" -> from the Brand Specialist (' + (name || 'none named') + ')'); } catch (e) {}
+    return out;
+  } catch (e) { return text; }
+}
 function _lpHouseGuard(text, channel) {
   try { text = _lpAudiSoldGuard(text, channel); } catch (eAs) {}   // (v9.7.881)
+  try { text = _lpInTransitVideoGuard(text, channel); } catch (eIt) {}   // (v9.7.890)
+  try { text = _lpAudiWalkaroundGuard(text, channel); } catch (eAw) {}   // (v9.7.890)
   try { text = _lpVideoTimeGuard(text, channel); } catch (eVt) {}   // (v9.7.885)
   var s = String(text || '');
   if (!s) return s;
@@ -11390,7 +11452,7 @@ function populateFromData(d) {
   }
   var _agentSaidNotAvail = /not on (the )?lot|don.t have (one|it)|do not have|unfortunately we do not|unfortunately.*not.*available|not.*currently.*available|not.*have.*right now|can.*reach out.*should one become/i.test(d.lastOutboundMsg || '');
   if (d.isInTransit && !stageActive && !_agentSaidNotAvail) {
-    vehicleExtras.push('🚛 VEHICLE STATUS: IN TRANSIT — VIN allocated and confirmed inbound via Toyota, not yet on the lot. Speak to it concretely. Do NOT say "we have it here." DO create urgency to lock it before arrival — this is a strong selling moment.');
+    vehicleExtras.push('🚛 VEHICLE STATUS: IN TRANSIT — VIN allocated and confirmed inbound via Toyota, not yet on the lot. Speak to it concretely. Do NOT say "we have it here." DO create urgency to lock it before arrival — this is a strong selling moment. It is not here yet, so nobody can film or photograph it: never offer a walkaround video, photos or a look at it before it arrives -- offer what can be sent now (its window sticker or build sheet). Its color, trim and options are fixed on its VIN: never ask which color or trim they want for this unit.');   // (v9.7.890)
   } else if (d.isInTransit && _agentSaidNotAvail) {
     vehicleExtras.push('⚠ VEHICLE STATUS: Agent already told this customer the vehicle is NOT currently on the lot. Do NOT claim it is available or in transit. Do NOT offer a test drive appointment for this vehicle. Continue from what was said — offer to notify when one arrives, ask what color/trim/build they want so you can match it when one comes in, or pivot to a comparable that IS in stock.');
   }
@@ -25505,6 +25567,7 @@ function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
   // Both first passes were right. Same rule as the payload: left out, not annotated.
   var _rfAudi = String(d.dealerId) === '21135' && !d.isSoldDelivered;   // (v9.7.881) Audi Lafayette never discloses a sale
   if (_rfAudi) { out.push('STORE POLICY (Audi Lafayette): never tell the customer a vehicle is sold, on hold, pending or no longer available, even if the email or the first draft does. Leave any sale out of the text entirely.'); out.push(''); }
+  if (String(d.dealerId) === '21135') { out.push('STORE POLICY (Audi Lafayette): a walkaround video or photos come from the Brand Specialist, never from you -- "I\'ll have ' + (d.salesRep ? 'your Audi Brand Specialist, ' + String(d.salesRep).split(/\s+/)[0] + ',' : 'one of our Audi Brand Specialists') + ' send you a walkaround video".'); out.push(''); }   // (v9.7.890)
   // (v9.7.884) WHAT THEY ASKED FOR WENT OUT (see _lpTeammateAnswered): the rewrite is told too, or it writes it up as "ready for you to
   // review" (lead 2096450291, 11/18, on 9.7.883: the first pass asked whether the records came through; the rewrite shipped "ready").
   try {
@@ -25513,6 +25576,12 @@ function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
       out.push('\u2501\u2501\u2501 WHAT THEY ASKED FOR ALREADY WENT OUT \u2501\u2501\u2501');
       out.push('They asked "' + _rfTa.said.replace(/"/g, "'") + '" and ' + _lpQuoteWho({ by: _rfTa.by, first: _rfTa.first }, d) + ' sent it. The text asks whether it came through, or whether anything in it raises a question, and gives them time to look it over. '
         + 'Never call it ready, coming or on its way, never offer to send it again, and never write "I sent" about it' + (_lpSameAgent(_rfTa.by, d.agent) ? '' : ' (say ' + _rfTa.first + ' sent it)') + '. No appointment times.');
+      out.push('');
+    }
+    // (v9.7.890) we told them we do not have it and offered something else: the text follows up on that offer
+    if (_rfTa && _rfTa.offered) {
+      out.push('\u2501\u2501\u2501 WE DO NOT HAVE WHAT THEY ASKED FOR, AND OFFERED SOMETHING ELSE \u2501\u2501\u2501');
+      out.push((_lpSameAgent(_rfTa.offered.by, d.agent) ? 'You' : _rfTa.offered.first) + ' told them: "' + _rfTa.offered.body.replace(/"/g, "'") + '". The text follows up on what was offered (does one of those interest them, or what would) and does NOT ask again which of the models they first named they want, or suggest we have one.');
       out.push('');
     }
   } catch (eRfTa) {}
@@ -28837,7 +28906,8 @@ function buildUserPrompt(data) {
       scenarioRules = [
       '- Great news — the vehicle is confirmed and on its way. Lead with that.',
       '- Create light urgency around securing it before it arrives.',
-      '- Give an estimated timeline if known. Invite them to commit now.'
+      '- Give an estimated timeline if known. Invite them to commit now.',
+      '- It is not here yet: no walkaround video or photos of it (nobody can film it) -- the window sticker or build sheet can go now. Its color and trim are fixed on its VIN; do not ask which they want.'   // (v9.7.890)
     ].join('\n');
     } else if (sc.vehicleSold) {
       // (v9.7.193) Removed the custAlreadyKnows word-scan that picked between two sub-directives.
@@ -29499,6 +29569,8 @@ function buildUserPrompt(data) {
       sc.salesRep
         ? '- Brand Specialist for this visit: ' + sc.salesRep + ' — reference as "your Audi Brand Specialist, ' + sc.salesRep + '"'
         : '- No Brand Specialist assigned — reference as "one of our Audi Brand Specialists."',
+      // (v9.7.890) owner, 11/20: the walkaround comes from the Brand Specialist, who is with the car
+      '- A WALKAROUND VIDEO OR PHOTOS COME FROM THE BRAND SPECIALIST, who is with the car -- never from you. Write "I\'ll have ' + (sc.salesRep ? 'your Audi Brand Specialist, ' + sc.salesRep + ',' : 'one of our Audi Brand Specialists') + ' send you a walkaround video"; never "I can send you a video", "as your Concierge, I can send / arrange a video", or that you will film it.',
       sc.nonAudiVehicle
         ? '- NON-AUDI VEHICLE AT AUDI STORE: This is a pre-owned ' + (sc.vehicleBrand || 'non-Audi') + ' at Audi Lafayette. The Audi Concierge persona and Brand Specialist reference remain — that is the store experience. However do NOT describe the vehicle itself using Audi brand language. Do NOT say the vehicle has "Audi engineering" or "Audi quality." Simply present it as a premium pre-owned unit curated by the store.'
         : '',
@@ -31654,6 +31726,7 @@ function buildUserPrompt(data) {
       var _taList = (_ta.answers || []).map(function (a) { return a.at + ' ' + (_lpSameAgent(a.by, data.agent) ? 'you' : a.first) + (a.email ? ' by email' + (a.subject ? ' ("' + a.subject.replace(/"/g, "'") + '")' : '') : '') + ': "' + a.body.replace(/"/g, "'") + '"'; }).join('; ');
       ageBlock.push('↪ THEIR NEWEST MESSAGE WAS ALREADY ANSWERED: they wrote "' + _ta.said.replace(/"/g, "'") + '" (' + _ta.date + (_ta.at ? ' ' + _ta.at : '') + '). What our team sent after it, in order: ' + _taList + '. '
         + (_ta.delivered ? 'What they asked for went out -- ' + _taWho + ' sent it. This message follows that up: ask whether it came through, or whether anything in it raises a question, and give them time to look it over. Do not offer it again, and do not describe it as ready, coming or on its way. ' : 'This message follows that answer: do not present it again as new. ')
+        + (_ta.offered ? 'We do not have what they asked for: ' + (_lpSameAgent(_ta.offered.by, data.agent) ? 'you' : _ta.offered.first) + ' told them so and offered something else ("' + _ta.offered.body.replace(/"/g, "'") + '"). This message picks up from that offer -- ask whether one of those interests them, or what would -- and does NOT ask again which of the models they first named they want, or suggest we have one. ' : '')   // (v9.7.890)
         + 'Messages sent by ' + _ta.first + ' are ' + _ta.first + '\'s: never write "I sent", "the link I sent" or "my last message" about them (you may say ' + _ta.first + ' sent it). '
         + 'Say nothing about how a form, link or process works beyond what our messages or this prompt state.');
       console.log('[LP TEAMMATE ANSWERED DIAG] "' + _ta.said.slice(0, 60) + '" answered by ' + _ta.by + ' (' + (_ta.answers || []).length + ' message(s) after it' + (_ta.delivered ? ', what they asked for went out' : '') + ') -> not ours to claim');
