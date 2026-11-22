@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.891 (Commercial. THREE FIXES FROM THE 11/21 EXPORT. Owner, 11/22: "yes build 891 with all three". Extension only; proxy v7.93, reporter v1.26, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. (1) A COMPETITOR'S MODEL NAMED WITHOUT ITS MAKE. Honda Baytown lead 3119853179 (chat): "a black Integra, new or pre-owned"; the off-franchise reader only knew a model with its make in front of it, and the draft sent was "I can check whether we have a black Integra in stock, new or pre-owned" -- a new Acura the store cannot get. LP_COMPETITOR_MODELS (Acura, Lexus, Chevrolet, Ford, GMC, Nissan, Hyundai, Mazda, Subaru, Jeep, Dodge -- names that are not everyday words only) feeds the off-franchise reader alone; their own car named by model is skipped; and "new" said beside the MODEL, before or after it, now counts as asking for it new (the make-only test missed "Integra, new or pre-owned", and two used Acuras on the lot had kept the block silent). The block now says this Honda store cannot get a new Acura Integra and lists the used Acura we hold. (2) THE FIRST-MESSAGE QUESTION LEADS WITH WHAT AGENTS SEND. 11/21: agents regenerated "what will you use it for?" into "what are you driving now?" (Sorento 3119879446, Ridgeline 3119869673) and cycled seven questions on Corolla 3119788519 before "what are you comparing it with?". _lpBuyingJourney now names "what they are driving now" first on a chosen model, "what they are comparing it with" first on one car, and the block says the first one usually works best and not to fall back on a generic "what caught your eye". (3) "AS YOUR CONCIERGE" NEVER LEADS INTO A QUESTION. Audi 3119777981: "As your Concierge at Audi Lafayette, what would you most like to know about it ...". The Audi rule says where the title goes (the introduction, or a line about what you will do) and never as a question's lead-in; _lpConciergeQuestionGuard drops the lead-in before a question at Audi -- in the email (its signature carries the title), and in the text when its signature does (under 16 notes) or the title is named elsewhere in it. REPLAYED: of the 14 saved dumps, the three first touches change by the question line and the Audi lead by the Concierge rule; nothing else. TESTS: new three-fixes-891 (13 per build). NON-VACUITY against 9.7.890: 8 fail, the 5 controls pass. VERIFIED: run-all 336 suites, 11004 assertions, 0 failed; dev===comm on every changed region. Builds on 9.7.890. Builds on v9.7.890.)
 // Lead Pro -- popup.js  v9.7.890 (Commercial. FOUR FIXES FROM THE 11/19 AND 11/20 REPORTS. Owner, 11/21: "yes build 890 with all four". Extension only; proxy v7.93, reporter v1.26, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. (1) A CAR ON ITS WAY CANNOT BE FILMED. Toyota Baytown lead 3119235982 (11/20, Click & Go, first touch, on 9.7.886): eight drafts in four minutes, every one offering "a video walkaround so you can see it before it arrives" of an inbound RAV4, several asking what color they hoped for on a unit whose VIN fixes it. The in-transit status line and scenario now say nobody can film or photograph it (offer the window sticker or build sheet) and not to ask the color or trim of that unit; _lpInTransitVideoGuard turns a video, walkaround or photo OFFER on an in-transit unit into "the window sticker" at render. (2) AT AUDI THE WALKAROUND COMES FROM THE BRAND SPECIALIST. Owner, 11/20, on the 11/19 Ram and Sonata first touches: "offered as the agent doing it rather than 'I'll get your Sales person/ Brand Specialist "X" to send you a walk around'." The Audi rules and the text rewrite say so; _lpAudiWalkaroundGuard (dealer 21135) turns "As your Concierge, I can send you a video walkaround" into "I can have your Audi Brand Specialist, X, send you a walkaround video" (first name in the text, full name in the email; "one of our Audi Brand Specialists" when none is named) and "Would you like me to send the video?" into "... X to send you the walkaround video". (3) WE TOLD THEM WE DO NOT HAVE IT AND OFFERED SOMETHING ELSE. Kia Baytown lead 3116332231 (11/19 thumbs-down; regrab log428): the salesperson wrote "I don't currently have any pre-owned Kia Souls or Kia Fortes. I do have a Certified Pre-Owned Kia K4 ... I also have a 2021 Hyundai Sonata"; the draft asked again "Soul or Forte?". _lpTeammateAnswered now reports `offered` (our newest answer says we have none of a car and offers others); the teammate block and the text rewrite follow up on that offer and do not re-ask the models they first named. A time slot ("no openings at 3, but I have a 4:00") is not a car. (4) "I WON'T REPEAT THAT QUESTION" is the draft describing its own instructions (Toyota 2103884293, 11/19, copied in an email): LP_META_LEAK_RX now drops it and "the last note already asked". REPLAYED: of the 14 saved dumps only two change -- the Kia lead (the offer line) and an Audi lead (the walkaround rule). TESTS: new four-fixes-890 (16 per build). visit-radius-847's Audi render case updated to the Brand Specialist wording. NON-VACUITY against 9.7.889: 11 fail, the 5 controls pass. VERIFIED: run-all 335 suites, 10978 assertions, 0 failed; dev===comm on every changed region. Builds on 9.7.889. Builds on v9.7.889.)
 // Lead Pro -- popup.js  v9.7.889 (Commercial. THE FIRST REACH-OUT BUILDS ENGAGEMENT; IT DOES NOT ASK FOR THE APPOINTMENT. Owner, 11/20, passing on the VinSolutions performance manager: offering the appointment on the first reach-out "is like asking for a first kiss on the first date without getting to know your date first" -- "ask an engaging question by reading and picking up where the customer is at in the buying journey." All scenarios, all stores. Owner's rulings: a customer who asked to come in still gets times; from our second message on, the usual rules; a returning customer's new lead counts. Extension only; proxy v7.93, reporter v1.26, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. (1) _lpFirstReachOut: no text or email from a person on THIS lead (the virtual assistant, marketing campaigns and the opt-in/opt-out system texts do not count) and no connected call -- the send list and the transcript must both agree, so a gap in one keeps today's behavior. Showroom, walk-in, phone-up and service-drive leads are out (they have met us). (2) _lpAskedToComeIn: the customer's own words ask for a visit, a test drive or an appointment (a negated one -- "a test drive isnt necessary" -- does not count), a day they named, or a test-drive/appointment lead source -> the first reach-out keeps its times. (3) _lpBuyingJourney reads where they are -- valuing or selling their car, building a deal online, working out the money, asked for pricing, replacing a car they lost, nearing the end of what they drive, narrowed to one car, comparing with a model chosen, or early -- and suggests the kind of question that fits. (4) The prompt carries "FIRST REACH-OUT -- BUILD ENGAGEMENT, NO VISIT ASK" with the journey and the one-question rule, and a new level-3 visit hold owned by it; it is soft, so the agent's Add Appt chip still adds two times. v9.7.865/873's two times on a first touch now apply only when the customer asked to come in. (5) Level-3 cleanup, true of every no-visit hold: the first-human-touch "THEN ASK THEM IN", the scenario "give them a reason to visit", presence language's "appointment urgency" and the distance block's visit reason, examples and "soonest workable time" are neutralized. (6) The text rewrite ends on the engaging question. REPLAYED: of the 14 saved dumps, the three first touches change (Toyota no-car quote request, Toyota Edmunds Tundra, Kia total loss) and every follow-up decides exactly as before. TESTS: new first-reach-out-889 (17 per build). DELIBERATELY INVERTED, the old rule's assertions: imx-noappt-720 (3, "offer a visit on first reach out", 9/24), chip-color-firsttouch-865 (2), offer-asked-867 (1), times-trims-hours-873 (1). Fixtures given one of our texts so they keep testing their own feature: openers-cutoff-kia-866, cutoff-offer-tundra-869. NON-VACUITY against 9.7.888: 28 of 34 fail, the 6 controls pass. VERIFIED: run-all 334 suites, 10946 assertions, 0 failed; dev===comm on every changed region. Builds on 9.7.888. Builds on v9.7.888.)
 // Lead Pro -- popup.js  v9.7.888 (Commercial. THE DRAFT IS WRITTEN IN ENGLISH EVEN WHEN THE THREAD IS IN SPANISH. Owner, 11/19: "Grabbed and genned and responses came out in Spanish. Rule is supposed to make the message in English and then allow for the translate chip to be used to convert." (Toyota Baytown lead 3117052433, log427 and dump, on 9.7.887.) Extension only; proxy v7.93, reporter v1.26, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. The customer writes Spanish and every text and email we sent had gone out through the Translate button, so the whole thread the model read was Spanish. Both generations came back in Spanish; the text rewrite's language check (v9.7.669) compares against the first pass, which was Spanish too, so nothing caught it. The system prompt's LANGUAGE rule and the rewrite's were there; the model followed the thread. FIX, three parts. (1) _lpThreadInSpanish counts customer and our text/email entries that read as Spanish (the Translate button's own _lpLooksSpanish); when any do, the user prompt carries, at the end beside the JSON instructions, "LANGUAGE -- THIS CONVERSATION IS IN SPANISH, AND YOUR TEXT, EMAIL AND VOICEMAIL ARE IN ENGLISH" and why (our messages were put into Spanish with the Translate button; the agent translates this draft the same way). (2) _lpEnglishGuard: before the rewrite and before render, a text or email that still reads as Spanish is put into English by one translation call (one retry); a box that cannot be is left as it came and logged [LP ENGLISH GUARD], never blanked. No call is made for an English draft. (3) A rewrite in Spanish over an English first pass does not ship. REPLAYED: of the 13 saved dumps only this lead's prompt changes, by that one line. TESTS: new english-draft-888 (9 per build) executes _lpThreadInSpanish, buildUserPrompt through the panel payload and _lpEnglishGuard with a stubbed endpoint. NON-VACUITY against 9.7.887: 8 fail, the English-thread control passes. VERIFIED: run-all 333 suites, 10912 assertions, 0 failed; dev===comm on every changed region. Builds on 9.7.887. Builds on v9.7.887.)
@@ -5431,12 +5432,12 @@ function _lpBuyingJourney(d) {
       ask: 'what they would like to do when it is up, or what they would change about what they drive now' };
   if (unit && model)
     return { stage: 'NARROWED TO ONE CAR', evidence: 'they asked about one specific ' + veh,
-      ask: 'what drew them to that one, or the one thing that matters most to them on it' };
+      ask: 'what they are comparing it with as they decide, or what drew them to that one' };   // (v9.7.891) what the agents sent, 11/21
   if (model)
     return { stage: 'COMPARING, MODEL CHOSEN', evidence: 'they named the ' + veh + ' but no one unit',
-      ask: 'what they will mostly use it for, what they are driving now, or the one feature they will not do without' };
+      ask: 'what they are driving now (it opens the trade conversation), or what they are comparing it with' };   // (v9.7.891) agents regenerated "use it for" into "driving now", 11/21
   return { stage: 'EARLY: STILL LOOKING', evidence: 'no vehicle is named on the lead',
-    ask: 'what kind of vehicle they have in mind, or what they are driving now and what they would change' };
+    ask: 'what they are driving now and what they would change, or what kind of vehicle they have in mind' };   // (v9.7.891)
 }
 function _lpFirstReachOutBlock(d) {
   try {
@@ -5445,7 +5446,7 @@ function _lpFirstReachOutBlock(d) {
     try { console.log('[LP FIRST REACH-OUT DIAG] no visit ask on the first reach-out | journey: ' + j.stage + ' -- ' + j.evidence); } catch (eL) {}
     return 'FIRST REACH-OUT — BUILD ENGAGEMENT, NO VISIT ASK: this is the first message a person on our team sends on this lead. Store policy: the first reach-out does not ask for the appointment -- no appointment times, no "come in today", no "stop by", no "when can you come in", no "I can have it ready for your visit". Its job is to start a conversation.\n'
       + 'WHERE THEY ARE IN THE BUYING JOURNEY: ' + j.stage + ' -- ' + j.evidence + '. Read the rest of this prompt (their inquiry, what they were looking at on our site, their trade) to place them more exactly.\n'
-      + '- Answer anything they asked first. Then ask an engaging question that picks up where they are -- for example ' + j.ask + '. Keep it to that single question, easy to answer in a few words and about them; never a list (not trim AND color AND budget), never about scheduling.\n'
+      + '- Answer anything they asked first. Then ask an engaging question that picks up where they are -- the first one named here usually works best: ' + j.ask + '. Keep it to that single question, easy to answer in a few words and about them; never a list (not trim AND color AND budget), never about scheduling, and not a generic "what caught your eye".\n'   // (v9.7.891)
       + '- You may say the car is here if it is. The email may add one useful detail but makes the same single ask; the voicemail asks the same question and invites a call or text back.';
   } catch (e) { return ''; }
 }
@@ -6935,8 +6936,29 @@ function _lpAudiWalkaroundGuard(text, channel) {
     return out;
   } catch (e) { return text; }
 }
+// (v9.7.891) "AS YOUR CONCIERGE" NEVER LEADS INTO A QUESTION. Audi Lafayette lead 3119777981 (11/21): "As your Concierge at Audi Lafayette,
+// what would you most like to know about it as you decide your next step?" and "As your Concierge, I'd love to know what caught your
+// eye about it?" -- the every-format rule pushed the title into the question. The lead-in goes when a question (or "I'd love to know")
+// follows it. The email's signature carries the title; so does the text's while its signature has the store line (fewer than 16 notes),
+// or when the title is named elsewhere in it -- otherwise the text keeps it.
+var LP_CONCIERGE_Q_RX = /\bAs your (?:Audi )?Concierge(?: (?:here )?(?:at|with) Audi Lafayette)?,\s+(?=(?:what|which|how|would|could|do|did|does|is|are|was|when|where|why|who|can|may|I['’]d love to know|I would love to know|I['’]m curious)\b)/gi;
+function _lpConciergeQuestionGuard(text, channel) {
+  try {
+    var d = (typeof lastScrapedData !== 'undefined' && lastScrapedData) || {};
+    var s = String(text || '');
+    if (String(d.dealerId) !== '21135' || !s || !/Concierge/i.test(s)) return text;
+    LP_CONCIERGE_Q_RX.lastIndex = 0;
+    if (!LP_CONCIERGE_Q_RX.test(s)) return text;
+    LP_CONCIERGE_Q_RX.lastIndex = 0;
+    var out = s.replace(LP_CONCIERGE_Q_RX, '').replace(/(^|[.!?]\s+|\n|,\s+)([a-z])/g, function (m, p, c) { return /,/.test(p) ? m : p + c.toUpperCase(); });
+    if (channel !== 'email' && !/Concierge/i.test(out) && !((d.totalNoteCount | 0) < 16)) return text;   // the text's only Concierge, and its signature will not carry one
+    try { console.log('[LP CONCIERGE QUESTION GUARD] ' + (channel || 'draft') + ': "As your Concierge, ..." before a question removed (the title stays in the ' + (channel === 'email' ? 'signature' : (/Concierge/i.test(out) ? 'text' : 'signature')) + ')'); } catch (e) {}
+    return out;
+  } catch (e) { return text; }
+}
 function _lpHouseGuard(text, channel) {
   try { text = _lpAudiSoldGuard(text, channel); } catch (eAs) {}   // (v9.7.881)
+  try { text = _lpConciergeQuestionGuard(text, channel); } catch (eCq) {}   // (v9.7.891)
   try { text = _lpInTransitVideoGuard(text, channel); } catch (eIt) {}   // (v9.7.890)
   try { text = _lpAudiWalkaroundGuard(text, channel); } catch (eAw) {}   // (v9.7.890)
   try { text = _lpVideoTimeGuard(text, channel); } catch (eVt) {}   // (v9.7.885)
@@ -8561,6 +8583,36 @@ function _lpOwnWordsModel(brief, dealerId) {
   } catch (e) { return ''; }
 }
 
+// (v9.7.891) A COMPETITOR'S MODEL, NAMED WITHOUT ITS MAKE. Honda Baytown lead 3119853179 (11/21, chat): "a black Integra, new or
+// pre-owned". The Integra is an Acura; the off-franchise reader only knew a model with its make in front of it, so the request read as
+// one the store could fill and the draft sent was "I can check whether we have a black Integra in stock, new or pre-owned". The common
+// competitor models of the five stores' market, each with its make -- only names that are not everyday words (no Escape, Rogue,
+// Ranger, Outback, Sierra, Charger). Used by the off-franchise reader only; returns "make model" phrases like _lpChatVehicleCandidates.
+var LP_COMPETITOR_MODELS = [
+  [/\bintegra\b/i, 'acura'], [/\bmdx\b/i, 'acura'], [/\brdx\b/i, 'acura'], [/\btlx\b/i, 'acura'], [/\bilx\b/i, 'acura'],
+  [/\b(?:rx|nx|es|gx|lx|tx)\s?\d{3}h?\b/i, 'lexus'],
+  [/\bsilverado\b/i, 'chevy'], [/\btahoe\b/i, 'chevy'], [/\bsuburban\b/i, 'chevy'], [/\bequinox\b/i, 'chevy'], [/\bmalibu\b/i, 'chevy'], [/\btraverse\b/i, 'chevy'], [/\bcamaro\b/i, 'chevy'], [/\bcorvette\b/i, 'chevy'],
+  [/\bf[\s-]?(?:150|250|350)\b/i, 'ford'], [/\bmustang\b/i, 'ford'], [/\bbronco\b/i, 'ford'], [/\bexpedition\b/i, 'ford'],
+  [/\byukon\b/i, 'gmc'],
+  [/\baltima\b/i, 'nissan'], [/\bsentra\b/i, 'nissan'], [/\bpathfinder\b/i, 'nissan'], [/\bmurano\b/i, 'nissan'], [/\barmada\b/i, 'nissan'],
+  [/\belantra\b/i, 'hyundai'], [/\bsonata\b/i, 'hyundai'], [/\bpalisade\b/i, 'hyundai'], [/\bkona\b/i, 'hyundai'],
+  [/\bcx[\s-]?(?:30|5|50|70|90)\b/i, 'mazda'],
+  [/\bforester\b/i, 'subaru'], [/\bcrosstrek\b/i, 'subaru'], [/\bwrx\b/i, 'subaru'],
+  [/\bwrangler\b/i, 'jeep'], [/\bgrand cherokee\b/i, 'jeep'], [/\bgladiator\b/i, 'jeep'],
+  [/\bdurango\b/i, 'dodge']
+];
+function _lpBareCompetitorModels(text) {
+  var t = String(text || ''), out = [];
+  try {
+    LP_COMPETITOR_MODELS.forEach(function (e) {
+      var m = e[0].exec(t); if (!m) return;
+      var before = t.slice(Math.max(0, m.index - 20), m.index);
+      if (new RegExp('\\b' + e[1] + '\\s*$', 'i').test(before) || (e[1] === 'chevy' && /\bchevrolet\s*$/i.test(before))) return;   // the make is written: the make reader has it
+      out.push(e[1] + ' ' + m[0].toLowerCase().replace(/\s+/g, ' '));
+    });
+  } catch (e) {}
+  return out;
+}
 var _LP_CHAT_MAKES = ['lexus','toyota','honda','kia','audi','nissan','ford','chevrolet','chevy','gmc','jeep','ram','dodge','chrysler','hyundai','subaru','mazda','volkswagen','vw','bmw','mercedes','benz','acura','infiniti','lincoln','cadillac','buick','volvo','tesla','genesis','mitsubishi','porsche','jaguar','mini','fiat'];
 function _lpChatVehicleCandidates(text){
   if (!text) return [];
@@ -10697,7 +10749,7 @@ function populateFromData(d) {
     if (_ofBrand && _ofText.trim()) {
       var _ofOwn = ((d.tradeDescription || '') + ' ' + (d.ownedVehicle || '') + ' ' +
                     (d.priorSoldVehicle || '') + ' ' + (d._hcaCurrentVehicle || '')).toLowerCase();
-      var _ofCands = _lpChatVehicleCandidates(_ofText) || [];
+      var _ofCands = (_lpChatVehicleCandidates(_ofText) || []).concat(_lpBareCompetitorModels(_ofText));   // (v9.7.891) and a competitor's model named alone
       var _ofHit = null;
       for (var _oi = 0; _oi < _ofCands.length; _oi++) {
         var _ofPhrase = String(_ofCands[_oi] || '').trim();
@@ -10708,6 +10760,7 @@ function populateFromData(d) {
         var _ofModel = (_ofParts[1] || '').toLowerCase();
         // their own car (trade / owned / prior sold) — skip
         if (_ofOwn.indexOf(_ofMake) > -1 && (!_ofModel || _ofOwn.indexOf(_ofModel) > -1)) continue;
+        if (_ofModel && _ofOwn.indexOf(_ofModel) > -1) continue;   // (v9.7.891) their own car named by model alone ("trading my Integra")
         _ofHit = { phrase: _ofPhrase, make: _ofMake, model: _ofModel };
         break;
       }
@@ -10716,6 +10769,15 @@ function populateFromData(d) {
         // the comprehension probe cannot drift apart. This block's behaviour is UNCHANGED — the
         // gate is the same two conditions this code has always applied, lifted out verbatim.
         var _ofGate   = _lpOffFranchiseGate(_ofHit.make, _ofText, d.dealerId, _lpValueFactCache);
+        // (v9.7.891) "a black Integra, new or pre-owned": new is said beside the MODEL, before or after it, not only beside the make
+        try {
+          if (!_ofGate.saidNew && _ofHit.model && _ofHit.model.length >= 3) {
+            var _ofMEsc = _ofHit.model.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            if (new RegExp('\\bnew\\b[^.!?]{0,25}\\b' + _ofMEsc + '\\b|\\b' + _ofMEsc + '\\b[^.!?]{0,30}\\bnew\\b', 'i').test(_ofText)) {
+              _ofGate.saidNew = true; _ofGate.fires = true; _ofGate.reason += ' | they asked for the ' + _ofHit.model + ' new';
+            }
+          }
+        } catch (eOfN) {}
         var _ofUnits  = _ofGate.inventoryKnown ? _ofGate.units : null;
         var _ofMatch  = _ofGate.units;
         var _ofSaidNew = _ofGate.saidNew;
@@ -29562,7 +29624,7 @@ function buildUserPrompt(data) {
       // IDENTITY LOCK does not cover this: it governs the NAME ("never substitute one of those
       // names for your own"), not the TITLE. Handing your title to someone else substitutes
       // nothing, so nothing stopped it.
-      '- The word "Concierge" must appear in every format — it is YOUR title and it stays, on a first touch and on every touch after. IT IS YOURS ALONE: never attach "Concierge" to the Sales Rep, the Brand Specialist, the Manager, or any other name on this lead. They keep their own titles.'
+      '- The word "Concierge" must appear in every format — it is YOUR title and it stays, on a first touch and on every touch after. IT IS YOURS ALONE: never attach "Concierge" to the Sales Rep, the Brand Specialist, the Manager, or any other name on this lead. They keep their own titles. Put it where it reads naturally -- your introduction ("this is <you>, your Audi Concierge") or a line about what you will do for them -- and NEVER as the lead-in to a question: not "As your Concierge, what would you like to know?" or "As your Concierge, I\'d love to know what caught your eye."'   // (v9.7.891) owner, 11/22
         + (sc.salesRep ? ' Specifically: ' + sc.salesRep + ' is your Audi Brand Specialist and must NEVER be called a Concierge.' : ''),
       '- Tone: elevated, white-glove, personalized. Audi is a luxury brand — the communication should feel premium.',
       '- Never use generic BDC language like "I\'m reaching out regarding your inquiry." Instead: "I wanted to personally reach out..." or "I\'m personally following up..."',
