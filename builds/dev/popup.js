@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.895-dev (Dev. CHRISTMAS EVE AND NEW YEAR'S EVE CLOSE AT 5 PM, every store. Owner, 11/25: "Christmas Eve and New Year's Eve close at 5 PM". Extension only; proxy v7.93, reporter v1.26, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. _lpEarlyCloseName (December 24 and 31) beside 9.7.894's holiday table. The appointment engine closes at 5 PM on those days, so the last same-day time is 4:00 PM (an hour before closing, the 869 rule), and a next day that falls on one closes at 5 PM too; Christmas Eve after 3 PM rolls to Saturday 12/26 and New Year's Eve to Saturday 1/2, the holidays skipped. The calendar labels the day "(closes at 5 PM -- Christmas Eve)" with an EARLY CLOSE line (no time after 4:00 PM), and the store status on the day itself reads "Closes at 5 PM" (every same-day rule below it reads the same hours). A Sunday Christmas Eve stays closed. REPLAYED: none of the 15 saved dumps reaches those days, and none changes. TESTS: new early-close-895 (7 per build, on the agents' Central clock). NON-VACUITY against 9.7.894: 5 fail, the 2 controls pass. VERIFIED: run-all 340 suites, 11074 assertions, 0 failed; dev===comm on every changed region. Builds on 9.7.894. Builds on v9.7.894.)
 // Lead Pro -- popup.js  v9.7.894-dev (Dev. STORE HOLIDAYS: EVERY STORE IS CLOSED. Owner, 11/25: "Agent told me that the first message was pushing for an appointment tomorrow, Thanksgiving. We're closed at all stores. While we're at it we need to add the logic for all major holidays. Christmas, New Years Day being closed." and "agent manually changed the message to a today and Friday time". Extension only; proxy v7.93, reporter v1.26, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. Audi Lafayette lead 3121946430 (Wednesday 11/25, log429): the calendar read "TOMORROW = Thursday 11/26" as an open day; nothing in Lead Pro knew a holiday. (The store's virtual assistant's own 2:28 AM message also offered "Thursday at 10:00 AM"; that is not Lead Pro's.) FIX: _lpHolidayName -- Thanksgiving Day (the fourth Thursday of November), Christmas Day, New Year's Day -- read by everything that decides an open day. The calendar marks the day "(CLOSED -- <holiday>)" and adds a HOLIDAY line (every store closed, never offer it or "tomorrow" if that is the day, and the next open day to offer if they name it); the store status on the day itself reads CLOSED with the holiday's name, and the soonest-first line no longer says "today plus tomorrow" when tomorrow is the holiday; the appointment engine has no same-day slots on a holiday and its next business day skips Sundays and holidays together (Christmas Eve evening -> Saturday 12/26; New Year's Eve evening -> Saturday 1/2); and _lpHolidayTimeGuard, in a sentence with a clock time, moves the holiday's day name, its date, or "tomorrow"/"today" when that is the holiday, to the next open day -- a sentence that says we are closed or names the holiday is left alone. Not in scope, for the owner: Christmas Eve or New Year's Eve hours, and Memorial Day, July 4 and Labor Day (left open). REPLAYED: the dumps whose 8-day calendar reaches 11/26 gain the CLOSED label and the HOLIDAY line; the 11/25 Audi lead also its status line; the rest are unchanged. TESTS: new holidays-894 (13 per build, on the agents' Central clock). cutoff-offer-tundra-869 picks the most recent Wednesday from the real clock -- on 11/25 that was the day before Thanksgiving, so it now skips a Wednesday whose Thursday is a holiday. NON-VACUITY against 9.7.893: 10 fail, 3 controls pass. VERIFIED: run-all 339 suites, 11060 assertions, 0 failed; dev===comm on every changed region. Builds on 9.7.893. Builds on v9.7.893.)
 // Lead Pro -- popup.js  v9.7.893-dev (Dev. THE TEXT KEEPS WHAT IT GIVES, AND WHAT IT GIVES HELPS THEM DECIDE. Owner, 11/25: "yes build 893 with both". Extension only; proxy v7.93, reporter v1.26, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. On 11/24 (9.7.892) stalled follow-ups came out as short as before -- before Expand, about 120 characters on 892 and 130 on 891 -- and Expand was pressed on all five stalled leads one agent worked on 892. (1) THE TEXT REWRITE. The main draft carried 892's "give before you ask"; the rewrite, on a follow-up whose pitch went unanswered (most stalled leads), was told "Right after their name, bring one new thing or ask one simple question" -- and took the question (Kia 2112669282: "I've been trying to reach you about the 2027 Seltos. You can call or text me here. Has your timeline shifted ...?"). Now: "bring one new thing -- something useful the email gives (what is on our lot, what we will do for them, the offer) -- and then end on one simple question; never the question alone". The we-have-called branch ("give one easy way to reach us and ask one simple question") gains the same useful thing; the first reach-out's text keeps the email's useful line ahead of its question. The pause branch (room, no question) is unchanged. (2) WHAT COUNTS AS USEFUL. Honda Baytown 3121256964's first touch gave "the Pilot LX is front-wheel drive", and the agent cut back to it. The first-reach-out and follow-up lines now ask for what helps them decide -- what is on our lot (how many, which colors or trims), a feature that sets that trim apart, the store offer, or what we can do next -- and say a lone window-sticker spec is not it. REPLAYED: each of the 14 saved dumps changes by that one reworded line, except the Audi decline lead, which carries neither. TESTS: new give-and-ask-893 (5 per build). NON-VACUITY against 9.7.892: all 5 fail (no controls: every check names new wording). VERIFIED: run-all 338 suites, 11034 assertions, 0 failed; dev===comm on every changed region. Builds on 9.7.892. Builds on v9.7.892.)
 // Lead Pro -- popup.js  v9.7.892-dev (Dev. GIVE BEFORE YOU ASK, AND A SOLD CAR IS NEVER ONE OF THE OPTIONS. Owner, 11/24: "fold the stalled length and follow ups in general into the Wrangler build and actually look into expanding the first touch also. They seem to be shorter now that the appointment ask is gone." Extension only; proxy v7.93, reporter v1.26, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. (1) GIVE BEFORE YOU ASK. On 11/23 the Expand chip was pressed 11 times, every one on a stalled follow-up, every result sent; and since 9.7.889 the first reach-out's only ask is one question. No length target (owner, 9/16: no sentence constraint) -- the Expand chip's job becomes the default. The first reach-out block now asks, ahead of its question, for one or two sentences specific to the lead (a real fact about the car or trim, what we can do next, or the store offer). Follow-ups and stalled leads carry a "GIVE BEFORE YOU ASK" line saying the same, with no padding; it is left out on an exit, a pause, a sold-and-delivered lead or an appointment confirmation, and removed when the visit decision belongs to a hold that keeps a message small (room, an exit, a decline, a call only, their timeline). (2) A SOLD CAR IS NEVER ONE OF THE OPTIONS. Kia Baytown lead 2106486534 (11/23, two thumbs-down): "the 2015 Wrangler Unlimited Sport you asked about has sold ... Which Wrangler should I focus on: the 2018 Sahara or the 2015 Sport?". The root: our own "has sold" message about a used Jeep at a Kia store was read as "not about a vehicle" -- the model list knows only our four brands -- so the lead was never treated as sold. _lpSoldClaimForVoi now takes the lead's own model word named in the sold sentence (year, color, trim, VIN and stock conflict checks unchanged). When the lead's vehicle has sold the prompt says never to offer it or put it in a choice, and the two-model question names the other vehicle as the one, with no either/or. Not confirmed on a grab of that lead; the shape is reproduced. REPLAYED: of the 14 saved dumps, the three first touches gain the give-before line in their first-reach-out block, ten follow-ups gain the follow-up line, and the Audi decline lead is unchanged. TESTS: new give-before-892 (10 per build). NON-VACUITY against 9.7.891: 6 fail, the 4 controls pass. VERIFIED: run-all 337 suites, 11024 assertions, 0 failed; dev===comm on every changed region. Builds on 9.7.891. Builds on v9.7.891.)
@@ -803,6 +804,17 @@ function _lpHolidayName(d) {
     if (m === 10 && wd === 4 && day >= 22 && day <= 28) return 'Thanksgiving Day';   // the fourth Thursday of November
     if (m === 11 && day === 25) return 'Christmas Day';
     if (m === 0 && day === 1) return 'New Year’s Day';
+  } catch (e) {}
+  return '';
+}
+// (v9.7.895) CHRISTMAS EVE AND NEW YEAR'S EVE CLOSE AT 5 PM, every store. Owner, 11/25: "Christmas Eve and New Year's Eve close at 5 PM".
+// The last same-day appointment is an hour before closing, as on every other day (the v9.7.869 rule).
+var LP_EARLY_CLOSE_MINS = 17 * 60;
+function _lpEarlyCloseName(d) {
+  try {
+    if (!d || isNaN(d.getTime())) return '';
+    if (d.getMonth() === 11 && d.getDate() === 24) return 'Christmas Eve';
+    if (d.getMonth() === 11 && d.getDate() === 31) return 'New Year’s Eve';
   } catch (e) {}
   return '';
 }
@@ -31464,7 +31476,8 @@ function buildUserPrompt(data) {
           var _cd_md = (_cd.getMonth()+1) + '/' + _cd.getDate();
           var _cd_label = _ci === 0 ? 'TODAY' : _ci === 1 ? 'TOMORROW' : _ci === 2 ? 'in 2 days' : _ci === 3 ? 'in 3 days' : _ci === 4 ? 'in 4 days' : ('next ' + _cd_day);
           var _cd_hol = (typeof _lpHolidayName === 'function') ? _lpHolidayName(_cd) : '';   // (v9.7.894)
-          var _cd_closed = _dayIsClosed(_cd) ? (_cd_hol ? ' (CLOSED \u2014 ' + _cd_hol + ')' : ' (CLOSED)') : '';
+          var _cd_early = (typeof _lpEarlyCloseName === 'function') ? _lpEarlyCloseName(_cd) : '';   // (v9.7.895)
+          var _cd_closed = _dayIsClosed(_cd) ? (_cd_hol ? ' (CLOSED \u2014 ' + _cd_hol + ')' : ' (CLOSED)') : (_cd_early ? ' (closes at 5 PM \u2014 ' + _cd_early + ')' : '');
           _cal_lines.push('  ' + _cd_label + ' = ' + _cd_day + ' ' + _cd_md + _cd_closed);
         }
         // (v9.7.894) a holiday in the window: closed at every store, and the next open day named
@@ -31478,6 +31491,14 @@ function buildUserPrompt(data) {
             console.log('[LP HOLIDAY DIAG] ' + _hnm + ' on ' + (_hd.getMonth()+1) + '/' + _hd.getDate() + ' -> closed; next open ' + (_hn ? (_hn.getMonth()+1) + '/' + _hn.getDate() : '(none in window)'));
           }
         } catch (eHol) {}
+        // (v9.7.895) an early-close day in the window: every store closes at 5 PM, the last appointment at 4 PM
+        try {
+          for (var _ei = 0; _ei <= 8; _ei++) {
+            var _ed = new Date(_cal_now); _ed.setDate(_cal_now.getDate() + _ei);
+            var _enm = (typeof _lpEarlyCloseName === 'function') ? _lpEarlyCloseName(_ed) : ''; if (!_enm || _dayIsClosed(_ed)) continue;
+            _cal_lines.push('  EARLY CLOSE: ' + _cal_dayNames[_ed.getDay()] + ' ' + (_ed.getMonth()+1) + '/' + _ed.getDate() + ' is ' + _enm + ' -- every store closes at 5 PM. On that day offer no time after 4:00 PM.');
+          }
+        } catch (eEc) {}
         // ── (v9.7.642) THE NEXT OPEN DAY, COMPUTED WHERE THE CLOSED-NESS IS ALREADY KNOWN ──────
         // The SOONEST-FIRST line further down says "lead with a today time, or today plus
         // tomorrow" as a hardcoded string. On Chukwuma Emezie's 9:05 AM Saturday grab that shipped
@@ -31785,6 +31806,7 @@ function buildUserPrompt(data) {
                           : _cal_now.getDay() === 6 ? _hrs.saturday
                           : _hrs.weekday;
             var _holToday = (typeof _lpHolidayName === 'function') ? _lpHolidayName(_cal_now) : '';   // (v9.7.894)
+            try { if (typeof _lpEarlyCloseName === 'function' && _lpEarlyCloseName(_cal_now)) _todayHrs = String(_todayHrs).replace(/-\s*\d{1,2}(?::\d{2})?\s*(AM|PM)\s*$/i, '- 5 PM'); } catch (eEcT) {}   // (v9.7.895) closes at 5 PM today
             var _isClosedToday = /closed/i.test(_todayHrs) || !!_holToday;
             var _statusLine = '';
             if (_isClosedToday) {
@@ -35030,6 +35052,7 @@ function computeAppointmentTimes(store) {
   }
 
   try { if (typeof _lpHolidayName === 'function' && _lpHolidayName(central)) openMins = null; } catch (eHol) {}   // (v9.7.894) closed on a holiday
+  try { if (typeof _lpEarlyCloseName === 'function' && _lpEarlyCloseName(central) && openMins != null && closeMins > LP_EARLY_CLOSE_MINS) { closeMins = LP_EARLY_CLOSE_MINS; sameDayCutoffMins = closeMins - 60; } } catch (eEc) {}   // (v9.7.895) 5 PM close
 
   // Round current time UP to next 15-minute slot, then add 2-hour buffer
   function nextSlot(fromMins) {
@@ -35151,6 +35174,7 @@ function computeAppointmentTimes(store) {
     nextOpen = 9*60; nextClose = 20*60;
   }
 
+  try { if (typeof _lpEarlyCloseName === 'function' && _lpEarlyCloseName(tomorrow)) nextClose = Math.min(nextClose, LP_EARLY_CLOSE_MINS); } catch (eEc2) {}   // (v9.7.895) the next day closes at 5 PM
   // Pick two well-spaced next-day slots: by lead (seed), from LP_NEXT_DAY_PAIRS; no seed -> the first pair (9:15 / 10:30)
   let _pi = 0;
   if (seed) { let h = 0; const s = String(seed); for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 9973; _pi = h % LP_NEXT_DAY_PAIRS.length; }
