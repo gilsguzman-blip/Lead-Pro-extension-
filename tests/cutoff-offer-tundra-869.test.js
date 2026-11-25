@@ -32,7 +32,11 @@ const MARK = (date) => '[' + date + '] [=== CURRENT LEAD SUBMITTED HERE ===]\n  
 const ctParts = (t) => { const o = {}; new Intl.DateTimeFormat('en-US', { timeZone: 'America/Chicago', hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', weekday: 'long' })
   .formatToParts(new Date(t)).forEach(x => { o[x.type] = x.value; }); return o; };
 // the most recent Wednesday (a weekday with a weekday after it), at h:m Central
-const ctAt = (h, m) => { for (let back = 0; back < 8; back++) { const p = ctParts(Date.now() - back * 86400000); if (p.weekday !== 'Wednesday') continue;
+// (v9.7.894) ...and not one whose Thursday is a store holiday (Thanksgiving, Christmas Day, New Year's Day): every store is closed then,
+// so "the next morning" is Friday. Found on 11/25/2026, the Wednesday before Thanksgiving.
+const thuIsHoliday = (p) => { const d = new Date(Date.UTC(+p.year, +p.month - 1, +p.day + 1)); const mo = d.getUTCMonth(), dd = d.getUTCDate();
+  return (mo === 10 && dd >= 22 && dd <= 28) || (mo === 11 && dd === 25) || (mo === 0 && dd === 1); };
+const ctAt = (h, m) => { for (let back = 0; back < 15; back++) { const p = ctParts(Date.now() - back * 86400000); if (p.weekday !== 'Wednesday' || thuIsHoliday(p)) continue;
   for (const off of [5, 6]) { const t = Date.UTC(+p.year, +p.month - 1, +p.day, h + off, m); const q = ctParts(t); if ((+q.hour % 24) === h && q.day === p.day) return t; } } return Date.now(); };
 const stamp = (ms, clock) => { const p = ctParts(ms); return p.month + '/' + p.day + '/' + p.year + ' ' + clock; };
 

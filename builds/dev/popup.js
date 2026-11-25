@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.894-dev (Dev. STORE HOLIDAYS: EVERY STORE IS CLOSED. Owner, 11/25: "Agent told me that the first message was pushing for an appointment tomorrow, Thanksgiving. We're closed at all stores. While we're at it we need to add the logic for all major holidays. Christmas, New Years Day being closed." and "agent manually changed the message to a today and Friday time". Extension only; proxy v7.93, reporter v1.26, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. Audi Lafayette lead 3121946430 (Wednesday 11/25, log429): the calendar read "TOMORROW = Thursday 11/26" as an open day; nothing in Lead Pro knew a holiday. (The store's virtual assistant's own 2:28 AM message also offered "Thursday at 10:00 AM"; that is not Lead Pro's.) FIX: _lpHolidayName -- Thanksgiving Day (the fourth Thursday of November), Christmas Day, New Year's Day -- read by everything that decides an open day. The calendar marks the day "(CLOSED -- <holiday>)" and adds a HOLIDAY line (every store closed, never offer it or "tomorrow" if that is the day, and the next open day to offer if they name it); the store status on the day itself reads CLOSED with the holiday's name, and the soonest-first line no longer says "today plus tomorrow" when tomorrow is the holiday; the appointment engine has no same-day slots on a holiday and its next business day skips Sundays and holidays together (Christmas Eve evening -> Saturday 12/26; New Year's Eve evening -> Saturday 1/2); and _lpHolidayTimeGuard, in a sentence with a clock time, moves the holiday's day name, its date, or "tomorrow"/"today" when that is the holiday, to the next open day -- a sentence that says we are closed or names the holiday is left alone. Not in scope, for the owner: Christmas Eve or New Year's Eve hours, and Memorial Day, July 4 and Labor Day (left open). REPLAYED: the dumps whose 8-day calendar reaches 11/26 gain the CLOSED label and the HOLIDAY line; the 11/25 Audi lead also its status line; the rest are unchanged. TESTS: new holidays-894 (13 per build, on the agents' Central clock). cutoff-offer-tundra-869 picks the most recent Wednesday from the real clock -- on 11/25 that was the day before Thanksgiving, so it now skips a Wednesday whose Thursday is a holiday. NON-VACUITY against 9.7.893: 10 fail, 3 controls pass. VERIFIED: run-all 339 suites, 11060 assertions, 0 failed; dev===comm on every changed region. Builds on 9.7.893. Builds on v9.7.893.)
 // Lead Pro -- popup.js  v9.7.893-dev (Dev. THE TEXT KEEPS WHAT IT GIVES, AND WHAT IT GIVES HELPS THEM DECIDE. Owner, 11/25: "yes build 893 with both". Extension only; proxy v7.93, reporter v1.26, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. On 11/24 (9.7.892) stalled follow-ups came out as short as before -- before Expand, about 120 characters on 892 and 130 on 891 -- and Expand was pressed on all five stalled leads one agent worked on 892. (1) THE TEXT REWRITE. The main draft carried 892's "give before you ask"; the rewrite, on a follow-up whose pitch went unanswered (most stalled leads), was told "Right after their name, bring one new thing or ask one simple question" -- and took the question (Kia 2112669282: "I've been trying to reach you about the 2027 Seltos. You can call or text me here. Has your timeline shifted ...?"). Now: "bring one new thing -- something useful the email gives (what is on our lot, what we will do for them, the offer) -- and then end on one simple question; never the question alone". The we-have-called branch ("give one easy way to reach us and ask one simple question") gains the same useful thing; the first reach-out's text keeps the email's useful line ahead of its question. The pause branch (room, no question) is unchanged. (2) WHAT COUNTS AS USEFUL. Honda Baytown 3121256964's first touch gave "the Pilot LX is front-wheel drive", and the agent cut back to it. The first-reach-out and follow-up lines now ask for what helps them decide -- what is on our lot (how many, which colors or trims), a feature that sets that trim apart, the store offer, or what we can do next -- and say a lone window-sticker spec is not it. REPLAYED: each of the 14 saved dumps changes by that one reworded line, except the Audi decline lead, which carries neither. TESTS: new give-and-ask-893 (5 per build). NON-VACUITY against 9.7.892: all 5 fail (no controls: every check names new wording). VERIFIED: run-all 338 suites, 11034 assertions, 0 failed; dev===comm on every changed region. Builds on 9.7.892. Builds on v9.7.892.)
 // Lead Pro -- popup.js  v9.7.892-dev (Dev. GIVE BEFORE YOU ASK, AND A SOLD CAR IS NEVER ONE OF THE OPTIONS. Owner, 11/24: "fold the stalled length and follow ups in general into the Wrangler build and actually look into expanding the first touch also. They seem to be shorter now that the appointment ask is gone." Extension only; proxy v7.93, reporter v1.26, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. (1) GIVE BEFORE YOU ASK. On 11/23 the Expand chip was pressed 11 times, every one on a stalled follow-up, every result sent; and since 9.7.889 the first reach-out's only ask is one question. No length target (owner, 9/16: no sentence constraint) -- the Expand chip's job becomes the default. The first reach-out block now asks, ahead of its question, for one or two sentences specific to the lead (a real fact about the car or trim, what we can do next, or the store offer). Follow-ups and stalled leads carry a "GIVE BEFORE YOU ASK" line saying the same, with no padding; it is left out on an exit, a pause, a sold-and-delivered lead or an appointment confirmation, and removed when the visit decision belongs to a hold that keeps a message small (room, an exit, a decline, a call only, their timeline). (2) A SOLD CAR IS NEVER ONE OF THE OPTIONS. Kia Baytown lead 2106486534 (11/23, two thumbs-down): "the 2015 Wrangler Unlimited Sport you asked about has sold ... Which Wrangler should I focus on: the 2018 Sahara or the 2015 Sport?". The root: our own "has sold" message about a used Jeep at a Kia store was read as "not about a vehicle" -- the model list knows only our four brands -- so the lead was never treated as sold. _lpSoldClaimForVoi now takes the lead's own model word named in the sold sentence (year, color, trim, VIN and stock conflict checks unchanged). When the lead's vehicle has sold the prompt says never to offer it or put it in a choice, and the two-model question names the other vehicle as the one, with no either/or. Not confirmed on a grab of that lead; the shape is reproduced. REPLAYED: of the 14 saved dumps, the three first touches gain the give-before line in their first-reach-out block, ten follow-ups gain the follow-up line, and the Audi decline lead is unchanged. TESTS: new give-before-892 (10 per build). NON-VACUITY against 9.7.891: 6 fail, the 4 controls pass. VERIFIED: run-all 337 suites, 11024 assertions, 0 failed; dev===comm on every changed region. Builds on 9.7.891. Builds on v9.7.891.)
 // Lead Pro -- popup.js  v9.7.891-dev (Dev. THREE FIXES FROM THE 11/21 EXPORT. Owner, 11/22: "yes build 891 with all three". Extension only; proxy v7.93, reporter v1.26, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. (1) A COMPETITOR'S MODEL NAMED WITHOUT ITS MAKE. Honda Baytown lead 3119853179 (chat): "a black Integra, new or pre-owned"; the off-franchise reader only knew a model with its make in front of it, and the draft sent was "I can check whether we have a black Integra in stock, new or pre-owned" -- a new Acura the store cannot get. LP_COMPETITOR_MODELS (Acura, Lexus, Chevrolet, Ford, GMC, Nissan, Hyundai, Mazda, Subaru, Jeep, Dodge -- names that are not everyday words only) feeds the off-franchise reader alone; their own car named by model is skipped; and "new" said beside the MODEL, before or after it, now counts as asking for it new (the make-only test missed "Integra, new or pre-owned", and two used Acuras on the lot had kept the block silent). The block now says this Honda store cannot get a new Acura Integra and lists the used Acura we hold. (2) THE FIRST-MESSAGE QUESTION LEADS WITH WHAT AGENTS SEND. 11/21: agents regenerated "what will you use it for?" into "what are you driving now?" (Sorento 3119879446, Ridgeline 3119869673) and cycled seven questions on Corolla 3119788519 before "what are you comparing it with?". _lpBuyingJourney now names "what they are driving now" first on a chosen model, "what they are comparing it with" first on one car, and the block says the first one usually works best and not to fall back on a generic "what caught your eye". (3) "AS YOUR CONCIERGE" NEVER LEADS INTO A QUESTION. Audi 3119777981: "As your Concierge at Audi Lafayette, what would you most like to know about it ...". The Audi rule says where the title goes (the introduction, or a line about what you will do) and never as a question's lead-in; _lpConciergeQuestionGuard drops the lead-in before a question at Audi -- in the email (its signature carries the title), and in the text when its signature does (under 16 notes) or the title is named elsewhere in it. REPLAYED: of the 14 saved dumps, the three first touches change by the question line and the Audi lead by the Concierge rule; nothing else. TESTS: new three-fixes-891 (13 per build). NON-VACUITY against 9.7.890: 8 fail, the 5 controls pass. VERIFIED: run-all 336 suites, 11004 assertions, 0 failed; dev===comm on every changed region. Builds on 9.7.890. Builds on v9.7.890.)
@@ -790,6 +791,66 @@ const STORE_HOURS = {
   '24399': { name: 'Honda Lafayette',   weekday: '9 AM - 7 PM', saturday: '9 AM - 7 PM', sunday: 'CLOSED' },
   '21135': { name: 'Audi Lafayette',    weekday: '9 AM - 7 PM', saturday: '9 AM - 6 PM', sunday: 'CLOSED' },
 };
+// (v9.7.894) STORE HOLIDAYS: EVERY STORE IS CLOSED. Owner, 11/25: "the first message was pushing for an appointment tomorrow,
+// Thanksgiving. We're closed at all stores. While we're at it we need to add the logic for all major holidays. Christmas, New Years
+// Day being closed." Audi Lafayette lead 3121946430: the calendar read "TOMORROW = Thursday 11/26" as an open day, and the agent
+// changed the times to today and Friday by hand. One table, read by the calendar, the store status, the appointment engine and the
+// render guard. d is a date as read on the Central clock (its year, month and day are Central's).
+function _lpHolidayName(d) {
+  try {
+    if (!d || isNaN(d.getTime())) return '';
+    var m = d.getMonth(), day = d.getDate(), wd = d.getDay();
+    if (m === 10 && wd === 4 && day >= 22 && day <= 28) return 'Thanksgiving Day';   // the fourth Thursday of November
+    if (m === 11 && day === 25) return 'Christmas Day';
+    if (m === 0 && day === 1) return 'New Year’s Day';
+  } catch (e) {}
+  return '';
+}
+// The first day after d that the store is open: not a holiday, not a day STORE_HOURS marks closed.
+function _lpNextOpenAfter(d, dealerId) {
+  var h = (typeof STORE_HOURS !== 'undefined' && STORE_HOURS[String(dealerId || '')]) || null;
+  for (var k = 1; k <= 8; k++) {
+    var n = new Date(d); n.setDate(d.getDate() + k);
+    var span = h ? (n.getDay() === 0 ? h.sunday : n.getDay() === 6 ? h.saturday : h.weekday) : (n.getDay() === 0 ? 'CLOSED' : '');
+    if (!_lpHolidayName(n) && !/closed/i.test(String(span || ''))) return n;
+  }
+  return null;
+}
+// A draft that still pairs a time with a holiday: in a sentence with a clock time, the holiday's day name, its date, or "tomorrow"/"today"
+// when that is the holiday, becomes the next open day. A sentence that says we are closed, or names the holiday, is left alone.
+var _LP_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+var _LP_WDAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+function _lpHolidayTimeGuard(text, channel) {
+  try {
+    var s = String(text || '');
+    if (!s || !LP_CHIP_CLOCK_RX.test(s)) return text;
+    var d0 = (typeof lastScrapedData !== 'undefined' && lastScrapedData) || {};
+    var now = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' }));
+    var hits = [], out = s;
+    for (var k = 0; k <= 6; k++) {
+      var H = new Date(now); H.setDate(now.getDate() + k);
+      var hn = _lpHolidayName(H); if (!hn) continue;
+      var N = _lpNextOpenAfter(H, d0.dealerId); if (!N) continue;
+      var nW = _LP_WDAYS[N.getDay()], hW = _LP_WDAYS[H.getDay()];
+      var hMon = _LP_MONTHS[H.getMonth()], nMon = _LP_MONTHS[N.getMonth()];
+      out = out.split('\n').map(function (line) {
+        return line.split(/(?<=[.!?])\s+/).map(function (sent) {
+          if (!LP_CHIP_CLOCK_RX.test(sent) || /\bclosed\b|thanksgiving|christmas|new year/i.test(sent)) return sent;
+          var r = sent;
+          if (k === 0) r = r.replace(/\btoday\b/gi, function (m) { hits.push(m); return nW; });
+          if (k === 1) r = r.replace(/\btomorrow\b(?!\s*\()/gi, function (m) { hits.push(m); return nW; });
+          if (k >= 1) r = r.replace(new RegExp('\\b' + hW + '\\b', 'g'), function (m) { hits.push(m); return nW; });
+          r = r.replace(new RegExp('\\b' + hMon + '\\.?\\s+' + H.getDate() + '(?:st|nd|rd|th)?\\b', 'g'), function (m) { hits.push(m); return nMon + ' ' + N.getDate(); })
+               .replace(new RegExp('\\b' + (H.getMonth() + 1) + '/' + H.getDate() + '\\b', 'g'), function (m) { hits.push(m); return (N.getMonth() + 1) + '/' + N.getDate(); });
+          return r;
+        }).join(' ');
+      }).join('\n');
+    }
+    if (!hits.length) return text;
+    try { console.log('[LP HOLIDAY GUARD] ' + (channel || 'draft') + ': "' + hits.join('" / "') + '" was a holiday -> the next open day'); } catch (e) {}
+    return out;
+  } catch (e) { return text; }
+}
 // (v9.7.245) Day-open helpers driven by STORE_HOURS. Used by the closed-day pivot in the
 // CUSTOMER SPECIFIED DAY constraint: a customer naming a closed day (e.g. Sunday) must not get
 // locked into that day — pivot to the next open day going forward.
@@ -6925,6 +6986,7 @@ function _lpConciergeQuestionGuard(text, channel) {
 }
 function _lpHouseGuard(text, channel) {
   try { text = _lpAudiSoldGuard(text, channel); } catch (eAs) {}   // (v9.7.881)
+  try { text = _lpHolidayTimeGuard(text, channel); } catch (eHg) {}   // (v9.7.894)
   try { text = _lpConciergeQuestionGuard(text, channel); } catch (eCq) {}   // (v9.7.891)
   try { text = _lpInTransitVideoGuard(text, channel); } catch (eIt) {}   // (v9.7.890)
   try { text = _lpAudiWalkaroundGuard(text, channel); } catch (eAw) {}   // (v9.7.890)
@@ -31391,6 +31453,7 @@ function buildUserPrompt(data) {
                             || (data && data.dealerId) || '';
         var _cal_hrs = (_cal_hrsDealerId && STORE_HOURS[String(_cal_hrsDealerId)]) || null;
         var _dayIsClosed = function(_d){
+          if (typeof _lpHolidayName === 'function' && _lpHolidayName(_d)) return true;   // (v9.7.894) every store is closed on a holiday
           if (!_cal_hrs) return false;
           var _h = _d.getDay() === 0 ? _cal_hrs.sunday : _d.getDay() === 6 ? _cal_hrs.saturday : _cal_hrs.weekday;
           return /closed/i.test(_h);
@@ -31400,9 +31463,21 @@ function buildUserPrompt(data) {
           var _cd_day = _cal_dayNames[_cd.getDay()];
           var _cd_md = (_cd.getMonth()+1) + '/' + _cd.getDate();
           var _cd_label = _ci === 0 ? 'TODAY' : _ci === 1 ? 'TOMORROW' : _ci === 2 ? 'in 2 days' : _ci === 3 ? 'in 3 days' : _ci === 4 ? 'in 4 days' : ('next ' + _cd_day);
-          var _cd_closed = _dayIsClosed(_cd) ? ' (CLOSED)' : '';
+          var _cd_hol = (typeof _lpHolidayName === 'function') ? _lpHolidayName(_cd) : '';   // (v9.7.894)
+          var _cd_closed = _dayIsClosed(_cd) ? (_cd_hol ? ' (CLOSED \u2014 ' + _cd_hol + ')' : ' (CLOSED)') : '';
           _cal_lines.push('  ' + _cd_label + ' = ' + _cd_day + ' ' + _cd_md + _cd_closed);
         }
+        // (v9.7.894) a holiday in the window: closed at every store, and the next open day named
+        try {
+          for (var _hi = 0; _hi <= 8; _hi++) {
+            var _hd = new Date(_cal_now); _hd.setDate(_cal_now.getDate() + _hi);
+            var _hnm = (typeof _lpHolidayName === 'function') ? _lpHolidayName(_hd) : ''; if (!_hnm) continue;
+            var _hn = null; for (var _hj = 1; _hj <= 8 && !_hn; _hj++) { var _hc = new Date(_hd); _hc.setDate(_hd.getDate() + _hj); if (!_dayIsClosed(_hc)) _hn = _hc; }
+            _cal_lines.push('  HOLIDAY: ' + _cal_dayNames[_hd.getDay()] + ' ' + (_hd.getMonth()+1) + '/' + _hd.getDate() + ' is ' + _hnm + ' -- every store is closed. Never offer it or a time on it, and never invite them in "tomorrow" if that is the day. If they name it, say we are closed for ' + _hnm + ' and offer '
+              + (_hn ? _cal_dayNames[_hn.getDay()] + ' ' + (_hn.getMonth()+1) + '/' + _hn.getDate() : 'the next open day') + ' instead.');
+            console.log('[LP HOLIDAY DIAG] ' + _hnm + ' on ' + (_hd.getMonth()+1) + '/' + _hd.getDate() + ' -> closed; next open ' + (_hn ? (_hn.getMonth()+1) + '/' + _hn.getDate() : '(none in window)'));
+          }
+        } catch (eHol) {}
         // ── (v9.7.642) THE NEXT OPEN DAY, COMPUTED WHERE THE CLOSED-NESS IS ALREADY KNOWN ──────
         // The SOONEST-FIRST line further down says "lead with a today time, or today plus
         // tomorrow" as a hardcoded string. On Chukwuma Emezie's 9:05 AM Saturday grab that shipped
@@ -31709,10 +31784,11 @@ function buildUserPrompt(data) {
             var _todayHrs = _cal_now.getDay() === 0 ? _hrs.sunday
                           : _cal_now.getDay() === 6 ? _hrs.saturday
                           : _hrs.weekday;
-            var _isClosedToday = /closed/i.test(_todayHrs);
+            var _holToday = (typeof _lpHolidayName === 'function') ? _lpHolidayName(_cal_now) : '';   // (v9.7.894)
+            var _isClosedToday = /closed/i.test(_todayHrs) || !!_holToday;
             var _statusLine = '';
             if (_isClosedToday) {
-              _statusLine = 'STORE STATUS RIGHT NOW: CLOSED today (' + _cal_dayNames[_cal_now.getDay()] + '). Earliest available appointment is ' + _nextOpenPhrase() + '.';
+              _statusLine = 'STORE STATUS RIGHT NOW: CLOSED today (' + _cal_dayNames[_cal_now.getDay()] + (_holToday ? ', ' + _holToday : '') + '). Earliest available appointment is ' + _nextOpenPhrase() + '.';
             } else {
               // Parse "9 AM - 7 PM" or similar
               var _hrsMatch = _todayHrs.match(/(\d+)\s*(AM|PM)\s*-\s*(\d+)\s*(AM|PM)/i);
@@ -34953,6 +35029,8 @@ function computeAppointmentTimes(store) {
     }
   }
 
+  try { if (typeof _lpHolidayName === 'function' && _lpHolidayName(central)) openMins = null; } catch (eHol) {}   // (v9.7.894) closed on a holiday
+
   // Round current time UP to next 15-minute slot, then add 2-hour buffer
   function nextSlot(fromMins) {
     const buffered = fromMins + 60; // (v9.7.869) 60 minutes' notice (was 2 hours)
@@ -35007,8 +35085,12 @@ function computeAppointmentTimes(store) {
     const d = new Date(fromDate);
     d.setDate(d.getDate() + 1);
     // Convert to Central
-    const cd = new Date(d.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
-    if (cd.getDay() === 0) d.setDate(d.getDate() + 1); // skip Sunday
+    // (v9.7.894) skip Sunday and the holidays (Thanksgiving, Christmas, New Year's Day), however many in a row
+    for (let k = 0; k < 7; k++) {
+      const cd = new Date(d.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
+      if (cd.getDay() === 0 || (typeof _lpHolidayName === 'function' && _lpHolidayName(d))) { d.setDate(d.getDate() + 1); continue; }
+      break;
+    }
     return d;
   }
 
