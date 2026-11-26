@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.896 (Commercial. FOUR FIXES FROM THE 11/25 REPORT. Owner, 11/26: "build 896 with items 1-3 add the expand tweak and warmth". Extension only; proxy v7.93, reporter v1.26, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. (1) THE QUESTION NAMES WHAT IT ASKS ABOUT. Every unsent session on 11/25 ended on an open-ended question about the process: Toyota Baytown lead 3122201006 (Virtual Retailing, a Tundra on its way) -- "What's the main thing you still need to settle on it?", "What part of the online deal would you like to tackle next?", "What detail on the sticker would you like me to clarify?"; Kia Baytown lead 3122170874 -- "What would be most helpful to work through first...?". The online-deal stage told the model "what is left for them to settle (the payment, a trade, the timing)" and it asked exactly that, abstractly. The stage now asks one concrete piece, named in the question: a trade, cash or financing, or when they want it (for a car on its way, once it arrives). LP_CONCRETE_Q_RULE rides the first reach-out block and, as "CONCRETE QUESTION:", every follow-up that gets GIVE BEFORE YOU ASK; the text rewrite says the same. [LP VAGUE QUESTION DIAG] logs the field's shapes at render (log only). (2) AN INITIAL IS NO NAME. Toyota Baytown Edmunds lead 3122173227: the name began with an initial and the 848 first-name line ("even when the first name is short") had both drafts open "T,". The prompt now says no first name is usable; _lpInitialGreetingGuard turns "T," into "Hello," (a greeting line), "T, I can help" into "I can help", and "Hi T, this is" into "Hi, this is". "TJ" and real names are untouched. (3) "With no specific vehicle attached, ..." is the CRM talking (same lead's email): _lpNoVehicleClauseGuard drops the clause and keeps the sentence. (4) EXPAND ADDS WARMTH. Cargurus lead 2105888147 (Honda Lafayette): Expand bolted "the Accord is Honda Certified" onto "I can keep your file open and stop sending messages". The chip now asks for substance said warmly; a step-back message (room, keep in touch or how to hear from us, close the file) is expanded with warmth instead, never a vehicle fact, spec or certification; the text rewrite keeps the warmth it added. REPLAYED: all 15 saved dumps change by one line only -- the 3 first touches carry the concrete rule in their block, the 12 follow-ups the CONCRETE QUESTION line; none has an initial for a name. TESTS: new concrete-initial-896 (17 per build). NON-VACUITY against 9.7.895: 12 fail per build, the 5 controls pass. VERIFIED: run-all 341 suites, 11108 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.895.)
 // Lead Pro -- popup.js  v9.7.895 (Commercial. CHRISTMAS EVE AND NEW YEAR'S EVE CLOSE AT 5 PM, every store. Owner, 11/25: "Christmas Eve and New Year's Eve close at 5 PM". Extension only; proxy v7.93, reporter v1.26, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. _lpEarlyCloseName (December 24 and 31) beside 9.7.894's holiday table. The appointment engine closes at 5 PM on those days, so the last same-day time is 4:00 PM (an hour before closing, the 869 rule), and a next day that falls on one closes at 5 PM too; Christmas Eve after 3 PM rolls to Saturday 12/26 and New Year's Eve to Saturday 1/2, the holidays skipped. The calendar labels the day "(closes at 5 PM -- Christmas Eve)" with an EARLY CLOSE line (no time after 4:00 PM), and the store status on the day itself reads "Closes at 5 PM" (every same-day rule below it reads the same hours). A Sunday Christmas Eve stays closed. REPLAYED: none of the 15 saved dumps reaches those days, and none changes. TESTS: new early-close-895 (7 per build, on the agents' Central clock). NON-VACUITY against 9.7.894: 5 fail, the 2 controls pass. VERIFIED: run-all 340 suites, 11074 assertions, 0 failed; dev===comm on every changed region. Builds on 9.7.894. Builds on v9.7.894.)
 // Lead Pro -- popup.js  v9.7.894 (Commercial. STORE HOLIDAYS: EVERY STORE IS CLOSED. Owner, 11/25: "Agent told me that the first message was pushing for an appointment tomorrow, Thanksgiving. We're closed at all stores. While we're at it we need to add the logic for all major holidays. Christmas, New Years Day being closed." and "agent manually changed the message to a today and Friday time". Extension only; proxy v7.93, reporter v1.26, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. Audi Lafayette lead 3121946430 (Wednesday 11/25, log429): the calendar read "TOMORROW = Thursday 11/26" as an open day; nothing in Lead Pro knew a holiday. (The store's virtual assistant's own 2:28 AM message also offered "Thursday at 10:00 AM"; that is not Lead Pro's.) FIX: _lpHolidayName -- Thanksgiving Day (the fourth Thursday of November), Christmas Day, New Year's Day -- read by everything that decides an open day. The calendar marks the day "(CLOSED -- <holiday>)" and adds a HOLIDAY line (every store closed, never offer it or "tomorrow" if that is the day, and the next open day to offer if they name it); the store status on the day itself reads CLOSED with the holiday's name, and the soonest-first line no longer says "today plus tomorrow" when tomorrow is the holiday; the appointment engine has no same-day slots on a holiday and its next business day skips Sundays and holidays together (Christmas Eve evening -> Saturday 12/26; New Year's Eve evening -> Saturday 1/2); and _lpHolidayTimeGuard, in a sentence with a clock time, moves the holiday's day name, its date, or "tomorrow"/"today" when that is the holiday, to the next open day -- a sentence that says we are closed or names the holiday is left alone. Not in scope, for the owner: Christmas Eve or New Year's Eve hours, and Memorial Day, July 4 and Labor Day (left open). REPLAYED: the dumps whose 8-day calendar reaches 11/26 gain the CLOSED label and the HOLIDAY line; the 11/25 Audi lead also its status line; the rest are unchanged. TESTS: new holidays-894 (13 per build, on the agents' Central clock). cutoff-offer-tundra-869 picks the most recent Wednesday from the real clock -- on 11/25 that was the day before Thanksgiving, so it now skips a Wednesday whose Thursday is a holiday. NON-VACUITY against 9.7.893: 10 fail, 3 controls pass. VERIFIED: run-all 339 suites, 11060 assertions, 0 failed; dev===comm on every changed region. Builds on 9.7.893. Builds on v9.7.893.)
 // Lead Pro -- popup.js  v9.7.893 (Commercial. THE TEXT KEEPS WHAT IT GIVES, AND WHAT IT GIVES HELPS THEM DECIDE. Owner, 11/25: "yes build 893 with both". Extension only; proxy v7.93, reporter v1.26, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. On 11/24 (9.7.892) stalled follow-ups came out as short as before -- before Expand, about 120 characters on 892 and 130 on 891 -- and Expand was pressed on all five stalled leads one agent worked on 892. (1) THE TEXT REWRITE. The main draft carried 892's "give before you ask"; the rewrite, on a follow-up whose pitch went unanswered (most stalled leads), was told "Right after their name, bring one new thing or ask one simple question" -- and took the question (Kia 2112669282: "I've been trying to reach you about the 2027 Seltos. You can call or text me here. Has your timeline shifted ...?"). Now: "bring one new thing -- something useful the email gives (what is on our lot, what we will do for them, the offer) -- and then end on one simple question; never the question alone". The we-have-called branch ("give one easy way to reach us and ask one simple question") gains the same useful thing; the first reach-out's text keeps the email's useful line ahead of its question. The pause branch (room, no question) is unchanged. (2) WHAT COUNTS AS USEFUL. Honda Baytown 3121256964's first touch gave "the Pilot LX is front-wheel drive", and the agent cut back to it. The first-reach-out and follow-up lines now ask for what helps them decide -- what is on our lot (how many, which colors or trims), a feature that sets that trim apart, the store offer, or what we can do next -- and say a lone window-sticker spec is not it. REPLAYED: each of the 14 saved dumps changes by that one reworded line, except the Audi decline lead, which carries neither. TESTS: new give-and-ask-893 (5 per build). NON-VACUITY against 9.7.892: all 5 fail (no controls: every check names new wording). VERIFIED: run-all 338 suites, 11034 assertions, 0 failed; dev===comm on every changed region. Builds on 9.7.892. Builds on v9.7.892.)
@@ -5499,7 +5500,7 @@ function _lpBuyingJourney(d) {
       ask: 'what they are hoping it brings, or whether they are replacing it or just selling it -- whichever the lead does not already answer' };
   if (/click\s*&?\s*go|digital\s+retail|virtual\s+retail|accelerate|express\s+store|buy\s+online|drs\b/i.test(src))
     return { stage: 'ALREADY BUILDING A DEAL ONLINE', evidence: 'they started a deal through "' + src + '"' + (veh ? ' on the ' + veh : ''),
-      ask: 'what is left for them to settle on it (the payment, a trade, the timing), or what made them pick that one' };
+      ask: 'one concrete piece of the deal the lead does not already answer, named in the question -- whether they have a trade, whether they are paying cash or financing, or when they want it (for a car still on its way to us, when they would like to have it once it arrives); or what made them pick that one' };   // (v9.7.896) Tundra 3122201006, 11/25
   if (/capital\s*one|pre-?approv|pre-?qual|credit|financ|auto\s*pay|route\s*one/i.test(src))
     return { stage: 'WORKING OUT THE MONEY FIRST', evidence: 'the lead came from "' + src + '"',
       ask: 'what payment range would feel comfortable, or what they are hoping to drive with the approval' };
@@ -5521,6 +5522,15 @@ function _lpBuyingJourney(d) {
   return { stage: 'EARLY: STILL LOOKING', evidence: 'no vehicle is named on the lead',
     ask: 'what they are driving now and what they would change, or what kind of vehicle they have in mind' };   // (v9.7.891)
 }
+// (v9.7.896) THE QUESTION NAMES WHAT IT ASKS ABOUT. 11/25: every unsent session ended on an open-ended question about the process --
+// "What's the main thing you still need to settle on it?", "What part of the online deal would you like to tackle next?", "What detail
+// on the sticker would you like me to clarify?" (Toyota 3122201006), "What would be most helpful to work through first...?" (Kia 3122170874).
+var LP_CONCRETE_Q_RULE = 'Make the question concrete: it names the one thing it asks about (whether they have a trade, cash or financing, when they want it, what they drive now, which of two trims), so they can answer in a word or two. Never an open-ended question about the process -- not "what is the main thing you still need to settle", "what part of the deal would you like to tackle next", "what would be most helpful", "what would help you decide" or "what detail can I clarify".';
+var LP_VAGUE_Q_RX = /\bwhat(?:['\u2019]s|\s+is|\s+would\s+be)\s+(?:the\s+)?(?:main|biggest|most\s+helpful)\b[^?\n]*\?|\bwhat\s+part\s+of\s+the\b[^?\n]*\?|\bwhat\s+would\s+(?:be\s+)?(?:most\s+)?help(?:ful)?\b[^?\n]*\?|\bwhat\s+detail\b[^?\n]*\bclarify\b[^?\n]*\?|\bstill\s+need\s+to\s+settle\b[^?\n]*\?/i;
+function _lpVagueQuestionDiag(text, channel) {
+  try { var m = String(text || '').match(LP_VAGUE_Q_RX); if (m) console.log('[LP VAGUE QUESTION DIAG] ' + channel + ': "' + m[0].slice(0, 90) + '"'); } catch (e) {}
+  return text;
+}
 function _lpFirstReachOutBlock(d) {
   try {
     if (!_lpFirstReachOut(d) || _lpAskedToComeIn(d) || (typeof _lpAddApptOn === 'function' && _lpAddApptOn(d))) return '';
@@ -5528,7 +5538,7 @@ function _lpFirstReachOutBlock(d) {
     try { console.log('[LP FIRST REACH-OUT DIAG] no visit ask on the first reach-out | journey: ' + j.stage + ' -- ' + j.evidence); } catch (eL) {}
     return 'FIRST REACH-OUT — BUILD ENGAGEMENT, NO VISIT ASK: this is the first message a person on our team sends on this lead. Store policy: the first reach-out does not ask for the appointment -- no appointment times, no "come in today", no "stop by", no "when can you come in", no "I can have it ready for your visit". Its job is to start a conversation.\n'
       + 'WHERE THEY ARE IN THE BUYING JOURNEY: ' + j.stage + ' -- ' + j.evidence + '. Read the rest of this prompt (their inquiry, what they were looking at on our site, their trade) to place them more exactly.\n'
-      + '- Answer anything they asked first. Then ask an engaging question that picks up where they are -- the first one named here usually works best: ' + j.ask + '. Keep it to that single question, easy to answer in a few words and about them; never a list (not trim AND color AND budget), never about scheduling, and not a generic "what caught your eye".\n'   // (v9.7.891)
+      + '- Answer anything they asked first. Then ask an engaging question that picks up where they are -- the first one named here usually works best: ' + j.ask + '. Keep it to that single question, easy to answer in a few words and about them; never a list (not trim AND color AND budget), never about scheduling, and not a generic "what caught your eye". ' + LP_CONCRETE_Q_RULE + '\n'   // (v9.7.891; v9.7.896 concrete)
       + '- GIVE BEFORE YOU ASK. With no visit ask, the substance is what earns the reply, and drafts have come out thin. Ahead of the question, one or two sentences that help them decide: what is on our lot (how many, which colors or trims), a feature that sets that trim apart, the store offer if one is listed above, or what you can do for them next (put numbers together, check a specific configuration, value their trade). A lone spec they could read off the window sticker ("it is front-wheel drive") is not it. The question comes last. No padding: every sentence tells them something they did not have.\n'   // (v9.7.892) owner, 11/24
       + '- You may say the car is here if it is. The email may add one more useful detail but makes the same single ask; the voicemail asks the same question and invites a call or text back.';
   } catch (e) { return ''; }
@@ -7039,7 +7049,42 @@ function _lpConciergeQuestionGuard(text, channel) {
     return out;
   } catch (e) { return text; }
 }
+// (v9.7.896) A FIRST NAME THAT IS ONLY AN INITIAL IS NO NAME. Returns the letter, or ''.
+function _lpInitialName(d) {
+  var f = String((d && d.name) || '').trim().split(/\s+/)[0] || '';
+  return /^[A-Za-z]\.?$/.test(f) ? f.charAt(0) : '';
+}
+// "T," / "Hi T," as a greeting line becomes "Hello," / "Hi,"; "T, I can help" becomes "I can help"; "Hi T, this is" becomes "Hi, this is".
+function _lpInitialGreetingGuard(text, channel) {
+  try {
+    var d = (typeof lastScrapedData !== 'undefined' && lastScrapedData) || {};
+    var L = _lpInitialName(d), s = String(text || '');
+    if (!L || !s) return text;
+    var hits = [];
+    var lineRx = new RegExp('(^|\\n)([ \\t]*)(?:(Hi|Hello|Hey|Dear|Good (?:morning|afternoon|evening))[ \\t]+)?' + L + '\\.?[ \\t]*([,!])[ \\t]*(?=\\n|$)', 'gi');
+    s = s.replace(lineRx, function (m, a, b, g, p) { hits.push(m.trim()); return a + b + (g || 'Hello') + p; });
+    var inRx = new RegExp('(^|\\n)([ \\t]*)(?:(Hi|Hello|Hey|Dear|Good (?:morning|afternoon|evening))[ \\t]+)?' + L + '\\.?[ \\t]*,[ \\t]+(\\S)', 'gi');
+    s = s.replace(inRx, function (m, a, b, g, c) { hits.push(m.trim()); return a + b + (g ? g + ', ' + c : c.toUpperCase()); });
+    if (hits.length) try { console.log('[LP INITIAL NAME DIAG] ' + channel + ': the name on the lead is only an initial; greeting fixed: ' + hits.join(' | ')); } catch (eL) {}
+    return s;
+  } catch (e) { return text; }
+}
+// (v9.7.896) "With no specific vehicle attached, I can help..." is the CRM talking (Edmunds lead 3122173227, 11/25). Only the clause goes.
+var LP_NO_VEH_CLAUSE_RX = /(^|[.!?][ \t]+|\n[ \t]*)(?:With|Since\s+there(?:['\u2019]s|\s+is)|As\s+there(?:['\u2019]s|\s+is))\s+no\s+(?:specific\s+|particular\s+)?vehicle\s+(?:attached|listed|noted|selected|on\s+(?:the|your)\s+(?:lead|inquiry|request))(?:\s+to\s+(?:it|your\s+(?:inquiry|request)|the\s+(?:lead|inquiry)))?(?:\s+yet)?,\s*([A-Za-z])/g;
+function _lpNoVehicleClauseGuard(text, channel) {
+  try {
+    var s = String(text || ''), hits = [];
+    if (!s) return text;
+    LP_NO_VEH_CLAUSE_RX.lastIndex = 0;
+    s = s.replace(LP_NO_VEH_CLAUSE_RX, function (m, a, c) { hits.push(m.slice(a.length, -1).trim()); return a + (c === 'I' ? c : c.toUpperCase()); });
+    if (hits.length) try { console.log('[LP CRM WORDING DIAG] ' + channel + ': dropped "' + hits.join('" | "') + '"'); } catch (eL) {}
+    return s;
+  } catch (e) { return text; }
+}
 function _lpHouseGuard(text, channel) {
+  try { text = _lpInitialGreetingGuard(text, channel); } catch (eIg) {}   // (v9.7.896)
+  try { text = _lpNoVehicleClauseGuard(text, channel); } catch (eNv) {}   // (v9.7.896)
+  try { text = _lpVagueQuestionDiag(text, channel); } catch (eVq) {}   // (v9.7.896) log only
   try { text = _lpAudiSoldGuard(text, channel); } catch (eAs) {}   // (v9.7.881)
   try { text = _lpHolidayTimeGuard(text, channel); } catch (eHg) {}   // (v9.7.894)
   try { text = _lpConciergeQuestionGuard(text, channel); } catch (eCq) {}   // (v9.7.891)
@@ -25528,7 +25573,7 @@ function _lpActiveChips(d) {
 }
 var LP_CHIP_KEEP = {
   'shorter': 'Do not make it any longer than the first draft. This outranks "length is yours to judge".',
-  'expand': 'Do not make it thinner than the first draft: keep the substance it added.',
+  'expand': 'Do not make it thinner than the first draft: keep the substance and the warmth it added.',   // (v9.7.896)
   'warmer': 'Keep the warmer tone the first draft took.',
   'direct': 'Keep it as direct as the first draft: no hedging back in.',
   'lead-trade': 'Keep the trade-in as the leading element of the text.',
@@ -26308,6 +26353,8 @@ function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
     + 'defers the reason to come in has sent them nothing.');
   // (v9.7.889) the first reach-out: its point is the one engaging question, so the text ends on it
   if (_rfVd && _rfVd.level === 3 && /FIRST REACH-OUT/.test(String(_rfVd.owner || ''))) out.push('This is our first reach-out on the lead: its point is the one engaging question the email asks about where they are in their search. Keep the email\'s useful line ahead of it (what is on our lot, what we will do for them, the offer), and end on that question, in your own words -- one question, nothing about scheduling.');   // (v9.7.893)
+  // (v9.7.896) whatever it asks, the question names the thing it asks about
+  out.push('If the text asks a question, it is concrete: it names the one thing it asks about (whether they have a trade, cash or financing, when they want it, what they drive now, which of two trims), so they can answer in a word or two. Never an open-ended question about the process ("what is the main thing left to settle", "what part of the deal", "what would be most helpful", "what would help you decide", "what detail can I clarify").');
   // (v9.7.849) They asked for room (a pause): the text gives it, and asks nothing.
   if ((typeof _lpTouchHold === 'function') && _lpTouchHold(d) === 'pause') out.push('They asked for room. Give it: one useful line and an open door, and NO question -- not whether to check back or keep following up, not their timeline. Do not count or point out our messages ("I\'ve reached out a few times").');
   // (v9.7.672) THE DEFUSING CLAUSE IS GONE BECAUSE THE THING IT DEFUSED IS GONE. v9.7.671
@@ -33479,7 +33526,9 @@ function buildUserPrompt(data) {
   lines.push(
     'Customer:   ' + (data.name || '(unknown — do not say Hi there)'),
     // (v9.7.848) Lead 2107319795: "<first> <last>," in the text and "Hi <first> <last>," in the email -- a two-letter first name read as half a name.
-    (/\S\s+\S/.test(String(data.name || '').trim()) ? 'First name: ' + String(data.name).trim().split(/\s+/)[0] + '  ← address them by this first name alone (the text opens with it, the email greets with it). Never the full name, even when the first name is short.' : ''),
+    // (v9.7.896) Edmunds lead 3122173227, 11/25: the name on the lead began with an initial and both drafts opened "T,".
+    ((typeof _lpInitialName === 'function' && _lpInitialName(data)) ? 'First name: none usable -- the name on the lead gives only an initial ("' + _lpInitialName(data) + '"). Open without a name (the text starts straight in; the email greets with "Hello,"). Never address them by a letter or an initial.' :
+    /\S\s+\S/.test(String(data.name || '').trim()) ? 'First name: ' + String(data.name).trim().split(/\s+/)[0] + '  ← address them by this first name alone (the text opens with it, the email greets with it). Never the full name, even when the first name is short.' : ''),
     // (v9.7.697) N3: a bouncing address is not "on file" in any useful sense.
     data.email
       ? (data.emailBounce && data.emailBounce.count
@@ -34304,6 +34353,7 @@ function buildUserPrompt(data) {
   try {
     if (!_froB && !sc.isExitSignal && !sc.isPauseSignal && !sc.isSoldDelivered && !sc.isApptConfirmation) {
       lines.push('', 'GIVE BEFORE YOU ASK: on follow-ups agents have been pressing Expand, because the drafts asked without giving. Before any question, give them something that helps them decide -- what is on our lot for what they asked about (how many, which colors or trims), a feature that sets that trim apart, what you have done or will do for them (numbers being put together, a configuration checked, their trade valued), or the store offer if one is listed above. A lone spec they could read off the window sticker is not it. One or two sentences of that, then the question. No padding: every sentence tells them something they did not have. Where a rule above keeps this message to one or two sentences (they asked for room, a call only, a decline), that rule wins.');
+      lines.push('', 'CONCRETE QUESTION: ' + LP_CONCRETE_Q_RULE);   // (v9.7.896)
     }
   } catch (eGba) {}
   // (v9.7.892) A SOLD CAR IS NEVER ONE OF THE OPTIONS. Kia Baytown lead 2106486534 (11/23, two thumbs-down): "the 2015 Wrangler Unlimited
@@ -37782,7 +37832,9 @@ if (btnVm) btnVm.addEventListener('click', generateVoicemail);
 // The directive is consumed by buildUserPrompt and injected into the prompt.
 var _regenDirectives = {
   'shorter':       'Shorten the message to roughly 60-70% of its previous length while preserving the core ask. Cut filler, not substance. The goal is concision, not omission of important context.',
-  'expand':        'The previous version was too thin — it asked without giving. Expand it with substance the customer can actually use: lead with what you can do for them or a concrete next step BEFORE any question (never open with a bare interrogative), and add the specific detail that makes it helpful — the options, what will be ready, the reason it is worth their time. Stay tight and purposeful, not padded: every added sentence must earn its place. Add real value, never filler to hit a length.',
+  // (v9.7.896) owner, 11/26: "add the expand tweak and warmth". Cargurus lead 2105888147 (11/25): Expand bolted "the Accord is Honda Certified" onto
+  // "I can keep your file open and stop sending messages".
+  'expand':        'The previous version was too thin — it asked without giving. Expand it with substance the customer can actually use, said warmly, the way a person who is glad to help them would say it: lead with what you can do for them or a concrete next step BEFORE any question (never open with a bare interrogative), and add the specific detail that makes it helpful — the options, what will be ready, the reason it is worth their time. If this message steps back (giving them room, asking whether to keep in touch or how they would like to hear from us, offering to close the file), expand it with warmth instead: that there is no pressure, that you are glad to help whenever the timing is right, what stays ready for them. Never bolt a vehicle fact, spec or certification onto a step-back message. Stay tight and purposeful, not padded: every added sentence must earn its place. Add real value, never filler to hit a length.',
   'warmer':        'Warm the tone. Lead with relationship language, acknowledge the human, and soften any hard-edged phrasing. Sound like a person who is glad to hear from them, not a system processing their inquiry.',
   'direct':        'Make the tone more direct. Cut hedge words ("just wanted to", "I was thinking"), get to the point in the first sentence, name the actual ask plainly. The customer should feel respected, not dodged around.',
   'lead-trade':    'Restructure the message so the trade-in conversation is the leading element, not a secondary note. The visit becomes about getting a real number on their trade — that\'s the highest-value reason for them to come in.',
