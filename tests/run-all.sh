@@ -120,6 +120,7 @@ run reporter-v126.test.js           "$REPORTER" "$PROXY"
 run feedback-gatherer-v15.test.js tools/feedback-gatherer/index.html
 run feedback-gatherer-v16.test.js tools/feedback-gatherer/index.html
 run record-first-tools.test.js
+run lotage-core.test.js
 
 echo
 echo "───────────────────────────────────────────────────────────"

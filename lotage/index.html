@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lot Age</title>
+<!--
+  Lead Pro Lot Age v1.0 — a phone web app (installable from the browser) that shows a
+  salesperson every in-stock unit of a model, OLDEST FIRST, so the aged unit is the one
+  shown first. Reads the same per-store inventory blob the extension uses (GET /inventory,
+  published by the Data Tool from the vAuto export). Sign-in is a Lead Pro license key,
+  checked with POST /validate-license. Logic lives in lot-core.js (tested by
+  tests/lotage-core.test.js).
+
+  Customer fit first: oldest-first only orders the cars that already match what the customer
+  asked for (model, trim words, color). It never suggests a different car.
+-->
+<meta name="theme-color" content="#0f172a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Lot Age">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<style>
+:root{
+  --bg:#f4f5f7; --card:#fff; --ink:#0f172a; --muted:#5b6474; --line:#e2e5ea; --chip:#eef0f3;
+  --accent:#1d4ed8; --accent-ink:#fff;
+  --fresh:#e7f0ff; --fresh-ink:#1e3a8a; --warn:#fff3d6; --warn-ink:#8a5300; --alert:#fde2e1; --alert-ink:#a11a14;
+  --unknown:#eceef1; --unknown-ink:#5b6474;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0b1020; --card:#141a2c; --ink:#e8ebf2; --muted:#9aa3b5; --line:#263049; --chip:#1c2438;
+    --accent:#5b8cff; --accent-ink:#0b1020;
+    --fresh:#17264a; --fresh-ink:#b9cdff; --warn:#3a2b0b; --warn-ink:#ffd27a; --alert:#40161a; --alert-ink:#ffaaa4;
+    --unknown:#1f2638; --unknown-ink:#9aa3b5;
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-text-size-adjust:100%}
+button,input,select{font:inherit;color:inherit}
+.wrap{max-width:640px;margin:0 auto;padding:0 16px calc(32px + env(safe-area-inset-bottom))}
+header{position:sticky;top:0;z-index:5;background:var(--bg);padding:calc(10px + env(safe-area-inset-top)) 0 8px;border-bottom:1px solid var(--line)}
+.bar{display:flex;align-items:center;gap:8px}
+.brand{font-weight:700;font-size:18px;white-space:nowrap}
+.brand small{font-weight:500;color:var(--muted);font-size:12px;margin-left:4px}
+select.store{flex:1;min-width:0;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--card)}
+.iconbtn{border:1px solid var(--line);background:var(--card);border-radius:10px;width:40px;height:40px;display:grid;place-items:center;cursor:pointer;flex:none}
+.iconbtn svg{width:20px;height:20px}
+.asof{font-size:13px;color:var(--muted);margin-top:6px}
+.asof.stale{color:var(--warn-ink)}
+.seg{display:flex;background:var(--chip);border-radius:10px;padding:3px;margin-top:10px}
+.seg button{flex:1;border:0;background:transparent;padding:7px 0;border-radius:8px;cursor:pointer;color:var(--muted);font-weight:600}
+.seg button[aria-pressed=true]{background:var(--card);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.search{position:relative;margin-top:10px}
+.search input{width:100%;padding:11px 38px 11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card)}
+.search .clear{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:0;background:none;color:var(--muted);font-size:20px;width:30px;height:30px;cursor:pointer;display:none}
+.search.has .clear{display:block}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:18px 0 8px;font-weight:700}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+.fam{border:1px solid var(--line);background:var(--card);border-radius:12px;padding:10px 12px;text-align:left;cursor:pointer}
+.fam b{display:block;font-size:16px}
+.fam span{font-size:13px;color:var(--muted)}
+.crumb{display:flex;align-items:center;gap:8px;margin-top:16px}
+.crumb button{border:0;background:var(--chip);border-radius:999px;padding:6px 12px;cursor:pointer;font-weight:600}
+.crumb .t{font-size:20px;font-weight:700}
+.stats{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:6px 10px;font-size:13px;color:var(--muted)}
+.stat b{color:var(--ink);font-size:15px;margin-right:3px}
+.chips{display:flex;gap:6px;overflow-x:auto;padding:10px 0 2px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:6px 12px;font-size:14px;cursor:pointer;white-space:nowrap}
+.chip[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.list{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+.unit{display:flex;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;position:relative}
+.unit.first{border:2px solid var(--alert-ink)}
+.unit.first.fresh{border-color:var(--fresh-ink)} .unit.first.warn{border-color:var(--warn-ink)}
+.ribbon{position:absolute;top:-10px;right:12px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:2px 8px;border-radius:999px;background:var(--ink);color:var(--bg)}
+.age{flex:none;width:72px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 0}
+.age b{font-size:26px;line-height:1;font-variant-numeric:tabular-nums}
+.age span{font-size:12px;margin-top:3px}
+.age.fresh{background:var(--fresh);color:var(--fresh-ink)} .age.warn{background:var(--warn);color:var(--warn-ink)}
+.age.alert{background:var(--alert);color:var(--alert-ink)} .age.unknown{background:var(--unknown);color:var(--unknown-ink)}
+.info{min-width:0;flex:1}
+.info .v{font-weight:700;font-size:16px}
+.info .tr{color:var(--muted);font-size:14px}
+.info .meta{font-size:14px;margin-top:4px}
+.info .row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.tag{font-size:13px;background:var(--chip);border:0;border-radius:8px;padding:4px 8px;cursor:pointer}
+.tag.cond{font-weight:700;cursor:default}
+.empty,.msg{background:var(--card);border:1px dashed var(--line);border-radius:12px;padding:18px;text-align:center;color:var(--muted);margin-top:16px}
+.msg.err{border-style:solid;border-color:var(--alert-ink);color:var(--alert-ink)}
+.signin{max-width:420px;margin:12vh auto 0;padding:0 16px}
+.signin h1{font-size:28px;margin:0 0 4px}
+.signin p{color:var(--muted);margin:0 0 20px}
+.signin label{display:block;font-weight:600;margin:14px 0 6px;font-size:14px}
+.signin input,.signin select{width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--card)}
+.primary{width:100%;margin-top:20px;padding:13px;border:0;border-radius:10px;background:var(--accent);color:var(--accent-ink);font-weight:700;cursor:pointer}
+.primary:disabled{opacity:.6}
+.foot{font-size:12px;color:var(--muted);text-align:center;margin-top:28px}
+.foot button{border:0;background:none;color:var(--accent);cursor:pointer;font-size:12px;text-decoration:underline}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:999px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+
+<!-- SIGN IN -->
+<section id="signin" class="signin" hidden>
+  <h1>Lot Age</h1>
+  <p>See every unit of a model, oldest first.</p>
+  <form id="signin-form">
+    <label for="lk">Lead Pro license key</label>
+    <input id="lk" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="LP-XXXXXXXX" required>
+    <label for="store0">Your store</label>
+    <select id="store0"></select>
+    <button class="primary" id="signin-go" type="submit">Sign in</button>
+    <div id="signin-msg" class="msg err" hidden></div>
+  </form>
+</section>
+
+<!-- MAIN -->
+<section id="main" hidden>
+  <header>
+    <div class="wrap" style="padding-bottom:0">
+      <div class="bar">
+        <div class="brand">Lot Age</div>
+        <select class="store" id="store" aria-label="Store"></select>
+        <button class="iconbtn" id="refresh" aria-label="Refresh inventory" title="Refresh">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+        </button>
+      </div>
+      <div class="asof" id="asof"></div>
+      <div class="seg" role="group" aria-label="Condition">
+        <button data-cond="new" aria-pressed="true">New</button>
+        <button data-cond="used" aria-pressed="false">Used / CPO</button>
+        <button data-cond="all" aria-pressed="false">All</button>
+      </div>
+      <div class="search" id="searchbox">
+        <input id="q" type="search" placeholder="Model, trim, color, stock # or VIN" autocomplete="off" enterkeyhint="search">
+        <button class="clear" id="qclear" aria-label="Clear search">×</button>
+      </div>
+    </div>
+  </header>
+  <div class="wrap">
+    <div id="view"></div>
+    <div class="foot"><span id="who"></span> · <button id="signout">Sign out</button></div>
+  </div>
+</section>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="lot-core.js"></script>
+<script>
+(function () {
+'use strict';
+const API = 'https://leadpro-proxy.gilsguzman.workers.dev';
+const L = window.LotCore;
+const $ = id => document.getElementById(id);
+
+// localStorage is a convenience only; every read/write is guarded.
+const store = {
+  get(k) { try { const v = localStorage.getItem('lotage:' + k); return v ? JSON.parse(v) : null; } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem('lotage:' + k, JSON.stringify(v)); } catch (e) {} },
+  del(k) { try { localStorage.removeItem('lotage:' + k); } catch (e) {} },
+};
+
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const money = n => Number.isFinite(n) ? '$' + n.toLocaleString('en-US') : '';
+const miles = n => Number.isFinite(n) ? n.toLocaleString('en-US') + ' mi' : '';
+
+const state = {
+  session: store.get('session'),               // {licenseKey, agentName}
+  storeId: store.get('storeId') || L.STORES[0].id,
+  cond: store.get('cond') || 'new',
+  family: null, color: null, query: '',
+  data: null,                                  // prepared inventory
+  source: '',                                  // 'live' | 'cache'
+};
+
+function toast(t) { const el = $('toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toast._t); toast._t = setTimeout(() => el.classList.remove('show'), 1600); }
+
+function fillStores(sel) {
+  sel.innerHTML = L.STORES.map(s => `<option value="${s.id}">${esc(s.label)}</option>`).join('');
+  sel.value = state.storeId;
+}
+
+/* ---------- sign in ---------- */
+function showSignin() {
+  $('main').hidden = true; $('signin').hidden = false;
+  fillStores($('store0'));
+}
+$('signin-form').addEventListener('submit', async ev => {
+  ev.preventDefault();
+  const key = $('lk').value.trim().toUpperCase();
+  const msg = $('signin-msg'); msg.hidden = true;
+  if (!key) return;
+  $('signin-go').disabled = true; $('signin-go').textContent = 'Checking…';
+  try {
+    const r = await fetch(API + '/validate-license', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ licenseKey: key }) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || !j.ok) throw new Error(j.error === 'License not found' || !j.error ? 'That license key was not recognized.' : j.error);
+    state.session = { licenseKey: key, agentName: j.agentName || '' };
+    state.storeId = $('store0').value;
+    store.set('session', state.session); store.set('storeId', state.storeId);
+    showMain();
+  } catch (e) {
+    msg.textContent = e instanceof TypeError ? 'Could not reach Lead Pro. Check your connection and try again.' : e.message;
+    msg.hidden = false;
+  } finally { $('signin-go').disabled = false; $('signin-go').textContent = 'Sign in'; }
+});
+$('signout').addEventListener('click', () => { store.del('session'); state.session = null; showSignin(); });
+
+/* ---------- inventory ---------- */
+async function load(force) {
+  const id = state.storeId;
+  const cached = store.get('inv:' + id);
+  if (cached && !state.data) use(cached.inventory, 'cache', cached.fetchedAt);
+  if (!state.data) $('view').innerHTML = '<div class="msg">Loading inventory…</div>';
+  try {
+    const since = !force && cached && cached.version ? '&since=' + encodeURIComponent(cached.version) : '';
+    const r = await fetch(API + '/inventory?dealer=' + encodeURIComponent(id) + since, { cache: 'no-store' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const j = await r.json();
+    if (id !== state.storeId) return;          // store changed while loading
+    if (j.unchanged && cached) { cached.fetchedAt = Date.now(); store.set('inv:' + id, cached); use(cached.inventory, 'live', cached.fetchedAt); return; }
+    if (!j.inventory) { state.data = null; $('view').innerHTML = '<div class="empty">No inventory has been published for this store yet.</div>'; $('asof').textContent = ''; return; }
+    const rec = { version: j.version || null, inventory: j.inventory, fetchedAt: Date.now() };
+    store.set('inv:' + id, rec);
+    use(rec.inventory, 'live', rec.fetchedAt);
+    if (force) toast('Inventory updated');
+  } catch (e) {
+    if (id !== state.storeId) return;
+    if (state.data) { state.source = 'cache'; renderAsOf(); toast('Offline: showing saved inventory'); }
+    else $('view').innerHTML = '<div class="msg err">Could not load inventory. Check your connection and tap refresh.</div>';
+  }
+}
+
+function use(inventory, source, fetchedAt) {
+  state.data = L.prepare(inventory, L.todayISO());
+  state.source = source; state.fetchedAt = fetchedAt;
+  renderAsOf(); render();
+}
+
+function renderAsOf() {
+  const el = $('asof');
+  if (!state.data) { el.textContent = ''; return; }
+  const g = state.data.generated;
+  const old = g ? L.daysBetween(g, L.todayISO()) : null;
+  let t = g ? 'vAuto export from ' + new Date(g + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Export date unknown';
+  if (old !== null) t += old <= 0 ? ' (today)' : old === 1 ? ' (yesterday)' : ' (' + old + ' days ago)';
+  t += ' · ' + state.data.units.length + ' units';
+  if (state.source === 'cache') t += ' · saved copy';
+  el.textContent = t;
+  el.classList.toggle('stale', old !== null && old >= 2);
+  if (old !== null && old >= 2) el.textContent += ' · some units may have sold';
+}
+
+/* ---------- render ---------- */
+function render() {
+  const v = $('view');
+  if (!state.data) return;
+  const units = state.data.units;
+  const q = state.query.trim();
+
+  // Home: model families (no model picked, no search).
+  if (!state.family && !q) {
+    const fams = L.families(units, state.cond);
+    if (!fams.length) { v.innerHTML = '<div class="empty">No ' + (state.cond === 'all' ? '' : state.cond === 'new' ? 'new ' : 'used ') + 'units in this export.</div>'; return; }
+    v.innerHTML = '<h2>Pick a model</h2><div class="grid">' + fams.map(f =>
+      `<button class="fam" data-fam="${esc(f.family)}"><b>${esc(f.family)}</b><span>${f.count} in stock${f.oldest !== null ? ' · oldest ' + f.oldest + 'd' : ''}</span></button>`
+    ).join('') + '</div>';
+    return;
+  }
+
+  const base = L.filter(units, { condition: state.cond, family: state.family, query: q });
+  const list = state.color ? base.filter(u => String(u.color || '').trim() === state.color) : base;
+  const s = L.summary(list);
+  const cols = L.colors(base);
+
+  let h = '<div class="crumb"><button id="back">‹ Models</button><span class="t">' + esc(state.family || 'Search results') + '</span></div>';
+  h += '<div class="stats"><span class="stat"><b>' + s.count + '</b>in stock</span>' +
+       (s.oldest !== null ? '<span class="stat"><b>' + s.oldest + '</b>days oldest</span>' : '') +
+       (s.avg !== null ? '<span class="stat"><b>' + s.avg + '</b>days avg</span>' : '') +
+       (s.aged ? '<span class="stat"><b>' + s.aged + '</b>over ' + L.AGED_ALERT + ' days</span>' : '') + '</div>';
+  if (cols.length > 1) {
+    h += '<div class="chips" role="group" aria-label="Color"><button class="chip" data-color="" aria-pressed="' + (!state.color) + '">Any color</button>' +
+      cols.map(c => `<button class="chip" data-color="${esc(c.color)}" aria-pressed="${state.color === c.color}">${esc(c.color)} · ${c.count}</button>`).join('') + '</div>';
+  }
+  if (!list.length) {
+    h += '<div class="empty">Nothing matches. Try fewer words, another color, or "All".</div>';
+  } else {
+    h += '<div class="list">' + list.map((u, i) => card(u, i === 0 && u._age !== null)).join('') + '</div>';
+  }
+  v.innerHTML = h;
+}
+
+function card(u, first) {
+  const age = u._age;
+  const cond = u.condition === 'cpo' ? 'CPO' : u.condition === 'used' ? 'Used' : 'New';
+  const title = [u.year, u.make, u._family].filter(Boolean).join(' ');
+  const colorLine = [u.color, u.interior ? u.interior + ' interior' : ''].filter(Boolean).join(' · ');
+  const vinTail = u.vin ? String(u.vin).slice(-8) : '';
+  return `<article class="unit ${first ? 'first ' + u._band : ''}">
+    ${first ? '<span class="ribbon">Show first</span>' : ''}
+    <div class="age ${u._band}"><b>${age === null ? '?' : age}</b><span>${age === null ? 'no age' : age === 1 ? 'day' : 'days'}</span></div>
+    <div class="info">
+      <div class="v">${esc(title)}</div>
+      ${u._trim ? `<div class="tr">${esc(u._trim)}</div>` : ''}
+      ${colorLine ? `<div class="meta">${esc(colorLine)}</div>` : ''}
+      <div class="meta">${[money(u.price), u.condition !== 'new' ? miles(u.odometer) : ''].filter(Boolean).map(esc).join(' · ')}</div>
+      <div class="row">
+        <span class="tag cond">${cond}</span>
+        ${u.stock ? `<button class="tag" data-copy="${esc(u.stock)}" aria-label="Copy stock number ${esc(u.stock)}">Stock ${esc(u.stock)}</button>` : ''}
+        ${u.vin ? `<button class="tag" data-copy="${esc(u.vin)}" aria-label="Copy VIN">VIN …${esc(vinTail)}</button>` : ''}
+      </div>
+    </div>
+  </article>`;
+}
+
+/* ---------- events ---------- */
+$('view').addEventListener('click', ev => {
+  const fam = ev.target.closest('[data-fam]');
+  if (fam) { state.family = fam.dataset.fam; state.color = null; render(); window.scrollTo(0, 0); return; }
+  if (ev.target.closest('#back')) { state.family = null; state.color = null; state.query = ''; $('q').value = ''; $('searchbox').classList.remove('has'); render(); return; }
+  const col = ev.target.closest('[data-color]');
+  if (col) { state.color = col.dataset.color || null; render(); return; }
+  const cp = ev.target.closest('[data-copy]');
+  if (cp) {
+    const t = cp.dataset.copy;
+    (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast('Copied ' + t), () => toast(t));
+  }
+});
+document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => {
+  state.cond = b.dataset.cond; store.set('cond', state.cond);
+  document.querySelectorAll('.seg button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  state.color = null; render();
+}));
+let qt;
+$('q').addEventListener('input', () => {
+  $('searchbox').classList.toggle('has', !!$('q').value);
+  clearTimeout(qt); qt = setTimeout(() => { state.query = $('q').value; state.color = null; render(); }, 120);
+});
+$('qclear').addEventListener('click', () => { $('q').value = ''; state.query = ''; $('searchbox').classList.remove('has'); render(); $('q').focus(); });
+$('store').addEventListener('change', () => {
+  state.storeId = $('store').value; store.set('storeId', state.storeId);
+  state.data = null; state.family = null; state.color = null; load();
+});
+$('refresh').addEventListener('click', () => load(true));
+document.addEventListener('visibilitychange', () => { if (!document.hidden && state.session && state.data) { renderAsOf(); load(); } });
+
+function syncCondButtons() { document.querySelectorAll('.seg button').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.cond === state.cond))); }
+
+function showMain() {
+  $('signin').hidden = true; $('main').hidden = false;
+  fillStores($('store')); syncCondButtons();
+  $('who').textContent = state.session.agentName ? 'Signed in as ' + state.session.agentName : 'Signed in';
+  state.data = null; load();
+}
+
+if (state.session && state.session.licenseKey) showMain(); else showSignin();
+
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+})();
+</script>
+</body>
+</html>
