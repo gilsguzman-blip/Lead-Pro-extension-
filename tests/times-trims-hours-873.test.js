@@ -124,8 +124,8 @@ for (const f of BUILDS) {
   const FT = (x) => base(THREAD, Object.assign({ outboundSends: [{ body: BOT, date: at(0, '9:05 AM') }], customerZip: LOCAL, customerState: 'LA' }, x || {}));
   const gN = go(FT());
   // (v9.7.889) owner, 11/20: the first reach-out makes no visit ask -- the two times below were 9.7.873's and are inverted
-  check('first touch, model only (no stock, no VIN) -> no two times since v9.7.889: the FIRST REACH-OUT owns the visit, no slot block', () => [/close with two specific appointment times/.test(gN.prompt),
-    /VISIT DECISION FOR THIS MESSAGE: no visit ask and no appointment times in this message -- the FIRST REACH-OUT/.test(gN.prompt), /SUGGESTED APPOINTMENT TIMES/.test(gN.prompt)], [false, true, false]);
+  check('first touch, model only (no stock, no VIN) -> no two times since v9.7.889: the FIRST REACH-OUT owns the visit (a light invite, no times, since v9.7.897), no slot block', () => [/close with two specific appointment times/.test(gN.prompt),
+    (/VISIT DECISION FOR THIS MESSAGE: no specific appointment times and no same-day push in this message/.test(gN.prompt) && /FIRST REACH-OUT \u2014 LIGHT VISIT INVITE, NO TIMES/.test(gN.prompt)), /SUGGESTED APPOINTMENT TIMES/.test(gN.prompt)], [false, true, false]);
   check('control: an AI Buying Signals lead with no car keeps its own rule (no two times)', () => /the lead names no specific car/.test(go(FT({ leadSource: 'AI Buying Signals - Not Previously Sold' })).prompt), false);
   check('control: a customer more than 75 miles out keeps the light ask', () => /FIRST HUMAN TOUCH — LIGHT ASK, NO TIMES/.test(go(FT({ customerZip: FAR, customerState: 'TX' })).prompt), true);
 }

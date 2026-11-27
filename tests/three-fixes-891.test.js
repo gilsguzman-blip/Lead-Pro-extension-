@@ -51,7 +51,8 @@ for (const f of BUILDS) {
   const ask = (x) => quiet(() => fn('_lpBuyingJourney')(LEAD('', x)).ask);
   check('a model chosen -> "what they are driving now" first', () => /^what they are driving now/.test(ask({ vehicle: '2026 Honda Ridgeline', noVehicleAtAll: false })), true);
   check('one car -> "what they are comparing it with" first', () => /^what they are comparing it with/.test(ask({ vehicle: '2027 Toyota Corolla SE', stockNum: 'TEST003C', noVehicleAtAll: false })), true);
-  check('the block leads with the first one named, and rules out a generic "what caught your eye"', () => /the first one named here usually works best: [^\n]*not a generic "what caught your eye"/.test(src), true);
+  // (v9.7.897) the first reach-out closes on a light visit invitation, no longer a question: the journey chooses what it is about
+  check('the journey chooses what the first reach-out\'s invitation is about (it no longer suggests a question, since v9.7.897)', () => [/Let it choose what the invitation is about: ' \+ \(LP_JOURNEY_INVITE\[j\.stage\]/.test(src), /the first one named here usually works best/.test(src)], [true, false]);
 
   console.log(' 3. "As your Concierge" never leads into a question:');
   const hg = (t, ch, x) => { sb.__L = Object.assign({ dealerId: '21135', store: 'Audi Lafayette', totalNoteCount: 3 }, x || {}); run('lastScrapedData = globalThis.__L;'); return quiet(() => run('_lpHouseGuard')(t, ch)); };

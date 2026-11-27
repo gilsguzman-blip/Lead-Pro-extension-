@@ -142,12 +142,12 @@ for (const f of BUILDS) {
       outboundSends: [{ body: BOT, date: at(0, '8:15 AM') }], customerZip: LOCAL_ZIP, customerState: 'TX' }, x || {})));
   const g3 = ft();
   // (v9.7.889) owner, 11/20: the first reach-out makes no visit ask -- this replaces the two times v9.7.865 gave it
-  check('bot-only outreach, the car confirmed here, a ZIP in the store\'s local set -> no two times since v9.7.889: the FIRST REACH-OUT owns the visit',
-    () => [/close with two specific appointment times/.test(g3.prompt), /VISIT DECISION FOR THIS MESSAGE: no visit ask and no appointment times in this message -- the FIRST REACH-OUT/.test(g3.prompt)], [false, true]);
+  check('bot-only outreach, the car confirmed here, a ZIP in the store\'s local set -> no two times since v9.7.889: the FIRST REACH-OUT owns the visit (a light invite, no times, since v9.7.897)',
+    () => [/close with two specific appointment times/.test(g3.prompt), (/VISIT DECISION FOR THIS MESSAGE: no specific appointment times and no same-day push in this message/.test(g3.prompt) && /FIRST REACH-OUT \u2014 LIGHT VISIT INVITE, NO TIMES/.test(g3.prompt))], [false, true]);
   check('control: a customer more than 75 miles out keeps the light ask', () => /FIRST HUMAN TOUCH — LIGHT ASK, NO TIMES/.test(ft({ customerZip: FAR_ZIP }).prompt), true);
   // (v9.7.873) Owner, 11/14: a first touch that names no specific car gets the two times too -- this control was the old rule.
-  check('no stock number on the lead (no specific car) -> no two times since v9.7.889 (they were given 9.7.873): the FIRST REACH-OUT owns the visit', () => { const p = ft({ stockNum: '', _pdUnitStock: '' }).prompt;
-    return [/close with two specific appointment times/.test(p), /VISIT DECISION FOR THIS MESSAGE: no visit ask and no appointment times in this message -- the FIRST REACH-OUT/.test(p)]; }, [false, true]);
+  check('no stock number on the lead (no specific car) -> no two times since v9.7.889 (they were given 9.7.873): the FIRST REACH-OUT owns the visit (a light invite, no times, since v9.7.897)', () => { const p = ft({ stockNum: '', _pdUnitStock: '' }).prompt;
+    return [/close with two specific appointment times/.test(p), (/VISIT DECISION FOR THIS MESSAGE: no specific appointment times and no same-day push in this message/.test(p) && /FIRST REACH-OUT \u2014 LIGHT VISIT INVITE, NO TIMES/.test(p))]; }, [false, true]);
   check('control: a unit named on the lead but NOT confirmed on the lot keeps the light ask', () => /FIRST HUMAN TOUCH — LIGHT ASK, NO TIMES/.test(ft({ stockNum: 'TEST0ZZ', _pdUnitStock: '', _pdStatus: '' }).prompt), true);
 }
 console.log('\n' + (fail ? 'FAILED' : 'PASSED') + ' — ' + pass + ' passed, ' + fail + ' failed');

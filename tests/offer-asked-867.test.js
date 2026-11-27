@@ -83,7 +83,7 @@ for (const f of BUILDS) {
   check('...the certified hybrid is left out (owner, 11/10)', () => [/TRD Off Road/.test(g1.ctx.split('AGENT CONTEXT')[0]), /Pre-owned and certified units are not part of this offer and are not offered against it\./.test(g1.prompt)], [false, true]);
   // (v9.7.873) Owner, 11/14: a first touch with no specific car gets two times; this lead names the Tacoma and no unit.
   // (v9.7.889) owner, 11/20: the first reach-out makes no visit ask (9.7.873 gave it two times)
-  check('...the first touch, no specific unit: no two times since v9.7.889; the FIRST REACH-OUT owns the visit', () => [/close with two specific appointment times/.test(g1.prompt), /VISIT DECISION FOR THIS MESSAGE: no visit ask and no appointment times in this message -- the FIRST REACH-OUT/.test(g1.prompt)], [false, true]);
+  check('...the first touch, no specific unit: no two times since v9.7.889; the FIRST REACH-OUT owns the visit (a light invite, no times, since v9.7.897)', () => [/close with two specific appointment times/.test(g1.prompt), (/VISIT DECISION FOR THIS MESSAGE: no specific appointment times and no same-day push in this message/.test(g1.prompt) && /FIRST REACH-OUT \u2014 LIGHT VISIT INVITE, NO TIMES/.test(g1.prompt))], [false, true]);
   check('populateFromData a second time on the same lead keeps the offer (the block was already taken off)',
     () => { const again = go(g1.d); return [(again.ctx.match(/THE OFFER THEY REQUESTED A QUOTE ON/g) || []).length, /TOOL-SUPPLIED/.test(again.prompt)]; }, [1, false]);
   const rf = fn('_lpBuildSmsRefinePrompt');

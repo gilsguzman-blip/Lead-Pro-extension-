@@ -1,3 +1,4 @@
+// Lead Pro -- popup.js  v9.7.897-dev (Dev. A WEB FORM'S QUESTION REACHES THE PROMPT, AND THE FIRST REACH-OUT MAKES A LIGHT VISIT INVITE. Extension only; proxy v7.93, reporter v1.26, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. (1) THE CUSTOMER'S COMMENT AHEAD OF A FORM'S FIELDS. Audi Lafayette lead 3122586517 (Dealer.com E-Pricer, 11/27, log430): the lead-received note was "I'm interested but need some clarification, Pictures show brown interior listing says black" followed by "---------- CCPA Consent: Checked ---------- CCPA_VERBIAGE: ... ---------- Submission Timestamp: ...". Both readers took the note whole -- [LP INTAKE REQ DIAG] REFUSED it as machine fields, and the inquiry reader found it over 600 characters -- so the question never reached the prompt and the draft only asked "cash or financing?". New _lpFormCommentHead (inside inlineScraper): the part ahead of the first dash rule is what the customer typed, used when it reads as words; both readers start from it. The question now arrives as [CUSTOMER REQUEST FROM INQUIRY] and as their verbatim stated intent. _lpStockInteriorLine also reads the form comment (leadIntakeReq), so on this lead the record's "Brown" answers it ("it has the brown interior"). (2) THE FIRST REACH-OUT: A LIGHT, OPEN VISIT INVITE. Owner, 11/27: "My agents are not liking the appointment avoidance ... a light ask for an appointment to come see the vehicle or go over options rather than the other questions." Rulings: an open invite with no times and no day; the first reach-out only. The 889 block becomes "FIRST REACH-OUT -- LIGHT VISIT INVITE, NO TIMES": answer what they asked, give before you ask, then one easy yes-or-no invitation to come see the car or go over their options -- no clock time, no day name, no "today/tomorrow/this weekend", and no other question; a car on its way is never invited to be seen. LP_JOURNEY_INVITE lets the buying-journey stage choose what the invite is about (look at their car, finish the online deal, go over the numbers, see it and drive it ...). Its visit hold moves from level 3 (no visit ask) to level 2 (no times), so the pre-889 light-ask lines stand again; the text rewrite ends on the same invitation. Follow-ups are unchanged (896's concrete question stays there); a customer who asked to come in and the Add Appt chip still get times. REPLAYED: of the 16 saved dumps, the 4 first touches change (the decision line, the block, and the light-ask lines a level-3 hold had neutralized); the 12 follow-ups are identical. TESTS: new form-comment-light-invite-897 (12 per build; part 1 runs the shipped inlineScraper in Chromium). INVERTED, 889's "no visit ask" assertions: imx-noappt-720 (3), chip-color-firsttouch-865 (2), offer-asked-867 (1), times-trims-hours-873 (1), first-reach-out-889 (2), three-fixes-891 (1), give-before-892 (1), give-and-ask-893 (2), concrete-initial-896 (1). NON-VACUITY against 9.7.896: 9 fail per build, the 3 controls pass. VERIFIED: run-all 342 suites, 11132 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.896.)
 // Lead Pro -- popup.js  v9.7.896-dev (Dev. FOUR FIXES FROM THE 11/25 REPORT. Owner, 11/26: "build 896 with items 1-3 add the expand tweak and warmth". Extension only; proxy v7.93, reporter v1.26, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. (1) THE QUESTION NAMES WHAT IT ASKS ABOUT. Every unsent session on 11/25 ended on an open-ended question about the process: Toyota Baytown lead 3122201006 (Virtual Retailing, a Tundra on its way) -- "What's the main thing you still need to settle on it?", "What part of the online deal would you like to tackle next?", "What detail on the sticker would you like me to clarify?"; Kia Baytown lead 3122170874 -- "What would be most helpful to work through first...?". The online-deal stage told the model "what is left for them to settle (the payment, a trade, the timing)" and it asked exactly that, abstractly. The stage now asks one concrete piece, named in the question: a trade, cash or financing, or when they want it (for a car on its way, once it arrives). LP_CONCRETE_Q_RULE rides the first reach-out block and, as "CONCRETE QUESTION:", every follow-up that gets GIVE BEFORE YOU ASK; the text rewrite says the same. [LP VAGUE QUESTION DIAG] logs the field's shapes at render (log only). (2) AN INITIAL IS NO NAME. Toyota Baytown Edmunds lead 3122173227: the name began with an initial and the 848 first-name line ("even when the first name is short") had both drafts open "T,". The prompt now says no first name is usable; _lpInitialGreetingGuard turns "T," into "Hello," (a greeting line), "T, I can help" into "I can help", and "Hi T, this is" into "Hi, this is". "TJ" and real names are untouched. (3) "With no specific vehicle attached, ..." is the CRM talking (same lead's email): _lpNoVehicleClauseGuard drops the clause and keeps the sentence. (4) EXPAND ADDS WARMTH. Cargurus lead 2105888147 (Honda Lafayette): Expand bolted "the Accord is Honda Certified" onto "I can keep your file open and stop sending messages". The chip now asks for substance said warmly; a step-back message (room, keep in touch or how to hear from us, close the file) is expanded with warmth instead, never a vehicle fact, spec or certification; the text rewrite keeps the warmth it added. REPLAYED: all 15 saved dumps change by one line only -- the 3 first touches carry the concrete rule in their block, the 12 follow-ups the CONCRETE QUESTION line; none has an initial for a name. TESTS: new concrete-initial-896 (17 per build). NON-VACUITY against 9.7.895: 12 fail per build, the 5 controls pass. VERIFIED: run-all 341 suites, 11108 assertions, 0 failed; dev===comm on every changed region. Builds on v9.7.895.)
 // Lead Pro -- popup.js  v9.7.895-dev (Dev. CHRISTMAS EVE AND NEW YEAR'S EVE CLOSE AT 5 PM, every store. Owner, 11/25: "Christmas Eve and New Year's Eve close at 5 PM". Extension only; proxy v7.93, reporter v1.26, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. _lpEarlyCloseName (December 24 and 31) beside 9.7.894's holiday table. The appointment engine closes at 5 PM on those days, so the last same-day time is 4:00 PM (an hour before closing, the 869 rule), and a next day that falls on one closes at 5 PM too; Christmas Eve after 3 PM rolls to Saturday 12/26 and New Year's Eve to Saturday 1/2, the holidays skipped. The calendar labels the day "(closes at 5 PM -- Christmas Eve)" with an EARLY CLOSE line (no time after 4:00 PM), and the store status on the day itself reads "Closes at 5 PM" (every same-day rule below it reads the same hours). A Sunday Christmas Eve stays closed. REPLAYED: none of the 15 saved dumps reaches those days, and none changes. TESTS: new early-close-895 (7 per build, on the agents' Central clock). NON-VACUITY against 9.7.894: 5 fail, the 2 controls pass. VERIFIED: run-all 340 suites, 11074 assertions, 0 failed; dev===comm on every changed region. Builds on 9.7.894. Builds on v9.7.894.)
 // Lead Pro -- popup.js  v9.7.894-dev (Dev. STORE HOLIDAYS: EVERY STORE IS CLOSED. Owner, 11/25: "Agent told me that the first message was pushing for an appointment tomorrow, Thanksgiving. We're closed at all stores. While we're at it we need to add the logic for all major holidays. Christmas, New Years Day being closed." and "agent manually changed the message to a today and Friday time". Extension only; proxy v7.93, reporter v1.26, dashboard v1.12, gatherer v1.6 and the Data Tool unchanged. Audi Lafayette lead 3121946430 (Wednesday 11/25, log429): the calendar read "TOMORROW = Thursday 11/26" as an open day; nothing in Lead Pro knew a holiday. (The store's virtual assistant's own 2:28 AM message also offered "Thursday at 10:00 AM"; that is not Lead Pro's.) FIX: _lpHolidayName -- Thanksgiving Day (the fourth Thursday of November), Christmas Day, New Year's Day -- read by everything that decides an open day. The calendar marks the day "(CLOSED -- <holiday>)" and adds a HOLIDAY line (every store closed, never offer it or "tomorrow" if that is the day, and the next open day to offer if they name it); the store status on the day itself reads CLOSED with the holiday's name, and the soonest-first line no longer says "today plus tomorrow" when tomorrow is the holiday; the appointment engine has no same-day slots on a holiday and its next business day skips Sundays and holidays together (Christmas Eve evening -> Saturday 12/26; New Year's Eve evening -> Saturday 1/2); and _lpHolidayTimeGuard, in a sentence with a clock time, moves the holiday's day name, its date, or "tomorrow"/"today" when that is the holiday, to the next open day -- a sentence that says we are closed or names the holiday is left alone. Not in scope, for the owner: Christmas Eve or New Year's Eve hours, and Memorial Day, July 4 and Labor Day (left open). REPLAYED: the dumps whose 8-day calendar reaches 11/26 gain the CLOSED label and the HOLIDAY line; the 11/25 Audi lead also its status line; the rest are unchanged. TESTS: new holidays-894 (13 per build, on the agents' Central clock). cutoff-offer-tundra-869 picks the most recent Wednesday from the real clock -- on 11/25 that was the day before Thanksgiving, so it now skips a Wednesday whose Thursday is a holiday. NON-VACUITY against 9.7.893: 10 fail, 3 controls pass. VERIFIED: run-all 339 suites, 11060 assertions, 0 failed; dev===comm on every changed region. Builds on 9.7.893. Builds on v9.7.893.)
@@ -5423,6 +5424,18 @@ function _lpFirstReachOut(d) {
     return !ours.length;
   } catch (e) { return false; }
 }
+// (v9.7.897) What the first reach-out's light invitation is about, by stage.
+var LP_JOURNEY_INVITE = {
+  'VALUING OR SELLING THEIR CAR': 'to come by so we can look at their car in person and give them a real number',
+  'ALREADY BUILDING A DEAL ONLINE': 'to come see it and wrap up the rest of the deal in person',
+  'WORKING OUT THE MONEY FIRST': 'to come by and go over their options together',
+  'ASKED FOR PRICING': 'to come by and go over the numbers on it together',
+  'REPLACING A CAR THEY LOST': 'to come see what we have that fits what they need',
+  'NEARING THE END OF WHAT THEY DRIVE NOW': 'to come by and go over their options for when it is up',
+  'NARROWED TO ONE CAR': 'to come take a look at it',
+  'COMPARING, MODEL CHOSEN': 'to come see it in person, and drive it if they like',
+  'EARLY: STILL LOOKING': 'to come see what we have and go over their options'
+};
 // Where they are in the buying journey, read from the lead: { stage, evidence, ask }. The question it suggests is one, about them.
 function _lpBuyingJourney(d) {
   var src = String((d && d.leadSource) || ''), veh = String((d && d.vehicle) || '').trim(), unit = !!(String((d && d.stockNum) || '').trim() || String((d && d.vin) || '').trim());
@@ -5467,12 +5480,15 @@ function _lpFirstReachOutBlock(d) {
   try {
     if (!_lpFirstReachOut(d) || _lpAskedToComeIn(d) || (typeof _lpAddApptOn === 'function' && _lpAddApptOn(d))) return '';
     var j = _lpBuyingJourney(d);
-    try { console.log('[LP FIRST REACH-OUT DIAG] no visit ask on the first reach-out | journey: ' + j.stage + ' -- ' + j.evidence); } catch (eL) {}
-    return 'FIRST REACH-OUT — BUILD ENGAGEMENT, NO VISIT ASK: this is the first message a person on our team sends on this lead. Store policy: the first reach-out does not ask for the appointment -- no appointment times, no "come in today", no "stop by", no "when can you come in", no "I can have it ready for your visit". Its job is to start a conversation.\n'
-      + 'WHERE THEY ARE IN THE BUYING JOURNEY: ' + j.stage + ' -- ' + j.evidence + '. Read the rest of this prompt (their inquiry, what they were looking at on our site, their trade) to place them more exactly.\n'
-      + '- Answer anything they asked first. Then ask an engaging question that picks up where they are -- the first one named here usually works best: ' + j.ask + '. Keep it to that single question, easy to answer in a few words and about them; never a list (not trim AND color AND budget), never about scheduling, and not a generic "what caught your eye". ' + LP_CONCRETE_Q_RULE + '\n'   // (v9.7.891; v9.7.896 concrete)
-      + '- GIVE BEFORE YOU ASK. With no visit ask, the substance is what earns the reply, and drafts have come out thin. Ahead of the question, one or two sentences that help them decide: what is on our lot (how many, which colors or trims), a feature that sets that trim apart, the store offer if one is listed above, or what you can do for them next (put numbers together, check a specific configuration, value their trade). A lone spec they could read off the window sticker ("it is front-wheel drive") is not it. The question comes last. No padding: every sentence tells them something they did not have.\n'   // (v9.7.892) owner, 11/24
-      + '- You may say the car is here if it is. The email may add one more useful detail but makes the same single ask; the voicemail asks the same question and invites a call or text back.';
+    try { console.log('[LP FIRST REACH-OUT DIAG] a light visit invite, no times | journey: ' + j.stage + ' -- ' + j.evidence); } catch (eL) {}
+    // (v9.7.897) Owner, 11/27: "My agents are not liking the appointment avoidance ... a light ask for an appointment to come see the vehicle
+    // or go over options rather than the other questions." Rulings: an open invite, no times and no day; the first reach-out only.
+    return 'FIRST REACH-OUT — LIGHT VISIT INVITE, NO TIMES: this is the first message a person on our team sends on this lead. Store policy: it closes with a light, open invitation to come in -- to see the car, or to go over their options -- and offers no appointment time and no day: no clock time, no "today", "tomorrow", "this weekend" or day name, and never "when can you come in". One easy yes-or-no invitation, put the way a person glad to help would put it ("Would you like to come take a look at it?", "Would it help to come by and go over your options together?").\n'
+      + 'WHERE THEY ARE IN THE BUYING JOURNEY: ' + j.stage + ' -- ' + j.evidence + '. Let it choose what the invitation is about: ' + (LP_JOURNEY_INVITE[j.stage] || 'to come see it') + '.\n'
+      + '- Answer anything they asked first: a question in their inquiry is why they wrote, and it is answered before anything else.\n'
+      + '- GIVE BEFORE YOU ASK. Ahead of the invitation, one or two sentences that help them decide: what is on our lot (how many, which colors or trims), a feature that sets that trim apart, the store offer if one is listed above, or what you can do for them next (put numbers together, check a specific configuration, value their trade). A lone spec they could read off the window sticker ("it is front-wheel drive") is not it. No padding: every sentence tells them something they did not have.\n'
+      + '- The invitation is the close. No other question: not what they drive, what they are comparing, their budget or their timeline.\n'
+      + '- You may say the car is here if it is. If it is not here yet (on its way to us), never invite them to see it: invite them to come go over the details or their options. The email makes the same light invitation and may add one more useful detail; the voicemail makes it too and invites a call or text back.';
   } catch (e) { return ''; }
 }
 // (v9.7.811) "Did the photos [Rep] sent over come through?" -- a question about something we sent. Returns the words that
@@ -5690,7 +5706,8 @@ function _lpKiaRec(u) { return /\bkia\b/i.test(String((u && u.make) || '') + ' '
 function _lpStockInteriorLine(d) {
   try {
     if (!d || !d.stockNum) return null;
-    var said = String(d.lastInboundMsg || '') + ' ' + ((typeof _lpCustomerText === 'function') ? _lpCustomerText(d) : '');
+    // (v9.7.897) and what they wrote on the lead form (lead 3122586517: "Pictures show brown interior listing says black")
+    var said = String(d.lastInboundMsg || '') + ' ' + String(d.leadIntakeReq || '') + ' ' + ((typeof _lpCustomerText === 'function') ? _lpCustomerText(d) : '');
     var ask = _lpInteriorAsk(said); if (!ask) return null;
     var fu = _lpFeedUnitCheck(d), u = fu && fu.unit;
     if (!u || !fu.inFeed || fu.matchesVoi === false) return null;
@@ -14391,6 +14408,17 @@ function _lpScraperBotAuthor(msg) {
     // hoisted here and both callers use it — the recurring failure in this file is one question
     // answered in two places, and adding a third copy to fix a bug caused by the second would be
     // absurd.
+    // (v9.7.897) A WEB FORM'S COMMENT, AHEAD OF ITS FIELDS. Audi Lafayette lead 3122586517 (Dealer.com E-Pricer, 11/27): the lead-received
+    // note was the customer's question -- "I'm interested but need some clarification, Pictures show brown interior listing says black" --
+    // followed by "---------- CCPA Consent: Checked ---------- CCPA_VERBIAGE: ... ---------- Submission Timestamp: ...". Both readers took
+    // the note whole: the intake reader refused it as machine fields, the inquiry reader found it over 600 characters, and the question
+    // never reached the prompt. The part ahead of the first dash rule is what the customer typed; it is used when it reads as words.
+    function _lpFormCommentHead(text) {
+      var t = String(text || '');
+      if (!/-{5,}/.test(t)) return t;
+      var h = t.split(/-{5,}/)[0].replace(/^\s*By:\s*System\b[:\s-]*/i, '').replace(/\s+/g, ' ').trim();
+      return (h.length >= 8 && /[a-z]{3,}[\s,]+[a-z]{2,}/i.test(h) && !/:\s*\S/.test(h)) ? h : t;
+    }
     function _lpIsOurOwnSend(text) {
       var t = String(text || '');
       return /outbound text message|email reply to prospect|email sent to prospect|email failure|marketing campaign email|email auto response|email price change/i.test(t)
@@ -16621,7 +16649,7 @@ function _lpScraperBotAuthor(msg) {
         // blows past 300 chars on PPC metadata. Strip the Click Path line and truncate at the
         // first structured marker to isolate the customer's own words, then inject them raw.
         if(!extractedCustQ && content && !isDataDump && !_isStructuredIntake) {
-          var _region = content
+          var _region = _lpFormCommentHead(content)   // (v9.7.897)
             .replace(/^[\s\S]*?Click Path:[^\n]*\n/i, '')
             .split(/\n\s*(?:Primary PPC Campaign|Source:|Network Type:|Campaign Id:|AdGroup Id:|Ad Id:|Keyword:|Keyword Match Type:|Click Id:|Expires:|Campaign Name:|Vehicle Prices:|MSRP:|Conditional Offers:|Price:|Customer ID:|Lead ?ID:|Dealer ?ID:)/i)[0]
             .trim();
@@ -17284,7 +17312,7 @@ function _lpScraperBotAuthor(msg) {
       // that path — this only preserves the requirements separately.
       if (isLeadReceived && !isDataDump && !_leadIntakeReq && content) {
         try {
-          var _lir = String(content)
+          var _lir = String(_lpFormCommentHead(content))   // (v9.7.897)
             .replace(/Click for Lead Info\s*:\s*\S+/gi, ' ')
             .replace(/https?:\/\/\S+|\b[a-z0-9.-]+\.(?:com|net|org)\S*/gi, ' ')
             .replace(/\bVisitor Score\s*:\s*\d+\s*\/\s*\d+/gi, ' ')
@@ -26783,7 +26811,7 @@ function _lpBuildSmsRefinePrompt(pass1, emailText, d) {
     + 'EMAIL TO CARRY: plenty of customers read the text and never open the email, so a text that '
     + 'defers the reason to come in has sent them nothing.');
   // (v9.7.889) the first reach-out: its point is the one engaging question, so the text ends on it
-  if (_rfVd && _rfVd.level === 3 && /FIRST REACH-OUT/.test(String(_rfVd.owner || ''))) out.push('This is our first reach-out on the lead: its point is the one engaging question the email asks about where they are in their search. Keep the email\'s useful line ahead of it (what is on our lot, what we will do for them, the offer), and end on that question, in your own words -- one question, nothing about scheduling.');   // (v9.7.893)
+  if (_rfVd && _rfVd.level >= 2 && /FIRST REACH-OUT/.test(String(_rfVd.owner || ''))) out.push('This is our first reach-out on the lead: answer anything they asked, keep the email\'s useful line (what is on our lot, what we will do for them, the offer), and end on the same light invitation the email makes -- to come see the car or go over their options -- with no time, no day and no other question.');   // (v9.7.893; v9.7.897 the light invite)
   // (v9.7.896) whatever it asks, the question names the thing it asks about
   out.push('If the text asks a question, it is concrete: it names the one thing it asks about (whether they have a trade, cash or financing, when they want it, what they drive now, which of two trims), so they can answer in a word or two. Never an open-ended question about the process ("what is the main thing left to settle", "what part of the deal", "what would be most helpful", "what would help you decide", "what detail can I clarify").');
   // (v9.7.849) They asked for room (a pause): the text gives it, and asks nothing.
@@ -27894,7 +27922,7 @@ var _LP_VISIT_HOLDS = [
   [2, /^DO NOT offer appointment times\. DO NOT write duration\./, 'the stalled-lead re-engagement block'],
   [2, /The visit already happened\. Do NOT push a same-day appointment or offer times/, 'the SHOWROOM FOLLOW-UP block'],
   [2, /FIRST HUMAN TOUCH — LIGHT ASK, NO TIMES/, 'FIRST HUMAN TOUCH'],
-  [3, /^FIRST REACH-OUT \u2014 BUILD ENGAGEMENT, NO VISIT ASK:/, 'the FIRST REACH-OUT (engagement first: no visit ask)'],   // (v9.7.889) soft: the Add Appt chip overrides it
+  [2, /^FIRST REACH-OUT \u2014 LIGHT VISIT INVITE, NO TIMES:/, 'the FIRST REACH-OUT (a light invite: no times, no day)'],   // (v9.7.889; v9.7.897 a light invite) soft: the Add Appt chip overrides it
   [2, /^APPOINTMENT TIMES WITHHELD ON THIS LEAD/, 'APPOINTMENT TIMES WITHHELD (a block above owns "no times")'],
   [2, /DO NOT include appointment times in ANY format/, 'the ZERO-CONTACT block'],
   [2, /do NOT offer a specific appointment time/, 'the REACTIVATION block'],

@@ -41,7 +41,7 @@ for (const f of BUILDS) {
 
   console.log(' give before you ask:');
   const p1 = prompt(LEAD(NEW));
-  check('the first reach-out: "GIVE BEFORE YOU ASK" -- a real fact, what we can do, or the offer -- ahead of the question', () => [/GIVE BEFORE YOU ASK\. With no visit ask, the substance is what earns the reply[^\n]*The question comes last\./.test(p1), FU.test(p1)], [true, false]);
+  check('the first reach-out: "GIVE BEFORE YOU ASK" -- a real fact, what we can do, or the offer -- ahead of the invitation (v9.7.897)', () => [/GIVE BEFORE YOU ASK\. Ahead of the invitation, one or two sentences that help them decide[^\n]*No padding/.test(p1), FU.test(p1)], [true, false]);
   const p2 = prompt(FOLLOW_LEAD());
   check('a follow-up: substance before the question, no length target, and a hold that keeps it small wins', () => [FU.test(p2), /One or two sentences of that, then the question\. No padding[^\n]*that rule wins\./.test(p2)], [true, true]);
   check('a stalled follow-up gets it too', () => FU.test(prompt(FOLLOW_LEAD({ leadAgeDays: 26, _isStalled: true }))), true);

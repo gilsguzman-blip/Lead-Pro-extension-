@@ -48,8 +48,9 @@ for (const f of BUILDS) {
     [j && j.stage, /whether they have a trade, whether they are paying cash or financing, or when they want it \(for a car still on its way to us, when they would like to have it once it arrives\)/.test(j && j.ask), /what is left for them to settle/.test(j && j.ask)],
     ['ALREADY BUILDING A DEAL ONLINE', true, false]);
   const p1 = prompt(LEAD(NEW));
-  check('the first reach-out carries the concrete-question rule, naming the vague questions it replaces', () =>
-    [/FIRST REACH-OUT — BUILD ENGAGEMENT, NO VISIT ASK/.test(p1), /Make the question concrete: it names the one thing it asks about[^\n]*"what is the main thing you still need to settle", "what part of the deal would you like to tackle next", "what would be most helpful"/.test(p1)], [true, true]);
+  // (v9.7.897) the first reach-out closes on a light visit invitation, not a question, so it no longer carries the question rule
+  check('the first reach-out closes on a light invitation, with no other question (the concrete-question rule is for follow-ups, since v9.7.897)', () =>
+    [/FIRST REACH-OUT — LIGHT VISIT INVITE, NO TIMES/.test(p1), /The invitation is the close\. No other question/.test(p1), /Make the question concrete/.test(p1)], [true, true, false]);
   const p2 = prompt(FOLLOW_LEAD());
   check('a follow-up gets it as its own line', () => /\nCONCRETE QUESTION: Make the question concrete:/.test(p2), true);
   check('control: an exit gets no such line', () => /\nCONCRETE QUESTION:/.test(prompt(FOLLOW_LEAD({ convState: 'exit', hasExitSignal: true }))), false);

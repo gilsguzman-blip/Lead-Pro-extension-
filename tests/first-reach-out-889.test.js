@@ -41,7 +41,8 @@ for (const f of BUILDS) {
   const prompt = (d, chip) => quiet(() => { vm.runInContext('activeFlags = new Set(); leadContext = ""; window._lpAddApptLeadId = "' + (chip ? d.autoLeadId : '') + '"; window._activeLeadId = "' + d.autoLeadId + '"; window._lpAddApptAt = 0;', sb);
     sb.__L = d; vm.runInContext('lastScrapedData = globalThis.__L;', sb); sb.populateFromData(d);
     return String(sb.__lp.buildUserPrompt(panelPayload(src, sb, { lsd: d, context: String(vm.runInContext('leadContext', sb) || '') }))); });
-  const FRV = /VISIT DECISION FOR THIS MESSAGE: no visit ask and no appointment times in this message -- the FIRST REACH-OUT/;
+  // (v9.7.897) owner, 11/27: the first reach-out makes a light, open visit invitation -- the hold is "no specific times" (level 2)
+  const FRV = /VISIT DECISION FOR THIS MESSAGE: no specific appointment times and no same-day push in this message; invite them in only as that instruction allows -- the FIRST REACH-OUT/;
 
   console.log(' which message is the first reach-out:');
   check('a new lead, nothing sent -> first reach-out', () => fro(LEAD(NEW)), true);
@@ -65,10 +66,10 @@ for (const f of BUILDS) {
 
   console.log(' the prompt:');
   const p1 = prompt(LEAD(NEW));
-  check('first reach-out: the block with the journey, and the visit decision "no visit ask" owned by it', () => [/🤝 FIRST REACH-OUT — BUILD ENGAGEMENT, NO VISIT ASK:/.test(p1), /WHERE THEY ARE IN THE BUYING JOURNEY: COMPARING, MODEL CHOSEN/.test(p1), FRV.test(p1)], [true, true, true]);
+  check('first reach-out: the block with the journey, and the visit decision "no specific times" owned by it (a light invite since v9.7.897)', () => [/🤝 FIRST REACH-OUT — LIGHT VISIT INVITE, NO TIMES:/.test(p1), /WHERE THEY ARE IN THE BUYING JOURNEY: COMPARING, MODEL CHOSEN/.test(p1), FRV.test(p1)], [true, true, true]);
   check('...and no slot block, no two-times close', () => [/SUGGESTED APPOINTMENT TIMES \(fallback/.test(p1), /close with two specific appointment times/.test(p1)], [false, false]);
-  check('...and the text rewrite is told: no visit ask, and the text ends on the one engaging question', () => quiet(() => { const r = String(fn('_lpBuildSmsRefinePrompt')('Test, what drew you to the CR-V EX?', 'Hi Test,\n\nWhat drew you to the CR-V EX?', LEAD(NEW)));
-    return [/This message makes NO visit ask and offers NO time \(the FIRST REACH-OUT/.test(r), /This is our first reach-out on the lead: its point is the one engaging question/.test(r)]; }), [true, true]);
+  check('...and the text rewrite is told: no appointment time, and the text ends on the same light invitation (since v9.7.897)', () => quiet(() => { const r = String(fn('_lpBuildSmsRefinePrompt')('Test, what drew you to the CR-V EX?', 'Hi Test,\n\nWhat drew you to the CR-V EX?', LEAD(NEW)));
+    return [/This message offers NO appointment time \(the FIRST REACH-OUT/.test(r), /This is our first reach-out on the lead: answer anything they asked, keep the email\'s useful line[^']*end on the same light invitation the email makes/.test(r)]; }), [true, true]);
   check('control: they asked to come in -> no block, the visit is not held by it', () => { const p = prompt(LEAD(E('10:05 AM', 'CUSTOMER REQUEST FROM INQUIRY', 'Lead Received', 'Can I come see it today?') + MARK('10:04 AM'))); return [/FIRST REACH-OUT —/.test(p), FRV.test(p)]; }, [false, false]);
   check('control: the agent pressed Add Appt -> no block, two times', () => { const p = prompt(LEAD(NEW), true); return [/FIRST REACH-OUT —/.test(p), /close with two specific appointment times/.test(p)]; }, [false, true]);
   check('control: our second message (a person already texted) -> no block', () => /FIRST REACH-OUT —/.test(prompt(LEAD(HUMAN_TEXT(NEW), { convState: 'active-follow-up', hasOutbound: true }))), false);
