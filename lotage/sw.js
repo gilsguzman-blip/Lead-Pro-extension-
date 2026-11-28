@@ -1,8 +1,8 @@
-/* Lead Pro Lot Age service worker v1.0.
+/* Lead Pro Lot Age service worker v1.1.
  * Caches the app shell so the app opens with no signal on the lot. Network first, so a new
  * build shows up on the next open. Inventory requests go to the proxy (another origin) and are
  * never touched here: the page keeps its own last-good copy. */
-const CACHE = 'lotage-v1.0';
+const CACHE = 'lotage-v1.1';
 const SHELL = ['./', 'index.html', 'lot-core.js', 'manifest.webmanifest', 'icon.svg', 'icon-180.png', 'icon-192.png', 'icon-512.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => {

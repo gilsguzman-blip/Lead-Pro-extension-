@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lot Age</title>
 <!--
-  Lead Pro Lot Age v1.0 — a phone web app (installable from the browser) that shows a
+  Lead Pro Lot Age v1.1 — a phone web app (installable from the browser) that shows a
   salesperson every in-stock unit of a model, OLDEST FIRST, so the aged unit is the one
   shown first. Reads the same per-store inventory blob the extension uses (GET /inventory,
   published by the Data Tool from the vAuto export). Sign-in is a Lead Pro license key,
@@ -56,6 +56,7 @@ select.store{flex:1;min-width:0;padding:8px 10px;border:1px solid var(--line);bo
 .seg button[aria-pressed=true]{background:var(--card);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
 .search{position:relative;margin-top:10px}
 .search input{width:100%;padding:11px 38px 11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card)}
+.search input::-webkit-search-cancel-button{-webkit-appearance:none;appearance:none;display:none}
 .search .clear{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:0;background:none;color:var(--muted);font-size:20px;width:30px;height:30px;cursor:pointer;display:none}
 .search.has .clear{display:block}
 h2{font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:18px 0 8px;font-weight:700}
@@ -176,7 +177,7 @@ const state = {
   session: store.get('session'),               // {licenseKey, agentName}
   storeId: store.get('storeId') || L.STORES[0].id,
   cond: store.get('cond') || 'new',
-  family: null, color: null, query: '',
+  family: null, power: null, trim: null, color: null, query: '',
   data: null,                                  // prepared inventory
   source: '',                                  // 'live' | 'cache'
 };
@@ -276,16 +277,33 @@ function render() {
     return;
   }
 
+  // (v1.1) Narrowing order: model/search -> powertrain -> trim -> color. Each chip row is built
+  // from what the rows above it left, so every chip shown has at least one car behind it.
   const base = L.filter(units, { condition: state.cond, family: state.family, query: q });
-  const list = state.color ? base.filter(u => String(u.color || '').trim() === state.color) : base;
+  const pws = L.powers(base);
+  if (state.power && !pws.some(p => p.power === state.power)) state.power = null;
+  const byPower = state.power ? base.filter(u => u._power === state.power) : base;
+  const trs = L.trims(byPower);
+  if (state.trim && !trs.some(t => t.trim === state.trim)) state.trim = null;
+  const byTrim = state.trim ? byPower.filter(u => u._trimKey === state.trim) : byPower;
+  const cols = L.colors(byTrim);
+  if (state.color && !cols.some(c => c.color === state.color)) state.color = null;
+  const list = state.color ? byTrim.filter(u => String(u.color || '').trim() === state.color) : byTrim;
   const s = L.summary(list);
-  const cols = L.colors(base);
 
   let h = '<div class="crumb"><button id="back">‹ Models</button><span class="t">' + esc(state.family || 'Search results') + '</span></div>';
   h += '<div class="stats"><span class="stat"><b>' + s.count + '</b>in stock</span>' +
        (s.oldest !== null ? '<span class="stat"><b>' + s.oldest + '</b>days oldest</span>' : '') +
        (s.avg !== null ? '<span class="stat"><b>' + s.avg + '</b>days avg</span>' : '') +
        (s.aged ? '<span class="stat"><b>' + s.aged + '</b>over ' + L.AGED_ALERT + ' days</span>' : '') + '</div>';
+  if (pws.length > 1) {
+    h += '<div class="chips" role="group" aria-label="Powertrain"><button class="chip" data-power="" aria-pressed="' + (!state.power) + '">Any engine</button>' +
+      pws.map(p => `<button class="chip" data-power="${esc(p.power)}" aria-pressed="${state.power === p.power}">${esc(p.power)} · ${p.count}</button>`).join('') + '</div>';
+  }
+  if (trs.length > 1) {
+    h += '<div class="chips" role="group" aria-label="Trim"><button class="chip" data-trim="" aria-pressed="' + (!state.trim) + '">All trims</button>' +
+      trs.map(t => `<button class="chip" data-trim="${esc(t.trim)}" aria-pressed="${state.trim === t.trim}">${esc(t.label)} · ${t.count}</button>`).join('') + '</div>';
+  }
   if (cols.length > 1) {
     h += '<div class="chips" role="group" aria-label="Color"><button class="chip" data-color="" aria-pressed="' + (!state.color) + '">Any color</button>' +
       cols.map(c => `<button class="chip" data-color="${esc(c.color)}" aria-pressed="${state.color === c.color}">${esc(c.color)} · ${c.count}</button>`).join('') + '</div>';
@@ -322,10 +340,15 @@ function card(u, first) {
 }
 
 /* ---------- events ---------- */
+function resetNarrow() { state.power = null; state.trim = null; state.color = null; }
 $('view').addEventListener('click', ev => {
   const fam = ev.target.closest('[data-fam]');
-  if (fam) { state.family = fam.dataset.fam; state.color = null; render(); window.scrollTo(0, 0); return; }
-  if (ev.target.closest('#back')) { state.family = null; state.color = null; state.query = ''; $('q').value = ''; $('searchbox').classList.remove('has'); render(); return; }
+  if (fam) { state.family = fam.dataset.fam; resetNarrow(); render(); window.scrollTo(0, 0); return; }
+  if (ev.target.closest('#back')) { state.family = null; resetNarrow(); state.query = ''; $('q').value = ''; $('searchbox').classList.remove('has'); render(); return; }
+  const pw = ev.target.closest('[data-power]');
+  if (pw) { state.power = pw.dataset.power || null; state.trim = null; state.color = null; render(); return; }
+  const tr = ev.target.closest('[data-trim]');
+  if (tr) { state.trim = tr.dataset.trim || null; state.color = null; render(); return; }
   const col = ev.target.closest('[data-color]');
   if (col) { state.color = col.dataset.color || null; render(); return; }
   const cp = ev.target.closest('[data-copy]');
@@ -337,17 +360,17 @@ $('view').addEventListener('click', ev => {
 document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => {
   state.cond = b.dataset.cond; store.set('cond', state.cond);
   document.querySelectorAll('.seg button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
-  state.color = null; render();
+  resetNarrow(); render();
 }));
 let qt;
 $('q').addEventListener('input', () => {
   $('searchbox').classList.toggle('has', !!$('q').value);
-  clearTimeout(qt); qt = setTimeout(() => { state.query = $('q').value; state.color = null; render(); }, 120);
+  clearTimeout(qt); qt = setTimeout(() => { state.query = $('q').value; resetNarrow(); render(); }, 120);
 });
-$('qclear').addEventListener('click', () => { $('q').value = ''; state.query = ''; $('searchbox').classList.remove('has'); render(); $('q').focus(); });
+$('qclear').addEventListener('click', () => { $('q').value = ''; state.query = ''; resetNarrow(); $('searchbox').classList.remove('has'); render(); $('q').focus(); });
 $('store').addEventListener('change', () => {
   state.storeId = $('store').value; store.set('storeId', state.storeId);
-  state.data = null; state.family = null; state.color = null; load();
+  state.data = null; state.family = null; resetNarrow(); load();
 });
 $('refresh').addEventListener('click', () => load(true));
 document.addEventListener('visibilitychange', () => { if (!document.hidden && state.session && state.data) { renderAsOf(); load(); } });

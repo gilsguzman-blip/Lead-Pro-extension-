@@ -87,6 +87,61 @@ check('summary ignores unknown ages', L.summary(L.filter(P.units, { condition: '
 check('color chips by count', L.colors(L.filter(P.units, { condition: 'new', family: 'RAV4' })), [{ color: 'Blueprint', count: 2 }, { color: 'Ice Cap', count: 2 }]);
 check('empty / null inventory is safe', L.prepare(null, '2026-11-27').units, []);
 
+// ---- v1.1: trims and search, from the 11/28 exports of all five stores ----
+const tp = (model, year, make) => L.trimParts({ model, year: year || 2026, make: make || '' });
+check('Hybrid moves out of the trim', tp('CR-V Hybrid Sport-L'), { power: 'Hybrid', drive: '', base: 'Sport-L' });
+check('trailing Hybrid too', tp('CR-V Sport Touring Hybrid').base, 'Sport Touring');
+check('Plug-In (capital I, as vAuto writes it)', tp('RAV4 Plug-In Hybrid XSE').power, 'Plug-in Hybrid');
+check('2026 RAV4 with no word is a hybrid', tp('RAV4 LE', 2026).power, 'Hybrid');
+check('2025 RAV4 with no word is gas', tp('RAV4 LE', 2025).power, 'Gas');
+check('Camry 2025+ hybrid', tp('Camry SE', 2026).power, 'Hybrid');
+check('Prius is hybrid', tp('Prius XLE').power, 'Hybrid');
+check('drive word is not the trim', tp('Pilot TrailSport AWD'), { power: 'Gas', drive: 'AWD', base: 'TrailSport' });
+check('Audi quattro + engine code stripped', tp('Q5 2.0T Premium Plus quattro', 2026, 'Audi').base, 'Premium Plus');
+check('Audi 55 stripped', tp('Q7 55 Premium Plus quattro', 2026, 'Audi').base, 'Premium Plus');
+check('Audi A8 L keeps its L', tp('A8 L 55 quattro', 2026, 'Audi').base, 'L');
+check('Audi FrontTrak is drive', tp('A3 2.0T FrontTrak', 2026, 'Audi').drive, 'FRONTTRAK');
+check('no trim given says so', tp('A5 quattro', 2026, 'Audi').base, 'Trim not listed');
+check('a literal Base stays Base', tp('Prelude Base').base, 'Base');
+check('"Si Base" is a Si', tp('Civic Si Base').base, 'Si');
+check('SQ6 e-tron is its own model and electric', [L.family({ model: 'SQ6 e-tron Prestige quattro' }), tp('SQ6 e-tron Prestige quattro', 2026, 'Audi').power], ['SQ6 e-tron', 'Electric']);
+check('A6 Sportback e-tron is not a gas A6', [L.family({ model: 'A6 Sportback e-tron Premium quattro' }), tp('A6 Sportback e-tron Premium quattro', 2026, 'Audi').power], ['A6 Sportback e-tron', 'Electric']);
+check('"RS 3" is the RS3', [L.family({ model: 'RS 3 2.5T quattro' }), L.trim({ model: 'RS 3 2.5T quattro' })], ['RS3', '2.5T quattro']);
+
+const T = L.prepare({ generated: '2026-11-28', units: [
+  { stock: 'A', make: 'Toyota', year: 2026, model: 'Tacoma TRD Off-Road', condition: 'new', daysOnLot: 10 },
+  { stock: 'B', make: 'Toyota', year: 2026, model: 'Tacoma Hybrid TRD Off Road', condition: 'new', daysOnLot: 50 },
+  { stock: 'C', make: 'Honda', year: 2026, model: 'Ridgeline TrailSport', condition: 'new', daysOnLot: 5, body: 'Crew Cab Pickup' },
+  { stock: 'D', make: 'Honda', year: 2026, model: 'Ridgeline TrailSport+', condition: 'new', daysOnLot: 7 },
+  { stock: 'E', make: 'Audi', year: 2026, model: 'Q3 S Line quattro', condition: 'new', daysOnLot: 1 },
+  { stock: 'F', make: 'Audi', year: 2026, model: 'Q3 S line quattro', condition: 'new', daysOnLot: 2 },
+  { stock: 'G', make: 'Audi', year: 2026, model: 'Q3 S line quattro', condition: 'new', daysOnLot: 3 },
+] }, '2026-11-28');
+const trimsOf = fam => L.trims(L.filter(T.units, { family: fam })).map(t => t.label + ' ' + t.count);
+check('Off-Road and Off Road are one trim', trimsOf('Tacoma'), ['TRD Off-Road 2']);
+check('TrailSport and TrailSport+ stay apart', trimsOf('Ridgeline'), ['TrailSport 1', 'TrailSport+ 1']);
+check('S Line / S line merge, most common spelling shown', trimsOf('Q3'), ['S line 3']);
+check('powertrain chips', L.powers(L.filter(T.units, { family: 'Tacoma' })), [{ power: 'Gas', count: 1 }, { power: 'Hybrid', count: 1 }]);
+check('trim filter picks exactly one', stocks(L.filter(T.units, { family: 'Ridgeline', trim: 'Ridgeline|trailsport plus' })), ['D']);
+
+const H = L.prepare({ generated: '2026-11-28', units: [
+  ['1', 'CR-V Hybrid Sport-L'], ['2', 'CR-V Hybrid Sport Touring'], ['3', 'CR-V EX-L'], ['4', 'CR-V Hybrid Sport'],
+  ['5', 'Passport TrailSport Elite'], ['6', 'Passport TrailSport'], ['7', 'Odyssey EX-L'], ['8', 'Civic Sport'],
+].map(([s, m], i) => ({ stock: 'TB09950' + s, vin: 'X' + s, make: 'Honda', year: 2026, model: m, vehicle: '2026 Honda ' + m,
+  condition: 'new', daysOnLot: 10 + i, body: /Odyssey/.test(m) ? 'Passenger Van' : 'Sport Utility' })) }, '2026-11-28');
+const q = s => stocks(L.filter(H.units, { query: s })).sort();
+check('"sport" = the word Sport only (no Passport, TrailSport, body type)', q('sport'), ['TB099501', 'TB099502', 'TB099504', 'TB099508']);
+check('"sport l" is Sport-L, not EX-L', q('sport l'), ['TB099501']);
+check('"sport-l" the same', q('sport-l'), ['TB099501']);
+check('"trailsport" finds both TrailSports', q('trailsport'), ['TB099505', 'TB099506']);
+check('"pass" (typing) finds Passports, not the Odyssey "Passenger Van"', q('pass'), ['TB099505', 'TB099506']);
+check('digits match anywhere in stock #', q('9503'), ['TB099503']);
+const K = L.prepare({ generated: '2026-11-28', units: [
+  { stock: 'K1', make: 'Kia', model: 'Sportage LX', condition: 'new', daysOnLot: 3 },
+  { stock: 'U1', make: 'Jeep', model: 'Wrangler Sport', condition: 'used', daysOnLot: 3 },
+] }, '2026-11-28');
+check('Kia "sport" still finds Sportage when a used car says Sport', stocks(L.filter(K.units, { condition: 'new', query: 'sport' })), ['K1']);
+
 // ---- stores match the Data Tool ----
 const fs = require('fs');
 const dt = fs.readFileSync(path.join(__dirname, '..', 'datatool', 'index.html'), 'utf8');
